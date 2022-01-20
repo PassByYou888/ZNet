@@ -1,0 +1,318 @@
+object DTC40_FS_AdminToolForm: TDTC40_FS_AdminToolForm
+  Left = 381
+  Height = 450
+  Top = 128
+  Width = 950
+  Caption = 'Cloud 4.0 File System Administrator Tool.'
+  ClientHeight = 430
+  ClientWidth = 950
+  Color = clBtnFace
+  Constraints.MinHeight = 450
+  Constraints.MinWidth = 950
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu_
+  OnClose = FormClose
+  Position = poDesktopCenter
+  LCLVersion = '2.0.12.0'
+  object botSplitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 293
+    Width = 950
+    Align = alBottom
+    AutoSnap = False
+    Color = clBlue
+    MinSize = 120
+    ParentColor = False
+    ResizeAnchor = akBottom
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 129
+    Top = 301
+    Width = 950
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentColor = True
+    ParentDoubleBuffered = False
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 0
+    WordWrap = False
+  end
+  object TopBarPanel: TPanel
+    Left = 0
+    Height = 31
+    Top = 0
+    Width = 950
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 31
+    ClientWidth = 950
+    TabOrder = 1
+    object JoinHostEdit: TLabeledEdit
+      Left = 56
+      Height = 21
+      Top = 5
+      Width = 105
+      EditLabel.Height = 13
+      EditLabel.Width = 44
+      EditLabel.Caption = 'Join Host'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 0
+    end
+    object JoinPortEdit: TLabeledEdit
+      Left = 190
+      Height = 21
+      Top = 5
+      Width = 49
+      EditLabel.Height = 13
+      EditLabel.Width = 20
+      EditLabel.Caption = 'Port'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 1
+    end
+    object DependEdit: TLabeledEdit
+      Left = 293
+      Height = 21
+      Top = 5
+      Width = 68
+      EditLabel.Height = 13
+      EditLabel.Width = 37
+      EditLabel.Caption = 'Depend'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 2
+    end
+    object BuildDependNetButton: TButton
+      Left = 816
+      Height = 25
+      Top = 2
+      Width = 76
+      Anchors = [akTop, akRight]
+      Caption = 'Build Tunnel'
+      OnClick = BuildDependNetButtonClick
+      TabOrder = 6
+    end
+    object resetDependButton: TButton
+      Left = 898
+      Height = 25
+      Top = 2
+      Width = 42
+      Anchors = [akTop, akRight]
+      Caption = 'Reset'
+      OnClick = resetDependButtonClick
+      TabOrder = 7
+    end
+    object serviceComboBox: TComboBox
+      Left = 450
+      Height = 21
+      Top = 4
+      Width = 195
+      Anchors = [akTop, akLeft, akRight]
+      ItemHeight = 13
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object queryButton: TButton
+      Left = 367
+      Height = 25
+      Top = 2
+      Width = 77
+      Caption = 'query to ->'
+      OnClick = queryButtonClick
+      TabOrder = 3
+    end
+    object DTC4PasswdEdit: TLabeledEdit
+      Left = 707
+      Height = 21
+      Top = 4
+      Width = 103
+      Anchors = [akTop, akRight]
+      EchoMode = emPassword
+      EditLabel.Height = 13
+      EditLabel.Width = 52
+      EditLabel.Caption = 'C4 Passwd'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      PasswordChar = '*'
+      TabOrder = 5
+      OnChange = DTC4PasswdEditChange
+    end
+  end
+  object cliPanel: TPanel
+    Left = 0
+    Height = 262
+    Top = 31
+    Width = 950
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 262
+    ClientWidth = 950
+    TabOrder = 2
+    object FileListView: TListView
+      Left = 0
+      Height = 229
+      Top = 33
+      Width = 950
+      Align = alClient
+      BorderStyle = bsNone
+      Columns = <      
+        item
+          AutoSize = True
+          Caption = 'Remote Files'
+          Width = 91
+        end      
+        item
+          Alignment = taCenter
+          Caption = 'File Time'
+          Width = 120
+        end      
+        item
+          Alignment = taRightJustify
+          Caption = 'Size'
+          Width = 120
+        end      
+        item
+          Alignment = taRightJustify
+          Caption = 'MD5'
+          Width = 220
+        end      
+        item
+          Alignment = taCenter
+          Caption = 'states'
+          Width = 80
+        end>
+      HideSelection = False
+      MultiSelect = True
+      PopupMenu = PopupMenu_
+      ReadOnly = True
+      RowSelect = True
+      TabOrder = 0
+      ViewStyle = vsReport
+      OnCreateItemClass = FileListViewCreateItemClass
+    end
+    object listToolBarPanel: TPanel
+      Left = 0
+      Height = 33
+      Top = 0
+      Width = 950
+      Align = alTop
+      BevelOuter = bvNone
+      ClientHeight = 33
+      ClientWidth = 950
+      TabOrder = 1
+      object FS_Info_Label: TLabel
+        Left = 335
+        Height = 13
+        Top = 7
+        Width = 12
+        Caption = '...'
+        ParentColor = False
+      end
+      object SearchEdit: TLabeledEdit
+        Left = 67
+        Height = 21
+        Top = 4
+        Width = 109
+        EditLabel.Height = 13
+        EditLabel.Width = 49
+        EditLabel.Caption = 'File name:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 0
+      end
+      object SearchButton: TButton
+        Left = 262
+        Height = 25
+        Top = 3
+        Width = 66
+        Caption = 'Go Serach'
+        OnClick = SearchButtonClick
+        TabOrder = 1
+      end
+      object NumEdit: TLabeledEdit
+        Left = 216
+        Height = 21
+        Top = 4
+        Width = 40
+        EditLabel.Height = 13
+        EditLabel.Width = 25
+        EditLabel.Caption = 'Num:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 2
+        Text = '100'
+      end
+    end
+  end
+  object netTimer: TTimer
+    Interval = 10
+    OnTimer = netTimerTimer
+    Left = 309
+    Top = 77
+  end
+  object UploadFileOpenDialog: TOpenDialog
+    Options = [ofHideReadOnly, ofAllowMultiSelect, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Left = 201
+    Top = 200
+  end
+  object ActionList_: TActionList
+    Left = 309
+    Top = 138
+    object Action_DownloadFile: TAction
+      Caption = 'Download'
+      OnExecute = Action_DownloadFileExecute
+    end
+    object Action_UploadFile: TAction
+      Caption = 'Upload File.'
+      OnExecute = Action_UploadFileExecute
+    end
+    object Action_RemoveFile: TAction
+      Caption = 'Remove file.'
+      OnExecute = Action_RemoveFileExecute
+    end
+    object Action_exit: TAction
+      Caption = 'Exit'
+      OnExecute = Action_exitExecute
+    end
+  end
+  object MainMenu_: TMainMenu
+    Left = 307
+    Top = 204
+    object File1: TMenuItem
+      Caption = '&File'
+      object Download1: TMenuItem
+        Action = Action_DownloadFile
+      end
+      object Removefile1: TMenuItem
+        Action = Action_RemoveFile
+      end
+      object UploadFile1: TMenuItem
+        Action = Action_UploadFile
+      end
+      object Exit1: TMenuItem
+        Action = Action_exit
+      end
+    end
+  end
+  object PopupMenu_: TPopupMenu
+    Left = 305
+    Top = 261
+    object Download2: TMenuItem
+      Action = Action_DownloadFile
+    end
+    object Removefile2: TMenuItem
+      Action = Action_RemoveFile
+    end
+    object UploadFile2: TMenuItem
+      Action = Action_UploadFile
+    end
+  end
+end

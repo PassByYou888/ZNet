@@ -1,0 +1,96 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{7D2B2FFC-81A4-4DD5-828F-9D758361D134}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Delphi-C4AppTemplet\C40AppTemplet.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Delphi-DTC40_FS_AdminTool\DTC40_FS_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Delphi-DTC40_Var_AdminTool\DTC40_Var_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="C40AppTemplet">
+        <MSBuild Projects="Delphi-C4AppTemplet\C40AppTemplet.dproj"/>
+    </Target>
+    <Target Name="C40AppTemplet:Clean">
+        <MSBuild Projects="Delphi-C4AppTemplet\C40AppTemplet.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C40AppTemplet:Make">
+        <MSBuild Projects="Delphi-C4AppTemplet\C40AppTemplet.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_AdminTool_Templet">
+        <MSBuild Projects="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj"/>
+    </Target>
+    <Target Name="DTC40_AdminTool_Templet:Clean">
+        <MSBuild Projects="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_AdminTool_Templet:Make">
+        <MSBuild Projects="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool">
+        <MSBuild Projects="Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool:Clean">
+        <MSBuild Projects="Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool:Make">
+        <MSBuild Projects="Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_FS_AdminTool">
+        <MSBuild Projects="Delphi-DTC40_FS_AdminTool\DTC40_FS_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_FS_AdminTool:Clean">
+        <MSBuild Projects="Delphi-DTC40_FS_AdminTool\DTC40_FS_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_FS_AdminTool:Make">
+        <MSBuild Projects="Delphi-DTC40_FS_AdminTool\DTC40_FS_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool">
+        <MSBuild Projects="Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool:Clean">
+        <MSBuild Projects="Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool:Make">
+        <MSBuild Projects="Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_Var_AdminTool">
+        <MSBuild Projects="Delphi-DTC40_Var_AdminTool\DTC40_Var_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_Var_AdminTool:Clean">
+        <MSBuild Projects="Delphi-DTC40_Var_AdminTool\DTC40_Var_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_Var_AdminTool:Make">
+        <MSBuild Projects="Delphi-DTC40_Var_AdminTool\DTC40_Var_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="C40AppTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="C40AppTemplet:Clean;DTC40_AdminTool_Templet:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_FS_AdminTool:Clean;DTC40_Log_AdminTool:Clean;DTC40_Var_AdminTool:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="C40AppTemplet:Make;DTC40_AdminTool_Templet:Make;DTC40_UserDB_AdminTool:Make;DTC40_FS_AdminTool:Make;DTC40_Log_AdminTool:Make;DTC40_Var_AdminTool:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

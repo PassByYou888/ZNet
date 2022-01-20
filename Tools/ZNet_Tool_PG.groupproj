@@ -1,0 +1,108 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{361E589B-7EF3-430D-8FD8-A9DBA2DFC26F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="PascalUnitRewriteTool\PascalRewriteModel.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PascalUnitRewriteTool\PRP.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="FileCheck\FileCheck.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PascalCommentReplace\PascalCommentRep.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PascalCodeUnification\PascalCodeUnification.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="StringTranslate\StringTranslate.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="FilePackage\FilePackageTool.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="PascalRewriteModel">
+        <MSBuild Projects="PascalUnitRewriteTool\PascalRewriteModel.dproj"/>
+    </Target>
+    <Target Name="PascalRewriteModel:Clean">
+        <MSBuild Projects="PascalUnitRewriteTool\PascalRewriteModel.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PascalRewriteModel:Make">
+        <MSBuild Projects="PascalUnitRewriteTool\PascalRewriteModel.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PRP">
+        <MSBuild Projects="PascalUnitRewriteTool\PRP.dproj"/>
+    </Target>
+    <Target Name="PRP:Clean">
+        <MSBuild Projects="PascalUnitRewriteTool\PRP.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PRP:Make">
+        <MSBuild Projects="PascalUnitRewriteTool\PRP.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FileCheck">
+        <MSBuild Projects="FileCheck\FileCheck.dproj"/>
+    </Target>
+    <Target Name="FileCheck:Clean">
+        <MSBuild Projects="FileCheck\FileCheck.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FileCheck:Make">
+        <MSBuild Projects="FileCheck\FileCheck.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PascalCommentRep">
+        <MSBuild Projects="PascalCommentReplace\PascalCommentRep.dproj"/>
+    </Target>
+    <Target Name="PascalCommentRep:Clean">
+        <MSBuild Projects="PascalCommentReplace\PascalCommentRep.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PascalCommentRep:Make">
+        <MSBuild Projects="PascalCommentReplace\PascalCommentRep.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PascalCodeUnification">
+        <MSBuild Projects="PascalCodeUnification\PascalCodeUnification.dproj"/>
+    </Target>
+    <Target Name="PascalCodeUnification:Clean">
+        <MSBuild Projects="PascalCodeUnification\PascalCodeUnification.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PascalCodeUnification:Make">
+        <MSBuild Projects="PascalCodeUnification\PascalCodeUnification.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="StringTranslate">
+        <MSBuild Projects="StringTranslate\StringTranslate.dproj"/>
+    </Target>
+    <Target Name="StringTranslate:Clean">
+        <MSBuild Projects="StringTranslate\StringTranslate.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="StringTranslate:Make">
+        <MSBuild Projects="StringTranslate\StringTranslate.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FilePackageTool">
+        <MSBuild Projects="FilePackage\FilePackageTool.dproj"/>
+    </Target>
+    <Target Name="FilePackageTool:Clean">
+        <MSBuild Projects="FilePackage\FilePackageTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FilePackageTool:Make">
+        <MSBuild Projects="FilePackage\FilePackageTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="PascalRewriteModel;PRP;FileCheck;PascalCommentRep;PascalCodeUnification;StringTranslate;FilePackageTool"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="PascalRewriteModel:Clean;PRP:Clean;FileCheck:Clean;PascalCommentRep:Clean;PascalCodeUnification:Clean;StringTranslate:Clean;FilePackageTool:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="PascalRewriteModel:Make;PRP:Make;FileCheck:Make;PascalCommentRep:Make;PascalCodeUnification:Make;StringTranslate:Make;FilePackageTool:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

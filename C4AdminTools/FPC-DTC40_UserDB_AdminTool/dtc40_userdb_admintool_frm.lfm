@@ -1,0 +1,398 @@
+object DTC40_UserDB_AdminToolForm: TDTC40_UserDB_AdminToolForm
+  Left = 568
+  Height = 450
+  Top = 197
+  Width = 950
+  Caption = 'Cloud 4.0 UserDB Administrator tool.'
+  ClientHeight = 430
+  ClientWidth = 950
+  Color = clBtnFace
+  Constraints.MinHeight = 450
+  Constraints.MinWidth = 950
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu_
+  OnClose = FormClose
+  Position = poDesktopCenter
+  LCLVersion = '2.0.12.0'
+  object botSplitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 293
+    Width = 950
+    Align = alBottom
+    AutoSnap = False
+    Color = clBlue
+    MinSize = 120
+    ParentColor = False
+    ResizeAnchor = akBottom
+  end
+  object TopBarPanel: TPanel
+    Left = 0
+    Height = 31
+    Top = 0
+    Width = 950
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 31
+    ClientWidth = 950
+    TabOrder = 0
+    object JoinHostEdit: TLabeledEdit
+      Left = 56
+      Height = 21
+      Top = 5
+      Width = 105
+      EditLabel.Height = 13
+      EditLabel.Width = 44
+      EditLabel.Caption = 'Join Host'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 0
+    end
+    object JoinPortEdit: TLabeledEdit
+      Left = 190
+      Height = 21
+      Top = 5
+      Width = 49
+      EditLabel.Height = 13
+      EditLabel.Width = 20
+      EditLabel.Caption = 'Port'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 1
+    end
+    object DependEdit: TLabeledEdit
+      Left = 293
+      Height = 21
+      Top = 5
+      Width = 68
+      EditLabel.Height = 13
+      EditLabel.Width = 37
+      EditLabel.Caption = 'Depend'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 2
+    end
+    object BuildDependNetButton: TButton
+      Left = 816
+      Height = 25
+      Top = 2
+      Width = 76
+      Anchors = [akTop, akRight]
+      Caption = 'Build Tunnel'
+      OnClick = BuildDependNetButtonClick
+      TabOrder = 6
+    end
+    object resetDependButton: TButton
+      Left = 898
+      Height = 25
+      Top = 2
+      Width = 42
+      Anchors = [akTop, akRight]
+      Caption = 'Reset'
+      OnClick = resetDependButtonClick
+      TabOrder = 7
+    end
+    object serviceComboBox: TComboBox
+      Left = 450
+      Height = 21
+      Top = 4
+      Width = 195
+      Anchors = [akTop, akLeft, akRight]
+      ItemHeight = 13
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object queryButton: TButton
+      Left = 367
+      Height = 25
+      Top = 2
+      Width = 77
+      Caption = 'query to ->'
+      OnClick = queryButtonClick
+      TabOrder = 3
+    end
+    object DTC4PasswdEdit: TLabeledEdit
+      Left = 708
+      Height = 21
+      Top = 4
+      Width = 102
+      Anchors = [akTop, akRight]
+      EchoMode = emPassword
+      EditLabel.Height = 13
+      EditLabel.Width = 52
+      EditLabel.Caption = 'C4 Passwd'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      PasswordChar = '*'
+      TabOrder = 5
+      OnChange = DTC4PasswdEditChange
+    end
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 129
+    Top = 301
+    Width = 950
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentColor = True
+    ParentDoubleBuffered = False
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 1
+    WordWrap = False
+  end
+  object cliPanel: TPanel
+    Left = 0
+    Height = 262
+    Top = 31
+    Width = 950
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 262
+    ClientWidth = 950
+    TabOrder = 2
+    object lpLSplitter: TSplitter
+      Left = 425
+      Height = 262
+      Top = 0
+      Width = 8
+      AutoSnap = False
+      Color = clBlue
+      MinSize = 250
+      ParentColor = False
+    end
+    object leftPanel: TPanel
+      Left = 0
+      Height = 262
+      Top = 0
+      Width = 425
+      Align = alLeft
+      BevelOuter = bvNone
+      ClientHeight = 262
+      ClientWidth = 425
+      TabOrder = 0
+      object listToolBarPanel: TPanel
+        Left = 0
+        Height = 33
+        Top = 0
+        Width = 425
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 33
+        ClientWidth = 425
+        TabOrder = 0
+        object SearchEdit: TLabeledEdit
+          Left = 53
+          Height = 21
+          Top = 3
+          Width = 189
+          Anchors = [akTop, akLeft, akRight]
+          EditLabel.Height = 13
+          EditLabel.Width = 24
+          EditLabel.Caption = 'text:'
+          EditLabel.ParentColor = False
+          LabelPosition = lpLeft
+          TabOrder = 0
+          OnKeyUp = SearchEditKeyUp
+        end
+        object SearchButton: TButton
+          Left = 327
+          Height = 25
+          Top = 2
+          Width = 66
+          Anchors = [akTop, akRight]
+          Caption = 'Go Serach'
+          OnClick = SearchButtonClick
+          TabOrder = 1
+        end
+        object NumEdit: TLabeledEdit
+          Left = 281
+          Height = 21
+          Top = 3
+          Width = 40
+          Anchors = [akTop, akRight]
+          EditLabel.Height = 13
+          EditLabel.Width = 25
+          EditLabel.Caption = 'Num:'
+          EditLabel.ParentColor = False
+          LabelPosition = lpLeft
+          TabOrder = 2
+          Text = '100'
+        end
+      end
+      object UserListView: TListView
+        Left = 0
+        Height = 229
+        Top = 33
+        Width = 425
+        Align = alClient
+        BorderStyle = bsNone
+        Columns = <        
+          item
+            AutoSize = True
+            Caption = 'Identifier'
+            Width = 69
+          end        
+          item
+            Caption = 'Last Login'
+            Width = 160
+          end        
+          item
+            Alignment = taCenter
+            Caption = 'Enabled'
+          end        
+          item
+            Alignment = taCenter
+            Caption = 'Online'
+          end>
+        HideSelection = False
+        MultiSelect = True
+        ParentColor = True
+        PopupMenu = PopupMenu_
+        ReadOnly = True
+        RowSelect = True
+        ScrollBars = ssAutoVertical
+        TabOrder = 1
+        ViewStyle = vsReport
+        OnCreateItemClass = UserListViewCreateItemClass
+        OnSelectItem = UserListViewSelectItem
+      end
+    end
+    object jsonMemo: TMemo
+      Left = 433
+      Height = 262
+      Top = 0
+      Width = 517
+      Align = alClient
+      BorderStyle = bsNone
+      Constraints.MaxHeight = 450
+      DoubleBuffered = True
+      ParentColor = True
+      ParentDoubleBuffered = False
+      ReadOnly = True
+      ScrollBars = ssVertical
+      TabOrder = 1
+      WordWrap = False
+    end
+  end
+  object netTimer: TTimer
+    Interval = 10
+    OnTimer = netTimerTimer
+    Left = 193
+    Top = 205
+  end
+  object Action_List: TActionList
+    Left = 252
+    Top = 137
+    object Action_downloadtoDir: TAction
+      Caption = 'Download selected to directory.'
+      OnExecute = Action_downloadtoDirExecute
+    end
+    object Action_UploadJson: TAction
+      Caption = 'Upload json to UserDB.'
+      OnExecute = Action_UploadJsonExecute
+    end
+    object Action_Kick: TAction
+      Caption = 'Kick'
+      OnExecute = Action_KickExecute
+    end
+    object Action_Enabled: TAction
+      Caption = 'Enabled'
+      OnExecute = Action_EnabledExecute
+    end
+    object Action_Disable: TAction
+      Caption = 'Disable'
+      OnExecute = Action_DisableExecute
+    end
+    object Action_Remove: TAction
+      Caption = 'Remove'
+      OnExecute = Action_RemoveExecute
+    end
+    object Action_UserDB_State: TAction
+      Caption = 'User DB Service State.'
+      OnExecute = Action_UserDB_StateExecute
+    end
+    object Action_exit: TAction
+      Caption = 'Exit'
+      OnExecute = Action_exitExecute
+    end
+  end
+  object uploadJson_OpenDialog: TOpenDialog
+    Options = [ofReadOnly, ofHideReadOnly, ofAllowMultiSelect, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Left = 343
+    Top = 104
+  end
+  object PopupMenu_: TPopupMenu
+    Left = 168
+    Top = 137
+    object Kick1: TMenuItem
+      Action = Action_Kick
+    end
+    object Disable1: TMenuItem
+      Action = Action_Disable
+    end
+    object Enabled1: TMenuItem
+      Action = Action_Enabled
+    end
+    object Remove1: TMenuItem
+      Action = Action_Remove
+    end
+    object N1: TMenuItem
+      Caption = '-'
+    end
+    object Downloadselectedtodirectory1: TMenuItem
+      Action = Action_downloadtoDir
+    end
+    object UploadjsontoUserDB1: TMenuItem
+      Action = Action_UploadJson
+    end
+    object N2: TMenuItem
+      Caption = '-'
+    end
+    object UserDBServiceState2: TMenuItem
+      Action = Action_UserDB_State
+    end
+  end
+  object MainMenu_: TMainMenu
+    Left = 78
+    Top = 137
+    object File1: TMenuItem
+      Caption = '&File'
+      object Kick2: TMenuItem
+        Action = Action_Kick
+      end
+      object Disable2: TMenuItem
+        Action = Action_Disable
+      end
+      object Enabled2: TMenuItem
+        Action = Action_Enabled
+      end
+      object Remove2: TMenuItem
+        Action = Action_Remove
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object Downloadselectedtodirectory2: TMenuItem
+        Action = Action_downloadtoDir
+      end
+      object UploadjsontoUserDB2: TMenuItem
+        Action = Action_UploadJson
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object UserDBServiceState1: TMenuItem
+        Action = Action_UserDB_State
+      end
+      object Exit1: TMenuItem
+        Action = Action_exit
+      end
+    end
+  end
+end

@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{175B6D15-D988-4BC8-8C17-B66F7B465F84}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="PascalRewriteModel.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PRP.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="PascalRewriteModel">
+        <MSBuild Projects="PascalRewriteModel.dproj"/>
+    </Target>
+    <Target Name="PascalRewriteModel:Clean">
+        <MSBuild Projects="PascalRewriteModel.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PascalRewriteModel:Make">
+        <MSBuild Projects="PascalRewriteModel.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PRP">
+        <MSBuild Projects="PRP.dproj"/>
+    </Target>
+    <Target Name="PRP:Clean">
+        <MSBuild Projects="PRP.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PRP:Make">
+        <MSBuild Projects="PRP.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="PascalRewriteModel;PRP"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="PascalRewriteModel:Clean;PRP:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="PascalRewriteModel:Make;PRP:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

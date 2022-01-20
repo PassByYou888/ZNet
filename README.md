@@ -13,8 +13,17 @@ ZNet在以后的主要定位是对SaaS，p2pVM，IOT，大数据存储IO（仅�
 
 **ZNet是未来的ZServer4D母体，母体就是发源地，以后创造起源都会基于ZNet进行更新**，Pascal Rewrite Model技术可以让我们随时把最新的ZNet转换成ZServer4D或则别的分支项目，母体则是ZNet。
 
+#### ZNet相比ZServer4D的大更新
 
-## 把ZServer4D项目群升级到ZNet
+```
+新增C4-SaaS系统的XNAT支持
+新增兼容fpc/delphi的文本分析技术
+开始全面走代码规范化路线 diocp ics synapse 这些库 代码模型全部加了Z前缀 以后使用ZNet不再会与这些库发生冲突
+提供大数据支持地基
+针对IDC提供的基建服务部署C4，例如我们的服务器主机不在主干网 C4网络可以绑定一个ip 再侦听另一个IP
+```
+
+### 把ZServer4D项目群升级到ZNet
 #### 主要使用代码重写技术：Pascal Rewrite Model，全自动化升级
 
 - 代码重写模型简单来说，就是用机器代替了人类去规范化代码的技术，而规范化其实也就是人性化，更人性化表示更容易被长期提供支持和维护，因为pascal基本上都是35岁向上，工作的时间代价非常高，必须重视重复劳动
@@ -24,6 +33,36 @@ ZNet在以后的主要定位是对SaaS，p2pVM，IOT，大数据存储IO（仅�
 - **我会开源Pascal Rewrite Model技术，我的目标是帮助大家更好的做创造和创新，而不是借用新技术收割大家**
 - 关于引导使用Pascal Rewrite Model，包括制作模型，应用模型，我已彻底开放这一技术体系，让每个人都能做到每天在几十万处diff中自由穿梭，不会局限于ZNet和ZServer4D互转
 
-2022-1-19
+**把ZServer4D项目群升级到ZNet**
+
+```
+在 https://github.com/PassByYou888/ZNet/releases 找prp程序
+
+把c:\myproj\目录的中所有delphi/fpc工程和代码统一升级成使用Znet库，包括.pas .inc .dfm .fmx .dpr .lpr
+命令行格式 prp.exe "-D:c:\myproj\"
+
+prp程序默认会打开并行方式，如果机器配置不够关闭并行，模型处理代码的时间更久
+命令行格式 prp.exe -P:OFF "-D:c:\myproj\"
+
+在升级后发现不习惯，或则不愿意使用ZNet，可以选择把c:\myproj\的工程和代码降级到ZServer4D
+命令行格式 prp.exe -R "-D:c:\myproj\"
+说明 -R 开关表示反向重写
+
+依次类推，我们也可以使用prp把ZNet直接降级成ZServer4D然后在copy过去覆盖ZServer4D
+命令行格式 prp.exe -R "-D:c:\ZNet\"
+```
+
+**编译prp程序**
+```
+先设置好ZNet的编译路径
+prp程序位于 ZNet\Tools\PascalUnitRewriteTool
+直接打开prp.dproj就可以编译了
+PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文档暂时不提供建模指南，请大家暂时自行摸索
+后续我会专门开个项目讲解PascalRewrite模型的建模方法
+```
+
+**文档篇幅有限，项目挺忙，暂时就写这么多，空了再为大家继续完善文档**
+- by.qq600585
+- 2022-1-19
 
 

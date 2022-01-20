@@ -1,0 +1,95 @@
+object DTC40_Var_AdminToolNewNMForm: TDTC40_Var_AdminToolNewNMForm
+  Left = 610
+  Height = 346
+  Top = 213
+  Width = 493
+  AutoSize = True
+  BorderStyle = bsDialog
+  BorderWidth = 20
+  Caption = 'New Number Module.'
+  ClientHeight = 346
+  ClientWidth = 493
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnClose = FormClose
+  PopupMode = pmExplicit
+  PopupParent = DTC40_Var_AdminToolForm.Owner
+  Position = poMainFormCenter
+  LCLVersion = '2.0.12.0'
+  object Label1: TLabel
+    Left = 8
+    Height = 13
+    Top = 63
+    Width = 30
+    Caption = 'script:'
+    ParentColor = False
+  end
+  object NameEdit: TLabeledEdit
+    Left = 16
+    Height = 21
+    Top = 24
+    Width = 121
+    EditLabel.Height = 13
+    EditLabel.Width = 121
+    EditLabel.Caption = 'Number Module Name'
+    EditLabel.ParentColor = False
+    TabOrder = 0
+  end
+  object ScriptMemo: TMemo
+    Left = 16
+    Height = 175
+    Top = 82
+    Width = 460
+    Font.CharSet = ANSI_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -12
+    Font.Name = 'Consolas'
+    Lines.Strings = (
+      '// current Number Module example: Set(Key,Value)'
+      '// System Number Module example: SetSys(Name,Key,Value)'
+    )
+    ParentFont = False
+    ScrollBars = ssBoth
+    TabOrder = 3
+  end
+  object TempCheckBox: TCheckBox
+    Left = 150
+    Height = 21
+    Top = 27
+    Width = 85
+    Caption = 'Temp Module'
+    TabOrder = 1
+  end
+  object LifeTimeEdit: TLabeledEdit
+    Left = 240
+    Height = 21
+    Top = 24
+    Width = 52
+    EditLabel.Height = 13
+    EditLabel.Width = 52
+    EditLabel.Caption = 'Temp Module Life time'
+    EditLabel.ParentColor = False
+    TabOrder = 2
+    Text = '5*1000'
+  end
+  object CreateNMButton: TButton
+    Left = 16
+    Height = 25
+    Top = 289
+    Width = 75
+    Caption = '&OK'
+    OnClick = CreateNMButtonClick
+    TabOrder = 4
+  end
+  object CancelButton: TButton
+    Left = 97
+    Height = 25
+    Top = 289
+    Width = 75
+    Caption = '&Cancel'
+    OnClick = CancelButtonClick
+    TabOrder = 5
+  end
+end

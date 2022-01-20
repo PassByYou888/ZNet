@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="12">
+      <Unit0>
+        <Filename Value="DTC40_UserDB_AdminTool.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="65" Y="13"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DTC40_UserDB_AdminToolForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="DTC40_UserDB_AdminTool_frm"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="94"/>
+        <CursorPos X="71" Y="113"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="dtc40_userdb_admintool_frm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="34" Y="10"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="ZServer4D\Source\UnicodeMixedLib.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="7090"/>
+        <CursorPos Y="7114"/>
+        <UsageCount Value="11"/>
+        <Bookmarks Count="1">
+          <Item0 X="37" Y="3792" ID="1"/>
+        </Bookmarks>
+      </Unit3>
+      <Unit4>
+        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\sysinth.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos X="5" Y="48"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="ZServer4D\Source\ZJson_fpc.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="284"/>
+        <CursorPos X="56" Y="301"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\datih.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="5"/>
+        <CursorPos X="3" Y="22"/>
+        <UsageCount Value="10"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\dati.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="858"/>
+        <CursorPos X="21" Y="862"/>
+        <UsageCount Value="10"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="ZServer4D\Source\PascalStrings.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1359"/>
+        <CursorPos Y="1380"/>
+        <UsageCount Value="10"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="ZServer4D\Source\ZJson.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="144"/>
+        <CursorPos X="14" Y="153"/>
+        <UsageCount Value="10"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="ZServer4D\Source\FPCGenericStructlist.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="56"/>
+        <CursorPos X="34" Y="73"/>
+        <UsageCount Value="10"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\fgl.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="88"/>
+        <CursorPos X="3" Y="105"/>
+        <UsageCount Value="10"/>
+      </Unit11>
+    </Units>
+    <JumpHistory Count="22" HistoryIndex="21">
+      <Position1>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="458" Column="29" TopLine="440"/>
+      </Position1>
+      <Position2>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="452" Column="49" TopLine="440"/>
+      </Position2>
+      <Position3>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="458" Column="50" TopLine="440"/>
+      </Position3>
+      <Position4>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="461" Column="36" TopLine="440"/>
+      </Position4>
+      <Position5>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="453" Column="56" TopLine="440"/>
+      </Position5>
+      <Position6>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="466" Column="21" TopLine="440"/>
+      </Position6>
+      <Position7>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="541" Column="29" TopLine="527"/>
+      </Position7>
+      <Position8>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="46" Column="57" TopLine="27"/>
+      </Position8>
+      <Position9>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="47" TopLine="18"/>
+      </Position9>
+      <Position10>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="584" Column="5" TopLine="550"/>
+      </Position10>
+      <Position11>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+      </Position11>
+      <Position12>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="567" Column="5" TopLine="533"/>
+      </Position12>
+      <Position13>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="151" Column="8" TopLine="119"/>
+      </Position13>
+      <Position14>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="130" Column="63" TopLine="120"/>
+      </Position14>
+      <Position15>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="154" Column="6" TopLine="137"/>
+      </Position15>
+      <Position16>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="152" TopLine="137"/>
+      </Position16>
+      <Position17>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="288" TopLine="269"/>
+      </Position17>
+      <Position18>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="314" Column="23" TopLine="297"/>
+      </Position18>
+      <Position19>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="429" TopLine="410"/>
+      </Position19>
+      <Position20>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="472" Column="36" TopLine="456"/>
+      </Position20>
+      <Position21>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="493" Column="46" TopLine="477"/>
+      </Position21>
+      <Position22>
+        <Filename Value="dtc40_userdb_admintool_frm.pas"/>
+        <Caret Line="544" TopLine="526"/>
+      </Position22>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <Debugging>
+    <BreakPoints Count="3">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\dati.inc"/>
+        <Line Value="885"/>
+      </Item1>
+      <Item2>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\dati.inc"/>
+        <Line Value="863"/>
+      </Item2>
+      <Item3>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="C:\lazarus\fpc\3.2.0\source\rtl\objpas\sysutils\dati.inc"/>
+        <Line Value="862"/>
+      </Item3>
+    </BreakPoints>
+  </Debugging>
+</CONFIG>

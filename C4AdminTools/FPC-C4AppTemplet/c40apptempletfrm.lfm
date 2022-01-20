@@ -1,0 +1,679 @@
+object C40AppTempletForm: TC40AppTempletForm
+  Left = 637
+  Height = 500
+  Top = 194
+  Width = 700
+  HorzScrollBar.Page = 371
+  VertScrollBar.Page = 498
+  AutoScroll = True
+  Caption = 'Cloud 4.0 Application Templet.'
+  ClientHeight = 500
+  ClientWidth = 700
+  Color = clBtnFace
+  Constraints.MinHeight = 500
+  Constraints.MinWidth = 700
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnClose = FormClose
+  Position = poDesktopCenter
+  LCLVersion = '2.0.12.0'
+  object botSplitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 363
+    Width = 700
+    Align = alBottom
+    AutoSnap = False
+    Color = clBlue
+    MinSize = 120
+    ParentColor = False
+    ResizeAnchor = akBottom
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 129
+    Top = 371
+    Width = 700
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentDoubleBuffered = False
+    ScrollBars = ssVertical
+    TabOrder = 0
+    WordWrap = False
+  end
+  object PGControl: TPageControl
+    Left = 0
+    Height = 363
+    Top = 0
+    Width = 700
+    ActivePage = BuildNetworkTabSheet
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 1
+    object BuildNetworkTabSheet: TTabSheet
+      Caption = 'Build Network'
+      ClientHeight = 337
+      ClientWidth = 692
+      object net_Top_Splitter: TSplitter
+        Cursor = crVSplit
+        Left = 0
+        Height = 8
+        Top = 147
+        Width = 692
+        Align = alTop
+        AutoSnap = False
+        Color = clBlue
+        MinSize = 100
+        ParentColor = False
+        ResizeAnchor = akTop
+      end
+      object DependPanel: TPanel
+        Left = 0
+        Height = 147
+        Top = 0
+        Width = 692
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'DependPanel'
+        ClientHeight = 147
+        ClientWidth = 692
+        TabOrder = 0
+        object DependNetToolPanel: TPanel
+          Left = 0
+          Height = 32
+          Top = 0
+          Width = 692
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 32
+          ClientWidth = 692
+          DoubleBuffered = True
+          ParentDoubleBuffered = False
+          TabOrder = 0
+          object JoinHostEdit: TLabeledEdit
+            Left = 56
+            Height = 21
+            Top = 5
+            Width = 105
+            EditLabel.Height = 13
+            EditLabel.Width = 44
+            EditLabel.Caption = 'Join Host'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 0
+          end
+          object JoinPortEdit: TLabeledEdit
+            Left = 190
+            Height = 21
+            Top = 5
+            Width = 49
+            EditLabel.Height = 13
+            EditLabel.Width = 20
+            EditLabel.Caption = 'Port'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 1
+          end
+          object BuildDependNetButton: TButton
+            Left = 566
+            Height = 25
+            Top = 3
+            Width = 76
+            Anchors = [akTop, akRight]
+            Caption = 'Build Tunnel'
+            OnClick = BuildDependNetButtonClick
+            TabOrder = 3
+          end
+          object resetDependButton: TButton
+            Left = 648
+            Height = 25
+            Top = 3
+            Width = 42
+            Anchors = [akTop, akRight]
+            Caption = 'Reset'
+            OnClick = resetDependButtonClick
+            TabOrder = 4
+          end
+          object DependEdit: TLabeledEdit
+            Left = 293
+            Height = 21
+            Top = 5
+            Width = 267
+            Anchors = [akTop, akLeft, akRight]
+            EditLabel.Height = 13
+            EditLabel.Width = 37
+            EditLabel.Caption = 'Depend'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 2
+            OnChange = DependEditChange
+            OnExit = DependEditExit
+          end
+        end
+        object RependNetListView: TListView
+          Left = 0
+          Height = 115
+          Top = 32
+          Width = 692
+          Align = alClient
+          BorderStyle = bsNone
+          Checkboxes = True
+          Columns = <          
+            item
+              Caption = 'Tunnel Registration'
+              Width = 150
+            end          
+            item
+              AutoSize = True
+              Caption = 'Depend Classes'
+              Width = 110
+            end          
+            item
+              Caption = 'Unit'
+              Width = 200
+            end>
+          ColumnClick = False
+          HideSelection = False
+          ReadOnly = True
+          RowSelect = True
+          TabOrder = 1
+          ViewStyle = vsReport
+          OnChange = RependNetListViewChange
+        end
+      end
+      object servicePanel: TPanel
+        Left = 0
+        Height = 182
+        Top = 155
+        Width = 692
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 182
+        ClientWidth = 692
+        TabOrder = 1
+        object ServiceToolPanel: TPanel
+          Left = 0
+          Height = 30
+          Top = 0
+          Width = 692
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 30
+          ClientWidth = 692
+          DoubleBuffered = True
+          ParentDoubleBuffered = False
+          TabOrder = 0
+          object ServListeningIPEdit: TLabeledEdit
+            Left = 71
+            Height = 21
+            Top = 6
+            Width = 72
+            EditLabel.Height = 13
+            EditLabel.Width = 62
+            EditLabel.Caption = 'Listening  IP:'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 0
+          end
+          object ServPortEdit: TLabeledEdit
+            Left = 314
+            Height = 21
+            Top = 6
+            Width = 49
+            EditLabel.Height = 13
+            EditLabel.Width = 20
+            EditLabel.Caption = 'Port'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 2
+          end
+          object ServiceDependEdit: TLabeledEdit
+            Left = 448
+            Height = 21
+            Top = 6
+            Width = 112
+            Anchors = [akTop, akLeft, akRight]
+            EditLabel.Height = 13
+            EditLabel.Width = 75
+            EditLabel.Caption = 'Service Depend'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 3
+            OnChange = ServiceDependEditChange
+            OnExit = ServiceDependEditExit
+          end
+          object ServBuildNetButton: TButton
+            Left = 566
+            Height = 25
+            Top = 3
+            Width = 78
+            Anchors = [akTop, akRight]
+            Caption = 'Build Service'
+            OnClick = ServBuildNetButtonClick
+            TabOrder = 4
+          end
+          object ServiceResetButton: TButton
+            Left = 648
+            Height = 25
+            Top = 3
+            Width = 42
+            Anchors = [akTop, akRight]
+            Caption = 'Reset'
+            OnClick = ServiceResetButtonClick
+            TabOrder = 5
+          end
+          object ServIPEdit: TLabeledEdit
+            Left = 179
+            Height = 21
+            Top = 6
+            Width = 106
+            EditLabel.Height = 13
+            EditLabel.Width = 26
+            EditLabel.Caption = 'Host:'
+            EditLabel.ParentColor = False
+            LabelPosition = lpLeft
+            TabOrder = 1
+          end
+        end
+        object ServiceListView: TListView
+          Left = 0
+          Height = 152
+          Top = 30
+          Width = 692
+          Align = alClient
+          BorderStyle = bsNone
+          Checkboxes = True
+          Columns = <          
+            item
+              Caption = 'Service Registration'
+              Width = 150
+            end          
+            item
+              AutoSize = True
+              Caption = 'Service Classes'
+              Width = 105
+            end          
+            item
+              Caption = 'Unit'
+              Width = 200
+            end>
+          ColumnClick = False
+          HideSelection = False
+          ReadOnly = True
+          RowSelect = True
+          TabOrder = 1
+          ViewStyle = vsReport
+          OnChange = ServiceListViewChange
+        end
+      end
+    end
+    object OptTabSheet: TTabSheet
+      Caption = 'SaaS Options'
+      ClientHeight = 0
+      ClientWidth = 0
+      ImageIndex = 2
+      object QuietCheckBox: TCheckBox
+        Left = 175
+        Height = 17
+        Top = 13
+        Width = 97
+        Caption = 'Quiet Mode'
+        TabOrder = 0
+      end
+      object SafeCheckTimerEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 36
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 83
+        EditLabel.Caption = 'Safe check timer:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 1
+      end
+      object PhysicsReconnectionDelayEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 63
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 137
+        EditLabel.Caption = 'Physics Reconnection Delay:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 2
+      end
+      object UpdateServiceInfoTimerEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 90
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 129
+        EditLabel.Caption = 'Update Service Info Timer:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 3
+      end
+      object PhysicsServiceTimeoutEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 117
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 118
+        EditLabel.Caption = 'Physics Service Timeout:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 4
+      end
+      object PhysicsTunnelTimeoutEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 144
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 115
+        EditLabel.Caption = 'Physics Tunnel Timeout:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 5
+      end
+      object KillIDCFaultTimeoutEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 171
+        Width = 60
+        EditLabel.Height = 13
+        EditLabel.Width = 105
+        EditLabel.Caption = 'Kill IDC Fault Timeout:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 6
+      end
+      object RootDirectoryEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 198
+        Width = 356
+        EditLabel.Height = 13
+        EditLabel.Width = 74
+        EditLabel.Caption = 'Root Directory:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 7
+      end
+      object SelRootDirButton: TButton
+        Left = 537
+        Height = 25
+        Top = 196
+        Width = 26
+        Caption = '..'
+        OnClick = SelRootDirButtonClick
+        TabOrder = 8
+      end
+      object passwdEdit: TLabeledEdit
+        Left = 175
+        Height = 21
+        Top = 225
+        Width = 166
+        EditLabel.Height = 13
+        EditLabel.Width = 99
+        EditLabel.Caption = 'Cloud 4.0 Password:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 9
+      end
+      object ApplyOptButton: TButton
+        Left = 175
+        Height = 25
+        Top = 252
+        Width = 75
+        Caption = 'Apply'
+        OnClick = ApplyOptButtonClick
+        TabOrder = 10
+      end
+      object ResetOptButton: TButton
+        Left = 256
+        Height = 25
+        Top = 252
+        Width = 75
+        Caption = 'Reset'
+        OnClick = ResetOptButtonClick
+        TabOrder = 11
+      end
+    end
+    object LocalServiceStates_TabSheet: TTabSheet
+      Caption = 'Service-States'
+      ClientHeight = 0
+      ClientWidth = 0
+      ImageIndex = 3
+      object localserinfoLSplitter: TSplitter
+        Left = 200
+        Height = 296
+        Top = 0
+        Width = 8
+        AutoSnap = False
+        MinSize = 120
+      end
+      object ServiceInfoMemo: TMemo
+        Left = 208
+        Height = 296
+        Top = 0
+        Width = 468
+        Align = alClient
+        BorderStyle = bsNone
+        DoubleBuffered = True
+        ParentDoubleBuffered = False
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object ServInfoPhyAddrListBox: TListBox
+        Left = 0
+        Height = 296
+        Top = 0
+        Width = 200
+        Align = alLeft
+        BorderStyle = bsNone
+        DoubleBuffered = True
+        ItemHeight = 0
+        OnClick = ServInfoPhyAddrListBoxClick
+        ParentDoubleBuffered = False
+        TabOrder = 1
+      end
+    end
+    object TunnelStatesTabSheet: TTabSheet
+      Caption = 'Tunnel-States'
+      ClientHeight = 0
+      ClientWidth = 0
+      ImageIndex = 3
+      object tunnel_infoLSplitter: TSplitter
+        Left = 200
+        Height = 296
+        Top = 0
+        Width = 8
+        AutoSnap = False
+        MinSize = 120
+      end
+      object TunnelInfoMemo: TMemo
+        Left = 208
+        Height = 296
+        Top = 0
+        Width = 468
+        Align = alClient
+        BorderStyle = bsNone
+        DoubleBuffered = True
+        ParentDoubleBuffered = False
+        ReadOnly = True
+        ScrollBars = ssVertical
+        TabOrder = 0
+      end
+      object TunnelInfoPhyAddrListBox: TListBox
+        Left = 0
+        Height = 296
+        Top = 0
+        Width = 200
+        Align = alLeft
+        BorderStyle = bsNone
+        DoubleBuffered = True
+        ItemHeight = 0
+        OnClick = TunnelInfoPhyAddrListBoxClick
+        ParentDoubleBuffered = False
+        TabOrder = 1
+      end
+    end
+    object SaaS_Network_States_TabSheet: TTabSheet
+      Caption = 'SaaS-Network-States'
+      ClientHeight = 0
+      ClientWidth = 0
+      ImageIndex = 4
+      object SaaS_Info_TreeView: TTreeView
+        Left = 0
+        Height = 296
+        Top = 0
+        Width = 676
+        Align = alClient
+        BorderStyle = bsNone
+        HideSelection = False
+        Indent = 25
+        ReadOnly = True
+        RightClickSelect = True
+        RowSelect = True
+        TabOrder = 0
+        OnKeyUp = SaaS_Info_TreeViewKeyUp
+        Options = [tvoAutoItemHeight, tvoKeepCollapsedNodes, tvoReadOnly, tvoRightClickSelect, tvoRowSelect, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+      end
+    end
+    object cmd_tool_TabSheet: TTabSheet
+      Caption = 'Command Line Tool'
+      ClientHeight = 0
+      ClientWidth = 0
+      ImageIndex = 5
+      object ArryParamLabel: TLabel
+        Left = 98
+        Height = 13
+        Top = 126
+        Width = 79
+        Caption = 'array parameter'
+        ParentColor = False
+      end
+      object cmdLineParamEdit: TLabeledEdit
+        Left = 98
+        Height = 21
+        Top = 42
+        Width = 547
+        Anchors = [akTop, akLeft, akRight]
+        EditLabel.Height = 13
+        EditLabel.Width = 79
+        EditLabel.Caption = 'boot parameter:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 3
+      end
+      object GenerateCmdLineButton: TButton
+        Left = 98
+        Height = 25
+        Top = 268
+        Width = 85
+        Caption = 'Generate'
+        OnClick = GenerateCmdLineButtonClick
+        TabOrder = 8
+      end
+      object cmdLineTitleEdit: TLabeledEdit
+        Left = 98
+        Height = 21
+        Top = 15
+        Width = 108
+        EditLabel.Height = 13
+        EditLabel.Width = 24
+        EditLabel.Caption = 'Title:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 0
+      end
+      object cmdLineAppTitleEdit: TLabeledEdit
+        Left = 265
+        Height = 21
+        Top = 15
+        Width = 108
+        EditLabel.Height = 13
+        EditLabel.Width = 46
+        EditLabel.Caption = 'App Title:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 1
+      end
+      object cmdLineDisableUICheckBox: TCheckBox
+        Left = 390
+        Height = 17
+        Top = 17
+        Width = 97
+        Caption = 'Disable UI'
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
+      end
+      object ArryParamMemo: TMemo
+        Left = 98
+        Height = 117
+        Top = 145
+        Width = 547
+        ScrollBars = ssBoth
+        TabOrder = 7
+        WordWrap = False
+      end
+      object codeParamEdit: TLabeledEdit
+        Left = 98
+        Height = 21
+        Top = 96
+        Width = 547
+        Anchors = [akTop, akLeft, akRight]
+        EditLabel.Height = 13
+        EditLabel.Width = 80
+        EditLabel.Caption = 'code parameter:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 6
+      end
+      object Pas_RadioButton: TRadioButton
+        Left = 98
+        Height = 17
+        Top = 73
+        Width = 108
+        Caption = 'pascal code style'
+        Checked = True
+        DoubleBuffered = True
+        ParentDoubleBuffered = False
+        TabOrder = 4
+        TabStop = True
+      end
+      object c_RadioButton: TRadioButton
+        Left = 212
+        Height = 17
+        Top = 73
+        Width = 90
+        Caption = 'C Code Style'
+        DoubleBuffered = True
+        ParentDoubleBuffered = False
+        TabOrder = 5
+      end
+    end
+  end
+  object netTimer: TTimer
+    Interval = 100
+    OnTimer = netTimerTimer
+    Left = 50
+    Top = 344
+  end
+  object UpdateStateTimer: TTimer
+    Interval = 3000
+    OnTimer = UpdateStateTimerTimer
+    Left = 49
+    Top = 397
+  end
+end

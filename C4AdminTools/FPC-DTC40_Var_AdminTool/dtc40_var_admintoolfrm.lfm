@@ -1,0 +1,366 @@
+object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
+  Left = 613
+  Height = 450
+  Top = 211
+  Width = 950
+  Caption = 'Cloud 4.0 Variant System Administrator Tool.'
+  ClientHeight = 430
+  ClientWidth = 950
+  Color = clBtnFace
+  Constraints.MinHeight = 450
+  Constraints.MinWidth = 950
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu_
+  OnClose = FormClose
+  Position = poDesktopCenter
+  LCLVersion = '2.0.12.0'
+  object botSplitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 293
+    Width = 950
+    Align = alBottom
+    AutoSnap = False
+    Color = clBlue
+    MinSize = 120
+    ParentColor = False
+    ResizeAnchor = akBottom
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 129
+    Top = 301
+    Width = 950
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentColor = True
+    ParentDoubleBuffered = False
+    ReadOnly = True
+    ScrollBars = ssVertical
+    TabOrder = 0
+    WordWrap = False
+  end
+  object TopBarPanel: TPanel
+    Left = 0
+    Height = 31
+    Top = 0
+    Width = 950
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 31
+    ClientWidth = 950
+    TabOrder = 1
+    object JoinHostEdit: TLabeledEdit
+      Left = 56
+      Height = 21
+      Top = 5
+      Width = 105
+      EditLabel.Height = 13
+      EditLabel.Width = 44
+      EditLabel.Caption = 'Join Host'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 0
+    end
+    object JoinPortEdit: TLabeledEdit
+      Left = 190
+      Height = 21
+      Top = 5
+      Width = 49
+      EditLabel.Height = 13
+      EditLabel.Width = 20
+      EditLabel.Caption = 'Port'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 1
+    end
+    object DependEdit: TLabeledEdit
+      Left = 293
+      Height = 21
+      Top = 5
+      Width = 68
+      EditLabel.Height = 13
+      EditLabel.Width = 37
+      EditLabel.Caption = 'Depend'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 2
+    end
+    object BuildDependNetButton: TButton
+      Left = 816
+      Height = 25
+      Top = 2
+      Width = 76
+      Anchors = [akTop, akRight]
+      Caption = 'Build Tunnel'
+      OnClick = BuildDependNetButtonClick
+      TabOrder = 6
+    end
+    object resetDependButton: TButton
+      Left = 898
+      Height = 25
+      Top = 2
+      Width = 42
+      Anchors = [akTop, akRight]
+      Caption = 'Reset'
+      OnClick = resetDependButtonClick
+      TabOrder = 7
+    end
+    object serviceComboBox: TComboBox
+      Left = 450
+      Height = 21
+      Top = 4
+      Width = 195
+      Anchors = [akTop, akLeft, akRight]
+      ItemHeight = 13
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object queryButton: TButton
+      Left = 367
+      Height = 25
+      Top = 2
+      Width = 77
+      Caption = 'query to ->'
+      OnClick = queryButtonClick
+      TabOrder = 3
+    end
+    object DTC4PasswdEdit: TLabeledEdit
+      Left = 707
+      Height = 21
+      Top = 4
+      Width = 103
+      Anchors = [akTop, akRight]
+      EchoMode = emPassword
+      EditLabel.Height = 13
+      EditLabel.Width = 52
+      EditLabel.Caption = 'C4 Passwd'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      PasswordChar = '*'
+      TabOrder = 5
+      OnChange = DTC4PasswdEditChange
+    end
+  end
+  object cliPanel: TPanel
+    Left = 0
+    Height = 262
+    Top = 31
+    Width = 950
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 262
+    ClientWidth = 950
+    TabOrder = 2
+    object lpLSplitter: TSplitter
+      Left = 425
+      Height = 229
+      Top = 33
+      Width = 8
+      AutoSnap = False
+      Color = clBlue
+      MinSize = 250
+      ParentColor = False
+    end
+    object leftPanel: TPanel
+      Left = 0
+      Height = 229
+      Top = 33
+      Width = 425
+      Align = alLeft
+      BevelOuter = bvNone
+      ClientHeight = 229
+      ClientWidth = 425
+      TabOrder = 0
+      object NMListView: TListView
+        Left = 0
+        Height = 229
+        Top = 0
+        Width = 425
+        Align = alClient
+        BorderStyle = bsNone
+        Columns = <        
+          item
+            AutoSize = True
+            Caption = 'Pool'
+            MaxWidth = 150
+            Width = 43
+          end>
+        HideSelection = False
+        MultiSelect = True
+        ParentColor = True
+        PopupMenu = NM_PopupMenu_
+        ReadOnly = True
+        RowSelect = True
+        ScrollBars = ssAutoVertical
+        TabOrder = 0
+        ViewStyle = vsReport
+        OnCreateItemClass = NMListViewCreateItemClass
+        OnSelectItem = NMListViewSelectItem
+      end
+    end
+    object listToolBarPanel: TPanel
+      Left = 0
+      Height = 33
+      Top = 0
+      Width = 950
+      Align = alTop
+      BevelOuter = bvNone
+      ClientHeight = 33
+      ClientWidth = 950
+      TabOrder = 1
+      object SearchEdit: TLabeledEdit
+        Left = 53
+        Height = 21
+        Top = 3
+        Width = 108
+        EditLabel.Height = 13
+        EditLabel.Width = 20
+        EditLabel.Caption = 'var:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 0
+      end
+      object SearchButton: TButton
+        Left = 245
+        Height = 25
+        Top = 1
+        Width = 66
+        Caption = 'Go Serach'
+        OnClick = SearchButtonClick
+        TabOrder = 2
+      end
+      object NumEdit: TLabeledEdit
+        Left = 199
+        Height = 21
+        Top = 3
+        Width = 40
+        EditLabel.Height = 13
+        EditLabel.Width = 25
+        EditLabel.Caption = 'Num:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 1
+        Text = '100'
+      end
+      object ScriptEdit: TLabeledEdit
+        Left = 358
+        Height = 21
+        Top = 3
+        Width = 164
+        EditLabel.Height = 13
+        EditLabel.Width = 31
+        EditLabel.Caption = 'Script:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 3
+      end
+      object RunScriptButton: TButton
+        Left = 528
+        Height = 25
+        Top = 1
+        Width = 66
+        Caption = 'Run Script'
+        OnClick = RunScriptButtonClick
+        TabOrder = 4
+      end
+    end
+    object rCliPanel: TPanel
+      Left = 433
+      Height = 229
+      Top = 33
+      Width = 517
+      Align = alClient
+      BevelOuter = bvNone
+      ClientHeight = 229
+      ClientWidth = 517
+      TabOrder = 2
+      object VarListView: TListView
+        Left = 0
+        Height = 229
+        Top = 0
+        Width = 517
+        Align = alClient
+        BorderStyle = bsNone
+        Columns = <        
+          item
+            AutoSize = True
+            Caption = 'Var'
+            MinWidth = 150
+            Width = 37
+          end        
+          item
+            AutoSize = True
+            Caption = 'Value'
+            MinWidth = 150
+            Width = 49
+          end>
+        HideSelection = False
+        MultiSelect = True
+        ParentColor = True
+        PopupMenu = Var_PopupMenu_
+        ReadOnly = True
+        RowSelect = True
+        TabOrder = 0
+        ViewStyle = vsReport
+        OnCreateItemClass = VarListViewCreateItemClass
+      end
+    end
+  end
+  object netTimer: TTimer
+    Interval = 10
+    OnTimer = netTimerTimer
+    Left = 309
+    Top = 77
+  end
+  object ActionList_: TActionList
+    Left = 309
+    Top = 138
+    object Action_NewNM: TAction
+      Caption = 'New Number Module.'
+      OnExecute = Action_NewNMExecute
+    end
+    object Action_RemoveNM: TAction
+      Caption = 'Remove Number Module'
+      OnExecute = Action_RemoveNMExecute
+    end
+    object Action_RemoveNMKey: TAction
+      Caption = 'Remove Key-Value'
+      OnExecute = Action_RemoveNMKeyExecute
+    end
+  end
+  object MainMenu_: TMainMenu
+    Left = 307
+    Top = 204
+    object File1: TMenuItem
+      Caption = '&File'
+      object NewNumberModule1: TMenuItem
+        Action = Action_NewNM
+      end
+      object RemoveNumberModule1: TMenuItem
+        Action = Action_RemoveNM
+      end
+    end
+  end
+  object NM_PopupMenu_: TPopupMenu
+    Left = 232
+    Top = 207
+    object NewNumberModule2: TMenuItem
+      Action = Action_NewNM
+    end
+    object RemoveNumberModule2: TMenuItem
+      Action = Action_RemoveNM
+    end
+  end
+  object Var_PopupMenu_: TPopupMenu
+    Left = 503
+    Top = 198
+    object RemoveKeyValue1: TMenuItem
+      Action = Action_RemoveNMKey
+    end
+  end
+end
