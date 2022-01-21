@@ -35,7 +35,7 @@ begin
     'Timer(10)',
     'Password("Z.Net.C4@ZSERVER")',
     PFormat('Client("192.168.2.79",8181,"DP")', []),
-    PFormat('Service("0.0.0.0","192.168.2.79",8181,"DP|XNAT|Pascal_Rewrite")', [])
+    PFormat('Service("0.0.0.0","127.0.0.1",8181,"DP|XNAT|Pascal_Rewrite")', [])
     ];
 end;
 
