@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{91A4A9F1-8292-43AB-89EF-718823DB718B}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_1_XNAT_Mapping_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_2_XNAT_Mapping_Client_DP.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_1_XNAT_Mapping_Service">
+        <MSBuild Projects="_1_XNAT_Mapping_Service.dproj"/>
+    </Target>
+    <Target Name="_1_XNAT_Mapping_Service:Clean">
+        <MSBuild Projects="_1_XNAT_Mapping_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_XNAT_Mapping_Service:Make">
+        <MSBuild Projects="_1_XNAT_Mapping_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_XNAT_Mapping_Client_DP">
+        <MSBuild Projects="_2_XNAT_Mapping_Client_DP.dproj"/>
+    </Target>
+    <Target Name="_2_XNAT_Mapping_Client_DP:Clean">
+        <MSBuild Projects="_2_XNAT_Mapping_Client_DP.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_XNAT_Mapping_Client_DP:Make">
+        <MSBuild Projects="_2_XNAT_Mapping_Client_DP.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_1_XNAT_Mapping_Service;_2_XNAT_Mapping_Client_DP"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_1_XNAT_Mapping_Service:Clean;_2_XNAT_Mapping_Client_DP:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_1_XNAT_Mapping_Service:Make;_2_XNAT_Mapping_Client_DP:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

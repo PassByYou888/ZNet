@@ -1,0 +1,91 @@
+object _3_Auth_IM_Client_RegForm: T_3_Auth_IM_Client_RegForm
+  Left = 0
+  Top = 0
+  BorderStyle = bsDialog
+  Caption = #27880#20876#29992#25143
+  ClientHeight = 270
+  ClientWidth = 299
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  KeyPreview = True
+  OldCreateOrder = False
+  PopupMode = pmExplicit
+  PopupParent = _3_Auth_IM_Client_LoginForm.Owner
+  Position = poMainFormCenter
+  OnClose = FormClose
+  OnKeyUp = FormKeyUp
+  PixelsPerInch = 96
+  TextHeight = 13
+  object UserEdit: TLabeledEdit
+    Left = 88
+    Top = 40
+    Width = 81
+    Height = 21
+    EditLabel.Width = 40
+    EditLabel.Height = 13
+    EditLabel.Caption = #29992#25143#21517':'
+    LabelPosition = lpLeft
+    TabOrder = 0
+    Text = 'test_user'
+  end
+  object Passwd1Edit: TLabeledEdit
+    Left = 88
+    Top = 85
+    Width = 81
+    Height = 21
+    EditLabel.Width = 28
+    EditLabel.Height = 13
+    EditLabel.Caption = #23494#30721':'
+    LabelPosition = lpLeft
+    PasswordChar = '*'
+    TabOrder = 1
+    Text = 'test_user'
+  end
+  object Passwd2Edit: TLabeledEdit
+    Left = 88
+    Top = 112
+    Width = 81
+    Height = 21
+    EditLabel.Width = 52
+    EditLabel.Height = 13
+    EditLabel.Caption = #37325#22797#23494#30721':'
+    LabelPosition = lpLeft
+    PasswordChar = '*'
+    TabOrder = 2
+    Text = 'test_user'
+  end
+  object AliasNameEdit: TLabeledEdit
+    Left = 88
+    Top = 152
+    Width = 81
+    Height = 21
+    EditLabel.Width = 52
+    EditLabel.Height = 13
+    EditLabel.Caption = #29992#25143#21035#21517':'
+    LabelPosition = lpLeft
+    TabOrder = 3
+    Text = 'im auther'
+  end
+  object cancelButton: TButton
+    Left = 143
+    Top = 200
+    Width = 58
+    Height = 25
+    Caption = #21462#28040
+    TabOrder = 5
+    OnClick = cancelButtonClick
+  end
+  object regButton: TButton
+    Left = 80
+    Top = 200
+    Width = 58
+    Height = 25
+    Caption = #27880#20876
+    TabOrder = 4
+    OnClick = regButtonClick
+  end
+end

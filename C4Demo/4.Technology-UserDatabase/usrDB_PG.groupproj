@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{63B50277-CCC7-4D5B-9E33-C470E1215485}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_1_UserDB_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_2_UserDB_Client.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_1_UserDB_serv">
+        <MSBuild Projects="_1_UserDB_serv.dproj"/>
+    </Target>
+    <Target Name="_1_UserDB_serv:Clean">
+        <MSBuild Projects="_1_UserDB_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_UserDB_serv:Make">
+        <MSBuild Projects="_1_UserDB_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_UserDB_Client">
+        <MSBuild Projects="_2_UserDB_Client.dproj"/>
+    </Target>
+    <Target Name="_2_UserDB_Client:Clean">
+        <MSBuild Projects="_2_UserDB_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_UserDB_Client:Make">
+        <MSBuild Projects="_2_UserDB_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_1_UserDB_serv;_2_UserDB_Client"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_1_UserDB_serv:Clean;_2_UserDB_Client:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_1_UserDB_serv:Make;_2_UserDB_Client:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{595497E0-B416-4E05-BE44-63C5D112AD91}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="C4_VAR_Tech_Demo_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="C4_VAR_Tech_Demo_Cli.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="C4_VAR_Tech_Demo_Serv">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Serv.dproj"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Serv:Clean">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Serv:Make">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Cli.dproj"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli:Clean">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Cli.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli:Make">
+        <MSBuild Projects="C4_VAR_Tech_Demo_Cli.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="C4_VAR_Tech_Demo_Serv;C4_VAR_Tech_Demo_Cli"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="C4_VAR_Tech_Demo_Serv:Clean;C4_VAR_Tech_Demo_Cli:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="C4_VAR_Tech_Demo_Serv:Make;C4_VAR_Tech_Demo_Cli:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
