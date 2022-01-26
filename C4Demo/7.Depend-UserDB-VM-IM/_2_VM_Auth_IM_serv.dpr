@@ -554,7 +554,7 @@ begin
       S := TMyVA_Service(arry[i]);
       L := S.Search_IO_Def_From_UserPrimaryIdentifier(UserName_);
       for j := 0 to L.Count - 1 do
-          L[j].Owner.p2pVM.PhysicsIO.DelayClose;
+          L[j].Owner.p2pVM.Owner_IO.DelayClose;
       L.Free;
     end;
 end;

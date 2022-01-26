@@ -68,7 +68,7 @@ begin
 
   // 重要参数
   // 我们使用XNAT作为StableIO使用的物理服务器，因为作者很懒，不想去定义各个平台使用的不同通讯接口
-  MyServer.PhysicsServer := TXPhysicsServer.Create;
+  MyServer.OwnerIOServer := TXPhysicsServer.Create;
 
   // 重要参数
   // 当客户端与服务器连接后，会自动进入序列包的工作模式
@@ -92,11 +92,11 @@ begin
 
   // 无关紧要
   // myserver释放时，自动释放物理服务器TXPhysicsServer
-  MyServer.AutoFreePhysicsServer := True;
+  MyServer.AutoFreeOwnerIOServer := True;
 
   // 无关紧要
   // myserver主循环处理时，也处理物理服务器TXPhysicsServer
-  MyServer.AutoProgressPhysicsServer := True;
+  MyServer.AutoProgressOwnerIOServer := True;
 
   if MyServer.StartService('0.0.0.0', 11977) then
       DoStatus('stableIO listen success!');
@@ -121,7 +121,7 @@ begin
       sequmem := Format('swap memory: %s', [umlSizeToStr(MyServer.Statistics[TStatisticsType.stSequencePacketMemoryOnSending]).Text]);
 
       SetConsoleTitle(PWideChar(Format('%s - IO:%d PIO:%d - %s - %s - %s - %s',
-        [iostate, MyServer.Count, MyServer.PhysicsServer.Count, recv, send, discard, sequmem])));
+        [iostate, MyServer.Count, MyServer.OwnerIOServer.Count, recv, send, discard, sequmem])));
 {$ENDIF MSWINDOWS}
       Z.Core.CheckThreadSynchronize(10);
     end;

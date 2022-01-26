@@ -373,7 +373,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
           Height = 150
           Align = alClient
           ItemHeight = 13
+          MultiSelect = True
           TabOrder = 1
+          OnKeyUp = symbol_rewrite_file_features_LBKeyUp
         end
         object symbol_rewrite_L_B_C_Panel: TPanel
           Left = 1

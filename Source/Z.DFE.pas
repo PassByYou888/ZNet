@@ -418,9 +418,7 @@ type
     procedure ReadSectionText(output: TSectionTextData);
     procedure ReadTextSection(output: TSectionTextData);
     procedure ReadJson(output: TZ_JsonObject); overload;
-{$IFDEF DELPHI}
-    procedure ReadJson(output: TJsonObject); overload;
-{$ENDIF DELPHI}
+{$IFDEF DELPHI} procedure ReadJson(output: TJsonObject); overload; {$ENDIF DELPHI}
     function ReadRect: TRect;
     function ReadRectf: TRectf;
     function ReadPoint: TPoint;

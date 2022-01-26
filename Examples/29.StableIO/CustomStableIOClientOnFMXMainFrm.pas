@@ -108,7 +108,7 @@ begin
 
   // 重要参数
   // 我们使用XNAT作为StableIO使用的物理客户端，懒，不想去定义各个平台使用的不同通讯接口
-  MyClient.PhysicsClient := TXPhysicsClient.Create;
+  MyClient.OwnerIOClient := TXPhysicsClient.Create;
 
   // 重要参数
   // 当客户端与服务器连接后，会自动进入序列包的工作模式
@@ -129,11 +129,11 @@ begin
 
   // 无关紧要
   // MyClient 释放时，自动释放物理服务器TXPhysicsClient
-  MyClient.AutoFreePhysicsClient := True;
+  MyClient.AutoFreeOwnerIOClient := True;
 
   // 无关紧要
   // MyClient 主循环处理时，也处理物理服务器TXPhysicsClient
-  MyClient.AutoProgressPhysicsClient := True;
+  MyClient.AutoProgressOwnerIOClient := True;
 end;
 
 procedure TForm1.RunTestButtonClick(Sender: TObject);

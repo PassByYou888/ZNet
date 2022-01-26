@@ -121,23 +121,24 @@ type
     procedure addSymbolButtonClick(Sender: TObject);
     procedure Fill_TextAsSymbolDefine_Click(Sender: TObject);
     procedure reset_symbol_rewrite_define_ButtonClick(Sender: TObject);
+    procedure symbol_rewrite_file_features_LBKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AddCodeFeatureFileButtonClick(Sender: TObject);
+    procedure ScanFeatureButtonClick(Sender: TObject);
     procedure DoCreateModel_BtnClick(Sender: TObject);
     procedure Browse_ModelOuytput_BtnClick(Sender: TObject);
     procedure check_model_ButtonClick(Sender: TObject);
     procedure rep_unit_def_ButtonClick(Sender: TObject);
     procedure rep_sym_old_ButtonClick(Sender: TObject);
     procedure rep_sym_new_ButtonClick(Sender: TObject);
-    procedure ScanFeatureButtonClick(Sender: TObject);
     procedure Rebuild_PreDefine_Click(Sender: TObject);
     procedure Swap_Predefine_Click(Sender: TObject);
     procedure Rebuild_Symbol_Click(Sender: TObject);
     procedure Swap_Symbol_Click(Sender: TObject);
     procedure testButtonClick(Sender: TObject);
   private
-    UnitDefineList: TUSourDefList;
-    UnitProcessorList: TUProcessorDataList;
-    SymbolProcessorList: TUProcessorDataList;
+    UnitDefineList: TSourceDefinePool;
+    UnitProcessorList: TSourceProcessorDataPool;
+    SymbolProcessorList: TSourceProcessorDataPool;
     CurrentProj: U_String;
     procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
 
@@ -208,7 +209,7 @@ end;
 function LV_Sort1(lParam1, lParam2, lParamSort: LParam): Integer;
 var
   itm1, itm2: TListItem;
-  p1, p2: PUSourDef;
+  p1, p2: PSourceDefine;
 begin
   itm1 := TListItem(lParam1);
   itm2 := TListItem(lParam2);
@@ -232,7 +233,7 @@ end;
 function LV_Sort2(lParam2, lParam1, lParamSort: LParam): Integer;
 var
   itm1, itm2: TListItem;
-  p1, p2: PUSourDef;
+  p1, p2: PSourceDefine;
 begin
   itm1 := TListItem(lParam1);
   itm2 := TListItem(lParam2);
@@ -356,7 +357,7 @@ procedure TPascalRewriteModelForm.Unit_Define_Click(Sender: TObject);
 var
   i: Integer;
   itm: TListItem;
-  p: PUSourDef;
+  p: PSourceDefine;
   hash: THashStringList;
   fp, fn, ext: U_String;
 begin
@@ -523,7 +524,7 @@ var
   i: Integer;
   L: TStringList;
   clip: TClipboard;
-  n1, n2, n3: U_String;
+  N1, N2, n3: U_String;
   m64: TMS64;
 begin
   L := TStringList.Create;
@@ -533,26 +534,26 @@ begin
 
   for i := 0 to L.Count - 1 do
     begin
-      n1 := L[i];
-      n1 := n1.TrimChar(#32#9);
-      if n1 <> '' then
+      N1 := L[i];
+      N1 := N1.TrimChar(#32#9);
+      if N1 <> '' then
         begin
-          if n1.Exists('=') then
+          if N1.Exists('=') then
             begin
-              n3 := umlGetLastStr(n1, '=');
-              n1 := umlGetFirstStr(n1, '=');
+              n3 := umlGetLastStr(N1, '=');
+              N1 := umlGetFirstStr(N1, '=');
             end
           else
             begin
-              n3 := n1;
+              n3 := N1;
             end;
-          if not SymbolProcessorList.Exists_OLD_Name(n1) then
+          if not SymbolProcessorList.Exists_OLD_Name(N1) then
             begin
               if Paste_Replace_Sour_Edit.Text <> '' then
-                  n2 := umlReplace(n3, Paste_Replace_Sour_Edit.Text, Paste_Replace_Dest_Edit.Text, False, False, 0, 0, nil)
+                  N2 := umlReplace(n3, Paste_Replace_Sour_Edit.Text, Paste_Replace_Dest_Edit.Text, False, False, 0, 0, nil)
               else
-                  n2 := n3;
-              SymbolProcessorList.AddUName(n1, n2);
+                  N2 := n3;
+              SymbolProcessorList.AddUName(N1, N2);
             end;
         end;
     end;
@@ -580,6 +581,12 @@ begin
   UpdateSymbolReplaceList(True);
 end;
 
+procedure TPascalRewriteModelForm.symbol_rewrite_file_features_LBKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_DELETE then
+      symbol_rewrite_file_features_LB.DeleteSelected;
+end;
+
 procedure TPascalRewriteModelForm.AddCodeFeatureFileButtonClick(Sender: TObject);
 var
   i: Integer;
@@ -588,6 +595,69 @@ begin
       Exit;
   for i := 0 to OpenUnitDialog.Files.Count - 1 do
       umlAddNewStrTo(OpenUnitDialog.Files[i], symbol_rewrite_file_features_LB.Items);
+end;
+
+procedure TPascalRewriteModelForm.ScanFeatureButtonClick(Sender: TObject);
+begin
+  if umlTrimSpace(CodeFeatureEdit.Text) = '' then
+      Exit;
+  PageC.Enabled := False;
+  TCompute.RunP_NP(procedure
+    var
+      featureHash: THashList;
+      i: Integer;
+      fn: U_String;
+      TP: TTextParsing;
+      Code: TPascalStringList;
+      n: U_String;
+      Info: TBatchInfoList;
+      j: Integer;
+      p: PTokenData;
+      k: TPascal_Keyword;
+    begin
+      featureHash := THashList.CustomCreate($FFFF);
+
+      for i := 0 to symbol_rewrite_file_features_LB.Items.Count - 1 do
+        begin
+          fn := symbol_rewrite_file_features_LB.Items[i];
+          DoStatus('Scan "%s" ...', [umlGetFileName(fn).Text]);
+          Code := TPascalStringList.Create;
+          Code.LoadFromFile(fn);
+          n := Code.AsText;
+          disposeObject(Code);
+          TP := TTextParsing.Create(n, tsPascal, nil, TPascalString(SpacerSymbol.V + '.'));
+          Info := TBatchInfoList.Create;
+          umlReplaceSum(n, CodeFeatureEdit.Text, False, False, 0, 0, Info);
+          for j := 0 to Info.Count - 1 do
+            begin
+              try
+                  p := TP.CharToken[Info[j].sour_bPos];
+              except
+                  p := nil;
+              end;
+              if (p <> nil) and (p^.tokenType = ttASCII) then
+                  featureHash.Add(p^.Text, nil, True);
+            end;
+          disposeObject(Info);
+          disposeObject(TP);
+          DoStatus('Scan "%s" done.', [umlGetFileName(fn).Text]);
+        end;
+
+      for k := low(TPascal_Keyword) to high(TPascal_Keyword) do
+          featureHash.Delete(Pascal_Keyword_DICT[k].Decl);
+
+      TCompute.Sync(procedure
+        begin
+          FeatureOutputMemo.Clear;
+          featureHash.ProgressP(procedure(Name_: PSystemString; hData: PHashListData)
+            begin
+              FeatureOutputMemo.Lines.Add(Name_^);
+            end);
+          PageC.Enabled := True;
+          FeatureOutputMemo.CopyToClipboard;
+        end);
+      disposeObject(featureHash);
+    end);
 end;
 
 procedure TPascalRewriteModelForm.DoCreateModel_BtnClick(Sender: TObject);
@@ -678,69 +748,6 @@ begin
   UpdateSymbolReplaceList(False);
 end;
 
-procedure TPascalRewriteModelForm.ScanFeatureButtonClick(Sender: TObject);
-begin
-  if umlTrimSpace(CodeFeatureEdit.Text) = '' then
-      Exit;
-  PageC.Enabled := False;
-  TCompute.RunP_NP(procedure
-    var
-      featureHash: THashList;
-      i: Integer;
-      fn: U_String;
-      TP: TTextParsing;
-      Code: TPascalStringList;
-      n: U_String;
-      Info: TBatchInfoList;
-      j: Integer;
-      p: PTokenData;
-      k: TPascal_Keyword;
-    begin
-      featureHash := THashList.CustomCreate($FFFF);
-
-      for i := 0 to symbol_rewrite_file_features_LB.Items.Count - 1 do
-        begin
-          fn := symbol_rewrite_file_features_LB.Items[i];
-          DoStatus('Scan "%s" ...', [umlGetFileName(fn).Text]);
-          Code := TPascalStringList.Create;
-          Code.LoadFromFile(fn);
-          n := Code.AsText;
-          disposeObject(Code);
-          TP := TTextParsing.Create(n, tsPascal, nil, TPascalString(SpacerSymbol.V + '.'));
-          Info := TBatchInfoList.Create;
-          umlReplaceSum(n, CodeFeatureEdit.Text, False, False, 0, 0, Info);
-          for j := 0 to Info.Count - 1 do
-            begin
-              try
-                  p := TP.CharToken[Info[j].sour_bPos];
-              except
-                  p := nil;
-              end;
-              if (p <> nil) and (p^.tokenType = ttASCII) then
-                  featureHash.Add(p^.Text, nil, True);
-            end;
-          disposeObject(Info);
-          disposeObject(TP);
-          DoStatus('Scan "%s" done.', [umlGetFileName(fn).Text]);
-        end;
-
-      for k := low(TPascal_Keyword) to high(TPascal_Keyword) do
-          featureHash.Delete(Pascal_Keyword_DICT[k].Decl);
-
-      TCompute.Sync(procedure
-        begin
-          FeatureOutputMemo.Clear;
-          featureHash.ProgressP(procedure(Name_: PSystemString; hData: PHashListData)
-            begin
-              FeatureOutputMemo.Lines.Add(Name_^);
-            end);
-          PageC.Enabled := True;
-          FeatureOutputMemo.CopyToClipboard;
-        end);
-      disposeObject(featureHash);
-    end);
-end;
-
 procedure TPascalRewriteModelForm.Rebuild_PreDefine_Click(Sender: TObject);
 begin
   UpdateUnitProcessorList(True);
@@ -749,7 +756,7 @@ end;
 procedure TPascalRewriteModelForm.Swap_Predefine_Click(Sender: TObject);
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   for i := 0 to UnitProcessorList.Count - 1 do
     begin
@@ -767,7 +774,7 @@ end;
 procedure TPascalRewriteModelForm.Swap_Symbol_Click(Sender: TObject);
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   for i := 0 to SymbolProcessorList.Count - 1 do
     begin
@@ -778,28 +785,48 @@ begin
 end;
 
 procedure TPascalRewriteModelForm.testButtonClick(Sender: TObject);
-var
-  i: Integer;
-  uHash, PatternDefine: THashStringList;
 begin
-  uHash := THashStringList.CustomCreate(1024);
-  UnitProcessorList.Build_uHash(uHash);
-  PatternDefine := THashStringList.CustomCreate(1024);
-  SymbolProcessorList.Build_uHash(PatternDefine);
-
-  RewritePascal_Process_Code(testMemo.Lines, uHash, PatternDefine, procedure(const Fmt: SystemString; const Args: array of const)
+  PageC.Enabled := False;
+  TCompute.RunP_NP(procedure
+    var
+      uHash, PatternDefine: THashStringList;
+      Code: TCore_StringList;
     begin
-      DoStatus(Fmt, Args);
-    end);
+      uHash := THashStringList.CustomCreate(1024);
+      UnitProcessorList.Build_uHash(uHash);
+      PatternDefine := THashStringList.CustomCreate(1024);
+      SymbolProcessorList.Build_uHash(PatternDefine);
+      Code := TCore_StringList.Create;
+      TCompute.Sync(procedure
+        begin
+          Code.Assign(testMemo.Lines);
+        end);
 
-  disposeObject(uHash);
-  disposeObject(PatternDefine);
-  DoStatus('all apply done.');
+      if RewritePascal_Process_Code(Code, uHash, PatternDefine, procedure(const Fmt: SystemString; const Args: array of const)
+        begin
+          DoStatus(Fmt, Args);
+        end) then
+        begin
+          TCompute.Sync(procedure
+            begin
+              testMemo.Lines.Assign(Code);
+            end);
+        end;
+
+      disposeObject(Code);
+      disposeObject(uHash);
+      disposeObject(PatternDefine);
+      DoStatus('all apply done.');
+      TCompute.Sync(procedure
+        begin
+          PageC.Enabled := True;
+        end);
+    end);
 end;
 
 procedure TPascalRewriteModelForm.DoStatus_backcall(Text_: SystemString; const ID: Integer);
 begin
-  if Memo.Lines.Count > 2000 then
+  if Memo.Lines.Count > 5000 then
       Memo.Lines.Clear;
   Memo.Lines.Add(Text_);
 end;
@@ -1026,7 +1053,7 @@ end;
 procedure TPascalRewriteModelForm.UpdateUnitDeineListView;
 var
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
   itm: TListItem;
   nf1, nf2: U_String;
 begin
@@ -1075,7 +1102,7 @@ end;
 procedure TPascalRewriteModelForm.UpdateUnitProcessorList(rebuild_: Boolean);
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
   itm: TListItem;
 begin
   if rebuild_ or (UnitProcessorList.Count = 0) then
@@ -1096,7 +1123,7 @@ procedure TPascalRewriteModelForm.UpdateSymbolReplaceList(rebuild_: Boolean);
 var
   m64: TMS64;
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
   itm: TListItem;
 begin
   if rebuild_ or (SymbolProcessorList.Count = 0) then
@@ -1129,9 +1156,9 @@ var
   m64: TMS64;
 begin
   inherited Create(AOwner);
-  UnitDefineList := TUSourDefList.Create;
-  UnitProcessorList := TUProcessorDataList.Create;
-  SymbolProcessorList := TUProcessorDataList.Create;
+  UnitDefineList := TSourceDefinePool.Create;
+  UnitProcessorList := TSourceProcessorDataPool.Create;
+  SymbolProcessorList := TSourceProcessorDataPool.Create;
   AddDoStatusHook(self, DoStatus_backcall);
   StatusThreadID := False;
 

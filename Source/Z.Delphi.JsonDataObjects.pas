@@ -31,7 +31,6 @@ SOFTWARE.
 unit Z.Delphi.JsonDataObjects;
 interface
 implementation
-end.
 {$ELSE FPC}
 unit Z.Delphi.JsonDataObjects;
 {$A8,B-,C+,E-,F-,G+,H+,I+,J-,K-,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Z1}
@@ -8346,7 +8345,7 @@ initialization
   UniqueString(sFalse);
   JSONFormatSettings.DecimalSeparator := '.';
 
-end.
 {$ENDIF FPC}
+end.
 
- 
+

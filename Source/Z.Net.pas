@@ -790,7 +790,7 @@ type
     { performance }
     property SequencePacketMTU: Word read FSequencePacketMTU write FSequencePacketMTU; { default set 1536 }
     { Security }
-    property SequencePacketLimitPhysicsMemory: Int64 read FSequencePacketLimitPhysicsMemory write FSequencePacketLimitPhysicsMemory; { default set 0,no limit }
+    property SequencePacketLimitOwnerIOMemory: Int64 read FSequencePacketLimitPhysicsMemory write FSequencePacketLimitPhysicsMemory; { default set 0,no limit }
     { memory status }
     property SequencePacketUsagePhysicsMemory: Int64 read GetSequencePacketUsagePhysicsMemory;
     { information }
@@ -1996,7 +1996,7 @@ type
   TZNet_WithP2PVM = class(TCore_Object)
   protected
     FCritical: TCritical;
-    FPhysicsIO: TPeerIO;
+    FOwner_IO: TPeerIO;
     FAuthWaiting: Boolean;
     FAuthed: Boolean;
     FAuthSending: Boolean;
@@ -2026,7 +2026,7 @@ type
     procedure ReceivedConnectedReponse(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
     procedure ReceivedDisconnect(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
     procedure ReceivedLogicFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
-    procedure ReceivedPhysicsFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+    procedure ReceivedOwnerIOFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 
     procedure DoProcessPerClientFragmentSend(P_IO: TPeerIO);
     procedure DoPerClientClose(P_IO: TPeerIO);
@@ -2035,7 +2035,7 @@ type
     destructor Destroy; override;
 
     { owner physical IO, maybe virtual IO }
-    property PhysicsIO: TPeerIO read FPhysicsIO;
+    property Owner_IO: TPeerIO read FOwner_IO;
 
     procedure Progress;
 
@@ -2043,7 +2043,7 @@ type
     procedure ProgressZNet_M(const OnBackcall: TZNet_List_M);
     procedure ProgressZNet_P(const OnBackcall: TZNet_List_P);
 
-    { p2p VM physics tunnel support }
+    { p2p VM IO tunnel support }
     procedure OpenP2PVMTunnel(c: TPeerIO);
     procedure CloseP2PVMTunnel;
 
@@ -2096,7 +2096,7 @@ type
 
   TStableServer_PeerIO = class;
 
-  TStableServer_PhysicsIO_UserDefine = class(TPeerIOUserDefine)
+  TStableServer_OwnerIO_UserDefine = class(TPeerIOUserDefine)
   public
     BindStableIO: TStableServer_PeerIO;
     constructor Create(Owner_: TPeerIO); override;
@@ -2106,11 +2106,11 @@ type
   TStableServer_PeerIO = class(TPeerIO)
   public
     Activted: Boolean;
-    DestroyRecyclePhysicsIO: Boolean;
+    DestroyRecycleOwnerIO: Boolean;
     Connection_Token: Cardinal;
-    InternalBindPhysicsIO: TPeerIO;
+    InternalBindOwnerIO: TPeerIO;
     OfflineTick: TTimeTick;
-    property BindPhysicsIO: TPeerIO read InternalBindPhysicsIO write InternalBindPhysicsIO;
+    property BindOwnerIO: TPeerIO read InternalBindOwnerIO write InternalBindOwnerIO;
 
     procedure CreateAfter; override;
     destructor Destroy; override;
@@ -2129,15 +2129,15 @@ type
   TZNet_CustomStableServer = class(TZNet_Server)
   protected
     Connection_Token_Counter: Cardinal;
-    FPhysicsServer: TZNet_Server;
+    FOwnerIOServer: TZNet_Server;
     FOfflineTimeout: TTimeTick;
     FLimitSequencePacketMemoryUsage: Int64;
-    FAutoFreePhysicsServer: Boolean;
-    FAutoProgressPhysicsServer: Boolean;
+    FAutoFreeOwnerIOServer: Boolean;
+    FAutoProgressOwnerIOServer: Boolean;
     CustomStableServerProgressing: Boolean;
 
     procedure ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
-    procedure SetPhysicsServer(const Value: TZNet_Server);
+    procedure SetOwnerIOServer(const Value: TZNet_Server);
 
     procedure cmd_BuildStableIO(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_OpenStableIO(Sender: TPeerIO; InData, OutData: TDFE);
@@ -2146,11 +2146,11 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    property PhysicsServer: TZNet_Server read FPhysicsServer write SetPhysicsServer;
+    property OwnerIOServer: TZNet_Server read FOwnerIOServer write SetOwnerIOServer;
     property OfflineTimeout: TTimeTick read FOfflineTimeout write FOfflineTimeout;
     property LimitSequencePacketMemoryUsage: Int64 read FLimitSequencePacketMemoryUsage write FLimitSequencePacketMemoryUsage;
-    property AutoFreePhysicsServer: Boolean read FAutoFreePhysicsServer write FAutoFreePhysicsServer;
-    property AutoProgressPhysicsServer: Boolean read FAutoProgressPhysicsServer write FAutoProgressPhysicsServer;
+    property AutoFreeOwnerIOServer: Boolean read FAutoFreeOwnerIOServer write FAutoFreeOwnerIOServer;
+    property AutoProgressOwnerIOServer: Boolean read FAutoProgressOwnerIOServer write FAutoProgressOwnerIOServer;
 
     function StartService(Host: SystemString; Port: Word): Boolean; override;
     procedure StopService; override;
@@ -2168,9 +2168,9 @@ type
   TStableClient_PeerIO = class(TPeerIO)
   public
     Activted, WaitConnecting: Boolean;
-    PhysicsIO_LastConnectTick: TTimeTick;
+    OwnerIO_LastConnectTick: TTimeTick;
     Connection_Token: Cardinal;
-    BindPhysicsIO: TPeerIO;
+    BindOwnerIO: TPeerIO;
 
     procedure CreateAfter; override;
     destructor Destroy; override;
@@ -2188,14 +2188,14 @@ type
 
   TZNet_CustomStableClient = class(TZNet_Client)
   protected
-    FPhysicsClient: TZNet_Client;
+    FOwnerIOClient: TZNet_Client;
     FStableClientIO: TStableClient_PeerIO;
     FConnection_Addr: SystemString;
     FConnection_Port: Word;
     FAutomatedConnection: Boolean;
     FLimitSequencePacketMemoryUsage: Int64;
-    FAutoFreePhysicsClient: Boolean;
-    FAutoProgressPhysicsClient: Boolean;
+    FAutoFreeOwnerIOClient: Boolean;
+    FAutoProgressOwnerIOClient: Boolean;
     CustomStableClientProgressing: Boolean;
     KeepAliveChecking: Boolean;
     SaveLastCommunicationTick_Received: TTimeTick;
@@ -2204,7 +2204,7 @@ type
     FOnAsyncConnectNotify_M: TOnState_M;
     FOnAsyncConnectNotify_P: TOnState_P;
     procedure ClientCustomProtocolReceiveBufferNotify(Sender: TZNet_Client; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
-    procedure SetPhysicsClient(const Value: TZNet_Client);
+    procedure SetOwnerIOClient(const Value: TZNet_Client);
 
     { connection }
     procedure BuildStableIO_Result(Sender: TPeerIO; Result_: TDFE);
@@ -2222,10 +2222,10 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    property PhysicsClient: TZNet_Client read FPhysicsClient write SetPhysicsClient;
+    property OwnerIOClient: TZNet_Client read FOwnerIOClient write SetOwnerIOClient;
     property LimitSequencePacketMemoryUsage: Int64 read FLimitSequencePacketMemoryUsage write FLimitSequencePacketMemoryUsage;
-    property AutoFreePhysicsClient: Boolean read FAutoFreePhysicsClient write FAutoFreePhysicsClient;
-    property AutoProgressPhysicsClient: Boolean read FAutoProgressPhysicsClient write FAutoProgressPhysicsClient;
+    property AutoFreeOwnerIOClient: Boolean read FAutoFreeOwnerIOClient write FAutoFreeOwnerIOClient;
+    property AutoProgressOwnerIOClient: Boolean read FAutoProgressOwnerIOClient write FAutoProgressOwnerIOClient;
     property AutomatedConnection: Boolean read FAutomatedConnection write FAutomatedConnection;
     property StopCommunicationTimeTick: TTimeTick read GetStopCommunicationTimeTick;
     property StableClientIO: TStableClient_PeerIO read FStableClientIO;
@@ -2482,7 +2482,7 @@ var
   C_p2pVM_ConnectedReponse: Byte = $21;
   C_p2pVM_Disconnect: Byte = $40;
   C_p2pVM_LogicFragmentData: Byte = $54;
-  C_p2pVM_PhysicsFragmentData: Byte = $64;
+  C_p2pVM_OwnerIOFragmentData: Byte = $64;
 
   { default system head }
   C_DefaultConsoleToken: Byte = $F1;
@@ -10012,9 +10012,9 @@ end;
 
 destructor TZNet_Server.Destroy;
 begin
-  if (FStableIO <> nil) and (not FStableIO.AutoFreePhysicsServer) then
+  if (FStableIO <> nil) and (not FStableIO.AutoFreeOwnerIOServer) then
     begin
-      FStableIO.PhysicsServer := nil;
+      FStableIO.OwnerIOServer := nil;
       DisposeObject(FStableIO);
       FStableIO := nil;
     end;
@@ -10044,9 +10044,9 @@ begin
   if FStableIO = nil then
     begin
       FStableIO := TZNet_StableServer.Create;
-      FStableIO.AutoFreePhysicsServer := False;
-      FStableIO.AutoProgressPhysicsServer := True;
-      FStableIO.PhysicsServer := Self;
+      FStableIO.AutoFreeOwnerIOServer := False;
+      FStableIO.AutoProgressOwnerIOServer := True;
+      FStableIO.OwnerIOServer := Self;
     end;
 
   Result := FStableIO;
@@ -11323,7 +11323,7 @@ end;
 destructor TZNet_Client.Destroy;
 begin
   try
-    if (FStableIO <> nil) and (not FStableIO.AutoFreePhysicsClient) then
+    if (FStableIO <> nil) and (not FStableIO.AutoFreeOwnerIOClient) then
       begin
         DisposeObject(FStableIO);
         FStableIO := nil;
@@ -11468,9 +11468,9 @@ begin
   if FStableIO = nil then
     begin
       FStableIO := TZNet_StableClient.Create;
-      FStableIO.AutoFreePhysicsClient := False;
-      FStableIO.AutoProgressPhysicsClient := True;
-      FStableIO.PhysicsClient := Self;
+      FStableIO.AutoFreeOwnerIOClient := False;
+      FStableIO.AutoProgressOwnerIOClient := True;
+      FStableIO.OwnerIOClient := Self;
     end;
 
   Result := FStableIO;
@@ -12545,7 +12545,7 @@ begin
   if FLinkVM = nil then
       Result := False
   else if FOwnerFramework is TZNet_WithP2PVM_Server then
-      Result := (FLinkVM.FPhysicsIO <> nil)
+      Result := (FLinkVM.FOwner_IO <> nil)
   else if FOwnerFramework is TZNet_WithP2PVM_Client then
       Result := TZNet_WithP2PVM_Client(FOwnerFramework).Connected
   else
@@ -12606,8 +12606,8 @@ end;
 function TP2PVM_PeerIO.GetPeerIP: SystemString;
 begin
   Result := IPv6ToStr(FIP).Text;
-  if (FLinkVM <> nil) and (FLinkVM.FPhysicsIO <> nil) then
-      Result := FLinkVM.FPhysicsIO.PeerIP + '(' + Result + ')';
+  if (FLinkVM <> nil) and (FLinkVM.FOwner_IO <> nil) then
+      Result := FLinkVM.FOwner_IO.PeerIP + '(' + Result + ')';
 end;
 
 function TP2PVM_PeerIO.WriteBufferEmpty: Boolean;
@@ -13180,7 +13180,7 @@ begin
   FOnP2PVMAsyncConnectNotify_C := nil;
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := nil;
-  if (FLinkVM = nil) or (FLinkVM.FPhysicsIO = nil) then
+  if (FLinkVM = nil) or (FLinkVM.FOwner_IO = nil) then
     begin
       Error('no VM connect');
       TriggerDoConnectFailed;
@@ -13234,7 +13234,7 @@ begin
   FOnP2PVMAsyncConnectNotify_C := OnResult;
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := nil;
-  if (FLinkVM = nil) or (FLinkVM.FPhysicsIO = nil) then
+  if (FLinkVM = nil) or (FLinkVM.FOwner_IO = nil) then
     begin
       Error('no VM connect');
       TriggerDoConnectFailed;
@@ -13289,7 +13289,7 @@ begin
   FOnP2PVMAsyncConnectNotify_M := OnResult;
   FOnP2PVMAsyncConnectNotify_P := nil;
 
-  if (FLinkVM = nil) or (FLinkVM.FPhysicsIO = nil) then
+  if (FLinkVM = nil) or (FLinkVM.FOwner_IO = nil) then
     begin
       Error('no VM connect');
       TriggerDoConnectFailed;
@@ -13344,7 +13344,7 @@ begin
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := OnResult;
 
-  if (FLinkVM = nil) or (FLinkVM.FPhysicsIO = nil) then
+  if (FLinkVM = nil) or (FLinkVM.FOwner_IO = nil) then
     begin
       Error('no VM connect');
       TriggerDoConnectFailed;
@@ -13399,7 +13399,7 @@ begin
   FOnP2PVMAsyncConnectNotify_C := nil;
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := nil;
-  if (FLinkVM = nil) or (FLinkVM.FPhysicsIO = nil) then
+  if (FLinkVM = nil) or (FLinkVM.FOwner_IO = nil) then
     begin
       Error('no VM connect');
       exit;
@@ -13502,8 +13502,8 @@ procedure TZNet_WithP2PVM_Client.ProgressWaitSend(P_IO: TPeerIO);
 begin
   if FLinkVM <> nil then
     begin
-      if FLinkVM.FPhysicsIO <> nil then
-          FLinkVM.FPhysicsIO.OwnerFramework.ProgressWaitSend(FLinkVM.FPhysicsIO);
+      if FLinkVM.FOwner_IO <> nil then
+          FLinkVM.FOwner_IO.OwnerFramework.ProgressWaitSend(FLinkVM.FOwner_IO);
       FLinkVM.Progress;
       FLinkVM.ProgressZNet_M({$IFDEF FPC}@{$ENDIF FPC}DoBackCall_Progress);
     end;
@@ -13523,7 +13523,7 @@ begin
       t.buffSiz := siz;
       t.FrameworkID := 0;
       t.p2pID := 0;
-      t.pkType := C_p2pVM_PhysicsFragmentData;
+      t.pkType := C_p2pVM_OwnerIOFragmentData;
       t.buff := buff;
       t.BuildSendBuff(FSendStream);
     end
@@ -13536,7 +13536,7 @@ begin
   if siz <= 0 then
       exit;
 
-  if FPhysicsIO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
+  if FOwner_IO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
       FCritical.Acquire;
 
   FReceiveStream.Position := FReceiveStream.Size;
@@ -13555,18 +13555,18 @@ begin
   if FReceiveStream.Size <= 0 then
       exit;
 
-  if FPhysicsIO <> nil then
+  if FOwner_IO <> nil then
     begin
-      FPhysicsIO.UpdateLastCommunicationTime;
-      FPhysicsIO.LastCommunicationTick_Received := FPhysicsIO.FLastCommunicationTick;
-      FPhysicsIO.LastCommunicationTick_KeepAlive := FPhysicsIO.LastCommunicationTick_Received;
+      FOwner_IO.UpdateLastCommunicationTime;
+      FOwner_IO.LastCommunicationTick_Received := FOwner_IO.FLastCommunicationTick;
+      FOwner_IO.LastCommunicationTick_KeepAlive := FOwner_IO.LastCommunicationTick_Received;
     end;
 
   { p2p auth }
   if not FAuthed then
     begin
-      if (FAuthWaiting) and (FReceiveStream.Size >= Length(FPhysicsIO.FP2PAuthToken)) and
-        (CompareMemory(@FPhysicsIO.FP2PAuthToken[0], FReceiveStream.Memory, Length(FPhysicsIO.FP2PAuthToken))) then
+      if (FAuthWaiting) and (FReceiveStream.Size >= Length(FOwner_IO.FP2PAuthToken)) and
+        (CompareMemory(@FOwner_IO.FP2PAuthToken[0], FReceiveStream.Memory, Length(FOwner_IO.FP2PAuthToken))) then
         begin
           FSendStream.Clear;
 
@@ -13588,7 +13588,7 @@ begin
           AuthSuccessed;
 
           { fill fragment buffer }
-          p64 := Length(FPhysicsIO.FP2PAuthToken);
+          p64 := Length(FOwner_IO.FP2PAuthToken);
           sourStream := TMS64.Create;
           FReceiveStream.Position := p64;
           if FReceiveStream.Size - FReceiveStream.Position > 0 then
@@ -13597,18 +13597,18 @@ begin
           FReceiveStream := sourStream;
 
           if not FQuietMode then
-              FPhysicsIO.Print('VM Authentication Success');
+              FOwner_IO.Print('VM Authentication Success');
         end
       else if FAuthWaiting then
           exit
       else
         begin
           { safe process fragment }
-          if FReceiveStream.Size >= Length(FPhysicsIO.FP2PAuthToken) then
+          if FReceiveStream.Size >= Length(FOwner_IO.FP2PAuthToken) then
             begin
-              FPhysicsIO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FPhysicsIO, FReceiveStream.Memory, FReceiveStream.Size);
+              FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FOwner_IO, FReceiveStream.Memory, FReceiveStream.Size);
               FReceiveStream.Clear;
-              FPhysicsIO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FPhysicsIO, nil, False, False);
+              FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FOwner_IO, nil, False, False);
             end;
           exit;
         end;
@@ -13655,11 +13655,11 @@ begin
               ReceivedDisconnect(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
           else if fPk.pkType = C_p2pVM_LogicFragmentData then
               ReceivedLogicFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
-          else if fPk.pkType = C_p2pVM_PhysicsFragmentData then
-              ReceivedPhysicsFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+          else if fPk.pkType = C_p2pVM_OwnerIOFragmentData then
+              ReceivedOwnerIOFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
           else
             begin
-              FPhysicsIO.PrintError('VM protocol header errror');
+              FOwner_IO.PrintError('VM protocol header errror');
               DoStatus(@fPk, SizeOf(fPk), 40);
             end;
 
@@ -13692,7 +13692,7 @@ end;
 procedure TZNet_WithP2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
 begin
   Sender.IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}SyncProcessReceiveBuff);
-  if FPhysicsIO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
+  if FOwner_IO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
       FCritical.Release;
 end;
 
@@ -13704,10 +13704,10 @@ end;
 
 procedure TZNet_WithP2PVM.SendVMBuffer(const buff: Pointer; const siz: NativeInt);
 begin
-  FPhysicsIO.WriteBufferOpen;
-  FPhysicsIO.OwnerFramework.Framework_InternalSendByteBuffer(FPhysicsIO, buff, siz);
-  FPhysicsIO.WriteBufferFlush;
-  FPhysicsIO.WriteBufferClose;
+  FOwner_IO.WriteBufferOpen;
+  FOwner_IO.OwnerFramework.Framework_InternalSendByteBuffer(FOwner_IO, buff, siz);
+  FOwner_IO.WriteBufferFlush;
+  FOwner_IO.WriteBufferClose;
 end;
 
 procedure TZNet_WithP2PVM.ReceivedEchoing(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
@@ -13727,7 +13727,7 @@ var
 begin
   if siz <> SizeOf(TBuf) then
     begin
-      FPhysicsIO.PrintError('echoing protocol with buffer error!');
+      FOwner_IO.PrintError('echoing protocol with buffer error!');
       if buff <> nil then
         if not FQuietMode then
             DoStatus(buff, siz, 40);
@@ -13778,7 +13778,7 @@ var
 begin
   if siz <> SizeOf(TBuf) then
     begin
-      FPhysicsIO.PrintError('listen protocol with buffer error!');
+      FOwner_IO.PrintError('listen protocol with buffer error!');
       if buff <> nil then
         if not FQuietMode then
             DoStatus(buff, siz, 40);
@@ -13791,7 +13791,7 @@ begin
 
   if p2pID <> 0 then
     begin
-      FPhysicsIO.PrintError('listen protocol error! IO ID:%d', [p2pID]);
+      FOwner_IO.PrintError('listen protocol error! IO ID:%d', [p2pID]);
       exit;
     end;
 
@@ -13835,7 +13835,7 @@ var
 begin
   if siz <> SizeOf(TBuf) then
     begin
-      FPhysicsIO.PrintError('Virtual listen state protocol with buffer error!');
+      FOwner_IO.PrintError('Virtual listen state protocol with buffer error!');
       if buff <> nil then
         if not FQuietMode then
             DoStatus(buff, siz, 40);
@@ -13848,7 +13848,7 @@ begin
 
   if p2pID <> 0 then
     begin
-      FPhysicsIO.PrintError('Virtual listen state protocol error! IO ID:%d', [p2pID]);
+      FOwner_IO.PrintError('Virtual listen state protocol error! IO ID:%d', [p2pID]);
       exit;
     end;
 
@@ -13869,13 +13869,13 @@ begin
           LP^.Listening := True;
         end;
       if not FQuietMode then
-          FPhysicsIO.Print('Virtual Remote Listen state Activted "%s port:%d"', [IPv6ToStr(IPV6).Text, Port]);
+          FOwner_IO.Print('Virtual Remote Listen state Activted "%s port:%d"', [IPv6ToStr(IPV6).Text, Port]);
     end
   else
     begin
       DeleteListen(IPV6, Port);
       if not FQuietMode then
-          FPhysicsIO.Print('Virtual Remote Listen state Close "%s port:%d"', [IPv6ToStr(IPV6).Text, Port]);
+          FOwner_IO.Print('Virtual Remote Listen state Close "%s port:%d"', [IPv6ToStr(IPV6).Text, Port]);
     end;
 
   c := TZNet(FFrameworkPool[FrameworkID]);
@@ -13901,7 +13901,7 @@ var
 begin
   if siz <> SizeOf(TBuf) then
     begin
-      FPhysicsIO.PrintError('connect request with buffer error!');
+      FOwner_IO.PrintError('connect request with buffer error!');
       if buff <> nil then
           DoStatus(buff, siz, 40);
       exit;
@@ -13915,7 +13915,7 @@ begin
   if p2pID <> 0 then
     begin
       SendDisconnect(Remote_frameworkID, Remote_p2pID);
-      FPhysicsIO.PrintError('connect request with protocol error! IO ID:%d', [p2pID]);
+      FOwner_IO.PrintError('connect request with protocol error! IO ID:%d', [p2pID]);
       exit;
     end;
 
@@ -13949,7 +13949,7 @@ var
 begin
   if siz <> SizeOf(TBuf) then
     begin
-      FPhysicsIO.PrintError('connect request with buffer error!');
+      FOwner_IO.PrintError('connect request with buffer error!');
       if buff <> nil then
           DoStatus(buff, siz, 40);
       exit;
@@ -13966,7 +13966,7 @@ begin
       TZNet_WithP2PVM_Client(c).VMConnectSuccessed(Self, Remote_frameworkID, Remote_p2pID, FrameworkID);
 
       if not FQuietMode then
-          FPhysicsIO.Print('connecting reponse from frameworkID: %d p2pID: %d', [Remote_frameworkID, Remote_p2pID]);
+          FOwner_IO.Print('connecting reponse from frameworkID: %d p2pID: %d', [Remote_frameworkID, Remote_p2pID]);
     end;
 end;
 
@@ -13988,14 +13988,14 @@ begin
       if LocalVMc = nil then
         begin
           if not FQuietMode then
-              FPhysicsIO.Print('disconnect protocol no p2pID:%d', [p2pID]);
+              FOwner_IO.Print('disconnect protocol no p2pID:%d', [p2pID]);
           exit;
         end;
       LocalVMc.FDestroySyncRemote := False;
       LocalVMc.Disconnect;
     end
   else if not FQuietMode then
-      FPhysicsIO.Print('disconnect protocol no frameworkID: %d', [FrameworkID]);
+      FOwner_IO.Print('disconnect protocol no frameworkID: %d', [FrameworkID]);
 end;
 
 procedure TZNet_WithP2PVM.ReceivedLogicFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
@@ -14003,7 +14003,7 @@ var
   c: TZNet;
   LocalVMc: TPeerIO;
 begin
-  AtomInc(FPhysicsIO.OwnerFramework.Statistics[TStatisticsType.stReceiveSize], siz);
+  AtomInc(FOwner_IO.OwnerFramework.Statistics[TStatisticsType.stReceiveSize], siz);
   c := TZNet(FFrameworkPool[FrameworkID]);
   if c is TZNet_WithP2PVM_Server then
     begin
@@ -14015,7 +14015,7 @@ begin
         end
       else
         begin
-          FPhysicsIO.PrintError('fragment Data p2pID error: p2pID:%d buffer size:%d', [p2pID, siz]);
+          FOwner_IO.PrintError('fragment Data p2pID error: p2pID:%d buffer size:%d', [p2pID, siz]);
           DoStatus(buff, umlMin(siz, 164), 40);
         end;
     end
@@ -14029,22 +14029,22 @@ begin
         end
       else
         begin
-          FPhysicsIO.PrintError('LocalVM [%d] error: no interface', [FrameworkID]);
+          FOwner_IO.PrintError('LocalVM [%d] error: no interface', [FrameworkID]);
         end;
     end
   else
     begin
-      FPhysicsIO.PrintError('fragment Data frameworkID error: frameworkID:%d buffer size:%d', [FrameworkID, siz]);
+      FOwner_IO.PrintError('fragment Data frameworkID error: frameworkID:%d buffer size:%d', [FrameworkID, siz]);
       DoStatus(buff, umlMin(siz, 164), 40);
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedPhysicsFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_WithP2PVM.ReceivedOwnerIOFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 begin
-  if FPhysicsIO = nil then
+  if FOwner_IO = nil then
       exit;
-  FPhysicsIO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FPhysicsIO, buff, siz);
-  FPhysicsIO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FPhysicsIO, nil, False, False);
+  FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FOwner_IO, buff, siz);
+  FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FOwner_IO, nil, False, False);
 end;
 
 procedure TZNet_WithP2PVM.DoProcessPerClientFragmentSend(P_IO: TPeerIO);
@@ -14075,7 +14075,7 @@ constructor TZNet_WithP2PVM.Create(HashPoolSize: Integer);
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  FPhysicsIO := nil;
+  FOwner_IO := nil;
   FAuthWaiting := False;
   FAuthed := False;
   FAuthSending := False;
@@ -14103,7 +14103,7 @@ begin
       Dispose(OnEchoPtr);
     end;
   FWaitEchoList.Clear;
-  if FPhysicsIO <> nil then
+  if FOwner_IO <> nil then
       CloseP2PVMTunnel;
   ClearListen;
   DisposeObject(FWaitEchoList);
@@ -14122,7 +14122,7 @@ var
   lsiz: Int64;
   OnEchoPtr: POnEcho;
 begin
-  if FPhysicsIO = nil then
+  if FOwner_IO = nil then
       exit;
 
   { echo and keepalive simulate }
@@ -14153,7 +14153,7 @@ begin
           inc(i);
     end;
 
-  if not FPhysicsIO.WriteBufferEmpty then
+  if not FOwner_IO.WriteBufferEmpty then
       exit;
 
   { real send buffer }
@@ -14262,7 +14262,7 @@ end;
 
 procedure TZNet_WithP2PVM.OpenP2PVMTunnel(c: TPeerIO);
 begin
-  FPhysicsIO := c;
+  FOwner_IO := c;
   FAuthWaiting := False;
   FAuthed := False;
   FAuthSending := False;
@@ -14271,15 +14271,15 @@ begin
 
   { install tunnel driver }
   try
-    FPhysicsIO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SendByteBuffer;
-    FPhysicsIO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SaveReceiveBuffer;
-    FPhysicsIO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_ProcessReceiveBuffer;
-    FPhysicsIO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}Hook_ClientDestroy;
+    FOwner_IO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SendByteBuffer;
+    FOwner_IO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SaveReceiveBuffer;
+    FOwner_IO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_ProcessReceiveBuffer;
+    FOwner_IO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}Hook_ClientDestroy;
   except
   end;
 
   if not FQuietMode then
-      FPhysicsIO.Print('Open VM P2P Tunnel ' + FPhysicsIO.PeerIP);
+      FOwner_IO.Print('Open VM P2P Tunnel ' + FOwner_IO.PeerIP);
 end;
 
 procedure TZNet_WithP2PVM.CloseP2PVMTunnel;
@@ -14321,21 +14321,21 @@ begin
   FReceiveStream.Clear;
   FSendStream.Clear;
 
-  if FPhysicsIO = nil then
+  if FOwner_IO = nil then
       exit;
 
   try
-    FPhysicsIO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}FPhysicsIO.FOwnerFramework.Framework_InternalSendByteBuffer;
-    FPhysicsIO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FPhysicsIO.FOwnerFramework.Framework_InternalSaveReceiveBuffer;
-    FPhysicsIO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FPhysicsIO.FOwnerFramework.Framework_InternalProcessReceiveBuffer;
-    FPhysicsIO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FPhysicsIO.FOwnerFramework.Framework_InternalIODestroy;
+    FOwner_IO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalSendByteBuffer;
+    FOwner_IO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer;
+    FOwner_IO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer;
+    FOwner_IO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalIODestroy;
   except
   end;
 
   if not FQuietMode then
-      FPhysicsIO.Print('Close VM P2P Tunnel ' + FPhysicsIO.PeerIP);
+      FOwner_IO.Print('Close VM P2P Tunnel ' + FOwner_IO.PeerIP);
 
-  FPhysicsIO := nil;
+  FOwner_IO := nil;
 end;
 
 procedure TZNet_WithP2PVM.InstallLogicFramework(c: TZNet);
@@ -14345,12 +14345,12 @@ var
 begin
   if (c is TZNet_CustomStableServer) then
     begin
-      InstallLogicFramework(TZNet_CustomStableServer(c).PhysicsServer);
+      InstallLogicFramework(TZNet_CustomStableServer(c).OwnerIOServer);
       exit;
     end;
   if (c is TZNet_CustomStableClient) then
     begin
-      InstallLogicFramework(TZNet_CustomStableClient(c).PhysicsClient);
+      InstallLogicFramework(TZNet_CustomStableClient(c).OwnerIOClient);
       exit;
     end;
 
@@ -14410,12 +14410,12 @@ var
 begin
   if (c is TZNet_CustomStableServer) then
     begin
-      UninstallLogicFramework(TZNet_CustomStableServer(c).PhysicsServer);
+      UninstallLogicFramework(TZNet_CustomStableServer(c).OwnerIOServer);
       exit;
     end;
   if (c is TZNet_CustomStableClient) then
     begin
-      UninstallLogicFramework(TZNet_CustomStableClient(c).PhysicsClient);
+      UninstallLogicFramework(TZNet_CustomStableClient(c).OwnerIOClient);
       exit;
     end;
 
@@ -14463,19 +14463,19 @@ end;
 
 procedure TZNet_WithP2PVM.AuthWaiting;
 begin
-  if FPhysicsIO = nil then
+  if FOwner_IO = nil then
       exit;
   FAuthWaiting := True;
 end;
 
 procedure TZNet_WithP2PVM.AuthVM;
 begin
-  if FPhysicsIO = nil then
+  if FOwner_IO = nil then
       exit;
   if not FAuthed then
     if not FAuthSending then
       begin
-        FSendStream.WritePtr(@FPhysicsIO.FP2PAuthToken[0], Length(FPhysicsIO.FP2PAuthToken));
+        FSendStream.WritePtr(@FOwner_IO.FP2PAuthToken[0], Length(FOwner_IO.FP2PAuthToken));
         FAuthSending := True;
         FAuthWaiting := True;
       end;
@@ -14498,7 +14498,7 @@ var
   p: PP2PVMFragmentPacket;
   i: Integer;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
     begin
       if OnEchoPtr <> nil then
         begin
@@ -14576,7 +14576,7 @@ procedure TZNet_WithP2PVM.echoBuffer(const buff: Pointer; const siz: NativeInt);
 var
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
   p := BuildP2PVMPacket(siz, 0, 0, C_p2pVM_echo, buff);
 
@@ -14592,7 +14592,7 @@ var
   RBuf: array [0 .. 18] of Byte;
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
     begin
       LP := FindListen(IPV6, Port);
       if Listening then
@@ -14637,7 +14637,7 @@ var
   RBuf: array [0 .. 18] of Byte;
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
   PIPV6(@RBuf[0])^ := IPV6;
   PWORD(@RBuf[16])^ := Port;
@@ -14654,7 +14654,7 @@ var
   RBuf: array [0 .. 25] of Byte;
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
   PCardinal(@RBuf[0])^ := FrameworkID;
   PCardinal(@RBuf[4])^ := p2pID;
@@ -14673,7 +14673,7 @@ var
   RBuf: array [0 .. 7] of Byte;
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
   PCardinal(@RBuf[0])^ := FrameworkID;
   PCardinal(@RBuf[4])^ := p2pID;
@@ -14689,7 +14689,7 @@ procedure TZNet_WithP2PVM.SendDisconnect(const Remote_frameworkID, Remote_p2pID:
 var
   p: PP2PVMFragmentPacket;
 begin
-  if (FPhysicsIO = nil) or (not WasAuthed) then
+  if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
   p := BuildP2PVMPacket(0, Remote_frameworkID, Remote_p2pID, C_p2pVM_Disconnect, nil);
 
@@ -14824,17 +14824,17 @@ begin
   DisposeObject(L);
 end;
 
-constructor TStableServer_PhysicsIO_UserDefine.Create(Owner_: TPeerIO);
+constructor TStableServer_OwnerIO_UserDefine.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   BindStableIO := nil;
 end;
 
-destructor TStableServer_PhysicsIO_UserDefine.Destroy;
+destructor TStableServer_OwnerIO_UserDefine.Destroy;
 begin
   if BindStableIO <> nil then
     begin
-      BindStableIO.BindPhysicsIO := nil;
+      BindStableIO.BindOwnerIO := nil;
       if not BindStableIO.Activted then
           BindStableIO.DelayClose(2.0);
       BindStableIO := nil;
@@ -14846,19 +14846,19 @@ procedure TStableServer_PeerIO.CreateAfter;
 begin
   inherited CreateAfter;
   Activted := False;
-  DestroyRecyclePhysicsIO := True;
+  DestroyRecycleOwnerIO := True;
   Connection_Token := 0;
-  InternalBindPhysicsIO := nil;
+  InternalBindOwnerIO := nil;
   OfflineTick := GetTimeTick;
 end;
 
 destructor TStableServer_PeerIO.Destroy;
 begin
-  if (DestroyRecyclePhysicsIO) and (BindPhysicsIO <> nil) then
+  if (DestroyRecycleOwnerIO) and (BindOwnerIO <> nil) then
     begin
-      TStableServer_PhysicsIO_UserDefine(BindPhysicsIO.UserDefine).BindStableIO := nil;
-      BindPhysicsIO.DelayClose;
-      BindPhysicsIO := nil;
+      TStableServer_OwnerIO_UserDefine(BindOwnerIO.UserDefine).BindStableIO := nil;
+      BindOwnerIO.DelayClose;
+      BindOwnerIO := nil;
     end;
 
   inherited Destroy;
@@ -14876,42 +14876,42 @@ end;
 
 procedure TStableServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
 begin
-  if BindPhysicsIO = nil then
+  if BindOwnerIO = nil then
       AtomDec(FOwnerFramework.Statistics[TStatisticsType.stSendSize], Size)
   else
-      BindPhysicsIO.SendByteBuffer(buff, Size);
+      BindOwnerIO.SendByteBuffer(buff, Size);
 end;
 
 procedure TStableServer_PeerIO.WriteBufferOpen;
 begin
-  if BindPhysicsIO <> nil then
-      BindPhysicsIO.WriteBufferOpen;
+  if BindOwnerIO <> nil then
+      BindOwnerIO.WriteBufferOpen;
 end;
 
 procedure TStableServer_PeerIO.WriteBufferFlush;
 begin
-  if BindPhysicsIO <> nil then
-      BindPhysicsIO.WriteBufferFlush;
+  if BindOwnerIO <> nil then
+      BindOwnerIO.WriteBufferFlush;
 end;
 
 procedure TStableServer_PeerIO.WriteBufferClose;
 begin
-  if BindPhysicsIO <> nil then
-      BindPhysicsIO.WriteBufferClose;
+  if BindOwnerIO <> nil then
+      BindOwnerIO.WriteBufferClose;
 end;
 
 function TStableServer_PeerIO.GetPeerIP: SystemString;
 begin
-  if BindPhysicsIO <> nil then
-      Result := BindPhysicsIO.GetPeerIP
+  if BindOwnerIO <> nil then
+      Result := BindOwnerIO.GetPeerIP
   else
       Result := 'StableIO - offline';
 end;
 
 function TStableServer_PeerIO.WriteBufferEmpty: Boolean;
 begin
-  if BindPhysicsIO <> nil then
-      Result := BindPhysicsIO.WriteBufferEmpty
+  if BindOwnerIO <> nil then
+      Result := BindOwnerIO.WriteBufferEmpty
   else
       Result := False;
 end;
@@ -14924,7 +14924,7 @@ begin
     begin
       t := GetTimeTick;
 
-      if (BindPhysicsIO = nil) then
+      if (BindOwnerIO = nil) then
         begin
           offline_t := TZNet_CustomStableServer(FOwnerFramework).OfflineTimeout;
           if (offline_t > 0) and (t - OfflineTick > offline_t) then
@@ -14943,9 +14943,9 @@ end;
 
 procedure TZNet_CustomStableServer.ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 var
-  io_def: TStableServer_PhysicsIO_UserDefine;
+  io_def: TStableServer_OwnerIO_UserDefine;
 begin
-  io_def := Sender.UserDefine as TStableServer_PhysicsIO_UserDefine;
+  io_def := Sender.UserDefine as TStableServer_OwnerIO_UserDefine;
   FillDone := (io_def.BindStableIO <> nil);
   if FillDone then
     begin
@@ -14954,49 +14954,49 @@ begin
     end;
 end;
 
-procedure TZNet_CustomStableServer.SetPhysicsServer(const Value: TZNet_Server);
+procedure TZNet_CustomStableServer.SetOwnerIOServer(const Value: TZNet_Server);
 begin
-  if FPhysicsServer <> nil then
+  if FOwnerIOServer <> nil then
     begin
-      FPhysicsServer.FOnServerCustomProtocolReceiveBufferNotify := nil;
-      FPhysicsServer.Protocol := TCommunicationProtocol.cpZServer;
-      FPhysicsServer.UserDefineClass := TPeerIOUserDefine;
-      FPhysicsServer.QuietMode := False;
+      FOwnerIOServer.FOnServerCustomProtocolReceiveBufferNotify := nil;
+      FOwnerIOServer.Protocol := TCommunicationProtocol.cpZServer;
+      FOwnerIOServer.UserDefineClass := TPeerIOUserDefine;
+      FOwnerIOServer.QuietMode := False;
 
       UnRegisted(C_BuildStableIO);
       UnRegisted(C_OpenStableIO);
     end;
 
-  FPhysicsServer := Value;
+  FOwnerIOServer := Value;
 
-  if FPhysicsServer <> nil then
+  if FOwnerIOServer <> nil then
     begin
-      FPhysicsServer.FOnServerCustomProtocolReceiveBufferNotify := {$IFDEF FPC}@{$ENDIF FPC}ServerCustomProtocolReceiveBufferNotify;
-      FPhysicsServer.Protocol := TCommunicationProtocol.cpCustom;
-      FPhysicsServer.UserDefineClass := TStableServer_PhysicsIO_UserDefine;
-      FPhysicsServer.SyncOnResult := True;
-      FPhysicsServer.SyncOnCompleteBuffer := True;
-      FPhysicsServer.QuietMode := False;
-      FPhysicsServer.TimeOutIDLE := 60 * 1000;
+      FOwnerIOServer.FOnServerCustomProtocolReceiveBufferNotify := {$IFDEF FPC}@{$ENDIF FPC}ServerCustomProtocolReceiveBufferNotify;
+      FOwnerIOServer.Protocol := TCommunicationProtocol.cpCustom;
+      FOwnerIOServer.UserDefineClass := TStableServer_OwnerIO_UserDefine;
+      FOwnerIOServer.SyncOnResult := True;
+      FOwnerIOServer.SyncOnCompleteBuffer := True;
+      FOwnerIOServer.QuietMode := False;
+      FOwnerIOServer.TimeOutIDLE := 60 * 1000;
 
-      FPhysicsServer.RegisterStream(C_BuildStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_BuildStableIO;
-      FPhysicsServer.RegisterStream(C_OpenStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_OpenStableIO;
+      FOwnerIOServer.RegisterStream(C_BuildStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_BuildStableIO;
+      FOwnerIOServer.RegisterStream(C_OpenStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_OpenStableIO;
     end;
 end;
 
 procedure TZNet_CustomStableServer.cmd_BuildStableIO(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  io_def: TStableServer_PhysicsIO_UserDefine;
+  io_def: TStableServer_OwnerIO_UserDefine;
   s_io: TStableServer_PeerIO;
 begin
-  io_def := Sender.UserDefine as TStableServer_PhysicsIO_UserDefine;
+  io_def := Sender.UserDefine as TStableServer_OwnerIO_UserDefine;
   s_io := TStableServer_PeerIO.Create(Self, nil);
   s_io.Activted := True;
   s_io.FSequencePacketActivted := True;
   s_io.FSequencePacketSignal := True;
-  s_io.SequencePacketLimitPhysicsMemory := FLimitSequencePacketMemoryUsage;
-  s_io.DestroyRecyclePhysicsIO := True;
-  s_io.BindPhysicsIO := Sender;
+  s_io.SequencePacketLimitOwnerIOMemory := FLimitSequencePacketMemoryUsage;
+  s_io.DestroyRecycleOwnerIO := True;
+  s_io.BindOwnerIO := Sender;
   s_io.Connection_Token := Connection_Token_Counter;
   inc(Connection_Token_Counter);
   io_def.BindStableIO := s_io;
@@ -15010,7 +15010,7 @@ end;
 
 procedure TZNet_CustomStableServer.cmd_OpenStableIO(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  io_def: TStableServer_PhysicsIO_UserDefine;
+  io_def: TStableServer_OwnerIO_UserDefine;
   connToken: Cardinal;
   arry: TDFArrayByte;
   connKey: TBytes;
@@ -15018,7 +15018,7 @@ var
   IO_ID: Cardinal;
   io_temp, io_picked: TStableServer_PeerIO;
 begin
-  io_def := Sender.UserDefine as TStableServer_PhysicsIO_UserDefine;
+  io_def := Sender.UserDefine as TStableServer_OwnerIO_UserDefine;
 
   io_picked := nil;
   connToken := InData.Reader.ReadCardinal;
@@ -15045,9 +15045,9 @@ begin
       exit;
     end;
 
-  io_picked.BindPhysicsIO := Sender;
+  io_picked.BindOwnerIO := Sender;
   io_picked.Activted := True;
-  io_picked.DestroyRecyclePhysicsIO := True;
+  io_picked.DestroyRecycleOwnerIO := True;
   io_picked.UserDefine.WorkPlatform := io_def.WorkPlatform;
   io_def.BindStableIO := io_picked;
   io_picked.ResetSequencePacketBuffer;
@@ -15078,11 +15078,11 @@ begin
   RegisterDirectConsole(C_CloseStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CloseStableIO;
 
   Connection_Token_Counter := 1;
-  FPhysicsServer := nil;
+  FOwnerIOServer := nil;
   FOfflineTimeout := 1000 * 60 * 5;
   FLimitSequencePacketMemoryUsage := 0;
-  FAutoFreePhysicsServer := False;
-  FAutoProgressPhysicsServer := True;
+  FAutoFreeOwnerIOServer := False;
+  FAutoProgressOwnerIOServer := True;
   CustomStableServerProgressing := False;
 
   Name := 'StableServer';
@@ -15098,9 +15098,9 @@ begin
       DisposeObject(FirstIO);
 
   StopService;
-  phyServ := FPhysicsServer;
-  SetPhysicsServer(nil);
-  if FAutoFreePhysicsServer and (phyServ <> nil) then
+  phyServ := FOwnerIOServer;
+  SetOwnerIOServer(nil);
+  if FAutoFreeOwnerIOServer and (phyServ <> nil) then
       DisposeObject(phyServ);
   inherited Destroy;
 end;
@@ -15108,14 +15108,14 @@ end;
 function TZNet_CustomStableServer.StartService(Host: SystemString; Port: Word): Boolean;
 begin
   Result := False;
-  if FPhysicsServer <> nil then
-      Result := FPhysicsServer.StartService(Host, Port);
+  if FOwnerIOServer <> nil then
+      Result := FOwnerIOServer.StartService(Host, Port);
 end;
 
 procedure TZNet_CustomStableServer.StopService;
 begin
-  if FPhysicsServer <> nil then
-      FPhysicsServer.StopService;
+  if FOwnerIOServer <> nil then
+      FOwnerIOServer.StopService;
 end;
 
 procedure TZNet_CustomStableServer.Progress;
@@ -15124,8 +15124,8 @@ begin
       exit;
 
   CustomStableServerProgressing := True;
-  if (FPhysicsServer <> nil) and (FAutoProgressPhysicsServer) then
-      FPhysicsServer.Progress;
+  if (FOwnerIOServer <> nil) and (FAutoProgressOwnerIOServer) then
+      FOwnerIOServer.Progress;
   inherited Progress;
   CustomStableServerProgressing := False;
 end;
@@ -15162,17 +15162,17 @@ begin
   inherited CreateAfter;
   Activted := False;
   WaitConnecting := False;
-  PhysicsIO_LastConnectTick := GetTimeTick;
+  OwnerIO_LastConnectTick := GetTimeTick;
   Connection_Token := 0;
-  BindPhysicsIO := nil;
+  BindOwnerIO := nil;
 end;
 
 destructor TStableClient_PeerIO.Destroy;
 begin
   TZNet_CustomStableClient(FOwnerFramework).DoDisconnect(Self);
 
-  if (BindPhysicsIO <> nil) then
-      BindPhysicsIO.DelayClose;
+  if (BindOwnerIO <> nil) then
+      BindOwnerIO.DelayClose;
 
   inherited Destroy;
 end;
@@ -15184,57 +15184,57 @@ end;
 
 procedure TStableClient_PeerIO.Disconnect;
 begin
-  if (BindPhysicsIO <> nil) then
-      BindPhysicsIO.Disconnect;
+  if (BindOwnerIO <> nil) then
+      BindOwnerIO.Disconnect;
 
   TZNet_CustomStableClient(FOwnerFramework).Disconnect;
 end;
 
 procedure TStableClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
 begin
-  if (BindPhysicsIO = nil) or (not Activted) or (WaitConnecting) then
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
     begin
       AtomDec(FOwnerFramework.Statistics[TStatisticsType.stSendSize], Size);
       exit;
     end;
 
-  BindPhysicsIO.SendByteBuffer(buff, Size);
+  BindOwnerIO.SendByteBuffer(buff, Size);
 end;
 
 procedure TStableClient_PeerIO.WriteBufferOpen;
 begin
-  if BindPhysicsIO <> nil then
-      BindPhysicsIO.WriteBufferOpen;
+  if BindOwnerIO <> nil then
+      BindOwnerIO.WriteBufferOpen;
 end;
 
 procedure TStableClient_PeerIO.WriteBufferFlush;
 begin
-  if (BindPhysicsIO = nil) or (not Activted) or (WaitConnecting) then
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
       exit;
-  BindPhysicsIO.WriteBufferFlush;
+  BindOwnerIO.WriteBufferFlush;
 end;
 
 procedure TStableClient_PeerIO.WriteBufferClose;
 begin
-  if (BindPhysicsIO = nil) or (not Activted) or (WaitConnecting) then
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
       exit;
-  BindPhysicsIO.WriteBufferClose;
+  BindOwnerIO.WriteBufferClose;
 end;
 
 function TStableClient_PeerIO.GetPeerIP: SystemString;
 begin
-  if (BindPhysicsIO = nil) or (not Activted) or (WaitConnecting) then
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
       Result := 'offline'
   else
-      Result := BindPhysicsIO.GetPeerIP;
+      Result := BindOwnerIO.GetPeerIP;
 end;
 
 function TStableClient_PeerIO.WriteBufferEmpty: Boolean;
 begin
-  if (BindPhysicsIO = nil) or (not Activted) or (WaitConnecting) then
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
       Result := False
   else
-      Result := BindPhysicsIO.WriteBufferEmpty;
+      Result := BindOwnerIO.WriteBufferEmpty;
 end;
 
 procedure TStableClient_PeerIO.Progress;
@@ -15247,7 +15247,7 @@ procedure TZNet_CustomStableClient.ClientCustomProtocolReceiveBufferNotify(Sende
 begin
   KeepAliveChecking := False;
 
-  FillDone := FStableClientIO.Activted and (not FStableClientIO.WaitConnecting) and (FStableClientIO.BindPhysicsIO <> nil);
+  FillDone := FStableClientIO.Activted and (not FStableClientIO.WaitConnecting) and (FStableClientIO.BindOwnerIO <> nil);
   if FillDone then
     begin
       FStableClientIO.SaveReceiveBuffer(buffer, Size);
@@ -15255,25 +15255,25 @@ begin
     end;
 end;
 
-procedure TZNet_CustomStableClient.SetPhysicsClient(const Value: TZNet_Client);
+procedure TZNet_CustomStableClient.SetOwnerIOClient(const Value: TZNet_Client);
 begin
-  if FPhysicsClient <> nil then
+  if FOwnerIOClient <> nil then
     begin
       Disconnect;
-      FPhysicsClient.FOnClientCustomProtocolReceiveBufferNotify := nil;
-      FPhysicsClient.Protocol := TCommunicationProtocol.cpZServer;
-      FPhysicsClient.TimeOutIDLE := 0;
-      FPhysicsClient.QuietMode := False;
+      FOwnerIOClient.FOnClientCustomProtocolReceiveBufferNotify := nil;
+      FOwnerIOClient.Protocol := TCommunicationProtocol.cpZServer;
+      FOwnerIOClient.TimeOutIDLE := 0;
+      FOwnerIOClient.QuietMode := False;
     end;
 
-  FPhysicsClient := Value;
+  FOwnerIOClient := Value;
 
-  if FPhysicsClient <> nil then
+  if FOwnerIOClient <> nil then
     begin
-      FPhysicsClient.FOnClientCustomProtocolReceiveBufferNotify := {$IFDEF FPC}@{$ENDIF FPC}ClientCustomProtocolReceiveBufferNotify;
-      FPhysicsClient.Protocol := TCommunicationProtocol.cpCustom;
-      FPhysicsClient.TimeOutIDLE := 0;
-      FPhysicsClient.QuietMode := False;
+      FOwnerIOClient.FOnClientCustomProtocolReceiveBufferNotify := {$IFDEF FPC}@{$ENDIF FPC}ClientCustomProtocolReceiveBufferNotify;
+      FOwnerIOClient.Protocol := TCommunicationProtocol.cpCustom;
+      FOwnerIOClient.TimeOutIDLE := 0;
+      FOwnerIOClient.QuietMode := False;
     end;
 end;
 
@@ -15298,7 +15298,7 @@ begin
       { connection token }
       FStableClientIO.Connection_Token := r_token;
       { bind physics IO }
-      FStableClientIO.BindPhysicsIO := Sender;
+      FStableClientIO.BindOwnerIO := Sender;
       { remote id }
       FStableClientIO.ID := r_id;
       { Encrypt }
@@ -15313,7 +15313,7 @@ begin
       { open sequence packet model }
       FStableClientIO.FSequencePacketActivted := True;
       FStableClientIO.FSequencePacketSignal := True;
-      FStableClientIO.SequencePacketLimitPhysicsMemory := FLimitSequencePacketMemoryUsage;
+      FStableClientIO.SequencePacketLimitOwnerIOMemory := FLimitSequencePacketMemoryUsage;
 
       { triger }
       TriggerDoConnectFinished;
@@ -15321,8 +15321,8 @@ begin
       FStableClientIO.LastCommunicationTick_Received := GetTimeTick;
       FStableClientIO.LastCommunicationTick_KeepAlive := FStableClientIO.LastCommunicationTick_Received;
 
-      if not FPhysicsClient.QuietMode then
-          FPhysicsClient.ClientIO.Print('StableIO connection %s port:%d Success.', [FConnection_Addr, FConnection_Port]);
+      if not FOwnerIOClient.QuietMode then
+          FOwnerIOClient.ClientIO.Print('StableIO connection %s port:%d Success.', [FConnection_Addr, FConnection_Port]);
     end
   else
     begin
@@ -15338,7 +15338,7 @@ begin
   if cState then
     begin
       d := TDFE.Create;
-      FPhysicsClient.SendStreamCmdM(C_BuildStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}BuildStableIO_Result);
+      FOwnerIOClient.SendStreamCmdM(C_BuildStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}BuildStableIO_Result);
       DisposeObject(d);
     end
   else
@@ -15358,7 +15358,7 @@ begin
       exit;
 
   FStableClientIO.WaitConnecting := True;
-  FPhysicsClient.AsyncConnectM(FConnection_Addr, FConnection_Port, {$IFDEF FPC}@{$ENDIF FPC}AsyncConnectResult);
+  FOwnerIOClient.AsyncConnectM(FConnection_Addr, FConnection_Port, {$IFDEF FPC}@{$ENDIF FPC}AsyncConnectResult);
 end;
 
 procedure TZNet_CustomStableClient.OpenStableIO_Result(Sender: TPeerIO; Result_: TDFE);
@@ -15380,7 +15380,7 @@ begin
       { connection token }
       FStableClientIO.Connection_Token := r_token;
       { bind physics IO }
-      FStableClientIO.BindPhysicsIO := Sender;
+      FStableClientIO.BindOwnerIO := Sender;
       { remote id }
       FStableClientIO.ID := r_id;
       { Encrypt }
@@ -15397,7 +15397,7 @@ begin
       { sequence packet model }
       FStableClientIO.FSequencePacketActivted := True;
       FStableClientIO.FSequencePacketSignal := True;
-      FStableClientIO.SequencePacketLimitPhysicsMemory := FLimitSequencePacketMemoryUsage;
+      FStableClientIO.SequencePacketLimitOwnerIOMemory := FLimitSequencePacketMemoryUsage;
       FStableClientIO.ResetSequencePacketBuffer;
       FStableClientIO.SequencePacketVerifyTick := GetTimeTick;
       if not FStableClientIO.OwnerFramework.QuietMode then
@@ -15410,7 +15410,7 @@ begin
       FStableClientIO.WaitConnecting := False;
 
       FStableClientIO.Activted := False;
-      FStableClientIO.BindPhysicsIO := nil;
+      FStableClientIO.BindOwnerIO := nil;
 
       FOnAsyncConnectNotify_C := nil;
       FOnAsyncConnectNotify_M := nil;
@@ -15434,7 +15434,7 @@ begin
       d := TDFE.Create;
       d.WriteCardinal(FStableClientIO.Connection_Token);
       d.WriteArrayByte.SetBuff(@FStableClientIO.FCipherKey[0], Length(FStableClientIO.FCipherKey));
-      FPhysicsClient.SendStreamCmdM(C_OpenStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}OpenStableIO_Result);
+      FOwnerIOClient.SendStreamCmdM(C_OpenStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}OpenStableIO_Result);
       DisposeObject(d);
     end
   else
@@ -15447,26 +15447,26 @@ procedure TZNet_CustomStableClient.PostReconnection(Sender: TNPostExecute);
 begin
   if not FStableClientIO.Activted then
       exit;
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
       exit;
   if not FStableClientIO.WaitConnecting then
       exit;
 
-  FPhysicsClient.AsyncConnectM(FConnection_Addr, FConnection_Port, {$IFDEF FPC}@{$ENDIF FPC}AsyncReconnectionResult);
+  FOwnerIOClient.AsyncConnectM(FConnection_Addr, FConnection_Port, {$IFDEF FPC}@{$ENDIF FPC}AsyncReconnectionResult);
 end;
 
 procedure TZNet_CustomStableClient.Reconnection;
 begin
   if not FStableClientIO.Activted then
       exit;
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
       exit;
   if FStableClientIO.WaitConnecting then
       exit;
 
   FStableClientIO.WaitConnecting := True;
-  FStableClientIO.PhysicsIO_LastConnectTick := GetTimeTick;
-  FStableClientIO.BindPhysicsIO := nil;
+  FStableClientIO.OwnerIO_LastConnectTick := GetTimeTick;
+  FStableClientIO.BindOwnerIO := nil;
 
   FOnAsyncConnectNotify_C := nil;
   FOnAsyncConnectNotify_M := nil;
@@ -15488,15 +15488,15 @@ begin
   EnabledAtomicLockAndMultiThread := False;
   FIgnoreProcessConnectedAndDisconnect := True;
 
-  FPhysicsClient := nil;
+  FOwnerIOClient := nil;
   FStableClientIO := TStableClient_PeerIO.Create(Self, nil);
 
   FConnection_Addr := '';
   FConnection_Port := 0;
   FAutomatedConnection := True;
   FLimitSequencePacketMemoryUsage := 0;
-  FAutoFreePhysicsClient := False;
-  FAutoProgressPhysicsClient := True;
+  FAutoFreeOwnerIOClient := False;
+  FAutoProgressOwnerIOClient := True;
   CustomStableClientProgressing := False;
   KeepAliveChecking := False;
   SaveLastCommunicationTick_Received := FStableClientIO.LastCommunicationTick_Received;
@@ -15513,9 +15513,9 @@ var
 begin
   Disconnect;
 
-  phyCli := FPhysicsClient;
-  SetPhysicsClient(nil);
-  if (phyCli <> nil) and (FAutoFreePhysicsClient) then
+  phyCli := FOwnerIOClient;
+  SetOwnerIOClient(nil);
+  if (phyCli <> nil) and (FAutoFreeOwnerIOClient) then
       DisposeObject(phyCli);
   inherited Destroy;
 end;
@@ -15563,12 +15563,12 @@ begin
   Disconnect;
 
   FStableClientIO.Activted := False;
-  FStableClientIO.BindPhysicsIO := nil;
+  FStableClientIO.BindOwnerIO := nil;
 
   FConnection_Addr := addr;
   FConnection_Port := Port;
 
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
     begin
       if Assigned(OnResult) then
           OnResult(False);
@@ -15586,12 +15586,12 @@ begin
   Disconnect;
 
   FStableClientIO.Activted := False;
-  FStableClientIO.BindPhysicsIO := nil;
+  FStableClientIO.BindOwnerIO := nil;
 
   FConnection_Addr := addr;
   FConnection_Port := Port;
 
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
     begin
       if Assigned(OnResult) then
           OnResult(False);
@@ -15609,12 +15609,12 @@ begin
   Disconnect;
 
   FStableClientIO.Activted := False;
-  FStableClientIO.BindPhysicsIO := nil;
+  FStableClientIO.BindOwnerIO := nil;
 
   FConnection_Addr := addr;
   FConnection_Port := Port;
 
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
     begin
       if Assigned(OnResult) then
           OnResult(False);
@@ -15635,17 +15635,17 @@ begin
   Disconnect;
 
   FStableClientIO.Activted := False;
-  FStableClientIO.BindPhysicsIO := nil;
+  FStableClientIO.BindOwnerIO := nil;
 
   FConnection_Addr := addr;
   FConnection_Port := Port;
 
   Result := False;
 
-  if FPhysicsClient = nil then
+  if FOwnerIOClient = nil then
       exit;
 
-  if FPhysicsClient.Connect(addr, Port) then
+  if FOwnerIOClient.Connect(addr, Port) then
     begin
       AsyncConnectResult(True);
 
@@ -15664,15 +15664,15 @@ end;
 procedure TZNet_CustomStableClient.Disconnect;
 begin
   KeepAliveChecking := False;
-  if (FPhysicsClient <> nil) and (FPhysicsClient.Connected) and (FStableClientIO.Activted) then
+  if (FOwnerIOClient <> nil) and (FOwnerIOClient.Connected) and (FStableClientIO.Activted) then
     begin
       FStableClientIO.FSequencePacketSignal := False;
       while FStableClientIO.IOBusy do
           ProgressWaitSend(FStableClientIO);
       FStableClientIO.SendDirectConsoleCmd(C_CloseStableIO);
       FStableClientIO.Progress;
-      while FPhysicsClient.Connected and (not FPhysicsClient.ClientIO.WriteBufferEmpty) do
-          FPhysicsClient.ProgressWaitSend(FPhysicsClient.ClientIO);
+      while FOwnerIOClient.Connected and (not FOwnerIOClient.ClientIO.WriteBufferEmpty) do
+          FOwnerIOClient.ProgressWaitSend(FOwnerIOClient.ClientIO);
       FStableClientIO.FSequencePacketSignal := True;
     end;
 
@@ -15705,27 +15705,27 @@ begin
       exit;
 
   CustomStableClientProgressing := True;
-  if (FPhysicsClient <> nil) and (FAutoProgressPhysicsClient) then
+  if (FOwnerIOClient <> nil) and (FAutoProgressOwnerIOClient) then
     begin
-      FPhysicsClient.Progress;
+      FOwnerIOClient.Progress;
     end;
   inherited Progress;
 
-  if FPhysicsClient <> nil then
+  if FOwnerIOClient <> nil then
     if (FStableClientIO.Activted) and (FStableClientIO.IsSequencePacketModel) then
       begin
         t := GetTimeTick;
         if FStableClientIO.WaitConnecting then
           begin
-            if t - FStableClientIO.PhysicsIO_LastConnectTick > 5000 then
+            if t - FStableClientIO.OwnerIO_LastConnectTick > 5000 then
               begin
                 KeepAliveChecking := False;
                 FStableClientIO.WaitConnecting := False;
-                FPhysicsClient.Disconnect;
+                FOwnerIOClient.Disconnect;
                 Reconnection;
               end;
           end
-        else if not FPhysicsClient.Connected then
+        else if not FOwnerIOClient.Connected then
           begin
             KeepAliveChecking := False;
             Reconnection;
@@ -15764,3 +15764,4 @@ finalization
 FreeBigStream_SwapSpace();
 
 end.
+

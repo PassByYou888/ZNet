@@ -37,18 +37,18 @@ type
 
   TPascal_Keyword_DICT = array [TPascal_Keyword] of TPascal_Keyword_Define_Struct;
 
-  TUProcessorDataList = class;
+  TSourceProcessorDataPool = class;
 
-  TUSourDef = record
+  TSourceDefine = record
     SourceFile: U_String;
     NewName: U_String;
   end;
 
-  PUSourDef = ^TUSourDef;
+  PSourceDefine = ^TSourceDefine;
 
-  TUSourDefList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PUSourDef>;
+  TSourceDefinePool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PSourceDefine>;
 
-  TUSourDefList = class(TUSourDefList_Decl)
+  TSourceDefinePool = class(TSourceDefinePool_Decl)
   public
     constructor Create;
     destructor Destroy; override;
@@ -56,22 +56,22 @@ type
     procedure AddCustom(SourFile, NewName: U_String; Overwrite_: Boolean);
     function ReplaceNewName(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
     procedure Clean;
-    procedure UpdateToUnitProcessor(Processor: TUProcessorDataList);
+    procedure UpdateToUnitProcessor(Processor: TSourceProcessorDataPool);
     procedure SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
     procedure LoadFromStream(stream: TCore_Stream);
     procedure SaveToFile(fn: U_String);
     procedure LoadFromFile(fn: U_String);
   end;
 
-  TUProcessorData = record
+  TSourceProcessorData = record
     OLD_Name, New_Name: U_String;
   end;
 
-  PUProcessorData = ^TUProcessorData;
+  PSourceProcessorData = ^TSourceProcessorData;
 
-  TUProcessorDataList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PUProcessorData>;
+  TSourceProcessorDataPool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PSourceProcessorData>;
 
-  TUProcessorDataList = class(TUProcessorDataList_Decl)
+  TSourceProcessorDataPool = class(TSourceProcessorDataPool_Decl)
   public
     constructor Create;
     destructor Destroy; override;
@@ -195,12 +195,12 @@ function RewritePascal_ProcessFile(fn: U_String; UnitHash_, PatternHash_: THashS
 procedure RewritePascal_After_Processor(UnitHash_, PatternHash_: THashStringList; Trace_Pool: TRewrite_Trace_Pool; OnStatus: TOnRewriteStatus);
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; UnitHash_, PatternHash_: THashStringList; OnStatus: TOnRewriteStatus): Integer; overload;
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus): Integer; overload;
-function Build_RewritePascal_Model(UnitData_, PatternData_: TUProcessorDataList): TMS64;
-function Check_RewritePascal_Model(UnitData_, PatternData_: TUProcessorDataList): Boolean;
+function Build_RewritePascal_Model(UnitData_, PatternData_: TSourceProcessorDataPool): TMS64;
+function Check_RewritePascal_Model(UnitData_, PatternData_: TSourceProcessorDataPool): Boolean;
 
 implementation
 
-uses Z.Json, Z.Status, SysUtils, Z.UReplace;
+uses SysUtils, Z.Json, Z.Status, Z.UReplace;
 
 function Pascal_Keyword(const s: TP_String): TPascal_Keyword;
 var
@@ -592,7 +592,7 @@ begin
                               begin
                                 Prepare_RewriteUnitDefine(p^.Text, N);
                                 if Assigned(OnStatus) then
-                                    OnStatus('rewrite unit define: %s -> %s', [p^.Text.Text, N.Text]);
+                                    OnStatus('rewrite uses: %s -> %s', [p^.Text.Text, N.Text]);
                                 Inc(fixedUName_Num);
                                 p^.Text := N;
                               end;
@@ -608,7 +608,7 @@ begin
                               begin
                                 Prepare_RewriteUnitDefine(p^.Text, N);
                                 if Assigned(OnStatus) then
-                                    OnStatus('rewrite unit define: %s -> %s', [p^.Text.Text, N.Text]);
+                                    OnStatus('rewrite uses: %s -> %s', [p^.Text.Text, N.Text]);
                                 Inc(fixedUName_Num);
                                 p^.Text := N;
                               end;
@@ -652,7 +652,7 @@ begin
                       begin
                         p^.Text := N;
                         if Assigned(OnStatus) then
-                            OnStatus('rewrite uses in define: %s -> %s', [N.Text, N3.Text]);
+                            OnStatus('rewrite uses in file: %s -> %s', [N.Text, N3.Text]);
                       end;
                   end;
               end;
@@ -862,6 +862,7 @@ begin
   if Assigned(OnStatus) then
       OnStatus('include after running...', []);
   incl_ := TRewrite_Trace_Pool.Create;
+
   // build include space
   for i := 0 to Trace_Pool.Count - 1 do
     begin
@@ -869,6 +870,7 @@ begin
       if umlMultipleMatch(['*.inc'], fn) then
           incl_.Add(Trace_Pool[i]);
     end;
+
   // merge marco to include
   IsChanged := False;
   repeat
@@ -890,6 +892,7 @@ begin
             end;
       end;
   until not IsUpdate;
+
   // rewrite include
   if IsChanged then
     for i := 0 to incl_.Count - 1 do
@@ -923,9 +926,9 @@ end;
 
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; UnitHash_, PatternHash_: THashStringList; OnStatus: TOnRewriteStatus): Integer;
 var
-  Trace_Pool: TRewrite_Trace_Pool;
   arry: U_StringArray;
   num: Integer;
+  Trace_Pool: TRewrite_Trace_Pool;
 {$IFDEF Parallel}
 {$IFDEF FPC}
   procedure Nested_ParallelFor_File(pass: Integer);
@@ -976,9 +979,9 @@ var
   end;
 
 begin
-  Trace_Pool := TRewrite_Trace_Pool.Create;
   num := 0;
   arry := umlGetFileListWithFullPath(directory_);
+  Trace_Pool := TRewrite_Trace_Pool.Create;
 
   if Parallel_ then
     begin
@@ -1030,7 +1033,7 @@ function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String
 var
   dec: TZDB2_File_Decoder;
   fi: TZDB2_FI;
-  UnitData_, PatternData_: TUProcessorDataList;
+  UnitData_, PatternData_: TSourceProcessorDataPool;
   m64: TMS64;
   UnitHash_, PatternHash_: THashStringList;
   i: Integer;
@@ -1040,8 +1043,8 @@ begin
       Exit;
 
   dec := TZDB2_File_Decoder.Create(Model_, 2);
-  UnitData_ := TUProcessorDataList.Create;
-  PatternData_ := TUProcessorDataList.Create;
+  UnitData_ := TSourceProcessorDataPool.Create;
+  PatternData_ := TSourceProcessorDataPool.Create;
 
   fi := dec.Files.FindFile('Unit');
   if fi <> nil then
@@ -1092,7 +1095,7 @@ begin
   disposeObject(PatternHash_);
 end;
 
-function Build_RewritePascal_Model(UnitData_, PatternData_: TUProcessorDataList): TMS64;
+function Build_RewritePascal_Model(UnitData_, PatternData_: TSourceProcessorDataPool): TMS64;
 var
   enc: TZDB2_File_Encoder;
   fi: TZDB2_FI;
@@ -1133,7 +1136,7 @@ begin
   disposeObject(enc);
 end;
 
-function Check_RewritePascal_Model(UnitData_, PatternData_: TUProcessorDataList): Boolean;
+function Check_RewritePascal_Model(UnitData_, PatternData_: TSourceProcessorDataPool): Boolean;
   function Check_UnitData_NewName(N: U_String): Boolean;
   var
     i: Integer;
@@ -1156,25 +1159,25 @@ begin
   Result := True;
 end;
 
-constructor TUSourDefList.Create;
+constructor TSourceDefinePool.Create;
 begin
   inherited Create;
 end;
 
-destructor TUSourDefList.Destroy;
+destructor TSourceDefinePool.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TUSourDefList.AddFile(SourFile: U_String);
+procedure TSourceDefinePool.AddFile(SourFile: U_String);
 begin
   AddCustom(SourFile, umlGetFileName(SourFile), True);
 end;
 
-procedure TUSourDefList.AddCustom(SourFile, NewName: U_String; Overwrite_: Boolean);
+procedure TSourceDefinePool.AddCustom(SourFile, NewName: U_String; Overwrite_: Boolean);
 var
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
 begin
   if Overwrite_ then
     for i := 0 to Count - 1 do
@@ -1187,7 +1190,7 @@ begin
   Add(p);
 end;
 
-function TUSourDefList.ReplaceNewName(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+function TSourceDefinePool.ReplaceNewName(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
 var
   num: Integer;
 {$IFDEF FPC}
@@ -1200,7 +1203,7 @@ var
 
 var
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
   N: U_String;
 begin
   Result := 0;
@@ -1226,10 +1229,10 @@ begin
     end;
 end;
 
-procedure TUSourDefList.Clean;
+procedure TSourceDefinePool.Clean;
 var
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
 begin
   for i := 0 to Count - 1 do
     begin
@@ -1241,7 +1244,7 @@ begin
   inherited Clear;
 end;
 
-procedure TUSourDefList.UpdateToUnitProcessor(Processor: TUProcessorDataList);
+procedure TSourceDefinePool.UpdateToUnitProcessor(Processor: TSourceProcessorDataPool);
 var
   tmpHash: THashStringList;
 
@@ -1261,7 +1264,7 @@ var
 
 var
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
   k: TPascal_Keyword;
 begin
   Processor.Clean;
@@ -1277,13 +1280,13 @@ begin
   disposeObject(tmpHash);
 end;
 
-procedure TUSourDefList.SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
+procedure TSourceDefinePool.SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
 var
   js: TZ_JsonObject;
   arry: TZ_JsonArray;
   arry_js: TZ_JsonObject;
   i: Integer;
-  p: PUSourDef;
+  p: PSourceDefine;
 begin
   js := TZ_JsonObject.Create;
   if Count > 0 then
@@ -1301,7 +1304,7 @@ begin
   js.Free;
 end;
 
-procedure TUSourDefList.LoadFromStream(stream: TCore_Stream);
+procedure TSourceDefinePool.LoadFromStream(stream: TCore_Stream);
 var
   js: TZ_JsonObject;
   arry: TZ_JsonArray;
@@ -1320,7 +1323,7 @@ begin
   js.Free;
 end;
 
-procedure TUSourDefList.SaveToFile(fn: U_String);
+procedure TSourceDefinePool.SaveToFile(fn: U_String);
 var
   m64: TMS64;
 begin
@@ -1333,7 +1336,7 @@ begin
   end;
 end;
 
-procedure TUSourDefList.LoadFromFile(fn: U_String);
+procedure TSourceDefinePool.LoadFromFile(fn: U_String);
 var
   m64: TMS64;
 begin
@@ -1353,17 +1356,17 @@ begin
   end;
 end;
 
-constructor TUProcessorDataList.Create;
+constructor TSourceProcessorDataPool.Create;
 begin
   inherited Create;
 end;
 
-destructor TUProcessorDataList.Destroy;
+destructor TSourceProcessorDataPool.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TUProcessorDataList.Exists_OLD_Name(OLD_Name: U_String): Boolean;
+function TSourceProcessorDataPool.Exists_OLD_Name(OLD_Name: U_String): Boolean;
 var
   i: Integer;
 begin
@@ -1374,9 +1377,9 @@ begin
   Result := False;
 end;
 
-procedure TUProcessorDataList.AddUName(OLD_Name, New_Name: U_String);
+procedure TSourceProcessorDataPool.AddUName(OLD_Name, New_Name: U_String);
 var
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   new(p);
   p^.OLD_Name := OLD_Name;
@@ -1384,7 +1387,7 @@ begin
   Add(p);
 end;
 
-function TUProcessorDataList.ReplaceOLD_Name(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+function TSourceProcessorDataPool.ReplaceOLD_Name(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
 var
   num: Integer;
 {$IFDEF FPC}
@@ -1397,7 +1400,7 @@ var
 
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
   N: U_String;
 begin
   Result := 0;
@@ -1423,7 +1426,7 @@ begin
     end;
 end;
 
-function TUProcessorDataList.ReplaceNew_Name(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+function TSourceProcessorDataPool.ReplaceNew_Name(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
 var
   num: Integer;
 {$IFDEF FPC}
@@ -1436,7 +1439,7 @@ var
 
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
   N: U_String;
 begin
   Result := 0;
@@ -1462,10 +1465,10 @@ begin
     end;
 end;
 
-procedure TUProcessorDataList.Clean;
+procedure TSourceProcessorDataPool.Clean;
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   for i := 0 to Count - 1 do
     begin
@@ -1477,13 +1480,13 @@ begin
   inherited Clear;
 end;
 
-procedure TUProcessorDataList.SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
+procedure TSourceProcessorDataPool.SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
 var
   js: TZ_JsonObject;
   arry: TZ_JsonArray;
   arry_js: TZ_JsonObject;
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   js := TZ_JsonObject.Create;
   if Count > 0 then
@@ -1501,7 +1504,7 @@ begin
   js.Free;
 end;
 
-procedure TUProcessorDataList.LoadFromStream(stream: TCore_Stream);
+procedure TSourceProcessorDataPool.LoadFromStream(stream: TCore_Stream);
 var
   js: TZ_JsonObject;
   arry: TZ_JsonArray;
@@ -1520,7 +1523,7 @@ begin
   js.Free;
 end;
 
-procedure TUProcessorDataList.SaveToFile(fn: U_String);
+procedure TSourceProcessorDataPool.SaveToFile(fn: U_String);
 var
   m64: TMS64;
 begin
@@ -1533,7 +1536,7 @@ begin
   end;
 end;
 
-procedure TUProcessorDataList.LoadFromFile(fn: U_String);
+procedure TSourceProcessorDataPool.LoadFromFile(fn: U_String);
 var
   m64: TMS64;
 begin
@@ -1553,10 +1556,10 @@ begin
   end;
 end;
 
-procedure TUProcessorDataList.Build_uHash(Output: THashStringList);
+procedure TSourceProcessorDataPool.Build_uHash(Output: THashStringList);
 var
   i: Integer;
-  p: PUProcessorData;
+  p: PSourceProcessorData;
 begin
   Output.Clear;
   for i := 0 to Count - 1 do
