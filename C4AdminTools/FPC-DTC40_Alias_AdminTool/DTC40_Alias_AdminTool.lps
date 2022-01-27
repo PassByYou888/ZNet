@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="7">
+      <Unit0>
+        <Filename Value="DTC40_Alias_AdminTool.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="2"/>
+        <CursorPos Y="8"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DTC40_Alias_AdminToolForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="62" Y="15"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="newaliasfrm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="NewAliasForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="54" Y="28"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="dtc40_fs_admintoolfrm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="41" Y="13"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="C:\lazarus\lcl\dialogs.pp"/>
+        <UnitName Value="Dialogs"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="741"/>
+        <CursorPos X="3" Y="750"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="dtc40_alias_admintoolfrm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="33" Y="10"/>
+        <UsageCount Value="11"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="newaliasfrm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit6>
+    </Units>
+    <JumpHistory Count="13" HistoryIndex="12">
+      <Position1>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="106" TopLine="87"/>
+      </Position1>
+      <Position2>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="334" TopLine="295"/>
+      </Position2>
+      <Position3>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="250" Column="22" TopLine="226"/>
+      </Position3>
+      <Position4>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="67" Column="46" TopLine="46"/>
+      </Position4>
+      <Position5>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="102" Column="52" TopLine="74"/>
+      </Position5>
+      <Position6>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="131" TopLine="110"/>
+      </Position6>
+      <Position7>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="163" TopLine="139"/>
+      </Position7>
+      <Position8>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="184" TopLine="158"/>
+      </Position8>
+      <Position9>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="257" Column="5" TopLine="236"/>
+      </Position9>
+      <Position10>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="270" Column="35" TopLine="249"/>
+      </Position10>
+      <Position11>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="32" Column="51" TopLine="23"/>
+      </Position11>
+      <Position12>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="328" Column="7" TopLine="287"/>
+      </Position12>
+      <Position13>
+        <Filename Value="dtc40_alias_admintoolfrm.pas"/>
+        <Caret Line="304" Column="52" TopLine="287"/>
+      </Position13>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

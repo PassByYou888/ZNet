@@ -24,7 +24,7 @@ uses
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.Engine, Z.ZDB.LocalManager,
   Z.ZDB.FileIndexPackage_LIB, Z.ZDB.FilePackage_LIB, Z.ZDB.ItemStream_LIB, Z.ZDB.HashField_LIB, Z.ZDB.HashItem_LIB,
   Z.ZDB2.Custom, Z.ZDB2, Z.ZDB2.DFE, Z.ZDB2.HS, Z.ZDB2.HV, Z.ZDB2.Json, Z.ZDB2.MS64, Z.ZDB2.NM, Z.ZDB2.TE, Z.ZDB2.FileEncoder,
-  Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT,
+  Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT, Z.Net.C4_Alias,
   Z.Net.PhysicsIO;
 
 type
@@ -41,7 +41,7 @@ type
     BuildDependNetButton: TButton;
     resetDependButton: TButton;
     DependEdit: TLabeledEdit;
-    RependNetListView: TListView;
+    DependNetListView: TListView;
     DependPanel: TPanel;
     servicePanel: TPanel;
     net_Top_Splitter: TSplitter;
@@ -92,7 +92,7 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure DependEditChange(Sender: TObject);
     procedure DependEditExit(Sender: TObject);
-    procedure RependNetListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
+    procedure DependNetListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
     procedure BuildDependNetButtonClick(Sender: TObject);
     procedure resetDependButtonClick(Sender: TObject);
     procedure ServiceDependEditChange(Sender: TObject);
@@ -312,11 +312,11 @@ var
   arry: TC40_DependNetworkInfoArray;
   found_: Boolean;
 begin
-  RependNetListView.OnChange := nil;
+  DependNetListView.OnChange := nil;
   arry := ExtractDependInfo(DependEdit.Text);
-  for i := 0 to RependNetListView.Items.Count - 1 do
+  for i := 0 to DependNetListView.Items.Count - 1 do
     begin
-      p := RependNetListView.Items[i].Data;
+      p := DependNetListView.Items[i].Data;
       found_ := False;
       for j := Low(arry) to high(arry) do
         if arry[j].Typ.Same(@p^.ServiceTyp) then
@@ -324,9 +324,9 @@ begin
             found_ := True;
             break;
           end;
-      RependNetListView.Items[i].Checked := found_;
+      DependNetListView.Items[i].Checked := found_;
     end;
-  RependNetListView.OnChange := RependNetListViewChange;
+  DependNetListView.OnChange := DependNetListViewChange;
 end;
 
 procedure TC40AppTempletForm.DependEditExit(Sender: TObject);
@@ -336,7 +336,7 @@ begin
   DependEdit.OnChange := DependEditChange;
 end;
 
-procedure TC40AppTempletForm.RependNetListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
+procedure TC40AppTempletForm.DependNetListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
 begin
   DependEdit.OnChange := nil;
   DependEdit.Text := RebuildDependInfo(DependEdit.Text);
@@ -589,10 +589,10 @@ begin
   sourNet := ExtractDependInfoToL(sour);
   destNet := TC40_DependNetworkInfoList.Create;
 
-  for i := 0 to RependNetListView.Items.Count - 1 do
-    if RependNetListView.Items[i].Checked then
+  for i := 0 to DependNetListView.Items.Count - 1 do
+    if DependNetListView.Items[i].Checked then
       begin
-        p := RependNetListView.Items[i].Data;
+        p := DependNetListView.Items[i].Data;
         info.Typ := p^.ServiceTyp;
         for j := 0 to sourNet.Count - 1 do
           if sourNet[j].Typ.Same(@info.Typ) then
@@ -662,13 +662,13 @@ var
   p: PC40_RegistedData;
   arry: TC40_DependNetworkInfoArray;
 begin
-  RependNetListView.Items.BeginUpdate;
-  RependNetListView.Items.Clear;
+  DependNetListView.Items.BeginUpdate;
+  DependNetListView.Items.Clear;
   for i := 0 to Z.Net.C4.C40_Registed.Count - 1 do
     begin
       p := Z.Net.C4.C40_Registed[i];
       if p^.ClientClass <> nil then
-        with RependNetListView.Items.Add do
+        with DependNetListView.Items.Add do
           begin
             Caption := p^.ServiceTyp;
             SubItems.Add(p^.ClientClass.ClassName);
@@ -676,16 +676,16 @@ begin
             Data := p;
           end;
     end;
-  RependNetListView.Items.EndUpdate;
+  DependNetListView.Items.EndUpdate;
 
   arry := ExtractDependInfo(info);
-  for i := 0 to RependNetListView.Items.Count - 1 do
+  for i := 0 to DependNetListView.Items.Count - 1 do
     begin
-      p := RependNetListView.Items[i].Data;
+      p := DependNetListView.Items[i].Data;
       for j := Low(arry) to high(arry) do
         if arry[j].Typ.Same(@p^.ServiceTyp) then
           begin
-            RependNetListView.Items[i].Checked := True;
+            DependNetListView.Items[i].Checked := True;
             break;
           end;
     end;
@@ -1006,7 +1006,7 @@ begin
 
   SysProgress.PostP1(procedure
     begin
-      RependNetListView.Height := RependNetListView.Height - 1;
+      DependNetListView.Height := DependNetListView.Height - 1;
       ServiceListView.Height := ServiceListView.Height - 1;
     end);
 end;

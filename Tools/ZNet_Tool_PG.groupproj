@@ -9,6 +9,9 @@
         <Projects Include="PascalUnitRewriteTool\PRP.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="ConvFile2RESCode\ConvFile2Pascal.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="FileCheck\FileCheck.dproj">
             <Dependencies/>
         </Projects>
@@ -49,6 +52,15 @@
     </Target>
     <Target Name="PRP:Make">
         <MSBuild Projects="PascalUnitRewriteTool\PRP.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ConvFile2Pascal">
+        <MSBuild Projects="ConvFile2RESCode\ConvFile2Pascal.dproj"/>
+    </Target>
+    <Target Name="ConvFile2Pascal:Clean">
+        <MSBuild Projects="ConvFile2RESCode\ConvFile2Pascal.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ConvFile2Pascal:Make">
+        <MSBuild Projects="ConvFile2RESCode\ConvFile2Pascal.dproj" Targets="Make"/>
     </Target>
     <Target Name="FileCheck">
         <MSBuild Projects="FileCheck\FileCheck.dproj"/>
@@ -96,13 +108,13 @@
         <MSBuild Projects="FilePackage\FilePackageTool.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="PascalRewriteModel;PRP;FileCheck;PascalCommentRep;PascalCodeUnification;StringTranslate;FilePackageTool"/>
+        <CallTarget Targets="PascalRewriteModel;PRP;ConvFile2Pascal;FileCheck;PascalCommentRep;PascalCodeUnification;StringTranslate;FilePackageTool"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="PascalRewriteModel:Clean;PRP:Clean;FileCheck:Clean;PascalCommentRep:Clean;PascalCodeUnification:Clean;StringTranslate:Clean;FilePackageTool:Clean"/>
+        <CallTarget Targets="PascalRewriteModel:Clean;PRP:Clean;ConvFile2Pascal:Clean;FileCheck:Clean;PascalCommentRep:Clean;PascalCodeUnification:Clean;StringTranslate:Clean;FilePackageTool:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="PascalRewriteModel:Make;PRP:Make;FileCheck:Make;PascalCommentRep:Make;PascalCodeUnification:Make;StringTranslate:Make;FilePackageTool:Make"/>
+        <CallTarget Targets="PascalRewriteModel:Make;PRP:Make;ConvFile2Pascal:Make;FileCheck:Make;PascalCommentRep:Make;PascalCodeUnification:Make;StringTranslate:Make;FilePackageTool:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

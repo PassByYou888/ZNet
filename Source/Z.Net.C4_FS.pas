@@ -72,6 +72,7 @@ type
     TFS_Client_CacheData = class
       Owner: TC40_FS_Client;
       Stream: TZDB2_MS64;
+      LastAccess: TTimeTick;
       constructor Create(Owner_: TC40_FS_Client);
       destructor Destroy; override;
     end;
@@ -215,7 +216,9 @@ type
 {$ENDREGION 'bridge_define'}
   protected
     FMaxFileSize: Cardinal;
+    FRemoveCacheList: TPascalStringList;
     procedure Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client); override;
+    procedure Do_Progress_FileCachePool(const Name_: PSystemString; Obj_: TFS_Client_CacheData);
   public
     C40_FS_Cache_FileName: U_String;
     ZDB2RecycleMemoryTimeOut: TTimeTick;
@@ -225,6 +228,7 @@ type
     ZDB2CipherName: U_String;
     ZDB2Password: U_String;
     ZDB2Cipher: TZDB2_Cipher;
+    Cache_File_Life: Int64;
     FileCacheHashPool: TFS_Client_CacheHashPool;
     Cache: TZDB2_List_MS64;
     property MaxFileSize: Cardinal read FMaxFileSize;
@@ -415,7 +419,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS_RemoveFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_RemoveFile;
   DTNoAuthService.RecvTunnel.RegisterStream('FS_Size').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_Size;
   DTNoAuthService.RecvTunnel.RegisterStream('FS_Search').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_Search;
-  // is only instance
+  // multi instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
 
@@ -506,6 +510,7 @@ begin
   inherited Create;
   Owner := Owner_;
   Stream := Owner.Cache.NewData;
+  LastAccess := GetTimeTick();
 end;
 
 destructor TC40_FS_Client.TFS_Client_CacheData.Destroy;
@@ -546,6 +551,7 @@ begin
   Sender.Print('build cache "%s"', [File_Name.Text]);
   Cache.Stream.Data.WritePtr(Stream.PosAsPtr, Stream.Size - Stream.Position);
   Cache.Stream.Save;
+  Cache.LastAccess := GetTimeTick();
   Sender.Print('update cache "%s"', [File_Name.Text]);
 
   p2pClient := Sender;
@@ -603,6 +609,7 @@ begin
   Sender.Print('build cache "%s"', [tmp_File_Name_.Text]);
   Cache.Stream.Data.LoadFromStream(tmp2);
   Cache.Stream.Save;
+  Cache.LastAccess := GetTimeTick();
   Sender.Print('update cache "%s"', [tmp_File_Name_.Text]);
 
   try
@@ -751,6 +758,7 @@ begin
     begin
       if umlMD5Compare(umlStreamMD5(Cache.Stream.Data), MD5_) then
         begin
+          Cache.LastAccess := GetTimeTick();
           Sender.DTNoAuth.RecvTunnel.Print('get file "%s" from cache', [File_Name.Text]);;
           try
             Cache.Stream.Data.Position := 0;
@@ -892,6 +900,12 @@ begin
   FMaxFileSize := DTNoAuth.SendTunnel.ServerState^.MaxCompleteBufferSize;
 end;
 
+procedure TC40_FS_Client.Do_Progress_FileCachePool(const Name_: PSystemString; Obj_: TFS_Client_CacheData);
+begin
+  if GetTimeTick() - Obj_.LastAccess > Cache_File_Life then
+      FRemoveCacheList.Add(Name_^);
+end;
+
 constructor TC40_FS_Client.Create(source_: TC40_Info; Param_: U_String);
 var
   i: Integer;
@@ -913,6 +927,7 @@ begin
   ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
   ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
+  Cache_File_Life := EStrToInt64(ParamList.GetDefaultValue('CacheLife', '10*60*1000'), 10 * 60 * 1000);
 
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
@@ -932,6 +947,7 @@ begin
   Cache.AutoFreeStream := True;
 
   FMaxFileSize := 0;
+  FRemoveCacheList := TPascalStringList.Create;
 end;
 
 destructor TC40_FS_Client.Destroy;
@@ -939,12 +955,23 @@ begin
   DisposeObject(FileCacheHashPool);
   DisposeObject(Cache);
   umlDeleteFile(C40_FS_Cache_FileName);
+  DisposeObject(FRemoveCacheList);
   inherited Destroy;
 end;
 
 procedure TC40_FS_Client.SafeCheck;
+var
+  i: Integer;
 begin
   inherited SafeCheck;
+  FRemoveCacheList.Clear;
+  FileCacheHashPool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}Do_Progress_FileCachePool);
+  if FRemoveCacheList.Count > 0 then
+    begin
+      for i := 0 to FRemoveCacheList.Count - 1 do
+          FileCacheHashPool.Delete(FRemoveCacheList[i]);
+      FRemoveCacheList.Clear;
+    end;
   Cache.Flush;
 end;
 

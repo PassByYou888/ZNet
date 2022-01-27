@@ -758,7 +758,8 @@ var
   { default configure }
   C40_DefaultConfig: THashStringList;
 
-procedure C40Progress; { C4 main progress }
+function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
+procedure C40Progress;                        { C4 main progress }
 
 { quiet }
 procedure C40SetQuietMode(QuietMode_: Boolean);
@@ -801,6 +802,18 @@ implementation
 
 var
   C40Progress_Working: Boolean = False;
+
+function C40_Online_DP: TC40_Dispatch_Client;
+var
+  arry: TC40_Custom_Client_Array;
+begin
+  arry := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
+  if length(arry) > 0 then
+      Result := arry[0] as TC40_Dispatch_Client
+  else
+      Result := nil;
+  SetLength(arry, 0);
+end;
 
 procedure C40Progress;
 begin
@@ -1212,8 +1225,8 @@ var
   i: Integer;
   info_: TC40_DependNetworkInfo;
 begin
-  SetLength(Result, Length(arry));
-  for i := 0 to Length(arry) - 1 do
+  SetLength(Result, length(arry));
+  for i := 0 to length(arry) - 1 do
     begin
       info_.Typ := umlTrimSpace(umlGetFirstStr(arry[i], '@'));
       info_.Param := umlTrimSpace(umlDeleteFirstStr(arry[i], '@'));
@@ -1235,7 +1248,7 @@ var
   info_: TC40_DependNetworkInfo;
 begin
   Result := TC40_DependNetworkInfoList.Create;
-  for i := 0 to Length(arry) - 1 do
+  for i := 0 to length(arry) - 1 do
     begin
       info_.Typ := umlTrimSpace(umlGetFirstStr(arry[i], '@'));
       info_.Param := umlTrimSpace(umlDeleteFirstStr(arry[i], '@'));
@@ -1322,7 +1335,7 @@ var
 begin
   Result := False;
 
-  for i := 0 to Length(Depend_) - 1 do
+  for i := 0 to length(Depend_) - 1 do
     begin
       p := FindRegistedC40(Depend_[i].Typ);
       if p = nil then
@@ -1458,7 +1471,7 @@ var
   state: Boolean;
 begin
   state := True;
-  for i := 0 to Length(Sender.DependNetworkInfoArray) - 1 do
+  for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     begin
       if L.ExistsService(Sender.DependNetworkInfoArray[i].Typ) then
         begin
@@ -1497,7 +1510,7 @@ var
   tmp: TC40_Custom_Client;
 begin
   found_ := 0;
-  for i := 0 to Length(Sender.DependNetworkInfoArray) - 1 do
+  for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     if L.ExistsService(Sender.DependNetworkInfoArray[i].Typ) then
         inc(found_);
 
@@ -1507,7 +1520,7 @@ begin
       exit;
     end;
 
-  for i := 0 to Length(Sender.DependNetworkInfoArray) - 1 do
+  for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     for j := 0 to L.Count - 1 do
       begin
         if L[j].SamePhysicsAddr(Sender) and L[j].ServiceTyp.Same(@Sender.DependNetworkInfoArray[i].Typ) and
@@ -1726,12 +1739,12 @@ function TC40_PhysicsTunnel.ResetDepend(const Depend_: TC40_DependNetworkInfoArr
 var
   i: Integer;
 begin
-  SetLength(DependNetworkInfoArray, Length(Depend_));
-  for i := 0 to Length(Depend_) - 1 do
+  SetLength(DependNetworkInfoArray, length(Depend_));
+  for i := 0 to length(Depend_) - 1 do
       DependNetworkInfoArray[i] := Depend_[i];
 
   Result := False;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
         exit;
   Result := True;
@@ -1757,7 +1770,7 @@ begin
       exit;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1789,7 +1802,7 @@ begin
       exit;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1824,7 +1837,7 @@ begin
       exit;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1859,7 +1872,7 @@ begin
       exit;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1898,7 +1911,7 @@ begin
       exit;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1944,7 +1957,7 @@ begin
     end;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -1993,7 +2006,7 @@ begin
     end;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -2042,7 +2055,7 @@ begin
     end;
 
   Result := True;
-  for i := 0 to Length(DependNetworkInfoArray) - 1 do
+  for i := 0 to length(DependNetworkInfoArray) - 1 do
     if FindRegistedC40(DependNetworkInfoArray[i].Typ) = nil then
       begin
         PhysicsTunnel.Print('no registed "%s"', [DependNetworkInfoArray[i].Typ.Text]);
@@ -2288,7 +2301,7 @@ begin
       for i := low(arry) to high(arry) do
           Pool.GetOrCreatePhysicsTunnel(arry[i], ServiceTyp, OnEvent_);
     end
-  else if Length(arry) > 0 then
+  else if length(arry) > 0 then
     begin
       Pool.GetOrCreatePhysicsTunnel(arry[0], ServiceTyp, OnEvent_);
     end;
@@ -2332,7 +2345,7 @@ begin
   n := n.LowerText;
   buff := n.Bytes;
   n := '';
-  Hash := umlMD5(@buff[0], Length(buff));
+  Hash := umlMD5(@buff[0], length(buff));
   SetLength(buff, 0);
 end;
 
@@ -2834,7 +2847,7 @@ begin
           if (tmp.OnlyInstance) then
             begin
               arry := SearchService(tmp.ServiceTyp);
-              if Length(arry) > 0 then
+              if length(arry) > 0 then
                 begin
                   ReadyNewInfo_ := False;
                   DoStatus('"%s" is only instance.', [tmp.ServiceTyp.Text]);
@@ -3192,7 +3205,7 @@ procedure TC40_Custom_ClientPool_Wait.DoRun;
     i: Integer;
   begin
     Result := True;
-    for i := 0 to Length(States_) - 1 do
+    for i := 0 to length(States_) - 1 do
       if States_[i].Client_ = c_ then
           exit;
     Result := False;
@@ -3219,7 +3232,7 @@ procedure TC40_Custom_ClientPool_Wait.DoRun;
     i: Integer;
   begin
     Result := False;
-    for i := 0 to Length(States_) - 1 do
+    for i := 0 to length(States_) - 1 do
       if States_[i].Client_ = nil then
           exit;
     Result := True;
@@ -3228,7 +3241,7 @@ procedure TC40_Custom_ClientPool_Wait.DoRun;
 var
   i: Integer;
 begin
-  for i := 0 to Length(States_) - 1 do
+  for i := 0 to length(States_) - 1 do
       MatchServiceTypForPool(States_[i]);
 
   if IsAllDone then
@@ -3255,8 +3268,8 @@ var
 begin
   inherited Create;
   umlGetSplitArray(dependNetwork_, arry, '|<>');
-  SetLength(States_, Length(arry));
-  for i := 0 to Length(arry) - 1 do
+  SetLength(States_, length(arry));
+  for i := 0 to length(arry) - 1 do
     begin
       States_[i].ServiceTyp_ := arry[i];
       States_[i].Client_ := nil;

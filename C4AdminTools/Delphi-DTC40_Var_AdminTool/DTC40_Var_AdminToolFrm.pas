@@ -260,32 +260,32 @@ end;
 procedure TDTC40_Var_AdminToolForm.ReadConfig;
 var
   fn: U_String;
-  te: THashTextEngine;
+  TE: THashTextEngine;
 begin
   fn := umlChangeFileExt(Application.ExeName, '.conf');
   if not umlFileExists(fn) then
       exit;
-  te := THashTextEngine.Create;
-  te.LoadFromFile(fn);
-  JoinHostEdit.Text := te.GetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
-  JoinPortEdit.Text := te.GetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
-  DisposeObject(te);
+  TE := THashTextEngine.Create;
+  TE.LoadFromFile(fn);
+  JoinHostEdit.Text := TE.GetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
+  JoinPortEdit.Text := TE.GetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
+  DisposeObject(TE);
 end;
 
 procedure TDTC40_Var_AdminToolForm.WriteConfig;
 var
   fn: U_String;
-  te: THashTextEngine;
+  TE: THashTextEngine;
 begin
   fn := umlChangeFileExt(Application.ExeName, '.conf');
 
-  te := THashTextEngine.Create;
+  TE := THashTextEngine.Create;
 
-  te.SetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
-  te.SetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
+  TE.SetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
+  TE.SetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
 
-  te.SaveToFile(fn);
-  DisposeObject(te);
+  TE.SaveToFile(fn);
+  DisposeObject(TE);
 end;
 
 procedure TDTC40_Var_AdminToolForm.Do_QueryResult(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);

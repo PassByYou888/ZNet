@@ -153,7 +153,7 @@ object C40AppTempletForm: TC40AppTempletForm
             OnExit = DependEditExit
           end
         end
-        object RependNetListView: TListView
+        object DependNetListView: TListView
           Left = 0
           Height = 115
           Top = 32
@@ -181,7 +181,7 @@ object C40AppTempletForm: TC40AppTempletForm
           RowSelect = True
           TabOrder = 1
           ViewStyle = vsReport
-          OnChange = RependNetListViewChange
+          OnChange = DependNetListViewChange
         end
       end
       object servicePanel: TPanel
