@@ -243,16 +243,18 @@ type
   TObjectDataTMDBWriteAfterProc = procedure(fPos: Int64; const wVal: PObjectDataHandle) of object;
   TObjectDataTMDBReadProc = procedure(fPos: Int64; const rVal: PObjectDataHandle; var Done: Boolean) of object;
 
+  TObjectDataHandle_Reserved_Data = array [0 .. DB_ReservedData_Size - 1] of Byte;
+
   TObjectDataHandle = record
-    IOHnd: TIOHnd;                                               // IO handle
-    ReservedData: array [0 .. DB_ReservedData_Size - 1] of Byte; // file: reserved struct
-    FixedStringL: Byte;                                          // file: fixed string length
-    MajorVer, MinorVer: SmallInt;                                // file: version info
-    CreateTime, ModificationTime: Double;                        // file: time
-    RootHeaderCount: Int64;                                      // file: header counter
-    DefaultFieldPOS, FirstHeaderPOS, LastHeaderPOS: Int64;       // file: field struct pos
-    CurrentFieldPOS: Int64;                                      // file: current field pos
-    CurrentFieldLevel: Word;                                     // file: current field level
+    IOHnd: TIOHnd;                                         // IO handle
+    ReservedData: TObjectDataHandle_Reserved_Data;         // file: reserved struct
+    FixedStringL: Byte;                                    // file: fixed string length
+    MajorVer, MinorVer: SmallInt;                          // file: version info
+    CreateTime, ModificationTime: Double;                  // file: time
+    RootHeaderCount: Int64;                                // file: header counter
+    DefaultFieldPOS, FirstHeaderPOS, LastHeaderPOS: Int64; // file: field struct pos
+    CurrentFieldPOS: Int64;                                // file: current field pos
+    CurrentFieldLevel: Word;                               // file: current field level
 
     OverWriteItem: Boolean;
     AllowSameHeaderName: Boolean;
@@ -343,6 +345,9 @@ function Get_DB_FieldL(var IOHnd: TIOHnd): Integer;
 function Get_DB_L(var IOHnd: TIOHnd): Integer;
 
 function TranslateReturnCode(const ReturnCode: Integer): U_String;
+
+function String_To_Reserved(s: U_String): TObjectDataHandle_Reserved_Data;
+function Reserved_To_String(Reserved: TObjectDataHandle_Reserved_Data): U_String;
 
 // internal: init store struct
 procedure Init_THeader(var Header_: THeader);
@@ -749,6 +754,43 @@ end;
 function db_GetLastPath(const pathName: U_String): U_String;
 begin
   Result := umlGetLastStr(pathName, db_FieldPathLimitChar);
+end;
+
+function String_To_Reserved(s: U_String): TObjectDataHandle_Reserved_Data;
+var
+  buff: TBytes;
+  L, RL: Integer;
+begin
+  RL := sizeOf(TObjectDataHandle_Reserved_Data);
+  FillPtr(@Result[0], RL, 0);
+  if s.L <= 0 then
+      exit;
+  buff := s.Bytes;
+  L := length(buff);
+  if L < RL - 1 then
+      CopyPtr(@buff[0], @Result[0], L)
+  else
+      CopyPtr(@buff[0], @Result[0], RL - 1);
+  SetLength(buff, 0);
+end;
+
+function Reserved_To_String(Reserved: TObjectDataHandle_Reserved_Data): U_String;
+var
+  i: Integer;
+  RL: Integer;
+  buff: TBytes;
+begin
+  RL := sizeOf(TObjectDataHandle_Reserved_Data);
+  i := 0;
+  while i < RL do
+    if Reserved[i] > 0 then
+        inc(i)
+    else
+        break;
+  SetLength(buff, i);
+  CopyPtr(@Reserved[0], @buff[0], i);
+  Result.Bytes := buff;
+  SetLength(buff, 0);
 end;
 
 procedure Init_THeader(var Header_: THeader);
@@ -5110,7 +5152,7 @@ function db_CreateField(const pathName, Description: U_String; var DB_: TObjectD
 var
   f: TField;
   fs: TFieldSearch;
-  i, PC: Integer;
+  i, path_num_: Integer;
   TempPathStr, TempPathName: U_String;
 begin
   if umlFileTest(DB_.IOHnd) = False then
@@ -5133,10 +5175,10 @@ begin
       exit;
     end;
   TempPathName := pathName;
-  PC := db_GetPathCount(TempPathName);
-  if PC > 0 then
+  path_num_ := db_GetPathCount(TempPathName);
+  if path_num_ > 0 then
     begin
-      for i := 1 to PC do
+      for i := 1 to path_num_ do
         begin
           TempPathStr := db_GetFirstPath(TempPathName);
           TempPathName := db_DeleteFirstPath(TempPathName);
@@ -5567,7 +5609,7 @@ function db_SetCurrentField(const pathName: U_String; var DB_: TObjectDataHandle
 var
   f: TField;
   fs: TFieldSearch;
-  i, PC: Integer;
+  i, path_num_: Integer;
   TempPathStr, TempPathName: U_String;
 begin
   if umlFileTest(DB_.IOHnd) = False then
@@ -5592,10 +5634,10 @@ begin
       exit;
     end;
   TempPathName := pathName;
-  PC := db_GetPathCount(TempPathName);
-  if PC > 0 then
+  path_num_ := db_GetPathCount(TempPathName);
+  if path_num_ > 0 then
     begin
-      for i := 1 to PC do
+      for i := 1 to path_num_ do
         begin
           TempPathStr := db_GetFirstPath(TempPathName);
           TempPathName := db_DeleteFirstPath(TempPathName);
@@ -5621,7 +5663,7 @@ begin
         end;
     end;
   DB_.CurrentFieldPOS := f.RHeader.CurrentHeader;
-  DB_.CurrentFieldLevel := PC;
+  DB_.CurrentFieldLevel := path_num_;
   DB_.State := DB_ok;
   Result := True;
 end;
@@ -5705,7 +5747,7 @@ function db_GetField(const pathName: U_String; var Field_: TField; var DB_: TObj
 var
   f: TField;
   fs: TFieldSearch;
-  i, PC: Integer;
+  i, path_num_: Integer;
   TempPathStr, TempPathName: U_String;
 begin
   if umlFileTest(DB_.IOHnd) = False then
@@ -5729,11 +5771,11 @@ begin
       exit;
     end;
   TempPathName := pathName;
-  PC := db_GetPathCount(TempPathName);
+  path_num_ := db_GetPathCount(TempPathName);
 
-  if PC > 0 then
+  if path_num_ > 0 then
     begin
-      for i := 1 to PC do
+      for i := 1 to path_num_ do
         begin
           TempPathStr := db_GetFirstPath(TempPathName);
           TempPathName := db_DeleteFirstPath(TempPathName);
@@ -5815,7 +5857,7 @@ function db_NewItem(const pathName, ItemName, ItemDescription: U_String; const I
 var
   f: TField;
   fs: TFieldSearch;
-  i, PC: Integer;
+  i, path_num_: Integer;
   TempPathStr, TempPathName: U_String;
 begin
   if umlFileTest(DB_.IOHnd) = False then
@@ -5834,10 +5876,10 @@ begin
   if umlGetLength(pathName) > 0 then
     begin
       TempPathName := pathName;
-      PC := db_GetPathCount(TempPathName);
-      if PC > 0 then
+      path_num_ := db_GetPathCount(TempPathName);
+      if path_num_ > 0 then
         begin
-          for i := 1 to PC do
+          for i := 1 to path_num_ do
             begin
               TempPathStr := db_GetFirstPath(TempPathName);
               TempPathName := db_DeleteFirstPath(TempPathName);
@@ -5949,20 +5991,20 @@ end;
 function db_GetItem(const pathName, ItemName: U_String; const ItemExtID: Byte; var Item_: TItem; var DB_: TObjectDataHandle): Boolean;
 var
   f: TField;
-  _FieldSR: TFieldSearch;
+  FieldSR__: TFieldSearch;
 begin
   if db_GetField(pathName, f, DB_) = False then
     begin
       Result := False;
       exit;
     end;
-  if dbField_FindFirstItem(ItemName, ItemExtID, f.RHeader.CurrentHeader, DB_.IOHnd, _FieldSR) = False then
+  if dbField_FindFirstItem(ItemName, ItemExtID, f.RHeader.CurrentHeader, DB_.IOHnd, FieldSR__) = False then
     begin
       DB_.State := DB_OpenItemError;
       Result := False;
       exit;
     end;
-  if dbItem_ReadRec(_FieldSR.RHeader.CurrentHeader, DB_.IOHnd, Item_) = False then
+  if dbItem_ReadRec(FieldSR__.RHeader.CurrentHeader, DB_.IOHnd, Item_) = False then
     begin
       DB_.State := Item_.State;
       Result := False;
@@ -7114,5 +7156,8 @@ begin
   end;
 end;
 
+initialization
+
+Reserved_To_String(String_To_Reserved('ÖÐÎÄ123'));
+
 end.
- 

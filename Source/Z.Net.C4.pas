@@ -2341,7 +2341,7 @@ var
   n: U_String;
   buff: TBytes;
 begin
-  n := umlTrimSpace(PhysicsAddr) + '_' + umlIntToStr(PhysicsPort) + '_' + p2pVM_RecvTunnel_Addr + '_' + p2pVM_SendTunnel_Addr;
+  n := umlTrimSpace(PhysicsAddr) + '_' + umlIntToStr(PhysicsPort) + '_' + umlTrimSpace(p2pVM_RecvTunnel_Addr) + '_' + umlTrimSpace(p2pVM_SendTunnel_Addr);
   n := n.LowerText;
   buff := n.Bytes;
   n := '';

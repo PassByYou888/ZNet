@@ -24,6 +24,9 @@
         <Projects Include="Delphi-DTC40_Alias_AdminTool\DTC40_Alias_AdminTool.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -95,14 +98,23 @@
     <Target Name="DTC40_Alias_AdminTool:Make">
         <MSBuild Projects="Delphi-DTC40_Alias_AdminTool\DTC40_Alias_AdminTool.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DTC40_FS2_AdminTool">
+        <MSBuild Projects="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_FS2_AdminTool:Clean">
+        <MSBuild Projects="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_FS2_AdminTool:Make">
+        <MSBuild Projects="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="C40AppTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool;DTC40_Alias_AdminTool"/>
+        <CallTarget Targets="C40AppTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool;DTC40_Alias_AdminTool;DTC40_FS2_AdminTool"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="C40AppTemplet:Clean;DTC40_AdminTool_Templet:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_FS_AdminTool:Clean;DTC40_Log_AdminTool:Clean;DTC40_Var_AdminTool:Clean;DTC40_Alias_AdminTool:Clean"/>
+        <CallTarget Targets="C40AppTemplet:Clean;DTC40_AdminTool_Templet:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_FS_AdminTool:Clean;DTC40_Log_AdminTool:Clean;DTC40_Var_AdminTool:Clean;DTC40_Alias_AdminTool:Clean;DTC40_FS2_AdminTool:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="C40AppTemplet:Make;DTC40_AdminTool_Templet:Make;DTC40_UserDB_AdminTool:Make;DTC40_FS_AdminTool:Make;DTC40_Log_AdminTool:Make;DTC40_Var_AdminTool:Make;DTC40_Alias_AdminTool:Make"/>
+        <CallTarget Targets="C40AppTemplet:Make;DTC40_AdminTool_Templet:Make;DTC40_UserDB_AdminTool:Make;DTC40_FS_AdminTool:Make;DTC40_Log_AdminTool:Make;DTC40_Var_AdminTool:Make;DTC40_Alias_AdminTool:Make;DTC40_FS2_AdminTool:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

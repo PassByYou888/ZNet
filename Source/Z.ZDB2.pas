@@ -230,6 +230,9 @@ type
     function GetDataPhysics(SpaceHnd: TZDB2_BlockHandle): Int64; overload;
     function GetDataPhysics(ID: Integer): Int64; overload;
     function BuildTableID: TZDB2_BlockHandle;
+    // low level IO
+    function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
+    function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
 
     property AutoCloseIOHnd: Boolean read FAutoCloseIOHnd write FAutoCloseIOHnd;
     property AutoFreeIOHnd: Boolean read FAutoFreeIOHnd write FAutoFreeIOHnd;
@@ -2392,6 +2395,63 @@ begin
   end;
   DisposeObject(L);
   SetLength(LBuff, 0);
+end;
+
+function TZDB2_Core_Space.Block_IO_Read(buff: Pointer; ID: Integer): WORD;
+var
+  p: PZDB2_Block;
+begin
+  Result := 0;
+  if (ID < 0) or (ID >= FBlockCount) then
+      exit;
+  p := @FBlockBuffer[ID];
+  if not ReadCacheBlock(buff, ID) then
+    begin
+      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
+        begin
+          ErrorInfo('Block_IO_Read: umlFileSeek error.');
+          exit;
+        end;
+      if not umlBlockRead(FSpace_IOHnd^, buff^, p^.UsedSpace) then
+        begin
+          ErrorInfo('Block_IO_Read: umlBlockRead error.');
+          exit;
+        end;
+      DoDecrypt(buff, FBlockBuffer[ID].UsedSpace);
+      if FUsedReadCache then
+          WriteCacheBlock(buff, p^.UsedSpace, ID, False);
+    end;
+  Result := p^.UsedSpace;
+end;
+
+function TZDB2_Core_Space.Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
+var
+  p: PZDB2_Block;
+begin
+  Result := False;
+  if (ID < 0) or (ID >= FBlockCount) then
+      exit;
+  p := @FBlockBuffer[ID];
+  if not WriteCacheBlock(buff, p^.UsedSpace, ID, True) then
+    begin
+      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
+        begin
+          ErrorInfo('Block_IO_Write: umlFileSeek Block error.');
+          exit;
+        end;
+      if not umlBlockWrite(FSpace_IOHnd^, DoEncryptTemp(buff, p^.UsedSpace, True)^, p^.UsedSpace) then
+        begin
+          ErrorInfo('Block_IO_Write: umlBlockWrite Block error.');
+          exit;
+        end;
+      if p^.Size - p^.UsedSpace > 0 then
+        if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, p^.Size - p^.UsedSpace) then
+          begin
+            ErrorInfo('Block_IO_Write: umlBlockWrite (NULL) error.');
+            exit;
+          end;
+    end;
+  Result := True;
 end;
 
 procedure TZDB2_Core_Space.DoProgress(Total_, current_: Integer);

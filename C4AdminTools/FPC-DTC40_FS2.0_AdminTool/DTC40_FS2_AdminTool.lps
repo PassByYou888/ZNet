@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="5">
+      <Unit0>
+        <Filename Value="DTC40_FS2_AdminTool.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="1"/>
+        <CursorPos Y="8"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DTC40_FS2_AdminToolForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="491"/>
+        <CursorPos X="60" Y="510"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="dtc40_fs_admintoolfrm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="41" Y="13"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="C:\lazarus\lcl\dialogs.pp"/>
+        <UnitName Value="Dialogs"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="741"/>
+        <CursorPos X="10" Y="754"/>
+        <UsageCount Value="10"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="dtc40_fs2_admintoolfrm.lfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="35" Y="14"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit4>
+    </Units>
+    <JumpHistory Count="14" HistoryIndex="13">
+      <Position1>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="131" TopLine="102"/>
+      </Position1>
+      <Position2>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="541" TopLine="500"/>
+      </Position2>
+      <Position3>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="56" TopLine="15"/>
+      </Position3>
+      <Position4>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="196" Column="23" TopLine="175"/>
+      </Position4>
+      <Position5>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="279" Column="8" TopLine="258"/>
+      </Position5>
+      <Position6>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="24"/>
+      </Position6>
+      <Position7>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="281" Column="23" TopLine="258"/>
+      </Position7>
+      <Position8>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="280" Column="13" TopLine="259"/>
+      </Position8>
+      <Position9>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="281" Column="39" TopLine="259"/>
+      </Position9>
+      <Position10>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="290" Column="60" TopLine="269"/>
+      </Position10>
+      <Position11>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="341" Column="87" TopLine="314"/>
+      </Position11>
+      <Position12>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="418" TopLine="395"/>
+      </Position12>
+      <Position13>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="467" Column="46" TopLine="446"/>
+      </Position13>
+      <Position14>
+        <Filename Value="dtc40_fs2_admintoolfrm.pas"/>
+        <Caret Line="500" Column="37" TopLine="479"/>
+      </Position14>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>
