@@ -3777,7 +3777,7 @@ begin
     );
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
-
+  Service.DTService.FileSystem := False;
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
       umlCreateDirectory(Service.DTService.PublicFileDirectory);
@@ -4229,6 +4229,7 @@ begin
     );
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
       umlCreateDirectory(Service.DTService.PublicFileDirectory);
@@ -4316,6 +4317,7 @@ begin
     );
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
       umlCreateDirectory(Service.DTService.PublicFileDirectory);
@@ -4415,6 +4417,7 @@ begin
   Service.DTService.OnUserReg := {$IFDEF FPC}@{$ENDIF FPC}DoUserReg_Event;
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
       umlCreateDirectory(Service.DTService.PublicFileDirectory);
@@ -4534,6 +4537,7 @@ begin
   Service.DTService.OnUserReg := {$IFDEF FPC}@{$ENDIF FPC}DoUserReg_Event;
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
       umlCreateDirectory(Service.DTService.PublicFileDirectory);
@@ -4643,6 +4647,7 @@ begin
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
   Service.DTService.AllowRegisterNewUser := True;
   Service.DTService.AllowSaveUserInfo := True;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicPath := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   Service.DTService.RootPath := Service.DTService.PublicPath;
   if not umlDirectoryExists(Service.DTService.PublicPath) then
@@ -4759,6 +4764,7 @@ begin
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
   Service.DTService.AllowRegisterNewUser := True;
   Service.DTService.AllowSaveUserInfo := True;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicPath := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
   Service.DTService.RootPath := Service.DTService.PublicPath;
   if not umlDirectoryExists(Service.DTService.PublicPath) then

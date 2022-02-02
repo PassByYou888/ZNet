@@ -100,7 +100,7 @@ type
     procedure DoConnected;
     procedure DoDisconnect;
     function FileItemIsBusy: Boolean;
-    procedure Do_FS_Search(Sender: TC40_FS_Client; arry_: TC40_FS_Client.TFS_FileInfo_Array);
+    procedure Do_FS_Search(Sender: TC40_FS_Client; arry_: TFS_FileInfo_Array);
     procedure SearchFile(filter: U_String; MaxNum: Integer);
   private
     // IDTC40_PhysicsTunnel_Event
@@ -382,7 +382,7 @@ begin
   Result := False;
 end;
 
-procedure TDTC40_FS_AdminToolForm.Do_FS_Search(Sender: TC40_FS_Client; arry_: TC40_FS_Client.TFS_FileInfo_Array);
+procedure TDTC40_FS_AdminToolForm.Do_FS_Search(Sender: TC40_FS_Client; arry_: TFS_FileInfo_Array);
 var
   itm: TFile_Item;
   i: Integer;

@@ -346,7 +346,8 @@ function Get_DB_L(var IOHnd: TIOHnd): Integer;
 
 function TranslateReturnCode(const ReturnCode: Integer): U_String;
 
-function String_To_Reserved(s: U_String): TObjectDataHandle_Reserved_Data;
+function Test_Reserved_String(S: U_String): Boolean;
+function String_To_Reserved(S: U_String): TObjectDataHandle_Reserved_Data;
 function Reserved_To_String(Reserved: TObjectDataHandle_Reserved_Data): U_String;
 
 // internal: init store struct
@@ -756,16 +757,27 @@ begin
   Result := umlGetLastStr(pathName, db_FieldPathLimitChar);
 end;
 
-function String_To_Reserved(s: U_String): TObjectDataHandle_Reserved_Data;
+function Test_Reserved_String(S: U_String): Boolean;
+var
+  buff: TBytes;
+  L, RL: Integer;
+begin
+  RL := sizeOf(TObjectDataHandle_Reserved_Data);
+  buff := S.Bytes;
+  L := length(buff);
+  Result := L < RL - 1;
+end;
+
+function String_To_Reserved(S: U_String): TObjectDataHandle_Reserved_Data;
 var
   buff: TBytes;
   L, RL: Integer;
 begin
   RL := sizeOf(TObjectDataHandle_Reserved_Data);
   FillPtr(@Result[0], RL, 0);
-  if s.L <= 0 then
+  if S.L <= 0 then
       exit;
-  buff := s.Bytes;
+  buff := S.Bytes;
   L := length(buff);
   if L < RL - 1 then
       CopyPtr(@buff[0], @Result[0], L)

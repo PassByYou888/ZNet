@@ -6937,14 +6937,14 @@ end;
 class procedure THashMD5.UpdateMD5(var Context: TMD5Context; const Buf; BufSize: NativeInt);
 var
   InBuf: TTransformInput;
-  BufOfs: DWORD;
+  BufOfs: NativeUInt;
   MDI: DWORD;
   i: DWORD;
 begin
-  // { compute number of bytes mod 64 }
+  { compute number of bytes mod 64 }
   MDI := (Context.Count[0] shr 3) and $3F;
 
-  // { update number of bits }
+  { update number of bits }
   if BufSize shl 3 < 0 then
       inc(Context.Count[1]);
 

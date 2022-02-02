@@ -1187,7 +1187,7 @@ type
     function Add(Value: TUPascalString; Obj: TCore_Object): Integer; overload;
     function Append(Value: SystemString): Integer; overload;
     function Delete(idx: Integer): Integer;
-    function DeletePascalString(Value: TPascalString): Integer;
+    function DeleteString(Value: TPascalString): Integer;
     procedure Clear;
     function Count: Integer;
     function ExistsValue(Value: TPascalString): Integer;
@@ -9410,7 +9410,7 @@ begin
   Result := Count;
 end;
 
-function TListPascalString.DeletePascalString(Value: TPascalString): Integer;
+function TListPascalString.DeleteString(Value: TPascalString): Integer;
 var
   i: Integer;
   h: THash;

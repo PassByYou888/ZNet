@@ -31,7 +31,7 @@ begin
   Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(Internet_XNAT_Service_Addr_, Internet_XNAT_Service_Port_, 'MY_XNAT_1', nil);
 
   // 等XNAT配置服务就绪，然后使用远程地址映射成为本地 TXNAT_MappingOnVirutalService
-  // TXNAT_MappingOnVirutalService与常规TCommunicationFrameworkServer用法一致，不需要XNAT重复做链接
+  // TXNAT_MappingOnVirutalService与常规Server用法一致，不需要XNAT重复做链接
   Z.Net.C4.C40_ClientPool.WaitConnectedDoneP('MY_XNAT_1', procedure(States_: TC40_Custom_ClientPool_Wait_States)
     var
       XNAT_Cli: TC40_XNAT_Client_Tool;

@@ -2280,6 +2280,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function IsOnline: Boolean; { only work in mainthread }
+    function IO: TPeerIO;
   end;
 
 procedure RunHPC_StreamC(Sender: TPeerIO;
@@ -2325,6 +2326,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function IsOnline: Boolean; { only work in mainthread }
+    function IO: TPeerIO;
   end;
 
 procedure RunHPC_DirectStreamC(Sender: TPeerIO;
@@ -2371,6 +2373,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function IsOnline: Boolean; { only work in mainthread }
+    function IO: TPeerIO;
   end;
 
 procedure RunHPC_ConsoleC(Sender: TPeerIO;
@@ -2416,6 +2419,7 @@ type
     constructor Create;
     destructor Destroy; override;
     function IsOnline: Boolean; { only work in mainthread }
+    function IO: TPeerIO;
   end;
 
 procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
@@ -3346,6 +3350,13 @@ begin
   Result := (Framework <> nil) and (Framework.ExistsID(WorkID));
 end;
 
+function THPC_Stream.IO: TPeerIO;
+begin
+  Result := nil;
+  if Framework <> nil then
+      Result := TPeerIO(Framework.FPeerIO_HashPool[WorkID])
+end;
+
 procedure RunHPC_StreamC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
   const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C);
@@ -3464,6 +3475,13 @@ end;
 function THPC_DirectStream.IsOnline: Boolean;
 begin
   Result := (Framework <> nil) and (Framework.ExistsID(WorkID));
+end;
+
+function THPC_DirectStream.IO: TPeerIO;
+begin
+  Result := nil;
+  if Framework <> nil then
+      Result := TPeerIO(Framework.FPeerIO_HashPool[WorkID])
 end;
 
 procedure RunHPC_DirectStreamC(Sender: TPeerIO;
@@ -3596,6 +3614,13 @@ begin
   Result := (Framework <> nil) and (Framework.ExistsID(WorkID));
 end;
 
+function THPC_Console.IO: TPeerIO;
+begin
+  Result := nil;
+  if Framework <> nil then
+      Result := TPeerIO(Framework.FPeerIO_HashPool[WorkID])
+end;
+
 procedure RunHPC_ConsoleC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
   const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C);
@@ -3701,6 +3726,13 @@ end;
 function THPC_DirectConsole.IsOnline: Boolean;
 begin
   Result := (Framework <> nil) and (Framework.ExistsID(WorkID));
+end;
+
+function THPC_DirectConsole.IO: TPeerIO;
+begin
+  Result := nil;
+  if Framework <> nil then
+      Result := TPeerIO(Framework.FPeerIO_HashPool[WorkID])
 end;
 
 procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
@@ -15764,4 +15796,3 @@ finalization
 FreeBigStream_SwapSpace();
 
 end.
-

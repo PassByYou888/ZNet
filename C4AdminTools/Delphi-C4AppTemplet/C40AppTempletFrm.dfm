@@ -656,6 +656,15 @@ object C40AppTempletForm: TC40AppTempletForm
         ParentDoubleBuffered = False
         TabOrder = 5
       end
+      object Generate_Console_CmdLineButton: TButton
+        Left = 189
+        Top = 268
+        Width = 113
+        Height = 25
+        Caption = 'Generate Console '
+        TabOrder = 9
+        OnClick = Generate_Console_CmdLineButtonClick
+      end
     end
   end
   object netTimer: TTimer

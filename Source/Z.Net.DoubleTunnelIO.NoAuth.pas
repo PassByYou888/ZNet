@@ -78,6 +78,7 @@ type
 
     procedure Command_GetFileTime(Sender: TPeerIO; InData, OutData: TDFE); virtual;
     procedure Command_GetFileInfo(Sender: TPeerIO; InData, OutData: TDFE); virtual;
+    procedure Do_Th_Command_GetFileMD5(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
     procedure Command_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE); virtual;
     procedure Command_GetFile(Sender: TPeerIO; InData, OutData: TDFE); virtual;
     procedure Command_GetFileAs(Sender: TPeerIO; InData, OutData: TDFE); virtual;
@@ -578,6 +579,8 @@ type
     l_fileMD5: Z.UnicodeMixedLib.TMD5;
     procedure DoComplete(const UserData: Pointer; const UserObject: TCore_Object; stream: TCore_Stream; const fileName: SystemString);
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
+    procedure Do_Th_ComputeLFileMD5();
+    procedure Done_ComputeLFileMD5();
     procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
   public
     constructor Create;
@@ -592,7 +595,11 @@ type
     r_fileExisted: Boolean;
     r_fileSize: Int64;
     r_fileMD5: Z.UnicodeMixedLib.TMD5;
+    l_file_StartPos, l_file_EndPos: Int64;
+    l_fileMD5: Z.UnicodeMixedLib.TMD5;
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
+    procedure Do_Th_ComputeLFileMD5();
+    procedure Done_ComputeLFileMD5();
     procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
   public
     constructor Create;
@@ -632,7 +639,10 @@ begin
       if not umlFileExists(localFile) then
           Client.GetFileAsM(remoteFile, umlGetFileName(localFile), 0, umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete)
       else if fSiz >= umlGetFileSize(localFile) then
-          Client.GetFileMD5M(umlGetFileName(remoteFile), 0, umlGetFileSize(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoResult_GetFileMD5)
+        begin
+          umlCacheFileMD5(localFile);
+          Client.GetFileMD5M(umlGetFileName(remoteFile), 0, umlGetFileSize(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoResult_GetFileMD5);
+        end
       else
           Client.GetFileAsM(remoteFile, umlGetFileName(localFile), 0, umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete);
     end
@@ -643,20 +653,31 @@ begin
     end;
 end;
 
-procedure TAutomatedDownloadFile_Struct_NoAuth.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
-  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+procedure TAutomatedDownloadFile_Struct_NoAuth.Do_Th_ComputeLFileMD5();
 begin
-  r_fileMD5 := MD5;
+  DoStatus('compute md5 from local "%s"', [localFile]);
   l_fileMD5 := umlFileMD5(localFile);
-  if umlMD5Compare(l_fileMD5, MD5) then
+  TCompute.PostM1({$IFDEF FPC}@{$ENDIF FPC}Done_ComputeLFileMD5);
+end;
+
+procedure TAutomatedDownloadFile_Struct_NoAuth.Done_ComputeLFileMD5();
+begin
+  if umlMD5Compare(l_fileMD5, r_fileMD5) then
     begin
       if r_fileSize = umlGetFileSize(localFile) then
           DoComplete(nil, nil, nil, localFile)
       else
-          Client.GetFileAsM(fileName, umlGetFileName(localFile), umlGetFileSize(localFile), umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete);
+          Client.GetFileAsM(r_fileName, umlGetFileName(localFile), umlGetFileSize(localFile), umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete);
     end
   else
-      Client.GetFileAsM(fileName, umlGetFileName(localFile), 0, umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete);
+      Client.GetFileAsM(r_fileName, umlGetFileName(localFile), 0, umlGetFilePath(localFile), nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoComplete);
+end;
+
+procedure TAutomatedDownloadFile_Struct_NoAuth.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
+  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+begin
+  r_fileMD5 := MD5;
+  TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Th_ComputeLFileMD5);
 end;
 
 constructor TAutomatedDownloadFile_Struct_NoAuth.Create;
@@ -693,26 +714,48 @@ begin
       r_fileName := fileName;
       r_fileSize := fSiz;
       if r_fileSize <= umlGetFileSize(localFile) then
-          Client.GetFileMD5M(umlGetFileName(localFile), 0, r_fileSize, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoResult_GetFileMD5)
+        begin
+          Client.GetFileMD5M(umlGetFileName(localFile), 0, r_fileSize, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}DoResult_GetFileMD5);
+        end
       else
+        begin
           Client.PostFile(localFile);
+          Free;
+        end;
+    end
+  else
+    begin
+      Client.PostFile(localFile);
+      Free;
+    end;
+end;
+
+procedure TAutomatedUploadFile_Struct_NoAuth.Do_Th_ComputeLFileMD5;
+begin
+  DoStatus('compute md5 from local "%s"', [localFile]);
+  l_fileMD5 := umlFileMD5(localFile, l_file_StartPos, l_file_EndPos);
+  TCompute.PostM1({$IFDEF FPC}@{$ENDIF FPC}Done_ComputeLFileMD5);
+end;
+
+procedure TAutomatedUploadFile_Struct_NoAuth.Done_ComputeLFileMD5;
+begin
+  if umlMD5Compare(r_fileMD5, l_fileMD5) then
+    begin
+      if umlGetFileSize(localFile) > r_fileSize then
+          Client.PostFile(r_fileName, r_fileSize);
     end
   else
       Client.PostFile(localFile);
+  Free;
 end;
 
 procedure TAutomatedUploadFile_Struct_NoAuth.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
   const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
 begin
   r_fileMD5 := MD5;
-  if umlMD5Compare(r_fileMD5, umlFileMD5(localFile, 0, r_fileSize)) then
-    begin
-      if umlGetFileSize(localFile) > r_fileSize then
-          Client.PostFile(fileName, r_fileSize);
-    end
-  else
-      Client.PostFile(localFile);
-  Free;
+  l_file_StartPos := StartPos;
+  l_file_EndPos := EndPos;
+  TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Th_ComputeLFileMD5);
 end;
 
 constructor TAutomatedUploadFile_Struct_NoAuth.Create;
@@ -724,6 +767,10 @@ begin
   r_fileExisted := False;
   r_fileSize := -1;
   r_fileMD5 := NullMD5;
+
+  l_file_StartPos := 0;
+  l_file_EndPos := 0;
+  l_fileMD5 := NullMD5;
 end;
 
 destructor TAutomatedUploadFile_Struct_NoAuth.Destroy;
@@ -918,35 +965,28 @@ begin
     end;
 end;
 
-procedure TDTService_NoAuth.Command_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TDTService_NoAuth.Do_Th_Command_GetFileMD5(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth;
   fullfn, fileName: SystemString;
   StartPos, EndPos: Int64;
   fs: TCore_FileStream;
   MD5: TMD5;
 begin
-  if not FFileSystem then
-      Exit;
-  UserDefineIO := GetUserDefineRecvTunnel(Sender);
-  if not UserDefineIO.LinkOk then
-      Exit;
-
-  fileName := InData.Reader.ReadString;
-  StartPos := InData.Reader.ReadInt64;
-  EndPos := InData.Reader.ReadInt64;
+  fileName := ThInData.Reader.ReadString;
+  StartPos := ThInData.Reader.ReadInt64;
+  EndPos := ThInData.Reader.ReadInt64;
 
   fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
-      OutData.WriteBool(False);
+      ThOutData.WriteBool(False);
       Exit;
     end;
 
   try
       fs := TCore_FileStream.Create(fullfn, fmOpenRead or fmShareDenyNone);
   except
-    OutData.WriteBool(False);
+    ThOutData.WriteBool(False);
     DisposeObject(fs);
     Exit;
   end;
@@ -954,14 +994,27 @@ begin
   if (EndPos > fs.Size) then
       EndPos := fs.Size;
 
-  if (EndPos = StartPos) or (EndPos = 0) then
+  if ((EndPos = StartPos) or (EndPos = 0)) or ((StartPos = 0) and (EndPos = fs.Size)) then
       MD5 := umlFileMD5(fullfn)
   else
       MD5 := umlStreamMD5(fs, StartPos, EndPos);
 
-  OutData.WriteBool(True);
-  OutData.WriteMD5(MD5);
+  ThOutData.WriteBool(True);
+  ThOutData.WriteMD5(MD5);
   DisposeObject(fs);
+end;
+
+procedure TDTService_NoAuth.Command_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth;
+begin
+  if not FFileSystem then
+      Exit;
+  UserDefineIO := GetUserDefineRecvTunnel(Sender);
+  if not UserDefineIO.LinkOk then
+      Exit;
+
+  RunHPC_StreamM(Sender, nil, nil, InData, OutData, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Command_GetFileMD5);
 end;
 
 procedure TDTService_NoAuth.Command_GetFile(Sender: TPeerIO; InData, OutData: TDFE);
@@ -972,7 +1025,6 @@ var
   RemoteBackcallAddr: UInt64;
   sendDE: TDFE;
   fs: TCore_FileStream;
-  MD5: TMD5;
 begin
   if not FFileSystem then
       Exit;
@@ -1007,13 +1059,10 @@ begin
   UserDefineIO.SendTunnel.Owner.SendDirectStreamCmd(C_FileInfo, sendDE);
   DisposeObject(sendDE);
 
-  MD5 := umlFileMD5(fullfn);
-
   fs.Position := 0;
   UserDefineIO.SendTunnel.Owner.SendBigStream(C_PostFile, fs, StartPos, True);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   sendDE.WritePointer(RemoteBackcallAddr);
   UserDefineIO.SendTunnel.Owner.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
@@ -1030,7 +1079,6 @@ var
   RemoteBackcallAddr: UInt64;
   sendDE: TDFE;
   fs: TCore_FileStream;
-  MD5: TMD5;
 begin
   if not FFileSystem then
       Exit;
@@ -1066,13 +1114,10 @@ begin
   UserDefineIO.SendTunnel.Owner.SendDirectStreamCmd(C_FileInfo, sendDE);
   DisposeObject(sendDE);
 
-  MD5 := umlFileMD5(fullfn);
-
   fs.Position := 0;
   UserDefineIO.SendTunnel.Owner.SendBigStream(C_PostFile, fs, StartPos, True);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   sendDE.WritePointer(RemoteBackcallAddr);
   UserDefineIO.SendTunnel.Owner.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
@@ -1155,7 +1200,6 @@ end;
 procedure TDTService_NoAuth.Command_PostFileOver(Sender: TPeerIO; InData: TDFE);
 var
   UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth;
-  ClientMD5, MD5: TMD5;
   fn: SystemString;
 begin
   if not FFileSystem then
@@ -1167,25 +1211,13 @@ begin
       Exit;
     end;
 
-  ClientMD5 := InData.Reader.ReadMD5;
-
   if UserDefineIO.FCurrentFileStream <> nil then
     begin
-      MD5 := umlStreamMD5(UserDefineIO.FCurrentFileStream);
       fn := UserDefineIO.FCurrentReceiveFileName;
       DisposeObject(UserDefineIO.FCurrentFileStream);
       UserDefineIO.FCurrentFileStream := nil;
-
-      if umlMD5Compare(MD5, ClientMD5) then
-        begin
-          Sender.Print('Received File Completed:%s', [fn]);
-          UserPostFileSuccess(UserDefineIO, fn);
-        end
-      else
-        begin
-          Sender.Print('File md5 error:%s', [fn]);
-          umlDeleteFile(fn);
-        end;
+      Sender.Print('Received File Completed:%s', [fn]);
+      UserPostFileSuccess(UserDefineIO, fn);
     end;
 end;
 
@@ -1397,7 +1429,7 @@ begin
   FCadencerEngine.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}CadencerProgress;
   FProgressEngine := TNProgressPost.Create;
 
-  FFileSystem := True;
+  FFileSystem := {$IFDEF DoubleIOFileSystem}True{$ELSE DoubleIOFileSystem}False{$ENDIF DoubleIOFileSystem};
   FFileReceiveDirectory := umlCurrentPath;
 
   if not umlDirectoryExists(FFileReceiveDirectory) then
@@ -1727,23 +1759,17 @@ end;
 
 procedure TDTClient_NoAuth.Command_PostFileOver(Sender: TPeerIO; InData: TDFE);
 var
-  servMD5, MD5: TMD5;
   RemoteBackcallAddr: UInt64;
   p: PRemoteFileBackcall_NoAuth;
   fn: SystemString;
 begin
-  servMD5 := InData.Reader.ReadMD5;
   RemoteBackcallAddr := InData.Reader.ReadPointer;
   p := Pointer(RemoteBackcallAddr);
   fn := FCurrentReceiveStreamFileName;
 
   if FCurrentStream <> nil then
     begin
-      MD5 := umlStreamMD5(FCurrentStream);
-      if umlMD5Compare(servMD5, MD5) then
-          Sender.Print(PFormat('Receive %s ok', [umlGetFileName(fn).Text]))
-      else
-          Sender.Print(PFormat('Receive %s failed!', [umlGetFileName(fn).Text]));
+      Sender.Print(PFormat('Receive %s ok', [umlGetFileName(fn).Text]));
 
       try
         if p <> nil then
@@ -3115,7 +3141,6 @@ procedure TDTClient_NoAuth.PostFile(fileName: SystemString);
 var
   sendDE: TDFE;
   fs: TCore_FileStream;
-  MD5: TMD5;
 begin
   if not FFileSystem then
       Exit;
@@ -3135,13 +3160,10 @@ begin
   FSendTunnel.SendDirectStreamCmd(C_PostFileInfo, sendDE);
   DisposeObject(sendDE);
 
-  MD5 := umlFileMD5(fileName);
-
   fs.Position := 0;
   FSendTunnel.SendBigStream(C_PostFile, fs, True);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
 end;
@@ -3150,7 +3172,6 @@ procedure TDTClient_NoAuth.PostFile(fileName: SystemString; StartPos: Int64);
 var
   sendDE: TDFE;
   fs: TCore_FileStream;
-  MD5: TMD5;
 begin
   if not FFileSystem then
       Exit;
@@ -3170,13 +3191,10 @@ begin
   FSendTunnel.SendDirectStreamCmd(C_PostFileInfo, sendDE);
   DisposeObject(sendDE);
 
-  MD5 := umlFileMD5(fileName);
-
   fs.Position := 0;
   FSendTunnel.SendBigStream(C_PostFile, fs, StartPos, True);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
 end;
@@ -3184,7 +3202,6 @@ end;
 procedure TDTClient_NoAuth.PostFile(fn: SystemString; stream: TCore_Stream; doneFreeStream: Boolean);
 var
   sendDE: TDFE;
-  MD5: TMD5;
 begin
   if (not FSendTunnel.Connected) or (not FRecvTunnel.Connected) or (not FFileSystem) then
     begin
@@ -3201,13 +3218,9 @@ begin
   DisposeObject(sendDE);
 
   stream.Position := 0;
-  MD5 := umlStreamMD5(stream);
-
-  stream.Position := 0;
   FSendTunnel.SendBigStream(C_PostFile, stream, doneFreeStream);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
 end;
@@ -3215,7 +3228,6 @@ end;
 procedure TDTClient_NoAuth.PostFile(fn: SystemString; stream: TCore_Stream; StartPos: Int64; doneFreeStream: Boolean);
 var
   sendDE: TDFE;
-  MD5: TMD5;
 begin
   if (not FSendTunnel.Connected) or (not FRecvTunnel.Connected) or (not FFileSystem) then
     begin
@@ -3232,13 +3244,9 @@ begin
   DisposeObject(sendDE);
 
   stream.Position := 0;
-  MD5 := umlStreamMD5(stream);
-
-  stream.Position := 0;
   FSendTunnel.SendBigStream(C_PostFile, stream, StartPos, doneFreeStream);
 
   sendDE := TDFE.Create;
-  sendDE.WriteMD5(MD5);
   FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
   DisposeObject(sendDE);
 end;

@@ -729,6 +729,7 @@ procedure SaveMemory(p: Pointer; siz: NativeInt; DestFile: TPascalString);
 
 { fast cache for fileMD5 }
 function umlFileMD5(FileName: TPascalString): TMD5; overload;
+procedure Do_ThCacheFileMD5(ThSender: TCompute);
 procedure umlCacheFileMD5(FileName: U_String);
 procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
 
@@ -7705,9 +7706,22 @@ begin
   Result := FileMD5Cache.DoGetFileMD5(FileName);
 end;
 
-procedure umlCacheFileMD5(FileName: U_String);
+procedure Do_ThCacheFileMD5(ThSender: TCompute);
+var
+  p: PPascalString;
 begin
-  FileMD5Cache.DoGetFileMD5(FileName);
+  p := ThSender.UserData;
+  FileMD5Cache.DoGetFileMD5(p^);
+  Dispose(p);
+end;
+
+procedure umlCacheFileMD5(FileName: U_String);
+var
+  p: PPascalString;
+begin
+  new(p);
+  p^ := FileName;
+  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_ThCacheFileMD5);
 end;
 
 type
@@ -7721,20 +7735,20 @@ var
   CacheThreadIsAcivted: Boolean = True;
   CacheFileMD5FromDirectory_Num: Integer = 0;
 
-procedure DoCacheFileMD5FromDirectory(thSender: TCompute);
+procedure DoCacheFileMD5FromDirectory(ThSender: TCompute);
 var
   p: PCacheFileMD5FromDirectoryData_;
   arry: U_StringArray;
   n: U_SystemString;
 begin
-  p := thSender.UserData;
+  p := ThSender.UserData;
   try
     arry := umlGetFileListWithFullPath(p^.Directory_);
     for n in arry do
       begin
         if umlMultipleMatch(p^.Filter_, umlGetFileName(n)) then
           if umlFileExists(n) then
-              umlCacheFileMD5(n);
+              FileMD5Cache.DoGetFileMD5(n);
         if not CacheThreadIsAcivted then
             break;
       end;

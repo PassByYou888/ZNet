@@ -1,0 +1,324 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{4C4A381D-9671-4D9E-ACC5-EAB5771095D5}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="10.XNAT_Mapping\_2_XNAT_Mapping_Client_DP.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="6.Depend-UserDB-AuthService\_1_UserDB_Auth_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="7.Depend-UserDB-VM-IM\_2_VM_Auth_IM_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="10.XNAT_Mapping\_1_XNAT_Mapping_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="9.LogDatabase\_2_LOG_DB_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="2.Technology-FileSystem\_2_FS_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="2.Technology-FileSystem\_1_FS_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="9.LogDatabase\_1_LOG_DB_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="8.Technology-RandNum-Service\_2_RandNum_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="6.Depend-UserDB-AuthService\_2_VM_Auth_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="8.Technology-RandNum-Service\_1_RandNum_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="7.Depend-UserDB-VM-IM\_3_Auth_IM_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="7.Depend-UserDB-VM-IM\_1_UserDB_IM_Centre_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="6.Depend-UserDB-AuthService\_3_Auth_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="4.Technology-UserDatabase\_1_UserDB_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="4.Technology-UserDatabase\_2_UserDB_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="5.Technology-AuthService\_1_Auth_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="5.Technology-AuthService\_2_Auth_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="3.Technology-VAR\C4_VAR_Tech_Demo_Cli.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="3.Technology-VAR\C4_VAR_Tech_Demo_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.BuildNetwork\_4_Var_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.BuildNetwork\_5_UserVM_MoreOpen_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.BuildNetwork\_2_FS_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.BuildNetwork\_3_UserDB_Service.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="1.BuildNetwork\_1_DispatchSeed.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_2_XNAT_Mapping_Client_DP">
+        <MSBuild Projects="10.XNAT_Mapping\_2_XNAT_Mapping_Client_DP.dproj"/>
+    </Target>
+    <Target Name="_2_XNAT_Mapping_Client_DP:Clean">
+        <MSBuild Projects="10.XNAT_Mapping\_2_XNAT_Mapping_Client_DP.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_XNAT_Mapping_Client_DP:Make">
+        <MSBuild Projects="10.XNAT_Mapping\_2_XNAT_Mapping_Client_DP.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_UserDB_Auth_Serv">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_1_UserDB_Auth_Serv.dproj"/>
+    </Target>
+    <Target Name="_1_UserDB_Auth_Serv:Clean">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_1_UserDB_Auth_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_UserDB_Auth_Serv:Make">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_1_UserDB_Auth_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_2_VM_Auth_IM_serv.dproj"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv:Clean">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_2_VM_Auth_IM_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv:Make">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_2_VM_Auth_IM_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_XNAT_Mapping_Service">
+        <MSBuild Projects="10.XNAT_Mapping\_1_XNAT_Mapping_Service.dproj"/>
+    </Target>
+    <Target Name="_1_XNAT_Mapping_Service:Clean">
+        <MSBuild Projects="10.XNAT_Mapping\_1_XNAT_Mapping_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_XNAT_Mapping_Service:Make">
+        <MSBuild Projects="10.XNAT_Mapping\_1_XNAT_Mapping_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_LOG_DB_Client">
+        <MSBuild Projects="9.LogDatabase\_2_LOG_DB_Client.dproj"/>
+    </Target>
+    <Target Name="_2_LOG_DB_Client:Clean">
+        <MSBuild Projects="9.LogDatabase\_2_LOG_DB_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_LOG_DB_Client:Make">
+        <MSBuild Projects="9.LogDatabase\_2_LOG_DB_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_FS_Client">
+        <MSBuild Projects="2.Technology-FileSystem\_2_FS_Client.dproj"/>
+    </Target>
+    <Target Name="_2_FS_Client:Clean">
+        <MSBuild Projects="2.Technology-FileSystem\_2_FS_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_FS_Client:Make">
+        <MSBuild Projects="2.Technology-FileSystem\_2_FS_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_FS_Service">
+        <MSBuild Projects="2.Technology-FileSystem\_1_FS_Service.dproj"/>
+    </Target>
+    <Target Name="_1_FS_Service:Clean">
+        <MSBuild Projects="2.Technology-FileSystem\_1_FS_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_FS_Service:Make">
+        <MSBuild Projects="2.Technology-FileSystem\_1_FS_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_LOG_DB_Service">
+        <MSBuild Projects="9.LogDatabase\_1_LOG_DB_Service.dproj"/>
+    </Target>
+    <Target Name="_1_LOG_DB_Service:Clean">
+        <MSBuild Projects="9.LogDatabase\_1_LOG_DB_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_LOG_DB_Service:Make">
+        <MSBuild Projects="9.LogDatabase\_1_LOG_DB_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_RandNum_Client">
+        <MSBuild Projects="8.Technology-RandNum-Service\_2_RandNum_Client.dproj"/>
+    </Target>
+    <Target Name="_2_RandNum_Client:Clean">
+        <MSBuild Projects="8.Technology-RandNum-Service\_2_RandNum_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_RandNum_Client:Make">
+        <MSBuild Projects="8.Technology-RandNum-Service\_2_RandNum_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_VM_Auth_serv">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_2_VM_Auth_serv.dproj"/>
+    </Target>
+    <Target Name="_2_VM_Auth_serv:Clean">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_2_VM_Auth_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_VM_Auth_serv:Make">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_2_VM_Auth_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_RandNum_Service">
+        <MSBuild Projects="8.Technology-RandNum-Service\_1_RandNum_Service.dproj"/>
+    </Target>
+    <Target Name="_1_RandNum_Service:Clean">
+        <MSBuild Projects="8.Technology-RandNum-Service\_1_RandNum_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_RandNum_Service:Make">
+        <MSBuild Projects="8.Technology-RandNum-Service\_1_RandNum_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_3_Auth_IM_Client.dproj"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client:Clean">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_3_Auth_IM_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client:Make">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_3_Auth_IM_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_UserDB_IM_Centre_Serv">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_1_UserDB_IM_Centre_Serv.dproj"/>
+    </Target>
+    <Target Name="_1_UserDB_IM_Centre_Serv:Clean">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_1_UserDB_IM_Centre_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_UserDB_IM_Centre_Serv:Make">
+        <MSBuild Projects="7.Depend-UserDB-VM-IM\_1_UserDB_IM_Centre_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_3_Auth_Client">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_3_Auth_Client.dproj"/>
+    </Target>
+    <Target Name="_3_Auth_Client:Clean">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_3_Auth_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_3_Auth_Client:Make">
+        <MSBuild Projects="6.Depend-UserDB-AuthService\_3_Auth_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_UserDB_serv">
+        <MSBuild Projects="4.Technology-UserDatabase\_1_UserDB_serv.dproj"/>
+    </Target>
+    <Target Name="_1_UserDB_serv:Clean">
+        <MSBuild Projects="4.Technology-UserDatabase\_1_UserDB_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_UserDB_serv:Make">
+        <MSBuild Projects="4.Technology-UserDatabase\_1_UserDB_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_UserDB_Client">
+        <MSBuild Projects="4.Technology-UserDatabase\_2_UserDB_Client.dproj"/>
+    </Target>
+    <Target Name="_2_UserDB_Client:Clean">
+        <MSBuild Projects="4.Technology-UserDatabase\_2_UserDB_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_UserDB_Client:Make">
+        <MSBuild Projects="4.Technology-UserDatabase\_2_UserDB_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_Auth_serv">
+        <MSBuild Projects="5.Technology-AuthService\_1_Auth_serv.dproj"/>
+    </Target>
+    <Target Name="_1_Auth_serv:Clean">
+        <MSBuild Projects="5.Technology-AuthService\_1_Auth_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_Auth_serv:Make">
+        <MSBuild Projects="5.Technology-AuthService\_1_Auth_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_Auth_Client">
+        <MSBuild Projects="5.Technology-AuthService\_2_Auth_Client.dproj"/>
+    </Target>
+    <Target Name="_2_Auth_Client:Clean">
+        <MSBuild Projects="5.Technology-AuthService\_2_Auth_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_Auth_Client:Make">
+        <MSBuild Projects="5.Technology-AuthService\_2_Auth_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Cli.dproj"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli:Clean">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Cli.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Cli:Make">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Cli.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Serv">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Serv.dproj"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Serv:Clean">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_VAR_Tech_Demo_Serv:Make">
+        <MSBuild Projects="3.Technology-VAR\C4_VAR_Tech_Demo_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_4_Var_Service">
+        <MSBuild Projects="1.BuildNetwork\_4_Var_Service.dproj"/>
+    </Target>
+    <Target Name="_4_Var_Service:Clean">
+        <MSBuild Projects="1.BuildNetwork\_4_Var_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_4_Var_Service:Make">
+        <MSBuild Projects="1.BuildNetwork\_4_Var_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_5_UserVM_MoreOpen_Service">
+        <MSBuild Projects="1.BuildNetwork\_5_UserVM_MoreOpen_Service.dproj"/>
+    </Target>
+    <Target Name="_5_UserVM_MoreOpen_Service:Clean">
+        <MSBuild Projects="1.BuildNetwork\_5_UserVM_MoreOpen_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_5_UserVM_MoreOpen_Service:Make">
+        <MSBuild Projects="1.BuildNetwork\_5_UserVM_MoreOpen_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_FS_Service">
+        <MSBuild Projects="1.BuildNetwork\_2_FS_Service.dproj"/>
+    </Target>
+    <Target Name="_2_FS_Service:Clean">
+        <MSBuild Projects="1.BuildNetwork\_2_FS_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_FS_Service:Make">
+        <MSBuild Projects="1.BuildNetwork\_2_FS_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_3_UserDB_Service">
+        <MSBuild Projects="1.BuildNetwork\_3_UserDB_Service.dproj"/>
+    </Target>
+    <Target Name="_3_UserDB_Service:Clean">
+        <MSBuild Projects="1.BuildNetwork\_3_UserDB_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_3_UserDB_Service:Make">
+        <MSBuild Projects="1.BuildNetwork\_3_UserDB_Service.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_DispatchSeed">
+        <MSBuild Projects="1.BuildNetwork\_1_DispatchSeed.dproj"/>
+    </Target>
+    <Target Name="_1_DispatchSeed:Clean">
+        <MSBuild Projects="1.BuildNetwork\_1_DispatchSeed.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_DispatchSeed:Make">
+        <MSBuild Projects="1.BuildNetwork\_1_DispatchSeed.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP;_1_UserDB_Auth_Serv;_2_VM_Auth_IM_serv;_1_XNAT_Mapping_Service;_2_LOG_DB_Client;_2_FS_Client;_1_FS_Service;_1_LOG_DB_Service;_2_RandNum_Client;_2_VM_Auth_serv;_1_RandNum_Service;_3_Auth_IM_Client;_1_UserDB_IM_Centre_Serv;_3_Auth_Client;_1_UserDB_serv;_2_UserDB_Client;_1_Auth_serv;_2_Auth_Client;C4_VAR_Tech_Demo_Cli;C4_VAR_Tech_Demo_Serv;_4_Var_Service;_5_UserVM_MoreOpen_Service;_2_FS_Service;_3_UserDB_Service;_1_DispatchSeed"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Clean;_1_UserDB_Auth_Serv:Clean;_2_VM_Auth_IM_serv:Clean;_1_XNAT_Mapping_Service:Clean;_2_LOG_DB_Client:Clean;_2_FS_Client:Clean;_1_FS_Service:Clean;_1_LOG_DB_Service:Clean;_2_RandNum_Client:Clean;_2_VM_Auth_serv:Clean;_1_RandNum_Service:Clean;_3_Auth_IM_Client:Clean;_1_UserDB_IM_Centre_Serv:Clean;_3_Auth_Client:Clean;_1_UserDB_serv:Clean;_2_UserDB_Client:Clean;_1_Auth_serv:Clean;_2_Auth_Client:Clean;C4_VAR_Tech_Demo_Cli:Clean;C4_VAR_Tech_Demo_Serv:Clean;_4_Var_Service:Clean;_5_UserVM_MoreOpen_Service:Clean;_2_FS_Service:Clean;_3_UserDB_Service:Clean;_1_DispatchSeed:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Make;_1_UserDB_Auth_Serv:Make;_2_VM_Auth_IM_serv:Make;_1_XNAT_Mapping_Service:Make;_2_LOG_DB_Client:Make;_2_FS_Client:Make;_1_FS_Service:Make;_1_LOG_DB_Service:Make;_2_RandNum_Client:Make;_2_VM_Auth_serv:Make;_1_RandNum_Service:Make;_3_Auth_IM_Client:Make;_1_UserDB_IM_Centre_Serv:Make;_3_Auth_Client:Make;_1_UserDB_serv:Make;_2_UserDB_Client:Make;_1_Auth_serv:Make;_2_Auth_Client:Make;C4_VAR_Tech_Demo_Cli:Make;C4_VAR_Tech_Demo_Serv:Make;_4_Var_Service:Make;_5_UserVM_MoreOpen_Service:Make;_2_FS_Service:Make;_3_UserDB_Service:Make;_1_DispatchSeed:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

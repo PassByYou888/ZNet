@@ -25,7 +25,7 @@ uses
   Z.ZDB.FileIndexPackage_LIB, Z.ZDB.FilePackage_LIB, Z.ZDB.ItemStream_LIB, Z.ZDB.HashField_LIB, Z.ZDB.HashItem_LIB,
   Z.ZDB2.Custom, Z.ZDB2, Z.ZDB2.DFE, Z.ZDB2.HS, Z.ZDB2.HV, Z.ZDB2.Json, Z.ZDB2.MS64, Z.ZDB2.NM, Z.ZDB2.TE, Z.ZDB2.FileEncoder,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT, Z.Net.C4_Alias,
-  Z.Net.C4_FS2,
+  Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
   Z.Net.PhysicsIO;
 
 type
@@ -88,6 +88,7 @@ type
     Pas_RadioButton: TRadioButton;
     c_RadioButton: TRadioButton;
     ServIPEdit: TLabeledEdit;
+    Generate_Console_CmdLineButton: TButton;
     procedure netTimerTimer(Sender: TObject);
     procedure UpdateStateTimerTimer(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -108,6 +109,7 @@ type
     procedure TunnelInfoPhyAddrListBoxClick(Sender: TObject);
     procedure SaaS_Info_TreeViewKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure GenerateCmdLineButtonClick(Sender: TObject);
+    procedure Generate_Console_CmdLineButtonClick(Sender: TObject);
   private
     procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
     procedure ReadConfig;
@@ -488,6 +490,58 @@ begin
   param.Add(Format('AppTitle(%s)', [conv_(cmdLineAppTitleEdit.Text)]));
   param.Add(Format('DisableUI(%s)', [conv_(umlBoolToStr(cmdLineDisableUICheckBox.Checked))]));
   param.Add(Format('Timer(%s)', [conv_(umlIntToStr(netTimer.Interval))]));
+  param.Add(Format('Password(%s)', [conv_(Z.Net.C4.C40_Password)]));
+
+  HS.ProgressP(procedure(Sender: THashStringList; Name_: PSystemString; const V: SystemString)
+    begin
+      if C40_DefaultConfig.GetDefaultValue(Name_^, V) <> V then
+          param.Add(Format('%s(%s)', [Name_^, V]));
+    end);
+
+  if (ServIPEdit.Text <> '') and (ServPortEdit.Text <> '') and (ServiceDependEdit.Text <> '') then
+      param.Add(Format('Service(%s,%s,%s,%s)', [conv_(ServListeningIPEdit.Text), conv_(ServIPEdit.Text), conv_(ServPortEdit.Text), conv_(ServiceDependEdit.Text)]));
+
+  if (JoinHostEdit.Text <> '') and (JoinPortEdit.Text <> '') and (DependEdit.Text <> '') then
+      param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+
+  final_param := '';
+  ArryParamMemo.Clear;
+  for i := 0 to param.Count - 1 do
+    begin
+      if i > 0 then
+          final_param.Append(',');
+      final_param.Append(param[i]);
+      ArryParamMemo.Lines.Add(conv_(param[i]) + if_(i < param.Count - 1, ',', ''));
+    end;
+  cmdLineParamEdit.Text := '"' + final_param + '"';
+  codeParamEdit.Text := conv_(final_param);
+
+  disposeObject(HS);
+  disposeObject(param);
+end;
+
+procedure TC40AppTempletForm.Generate_Console_CmdLineButtonClick(Sender: TObject);
+  function conv_(sour: SystemString): SystemString;
+  begin
+    if Pas_RadioButton.Checked then
+        Result := TTextParsing.TranslateTextToPascalDecl(sour)
+    else if c_RadioButton.Checked then
+        Result := TTextParsing.TranslateTextToC_Decl(sour)
+    else
+        Result := sour;
+  end;
+
+var
+  HS: THashStringList;
+  param: TPascalStringList;
+  final_param: U_String;
+  i: Integer;
+begin
+  HS := THashStringList.Create;
+  Z.Net.C4.C40WriteConfig(HS);
+
+  param := TPascalStringList.Create;
+
   param.Add(Format('Password(%s)', [conv_(Z.Net.C4.C40_Password)]));
 
   HS.ProgressP(procedure(Sender: THashStringList; Name_: PSystemString; const V: SystemString)
@@ -1184,6 +1238,7 @@ end;
 initialization
 
 SetLength(C40AppParam, 0);
+C40AppParsingTextStyle := TTextStyle.tsPascal;
 On_C40_PhysicsTunnel_Event := nil;
 On_C40_PhysicsService_Event := nil;
 

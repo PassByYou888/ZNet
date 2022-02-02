@@ -214,6 +214,9 @@
   {$Z1} { Minimum enum size }
 {$ENDIF FPC}
 
+// Activate file system for ZNet-DoubleIO
+{$DEFINE DoubleIOFileSystem}
+
 // Using fillchar replace of FillPtr
 // Maybe fillchar works on MMX / SSE2,
 // {$Define FillPtr_Used_FillChar}
@@ -305,4 +308,3 @@
 {$IFOPT Q+}
   {$DEFINE OverflowCheck}
 {$ENDIF}
-
