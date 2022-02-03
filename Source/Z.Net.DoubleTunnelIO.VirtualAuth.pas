@@ -806,7 +806,7 @@ begin
   if umlMD5Compare(r_fileMD5, l_fileMD5) then
     begin
       if umlGetFileSize(localFile) > r_fileSize then
-          Client.PostFile(r_fileName, r_fileSize);
+          Client.PostFile(localFile, r_fileSize);
     end
   else
       Client.PostFile(localFile);
