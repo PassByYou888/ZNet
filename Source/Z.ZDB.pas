@@ -779,6 +779,7 @@ var
   E: TObjectDataManager;
 begin
   E := TObjectDataManager.CreateAsStream(Handle^.IOHnd.FixedStringL, stream, ObjectName, DefaultItemID, False, True, False);
+  E.Reserved := Reserved;
   E.OverWriteItem := False;
   CopyTo(E);
   DisposeObject(E);
