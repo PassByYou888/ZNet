@@ -41,6 +41,7 @@ type
   TC40_FS2_Service = class(TC40_Base_NoAuth_Service)
   protected
     // command
+    procedure cmd_FS2_CheckMD5AndFastCopy(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_PostFile(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure cmd_FS2_GetFile(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
@@ -87,6 +88,25 @@ type
 
   TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TFS2_Client_CacheData>;
 
+  TFS2_Temp_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);
+  TFS2_Temp_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_Client; State_: Boolean) of object;
+{$IFDEF FPC}
+  TFS2_Temp_CheckMD5AndFastCopyP = procedure(Sender: TC40_FS2_Client; State_: Boolean) is nested;
+{$ELSE FPC}
+  TFS2_Temp_CheckMD5AndFastCopyP = reference to procedure(Sender: TC40_FS2_Client; State_: Boolean);
+{$ENDIF FPC}
+
+  TFS2_Temp_CheckMD5AndFastCopy = class(TOnResultBridge)
+  public
+    Client: TC40_FS2_Client;
+    OnResultC: TFS2_Temp_CheckMD5AndFastCopyC;
+    OnResultM: TFS2_Temp_CheckMD5AndFastCopyM;
+    OnResultP: TFS2_Temp_CheckMD5AndFastCopyP;
+    constructor Create; override;
+    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
+    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
+  end;
+
   TON_FS2_PostFile_DoneC = procedure(Sender: TC40_FS2_Client; info_: U_String);
   TON_FS2_PostFile_DoneM = procedure(Sender: TC40_FS2_Client; info_: U_String) of object;
 {$IFDEF FPC}
@@ -109,6 +129,19 @@ type
     destructor Destroy; override;
     procedure DoP2PVM_CloneConnectAndPostFile(Sender: TZNet_WithP2PVM_Client);
     procedure cmd_PostDone(Sender: TPeerIO; InData: SystemString);
+  end;
+
+  TFS2_Temp_Post_File_Cache = class
+  public
+    Client: TC40_FS2_Client;
+    File_Name: U_String;
+    Stream: TCore_Stream;
+    doneFree: Boolean;
+    OnResultC: TON_FS2_PostFile_DoneC;
+    OnResultM: TON_FS2_PostFile_DoneM;
+    OnResultP: TON_FS2_PostFile_DoneP;
+    constructor Create;
+    procedure Do_CheckMD5AndFastCopy(Sender: TC40_FS2_Client; State_: Boolean);
   end;
 
   TON_FS2_GetFile_DoneC = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
@@ -267,11 +300,16 @@ type
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
+
+    // fast copy
+    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
+    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
+    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
     // upload
-    procedure FS2_PostFile(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
-    procedure FS2_PostFile_C(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
-    procedure FS2_PostFile_M(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
-    procedure FS2_PostFile_P(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
+    procedure FS2_PostFile(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
+    procedure FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
+    procedure FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
+    procedure FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
     // download
     procedure FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneC);
     procedure FS2_GetFile_M(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneM);
@@ -318,6 +356,57 @@ begin
   if (Owner.FileDatabase <> nil) and (Stream <> nil) then
       Owner.FileDatabase.Remove(Stream, True);
   inherited Destroy;
+end;
+
+procedure TC40_FS2_Service.cmd_FS2_CheckMD5AndFastCopy(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  fileName_: U_String;
+  fileTime_: Double;
+  fileRef_: Integer;
+  FileMD5_: TMD5;
+  fileSize_: Int64;
+  FL_: TPascalStringList;
+  fd: TFS2_Service_File_Data;
+  i: Integer;
+  newFD: TFS2_Service_File_Data;
+begin
+  fileName_ := InData.R.ReadString;
+  fileTime_ := InData.R.ReadDouble;
+  fileRef_ := InData.R.ReadInteger;
+  FileMD5_ := InData.R.ReadMD5;
+  fileSize_ := InData.R.ReadInt64;
+
+  FL_ := MD5Pool[umlMD5ToStr(FileMD5_)];
+  if FL_ <> nil then
+    begin
+      for i := 0 to FL_.Count - 1 do
+        begin
+          fd := FileHashPool[FL_[i]];
+          if (fd <> nil) and (fd.FileSize = fileSize_) then
+            begin
+              fd.Stream.Data.Position := 0;
+              fd.Stream.Data.ReadString;
+              fd.Stream.Data.ReadDouble;
+              fd.Stream.Data.ReadInt32;
+
+              newFD := TFS2_Service_File_Data.Create(self, FileDatabase.NewData);
+              newFD.FileName := fileName_;
+              newFD.FileTime := fileTime_;
+              newFD.FileRef := fileRef_;
+              newFD.FileMD5 := FileMD5_;
+              newFD.FileSize := fileSize_;
+              newFD.Stream.Data.WriteString(fileName_);
+              newFD.Stream.Data.WriteDouble(fileTime_);
+              newFD.Stream.Data.WriteInt32(fileRef_);
+              newFD.Stream.Data.WritePtr(fd.Stream.Data.PosAsPtr, fd.Stream.Data.Size - fd.Stream.Data.Position);
+              newFD.Stream.Save;
+              FileHashPool.Add(newFD.FileName, newFD);
+              OutData.WriteBool(True);
+              exit;
+            end;
+        end;
+    end;
+  OutData.WriteBool(False);
 end;
 
 procedure TC40_FS2_Service.cmd_FS2_PostFile(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
@@ -590,6 +679,8 @@ begin
   // max complete buffer 100M
   DTNoAuthService.RecvTunnel.MaxCompleteBufferSize := EStrToInt64(ParamList.GetDefaultValue('MaxBuffer', '100*1024*1024'), 100 * 1024 * 1024);
   DTNoAuthService.RecvTunnel.CompleteBufferCompressed := False;
+
+  DTNoAuthService.RecvTunnel.RegisterStream('FS2_CheckMD5AndFastCopy').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_CheckMD5AndFastCopy;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('FS2_PostFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_PostFile;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_GetFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetFile;
   DTNoAuthService.RecvTunnel.RegisterStream('FS2_GetFileMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetFileMD5;
@@ -686,6 +777,7 @@ begin
   DisposeObjectAndNil(FileHashPool);
   DisposeObjectAndNil(MD5Pool);
   DisposeObjectAndNil(FileDatabase);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 
@@ -713,6 +805,51 @@ destructor TFS2_Client_CacheData.Destroy;
 begin
   Owner.Cache.Remove(Stream, True);
   inherited Destroy;
+end;
+
+constructor TFS2_Temp_CheckMD5AndFastCopy.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TFS2_Temp_CheckMD5AndFastCopy.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+var
+  State_: Boolean;
+begin
+  State_ := Result_.R.ReadBool;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, State_);
+    if Assigned(OnResultM) then
+        OnResultM(Client, State_);
+    if Assigned(OnResultP) then
+        OnResultP(Client, State_);
+  except
+  end;
+  DelayFreeObject(1.0, self);
+end;
+
+procedure TFS2_Temp_CheckMD5AndFastCopy.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+var
+  State_: Boolean;
+begin
+  State_ := False;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, State_);
+    if Assigned(OnResultM) then
+        OnResultM(Client, State_);
+    if Assigned(OnResultP) then
+        OnResultP(Client, State_);
+  except
+  end;
+  DelayFreeObject(1.0, self);
 end;
 
 constructor TFS2_Temp_Post_File_Tunnel.Create;
@@ -768,6 +905,57 @@ begin
   except
   end;
   p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
+end;
+
+constructor TFS2_Temp_Post_File_Cache.Create;
+begin
+  inherited Create;
+  Client := nil;
+  File_Name := '';
+  Stream := nil;
+  doneFree := False;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TFS2_Temp_Post_File_Cache.Do_CheckMD5AndFastCopy(Sender: TC40_FS2_Client; State_: Boolean);
+var
+  tmp: TFS2_Temp_Post_File_Tunnel;
+begin
+  if State_ then
+    begin
+      try
+        if Assigned(OnResultC) then
+            OnResultC(Client, File_Name);
+        if Assigned(OnResultM) then
+            OnResultM(Client, File_Name);
+        if Assigned(OnResultP) then
+            OnResultP(Client, File_Name);
+      except
+      end;
+      if doneFree then
+          DisposeObject(Stream);
+    end
+  else
+    begin
+      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp.Client := Client;
+      tmp.File_Name := File_Name;
+      tmp.OnResultC := OnResultC;
+      tmp.OnResultM := OnResultM;
+      tmp.OnResultP := OnResultP;
+      tmp.Stream.WriteString(File_Name); // name
+      tmp.Stream.WriteDouble(umlNow);    // file time
+      tmp.Stream.WriteInt32(0);          // ref
+      Stream.Position := 0;
+      tmp.Stream.CopyFrom(Stream, Stream.Size);
+      Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if doneFree then
+          DisposeObject(Stream);
+    end;
+  File_Name := '';
+  DelayFreeObject(1.0, self);
 end;
 
 constructor TFS2_Temp_Get_File_Tunnel.Create;
@@ -1205,6 +1393,7 @@ begin
   DisposeObject(Cache);
   umlDeleteFile(C40_FS2_Cache_FileName);
   DisposeObject(FRemoveCacheList);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 
@@ -1230,79 +1419,72 @@ begin
   Cache.Progress;
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
 var
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
 begin
   if Stream.Size = 0 then
-    begin
-      if doneFree then
-          DisposeObject(Stream);
       exit;
-    end;
-  tmp := TFS2_Temp_Post_File_Tunnel.Create;
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
   tmp.Client := self;
-  tmp.File_Name := File_Name;
-  tmp.Stream.WriteString(File_Name); // name
-  tmp.Stream.WriteDouble(umlNow);    // file time
-  tmp.Stream.WriteInt32(0);          // ref
-  Stream.Position := 0;
-  tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
-  if doneFree then
-      DisposeObject(Stream);
-end;
-
-procedure TC40_FS2_Client.FS2_PostFile_C(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
-var
-  tmp: TFS2_Temp_Post_File_Tunnel;
-begin
-  if Stream.Size = 0 then
-    begin
-      if doneFree then
-          DisposeObject(Stream);
-      exit;
-    end;
-  tmp := TFS2_Temp_Post_File_Tunnel.Create;
-  tmp.Client := self;
-  tmp.File_Name := File_Name;
   tmp.OnResultC := OnResult;
-  tmp.Stream.WriteString(File_Name); // name
-  tmp.Stream.WriteDouble(umlNow);    // file time
-  tmp.Stream.WriteInt32(0);          // ref
-  Stream.Position := 0;
-  tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
-  if doneFree then
-      DisposeObject(Stream);
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(umlStreamMD5(Stream));
+  d.WriteInt64(Stream.Size);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile_M(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
 var
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
 begin
   if Stream.Size = 0 then
-    begin
-      if doneFree then
-          DisposeObject(Stream);
       exit;
-    end;
-  tmp := TFS2_Temp_Post_File_Tunnel.Create;
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
   tmp.Client := self;
-  tmp.File_Name := File_Name;
   tmp.OnResultM := OnResult;
-  tmp.Stream.WriteString(File_Name); // name
-  tmp.Stream.WriteDouble(umlNow);    // file time
-  tmp.Stream.WriteInt32(0);          // ref
-  Stream.Position := 0;
-  tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
-  if doneFree then
-      DisposeObject(Stream);
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(umlStreamMD5(Stream));
+  d.WriteInt64(Stream.Size);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile_P(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
 var
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
+begin
+  if Stream.Size = 0 then
+      exit;
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(umlStreamMD5(Stream));
+  d.WriteInt64(Stream.Size);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_PostFile(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
+var
+  cache_: TFS2_Temp_Post_File_Cache;
   tmp: TFS2_Temp_Post_File_Tunnel;
 begin
   if Stream.Size = 0 then
@@ -1311,18 +1493,143 @@ begin
           DisposeObject(Stream);
       exit;
     end;
-  tmp := TFS2_Temp_Post_File_Tunnel.Create;
-  tmp.Client := self;
-  tmp.File_Name := File_Name;
-  tmp.OnResultP := OnResult;
-  tmp.Stream.WriteString(File_Name); // name
-  tmp.Stream.WriteDouble(umlNow);    // file time
-  tmp.Stream.WriteInt32(0);          // ref
-  Stream.Position := 0;
-  tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
-  if doneFree then
-      DisposeObject(Stream);
+  if UsedCache_ then
+    begin
+      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_.Client := self;
+      cache_.File_Name := File_Name;
+      cache_.Stream := Stream;
+      cache_.doneFree := doneFree;
+      FS2_CheckMD5AndFastCopyM(File_Name, Stream, {$IFDEF FPC}@{$ENDIF FPC}cache_.Do_CheckMD5AndFastCopy);
+    end
+  else
+    begin
+      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp.Client := self;
+      tmp.File_Name := File_Name;
+      tmp.Stream.WriteString(File_Name); // name
+      tmp.Stream.WriteDouble(umlNow);    // file time
+      tmp.Stream.WriteInt32(0);          // ref
+      Stream.Position := 0;
+      tmp.Stream.CopyFrom(Stream, Stream.Size);
+      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if doneFree then
+          DisposeObject(Stream);
+    end;
+end;
+
+procedure TC40_FS2_Client.FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
+var
+  cache_: TFS2_Temp_Post_File_Cache;
+  tmp: TFS2_Temp_Post_File_Tunnel;
+begin
+  if Stream.Size = 0 then
+    begin
+      if doneFree then
+          DisposeObject(Stream);
+      exit;
+    end;
+  if UsedCache_ then
+    begin
+      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_.Client := self;
+      cache_.File_Name := File_Name;
+      cache_.Stream := Stream;
+      cache_.doneFree := doneFree;
+      cache_.OnResultC := OnResult;
+      FS2_CheckMD5AndFastCopyM(File_Name, Stream, {$IFDEF FPC}@{$ENDIF FPC}cache_.Do_CheckMD5AndFastCopy);
+    end
+  else
+    begin
+      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp.Client := self;
+      tmp.File_Name := File_Name;
+      tmp.OnResultC := OnResult;
+      tmp.Stream.WriteString(File_Name); // name
+      tmp.Stream.WriteDouble(umlNow);    // file time
+      tmp.Stream.WriteInt32(0);          // ref
+      Stream.Position := 0;
+      tmp.Stream.CopyFrom(Stream, Stream.Size);
+      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if doneFree then
+          DisposeObject(Stream);
+    end;
+end;
+
+procedure TC40_FS2_Client.FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
+var
+  cache_: TFS2_Temp_Post_File_Cache;
+  tmp: TFS2_Temp_Post_File_Tunnel;
+begin
+  if Stream.Size = 0 then
+    begin
+      if doneFree then
+          DisposeObject(Stream);
+      exit;
+    end;
+  if UsedCache_ then
+    begin
+      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_.Client := self;
+      cache_.File_Name := File_Name;
+      cache_.Stream := Stream;
+      cache_.doneFree := doneFree;
+      cache_.OnResultM := OnResult;
+      FS2_CheckMD5AndFastCopyM(File_Name, Stream, {$IFDEF FPC}@{$ENDIF FPC}cache_.Do_CheckMD5AndFastCopy);
+    end
+  else
+    begin
+      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp.Client := self;
+      tmp.File_Name := File_Name;
+      tmp.OnResultM := OnResult;
+      tmp.Stream.WriteString(File_Name); // name
+      tmp.Stream.WriteDouble(umlNow);    // file time
+      tmp.Stream.WriteInt32(0);          // ref
+      Stream.Position := 0;
+      tmp.Stream.CopyFrom(Stream, Stream.Size);
+      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if doneFree then
+          DisposeObject(Stream);
+    end;
+end;
+
+procedure TC40_FS2_Client.FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
+var
+  cache_: TFS2_Temp_Post_File_Cache;
+  tmp: TFS2_Temp_Post_File_Tunnel;
+begin
+  if Stream.Size = 0 then
+    begin
+      if doneFree then
+          DisposeObject(Stream);
+      exit;
+    end;
+  if UsedCache_ then
+    begin
+      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_.Client := self;
+      cache_.File_Name := File_Name;
+      cache_.Stream := Stream;
+      cache_.doneFree := doneFree;
+      cache_.OnResultP := OnResult;
+      FS2_CheckMD5AndFastCopyM(File_Name, Stream, {$IFDEF FPC}@{$ENDIF FPC}cache_.Do_CheckMD5AndFastCopy);
+    end
+  else
+    begin
+      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp.Client := self;
+      tmp.File_Name := File_Name;
+      tmp.OnResultP := OnResult;
+      tmp.Stream.WriteString(File_Name); // name
+      tmp.Stream.WriteDouble(umlNow);    // file time
+      tmp.Stream.WriteInt32(0);          // ref
+      Stream.Position := 0;
+      tmp.Stream.CopyFrom(Stream, Stream.Size);
+      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if doneFree then
+          DisposeObject(Stream);
+    end;
 end;
 
 procedure TC40_FS2_Client.FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneC);

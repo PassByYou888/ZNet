@@ -522,7 +522,7 @@ function umlTestBase64(const text: TPascalString): Boolean;
 type
   PMD5 = ^TMD5;
   TMD5 = array [0 .. 15] of Byte;
-  TMD5List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
+  TMD5_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
 
 const
   NullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);

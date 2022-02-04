@@ -8030,7 +8030,10 @@ begin
   i := 0;
   while i < Count do
     if Items[i]^.Service = Service then
-        Delete(i)
+      begin
+        Dispose(Items[i]);
+        Delete(i);
+      end
     else
         inc(i);
 end;
@@ -8076,7 +8079,10 @@ begin
   i := 0;
   while i < Count do
     if Items[i]^.Client = Client then
-        Delete(i)
+      begin
+        Dispose(Items[i]);
+        Delete(i);
+      end
     else
         inc(i);
 end;
@@ -8627,7 +8633,9 @@ end;
 
 procedure TZNet.FreeAutomatedP2PVM;
 begin
+  FAutomatedP2PVMServiceBind.Clean;
   DisposeObject(FAutomatedP2PVMServiceBind);
+  FAutomatedP2PVMClientBind.Clean;
   DisposeObject(FAutomatedP2PVMClientBind);
 end;
 

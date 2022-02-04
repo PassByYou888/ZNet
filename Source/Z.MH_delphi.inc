@@ -1,5 +1,5 @@
 type
-  MPtrUInt = nativeUInt;
+  MPtrUInt = NativeUInt;
   MPtr = Pointer;
   PMPtrUInt = ^MPtrUInt;
 
@@ -41,12 +41,12 @@ begin
   CurrentHookThread := nil;
 end;
 
-function GetHookMemorySize: nativeUInt;
+function GetHookMemorySize: NativeUInt;
 begin
   Result := HookPtrList.Total;
 end;
 
-function GetHookMemorySize(p: Pointer): nativeUInt;
+function GetHookMemorySize(p: Pointer): NativeUInt;
 begin
   Result := HookPtrList[p];
 end;

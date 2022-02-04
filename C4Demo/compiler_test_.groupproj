@@ -78,6 +78,12 @@
         <Projects Include="1.BuildNetwork\_1_DispatchSeed.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="11.Technology-FileSystem2.0\_2_FS2_Client.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="11.Technology-FileSystem2.0\_1_FS2_Service.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -311,14 +317,32 @@
     <Target Name="_1_DispatchSeed:Make">
         <MSBuild Projects="1.BuildNetwork\_1_DispatchSeed.dproj" Targets="Make"/>
     </Target>
+    <Target Name="_2_FS2_Client">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_2_FS2_Client.dproj"/>
+    </Target>
+    <Target Name="_2_FS2_Client:Clean">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_2_FS2_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_FS2_Client:Make">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_2_FS2_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_1_FS2_Service">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_1_FS2_Service.dproj"/>
+    </Target>
+    <Target Name="_1_FS2_Service:Clean">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_1_FS2_Service.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_FS2_Service:Make">
+        <MSBuild Projects="11.Technology-FileSystem2.0\_1_FS2_Service.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="_2_XNAT_Mapping_Client_DP;_1_UserDB_Auth_Serv;_2_VM_Auth_IM_serv;_1_XNAT_Mapping_Service;_2_LOG_DB_Client;_2_FS_Client;_1_FS_Service;_1_LOG_DB_Service;_2_RandNum_Client;_2_VM_Auth_serv;_1_RandNum_Service;_3_Auth_IM_Client;_1_UserDB_IM_Centre_Serv;_3_Auth_Client;_1_UserDB_serv;_2_UserDB_Client;_1_Auth_serv;_2_Auth_Client;C4_VAR_Tech_Demo_Cli;C4_VAR_Tech_Demo_Serv;_4_Var_Service;_5_UserVM_MoreOpen_Service;_2_FS_Service;_3_UserDB_Service;_1_DispatchSeed"/>
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP;_1_UserDB_Auth_Serv;_2_VM_Auth_IM_serv;_1_XNAT_Mapping_Service;_2_LOG_DB_Client;_2_FS_Client;_1_FS_Service;_1_LOG_DB_Service;_2_RandNum_Client;_2_VM_Auth_serv;_1_RandNum_Service;_3_Auth_IM_Client;_1_UserDB_IM_Centre_Serv;_3_Auth_Client;_1_UserDB_serv;_2_UserDB_Client;_1_Auth_serv;_2_Auth_Client;C4_VAR_Tech_Demo_Cli;C4_VAR_Tech_Demo_Serv;_4_Var_Service;_5_UserVM_MoreOpen_Service;_2_FS_Service;_3_UserDB_Service;_1_DispatchSeed;_2_FS2_Client;_1_FS2_Service"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Clean;_1_UserDB_Auth_Serv:Clean;_2_VM_Auth_IM_serv:Clean;_1_XNAT_Mapping_Service:Clean;_2_LOG_DB_Client:Clean;_2_FS_Client:Clean;_1_FS_Service:Clean;_1_LOG_DB_Service:Clean;_2_RandNum_Client:Clean;_2_VM_Auth_serv:Clean;_1_RandNum_Service:Clean;_3_Auth_IM_Client:Clean;_1_UserDB_IM_Centre_Serv:Clean;_3_Auth_Client:Clean;_1_UserDB_serv:Clean;_2_UserDB_Client:Clean;_1_Auth_serv:Clean;_2_Auth_Client:Clean;C4_VAR_Tech_Demo_Cli:Clean;C4_VAR_Tech_Demo_Serv:Clean;_4_Var_Service:Clean;_5_UserVM_MoreOpen_Service:Clean;_2_FS_Service:Clean;_3_UserDB_Service:Clean;_1_DispatchSeed:Clean"/>
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Clean;_1_UserDB_Auth_Serv:Clean;_2_VM_Auth_IM_serv:Clean;_1_XNAT_Mapping_Service:Clean;_2_LOG_DB_Client:Clean;_2_FS_Client:Clean;_1_FS_Service:Clean;_1_LOG_DB_Service:Clean;_2_RandNum_Client:Clean;_2_VM_Auth_serv:Clean;_1_RandNum_Service:Clean;_3_Auth_IM_Client:Clean;_1_UserDB_IM_Centre_Serv:Clean;_3_Auth_Client:Clean;_1_UserDB_serv:Clean;_2_UserDB_Client:Clean;_1_Auth_serv:Clean;_2_Auth_Client:Clean;C4_VAR_Tech_Demo_Cli:Clean;C4_VAR_Tech_Demo_Serv:Clean;_4_Var_Service:Clean;_5_UserVM_MoreOpen_Service:Clean;_2_FS_Service:Clean;_3_UserDB_Service:Clean;_1_DispatchSeed:Clean;_2_FS2_Client:Clean;_1_FS2_Service:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Make;_1_UserDB_Auth_Serv:Make;_2_VM_Auth_IM_serv:Make;_1_XNAT_Mapping_Service:Make;_2_LOG_DB_Client:Make;_2_FS_Client:Make;_1_FS_Service:Make;_1_LOG_DB_Service:Make;_2_RandNum_Client:Make;_2_VM_Auth_serv:Make;_1_RandNum_Service:Make;_3_Auth_IM_Client:Make;_1_UserDB_IM_Centre_Serv:Make;_3_Auth_Client:Make;_1_UserDB_serv:Make;_2_UserDB_Client:Make;_1_Auth_serv:Make;_2_Auth_Client:Make;C4_VAR_Tech_Demo_Cli:Make;C4_VAR_Tech_Demo_Serv:Make;_4_Var_Service:Make;_5_UserVM_MoreOpen_Service:Make;_2_FS_Service:Make;_3_UserDB_Service:Make;_1_DispatchSeed:Make"/>
+        <CallTarget Targets="_2_XNAT_Mapping_Client_DP:Make;_1_UserDB_Auth_Serv:Make;_2_VM_Auth_IM_serv:Make;_1_XNAT_Mapping_Service:Make;_2_LOG_DB_Client:Make;_2_FS_Client:Make;_1_FS_Service:Make;_1_LOG_DB_Service:Make;_2_RandNum_Client:Make;_2_VM_Auth_serv:Make;_1_RandNum_Service:Make;_3_Auth_IM_Client:Make;_1_UserDB_IM_Centre_Serv:Make;_3_Auth_Client:Make;_1_UserDB_serv:Make;_2_UserDB_Client:Make;_1_Auth_serv:Make;_2_Auth_Client:Make;C4_VAR_Tech_Demo_Cli:Make;C4_VAR_Tech_Demo_Serv:Make;_4_Var_Service:Make;_5_UserVM_MoreOpen_Service:Make;_2_FS_Service:Make;_3_UserDB_Service:Make;_1_DispatchSeed:Make;_2_FS2_Client:Make;_1_FS2_Service:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

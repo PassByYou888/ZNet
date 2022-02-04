@@ -317,7 +317,7 @@ begin
       if umlGetFileSize(fn) < CurrentClient.MaxFileSize then
         begin
           fs := TCore_FileStream.Create(fn, fmOpenRead or fmShareDenyNone);
-          CurrentClient.FS2_PostFile_P(umlGetFileName(fn), fs, True, procedure(Sender: TC40_FS2_Client; info_: U_String)
+          CurrentClient.FS2_PostFile_P(True, umlGetFileName(fn), fs, True, procedure(Sender: TC40_FS2_Client; info_: U_String)
             begin
               DoStatus('"%s" upload done.', [info_.Text]);
             end);

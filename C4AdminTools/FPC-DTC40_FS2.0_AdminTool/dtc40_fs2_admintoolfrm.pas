@@ -337,7 +337,7 @@ begin
     if umlGetFileSize(fn) < CurrentClient.MaxFileSize then
     begin
       fs := TCore_FileStream.Create(fn, fmOpenRead or fmShareDenyNone);
-      CurrentClient.FS2_PostFile_P(umlGetFileName(fn), fs, True, @do_fpc_Post_Done);
+      CurrentClient.FS2_PostFile_P(True, umlGetFileName(fn), fs, True, @do_fpc_Post_Done);
     end
     else
       DoStatus('The %s file size > remote file limit: %d', [fn.Text, CurrentClient.MaxFileSize]);

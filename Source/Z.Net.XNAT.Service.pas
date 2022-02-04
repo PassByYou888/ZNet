@@ -963,6 +963,9 @@ begin
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
   ShareListenList.Add(shLt);
+
+  if Activted and (PhysicsEngine is TZNet_Server) then
+      shLt.Open;
 end;
 
 procedure TXNATService.AddNoDistributedMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick);
@@ -984,6 +987,8 @@ begin
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
   ShareListenList.Add(shLt);
+  if Activted and (PhysicsEngine is TZNet_Server) then
+      shLt.Open;
 end;
 
 procedure TXNATService.OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL);

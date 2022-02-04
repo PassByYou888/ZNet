@@ -144,7 +144,7 @@ begin
       try
         if FData.Modification or (FID < 0) then
           begin
-            m64 := TMS64.CustomCreate(1024 * 1024);
+            m64 := TMS64.CustomCreate(8 * 1024 * 1024);
             FData.SaveToStream(m64);
             old_ID := FID;
             CoreSpace.WriteData(m64.Mem64, FID, False);
@@ -180,7 +180,7 @@ begin
       if FID >= 0 then
           Load
       else
-          FData := TObjectDataManager.CreateAsStream($FF, TMS64.Create, '', DBMarshal.ID, False, True, True);
+          FData := TObjectDataManager.CreateAsStream($FF, TMS64.CustomCreate(8 * 1024), '', DBMarshal.ID, False, True, True);
     end;
   Result := FData;
   FAlive := GetTimeTick;

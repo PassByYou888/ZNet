@@ -251,6 +251,7 @@ begin
                 with Z.Net.C4.TC40_PhysicsService.Create(
                   net_info_.listen_ip, net_info_.ip, net_info_.port, Z.Net.PhysicsIO.TPhysicsServer.Create) do
                   begin
+                    AutoFreePhysicsTunnel := True;
                     BuildDependNetwork(net_info_.depend);
                     OnEvent := On_C40_PhysicsService_Event;
                     StartService;

@@ -220,6 +220,7 @@ destructor TC40_Alias_Service.Destroy;
 begin
   Alias_DB.Flush;
   DisposeObjectAndNil(Alias_DB);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 

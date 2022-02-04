@@ -494,6 +494,7 @@ begin
 {$ENDIF FPC}
   DisposeObjectAndNil(FileHashPool);
   DisposeObjectAndNil(FileDatabase);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 
@@ -960,6 +961,7 @@ begin
   DisposeObject(Cache);
   umlDeleteFile(C40_FS_Cache_FileName);
   DisposeObject(FRemoveCacheList);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 

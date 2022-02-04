@@ -426,6 +426,7 @@ destructor TC40_Log_DB_Service.Destroy;
 begin
   disposeObject(WaitFreeList);
   disposeObject(DB_Pool);
+  DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
 end;
 

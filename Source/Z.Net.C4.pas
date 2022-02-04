@@ -1386,6 +1386,7 @@ begin
   PhysicsTunnel.Print('Physics Service Listening Stop.', []);
   if Assigned(OnEvent) then
       OnEvent.C40_PhysicsService_Stop(Self);
+  FActivted := False;
 end;
 
 procedure TC40_PhysicsService.DoLinkSuccess(Custom_Service_: TC40_Custom_Service; Trigger_: TCore_Object);

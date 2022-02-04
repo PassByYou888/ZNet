@@ -266,6 +266,7 @@ destructor TC40_XNAT_Service_Tool.Destroy;
 begin
   XNATMappingList.Clean;
   DisposeObject(XNATMappingList);
+  DisposeObject(XNAT_Physics_Service);
   inherited Destroy;
 end;
 
