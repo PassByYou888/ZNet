@@ -960,7 +960,10 @@ begin
 
   ProgressTempNMList := TC40_Var_NumberModulePool_List.Create;
   C40_Var_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.OX', [ServiceInfo.ServiceTyp.Text]));
-  NMBigPool := TVAR_Service_NMBigPool.Create(True, 1024 * 1024, nil);
+
+  NMBigPool := TVAR_Service_NMBigPool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('NM_HashPool', '1024*1024'), 1024 * 1024),
+    nil);
   // NMBigPool.AccessOptimization := True;
   NMBigPool.IgnoreCase := True;
   OnChange := nil;

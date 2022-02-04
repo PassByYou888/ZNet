@@ -111,7 +111,9 @@ begin
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
 
-  BigSeedPool := TBigSeedPool.Create(True, 1024 * 1024, nil);
+  BigSeedPool := TBigSeedPool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('Seed_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
 end;
 
 destructor TC40_RandSeed_Service.Destroy;

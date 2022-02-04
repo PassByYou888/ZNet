@@ -1311,7 +1311,10 @@ begin
   UpdateToGlobalDispatch;
 
   C40_UserDB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
-  UserIdentifierHash := TJsonHashList.Create(False, 1024 * 1024 * 4, nil);
+
+  UserIdentifierHash := TJsonHashList.Create(False,
+    EStrToInt64(ParamList.GetDefaultValue('Identifier_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
   UserIdentifierHash.AccessOptimization := True;
   UserIdentifierHash.IgnoreCase := True;
 

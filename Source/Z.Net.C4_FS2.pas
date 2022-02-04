@@ -707,9 +707,14 @@ begin
       ZDB2Cipher := nil;
   C40_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space2', [ServiceInfo.ServiceTyp.Text]));
 
-  FileHashPool := TFS2_Service_File_Data_Pool.Create(True, 16 * 1024 * 1024, nil);
+  FileHashPool := TFS2_Service_File_Data_Pool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
   FileHashPool.IgnoreCase := True;
-  MD5Pool := TFS2_Service_MD5_Data_Pool.Create(True, 16 * 1024 * 1024, nil);
+
+  MD5Pool := TFS2_Service_MD5_Data_Pool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
 
   if umlFileExists(C40_FS2_FileName) then
       fs := TCore_FileStream.Create(C40_FS2_FileName, fmOpenReadWrite)
@@ -1371,7 +1376,10 @@ begin
   else
       ZDB2Cipher := nil;
 
-  FileCacheHashPool := TFS2_Client_CacheHashPool.Create(True, 64 * 1024 * 1024, nil);
+  FileCacheHashPool := TFS2_Client_CacheHashPool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
+
   Cache := TZDB2_List_MS64.Create(
     TZDB2_MS64,
     nil,

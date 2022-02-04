@@ -440,7 +440,9 @@ begin
       ZDB2Cipher := nil;
   C40_FS_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
 
-  FileHashPool := TFS_Service_File_Data_Pool.Create(True, 16 * 1024 * 1024, nil);
+  FileHashPool := TFS_Service_File_Data_Pool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
   FileHashPool.IgnoreCase := True;
 
   if umlFileExists(C40_FS_FileName) then
@@ -939,7 +941,10 @@ begin
   else
       ZDB2Cipher := nil;
 
-  FileCacheHashPool := TFS_Client_CacheHashPool.Create(True, 64 * 1024 * 1024, nil);
+  FileCacheHashPool := TFS_Client_CacheHashPool.Create(True,
+    EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
+    nil);
+
   Cache := TZDB2_List_MS64.Create(
     TZDB2_MS64,
     nil,
