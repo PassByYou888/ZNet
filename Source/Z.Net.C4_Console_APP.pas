@@ -30,7 +30,7 @@ var
   On_C40_PhysicsService_Event: IC40_PhysicsService_Event;
 
 procedure C40_Init_AppParamFromSystemCmdLine;
-function C40_Extract_CmdLine(param_: U_StringArray): Boolean;
+function C40_Extract_CmdLine(): Boolean;
 
 implementation
 
@@ -177,7 +177,7 @@ begin
       C40AppParam[i - 1] := ParamStr(i);
 end;
 
-function C40_Extract_CmdLine(param_: U_StringArray): Boolean;
+function C40_Extract_CmdLine(): Boolean;
 var
   error_: Boolean;
   IsInited_: Boolean;
@@ -187,7 +187,7 @@ var
   arry: TC40_DependNetworkInfoArray;
 begin
   Result := False;
-  if length(param_) = 0 then
+  if length(C40AppParam) = 0 then
       exit;
   error_ := False;
   IsInited_ := False;
@@ -198,8 +198,8 @@ begin
     cmd_script_.Config.SetDefaultValue('Password', Z.Net.C4.C40_Password);
     cmd_script_.RegApi;
 
-    for i := low(param_) to high(param_) do
-        cmd_script_.Parsing(param_[i]);
+    for i := low(C40AppParam) to high(C40AppParam) do
+        cmd_script_.Parsing(C40AppParam[i]);
 
     if (not error_) and (cmd_script_.Client_NetInfo_List.Count > 0) then
       begin

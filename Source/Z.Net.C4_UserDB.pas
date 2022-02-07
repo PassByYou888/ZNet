@@ -1309,6 +1309,7 @@ begin
   // is only instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   C40_UserDB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
 
@@ -1318,7 +1319,7 @@ begin
   UserIdentifierHash.AccessOptimization := True;
   UserIdentifierHash.IgnoreCase := True;
 
-  if umlFileExists(C40_UserDB_FileName) then
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_UserDB_FileName) then
       fs := TCore_FileStream.Create(C40_UserDB_FileName, fmOpenReadWrite)
   else
       fs := TCore_FileStream.Create(C40_UserDB_FileName, fmCreate);

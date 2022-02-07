@@ -39,6 +39,7 @@ uses
   Z.ZDB.FileIndexPackage_LIB, Z.ZDB.FilePackage_LIB, Z.ZDB.ItemStream_LIB, Z.ZDB.HashField_LIB, Z.ZDB.HashItem_LIB,
   Z.ZDB2.Custom, Z.ZDB2, Z.ZDB2.DFE, Z.ZDB2.HS, Z.ZDB2.HV, Z.ZDB2.Json, Z.ZDB2.MS64, Z.ZDB2.NM, Z.ZDB2.TE, Z.ZDB2.FileEncoder,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB,
+  Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
   Z.Net.PhysicsIO;
 
 type
@@ -346,14 +347,14 @@ end;
 procedure TC40AppTempletForm.DependEditExit(Sender: TObject);
 begin
   DependEdit.OnChange := nil;
-  DependEdit.Text := RebuildDependInfo(DependEdit.Text);
+  DependEdit.Text := RebuildDependInfo(DependEdit.Text).Text;
   DependEdit.OnChange := @DependEditChange;
 end;
 
 procedure TC40AppTempletForm.DependNetListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
 begin
   DependEdit.OnChange := nil;
-  DependEdit.Text := RebuildDependInfo(DependEdit.Text);
+  DependEdit.Text := RebuildDependInfo(DependEdit.Text).Text;
   DependEdit.OnChange := @DependEditChange;
 end;
 
@@ -394,14 +395,14 @@ end;
 procedure TC40AppTempletForm.ServiceDependEditExit(Sender: TObject);
 begin
   ServiceDependEdit.OnChange := nil;
-  ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text);
+  ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text).Text;
   ServiceDependEdit.OnChange := @ServiceDependEditChange;
 end;
 
 procedure TC40AppTempletForm.ServiceListViewChange(Sender: TObject; Item: TListItem; Change: TItemChange);
 begin
   ServiceDependEdit.OnChange := nil;
-  ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text);
+  ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text).Text;
   ServiceDependEdit.OnChange := @ServiceDependEditChange;
 end;
 
@@ -527,7 +528,7 @@ begin
     final_param.Append(param[i]);
     ArryParamMemo.Lines.Add(conv_(param[i]) + if_(i < param.Count - 1, ',', ''));
   end;
-  cmdLineParamEdit.Text := '"' + final_param + '"';
+  cmdLineParamEdit.Text := '"' + final_param.Text + '"';
   codeParamEdit.Text := conv_(final_param);
 
   disposeObject(HS);
@@ -746,13 +747,13 @@ end;
 procedure TC40AppTempletForm.ReloadOpt;
 begin
   QuietCheckBox.Checked := Z.Net.C4.C40_QuietMode;
-  SafeCheckTimerEdit.Text := umlIntToStr(Z.Net.C4.C40_SafeCheckTime);
-  PhysicsReconnectionDelayEdit.Text := umlShortFloatToStr(Z.Net.C4.C40_PhysicsReconnectionDelayTime);
-  UpdateServiceInfoTimerEdit.Text := umlIntToStr(Z.Net.C4.C40_UpdateServiceInfoDelayTime);
-  PhysicsServiceTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_PhysicsServiceTimeout);
-  PhysicsTunnelTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_PhysicsTunnelTimeout);
-  KillIDCFaultTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_KillIDCFaultTimeout);
-  RootDirectoryEdit.Text := Z.Net.C4.C40_RootPath;
+  SafeCheckTimerEdit.Text := umlIntToStr(Z.Net.C4.C40_SafeCheckTime).Text;
+  PhysicsReconnectionDelayEdit.Text := umlShortFloatToStr(Z.Net.C4.C40_PhysicsReconnectionDelayTime).Text;
+  UpdateServiceInfoTimerEdit.Text := umlIntToStr(Z.Net.C4.C40_UpdateServiceInfoDelayTime).Text;
+  PhysicsServiceTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_PhysicsServiceTimeout).Text;
+  PhysicsTunnelTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_PhysicsTunnelTimeout).Text;
+  KillIDCFaultTimeoutEdit.Text := umlIntToStr(Z.Net.C4.C40_KillIDCFaultTimeout).Text;
+  RootDirectoryEdit.Text := Z.Net.C4.C40_RootPath.Text;
   passwdEdit.Text := Z.Net.C4.C40_Password;
 end;
 
@@ -1151,10 +1152,10 @@ begin
 
           ServListeningIPEdit.Text := net_info_.listen_ip;
           ServIPEdit.Text := net_info_.ip;
-          ServPortEdit.Text := umlIntToStr(net_info_.port);
+          ServPortEdit.Text := umlIntToStr(net_info_.port).Text;
           ServiceDependEdit.Text := net_info_.depend;
           ServiceDependEdit.OnChange := nil;
-          ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text);
+          ServiceDependEdit.Text := RebuildServiceInfo(ServiceDependEdit.Text).Text;
           ServiceDependEdit.OnChange := @ServiceDependEditChange;
           ServBuildNetButtonClick(ServBuildNetButton);
           IsInited_ := True;
@@ -1167,10 +1168,10 @@ begin
         begin
           net_info_ := cs.Client_NetInfo_List[i];
           JoinHostEdit.Text := net_info_.ip;
-          JoinPortEdit.Text := umlIntToStr(net_info_.port);
+          JoinPortEdit.Text := umlIntToStr(net_info_.port).Text;
           DependEdit.Text := net_info_.depend;
           DependEdit.OnChange := nil;
-          DependEdit.Text := RebuildDependInfo(DependEdit.Text);
+          DependEdit.Text := RebuildDependInfo(DependEdit.Text).Text;
           DependEdit.OnChange := @DependEditChange;
           BuildDependNetButtonClick(BuildDependNetButton);
           IsInited_ := True;

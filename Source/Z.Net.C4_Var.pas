@@ -957,6 +957,7 @@ begin
   // is only instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   ProgressTempNMList := TC40_Var_NumberModulePool_List.Create;
   C40_Var_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.OX', [ServiceInfo.ServiceTyp.Text]));
@@ -969,7 +970,7 @@ begin
   OnChange := nil;
   OnRemove := nil;
 
-  if umlFileExists(C40_Var_FileName) then
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_Var_FileName) then
       DoLoading();
 end;
 

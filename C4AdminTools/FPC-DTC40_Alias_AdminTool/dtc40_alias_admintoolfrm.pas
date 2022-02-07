@@ -327,7 +327,7 @@ begin
       depend_.Append(p^.ServiceTyp);
     end;
   end;
-  DependEdit.Text := depend_;
+  DependEdit.Text := depend_.Text;
 
   C40_PhysicsTunnel_Disconnect(nil);
 end;

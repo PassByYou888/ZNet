@@ -7,11 +7,7 @@ unit Z.PascalStrings;
 
 interface
 
-uses
-{$IFDEF FPC}
-  LCLType,
-{$ENDIF FPC}
-  Z.Core;
+uses Z.Core;
 
 type
   {$IFDEF FPC}
@@ -199,7 +195,6 @@ operator := (const s: RawByteString)r: TPascalString;
 operator := (const s: UnicodeString)r: TPascalString;
 operator := (const s: WideString)r: TPascalString;
 operator := (const s: ShortString)r: TPascalString;
-operator := (const s: TTranslateString)r: TPascalString;
 operator := (const c: SystemChar)r: TPascalString;
 
 operator := (const s: TPascalString)r: AnsiString;
@@ -207,7 +202,6 @@ operator := (const s: TPascalString)r: RawByteString;
 operator := (const s: TPascalString)r: UnicodeString;
 operator := (const s: TPascalString)r: WideString;
 operator := (const s: TPascalString)r: ShortString;
-operator := (const s: TPascalString)r: TTranslateString;
 operator := (const s: TPascalString)r: Variant;
 
 operator = (const a: TPascalString; const b: TPascalString): Boolean;
@@ -1258,22 +1252,12 @@ begin
   r.Text := s;
 end;
 
-operator := (const s: TTranslateString)r: TPascalString;
-begin
-  r.Text := s;
-end;
-
 operator := (const c: SystemChar)r: TPascalString;
 begin
   r.Text := c;
 end;
 
 operator := (const s: TPascalString)r: AnsiString;
-begin
-  r := s.Text;
-end;
-
-operator := (const s: TPascalString)r: TTranslateString;
 begin
   r := s.Text;
 end;

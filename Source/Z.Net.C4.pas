@@ -412,12 +412,14 @@ type
     function ExistsClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function ExistsConnectedClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function ExistsConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
+    function ExistsConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function FindPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
     function FindServiceInfo(info_: TC40_Info): Boolean;
     function FindServiceTyp(ServiceTyp: U_String): Boolean;
     function FindClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function FindConnectedClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function FindConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
+    function FindConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
     function GetClientFromHash(Hash: TMD5): TC40_Custom_Client;
     class procedure SortWorkLoad(L_: TC40_Custom_ClientPool);
     function GetC40Array: TC40_Custom_Client_Array;
@@ -790,6 +792,8 @@ procedure C40CheckAndKillDeadPhysicsTunnel();
 { register }
 function RegisterC40(ServiceTyp: U_String; ServiceClass: TC40_Custom_Service_Class; ClientClass: TC40_Custom_Client_Class): Boolean;
 function FindRegistedC40(ServiceTyp: U_String): PC40_RegistedData;
+function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String; overload;
+function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String; overload;
 
 { misc }
 function ExtractDependInfo(info: TC40_DependNetworkInfoList): TC40_DependNetworkInfoArray; overload;
@@ -1201,6 +1205,42 @@ begin
         Result := C40_Registed[i];
         exit;
       end;
+end;
+
+function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String;
+var
+  i: Integer;
+  p: PC40_RegistedData;
+begin
+  Result := '';
+  for i := 0 to C40_Registed.Count - 1 do
+    begin
+      p := C40_Registed[i];
+      if p^.ClientClass.InheritsFrom(ClientClass) then
+        begin
+          if Result.L > 0 then
+              Result.Append('|');
+          Result.Append(p^.ServiceTyp);
+        end;
+    end;
+end;
+
+function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String;
+var
+  i: Integer;
+  p: PC40_RegistedData;
+begin
+  Result := '';
+  for i := 0 to C40_Registed.Count - 1 do
+    begin
+      p := C40_Registed[i];
+      if p^.ServiceClass.InheritsFrom(ServiceClass) then
+        begin
+          if Result.L > 0 then
+              Result.Append('|');
+          Result.Append(p^.ServiceTyp);
+        end;
+    end;
 end;
 
 function ExtractDependInfo(info: TC40_DependNetworkInfoList): TC40_DependNetworkInfoArray;
@@ -3379,6 +3419,16 @@ begin
         exit(Items[i]);
 end;
 
+function TC40_Custom_ClientPool.ExistsConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if Items[i].Connected and ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].InheritsFrom(Class_) then
+        exit(Items[i]);
+end;
+
 function TC40_Custom_ClientPool.FindPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
 var
   i: Integer;
@@ -3439,6 +3489,16 @@ begin
   Result := nil;
   for i := 0 to Count - 1 do
     if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].Connected then
+        exit(Items[i]);
+end;
+
+function TC40_Custom_ClientPool.FindConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if Items[i].Connected and ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].InheritsFrom(Class_) then
         exit(Items[i]);
 end;
 
@@ -3617,12 +3677,17 @@ end;
 
 procedure TC40_Dispatch_Service.cmd_UpdateServiceState(Sender: TPeerIO; InData: TDFE);
 var
-  D: TDFE;
+  D, ND: TDFE;
   Hash__: TMD5;
   Workload, MaxWorkload: Integer;
   info_: TC40_Info;
   i: Integer;
+  S_IO: TPeerIO;
+  arry_: TIO_Array;
+  ID_: Cardinal;
+  IO_: TPeerIO;
 begin
+  ND := TDFE.Create;
   D := TDFE.Create;
   while InData.R.NotEnd do
     begin
@@ -3633,6 +3698,8 @@ begin
       info_ := ServiceInfoList.FindHash(Hash__);
       if (info_ <> nil) then
         begin
+          if (info_.Workload <> Workload) or (info_.MaxWorkload <> MaxWorkload) then
+              ND.WriteDataFrame(D);
           info_.Workload := Workload;
           info_.MaxWorkload := MaxWorkload;
         end;
@@ -3645,6 +3712,21 @@ begin
       if info_ <> nil then
           info_.Assign(C40_ServicePool[i].ServiceInfo);
     end;
+
+  if ND.Count > 0 then
+    begin
+      S_IO := nil;
+      if Service.DTService.GetUserDefineRecvTunnel(Sender).LinkOk then
+          S_IO := Service.DTService.GetUserDefineRecvTunnel(Sender).SendTunnel.Owner;
+      Service.SendTunnel.GetIO_Array(arry_);
+      for ID_ in arry_ do
+        begin
+          IO_ := Service.SendTunnel[ID_];
+          if (IO_ <> nil) and (IO_ <> S_IO) and TPeerClientUserDefineForSendTunnel_NoAuth(IO_.UserDefine).LinkOk then
+              IO_.SendDirectStreamCmd('UpdateServiceState', ND);
+        end;
+    end;
+  disposeObject(ND);
 end;
 
 procedure TC40_Dispatch_Service.cmd_IgnoreChange(Sender: TPeerIO; InData: TDFE);

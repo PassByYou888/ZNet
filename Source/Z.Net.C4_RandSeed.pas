@@ -110,6 +110,7 @@ begin
   // is only instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   BigSeedPool := TBigSeedPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('Seed_HashPool', '4*1024*1024'), 4 * 1024 * 1024),

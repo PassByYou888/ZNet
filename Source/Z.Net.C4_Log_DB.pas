@@ -404,6 +404,7 @@ begin
   // is only instance
   ServiceInfo.OnlyInstance := true;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   WaitFreeList := TLog_DB_List.Create;
   C40_DB_Directory := umlCombinePath(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s', [ServiceInfo.ServiceTyp.Text]));
@@ -476,7 +477,7 @@ begin
     begin
       fn := umlCombineFileName(C40_DB_Directory, LogDB_.Text + '.Log_ZDB2');
       try
-        if umlFileExists(fn) then
+        if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(fn) then
             fs := TCore_FileStream.Create(fn, fmOpenReadWrite)
         else
             fs := TCore_FileStream.Create(fn, fmCreate);

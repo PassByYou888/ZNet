@@ -19,7 +19,6 @@ uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, StdCtrls, ComCtrls,
   ActnList, Menus,
   Variants, DateUtils, TypInfo,
-
   LCLType,
 
   {$IFDEF FPC}
@@ -96,7 +95,7 @@ type
     procedure Action_RemoveLogDBExecute(Sender: TObject);
     procedure searchLogDBButtonClick(Sender: TObject);
   private
-    procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
+    procedure DoStatus_backcall(Text_: SystemString; const ID: integer);
     procedure ReadConfig;
     procedure WriteConfig;
     procedure Do_QueryResult(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
@@ -126,7 +125,7 @@ type
   public
     L: TLogData_List;
     Done_Log_DB: THashList;
-    TotalQueryNum: Integer;
+    TotalQueryNum: integer;
     OnDone: TNotifyEvent;
     constructor Create();
     destructor Destroy; override;
@@ -170,7 +169,7 @@ begin
   DoStatus('done query "%s", found log %d', [LogDB, length(arry)]);
   if Done_Log_DB.Count >= TotalQueryNum then
     if Assigned(OnDone) then
-        OnDone(self);
+      OnDone(self);
 end;
 
 procedure TDTC40_Log_AdminToolForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -202,7 +201,7 @@ var
   info: TC40_Info;
 begin
   if serviceComboBox.ItemIndex < 0 then
-      exit;
+    exit;
   info := TC40_Info(serviceComboBox.Items.Objects[serviceComboBox.ItemIndex]);
   Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(info, info.ServiceTyp, self);
 end;
@@ -224,43 +223,43 @@ end;
 
 procedure TDTC40_Log_AdminToolForm.checkAllButtonClick(Sender: TObject);
 var
-  i: Integer;
+  i: integer;
   itm: TLog_Item;
 begin
   for i := 0 to LogDBListView.Items.Count - 1 do
-    begin
-      itm := LogDBListView.Items[i] as TLog_Item;
-      itm.Checked := True;
-    end;
+  begin
+    itm := LogDBListView.Items[i] as TLog_Item;
+    itm.Checked := True;
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.uncheckAllButtonClick(Sender: TObject);
 var
-  i: Integer;
+  i: integer;
   itm: TLog_Item;
 begin
   for i := 0 to LogDBListView.Items.Count - 1 do
-    begin
-      itm := LogDBListView.Items[i] as TLog_Item;
-      itm.Checked := False;
-    end;
+  begin
+    itm := LogDBListView.Items[i] as TLog_Item;
+    itm.Checked := False;
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.Action_RemoveLogDBExecute(Sender: TObject);
 var
-  i: Integer;
+  i: integer;
   itm: TLog_Item;
 begin
   if CurrentClient = nil then
-      exit;
+    exit;
   if MessageDlg('remove?', mtWarning, [mbYes, mbNo], 0) <> mrYes then
-      exit;
+    exit;
   for i := 0 to LogDBListView.Items.Count - 1 do
-    begin
-      itm := LogDBListView.Items[i] as TLog_Item;
-      if itm.Checked then
-          CurrentClient.RemoveDB(itm.LogDB);
-    end;
+  begin
+    itm := LogDBListView.Items[i] as TLog_Item;
+    if itm.Selected then
+      CurrentClient.RemoveDB(itm.LogDB);
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.searchLogDBButtonClick(Sender: TObject);
@@ -268,10 +267,10 @@ begin
   RefreshLogDB;
 end;
 
-procedure TDTC40_Log_AdminToolForm.DoStatus_backcall(Text_: SystemString; const ID: Integer);
+procedure TDTC40_Log_AdminToolForm.DoStatus_backcall(Text_: SystemString; const ID: integer);
 begin
   if logMemo.Lines.Count > 2000 then
-      logMemo.Clear;
+    logMemo.Clear;
   logMemo.Lines.Add(DateTimeToStr(now) + ' ' + Text_);
 end;
 
@@ -282,7 +281,7 @@ var
 begin
   fn := umlChangeFileExt(Application.ExeName, '.conf');
   if not umlFileExists(fn) then
-      exit;
+    exit;
   te := THashTextEngine.Create;
   te.LoadFromFile(fn);
   JoinHostEdit.Text := te.GetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
@@ -309,18 +308,18 @@ end;
 procedure TDTC40_Log_AdminToolForm.Do_QueryResult(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
 var
   arry: TC40_Info_Array;
-  i: Integer;
+  i: integer;
 begin
   arry := L.SearchService(ExtractDependInfo(DependEdit.Text));
   for i := low(arry) to high(arry) do
-      ValidService.Add(arry[i].Clone);
+    ValidService.Add(arry[i].Clone);
 
   serviceComboBox.Clear;
   for i := 0 to ValidService.Count - 1 do
-      serviceComboBox.AddItem(Format('"%s" host "%s" port %d', [ValidService[i].ServiceTyp.Text, ValidService[i].PhysicsAddr.Text, ValidService[i].PhysicsPort]), ValidService[i]);
+    serviceComboBox.AddItem(Format('"%s" host "%s" port %d', [ValidService[i].ServiceTyp.Text, ValidService[i].PhysicsAddr.Text, ValidService[i].PhysicsPort]), ValidService[i]);
 
   if serviceComboBox.Items.Count > 0 then
-      serviceComboBox.ItemIndex := 0;
+    serviceComboBox.ItemIndex := 0;
 end;
 
 procedure TDTC40_Log_AdminToolForm.DoConnected;
@@ -330,62 +329,57 @@ end;
 
 procedure TDTC40_Log_AdminToolForm.DoDisconnect;
 begin
-      serviceComboBox.Clear;
-      LogDBListView.Clear;
-      QueryMemo.Lines.Clear;
+  serviceComboBox.Clear;
+  LogDBListView.Clear;
+  QueryMemo.Lines.Clear;
 end;
 
 procedure TDTC40_Log_AdminToolForm.Do_GetLog(Sender: TC40_Log_DB_Client; arry: U_StringArray);
 var
   itm: TLog_Item;
-  i: Integer;
+  i: integer;
   n: SystemString;
 begin
   LogDBListView.Items.BeginUpdate;
   LogDBListView.Items.Clear;
   for i := Low(arry) to high(arry) do
-    begin
-      n := arry[i];
-      itm := LogDBListView.Items.Add as TLog_Item;
-      itm.LogDB := n;
-      itm.Caption := IntToStr(i + 1) + ' - ' + n;
-      itm.SubItems.Add('idle');
-    end;
+  begin
+    n := arry[i];
+    itm := LogDBListView.Items.Add as TLog_Item;
+    itm.LogDB := n;
+    itm.Caption := IntToStr(i + 1) + ' - ' + n;
+    itm.SubItems.Add('idle');
+  end;
   LogDBListView.Items.EndUpdate;
   LogDBListView.Height := LogDBListView.Height - 1;
 
   for i := 0 to LogDBListView.Items.Count - 1 do
-    begin
-      itm := LogDBListView.Items[i] as TLog_Item;
-      if umlSearchMatch(LogDBFilterEdit.Text, itm.LogDB) then
-          LogDBListView.Items[i].Checked := True;
-    end;
+  begin
+    itm := LogDBListView.Items[i] as TLog_Item;
+    if umlSearchMatch(LogDBFilterEdit.Text, itm.LogDB) then
+      LogDBListView.Items[i].Checked := True;
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.RefreshLogDB;
 begin
   if CurrentClient = nil then
-      exit;
+    exit;
   CurrentClient.GetLogDBM(@Do_GetLog);
 end;
 
 procedure TDTC40_Log_AdminToolForm.DoSyncUpdateLogList;
 var
-  i: Integer;
+  i: integer;
   p: PLogData__;
 begin
   QueryMemo.Lines.Clear;
   QueryMemo.Lines.BeginUpdate;
   for i := 0 to SearchReturn.L.Count - 1 do
-    begin
-      p := SearchReturn.L[i];
-      QueryMemo.Lines.Add(Format('%d - %s DB: "%s" %s %s',
-        [i + 1,
-        DateTimeToStr(p^.LogTime),
-        p^.LogDB,
-        if_(p^.Log1 <> '', 'Log1: "' + p^.Log1 + '"', ''),
-        if_(p^.Log2 <> '', 'Log2: "' + p^.Log2 + '"', '')]));
-    end;
+  begin
+    p := SearchReturn.L[i];
+    QueryMemo.Lines.Add(Format('%d - %s DB: "%s" %s %s', [i + 1, DateTimeToStr(p^.LogTime), p^.LogDB, if_(p^.Log1 <> '', 'Log1: "' + p^.Log1 + '"', ''), if_(p^.Log2 <> '', 'Log2: "' + p^.Log2 + '"', '')]));
+  end;
   QueryMemo.Lines.EndUpdate;
 
   SearchReturn.L.Clear;
@@ -408,11 +402,11 @@ end;
 procedure TDTC40_Log_AdminToolForm.SearchLog;
 var
   itm: TLog_Item;
-  i: Integer;
+  i: integer;
   bTime, eTime: TDateTime;
 begin
   if CurrentClient = nil then
-      exit;
+    exit;
 
   eTime := now;
   case TimeRangeComboBox.ItemIndex of
@@ -432,14 +426,14 @@ begin
   SearchReturn.TotalQueryNum := 0;
   SearchReturn.OnDone := @SearchDone;
   for i := 0 to LogDBListView.Items.Count - 1 do
+  begin
+    itm := LogDBListView.Items[i] as TLog_Item;
+    if itm.Checked then
     begin
-      itm := LogDBListView.Items[i] as TLog_Item;
-      if itm.Checked then
-        begin
-          inc(SearchReturn.TotalQueryNum);
-          CurrentClient.QueryLogM(itm.LogDB, bTime, eTime, filter1Edit.Text, filter2Edit.Text, @SearchReturn.Do_QueryLog);
-        end;
+      Inc(SearchReturn.TotalQueryNum);
+      CurrentClient.QueryLogM(itm.LogDB, bTime, eTime, filter1Edit.Text, filter2Edit.Text, @SearchReturn.Do_QueryLog);
     end;
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.C40_PhysicsTunnel_Connected(Sender: TC40_PhysicsTunnel);
@@ -450,11 +444,11 @@ end;
 procedure TDTC40_Log_AdminToolForm.C40_PhysicsTunnel_Disconnect(Sender: TC40_PhysicsTunnel);
 begin
   if Sender.DependNetworkClientPool.IndexOf(CurrentClient) >= 0 then
-    begin
-      DoDisconnect;
-      ValidService.Clear;
-      CurrentClient := nil;
-    end;
+  begin
+    DoDisconnect;
+    ValidService.Clear;
+    CurrentClient := nil;
+  end;
 end;
 
 procedure TDTC40_Log_AdminToolForm.C40_PhysicsTunnel_Build_Network(Sender: TC40_PhysicsTunnel; Custom_Client_: TC40_Custom_Client);
@@ -467,18 +461,18 @@ var
   info: TC40_Info;
 begin
   if serviceComboBox.ItemIndex < 0 then
-      exit;
+    exit;
   info := TC40_Info(serviceComboBox.Items.Objects[serviceComboBox.ItemIndex]);
   if info.Same(Custom_Client_.ClientInfo) and (Custom_Client_ is TC40_Log_DB_Client) then
-    begin
-      CurrentClient := TC40_Log_DB_Client(Custom_Client_);
-      SysPost.PostExecuteM_NP(0.5, @DoConnected);
-    end;
+  begin
+    CurrentClient := TC40_Log_DB_Client(Custom_Client_);
+    SysPost.PostExecuteM_NP(0.5, @DoConnected);
+  end;
 end;
 
 constructor TDTC40_Log_AdminToolForm.Create(AOwner: TComponent);
 var
-  i: Integer;
+  i: integer;
   p: PC40_RegistedData;
   depend_: U_String;
 begin
@@ -493,16 +487,17 @@ begin
 
   depend_ := '';
   for i := 0 to C40_Registed.Count - 1 do
+  begin
+    p := C40_Registed[i];
+    if p^.ClientClass.InheritsFrom(TC40_Log_DB_Client) then
     begin
-      p := C40_Registed[i];
-      if p^.ClientClass.InheritsFrom(TC40_Log_DB_Client) then
-        begin
-          if depend_.L > 0 then
-              depend_.Append('|');
-          depend_.Append(p^.ServiceTyp);
-        end;
+      if depend_.L > 0 then
+        depend_.Append('|');
+      depend_.Append(p^.ServiceTyp);
     end;
-  DependEdit.Text := depend_;
+  end;
+
+  DependEdit.Text := depend_.Text;
 
   SearchReturn := TTemp_Search.Create;
 end;

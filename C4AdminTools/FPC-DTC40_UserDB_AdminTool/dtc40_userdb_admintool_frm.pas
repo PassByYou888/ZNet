@@ -557,7 +557,7 @@ begin
           depend_.Append(p^.ServiceTyp);
         end;
     end;
-  DependEdit.Text := depend_;
+  DependEdit.Text := depend_.Text;
 end;
 
 destructor TDTC40_UserDB_AdminToolForm.Destroy;

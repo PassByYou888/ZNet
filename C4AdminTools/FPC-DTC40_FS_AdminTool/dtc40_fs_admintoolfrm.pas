@@ -475,7 +475,7 @@ begin
           depend_.Append(p^.ServiceTyp);
         end;
     end;
-  DependEdit.Text := depend_;
+  DependEdit.Text := depend_.Text;
 end;
 
 destructor TDTC40_FS_AdminToolForm.Destroy;

@@ -693,6 +693,7 @@ begin
   // instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '128*1024*1024'), 128 * 1024 * 1024);
@@ -716,7 +717,7 @@ begin
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
-  if umlFileExists(C40_FS2_FileName) then
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_FS2_FileName) then
       fs := TCore_FileStream.Create(C40_FS2_FileName, fmOpenReadWrite)
   else
       fs := TCore_FileStream.Create(C40_FS2_FileName, fmCreate);

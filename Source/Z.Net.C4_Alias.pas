@@ -195,7 +195,7 @@ begin
       ZDB2Cipher := nil;
   C40_Alias_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
 
-  if umlFileExists(C40_Alias_DB_FileName) then
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_Alias_DB_FileName) then
       fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite)
   else
       fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
@@ -214,6 +214,7 @@ begin
   // only instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 end;
 
 destructor TC40_Alias_Service.Destroy;

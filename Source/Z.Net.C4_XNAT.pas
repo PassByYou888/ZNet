@@ -260,6 +260,7 @@ begin
   // instance
   ServiceInfo.OnlyInstance := False;
   UpdateToGlobalDispatch;
+  ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 end;
 
 destructor TC40_XNAT_Service_Tool.Destroy;

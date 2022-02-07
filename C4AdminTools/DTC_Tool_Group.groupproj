@@ -6,6 +6,9 @@
         <Projects Include="Delphi-C4AppTemplet\C40AppTemplet.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="Delphi-C4ConsoleTemplet\C4ConsoleTemplet.dproj">
+            <Dependencies/>
+        </Projects>
         <Projects Include="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj">
             <Dependencies/>
         </Projects>
@@ -43,6 +46,15 @@
     </Target>
     <Target Name="C40AppTemplet:Make">
         <MSBuild Projects="Delphi-C4AppTemplet\C40AppTemplet.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4ConsoleTemplet">
+        <MSBuild Projects="Delphi-C4ConsoleTemplet\C4ConsoleTemplet.dproj"/>
+    </Target>
+    <Target Name="C4ConsoleTemplet:Clean">
+        <MSBuild Projects="Delphi-C4ConsoleTemplet\C4ConsoleTemplet.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4ConsoleTemplet:Make">
+        <MSBuild Projects="Delphi-C4ConsoleTemplet\C4ConsoleTemplet.dproj" Targets="Make"/>
     </Target>
     <Target Name="DTC40_AdminTool_Templet">
         <MSBuild Projects="Delphi-DTC40_AdminTool_Templet\DTC40_AdminTool_Templet.dproj"/>
@@ -108,13 +120,13 @@
         <MSBuild Projects="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="C40AppTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool;DTC40_Alias_AdminTool;DTC40_FS2_AdminTool"/>
+        <CallTarget Targets="C40AppTemplet;C4ConsoleTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool;DTC40_Alias_AdminTool;DTC40_FS2_AdminTool"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="C40AppTemplet:Clean;DTC40_AdminTool_Templet:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_FS_AdminTool:Clean;DTC40_Log_AdminTool:Clean;DTC40_Var_AdminTool:Clean;DTC40_Alias_AdminTool:Clean;DTC40_FS2_AdminTool:Clean"/>
+        <CallTarget Targets="C40AppTemplet:Clean;C4ConsoleTemplet:Clean;DTC40_AdminTool_Templet:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_FS_AdminTool:Clean;DTC40_Log_AdminTool:Clean;DTC40_Var_AdminTool:Clean;DTC40_Alias_AdminTool:Clean;DTC40_FS2_AdminTool:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="C40AppTemplet:Make;DTC40_AdminTool_Templet:Make;DTC40_UserDB_AdminTool:Make;DTC40_FS_AdminTool:Make;DTC40_Log_AdminTool:Make;DTC40_Var_AdminTool:Make;DTC40_Alias_AdminTool:Make;DTC40_FS2_AdminTool:Make"/>
+        <CallTarget Targets="C40AppTemplet:Make;C4ConsoleTemplet:Make;DTC40_AdminTool_Templet:Make;DTC40_UserDB_AdminTool:Make;DTC40_FS_AdminTool:Make;DTC40_Log_AdminTool:Make;DTC40_Var_AdminTool:Make;DTC40_Alias_AdminTool:Make;DTC40_FS2_AdminTool:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
