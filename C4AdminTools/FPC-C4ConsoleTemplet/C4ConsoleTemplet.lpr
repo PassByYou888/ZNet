@@ -50,7 +50,6 @@ var
   end;
 
 begin
-  Application.Title:='My Application';
   Z.Net.C4_Console_APP.C40_Init_AppParamFromSystemCmdLine;
   if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
   begin
