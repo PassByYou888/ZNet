@@ -558,6 +558,7 @@ type
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
     FID: Cardinal;
+    FIO_Create_TimeTick: TTimeTick;
     FHeadToken, FTailToken: Cardinal;
     FConsoleToken: Byte;
     FStreamToken: Byte;
@@ -780,6 +781,7 @@ type
 
     // check IO state
     function IOBusy: Boolean;
+    property IO_Create_TimeTick: TTimeTick read FIO_Create_TimeTick;
 
     procedure IO_IDLE_TraceC(data: TCore_Object; OnNotify: TOnDataNotify_C);
     procedure IO_IDLE_TraceM(data: TCore_Object; OnNotify: TOnDataNotify_M);
@@ -6838,6 +6840,7 @@ begin
   FOwnerFramework.Lock_All_IO;
 
   FID := OwnerFramework_.MakeID;
+  FIO_Create_TimeTick:=GetTimeTick();
 
   FHeadToken := C_DataHeadToken;
   FTailToken := C_DataTailToken;

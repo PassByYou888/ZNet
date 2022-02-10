@@ -199,6 +199,8 @@ type
     destructor Destroy; override;
 
     class procedure ErrorInfo(const Text_: SystemString); static;
+
+    // space
     procedure Save();
     function Open(): Boolean;
     procedure ScanSpace;
@@ -206,6 +208,7 @@ type
     function AppendSpace(NewSpaceSize_: Int64; DestBlockSize_: WORD): Boolean;
     function OptimizedSpaceTo(var Dest_IOHnd: TIOHnd): Boolean;
 
+    // data
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
     function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle;
@@ -230,10 +233,12 @@ type
     function GetDataPhysics(SpaceHnd: TZDB2_BlockHandle): Int64; overload;
     function GetDataPhysics(ID: Integer): Int64; overload;
     function BuildTableID: TZDB2_BlockHandle;
-    // low level IO
+
+    // block
     function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
     function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
 
+    // hnd
     property AutoCloseIOHnd: Boolean read FAutoCloseIOHnd write FAutoCloseIOHnd;
     property AutoFreeIOHnd: Boolean read FAutoFreeIOHnd write FAutoFreeIOHnd;
     property Space_IOHnd: PIOHnd read FSpace_IOHnd write FSpace_IOHnd;

@@ -792,17 +792,22 @@ var
   RL: Integer;
   buff: TBytes;
 begin
-  RL := sizeOf(TObjectDataHandle_Reserved_Data);
-  i := 0;
-  while i < RL do
-    if Reserved[i] > 0 then
-        inc(i)
-    else
-        break;
-  SetLength(buff, i);
-  CopyPtr(@Reserved[0], @buff[0], i);
-  Result.Bytes := buff;
-  SetLength(buff, 0);
+  try
+    RL := sizeOf(TObjectDataHandle_Reserved_Data);
+    i := 0;
+    while i < RL do
+      if Reserved[i] > 0 then
+          inc(i)
+      else
+          break;
+    SetLength(buff, i);
+    if i > 0 then
+        CopyPtr(@Reserved[0], @buff[0], i);
+    Result.Bytes := buff;
+    SetLength(buff, 0);
+  except
+      Result := '';
+  end;
 end;
 
 procedure Init_THeader(var Header_: THeader);

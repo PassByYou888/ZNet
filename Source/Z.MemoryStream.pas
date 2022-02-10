@@ -1122,14 +1122,18 @@ var
   L: Cardinal;
   b: TBytes;
 begin
-  L := ReadUInt32;
-  if L > 0 then
-    begin
-      SetLength(b, L);
-      ReadPtr(@b[0], L);
-      Result.Bytes := b;
-      SetLength(b, 0);
-    end;
+  try
+    L := ReadUInt32;
+    if L > 0 then
+      begin
+        SetLength(b, L);
+        ReadPtr(@b[0], L);
+        Result.Bytes := b;
+        SetLength(b, 0);
+      end;
+  except
+      Result := '';
+  end;
 end;
 
 function TMS64.ReadANSI(L: Integer): TPascalString;
@@ -2691,14 +2695,18 @@ var
   L: Cardinal;
   b: TBytes;
 begin
-  L := StreamReadUInt32(stream);
-  if L > 0 then
-    begin
-      SetLength(b, L);
-      stream.read(b[0], L);
-      Result.Bytes := b;
-      SetLength(b, 0);
-    end;
+  try
+    L := StreamReadUInt32(stream);
+    if L > 0 then
+      begin
+        SetLength(b, L);
+        stream.read(b[0], L);
+        Result.Bytes := b;
+        SetLength(b, 0);
+      end;
+  except
+      Result := '';
+  end;
 end;
 
 function StreamReadMD5(const stream: TCore_Stream): TMD5;

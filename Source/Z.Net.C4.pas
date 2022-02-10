@@ -70,6 +70,7 @@ type
   TC40_PhysicsService = class(TCore_InterfacedObject)
   private
     FActivted: Boolean;
+    FLastDeadConnectionCheckTime_: TTimeTick;
     procedure cmd_QueryInfo(Sender: TPeerIO; InData, OutData: TDFE);
   public
     ListeningAddr: U_String;
@@ -1341,6 +1342,7 @@ begin
   DependNetworkServicePool := TC40_Custom_ServicePool.Create;
   OnEvent := nil;
   C40_PhysicsServicePool.Add(Self);
+  FLastDeadConnectionCheckTime_ := GetTimeTick;
 end;
 
 constructor TC40_PhysicsService.Create(PhysicsAddr_: U_String; PhysicsPort_: Word; PhysicsTunnel_: TZNet_Server);
@@ -1363,7 +1365,24 @@ begin
 end;
 
 procedure TC40_PhysicsService.Progress;
+var
+  arry: TIO_Array;
+  ID_: Cardinal;
+  IO_: TPeerIO;
 begin
+  if GetTimeTick - FLastDeadConnectionCheckTime_ > 1000 then
+    begin
+      PhysicsTunnel.GetIO_Array(arry);
+      for ID_ in arry do
+        begin
+          IO_ := PhysicsTunnel.PeerIO[ID_];
+          if (IO_ <> nil) and (not IO_.p2pVMTunnelReadyOk)
+            and (GetTimeTick - IO_.IO_Create_TimeTick > C40_KillDeadPhysicsConnectionTimeout) then
+              IO_.Disconnect;
+        end;
+      FLastDeadConnectionCheckTime_ := GetTimeTick;
+    end;
+
   PhysicsTunnel.Progress;
 end;
 

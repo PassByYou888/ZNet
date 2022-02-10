@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * ObjectDB Stream                                                            * }
+{ * item mapping as Stream                                                     * }
 { ****************************************************************************** }
 
 unit Z.ZDB.ItemStream_LIB;
@@ -27,8 +27,11 @@ type
     procedure SaveToFile(fn: SystemString);
     procedure LoadFromFile(fn: SystemString);
 
-    function read(var buffer; Count: longint): longint; override;
-    function write(const buffer; Count: longint): longint; override;
+    function Read64(var buffer; Count: Int64): Int64;
+    function Read(var buffer; Count: longint): longint; override;
+
+    function Write64(const buffer; Count: Int64): Int64;
+    function Write(const buffer; Count: longint): longint; override;
 
     function Seek(Offset: longint; origin: Word): longint; overload; override;
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64; overload; override;
@@ -110,27 +113,32 @@ begin
   end;
 end;
 
-function TItemStream.read(var buffer; Count: longint): longint;
+function TItemStream.Read64(var buffer; Count: Int64): Int64;
 var
-  _P: Int64;
-  _Size: Int64;
+  Pos_: Int64;
+  Size_: Int64;
 begin
   Result := 0;
   if (Count > 0) then
     begin
-      _P := DB_Engine.ItemGetPos(ItemHnd_Ptr^);
-      _Size := DB_Engine.ItemGetSize(ItemHnd_Ptr^);
-      if _P + Count <= _Size then
+      Pos_ := DB_Engine.ItemGetPos(ItemHnd_Ptr^);
+      Size_ := DB_Engine.ItemGetSize(ItemHnd_Ptr^);
+      if Pos_ + Count <= Size_ then
         begin
           if DB_Engine.ItemRead(ItemHnd_Ptr^, Count, PByte(@buffer)^) then
               Result := Count;
         end
-      else if DB_Engine.ItemRead(ItemHnd_Ptr^, _Size - _P, PByte(@buffer)^) then
-          Result := _Size - _P;
+      else if DB_Engine.ItemRead(ItemHnd_Ptr^, Size_ - Pos_, PByte(@buffer)^) then
+          Result := Size_ - Pos_;
     end;
 end;
 
-function TItemStream.write(const buffer; Count: longint): longint;
+function TItemStream.Read(var buffer; Count: longint): longint;
+begin
+  Result := Read64(buffer, Count);
+end;
+
+function TItemStream.Write64(const buffer; Count: Int64): Int64;
 begin
   Result := Count;
   if (Count > 0) then
@@ -138,6 +146,11 @@ begin
       begin
         Result := 0;
       end;
+end;
+
+function TItemStream.Write(const buffer; Count: longint): longint;
+begin
+  Result := Write64(buffer, Count);
 end;
 
 function TItemStream.Seek(Offset: longint; origin: Word): longint;

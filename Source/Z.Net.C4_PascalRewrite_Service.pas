@@ -162,6 +162,7 @@ var
     IO_Def.UnitRewriteProcessor.Build_uHash(uHash);
     symHash := THashStringList.CustomCreate($FFFF);
     IO_Def.SymbolRewriteProcessor.Build_uHash(symHash);
+    Current_Status := TPascalStringList.Create;
   end;
 
   procedure fpc_rewrite_status(const Fmt: SystemString; const Args: array of const);

@@ -871,7 +871,7 @@ begin
           incl_.Add(Trace_Pool[i]);
     end;
 
-  // merge marco to include
+  // merge include
   IsChanged := False;
   repeat
     IsUpdate := False;
