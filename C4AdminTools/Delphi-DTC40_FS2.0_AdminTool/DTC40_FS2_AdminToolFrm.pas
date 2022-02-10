@@ -171,6 +171,13 @@ end;
 procedure TDTC40_FS2_AdminToolForm.netTimerTimer(Sender: TObject);
 begin
   C40Progress;
+  if CurrentClient <> nil then
+      FS_Info_Label.Caption := Format('DB Size:%s, total files:%d, Max File size is %s for "%s" Service.',
+      [
+      umlSizeToStr(CurrentClient.Remote_FS_DB_Size).Text, CurrentClient.Remote_FS_Num,
+      umlSizeToStr(CurrentClient.MaxFileSize).Text, CurrentClient.ClientInfo.ServiceTyp.Text])
+  else
+      FS_Info_Label.Caption := 'No connection.';
 end;
 
 procedure TDTC40_FS2_AdminToolForm.queryButtonClick(Sender: TObject);
@@ -375,6 +382,7 @@ var
   arry: TC40_Info_Array;
   i: Integer;
 begin
+  ValidService.Clear;
   arry := L.SearchService(ExtractDependInfo(DependEdit.Text));
   for i := low(arry) to high(arry) do
       ValidService.Add(arry[i].Clone);
@@ -390,13 +398,10 @@ end;
 procedure TDTC40_FS2_AdminToolForm.DoConnected;
 begin
   SearchButtonClick(SearchButton);
-  FS_Info_Label.Caption := Format('Done connection. Max File size is %s for "%s" Service.',
-    [umlSizeToStr(CurrentClient.MaxFileSize).Text, CurrentClient.ClientInfo.ServiceTyp.Text]);
 end;
 
 procedure TDTC40_FS2_AdminToolForm.DoDisconnect;
 begin
-  FS_Info_Label.Caption := 'No connection.';
   SysPost.PostExecuteP_NP(1.0, procedure
     begin
       serviceComboBox.Clear;

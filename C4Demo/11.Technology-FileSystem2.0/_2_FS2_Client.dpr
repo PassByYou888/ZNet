@@ -64,10 +64,13 @@ begin
       // 往服务器仍文件，这个文件的token会自动覆盖已有的，覆盖在存储空间使用擦写机制处理
       // postfile的api，会构建一个新的p2pVM隧道，永不排队
       // p2pVM并发隧道传输文件，如果两个同名文件同时并行传输，服务器会依据IO触发完成传输的先后顺序擦写操作，网速慢的覆盖网速快的
+
+      // FS2.0的postfile机制与FS不一样：FS2会检查远程FS服务是否有相同数据，如果有，就做个copy副本操作，秒传
       GetMyFS_Client.FS2_PostFile_P(True, 'test', tmp1, True, procedure(Sender: TC40_FS2_Client; info_: U_String)
         begin
           DoStatus('remote md5(test):' + info_);
 
+          // FS2.0的postfile机制与FS不一样：FS2会检查远程FS服务是否有相同数据，如果有，就做个copy副本操作，秒传
           GetMyFS_Client.FS2_PostFile_P(True, 'aaaa', tmp2, True, procedure(Sender: TC40_FS2_Client; info2_: U_String)
             begin
               DoStatus('remote md5(aaaa):' + info2_);
@@ -90,6 +93,16 @@ begin
                     begin
                       if Successed2 then
                           DoStatus('use cache downloaded md5: ' + umlStreamMD5String(stream2));
+
+                      // FS2_PoolFrag方法可以实现对FS2.0的大规模远程遍历，对FS2.0的备份和同步，提供基础遍历支持功能
+                      // 注意：FS2_PoolFrag的遍历机制必须分批进行
+                      GetMyFS_Client.FS2_PoolFragP(0, 100, procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array)
+                        var
+                          i: integer;
+                        begin
+                          for i := low(arry) to high(arry) do
+                              DoStatus(arry[i].FileName + ' md5:' + umlMD5ToStr(arry[i].MD5));
+                        end);
                     end);
                 end);
             end);
