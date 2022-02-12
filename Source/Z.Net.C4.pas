@@ -221,6 +221,16 @@ type
     { progress }
     procedure Progress;
   end;
+
+  TTemp_SearchServiceBridge = class
+  public
+    Pool: TC40_PhysicsTunnelPool;
+    FullConnection_: Boolean;
+    ServiceTyp: U_String;
+    OnEvent_: IC40_PhysicsTunnel_Event;
+    procedure Do_SearchService_Event(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
+  end;
+
 {$ENDREGION 'PhysicsTunnel'}
 {$REGION 'infoDefine'}
 
@@ -2340,15 +2350,20 @@ begin
     end;
 end;
 
-type
-  TTemp_SearchServiceBridge = class
-  public
-    Pool: TC40_PhysicsTunnelPool;
-    FullConnection_: Boolean;
-    ServiceTyp: U_String;
-    OnEvent_: IC40_PhysicsTunnel_Event;
-    procedure Do_SearchService_Event(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
-  end;
+procedure TC40_PhysicsTunnelPool.SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word; FullConnection_: Boolean;
+  const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event);
+var
+  tmp: TTemp_SearchServiceBridge;
+  Tunnel_: TC40_PhysicsTunnel;
+begin
+  tmp := TTemp_SearchServiceBridge.Create;
+  tmp.Pool := Self;
+  tmp.FullConnection_ := FullConnection_;
+  tmp.ServiceTyp := ServiceTyp;
+  tmp.OnEvent_ := OnEvent_;
+  Tunnel_ := GetOrCreatePhysicsTunnel(PhysicsAddr, PhysicsPort);
+  Tunnel_.QueryInfoM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchService_Event);
+end;
 
 procedure TTemp_SearchServiceBridge.Do_SearchService_Event(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
 var
@@ -2366,21 +2381,6 @@ begin
       Pool.GetOrCreatePhysicsTunnel(arry[0], ServiceTyp, OnEvent_);
     end;
   DelayFreeObj(1.0, Self);
-end;
-
-procedure TC40_PhysicsTunnelPool.SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word; FullConnection_: Boolean;
-  const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event);
-var
-  tmp: TTemp_SearchServiceBridge;
-  Tunnel_: TC40_PhysicsTunnel;
-begin
-  tmp := TTemp_SearchServiceBridge.Create;
-  tmp.Pool := Self;
-  tmp.FullConnection_ := FullConnection_;
-  tmp.ServiceTyp := ServiceTyp;
-  tmp.OnEvent_ := OnEvent_;
-  Tunnel_ := GetOrCreatePhysicsTunnel(PhysicsAddr, PhysicsPort);
-  Tunnel_.QueryInfoM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchService_Event);
 end;
 
 procedure TC40_PhysicsTunnelPool.Progress;
