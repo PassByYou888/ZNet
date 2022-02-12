@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * linear action                                                              * }
+{ * liner action                                                               * }
 { ****************************************************************************** }
 unit Z.LinearAction;
 
@@ -7,70 +7,74 @@ unit Z.LinearAction;
 
 interface
 
-uses Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
+uses
+{$IFDEF FPC}
+  Z.FPC.GenericList,
+{$ENDIF FPC}
+  Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
 
 type
-  TCoreActionID = Integer;
-  TCoreActionString = SystemString;
   TCoreActionState = (asPlaying, asPause, asStop, asOver);
   TCoreActionStates = set of TCoreActionState;
-  TCoreAction = class;
-  TCoreActionList = class;
-  TCoreActionLinear = class;
+  TLAction = class;
+  TLActionList = class;
+  TLAction_Linear = class;
 
-  TCoreAction = class(TCore_Object)
-  public
-    Owner: TCoreActionList;
+  TLAction = class
+  private
     State: TCoreActionStates;
-    ID: TCoreActionID;
-    Desc: TCoreActionString;
-
-    constructor Create(Owner_: TCoreActionList); virtual;
+  public
+    Owner: TLActionList;
+    constructor Create(Owner_: TLActionList); virtual;
     destructor Destroy; override;
-
     procedure Run(); virtual;
     procedure Over(); virtual;
+    procedure Done();
     procedure Stop(); virtual;
     procedure Pause(); virtual;
     procedure Progress(deltaTime: Double); virtual;
   end;
 
-  TCoreActionClass = class of TCoreAction;
+  TLActionClass = class of TLAction;
 
-  TCoreActionList = class(TCore_Object)
+  TLActionList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLAction>;
+
+  TLActionList = class
   protected
-    FSequenceList: TCore_ListForObj;
-    FFocusIndex: Integer;
-    FLast: TCoreAction;
+    FSequenceList: TLActionList_Decl;
+    FIndex: Integer;
+    FLast: TLAction;
   public
-    Owner: TCoreActionLinear;
-    constructor Create(Owner_: TCoreActionLinear);
+    Owner: TLAction_Linear;
+    constructor Create(Owner_: TLAction_Linear);
     destructor Destroy; override;
     procedure Clear;
-    function Add(ActionClass_: TCoreActionClass): TCoreAction; overload;
+    function Add(ActionClass_: TLActionClass): TLAction;
     procedure Run();
     procedure Over();
     procedure Stop();
     function IsOver(): Boolean;
     function IsStop(): Boolean;
-    property Last: TCoreAction read FLast;
+    property Last: TLAction read FLast;
     procedure Progress(deltaTime: Double);
   end;
 
-  TCoreActionLinear = class(TCore_Object)
+  TLActionList_Decl_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLActionList>;
+
+  TLAction_Linear = class
   protected
-    FSequenceList: TCore_ListForObj;
-    FFocusIndex: Integer;
-    FLast: TCoreActionList;
+    FSequenceList: TLActionList_Decl_List_Decl;
+    FIndex: Integer;
+    FLast: TLActionList;
   public
     constructor Create();
     destructor Destroy; override;
     procedure Clear;
-    function Add: TCoreActionList;
+    function Add: TLActionList;
     procedure Run();
     procedure Stop();
     procedure Over();
-    property Last: TCoreActionList read FLast;
+    property Last: TLActionList read FLast;
     procedure Progress(deltaTime: Double);
 
     class procedure Test();
@@ -78,65 +82,68 @@ type
 
 implementation
 
-constructor TCoreAction.Create(Owner_: TCoreActionList);
+constructor TLAction.Create(Owner_: TLActionList);
 begin
   inherited Create;
   Owner := Owner_;
   State := [];
-  ID := 0;
-  Desc := '';
 end;
 
-destructor TCoreAction.Destroy;
+destructor TLAction.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TCoreAction.Run;
+procedure TLAction.Run;
 begin
   State := [asPlaying];
 end;
 
-procedure TCoreAction.Over;
+procedure TLAction.Over;
 begin
   if asPlaying in State then
       State := [asOver];
 end;
 
-procedure TCoreAction.Stop;
+procedure TLAction.Done;
+begin
+  Over();
+end;
+
+procedure TLAction.Stop;
 begin
   if asPlaying in State then
       State := [asStop];
 end;
 
-procedure TCoreAction.Pause;
+procedure TLAction.Pause;
 begin
   if asPlaying in State then
       State := [asPlaying, asPause];
 end;
 
-procedure TCoreAction.Progress(deltaTime: Double);
+procedure TLAction.Progress(deltaTime: Double);
 begin
 
 end;
 
-constructor TCoreActionList.Create(Owner_: TCoreActionLinear);
+constructor TLActionList.Create(Owner_: TLAction_Linear);
 begin
   inherited Create;
-  FSequenceList := TCore_ListForObj.Create;
-  FFocusIndex := -1;
+  FSequenceList := TLActionList_Decl.Create;
+  FIndex := -1;
   FLast := nil;
   Owner := Owner_;
 end;
 
-destructor TCoreActionList.Destroy;
+destructor TLActionList.Destroy;
 begin
   Clear;
   DisposeObject(FSequenceList);
   inherited Destroy;
 end;
 
-procedure TCoreActionList.Clear;
+procedure TLActionList.Clear;
 var
   i: Integer;
 begin
@@ -145,54 +152,58 @@ begin
   FSequenceList.Clear;
 end;
 
-function TCoreActionList.Add(ActionClass_: TCoreActionClass): TCoreAction;
+function TLActionList.Add(ActionClass_: TLActionClass): TLAction;
 begin
   Result := ActionClass_.Create(Self);
   FSequenceList.Add(Result);
 end;
 
-procedure TCoreActionList.Run();
+procedure TLActionList.Run();
 begin
   if FSequenceList.Count > 0 then
     begin
-      FFocusIndex := 0;
-      FLast := FSequenceList[FFocusIndex] as TCoreAction;
+      FIndex := 0;
+      FLast := FSequenceList[FIndex] as TLAction;
     end
   else
     begin
-      FFocusIndex := -1;
+      FIndex := -1;
       FLast := nil;
     end;
 end;
 
-procedure TCoreActionList.Over;
+procedure TLActionList.Over;
 begin
   if FLast <> nil then
-      FFocusIndex := FSequenceList.Count;
+    begin
+      FIndex := FSequenceList.Count;
+      if Owner <> nil then
+          Owner.Over;
+    end;
 end;
 
-procedure TCoreActionList.Stop;
+procedure TLActionList.Stop;
 begin
   if FLast <> nil then
-      FFocusIndex := -1;
+      FIndex := -1;
 end;
 
-function TCoreActionList.IsOver: Boolean;
+function TLActionList.IsOver: Boolean;
 begin
-  Result := FFocusIndex >= FSequenceList.Count;
+  Result := FIndex >= FSequenceList.Count;
 end;
 
-function TCoreActionList.IsStop: Boolean;
+function TLActionList.IsStop: Boolean;
 begin
-  Result := FFocusIndex < 0;
+  Result := FIndex < 0;
 end;
 
-procedure TCoreActionList.Progress(deltaTime: Double);
+procedure TLActionList.Progress(deltaTime: Double);
 begin
-  if (FFocusIndex < 0) or (FFocusIndex >= FSequenceList.Count) then
+  if (FIndex < 0) or (FIndex >= FSequenceList.Count) then
       Exit;
 
-  FLast := FSequenceList[FFocusIndex] as TCoreAction;
+  FLast := FSequenceList[FIndex];
 
   if FLast.State = [] then
     begin
@@ -208,7 +219,7 @@ begin
 
   if asStop in FLast.State then
     begin
-      FFocusIndex := -1;
+      FIndex := -1;
       if Owner <> nil then
           Owner.Stop;
       Exit;
@@ -216,70 +227,70 @@ begin
 
   if asOver in FLast.State then
     begin
-      inc(FFocusIndex);
-      if (FFocusIndex >= FSequenceList.Count) and (Owner <> nil) then
+      inc(FIndex);
+      if (FIndex >= FSequenceList.Count) and (Owner <> nil) then
           Owner.Over;
       Exit;
     end;
 end;
 
-constructor TCoreActionLinear.Create();
+constructor TLAction_Linear.Create();
 begin
   inherited Create;
-  FSequenceList := TCore_ListForObj.Create;
-  FFocusIndex := -1;
+  FSequenceList := TLActionList_Decl_List_Decl.Create;
+  FIndex := -1;
   FLast := nil;
 end;
 
-destructor TCoreActionLinear.Destroy;
+destructor TLAction_Linear.Destroy;
 begin
   Clear;
   DisposeObject(FSequenceList);
   inherited Destroy;
 end;
 
-procedure TCoreActionLinear.Clear;
+procedure TLAction_Linear.Clear;
 var
   i: Integer;
 begin
   for i := FSequenceList.Count - 1 downto 0 do
       DisposeObject(FSequenceList[i]);
   FSequenceList.Clear;
-  FFocusIndex := -1;
+  FIndex := -1;
   FLast := nil;
 end;
 
-function TCoreActionLinear.Add: TCoreActionList;
+function TLAction_Linear.Add: TLActionList;
 begin
-  Result := TCoreActionList.Create(Self);
+  Result := TLActionList.Create(Self);
   FSequenceList.Add(Result);
 end;
 
-procedure TCoreActionLinear.Run;
+procedure TLAction_Linear.Run;
 begin
   if FSequenceList.Count > 0 then
     begin
-      FFocusIndex := 0;
-      FLast := FSequenceList[FFocusIndex] as TCoreActionList;
+      FIndex := 0;
+      FLast := FSequenceList[FIndex];
     end
   else
     begin
-      FFocusIndex := -1;
+      FIndex := -1;
       FLast := nil;
     end;
 end;
 
-procedure TCoreActionLinear.Stop;
+procedure TLAction_Linear.Stop;
 begin
   Clear;
 end;
 
-procedure TCoreActionLinear.Over;
+procedure TLAction_Linear.Over;
 begin
-  inc(FFocusIndex);
-  if FFocusIndex < FSequenceList.Count then
+  inc(FIndex);
+  if FIndex < FSequenceList.Count then
     begin
-      FLast := FSequenceList[FFocusIndex] as TCoreActionList;
+      FLast := FSequenceList[FIndex];
     end
   else
     begin
@@ -287,34 +298,29 @@ begin
     end;
 end;
 
-procedure TCoreActionLinear.Progress(deltaTime: Double);
+procedure TLAction_Linear.Progress(deltaTime: Double);
 begin
   if FLast <> nil then
       FLast.Progress(deltaTime);
 end;
 
-class procedure TCoreActionLinear.Test();
+class procedure TLAction_Linear.Test();
 var
-  al: TCoreActionList;
+  L: TLActionList;
   i: Integer;
 begin
-  al := TCoreActionList.Create(nil);
-  for i := 1 to 2 do
-    with al.Add(TCoreAction) do
-      begin
-        ID := i;
-        Desc := PFormat('description %d', [i]);
-      end;
-  al.Run;
+  L := TLActionList.Create(nil);
+  for i := 1 to 10 do
+      L.Add(TLAction);
+  L.Run;
   while True do
     begin
-      al.Progress(0.1);
-      al.Last.Over;
-      if al.IsOver or al.IsStop then
+      L.Progress(0.1);
+      L.Last.Over;
+      if L.IsOver or L.IsStop then
           Break;
     end;
-
-  DisposeObject(al);
+  DisposeObject(L);
 end;
 
 end.
