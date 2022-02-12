@@ -262,6 +262,7 @@ type
     property OnNoSpace: TZDB2_OnNoSpace read FOnNoSpace write FOnNoSpace;
 
     class procedure Test();
+    class procedure Test_Cache();
   end;
 
 implementation
@@ -1053,16 +1054,17 @@ begin
           FillPtr(Mem.Memory, p^.Size, 0);
           inc(FState.Cache, p^.Size);
         end;
+
       Mem.Position := 0;
       Mem.WritePtr(buff, siz);
       Mem.Position := 0;
+      if FlushThisCache_ then
+          p^.UsedSpace := siz;
       FlushThisCacheToFile := FlushThisCacheToFile or FlushThisCache_;
     end;
   Result := True;
   if FState.Cache > FMaxCacheMemory then
-    begin
-      Save();
-    end;
+      FlushCache();
 end;
 
 procedure TZDB2_Core_Space.DeleteCache(ID: Integer);
@@ -1806,6 +1808,7 @@ begin
                   ErrorInfo('WriteStream: read error.');
                   exit;
                 end;
+              UsedSpace := Size;
               if not WriteCacheBlock(SwapBuff_, Size, ID, True) then
                 begin
                   if not umlFileSeek(FSpace_IOHnd^, Position) then
@@ -1823,7 +1826,6 @@ begin
 
               dec(FState.FreeSpace, Size);
 
-              UsedSpace := Size;
               dec(tmp, Size);
               SpaceHnd[i] := ID;
               inc(i);
@@ -1835,6 +1837,7 @@ begin
                   ErrorInfo('WriteStream: read tail error.');
                   exit;
                 end;
+              UsedSpace := tmp;
               if not WriteCacheBlock(SwapBuff_, tmp, ID, True) then
                 begin
                   if not umlFileSeek(FSpace_IOHnd^, Position) then
@@ -1858,7 +1861,6 @@ begin
 
               dec(FState.FreeSpace, Size);
 
-              UsedSpace := tmp;
               SpaceHnd[i] := ID;
               inc(i);
               Result := True;
@@ -1964,6 +1966,7 @@ begin
       begin
         if tmp > Size then
           begin
+            UsedSpace := Size;
             if not WriteCacheBlock(p, Size, ID, True) then
               begin
                 if not umlFileSeek(FSpace_IOHnd^, Position) then
@@ -1980,7 +1983,6 @@ begin
 
             dec(FState.FreeSpace, Size);
 
-            UsedSpace := Size;
             dec(tmp, Size);
             p := GetOffset(p, Size);
             SpaceHnd[i] := ID;
@@ -1988,6 +1990,7 @@ begin
           end
         else
           begin
+            UsedSpace := tmp;
             if not WriteCacheBlock(p, tmp, ID, True) then
               begin
                 if not umlFileSeek(FSpace_IOHnd^, Position) then
@@ -2010,7 +2013,6 @@ begin
 
             dec(FState.FreeSpace, Size);
 
-            UsedSpace := tmp;
             SpaceHnd[i] := ID;
             inc(i);
             Result := True;
@@ -2313,19 +2315,18 @@ begin
 
         { safe remove }
         if SafeClean_ then
-          if not WriteCacheBlock(@ZDB2_NULL_Data, Size, ID, True) then
-            begin
-              if not umlFileSeek(FSpace_IOHnd^, Position) then
-                begin
-                  ErrorInfo('RemoveData: umlFileSeek error.');
-                  exit;
-                end;
-              if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size) then
-                begin
-                  ErrorInfo('RemoveData: umlBlockWrite error.');
-                  exit;
-                end;
-            end;
+          begin
+            if not umlFileSeek(FSpace_IOHnd^, Position) then
+              begin
+                ErrorInfo('RemoveData: umlFileSeek error.');
+                exit;
+              end;
+            if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size) then
+              begin
+                ErrorInfo('RemoveData: umlBlockWrite error.');
+                exit;
+              end;
+          end;
 
         inc(i);
       end;
@@ -2671,6 +2672,39 @@ begin
     end;
   DisposeObject(testList);
   DisposeObject(Cipher_);
+end;
+
+class procedure TZDB2_Core_Space.Test_Cache;
+var
+  sour: TMS64;
+  hnd1: TIOHnd;
+  space1: TZDB2_Core_Space;
+  ID: Integer;
+  id_buff: TZDB2_BlockHandle;
+  tmp: TMS64;
+begin
+  sour := TMS64.Create;
+  sour.Size := 1024 * 1024 * 2;
+  MT19937Rand32(MaxInt, sour.Memory, sour.Size div 4);
+
+  DoStatus('sour md5:%s', [umlMD5ToStr(sour.ToMD5).Text]);
+
+  InitIOHnd(hnd1);
+  umlFileCreateAsMemory(hnd1);
+
+  space1 := TZDB2_Core_Space.Create(@hnd1);
+  space1.AutoCloseIOHnd := True;
+  space1.MaxCacheMemory := 1024 * 1024;
+  space1.BuildSpace(8 * 1024 * 1024, 1536);
+  space1.WriteStream(sour, id_buff);
+  space1.FlushCache;
+
+  tmp := TMS64.Create;
+  space1.ReadStream(tmp, id_buff);
+  DoStatus('read md5:%s', [umlMD5ToStr(tmp.ToMD5).Text]);
+
+  DisposeObject(space1);
+  SetLength(id_buff, 0);
 end;
 
 initialization
