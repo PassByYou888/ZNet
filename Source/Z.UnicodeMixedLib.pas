@@ -523,6 +523,7 @@ type
   PMD5 = ^TMD5;
   TMD5 = array [0 .. 15] of Byte;
   TMD5_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
+  TArrayMD5 = array of TMD5;
 
 const
   NullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
