@@ -527,7 +527,7 @@ var
   destBuff: PByte;
   phy_io: TPeerIO;
 begin
-  FillBuff(InData, DataSize, remote_id, local_id, destSiz, destBuff);
+  ExtractBuff(InData, DataSize, remote_id, local_id, destSiz, destBuff);
   phy_io := Protocol.PeerIO[local_id];
 
   if phy_io <> nil then

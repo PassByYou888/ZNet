@@ -409,7 +409,7 @@ var
   destBuff: PByte;
   x_io: TXNAT_MappingOnVirutalService_IO;
 begin
-  FillBuff(InData, DataSize, Remote_ID, local_id, destSiz, destBuff);
+  ExtractBuff(InData, DataSize, Remote_ID, local_id, destSiz, destBuff);
   x_io := TXNAT_MappingOnVirutalService_IO(PeerIO[local_id]);
   if x_io <> nil then
     begin

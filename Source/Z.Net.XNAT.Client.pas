@@ -326,7 +326,7 @@ var
   destBuff: PByte;
   phy_io: TXClientCustomProtocol;
 begin
-  FillBuff(InData, DataSize, Remote_id, local_id, destSiz, destBuff);
+  ExtractBuff(InData, DataSize, Remote_id, local_id, destSiz, destBuff);
 
   phy_io := TXClientCustomProtocol(ProtocolHash[local_id]);
   if phy_io <> nil then
