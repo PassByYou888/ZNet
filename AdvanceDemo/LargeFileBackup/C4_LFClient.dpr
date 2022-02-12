@@ -53,11 +53,11 @@ begin
   DoStatus('"-D/-Down/-Download:file" download from remote.');
   DoStatus('"-T/-To/-Dest:file" download to local/remote.');
   DoStatus('');
-  DoStatus('custom upload my file examples');
-  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-U:.\mydatabase.ox2" "-s:1024*1024" "-T:my_remote_backup.ox2"', [_Internet_Port]);
+  DoStatus('custom upload my file examples, hint: Split 1024*1024=1M fragments file to upload');
+  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-U:c:\mydatabase.ox2" "-s:1024*1024" "-T:my_remote_backup.ox2"', [_Internet_Port]);
   DoStatus('');
   DoStatus('custom download my file examples');
-  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-D:my_remote_backup.ox2" "-T:.\mydatabase.ox2"', [_Internet_Port]);
+  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-D:my_remote_backup.ox2" "-T:c:\mydatabase.ox2"', [_Internet_Port]);
   DoStatus('');
 end;
 
@@ -131,7 +131,7 @@ begin
 end;
 
 type
-  // TLAction是线性事件模型，用于处理线性流程，例如流程为，1,2,3,4,5，TLActon可以按次序逐步执行
+  // TLAction是线性事件模型，用于处理线性流程，例如流程为，1,2,3,4,5，TLActon可以按次序逐步执行触发事件
   // TSplit_Upload_Action的作用是实现序列化分块上传
   TSplit_Upload_Action = class(TLAction)
   public
@@ -186,7 +186,7 @@ end;
 
 type
   // TSplit_Upload_Done_Action的作用是给已上传的数据生成碎片索引，然后，再以文件方式上传
-  // 后面要下载时，先下这个索引，然后再下碎片，组合碎片
+  // 后面要下载时，先下这个索引，然后再下碎片，最后组合碎片，完成文件下载
   TSplit_Upload_Done_Action = class(TLAction)
   public
     LClient: TC40_FS2_Client;
@@ -235,6 +235,7 @@ begin
 end;
 
 type
+  // TDownload_Action的作用是下载碎片，然后写入目标文件
   TDownload_Action = class(TLAction)
   public
     LClient: TC40_FS2_Client;
@@ -268,7 +269,7 @@ begin
       LFS.Position := LPos;
       Stream.Position := 0;
       LFS.CopyFrom(Stream, Stream.Size);
-      DoStatus('done download pos:%d size:%d md5:%s', [LPos, Stream.Size, umlMD5ToStr(Stream.ToMD5).Text]);
+      DoStatus('done download pos:%d size:%d', [LPos, Stream.Size]);
       Done;
     end
   else
@@ -295,10 +296,13 @@ end;
 
 procedure TDownload_Successed_Action.Run();
 begin
+  // 关闭目标文件
   DisposeObject(LFS);
+  // 这两步是操作Linear模型
   inherited Run();
   Done;
   DoStatus('done download "%s" -> "%s"', [_Download_File.Text, _To_Dest_File.Text]);
+  // 下载完成，退出主循环
   _Exit_Signal := True;
 end;
 
@@ -320,6 +324,7 @@ begin
         DoStatus('begin download "%s"', [_To_Dest_File.Text]);
         while d.R.NotEnd do
           begin
+            // 把碎片仍给Linear模型，让他依次下载
             DA := _L_Action.Add(TDownload_Action) as TDownload_Action;
             DA.LClient := Sender;
             DA.LFS := FS;
@@ -380,6 +385,7 @@ begin
     end
   else if _Is_Download then
     begin
+      // 下索引文件
       Client.FS2_GetFile_C(True, _Download_File, Do_Download_Index_Done);
     end
   else
@@ -411,10 +417,10 @@ begin
         Format('Tunnel("%s",%d,"FS2")', [_Internet_IP_Or_DNS_Address.Text, _Internet_Port])
         ];
 
-      Z.Net.C4.C40_ClientPool.WaitConnectedDoneC('FS2', @Do_Wait_FS2_Connected_Done);
-
       if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
         begin
+          Z.Net.C4.C40_ClientPool.WaitConnectedDoneC('FS2', @Do_Wait_FS2_Connected_Done);
+
           _Exit_Signal := False;
           while not _Exit_Signal do
             begin
