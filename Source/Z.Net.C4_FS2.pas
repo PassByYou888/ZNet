@@ -1010,6 +1010,8 @@ var
   tmp_Time_: TDateTime;
   Cache: TFS2_Client_CacheData;
 begin
+  if Sender = nil then
+      exit;
   Stream.Position := 0;
   tmp_File_Name_ := Stream.ReadString;
   tmp_Time_ := Stream.ReadDouble;
@@ -1167,6 +1169,8 @@ procedure TFS2_Temp_Get_File_Tunnel.DoP2PVM_CloneConnectAndGetFile(Sender: TZNet
 var
   d: TDFE;
 begin
+  if Sender = nil then
+      exit;
   p2pClient := Sender;
   Sender.RegisterCompleteBuffer('Save').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Save;
   Sender.RegisterDirectConsole('Error').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Error;
