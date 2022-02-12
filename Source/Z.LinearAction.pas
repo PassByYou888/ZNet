@@ -11,7 +11,7 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
+  Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Cadencer;
 
 type
   TCoreActionState = (asPlaying, asPause, asStop, asOver);
@@ -44,6 +44,8 @@ type
     FSequenceList: TLActionList_Decl;
     FIndex: Integer;
     FLast: TLAction;
+    FCadender: TCadencer;
+    procedure Do_CadencerProgress(Sender: TObject; const deltaTime, newTime: Double);
   public
     Owner: TLAction_Linear;
     constructor Create(Owner_: TLAction_Linear);
@@ -56,16 +58,20 @@ type
     function IsOver(): Boolean;
     function IsStop(): Boolean;
     property Last: TLAction read FLast;
-    procedure Progress(deltaTime: Double);
+    procedure Progress(deltaTime: Double); overload;
+    procedure Progress; overload;
+    property List: TLActionList_Decl read FSequenceList;
   end;
 
   TLActionList_Decl_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLActionList>;
 
   TLAction_Linear = class
   protected
-    FSequenceList: TLActionList_Decl_List_Decl;
+    FLinear_List: TLActionList_Decl_List_Decl;
     FIndex: Integer;
     FLast: TLActionList;
+    FCadender: TCadencer;
+    procedure Do_CadencerProgress(Sender: TObject; const deltaTime, newTime: Double);
   public
     constructor Create();
     destructor Destroy; override;
@@ -75,7 +81,9 @@ type
     procedure Stop();
     procedure Over();
     property Last: TLActionList read FLast;
-    procedure Progress(deltaTime: Double);
+    procedure Progress(deltaTime: Double); overload;
+    procedure Progress; overload;
+    property List: TLActionList_Decl_List_Decl read FLinear_List;
 
     class procedure Test();
   end;
@@ -127,19 +135,26 @@ begin
 
 end;
 
+procedure TLActionList.Do_CadencerProgress(Sender: TObject; const deltaTime, newTime: Double);
+begin
+  Progress(deltaTime);
+end;
+
 constructor TLActionList.Create(Owner_: TLAction_Linear);
 begin
   inherited Create;
   FSequenceList := TLActionList_Decl.Create;
   FIndex := -1;
   FLast := nil;
+  FCadender := nil;
   Owner := Owner_;
 end;
 
 destructor TLActionList.Destroy;
 begin
   Clear;
-  DisposeObject(FSequenceList);
+  DisposeObjectAndNil(FCadender);
+  DisposeObjectAndNil(FSequenceList);
   inherited Destroy;
 end;
 
@@ -234,18 +249,35 @@ begin
     end;
 end;
 
+procedure TLActionList.Progress;
+begin
+  if FCadender = nil then
+    begin
+      FCadender := TCadencer.Create;
+      FCadender.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}Do_CadencerProgress;
+    end;
+  FCadender.Progress;
+end;
+
+procedure TLAction_Linear.Do_CadencerProgress(Sender: TObject; const deltaTime, newTime: Double);
+begin
+  Progress(deltaTime);
+end;
+
 constructor TLAction_Linear.Create();
 begin
   inherited Create;
-  FSequenceList := TLActionList_Decl_List_Decl.Create;
+  FLinear_List := TLActionList_Decl_List_Decl.Create;
   FIndex := -1;
   FLast := nil;
+  FCadender := nil;
 end;
 
 destructor TLAction_Linear.Destroy;
 begin
   Clear;
-  DisposeObject(FSequenceList);
+  DisposeObjectAndNil(FCadender);
+  DisposeObjectAndNil(FLinear_List);
   inherited Destroy;
 end;
 
@@ -253,9 +285,9 @@ procedure TLAction_Linear.Clear;
 var
   i: Integer;
 begin
-  for i := FSequenceList.Count - 1 downto 0 do
-      DisposeObject(FSequenceList[i]);
-  FSequenceList.Clear;
+  for i := FLinear_List.Count - 1 downto 0 do
+      DisposeObject(FLinear_List[i]);
+  FLinear_List.Clear;
   FIndex := -1;
   FLast := nil;
 end;
@@ -263,15 +295,15 @@ end;
 function TLAction_Linear.Add: TLActionList;
 begin
   Result := TLActionList.Create(Self);
-  FSequenceList.Add(Result);
+  FLinear_List.Add(Result);
 end;
 
 procedure TLAction_Linear.Run;
 begin
-  if FSequenceList.Count > 0 then
+  if FLinear_List.Count > 0 then
     begin
       FIndex := 0;
-      FLast := FSequenceList[FIndex];
+      FLast := FLinear_List[FIndex];
     end
   else
     begin
@@ -288,9 +320,9 @@ end;
 procedure TLAction_Linear.Over;
 begin
   inc(FIndex);
-  if FIndex < FSequenceList.Count then
+  if FIndex < FLinear_List.Count then
     begin
-      FLast := FSequenceList[FIndex];
+      FLast := FLinear_List[FIndex];
     end
   else
     begin
@@ -302,6 +334,16 @@ procedure TLAction_Linear.Progress(deltaTime: Double);
 begin
   if FLast <> nil then
       FLast.Progress(deltaTime);
+end;
+
+procedure TLAction_Linear.Progress;
+begin
+  if FCadender = nil then
+    begin
+      FCadender := TCadencer.Create;
+      FCadender.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}Do_CadencerProgress;
+    end;
+  FCadender.Progress;
 end;
 
 class procedure TLAction_Linear.Test();
