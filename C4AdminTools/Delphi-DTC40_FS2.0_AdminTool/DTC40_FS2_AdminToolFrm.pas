@@ -280,7 +280,7 @@ begin
           itm.Busy := True;
           itm.SaveDirectory := d;
           CurrentClient.FS2_GetFile_M(True, itm.FileName, itm.Do_FS_GetFile_Done);
-          itm.SubItems[3] := 'busy.';
+          itm.SubItems[4] := 'busy.';
         end;
     end;
 end;
