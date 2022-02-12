@@ -317,7 +317,7 @@ begin
   except
   end;
   L.Clean;
-  DisposeObject(L);
+  DelayFreeObject(1.0, Self, L);
 end;
 
 procedure TON_Get_XNAT_Mapping.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
@@ -335,7 +335,7 @@ begin
   except
   end;
   L.Clean;
-  DisposeObject(L);
+  DelayFreeObject(1.0, Self, L);
 end;
 
 constructor TXNAT_C4_VS_Mapping.Create(Owner_: TC40_XNAT_Client_Tool);
