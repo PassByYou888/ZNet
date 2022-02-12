@@ -955,6 +955,7 @@ begin
     ZDB2DeltaSpace,
     ZDB2BlockSize,
     ZDB2Cipher);
+  Cache.CoreSpace.Mode := smBigData;
   Cache.AutoFreeStream := True;
 
   FMaxFileSize := 0;

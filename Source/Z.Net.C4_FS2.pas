@@ -445,6 +445,15 @@ begin
   FL_ := MD5Pool[umlMD5ToStr(FileMD5_)];
   if FL_ <> nil then
     begin
+      // check
+      for i := 0 to FL_.Count - 1 do
+        if FL_[i].Same(@fileName_) then
+          begin
+            OutData.WriteBool(True);
+            exit;
+          end;
+
+      // fast copy
       for i := 0 to FL_.Count - 1 do
         begin
           fd := FileHashPool[FL_[i]];
@@ -1584,6 +1593,7 @@ begin
     ZDB2DeltaSpace,
     ZDB2BlockSize,
     ZDB2Cipher);
+  Cache.CoreSpace.Mode := smBigData;
   Cache.AutoFreeStream := True;
 
   FMaxFileSize := 0;
