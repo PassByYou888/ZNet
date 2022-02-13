@@ -110,7 +110,7 @@ type
   public
     Remote_XNAT_Host, Remote_XNAT_Port, Remote_XNAT_Auth: U_String;
     XNAT_VS_List: TXNAT_VS_Mapping_List_Decl;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
 
@@ -428,9 +428,9 @@ begin
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_XNAT_Service', nil, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_XNAT_Service);
 end;
 
-constructor TC40_XNAT_Client_Tool.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_XNAT_Client_Tool.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   Remote_XNAT_Host := '';
   Remote_XNAT_Port := '';
   Remote_XNAT_Auth := '';

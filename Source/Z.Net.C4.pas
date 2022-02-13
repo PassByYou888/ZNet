@@ -272,7 +272,7 @@ type
     function SamePhysicsAddr(Data_: TC40_PhysicsService): Boolean; overload;
     function SameP2PVMAddr(Data_: TC40_Info): Boolean;
     function ReadyC40Client: Boolean;
-    function GetOrCreateC40Client(Param_: U_String): TC40_Custom_Client;
+    function GetOrCreateC40Client(PhysicsTunnel_: TC40_PhysicsTunnel; Param_: U_String): TC40_Custom_Client;
   end;
 
   TC40_InfoList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Info>;
@@ -364,7 +364,7 @@ type
     SafeCheckTime: TTimeTick;
     ClientInfo: TC40_Info;
     C40PhysicsTunnel: TC40_PhysicsTunnel;
-    constructor Create(source_: TC40_Info; Param_: U_String); virtual;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
     procedure Progress; virtual;
@@ -504,7 +504,7 @@ type
   public
     Client: TDT_P2PVM_NoAuth_Custom_Client;
     ServiceInfoList: TC40_InfoList;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -560,7 +560,7 @@ type
     Client: TDT_P2PVM_NoAuth_Custom_Client;
     DTNoAuthClient: TDTClient_NoAuth;
     property DTNoAuth: TDTClient_NoAuth read DTNoAuthClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -588,7 +588,7 @@ type
     Client: TDT_P2PVM_NoAuth_Custom_Client;
     DTNoAuthClient: TDataStoreClient_NoAuth;
     property DTNoAuth: TDataStoreClient_NoAuth read DTNoAuthClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -623,7 +623,7 @@ type
     UserName, Password: U_String;
     NoDTLink: Boolean;
     property DTVirtualAuth: TDTClient_VirtualAuth read DTVirtualAuthClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -656,7 +656,7 @@ type
     UserName, Password: U_String;
     NoDTLink: Boolean;
     property DTVirtualAuth: TDataStoreClient_VirtualAuth read DTVirtualAuthClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -691,7 +691,7 @@ type
     UserName, Password: U_String;
     NoDTLink: Boolean;
     property DT: TDTClient read DTClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -723,7 +723,7 @@ type
     UserName, Password: U_String;
     NoDTLink: Boolean;
     property DT: TDataStoreClient read DTClient;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect; override;
@@ -1596,7 +1596,7 @@ begin
         if L[j].SamePhysicsAddr(Sender) and L[j].ServiceTyp.Same(@Sender.DependNetworkInfoArray[i].Typ) and
           (not Sender.DependNetworkClientPool.ExistsServiceInfo(L[j])) then
           begin
-            tmp := L[j].GetOrCreateC40Client(Sender.DependNetworkInfoArray[i].Param);
+            tmp := L[j].GetOrCreateC40Client(Sender, Sender.DependNetworkInfoArray[i].Param);
             if tmp <> nil then
               begin
                 Sender.PhysicsTunnel.Print('build "%s" network done.', [L[j].ServiceTyp.Text]);
@@ -2589,14 +2589,14 @@ begin
   Result := (p <> nil) and (p^.ClientClass <> nil);
 end;
 
-function TC40_Info.GetOrCreateC40Client(Param_: U_String): TC40_Custom_Client;
+function TC40_Info.GetOrCreateC40Client(PhysicsTunnel_: TC40_PhysicsTunnel; Param_: U_String): TC40_Custom_Client;
 var
   p: PC40_RegistedData;
   i: Integer;
 begin
   Result := nil;
-  for i := 0 to C40_ClientPool.Count - 1 do
-    if Same(C40_ClientPool[i].ClientInfo) then
+  for i := 0 to PhysicsTunnel_.DependNetworkClientPool.Count - 1 do
+    if Same(PhysicsTunnel_.DependNetworkClientPool[i].ClientInfo) then
       begin
         Result := C40_ClientPool[i];
         exit;
@@ -2604,7 +2604,7 @@ begin
 
   p := FindRegistedC40(ServiceTyp);
   if p <> nil then
-      Result := p^.ClientClass.Create(Self, Param_);
+      Result := p^.ClientClass.Create(PhysicsTunnel_, Self, Param_);
 end;
 
 constructor TC40_InfoList.Create(AutoFree_: Boolean);
@@ -3181,7 +3181,7 @@ begin
 
 end;
 
-constructor TC40_Custom_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Custom_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 var
   tmp: TPascalStringList;
 begin
@@ -3203,9 +3203,13 @@ begin
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
 
-  C40_ClientPool.Add(Self);
-  C40PhysicsTunnel := C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ClientInfo);
+  if PhysicsTunnel_ = nil then
+      C40PhysicsTunnel := C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ClientInfo)
+  else
+      C40PhysicsTunnel := PhysicsTunnel_;
   C40PhysicsTunnel.DependNetworkClientPool.Add(Self);
+
+  C40_ClientPool.Add(Self);
 end;
 
 destructor TC40_Custom_Client.Destroy;
@@ -4124,11 +4128,11 @@ begin
       C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
 end;
 
-constructor TC40_Dispatch_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Dispatch_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 var
   i: Integer;
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   FOnServiceInfoChange := nil;
   DelayCheck_Working := False;
 
@@ -4357,9 +4361,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_NoAuth_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_NoAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_NoAuth_Custom_Client.Create(
     TDTClient_NoAuth, C40PhysicsTunnel.PhysicsTunnel,
@@ -4445,9 +4449,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_DataStoreNoAuth_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_DataStoreNoAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_NoAuth_Custom_Client.Create(
     TDataStoreClient_NoAuth, C40PhysicsTunnel.PhysicsTunnel,
@@ -4552,9 +4556,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_VirtualAuth_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_VirtualAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_VirtualAuth_Custom_Client.Create(
     TDTClient_VirtualAuth, C40PhysicsTunnel.PhysicsTunnel,
@@ -4672,9 +4676,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_DataStoreVirtualAuth_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_DataStoreVirtualAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_VirtualAuth_Custom_Client.Create(
     TDataStoreClient_VirtualAuth, C40PhysicsTunnel.PhysicsTunnel,
@@ -4789,9 +4793,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_Custom_Client.Create(
     TDTClient, C40PhysicsTunnel.PhysicsTunnel,
@@ -4907,9 +4911,9 @@ begin
   DoClientConnected();
 end;
 
-constructor TC40_Base_DataStore_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Base_DataStore_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_Custom_Client.Create(
     TDataStoreClient, C40PhysicsTunnel.PhysicsTunnel,

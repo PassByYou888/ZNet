@@ -54,7 +54,7 @@ type
 
   TC40_RandSeed_Client = class(TC40_Base_NoAuth_Client)
   public
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
 
     procedure MakeSeed_C(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedC);
@@ -167,9 +167,9 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TC40_RandSeed_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_RandSeed_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
 end;
 
 destructor TC40_RandSeed_Client.Destroy;

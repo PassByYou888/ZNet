@@ -65,7 +65,7 @@ type
   private
     procedure cmd_Rewrite_Status(Sender: TPeerIO; InData: SystemString);
   public
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
 
@@ -221,9 +221,9 @@ begin
   DoStatus(InData);
 end;
 
-constructor TC40_Pascal_Rewrite_Tool.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Pascal_Rewrite_Tool.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   DTNoAuthClient.RecvTunnel.RegisterDirectConsole('Rewrite_Status').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Rewrite_Status;
   DTNoAuth.SendTunnel.SendDataCompressed := True;
 end;

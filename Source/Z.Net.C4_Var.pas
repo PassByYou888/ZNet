@@ -209,7 +209,7 @@ type
     NMBigPool: TVAR_Service_NMBigPool;
     OnChange: TOnC40_Var_Client_NM_Change;
     OnRemove: TOnC40_Var_Client_NM_Remove_Event;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     function GetNM(Name_: U_String): TC40_VarService_NM_Pool;
@@ -1333,9 +1333,9 @@ begin
   NMBigPool.Delete(InData);
 end;
 
-constructor TC40_Var_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Var_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('NM_Change').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Change;
   DTNoAuthClient.RecvTunnel.RegisterDirectConsole('NM_Remove').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Remove;
   NMBigPool := TVAR_Service_NMBigPool.Create(True, 1024, nil);

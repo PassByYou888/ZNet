@@ -312,7 +312,7 @@ type
     procedure cmd_Usr_Kick(Sender: TPeerIO; InData: TDFE);
   public
     ON_C40_UserDB_Client_Notify: I_ON_C40_UserDB_Client_Notify;
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
 
     // IM
@@ -2055,9 +2055,9 @@ begin
   end;
 end;
 
-constructor TC40_UserDB_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_UserDB_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('Usr_Msg').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Usr_Msg;
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('Usr_Open').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Usr_Open;
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('Usr_Close').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Usr_Close;

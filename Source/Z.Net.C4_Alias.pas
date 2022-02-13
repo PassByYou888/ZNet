@@ -66,7 +66,7 @@ type
 
   TC40_Alias_Client = class(TC40_Base_NoAuth_Client)
   public
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure SetAlias(Name_, Hash_: U_String); overload;
@@ -288,9 +288,9 @@ begin
   DelayFreeObject(1.0, self, NameKey_);
 end;
 
-constructor TC40_Alias_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_Alias_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
 end;
 
 destructor TC40_Alias_Client.Destroy;

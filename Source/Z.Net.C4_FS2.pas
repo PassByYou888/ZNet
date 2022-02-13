@@ -337,7 +337,7 @@ type
     property Remote_FS_DB_Size: Int64 read FRemote_FS_DB_Size;
     property Remote_FS_Num: Int64 read FRemote_FS_Num;
 
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
@@ -1549,11 +1549,11 @@ begin
   FRemote_FS_Num := InData.R.ReadInt64;
 end;
 
-constructor TC40_FS2_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_FS2_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 var
   i: Integer;
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('FS_State').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_State;
   FRemote_FS_DB_Size := 0;
   FRemote_FS_Num := 0;

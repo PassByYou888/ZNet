@@ -237,7 +237,7 @@ type
     Cache: TZDB2_List_MS64;
     property MaxFileSize: Cardinal read FMaxFileSize;
 
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
@@ -914,11 +914,11 @@ begin
       FRemoveCacheList.Add(Name_^);
 end;
 
-constructor TC40_FS_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TC40_FS_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 var
   i: Integer;
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   C40_FS_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
     PFormat('DTC40_FS_Cache_%s_%s.tmp', [source_.ServiceTyp.Text, umlMD5ToStr(source_.Hash).Text]));
   i := 1;
