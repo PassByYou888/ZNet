@@ -40,16 +40,14 @@ begin
   exit_signal := True;
 end;
 
-const
-  _Internet_IP_Or_DNS_Address = '127.0.0.1';
-
 begin
   // 大规模文件传输服务含有文件数据库
   // console方式不要直接关闭
   // 本服务器可以直接copy代码到laz环境构建成IOT,linux系统，注意：在fpc-console应用是无法使用LCL的，必须是NoUI程序，C4可以支持No LCL应用环境
   Z.Net.C4_Console_APP.C40AppParsingTextStyle := TTextStyle.tsC;
   Z.Net.C4_Console_APP.C40AppParam := [
-    Format('Service("0.0.0.0","%s",9188,"DP|FS2")', [_Internet_IP_Or_DNS_Address])
+    Format('Service("0.0.0.0","%s",9188,"DP")', ['127.0.0.1']),
+    Format('Service("0.0.0.0","%s",9189,"FS2")', ['127.0.0.1'])
     ];
 
   DoStatus('Prepare service.');
