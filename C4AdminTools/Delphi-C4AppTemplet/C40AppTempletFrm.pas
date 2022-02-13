@@ -348,7 +348,7 @@ end;
 
 procedure TC40AppTempletForm.BuildDependNetButtonClick(Sender: TObject);
 begin
-  Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(JoinHostEdit.Text, EStrToInt(JoinPortEdit.Text, 0), DependEdit.Text, On_C40_PhysicsTunnel_Event);
+  Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(JoinHostEdit.Text, EStrToInt(JoinPortEdit.Text, 0), False, DependEdit.Text, On_C40_PhysicsTunnel_Event);
 end;
 
 procedure TC40AppTempletForm.resetDependButtonClick(Sender: TObject);
@@ -399,6 +399,7 @@ begin
   with Z.Net.C4.TC40_PhysicsService.Create(ServListeningIPEdit.Text,
     ServIPEdit.Text, EStrToInt(ServPortEdit.Text, 0), Z.Net.PhysicsIO.TPhysicsServer.Create) do
     begin
+      AutoFreePhysicsTunnel:=True;
       BuildDependNetwork(ServiceDependEdit.Text);
       OnEvent := On_C40_PhysicsService_Event;
       StartService;

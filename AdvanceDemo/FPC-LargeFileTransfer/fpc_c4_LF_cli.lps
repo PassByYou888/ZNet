@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="11"/>
+    <BuildModes Active="Default"/>
+    <Units Count="3">
+      <Unit0>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <CursorPos X="7" Y="7"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="..\..\Source\Z.Core.pas"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="10" Y="6"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\..\Source\Z.Define.inc"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit2>
+    </Units>
+    <JumpHistory Count="6" HistoryIndex="5">
+      <Position1>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="182" Column="63" TopLine="155"/>
+      </Position1>
+      <Position2>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="227" Column="59" TopLine="201"/>
+      </Position2>
+      <Position3>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="275" Column="55" TopLine="251"/>
+      </Position3>
+      <Position4>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="370" Column="65" TopLine="351"/>
+      </Position4>
+      <Position5>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="7" Column="7"/>
+      </Position5>
+      <Position6>
+        <Filename Value="..\..\Source\Z.Core.pas"/>
+        <Caret Line="6" Column="10"/>
+      </Position6>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="0" ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

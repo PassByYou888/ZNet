@@ -267,8 +267,8 @@ begin
               begin
                 net_info_ := cmd_script_.Client_NetInfo_List[i];
 
-                Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(
-                  net_info_.ip, net_info_.port, net_info_.depend, On_C40_PhysicsTunnel_Event);
+                Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(
+                  net_info_.ip, net_info_.port, False, net_info_.depend, On_C40_PhysicsTunnel_Event);
 
                 IsInited_ := True;
               end;
