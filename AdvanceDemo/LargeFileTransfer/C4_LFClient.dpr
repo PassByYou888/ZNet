@@ -181,6 +181,7 @@ begin
   m64.CopyFrom(FS, LSiz);
   DisposeObject(FS);
   LMD5 := m64.ToMD5;
+  m64.SaveToFile(umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(LMD5).Text])));
   LClient.FS2_PostFile_M(True, umlMD5ToStr(LMD5), m64, True, Do_FS2_PostFile_Done);
 end;
 
@@ -223,6 +224,7 @@ begin
   m64 := TMS64.Create;
   d.EncodeAsZLib(m64, False);
   DisposeObject(d);
+  m64.SaveToFile(umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(m64.ToMD5).Text])));
   LClient.FS2_PostFile_M(True, _To_Dest_File, m64, True, Do_FS2_PostFile_Done);
 end;
 
@@ -257,18 +259,38 @@ begin
 end;
 
 procedure TDownload_Action.Run();
+var
+  cache_f: U_String;
+  m64: TMS64;
 begin
-  LClient.FS2_GetFile_M(True, umlMD5ToStr(LMD5), Do_Download_Fragment_Done);
   inherited Run();
+  cache_f := umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(LMD5).Text]));
+  if umlFileExists(cache_f) then
+    begin
+      m64 := TMS64.Create;
+      m64.LoadFromFile(cache_f);
+      m64.Position := 0;
+      Do_Download_Fragment_Done(LClient, m64, umlGetFileName(cache_f), True);
+      DisposeObject(m64);
+    end
+  else
+    begin
+      LClient.FS2_GetFile_M(True, umlMD5ToStr(LMD5), Do_Download_Fragment_Done);
+    end;
 end;
 
 procedure TDownload_Action.Do_Download_Fragment_Done(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
+var
+  cache_f: U_String;
 begin
   if Successed then
     begin
+      cache_f := umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(Stream.ToMD5).Text]));
       LFS.Position := LPos;
       Stream.Position := 0;
       LFS.CopyFrom(Stream, Stream.Size);
+      if not umlFileExists(cache_f) then
+          Stream.SaveToFile(cache_f);
       DoStatus('done download pos:%d size:%d', [LPos, Stream.Size]);
       Done;
     end
