@@ -80,7 +80,7 @@ type
     procedure cmd_userOffline(sender: TPeerIO; InData: SystemString);
     procedure cmd_userRequestFriend(sender: TPeerIO; InData: SystemString);
   public
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure NewLoginName_C(NewLogin_Name_: U_String; OnResult: TON_Usr_NewLoginNameC);
     procedure NewLoginName_M(NewLogin_Name_: U_String; OnResult: TON_Usr_NewLoginNameM);
@@ -255,9 +255,9 @@ begin
   _3_Auth_IM_Client_Form.RequestFriendMemo.Lines.Add(PFormat('请求加为好友 %s', [InData]));
 end;
 
-constructor TMyVA_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TMyVA_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
   DTVirtualAuthClient.RecvTunnel.RegisterDirectConsole('userMsg').OnExecute := cmd_userMsg;
   DTVirtualAuthClient.RecvTunnel.RegisterDirectConsole('userOnline').OnExecute := cmd_userOnline;
   DTVirtualAuthClient.RecvTunnel.RegisterDirectConsole('userOffline').OnExecute := cmd_userOffline;
