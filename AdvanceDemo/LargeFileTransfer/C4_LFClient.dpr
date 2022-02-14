@@ -28,16 +28,16 @@ uses
   Z.LinearAction;
 
 var
-  _Exit_Signal: Boolean;
-  _Internet_IP_Or_DNS_Address: U_String;
-  _Internet_Port: WORD;
-  _Upload_File: U_String;
-  _Upload_Split: Int64;
-  _Download_File: U_String;
-  _To_Dest_File: U_String;
-  _Is_Download: Boolean;
-  _Is_Upload: Boolean;
-  _L_Action: TLActionList;
+  Exit_Signal: Boolean;
+  Internet_IP_Or_DNS_Address: U_String;
+  Internet_Port: WORD;
+  Upload_File: U_String;
+  Upload_Split: Int64;
+  Download_File: U_String;
+  To_Dest_File: U_String;
+  Is_Download: Boolean;
+  Is_Upload: Boolean;
+  L_Action: TLActionList;
 
 procedure DoHelp;
 begin
@@ -47,17 +47,17 @@ begin
   DoStatus('');
   DoStatus('"-H" help info.');
   DoStatus('"-I/-IP:ip/dns" LF-Service host', []);
-  DoStatus('"-P/-Port:port" LF-Service port,default is %d', [_Internet_Port]);
+  DoStatus('"-P/-Port:port" LF-Service port,default is %d', [Internet_Port]);
   DoStatus('"-U/-Upload:file" upload File from local.');
   DoStatus('"-S/-Split:num" upload File split option.');
   DoStatus('"-D/-Down/-Download:file" download from remote.');
-  DoStatus('"-T/-To/-Dest:file" download to local/remote.');
+  DoStatus('"-T/-To/-Dest:file" download or uplaod to local/remote.');
   DoStatus('');
   DoStatus('custom upload my file examples, hint: Split 1024*1024=1M fragments file to upload');
-  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-U:c:\mydatabase.ox2" "-s:1024*1024" "-T:my_remote_backup.ox2"', [_Internet_Port]);
+  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-U:c:\mydatabase.ox2" "-s:1024*1024" "-T:my_remote_backup.ox2"', [Internet_Port]);
   DoStatus('');
   DoStatus('custom download my file examples');
-  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-D:my_remote_backup.ox2" "-T:c:\mydatabase.ox2"', [_Internet_Port]);
+  DoStatus('C4_LFClient "-I:localhost" "-P:%d" "-D:my_remote_backup.ox2" "-T:c:\mydatabase.ox2"', [Internet_Port]);
   DoStatus('');
 end;
 
@@ -70,14 +70,14 @@ begin
   Result := False;
 
   H_ := False;
-  _Internet_IP_Or_DNS_Address := '';
-  _Internet_Port := 9188;
-  _Upload_File := '';
-  _Upload_Split := 128 * 1024;
-  _Download_File := '';
-  _To_Dest_File := '';
-  _Is_Download := False;
-  _Is_Upload := False;
+  Internet_IP_Or_DNS_Address := '';
+  Internet_Port := 9188;
+  Upload_File := '';
+  Upload_Split := 128 * 1024;
+  Download_File := '';
+  To_Dest_File := '';
+  Is_Download := False;
+  Is_Upload := False;
 
   for i := 1 to ParamCount do
     begin
@@ -85,46 +85,46 @@ begin
       if umlMultipleMatch(['-H', '-Help'], n) then
           H_ := True
       else if umlMultipleMatch(['-i:*', '-ip:*'], n) then
-          _Internet_IP_Or_DNS_Address := umlDeleteFirstStr(n, ': ')
+          Internet_IP_Or_DNS_Address := umlDeleteFirstStr(n, ': ')
       else if umlMultipleMatch(['-p:*', '-port:*'], n) then
-          _Internet_Port := umlStrToInt(umlDeleteFirstStr(n, ': '))
+          Internet_Port := umlStrToInt(umlDeleteFirstStr(n, ': '))
       else if umlMultipleMatch(['-u:*', '-upload:*'], n) then
         begin
-          _Upload_File := umlDeleteFirstStr(n, ': ');
-          _Is_Upload := True;
+          Upload_File := umlDeleteFirstStr(n, ': ');
+          Is_Upload := True;
         end
       else if umlMultipleMatch(['-s:*', '-split:*'], n) then
-          _Upload_Split := EStrToInt64(umlDeleteFirstStr(n, ': '), _Upload_Split)
+          Upload_Split := EStrToInt64(umlDeleteFirstStr(n, ': '), Upload_Split)
       else if umlMultipleMatch(['-d:*', '-down:*', '-download:*'], n) then
         begin
-          _Download_File := umlDeleteFirstStr(n, ': ');
-          _Is_Download := True;
+          Download_File := umlDeleteFirstStr(n, ': ');
+          Is_Download := True;
         end
       else if umlMultipleMatch(['-t:*', '-to:*', '-dest:*'], n) then
-          _To_Dest_File := umlDeleteFirstStr(n, ': ')
+          To_Dest_File := umlDeleteFirstStr(n, ': ')
     end;
 
-  if H_ or (_Internet_IP_Or_DNS_Address.L = 0) or ((_Upload_File.L = 0) and (_Download_File.L = 0)) then
+  if H_ or (Internet_IP_Or_DNS_Address.L = 0) or ((Upload_File.L = 0) and (Download_File.L = 0)) then
     begin
       DoHelp;
       exit;
     end;
 
-  if _Is_Upload then
+  if Is_Upload then
     begin
-      if not umlFileExists(_Upload_File) then
+      if not umlFileExists(Upload_File) then
         begin
-          DoStatus('no found "%s"', [_Upload_File.Text]);
+          DoStatus('no found "%s"', [Upload_File.Text]);
           exit;
         end;
-      if _To_Dest_File.L = 0 then
-          _To_Dest_File := umlGetFileName(_Upload_File);
+      if To_Dest_File.L = 0 then
+          To_Dest_File := umlGetFileName(Upload_File);
     end;
 
-  if _Is_Download then
+  if Is_Download then
     begin
-      if _To_Dest_File.L = 0 then
-          _To_Dest_File := umlCombineFileName(Z.Net.C4.C40_RootPath, _Download_File);
+      if To_Dest_File.L = 0 then
+          To_Dest_File := umlCombineFileName(Z.Net.C4.C40_RootPath, Download_File);
     end;
 
   Result := True;
@@ -222,18 +222,18 @@ begin
         d.WriteMD5(UA.LMD5);
       end;
   m64 := TMS64.Create;
-  d.EncodeAsZLib(m64, False);
+  d.EncodeAsZLib(m64, True);
   DisposeObject(d);
   m64.SaveToFile(umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(m64.ToMD5).Text])));
-  LClient.FS2_PostFile_M(True, _To_Dest_File, m64, True, Do_FS2_PostFile_Done);
+  LClient.FS2_PostFile_M(True, To_Dest_File, m64, True, Do_FS2_PostFile_Done);
 end;
 
 procedure TSplit_Upload_Done_Action.Do_FS2_PostFile_Done(Sender: TC40_FS2_Client; info_: U_String);
 begin
   Done;
-  DoStatus('done upload "%s" -> "%s"', [_Upload_File.Text, _To_Dest_File.Text]);
+  DoStatus('done upload "%s" -> "%s"', [Upload_File.Text, To_Dest_File.Text]);
   // 分块上传完成，直接退出循环
-  _Exit_Signal := True;
+  Exit_Signal := True;
 end;
 
 type
@@ -285,7 +285,7 @@ var
 begin
   if Successed then
     begin
-      cache_f := umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(Stream.ToMD5).Text]));
+      cache_f := umlCombineFileName(Z.Net.C4.C40_RootPath, PFormat('%s.cache', [umlMD5ToStr(LMD5).Text]));
       LFS.Position := LPos;
       Stream.Position := 0;
       LFS.CopyFrom(Stream, Stream.Size);
@@ -297,7 +297,7 @@ begin
   else
     begin
       DoStatus(info_);
-      _Exit_Signal := True;
+      Exit_Signal := True;
       Stop;
     end;
 end;
@@ -323,9 +323,9 @@ begin
   // 这两步是操作Linear模型
   inherited Run();
   Done;
-  DoStatus('done download "%s" -> "%s"', [_Download_File.Text, _To_Dest_File.Text]);
+  DoStatus('done download "%s" -> "%s"', [Download_File.Text, To_Dest_File.Text]);
   // 下载完成，退出主循环
-  _Exit_Signal := True;
+  Exit_Signal := True;
 end;
 
 procedure Do_Download_Index_Done(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
@@ -340,33 +340,34 @@ begin
       // 下载索引文件，然后解码
       try
         d := TDFE.Create;
-        d.DecodeFrom(Stream, False);
-        FS := TCore_FileStream.Create(_To_Dest_File, fmCreate);
+        DoStatus('decode "%s"', [info_.Text]);
+        d.DecodeFrom(Stream, True);
+        FS := TCore_FileStream.Create(To_Dest_File, fmCreate);
         FS.Size := d.R.ReadInt64;
-        DoStatus('begin download "%s"', [_To_Dest_File.Text]);
+        DoStatus('begin download "%s"', [To_Dest_File.Text]);
         while d.R.NotEnd do
           begin
             // 把碎片仍给Linear模型，让他依次下载
-            DA := _L_Action.Add(TDownload_Action) as TDownload_Action;
+            DA := L_Action.Add(TDownload_Action) as TDownload_Action;
             DA.LClient := Sender;
             DA.LFS := FS;
             DA.LPos := d.R.ReadInt64;
             DA.LMD5 := d.R.ReadMD5;
           end;
-        DSA := _L_Action.Add(TDownload_Successed_Action) as TDownload_Successed_Action;
+        DSA := L_Action.Add(TDownload_Successed_Action) as TDownload_Successed_Action;
         DSA.LFS := FS;
         DisposeObject(d);
-        _L_Action.Run;
+        L_Action.Run;
       except
         // 发生错误，直接退出来
-          _Exit_Signal := True;
+          Exit_Signal := True;
       end;
     end
   else
     begin
       // 远程服务器没有找到索引，直接退出循环
       DoStatus(info_);
-      _Exit_Signal := True;
+      Exit_Signal := True;
     end;
 end;
 
@@ -376,7 +377,7 @@ var
   UD: TSplit_Upload_Done_Action;
   pos_, siz: Int64;
 begin
-  if _Is_Upload then
+  if Is_Upload then
     begin
       // FS2.0上传需要先把文件拆成碎片
       // 最简单的办法是直接拆到内存中，但是大文件往往非常大，这样，内存是行不通的
@@ -386,32 +387,33 @@ begin
       // 2，开多了个 _L_Action 实例，折叠上传，如果我在这里实现，程序会非常复杂，且难以阅读理解
       // 支持中断和续传机制，客户端中途断线或则出问题不影响，直接再次运行程序就行了，会自动化恢复
       // 上传期间要保证文件没有改动，否则上传会失败
-      siz := umlGetFileSize(_Upload_File);
+      siz := umlGetFileSize(Upload_File);
       pos_ := 0;
       while pos_ < siz do
         begin
-          UA := _L_Action.Add(TSplit_Upload_Action) as TSplit_Upload_Action;
+          UA := L_Action.Add(TSplit_Upload_Action) as TSplit_Upload_Action;
           UA.LClient := Client;
-          UA.LFile := _Upload_File;
+          UA.LFile := Upload_File;
           UA.LPos := pos_;
-          if siz - pos_ >= _Upload_Split then
-              UA.LSiz := _Upload_Split
+          if siz - pos_ >= Upload_Split then
+              UA.LSiz := Upload_Split
           else
               UA.LSiz := siz - pos_;
           inc(pos_, UA.LSiz);
         end;
-      UD := _L_Action.Add(TSplit_Upload_Done_Action) as TSplit_Upload_Done_Action;
+      UD := L_Action.Add(TSplit_Upload_Done_Action) as TSplit_Upload_Done_Action;
       UD.LClient := Client;
       UD.FileSiz := siz;
-      _L_Action.Run;
+      L_Action.Run;
     end
-  else if _Is_Download then
+  else if Is_Download then
     begin
       // 下索引文件
-      Client.FS2_GetFile_C(True, _Download_File, Do_Download_Index_Done);
+      Client.FS2_GetFile_C(True, Download_File, Do_Download_Index_Done);
+      DoStatus('prepare download "%s"', [Download_File.Text]);
     end
   else
-      _Exit_Signal := True;
+      Exit_Signal := True;
 end;
 
 procedure Do_Wait_FS2_Connected_Done(States_: TC40_Custom_ClientPool_Wait_States);
@@ -420,7 +422,10 @@ var
 begin
   for i := low(States_) to high(States_) do
     if States_[i].Client_ is TC40_FS2_Client then
+      begin
         Do_FS2_Ready(TC40_FS2_Client(States_[i].Client_));
+        break;
+      end;
 end;
 
 var
@@ -429,24 +434,24 @@ var
 begin
   if Fill_CMD then
     begin
-      _L_Action := TLActionList.Create(nil);
+      L_Action := TLActionList.Create(nil);
       Z.Net.C4.C40_QuietMode := True;
 
       // 本服务器可以直接copy代码到laz环境构建成IOT,linux系统
       // 注意：在fpc-console应用是无法使用LCL的，必须是NoUI程序，C4可以支持No LCL应用环境
       Z.Net.C4_Console_APP.C40AppParsingTextStyle := TTextStyle.tsC;
       Z.Net.C4_Console_APP.C40AppParam := [
-        Format('Tunnel("%s",%d,"FS2")', [_Internet_IP_Or_DNS_Address.Text, _Internet_Port])
+        Format('Tunnel("%s",%d,"FS2")', [Internet_IP_Or_DNS_Address.Text, Internet_Port])
         ];
 
       if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
         begin
           Z.Net.C4.C40_ClientPool.WaitConnectedDoneC('FS2', @Do_Wait_FS2_Connected_Done);
 
-          _Exit_Signal := False;
-          while not _Exit_Signal do
+          Exit_Signal := False;
+          while not Exit_Signal do
             begin
-              _L_Action.Progress;
+              L_Action.Progress;
               Z.Net.C4.C40Progress;
             end;
 
@@ -454,13 +459,14 @@ begin
           tmp_tk := GetTimeTick + 100;
           while GetTimeTick < tmp_tk do
             begin
-              _L_Action.Progress;
+              L_Action.Progress;
               Z.Net.C4.C40Progress;
             end;
         end;
 
-      DisposeObject(_L_Action);
+      DisposeObject(L_Action);
       Z.Net.C4.C40Clean;
     end;
 
 end.
+
