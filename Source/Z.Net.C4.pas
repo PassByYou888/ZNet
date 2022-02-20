@@ -2368,7 +2368,7 @@ end;
 procedure TTemp_SearchServiceBridge.Do_SearchService_Event(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
 var
   arry: TC40_Info_Array;
-  i: Integer;
+  i, min_workload_index: Integer;
 begin
   arry := L.SearchService(ServiceTyp);
   if FullConnection_ then
@@ -2378,7 +2378,12 @@ begin
     end
   else if length(arry) > 0 then
     begin
-      Pool.GetOrCreatePhysicsTunnel(arry[0], ServiceTyp, OnEvent_);
+      // serach minmized workload,thanks qq375960048
+      min_workload_index := 0;
+      for i := low(arry) + 1 to high(arry) do
+        if arry[i].Workload < arry[min_workload_index].Workload then
+            min_workload_index := i;
+      Pool.GetOrCreatePhysicsTunnel(arry[min_workload_index], ServiceTyp, OnEvent_);
     end;
   DelayFreeObj(1.0, Self);
 end;
