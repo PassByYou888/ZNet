@@ -86,6 +86,7 @@ type
   end;
 
   TC40_FS2_Client = class;
+  TC40_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS2_Client>;
 
 {$REGION 'bridge_define'}
 
