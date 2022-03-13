@@ -441,7 +441,7 @@ begin
       // 注意：在fpc-console应用是无法使用LCL的，必须是NoUI程序，C4可以支持No LCL应用环境
       Z.Net.C4_Console_APP.C40AppParsingTextStyle := TTextStyle.tsC;
       Z.Net.C4_Console_APP.C40AppParam := [
-        Format('Tunnel("%s",%d,"FS2")', [Internet_IP_Or_DNS_Address.Text, Internet_Port])
+        Format('AutoTunnel("%s",%d,"FS2",True)', [Internet_IP_Or_DNS_Address.Text, Internet_Port])
         ];
 
       if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
