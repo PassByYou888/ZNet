@@ -13,7 +13,27 @@ uses
   Z.Net,
   Z.Net.PhysicsIO,
   Z.Net.C4,
-  Z.Net.C4_Log_DB;
+  Z.Net.C4_Log_DB,
+  Z.Status,
+  Z.Net.C4_Console_APP;
+
+var
+  exit_signal: Boolean;
+
+procedure Do_Check_On_Exit;
+var
+  n: string;
+  cH: TC40_Console_Help;
+begin
+  cH := TC40_Console_Help.Create;
+  repeat
+    TCompute.Sleep(100);
+    Readln(n);
+    cH.Run_HelpCmd(n);
+  until cH.IsExit;
+  disposeObject(cH);
+  exit_signal := True;
+end;
 
 const
   // 调度服务器端口公网地址,可以是ipv4,ipv6,dns
@@ -36,10 +56,12 @@ begin
   Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(Internet_DP_Addr_, Internet_DP_Port_, 'DP', nil);
 
   // 主循环
-  while True do
-    begin
+  StatusThreadID := False;
+  exit_signal := False;
+  TCompute.RunC_NP(@Do_Check_On_Exit);
+  while not exit_signal do
       Z.Net.C4.C40Progress;
-      TCompute.Sleep(1);
-    end;
+
+  Z.Net.C4.C40Clean;
 
 end.

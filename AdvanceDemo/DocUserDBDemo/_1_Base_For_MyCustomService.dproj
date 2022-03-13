@@ -87,6 +87,7 @@
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <Debugger_RunParams>&quot;Title(&apos;种子服务器&apos;),AppTitle(&apos;种子服务器&apos;),Service(&apos;0.0.0.0&apos;,&apos;127.0.0.1&apos;,&apos;9199&apos;,&apos;DP&apos;),Wait(1000)&quot;</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -102,6 +103,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="MyCustomService.pas"/>
         <DCCReference Include="..\..\C4AdminTools\Delphi-C4AppTemplet\C40AppTempletFrm.pas">
             <Form>C40AppTempletForm</Form>
         </DCCReference>

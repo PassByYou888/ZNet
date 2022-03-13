@@ -42,6 +42,8 @@ type
     BuildDependNetButton: TButton;
     resetDependButton: TButton;
     DependEdit: TLabeledEdit;
+    JoinAuto_CheckBox: TCheckBox;
+    JoinMinWorkload_CheckBox: TCheckBox;
     DependNetListView: TListView;
     DependPanel: TPanel;
     servicePanel: TPanel;
@@ -162,6 +164,7 @@ type
     ip: string;
     port: Word;
     depend: string;
+    isAuto, Min_Workload: Boolean;
   end;
 
   TCmd_Net_Info_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TCmd_Net_Info_>;
@@ -169,8 +172,10 @@ type
   TCommand_Script = class
   private
     function Do_Config(var OP_Param: TOpParam): Variant;
+    function Do_AutoClient(var OP_Param: TOpParam): Variant;
     function Do_Client(var OP_Param: TOpParam): Variant;
     function Do_Service(var OP_Param: TOpParam): Variant;
+    function Do_Sleep(var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
     Config: THashStringList;
@@ -195,6 +200,23 @@ begin
       Result := Config[opRT.Trigger^.Name];
 end;
 
+function TCommand_Script.Do_AutoClient(var OP_Param: TOpParam): Variant;
+var
+  net_info_: TCmd_Net_Info_;
+begin
+  net_info_.listen_ip := '';
+  net_info_.ip := OP_Param[0];
+  net_info_.port := OP_Param[1];
+  net_info_.depend := OP_Param[2];
+  net_info_.isAuto := True;
+  if length(OP_Param) > 3 then
+      net_info_.Min_Workload := OP_Param[3]
+  else
+      net_info_.Min_Workload := False;
+  Client_NetInfo_List.Add(net_info_);
+  Result := True;
+end;
+
 function TCommand_Script.Do_Client(var OP_Param: TOpParam): Variant;
 var
   net_info_: TCmd_Net_Info_;
@@ -203,6 +225,8 @@ begin
   net_info_.ip := OP_Param[0];
   net_info_.port := OP_Param[1];
   net_info_.depend := OP_Param[2];
+  net_info_.isAuto := False;
+  net_info_.Min_Workload := False;
   Client_NetInfo_List.Add(net_info_);
   Result := True;
 end;
@@ -217,6 +241,8 @@ begin
       net_info_.ip := OP_Param[1];
       net_info_.port := OP_Param[2];
       net_info_.depend := OP_Param[3];
+      net_info_.isAuto := False;
+      net_info_.Min_Workload := False;
       Service_NetInfo_List.Add(net_info_);
     end
   else if length(OP_Param) = 3 then
@@ -231,8 +257,16 @@ begin
 
       net_info_.port := OP_Param[1];
       net_info_.depend := OP_Param[2];
+      net_info_.isAuto := False;
+      net_info_.Min_Workload := False;
       Service_NetInfo_List.Add(net_info_);
     end;
+  Result := True;
+end;
+
+function TCommand_Script.Do_Sleep(var OP_Param: TOpParam): Variant;
+begin
+  TCompute.Sleep(OP_Param[0]);
   Result := True;
 end;
 
@@ -266,21 +300,34 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
     begin
-      opRT.RegOpM(L[i], Do_Config);
+      opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config);
     end;
   disposeObject(L);
 
-  opRT.RegOpM('Service', Do_Service);
-  opRT.RegOpM('Serv', Do_Service);
-  opRT.RegOpM('Listen', Do_Service);
-  opRT.RegOpM('Listening', Do_Service);
-  opRT.RegOpM('Client', Do_Client);
-  opRT.RegOpM('Cli', Do_Client);
-  opRT.RegOpM('Tunnel', Do_Client);
-  opRT.RegOpM('Connect', Do_Client);
-  opRT.RegOpM('Connection', Do_Client);
-  opRT.RegOpM('Net', Do_Client);
-  opRT.RegOpM('Build', Do_Client);
+  opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+
+  opRT.RegOpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+
+  opRT.RegOpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.RegOpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.RegOpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.RegOpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+
+  opRT.RegOpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
+  opRT.RegOpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
 end;
 
 procedure TCommand_Script.Parsing(Expression: U_String);
@@ -348,7 +395,12 @@ end;
 
 procedure TC40AppTempletForm.BuildDependNetButtonClick(Sender: TObject);
 begin
-  Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(JoinHostEdit.Text, EStrToInt(JoinPortEdit.Text, 0), False, DependEdit.Text, On_C40_PhysicsTunnel_Event);
+  if JoinAuto_CheckBox.Checked then
+      Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(
+      JoinHostEdit.Text, EStrToInt(JoinPortEdit.Text, 0), not JoinMinWorkload_CheckBox.Checked, DependEdit.Text, On_C40_PhysicsTunnel_Event)
+  else
+      Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(
+      JoinHostEdit.Text, EStrToInt(JoinPortEdit.Text, 0), DependEdit.Text, On_C40_PhysicsTunnel_Event);
 end;
 
 procedure TC40AppTempletForm.resetDependButtonClick(Sender: TObject);
@@ -399,7 +451,7 @@ begin
   with Z.Net.C4.TC40_PhysicsService.Create(ServListeningIPEdit.Text,
     ServIPEdit.Text, EStrToInt(ServPortEdit.Text, 0), Z.Net.PhysicsIO.TPhysicsServer.Create) do
     begin
-      AutoFreePhysicsTunnel:=True;
+      AutoFreePhysicsTunnel := True;
       BuildDependNetwork(ServiceDependEdit.Text);
       OnEvent := On_C40_PhysicsService_Event;
       StartService;
@@ -503,7 +555,12 @@ begin
       param.Add(Format('Service(%s,%s,%s,%s)', [conv_(ServListeningIPEdit.Text), conv_(ServIPEdit.Text), conv_(ServPortEdit.Text), conv_(ServiceDependEdit.Text)]));
 
   if (JoinHostEdit.Text <> '') and (JoinPortEdit.Text <> '') and (DependEdit.Text <> '') then
-      param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+    begin
+      if JoinAuto_CheckBox.Checked then
+          param.Add(Format('AutoTunnel(%s,%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text), umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
+      else
+          param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+    end;
 
   final_param := '';
   ArryParamMemo.Clear;
@@ -555,7 +612,12 @@ begin
       param.Add(Format('Service(%s,%s,%s,%s)', [conv_(ServListeningIPEdit.Text), conv_(ServIPEdit.Text), conv_(ServPortEdit.Text), conv_(ServiceDependEdit.Text)]));
 
   if (JoinHostEdit.Text <> '') and (JoinPortEdit.Text <> '') and (DependEdit.Text <> '') then
-      param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+    begin
+      if JoinAuto_CheckBox.Checked then
+          param.Add(Format('AutoTunnel(%s,%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text), umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
+      else
+          param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+    end;
 
   final_param := '';
   ArryParamMemo.Clear;
@@ -599,6 +661,8 @@ begin
   JoinPortEdit.Text := TE.GetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
   DependEdit.Text := TE.GetDefaultValue('Main', DependEdit.Name, DependEdit.Text);
   DependEditExit(DependEdit);
+  JoinAuto_CheckBox.Checked := umlStrToBool(TE.GetDefaultValue('Main', JoinAuto_CheckBox.Name, umlBoolToStr(JoinAuto_CheckBox.Checked)));
+  JoinMinWorkload_CheckBox.Checked := umlStrToBool(TE.GetDefaultValue('Main', JoinMinWorkload_CheckBox.Name, umlBoolToStr(JoinMinWorkload_CheckBox.Checked)));
 
   ServListeningIPEdit.Text := TE.GetDefaultValue('Main', ServListeningIPEdit.Name, ServListeningIPEdit.Text);
   ServIPEdit.Text := TE.GetDefaultValue('Main', ServIPEdit.Name, ServIPEdit.Text);
@@ -624,6 +688,8 @@ begin
   TE.SetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
   TE.SetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
   TE.SetDefaultValue('Main', DependEdit.Name, DependEdit.Text);
+  TE.SetDefaultValue('Main', JoinAuto_CheckBox.Name, umlBoolToStr(JoinAuto_CheckBox.Checked));
+  TE.SetDefaultValue('Main', JoinMinWorkload_CheckBox.Name, umlBoolToStr(JoinMinWorkload_CheckBox.Checked));
 
   TE.SetDefaultValue('Main', ServListeningIPEdit.Name, ServListeningIPEdit.Text);
   TE.SetDefaultValue('Main', ServIPEdit.Name, ServIPEdit.Text);
@@ -832,9 +898,11 @@ procedure TC40AppTempletForm.UpdateServiceInfo(phy_serv: TC40_PhysicsService; de
 var
   i: Integer;
   custom_serv: TC40_Custom_Service;
+  s_recv_, s_send_: TZNet_WithP2PVM_Server;
 begin
   dest.Add(Format('Physics service: "%s" Unit: "%s"', [phy_serv.PhysicsTunnel.ClassName, phy_serv.PhysicsTunnel.UnitName + '.pas']));
   dest.Add(Format('Physics service workload: %d', [phy_serv.PhysicsTunnel.Count]));
+  dest.Add(Format('Physics service receive:%s, send:%s ', [umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text]));
   dest.Add(Format('Physcis Listening ip: "%s" Port: %d', [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort]));
   dest.Add(Format('Listening Successed: %s', [if_(phy_serv.Activted, 'Yes', 'Failed')]));
   for i := 0 to phy_serv.DependNetworkServicePool.Count - 1 do
@@ -843,8 +911,12 @@ begin
       custom_serv := phy_serv.DependNetworkServicePool[i];
       dest.Add(Format('Type: %s', [custom_serv.ServiceInfo.ServiceTyp.Text]));
       dest.Add(Format('workload: %d / %d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]));
+      if custom_serv.Get_P2PVM_Service(s_recv_, s_send_) then
+          dest.Add(Format('receive:%s send:%s',
+          [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(s_recv_.Statistics[stSendSize]).Text]));
       dest.Add(Format('Only Instance: %s', [if_(custom_serv.ServiceInfo.OnlyInstance, 'Yes', 'More Instance.')]));
       dest.Add(Format('Hash: %s', [umlMD5ToStr(custom_serv.ServiceInfo.Hash).Text]));
+      dest.Add(Format('Alias or Hash: %s', [custom_serv.AliasOrHash.Text]));
       dest.Add(Format('Class: "%s" Unit: "%s"', [custom_serv.ClassName, custom_serv.UnitName + '.pas']));
       dest.Add(Format('Receive Tunnel IP: %s Port: %d',
         [custom_serv.ServiceInfo.p2pVM_RecvTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_RecvTunnel_Port]));
@@ -853,7 +925,7 @@ begin
       dest.Add(Format('Workload: %d/%d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]));
       dest.Add(Format('Parameter', []));
       dest.Add(Format('{', []));
-      dest.Add(custom_serv.ParamList.AsText);
+      dest.Add(#9 + umlReplace(custom_serv.ParamList.AsText, #13#10, #13#10#9, False, False));
       dest.Add(Format('}', []));
     end;
   dest.Add(Format('', []));
@@ -883,18 +955,24 @@ procedure TC40AppTempletForm.UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel; de
 var
   i: Integer;
   custom_client: TC40_Custom_Client;
+  c_recv_, c_send_: TZNet_WithP2PVM_Client;
 begin
   dest.Add(Format('Physics tunnel: "%s" Unit: "%s"', [phy_tunnel.PhysicsTunnel.ClassName, phy_tunnel.PhysicsTunnel.UnitName + '.pas']));
   dest.Add(Format('Physcis ip: "%s" Port: %d', [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort]));
   dest.Add(Format('Physcis Connected: %s', [if_(phy_tunnel.PhysicsTunnel.Connected, 'Yes', 'Failed')]));
+  dest.Add(Format('Physics receive:%s, send:%s ', [umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text]));
   for i := 0 to phy_tunnel.DependNetworkClientPool.Count - 1 do
     begin
       dest.Add(Format('--------------------------------------------', []));
       custom_client := phy_tunnel.DependNetworkClientPool[i];
       dest.Add(Format('Type: %s', [custom_client.ClientInfo.ServiceTyp.Text]));
       dest.Add(Format('Connected: %s', [if_(custom_client.Connected, 'Yes', 'Failed')]));
+      if custom_client.Get_P2PVM_Tunnel(c_recv_, c_send_) then
+          dest.Add(Format('receive:%s send:%s',
+          [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(c_recv_.Statistics[stSendSize]).Text]));
       dest.Add(Format('Only Instance: %s', [if_(custom_client.ClientInfo.OnlyInstance, 'Yes', 'More Instance.')]));
       dest.Add(Format('Hash: %s', [umlMD5ToStr(custom_client.ClientInfo.Hash).Text]));
+      dest.Add(Format('Alias or Hash: %s', [custom_client.AliasOrHash.Text]));
       dest.Add(Format('Class: "%s" Unit: "%s"', [custom_client.ClassName, custom_client.UnitName + '.pas']));
       dest.Add(Format('Receive Tunnel IP: %s Port: %d',
         [custom_client.ClientInfo.p2pVM_RecvTunnel_Addr.Text, custom_client.ClientInfo.p2pVM_RecvTunnel_Port]));
@@ -929,9 +1007,12 @@ var
   phy_serv: TC40_PhysicsService;
   dps_arry: TC40_Custom_Service_Array;
   L: TC40_InfoList;
-  nd1, nd2, nd3: TTreeNode;
+  nd1, nd2, nd3, nd4: TTreeNode;
+  tmp: U_String;
   cs: TC40_Custom_Service;
   cc: TC40_Custom_Client;
+  s_recv_, s_send_: TZNet_WithP2PVM_Server;
+  c_recv_, c_send_: TZNet_WithP2PVM_Client;
 begin
   L := TC40_InfoList.Create(True);
   for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
@@ -950,7 +1031,8 @@ begin
     end;
   for i := 0 to L.Count - 1 do
     begin
-      nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d', [L[i].PhysicsAddr.Text, L[i].PhysicsPort]), '|', SaaS_Info_TreeView, nil);
+      nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d',
+        [L[i].PhysicsAddr.Text, L[i].PhysicsPort]), '|', SaaS_Info_TreeView, nil);
       nd2 := GetPathTreeNode(Format('Type: %s', [L[i].ServiceTyp.Text]), '|', SaaS_Info_TreeView, nd1);
       GetPathTreeNode(Format('hash:*@hash: %s', [umlMD5ToStr(L[i].Hash).Text]), '|', SaaS_Info_TreeView, nd2);
       GetPathTreeNode(Format('workload:*@workload: %d / %d', [L[i].Workload, L[i].MaxWorkload]), '|', SaaS_Info_TreeView, nd2);
@@ -963,6 +1045,17 @@ begin
       nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d', [cs.ServiceInfo.PhysicsAddr.Text, cs.ServiceInfo.PhysicsPort]), '|', SaaS_Info_TreeView, nil);
       nd2 := GetPathTreeNode(Format('Type: %s', [cs.ServiceInfo.ServiceTyp.Text]), '|', SaaS_Info_TreeView, nd1);
       nd3 := GetPathTreeNode(Format('local service is running, class: %s unit: %s', [cs.ClassName, cs.UnitName + '.pas']), '|', SaaS_Info_TreeView, nd2);
+      GetPathTreeNode(Format('receive:*@receive: %s', [umlSizeToStr(cs.C40PhysicsService.PhysicsTunnel.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd3);
+      GetPathTreeNode(Format('send:*@send: %s', [umlSizeToStr(cs.C40PhysicsService.PhysicsTunnel.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd3);
+      GetPathTreeNode(Format('workload:*@workload: %d / %d', [cs.ServiceInfo.Workload, cs.ServiceInfo.MaxWorkload]), '|', SaaS_Info_TreeView, nd3);
+      if cs.Alias_or_Hash___.L > 0 then
+          GetPathTreeNode(Format('alias:*@alias: %s', [cs.AliasOrHash.Text]), '|', SaaS_Info_TreeView, nd3);
+      if cs.Get_P2PVM_Service(s_recv_, s_send_) then
+        begin
+          nd4 := GetPathTreeNode(Format('p2pVM information', []), '|', SaaS_Info_TreeView, nd3);
+          GetPathTreeNode(Format('receive:*@receive: %s', [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+          GetPathTreeNode(Format('send:*@send: %s', [umlSizeToStr(s_send_.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        end;
     end;
 
   for i := 0 to C40_ClientPool.Count - 1 do
@@ -971,6 +1064,16 @@ begin
       nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d', [cc.ClientInfo.PhysicsAddr.Text, cc.ClientInfo.PhysicsPort]), '|', SaaS_Info_TreeView, nil);
       nd2 := GetPathTreeNode(Format('Type: %s', [cc.ClientInfo.ServiceTyp.Text]), '|', SaaS_Info_TreeView, nd1);
       nd3 := GetPathTreeNode(Format('local client is running, class: %s unit: %s', [cc.ClassName, cc.UnitName + '.pas']), '|', SaaS_Info_TreeView, nd2);
+      GetPathTreeNode(Format('receive:*@receive: %s', [umlSizeToStr(cc.C40PhysicsTunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd3);
+      GetPathTreeNode(Format('send:*@send: %s', [umlSizeToStr(cc.C40PhysicsTunnel.PhysicsTunnel.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd3);
+      if cc.Alias_or_Hash___.L > 0 then
+          GetPathTreeNode(Format('alias:*@alias: %s', [cc.AliasOrHash.Text]), '|', SaaS_Info_TreeView, nd3);
+      if cc.Get_P2PVM_Tunnel(c_recv_, c_send_) then
+        begin
+          nd4 := GetPathTreeNode(Format('p2pVM information', []), '|', SaaS_Info_TreeView, nd3);
+          GetPathTreeNode(Format('receive:*@receive: %s', [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+          GetPathTreeNode(Format('send:*@send: %s', [umlSizeToStr(c_send_.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        end;
     end;
 end;
 
@@ -1219,6 +1322,8 @@ begin
                 DependEdit.OnChange := nil;
                 DependEdit.Text := RebuildDependInfo(DependEdit.Text);
                 DependEdit.OnChange := DependEditChange;
+                JoinAuto_CheckBox.Checked := net_info_.isAuto;
+                JoinMinWorkload_CheckBox.Checked := net_info_.Min_Workload;
                 BuildDependNetButtonClick(BuildDependNetButton);
                 IsInited_ := True;
               end;

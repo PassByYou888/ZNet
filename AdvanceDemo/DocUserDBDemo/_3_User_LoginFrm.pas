@@ -179,7 +179,7 @@ var
   i: Integer;
 begin
   ValidService.Clear;
-  arry := L.SearchService(ExtractDependInfo(GetRegisterServiceTypFromClass(TMyCustom_Client)));
+  arry := L.SearchService(GetRegisterServiceTypFromClass(TMyCustom_Client));
   for i := low(arry) to high(arry) do
       ValidService.Add(arry[i].Clone);
 

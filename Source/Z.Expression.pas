@@ -16,24 +16,24 @@ uses SysUtils, Variants,
 
 type
 {$REGION 'internal define'}
-  TSymbolOperation = (soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor, // math
-    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,  // logic
-    soShl, soShr,                                                                             // bit
-    soBlockIndentBegin, soBlockIndentEnd,                                                     // block indent
-    soPropIndentBegin, soPropIndentEnd,                                                       // property indent
-    soDotSymbol, soCommaSymbol,                                                               // dot and comma
-    soEolSymbol,                                                                              // eol
-    soProc, soParameter,                                                                      // proc
+  TSymbolOperation = (soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor, { math }
+    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,  { logic }
+    soShl, soShr,                                                                             { bit }
+    soBlockIndentBegin, soBlockIndentEnd,                                                     { block indent }
+    soPropIndentBegin, soPropIndentEnd,                                                       { property indent }
+    soDotSymbol, soCommaSymbol,                                                               { dot and comma }
+    soEolSymbol,                                                                              { eol }
+    soProc, soParameter,                                                                      { proc }
     soUnknow);
   TSymbolOperations = set of TSymbolOperation;
 
   TExpressionDeclType = (
-    edtSymbol,                                                                                 // symbol
-    edtBool, edtInt, edtInt64, edtUInt64, edtWord, edtByte, edtSmallInt, edtShortInt, edtUInt, // build-in byte type
-    edtSingle, edtDouble, edtCurrency,                                                         // build-in float type
-    edtString,                                                                                 // string
-    edtProcExp,                                                                                // proc
-    edtExpressionAsValue,                                                                      // expression
+    edtSymbol,                                                                                 { symbol }
+    edtBool, edtInt, edtInt64, edtUInt64, edtWord, edtByte, edtSmallInt, edtShortInt, edtUInt, { build-in byte type }
+    edtSingle, edtDouble, edtCurrency,                                                         { build-in float type }
+    edtString,                                                                                 { string }
+    edtProcExp,                                                                                { proc }
+    edtExpressionAsValue,                                                                      { expression }
     edtUnknow);
 
   TExpressionDeclTypes = set of TExpressionDeclType;
@@ -41,12 +41,12 @@ type
   TSymbolExpression = class;
 
   TExpressionListData = record
-    dType: TExpressionDeclType;    // declaration
-    cPos: Integer;                 // char pos
-    Symbol: TSymbolOperation;      // symbol
-    Value: Variant;                // value
-    Expression: TSymbolExpression; // expression
-    ExpressionAutoFree: Boolean;   // autofree
+    dType: TExpressionDeclType;    { declaration }
+    cPos: Integer;                 { char pos }
+    Symbol: TSymbolOperation;      { symbol }
+    Value: Variant;                { value }
+    Expression: TSymbolExpression; { expression }
+    ExpressionAutoFree: Boolean;   { autofree }
   end;
 
   PExpressionListData = ^TExpressionListData;
@@ -118,7 +118,7 @@ type
 {$ELSE FPC}
   TOnDeclValue_P = reference to procedure(const Decl: SystemString; var ValType: TExpressionDeclType; var Value: Variant);
 {$ENDIF FPC}
-  //
+  { }
   { text parse support }
   TExpressionParsingState = set of (esFirst, esWaitOp, esWaitIndentEnd, esWaitPropParamIndentEnd, esWaitValue);
   PExpressionParsingState = ^TExpressionParsingState;
@@ -146,66 +146,66 @@ function ParseTextExpressionAsSymbol__(ParsingTool_: TTextParsing; const uName: 
   const OnDeclValue_C: TOnDeclValue_C; const OnDeclValue_M: TOnDeclValue_M; const OnDeclValue_P: TOnDeclValue_P;
   RefrenceOpRT: TOpCustomRunTime): TSymbolExpression;
 
-// parsing text as expression structor, backcall is TOnDeclValue_C
+{ parsing text as expression structor, backcall is TOnDeclValue_C }
 function ParseTextExpressionAsSymbol_C(ParsingTool_: TTextParsing; const uName: SystemString;
   const OnGetValue: TOnDeclValue_C; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor, backcall is TOnDeclValue_M
+{ parsing text as expression structor, backcall is TOnDeclValue_M }
 function ParseTextExpressionAsSymbol_M(ParsingTool_: TTextParsing; const uName: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor, backcall is TOnDeclValue_P
+{ parsing text as expression structor, backcall is TOnDeclValue_P }
 function ParseTextExpressionAsSymbol_P(ParsingTool_: TTextParsing; const uName: SystemString;
   const OnGetValue: TOnDeclValue_P; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol(Special_ASCII_: TListPascalString;
   TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol(TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol(Special_ASCII_: TListPascalString; ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 function ParseTextExpressionAsSymbol(ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol(Special_ASCII_: TListPascalString; ExpressionText: SystemString): TSymbolExpression; overload;
 function ParseTextExpressionAsSymbol(ExpressionText: SystemString): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_M(Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_M(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_C(Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_C; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_C(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_C; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_P(Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_P; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
-// parsing text as expression structor
+{ parsing text as expression structor }
 function ParseTextExpressionAsSymbol_P(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_P; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
-// symbol priority
+{ symbol priority }
 function RebuildLogicalPrioritySymbol(Exps: TSymbolExpression): TSymbolExpression;
 
-// format symbol
+{ format symbol }
 function RebuildAllSymbol(Exps: TSymbolExpression): TSymbolExpression;
 
-// build Z.OpCode
+{ build Z.OpCode }
 function BuildAsOpCode(DebugMode: Boolean; SymbExps: TSymbolExpression; const uName: SystemString; LineNo: Integer): TOpCode; overload;
 function BuildAsOpCode(SymbExps: TSymbolExpression): TOpCode; overload;
 function BuildAsOpCode(DebugMode: Boolean; SymbExps: TSymbolExpression): TOpCode; overload;
@@ -216,7 +216,7 @@ function BuildAsOpCode(DebugMode: Boolean; TextStyle: TTextStyle; ExpressionText
 function BuildAsOpCode(TextStyle: TTextStyle; ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TOpCode; overload;
 function BuildAsOpCode(ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TOpCode; overload;
 
-// Evaluate Expression
+{ Evaluate Expression }
 function EvaluateExpressionValue_M(UsedCache: Boolean; Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; ExpressionText: SystemString; const OnGetValue: TOnDeclValue_M): Variant;
 function EvaluateExpressionValue_C(UsedCache: Boolean; Special_ASCII_: TListPascalString;
@@ -236,7 +236,7 @@ function EvaluateExpressionValue(UsedCache: Boolean;
   opRT: TOpCustomRunTime; const_vl: THashVariantList): Variant; overload;
 function EvaluateExpressionValue(UsedCache: Boolean; Special_ASCII_: TListPascalString; DebugMode: Boolean; TextStyle: TTextStyle; ExpressionText: SystemString; opRT: TOpCustomRunTime): Variant; overload;
 
-// select used Cache
+{ select used Cache }
 function EvaluateExpressionValue(UsedCache: Boolean; ExpressionText: SystemString; opRT: TOpCustomRunTime): Variant; overload;
 function EvaluateExpressionValue(UsedCache: Boolean; ExpressionText: SystemString): Variant; overload;
 function EvaluateExpressionValue(UsedCache: Boolean; TextStyle: TTextStyle; ExpressionText: SystemString): Variant; overload;
@@ -247,7 +247,7 @@ function EvaluateExpressionValue(UsedCache: Boolean; Special_ASCII_: TListPascal
 function EvaluateExpressionValue(UsedCache: Boolean; Special_ASCII_: TListPascalString; ExpressionText: SystemString): Variant; overload;
 function EvaluateExpressionValue(UsedCache: Boolean; Special_ASCII_: TListPascalString; TextStyle: TTextStyle; ExpressionText: SystemString; opRT: TOpCustomRunTime): Variant; overload;
 
-// used Cache
+{ used Cache }
 function EvaluateExpressionValue(ExpressionText: SystemString; opRT: TOpCustomRunTime): Variant; overload;
 function EvaluateExpressionValue(ExpressionText: SystemString): Variant; overload;
 function EvaluateExpressionValue(TextStyle: TTextStyle; ExpressionText: SystemString): Variant; overload;
@@ -258,7 +258,7 @@ function EvaluateExpressionValue(Special_ASCII_: TListPascalString; DebugMode: B
 function EvaluateExpressionValue(Special_ASCII_: TListPascalString; ExpressionText: SystemString): Variant; overload;
 function EvaluateExpressionValue(Special_ASCII_: TListPascalString; TextStyle: TTextStyle; ExpressionText: SystemString; opRT: TOpCustomRunTime): Variant; overload;
 
-// Evaluate multi Expression as variant Vector
+{ Evaluate multi Expression as variant Vector }
 function EvaluateExpressionVector(DebugMode, UsedCache: Boolean; Special_ASCII_: TListPascalString; TextStyle: TTextStyle; ExpressionText: SystemString;
   opRT: TOpCustomRunTime; const_vl: THashVariantList): TExpressionValueVector; overload;
 function EvaluateExpressionVector(UsedCache: Boolean; Special_ASCII_: TListPascalString; TextStyle: TTextStyle; ExpressionText: SystemString;
@@ -270,7 +270,7 @@ function EvaluateExpressionVector(ExpressionText: SystemString; const_vl: THashV
 function EvaluateExpressionVector(ExpressionText: SystemString; TextStyle: TTextStyle): TExpressionValueVector; overload;
 function EvaluateExpressionVector(ExpressionText: SystemString): TExpressionValueVector; overload;
 
-// Evaluate multi Expression as variant matrix
+{ Evaluate multi Expression as variant matrix }
 function EvaluateExpressionMatrix(W, H: Integer; Special_ASCII_: TListPascalString; TextStyle: TTextStyle; ExpressionText: SystemString;
   opRT: TOpCustomRunTime; const_vl: THashVariantList): TExpressionValueMatrix; overload;
 function EvaluateExpressionMatrix(W, H: Integer; ExpressionText: SystemString; opRT: TOpCustomRunTime; const_vl: THashVariantList): TExpressionValueMatrix; overload;
@@ -278,7 +278,7 @@ function EvaluateExpressionMatrix(W, H: Integer; ExpressionText: SystemString; c
 function EvaluateExpressionMatrix(W, H: Integer; ExpressionText: SystemString; TextStyle: TTextStyle): TExpressionValueMatrix; overload;
 function EvaluateExpressionMatrix(W, H: Integer; ExpressionText: SystemString): TExpressionValueMatrix; overload;
 
-// easy API
+{ easy API }
 function EStr(s: U_String): U_String;
 function EStrToBool(s: U_String; default: Boolean): Boolean; overload;
 function EStrToBool(s: U_String): Boolean; overload;
@@ -291,13 +291,15 @@ function EStrToSingle(s: U_String; default: Single): Single; overload;
 function EStrToSingle(s: U_String): Single; overload;
 function EStrToDouble(s: U_String; default: Double): Double; overload;
 function EStrToDouble(s: U_String): Double; overload;
+function ExpressionValueIsError(v: Variant): Boolean;
+function ExpressionValueVectorIsError(v: TExpressionValueVector): Boolean;
 
-// print
+{ print }
 function ExpressionValueVectorToStr(v: TExpressionValueVector): TPascalString;
 procedure DoStatusE(v: TExpressionValueVector); overload;
 procedure DoStatusE(v: TExpressionValueMatrix); overload;
 
-// test
+{ test }
 procedure EvaluateExpressionVectorAndMatrix_test_;
 
 implementation
@@ -1558,7 +1560,7 @@ begin
           Continue;
         end;
 
-      // check esWaitOp state
+      { check esWaitOp state }
       if (esWaitOp in State) and (CharIn(ParsingTool_.GetChar(cPos), ParsingTool_.SymbolTable)) then
         begin
           isSpecialSymbol := False;
@@ -2409,7 +2411,7 @@ var
                   end
                 else
                   begin
-                    // fixed symbol prefix, -(operation), -proc(xx)...
+                    { fixed symbol prefix, -(operation), -proc(xx)... }
                     if (SymbolIndex + 1 < NewSymbExps.Count) then
                       begin
                         p2 := NewSymbExps[SymbolIndex + 1];
@@ -2523,7 +2525,7 @@ var
               begin
                 if (p2^.Symbol in [soBlockIndentBegin, soPropIndentBegin]) then
                   begin
-                    // function call
+                    { function call }
                     if not(p1^.dType in MethodToken) then
                       begin
                         PrintError('method Illegal');
@@ -3274,12 +3276,28 @@ begin
   Result := EStrToDouble(s, 0);
 end;
 
+function ExpressionValueIsError(v: Variant): Boolean;
+begin
+  Result := VarIsNull(v);
+end;
+
+function ExpressionValueVectorIsError(v: TExpressionValueVector): Boolean;
+var
+  i: Integer;
+begin
+  Result := True;
+  for i := low(v) to high(v) do
+    if VarIsNull(v[i]) then
+        Exit;
+  Result := False;
+end;
+
 function ExpressionValueVectorToStr(v: TExpressionValueVector): TPascalString;
 var
   i: Integer;
 begin
   Result := '';
-  for i := 0 to length(v) - 1 do
+  for i := low(v) to high(v) do
     begin
       if VarIsNull(v[i]) then
           Result.Append('error, ')
@@ -3295,7 +3313,7 @@ procedure DoStatusE(v: TExpressionValueVector);
 var
   i: Integer;
 begin
-  for i := 0 to length(v) - 1 do
+  for i := low(v) to high(v) do
       DoStatusNoLn(umlVarToStr(v[i]) + ' ');
   DoStatusNoLn;
 end;
@@ -3304,7 +3322,7 @@ procedure DoStatusE(v: TExpressionValueMatrix);
 var
   i: Integer;
 begin
-  for i := 0 to high(v) do
+  for i := low(v) to high(v) do
       DoStatusE(v[i]);
 end;
 

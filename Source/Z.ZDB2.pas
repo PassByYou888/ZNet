@@ -48,6 +48,7 @@ type
 
   TZDB2_BlockPtrList = class(TZDB2_BlockPtrList_Decl)
   public
+    function TotalBlockSize: Int64;
     procedure Clean;
   end;
 
@@ -212,18 +213,31 @@ type
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
     function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle;
+    function GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;
     function CheckWriteSpace(Siz_: Int64): Boolean; overload;
     function CheckWriteSpace(Siz_: Int64; Space_: TZDB2_BlockPtrList): Boolean; overload;
+    function GetWriteSpaceBlock(): Integer;
+    // search postion
+    function SearchDataPos(SpaceHnd: TZDB2_BlockPtrList; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean; overload;
+    function SearchDataPos(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean; overload;
+    // block IO
+    function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
+    function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
+    // write stream
     function WriteStream(Stream_: TCore_Stream; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function WriteStream(Stream_: TCore_Stream; var ID: Integer): Boolean; overload;
+    // write memory
     function WriteData(buff: TZDB2_Mem; var SpaceHnd: TZDB2_BlockHandle; BuffProtected_: Boolean): Boolean; overload;
     function WriteData(buff: TZDB2_Mem; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function WriteData(buff: TZDB2_Mem; var ID: Integer; BuffProtected_: Boolean): Boolean; overload;
     function WriteData(buff: TZDB2_Mem; var ID: Integer): Boolean; overload;
+    // read stream
     function ReadStream(Stream_: TCore_Stream; SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function ReadStream(Stream_: TCore_Stream; ID: Integer): Boolean; overload;
+    // read memory
     function ReadData(buff: TZDB2_Mem; SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function ReadData(buff: TZDB2_Mem; ID: Integer): Boolean; overload;
+    // misc
     function ComputeMD5(SpaceHnd: TZDB2_BlockHandle; var MD5: TMD5): Boolean; overload;
     function ComputeMD5(ID: Integer; var MD5: TMD5): Boolean; overload;
     function RemoveData(SpaceHnd: TZDB2_BlockHandle; SafeClean_: Boolean): Boolean; overload;
@@ -233,10 +247,6 @@ type
     function GetDataPhysics(SpaceHnd: TZDB2_BlockHandle): Int64; overload;
     function GetDataPhysics(ID: Integer): Int64; overload;
     function BuildTableID: TZDB2_BlockHandle;
-
-    // block
-    function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
-    function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
 
     // hnd
     property AutoCloseIOHnd: Boolean read FAutoCloseIOHnd write FAutoCloseIOHnd;
@@ -314,12 +324,21 @@ begin
   store.Next := block.Next;
 end;
 
+function TZDB2_BlockPtrList.TotalBlockSize: Int64;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to Count - 1 do
+      inc(Result, Items[i]^.UsedSpace);
+end;
+
 procedure TZDB2_BlockPtrList.Clean;
 var
   i: Integer;
 begin
   for i := 0 to Count - 1 do
-      Dispose(items[i]);
+      Dispose(Items[i]);
   inherited Clear;
 end;
 
@@ -483,7 +502,7 @@ var
 begin
   Result := 0;
   for i := 0 to Count - 1 do
-      inc(Result, items[i].Count);
+      inc(Result, Items[i].Count);
 end;
 
 procedure TZDB2_BlockStoreDataStruct.ExtractToStoreBuffer(var Buffer: TZDB2_BlockStoreBuffer);
@@ -495,7 +514,7 @@ begin
   ID := 0;
   for i := 0 to Count - 1 do
     begin
-      StoreData_ := items[i];
+      StoreData_ := Items[i];
       for j := 0 to StoreData_.Count - 1 do
         begin
           Buffer[ID] := StoreData_.Buffer[j];
@@ -513,7 +532,7 @@ begin
   ID := StartID_;
   for i := 0 to Count - 1 do
     begin
-      StoreData_ := items[i];
+      StoreData_ := Items[i];
       for j := 0 to StoreData_.Count - 1 do
         begin
           StoreToBlock(StoreData_.Buffer[j], Buffer[ID]);
@@ -537,7 +556,7 @@ begin
   ID := StartID_;
   for i := 0 to Count - 1 do
     begin
-      StoreData_ := items[i];
+      StoreData_ := Items[i];
       if Length(StoreData_.Buffer) <> StoreData_.Count then
           SetLength(StoreData_.Buffer, StoreData_.Count);
       for j := 0 to StoreData_.Count - 1 do
@@ -556,19 +575,19 @@ end;
 
 function TZDB2_BlockStoreDataStruct.Read(Cipher_: IZDB2_Cipher; Position_: Int64; var Hnd_: TIOHnd): Boolean;
 var
-  pos_: Int64;
+  Pos_: Int64;
   StoreData_: TZDB2_BlockStoreData;
 begin
   Clean;
   Result := False;
-  pos_ := Position_;
-  while (pos_ > 0) and (pos_ < umlFileGetSize(Hnd_)) do
+  Pos_ := Position_;
+  while (Pos_ > 0) and (Pos_ < umlFileGetSize(Hnd_)) do
     begin
       StoreData_ := TZDB2_BlockStoreData.Create;
-      if StoreData_.Read(Cipher_, pos_, Hnd_) then
+      if StoreData_.Read(Cipher_, Pos_, Hnd_) then
         begin
           Add(StoreData_);
-          pos_ := StoreData_.NextPosition;
+          Pos_ := StoreData_.NextPosition;
           Result := True;
         end
       else
@@ -588,7 +607,7 @@ begin
   Result := True;
   for i := 0 to Count - 1 do
     begin
-      StoreData_ := items[i];
+      StoreData_ := Items[i];
       Result := Result and StoreData_.Write(Cipher_, StoreData_.Position, Hnd_);
     end;
 end;
@@ -598,7 +617,7 @@ var
   i: Integer;
 begin
   for i := 0 to Count - 1 do
-      DisposeObject(items[i]);
+      DisposeObject(Items[i]);
   inherited Clear;
 end;
 
@@ -607,7 +626,7 @@ var
   i: Integer;
 begin
   for i := 0 to Count - 1 do
-      SetLength(items[i].Buffer, 0);
+      SetLength(Items[i].Buffer, 0);
 end;
 
 constructor TZDB2_SpacePlan.Create(Core_: TZDB2_Core_Space);
@@ -1663,12 +1682,14 @@ begin
   if (ID < 0) or (ID >= FBlockCount) then
       exit;
 
+  // reseek
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev
     else
         exit;
 
+  // safe check
   num := 0;
   i := ID;
   repeat
@@ -1693,12 +1714,14 @@ begin
   if ID < 0 then
       exit;
 
+  // reseek
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev
     else
         exit;
 
+  // safe check
   num := 0;
   i := ID;
   repeat
@@ -1710,11 +1733,53 @@ begin
         exit;
   until i < 0;
 
+  // extract
   SetLength(Result, num);
   i := ID;
   num := 0;
   repeat
     Result[num] := i;
+    inc(num);
+    i := FBlockBuffer[i].Next;
+  until i < 0;
+end;
+
+function TZDB2_Core_Space.GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;
+var
+  ID, i, num: Integer;
+begin
+  Result := nil;
+
+  ID := ID_;
+  if ID < 0 then
+      exit;
+
+  // reseek
+  while FBlockBuffer[ID].Prev >= 0 do
+    if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
+        ID := FBlockBuffer[ID].Prev
+    else
+        exit;
+
+  // safe check
+  num := 0;
+  i := ID;
+  repeat
+    if FBlockBuffer[i].UsedSpace = 0 then
+        exit;
+    inc(num);
+    i := FBlockBuffer[i].Next;
+    if (i < -1) or (i >= FBlockCount) then
+        exit;
+  until i < 0;
+
+  // extract
+  Result := TZDB2_BlockPtrList.Create;
+  Result.Count := num;
+  i := ID;
+  num := 0;
+  repeat
+    Result[num] := @FBlockBuffer[i];
     inc(num);
     i := FBlockBuffer[i].Next;
   until i < 0;
@@ -1749,6 +1814,138 @@ begin
         inc(i);
       end;
   Result := tmp >= Siz_;
+end;
+
+function TZDB2_Core_Space.GetWriteSpaceBlock(): Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  i := FFreeSpaceIndexProbe;
+  while i < FBlockCount do
+    with FBlockBuffer[i] do
+      begin
+        if UsedSpace = 0 then
+          begin
+            FFreeSpaceIndexProbe := i;
+            Result := i;
+            exit;
+          end;
+        inc(i);
+      end;
+end;
+
+function TZDB2_Core_Space.SearchDataPos(SpaceHnd: TZDB2_BlockPtrList; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
+var
+  i: Integer;
+  p: PZDB2_Block;
+begin
+  Result := False;
+  BlockPos_ := 0;
+  for i := 0 to SpaceHnd.Count - 1 do
+    begin
+      p := SpaceHnd[i];
+      if (Pos_ >= 0) and umlInRange(Pos_, BlockPos_, BlockPos_ + p^.UsedSpace) then
+        begin
+          BlockID_ := p^.ID;
+          exit(True);
+        end;
+      inc(BlockPos_, p^.UsedSpace);
+    end;
+  if Pos_ < 0 then
+    begin
+      BlockID_ := p^.ID;
+      Result := True;
+    end
+  else
+    begin
+      BlockPos_ := 0;
+      BlockID_ := -1;
+    end;
+end;
+
+function TZDB2_Core_Space.SearchDataPos(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
+var
+  ID: Integer;
+begin
+  Result := False;
+  BlockPos_ := 0;
+  for ID in SpaceHnd do
+    begin
+      if (Pos_ >= 0) and umlInRange(Pos_, BlockPos_, BlockPos_ + FBlockBuffer[ID].UsedSpace) then
+        begin
+          BlockID_ := ID;
+          exit(True);
+        end;
+      inc(BlockPos_, FBlockBuffer[ID].UsedSpace);
+    end;
+  if Pos_ < 0 then
+    begin
+      BlockID_ := SpaceHnd[Length(SpaceHnd) - 1];
+      Result := True;
+    end
+  else
+    begin
+      BlockPos_ := 0;
+      BlockID_ := -1;
+    end;
+end;
+
+function TZDB2_Core_Space.Block_IO_Read(buff: Pointer; ID: Integer): WORD;
+var
+  p: PZDB2_Block;
+begin
+  Result := 0;
+  if (ID < 0) or (ID >= FBlockCount) then
+      exit;
+  p := @FBlockBuffer[ID];
+  if not ReadCacheBlock(buff, ID) then
+    begin
+      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
+        begin
+          ErrorInfo('Block_IO_Read: umlFileSeek error.');
+          exit;
+        end;
+      if not umlBlockRead(FSpace_IOHnd^, buff^, p^.UsedSpace) then
+        begin
+          ErrorInfo('Block_IO_Read: umlBlockRead error.');
+          exit;
+        end;
+      DoDecrypt(buff, FBlockBuffer[ID].UsedSpace);
+      if FUsedReadCache then
+          WriteCacheBlock(buff, p^.UsedSpace, ID, False);
+    end;
+  Result := p^.UsedSpace;
+end;
+
+function TZDB2_Core_Space.Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
+var
+  p: PZDB2_Block;
+begin
+  Result := False;
+  if (ID < 0) or (ID >= FBlockCount) then
+      exit;
+  p := @FBlockBuffer[ID];
+  if not WriteCacheBlock(buff, p^.UsedSpace, ID, True) then
+    begin
+      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
+        begin
+          ErrorInfo('Block_IO_Write: umlFileSeek Block error.');
+          exit;
+        end;
+      if not umlBlockWrite(FSpace_IOHnd^, DoEncryptTemp(buff, p^.UsedSpace, True)^, p^.UsedSpace) then
+        begin
+          ErrorInfo('Block_IO_Write: umlBlockWrite Block error.');
+          exit;
+        end;
+      if p^.Size - p^.UsedSpace > 0 then
+        if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, p^.Size - p^.UsedSpace) then
+          begin
+            ErrorInfo('Block_IO_Write: umlBlockWrite (NULL) error.');
+            exit;
+          end;
+    end;
+  Result := True;
 end;
 
 function TZDB2_Core_Space.WriteStream(Stream_: TCore_Stream; var SpaceHnd: TZDB2_BlockHandle): Boolean;
@@ -2401,63 +2598,6 @@ begin
   end;
   DisposeObject(L);
   SetLength(LBuff, 0);
-end;
-
-function TZDB2_Core_Space.Block_IO_Read(buff: Pointer; ID: Integer): WORD;
-var
-  p: PZDB2_Block;
-begin
-  Result := 0;
-  if (ID < 0) or (ID >= FBlockCount) then
-      exit;
-  p := @FBlockBuffer[ID];
-  if not ReadCacheBlock(buff, ID) then
-    begin
-      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
-        begin
-          ErrorInfo('Block_IO_Read: umlFileSeek error.');
-          exit;
-        end;
-      if not umlBlockRead(FSpace_IOHnd^, buff^, p^.UsedSpace) then
-        begin
-          ErrorInfo('Block_IO_Read: umlBlockRead error.');
-          exit;
-        end;
-      DoDecrypt(buff, FBlockBuffer[ID].UsedSpace);
-      if FUsedReadCache then
-          WriteCacheBlock(buff, p^.UsedSpace, ID, False);
-    end;
-  Result := p^.UsedSpace;
-end;
-
-function TZDB2_Core_Space.Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
-var
-  p: PZDB2_Block;
-begin
-  Result := False;
-  if (ID < 0) or (ID >= FBlockCount) then
-      exit;
-  p := @FBlockBuffer[ID];
-  if not WriteCacheBlock(buff, p^.UsedSpace, ID, True) then
-    begin
-      if not umlFileSeek(FSpace_IOHnd^, p^.Position) then
-        begin
-          ErrorInfo('Block_IO_Write: umlFileSeek Block error.');
-          exit;
-        end;
-      if not umlBlockWrite(FSpace_IOHnd^, DoEncryptTemp(buff, p^.UsedSpace, True)^, p^.UsedSpace) then
-        begin
-          ErrorInfo('Block_IO_Write: umlBlockWrite Block error.');
-          exit;
-        end;
-      if p^.Size - p^.UsedSpace > 0 then
-        if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, p^.Size - p^.UsedSpace) then
-          begin
-            ErrorInfo('Block_IO_Write: umlBlockWrite (NULL) error.');
-            exit;
-          end;
-    end;
-  Result := True;
 end;
 
 procedure TZDB2_Core_Space.DoProgress(Total_, current_: Integer);

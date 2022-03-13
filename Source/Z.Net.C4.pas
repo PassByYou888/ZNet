@@ -271,6 +271,8 @@ type
     function SamePhysicsAddr(Data_: TC40_PhysicsTunnel): Boolean; overload;
     function SamePhysicsAddr(Data_: TC40_PhysicsService): Boolean; overload;
     function SameP2PVMAddr(Data_: TC40_Info): Boolean;
+    function FoundServiceTyp(arry_: TC40_DependNetworkInfoArray): Boolean; overload;
+    function FoundServiceTyp(servTyp_: U_String): Boolean; overload;
     function ReadyC40Client: Boolean;
     function GetOrCreateC40Client(PhysicsTunnel_: TC40_PhysicsTunnel; Param_: U_String): TC40_Custom_Client;
   end;
@@ -291,10 +293,13 @@ type
     function GetInfoArray: TC40_Info_Array;
     function IsOnlyInstance(ServiceTyp: U_String): Boolean;
     function GetServiceTypNum(ServiceTyp: U_String): Integer;
+    function SearchMinWorkload(arry: TC40_DependNetworkInfoArray): TC40_Info_Array; overload;
+    function SearchMinWorkload(ServiceTyp: U_String): TC40_Info_Array; overload;
+    function SearchService(arry: TC40_DependNetworkInfoArray; full_: Boolean): TC40_Info_Array; overload;
     function SearchService(arry: TC40_DependNetworkInfoArray): TC40_Info_Array; overload;
     function SearchService(ServiceTyp: U_String): TC40_Info_Array; overload;
-    function ExistsService(ServiceTyp: U_String): Boolean;
-    function ExistsServiceAndPhysicsTunnel(ServiceTyp: U_String; PhysicsTunnel_: TC40_PhysicsTunnel): Boolean;
+    function ExistsService(arry: TC40_DependNetworkInfoArray): Boolean; overload;
+    function ExistsService(ServiceTyp: U_String): Boolean; overload;
     function FindSame(Data_: TC40_Info): TC40_Info;
     function FindHash(Hash: TMD5): TC40_Info;
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -314,6 +319,7 @@ type
     Param: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
+    Alias_or_Hash___: U_String;
     ServiceInfo: TC40_Info;
     C40PhysicsService: TC40_PhysicsService;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); virtual;
@@ -324,6 +330,9 @@ type
     procedure UpdateToGlobalDispatch;
     function GetHash: TMD5;
     property Hash: TMD5 read GetHash;
+    function GetAliasOrHash: U_String;
+    property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
+    function Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
     { event }
     procedure DoLinkSuccess(Trigger_: TCore_Object);
     procedure DoUserOut(Trigger_: TCore_Object);
@@ -342,7 +351,10 @@ type
     procedure Progress;
     procedure MakeP2PVM_IPv6_Port(var ip6, port: U_String);
     function FindHash(hash_: TMD5): TC40_Custom_Service;
+    function FindAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Service;
+    function MakeAlias(preset_: U_String): U_String;
     function GetServiceFromHash(Hash: TMD5): TC40_Custom_Service;
+    function GetServiceFromAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Service;
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
     function ExistsOnlyInstance(ServiceTyp: U_String): Boolean;
     function GetC40Array: TC40_Custom_Service_Array;
@@ -362,6 +374,7 @@ type
     Param: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
+    Alias_or_Hash___: U_String;
     ClientInfo: TC40_Info;
     C40PhysicsTunnel: TC40_PhysicsTunnel;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); virtual;
@@ -373,6 +386,9 @@ type
     procedure Disconnect; virtual;
     function GetHash: TMD5;
     property Hash: TMD5 read GetHash;
+    function GetAliasOrHash: U_String;
+    property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
+    function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
     { event }
     procedure DoClientConnected;
   end;
@@ -417,6 +433,9 @@ type
     procedure Progress;
     function FindHash(hash_: TMD5; isConnected: Boolean): TC40_Custom_Client; overload;
     function FindHash(hash_: TMD5): TC40_Custom_Client; overload;
+    function FindAliasOrHash(AliasOrhash_: U_String; isConnected: Boolean): TC40_Custom_Client; overload;
+    function FindAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Client; overload;
+    function MakeAlias(preset_: U_String): U_String;
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
     function ExistsServiceInfo(info_: TC40_Info): Boolean;
     function ExistsServiceTyp(ServiceTyp: U_String): Boolean;
@@ -771,8 +790,8 @@ var
   { default configure }
   C40_DefaultConfig: THashStringList;
 
-function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
 procedure C40Progress;                        { C4 main progress }
+function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
 
 { quiet }
 procedure C40SetQuietMode(QuietMode_: Boolean);
@@ -812,23 +831,12 @@ function ExtractDependInfo(info: U_String): TC40_DependNetworkInfoArray; overloa
 function ExtractDependInfo(arry: TC40_DependNetworkString): TC40_DependNetworkInfoArray; overload;
 function ExtractDependInfoToL(info: U_String): TC40_DependNetworkInfoList; overload;
 function ExtractDependInfoToL(arry: TC40_DependNetworkString): TC40_DependNetworkInfoList; overload;
+procedure ResetDependInfoBuff(var arry: TC40_DependNetworkInfoArray);
 
 implementation
 
 var
   C40Progress_Working: Boolean = False;
-
-function C40_Online_DP: TC40_Dispatch_Client;
-var
-  arry: TC40_Custom_Client_Array;
-begin
-  arry := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
-  if length(arry) > 0 then
-      Result := arry[0] as TC40_Dispatch_Client
-  else
-      Result := nil;
-  SetLength(arry, 0);
-end;
 
 procedure C40Progress;
 begin
@@ -842,9 +850,21 @@ begin
     C40_PhysicsTunnelPool.Progress;
     C40_ClientPool.Progress;
     C40CheckAndKillDeadPhysicsTunnel();
-  finally
-      C40Progress_Working := False;
+  except
   end;
+  C40Progress_Working := False;
+end;
+
+function C40_Online_DP: TC40_Dispatch_Client;
+var
+  arry: TC40_Custom_Client_Array;
+begin
+  arry := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
+  if length(arry) > 0 then
+      Result := arry[0] as TC40_Dispatch_Client
+  else
+      Result := nil;
+  SetLength(arry, 0);
 end;
 
 procedure C40SetQuietMode(QuietMode_: Boolean);
@@ -1307,6 +1327,18 @@ begin
     end;
 end;
 
+procedure ResetDependInfoBuff(var arry: TC40_DependNetworkInfoArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+    begin
+      arry[i].Typ := '';
+      arry[i].Param := '';
+    end;
+  SetLength(arry, 0);
+end;
+
 procedure TC40_PhysicsService.cmd_QueryInfo(Sender: TPeerIO; InData, OutData: TDFE);
 var
   i, j: Integer;
@@ -1425,13 +1457,21 @@ begin
 end;
 
 function TC40_PhysicsService.BuildDependNetwork(const Depend_: TC40_DependNetworkString): Boolean;
+var
+  tmp: TC40_DependNetworkInfoArray;
 begin
-  Result := BuildDependNetwork(ExtractDependInfo(Depend_));
+  tmp := ExtractDependInfo(Depend_);
+  Result := BuildDependNetwork(tmp);
+  ResetDependInfoBuff(tmp);
 end;
 
 function TC40_PhysicsService.BuildDependNetwork(const Depend_: U_String): Boolean;
+var
+  tmp: TC40_DependNetworkInfoArray;
 begin
-  Result := BuildDependNetwork(ExtractDependInfo(Depend_));
+  tmp := ExtractDependInfo(Depend_);
+  Result := BuildDependNetwork(tmp);
+  ResetDependInfoBuff(tmp);
 end;
 
 procedure TC40_PhysicsService.StartService;
@@ -1579,17 +1619,19 @@ var
   found_: Integer;
   tmp: TC40_Custom_Client;
 begin
+  // prepare
   found_ := 0;
   for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     if L.ExistsService(Sender.DependNetworkInfoArray[i].Typ) then
         inc(found_);
-
   if found_ = 0 then
     begin
       DoRun(False);
       exit;
     end;
 
+  // build c40
+  found_ := 0;
   for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     for j := 0 to L.Count - 1 do
       begin
@@ -1609,6 +1651,7 @@ begin
 
                 if Assigned(C40_PhysicsTunnel.OnEvent) then
                     C40_PhysicsTunnel.OnEvent.C40_PhysicsTunnel_Build_Network(C40_PhysicsTunnel, tmp);
+                inc(found_);
               end
             else
               begin
@@ -1616,8 +1659,11 @@ begin
               end;
           end;
       end;
-  Sender.PhysicsTunnel.OnAutomatedP2PVMClientConnectionDone_M := {$IFDEF FPC}@{$ENDIF FPC}DCT40_OnAutoP2PVMConnectionDone;
-  Sender.PhysicsTunnel.AutomatedP2PVM_Open(Sender.PhysicsTunnel.ClientIO);
+  if found_ > 0 then
+    begin
+      Sender.PhysicsTunnel.OnAutomatedP2PVMClientConnectionDone_M := {$IFDEF FPC}@{$ENDIF FPC}DCT40_OnAutoP2PVMConnectionDone;
+      Sender.PhysicsTunnel.AutomatedP2PVM_Open(Sender.PhysicsTunnel.ClientIO);
+    end;
 end;
 
 procedure TDCT40_QueryResultAndDependProcessor.DoRun(const state: Boolean);
@@ -1821,13 +1867,21 @@ begin
 end;
 
 function TC40_PhysicsTunnel.ResetDepend(const Depend_: TC40_DependNetworkString): Boolean;
+var
+  tmp: TC40_DependNetworkInfoArray;
 begin
-  Result := ResetDepend(ExtractDependInfo(Depend_));
+  tmp := ExtractDependInfo(Depend_);
+  Result := ResetDepend(tmp);
+  ResetDependInfoBuff(tmp);
 end;
 
 function TC40_PhysicsTunnel.ResetDepend(const Depend_: U_String): Boolean;
+var
+  tmp: TC40_DependNetworkInfoArray;
 begin
-  Result := ResetDepend(ExtractDependInfo(Depend_));
+  tmp := ExtractDependInfo(Depend_);
+  Result := ResetDepend(tmp);
+  ResetDependInfoBuff(tmp);
 end;
 
 function TC40_PhysicsTunnel.CheckDepend(): Boolean;
@@ -2368,22 +2422,24 @@ end;
 procedure TTemp_SearchServiceBridge.Do_SearchService_Event(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
 var
   arry: TC40_Info_Array;
-  i, min_workload_index: Integer;
+  i: Integer;
 begin
-  arry := L.SearchService(ServiceTyp);
   if FullConnection_ then
     begin
+      arry := L.SearchService(ServiceTyp);
       for i := low(arry) to high(arry) do
-          Pool.GetOrCreatePhysicsTunnel(arry[i], ServiceTyp, OnEvent_);
+        if arry[i].FoundServiceTyp(ServiceTyp) then
+            Pool.GetOrCreatePhysicsTunnel(arry[i], ServiceTyp, OnEvent_);
+      SetLength(arry, 0);
     end
-  else if length(arry) > 0 then
+  else
     begin
       // serach minmized workload,thanks qq375960048
-      min_workload_index := 0;
-      for i := low(arry) + 1 to high(arry) do
-        if arry[i].Workload < arry[min_workload_index].Workload then
-            min_workload_index := i;
-      Pool.GetOrCreatePhysicsTunnel(arry[min_workload_index], ServiceTyp, OnEvent_);
+      arry := L.SearchMinWorkload(ServiceTyp);
+      for i := low(arry) to high(arry) do
+        if arry[i].FoundServiceTyp(ServiceTyp) then
+            Pool.GetOrCreatePhysicsTunnel(arry[i], ServiceTyp, OnEvent_);
+      SetLength(arry, 0);
     end;
   DelayFreeObj(1.0, Self);
 end;
@@ -2586,6 +2642,28 @@ begin
   Result := True;
 end;
 
+function TC40_Info.FoundServiceTyp(arry_: TC40_DependNetworkInfoArray): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := low(arry_) to high(arry_) do
+    if ServiceTyp.Same(@arry_[i].Typ) then
+      begin
+        Result := True;
+        exit;
+      end;
+end;
+
+function TC40_Info.FoundServiceTyp(servTyp_: U_String): Boolean;
+var
+  arry_: TC40_DependNetworkInfoArray;
+begin
+  arry_ := ExtractDependInfo(servTyp_);
+  Result := FoundServiceTyp(arry_);
+  ResetDependInfoBuff(arry_);
+end;
+
 function TC40_Info.ReadyC40Client: Boolean;
 var
   p: PC40_RegistedData;
@@ -2713,33 +2791,68 @@ end;
 
 function TC40_InfoList.GetServiceTypNum(ServiceTyp: U_String): Integer;
 var
-  i: Integer;
+  arry: TC40_Info_Array;
 begin
-  Result := 0;
-  for i := 0 to Count - 1 do
-    if umlMultipleMatch(True, ServiceTyp, Items[i].ServiceTyp) then
-        inc(Result);
+  arry := SearchService(ServiceTyp);
+  Result := length(arry);
+  SetLength(arry, 0);
 end;
 
-function TC40_InfoList.SearchService(arry: TC40_DependNetworkInfoArray): TC40_Info_Array;
+function TC40_InfoList.SearchMinWorkload(arry: TC40_DependNetworkInfoArray): TC40_Info_Array;
+  function Do_SearchService_(serv_: U_String): TC40_InfoList;
+  var
+    i: Integer;
+  begin
+    Result := TC40_InfoList.Create(False);
+    { filter }
+    for i := 0 to Count - 1 do
+      if serv_.Same(@Items[i].ServiceTyp) then
+          Result.Add(Items[i]);
+    { sort }
+    TC40_InfoList.SortWorkLoad(Result);
+  end;
+
+var
+  i: Integer;
+  tmp, L: TC40_InfoList;
+begin
+  L := TC40_InfoList.Create(False);
+  for i := low(arry) to high(arry) do
+    begin
+      tmp := Do_SearchService_(arry[i].Typ);
+      if tmp.Count > 0 then
+          L.Add(tmp.First);
+      disposeObject(tmp);
+    end;
+  Result := L.GetInfoArray;
+  disposeObject(L);
+end;
+
+function TC40_InfoList.SearchMinWorkload(ServiceTyp: U_String): TC40_Info_Array;
+var
+  tmp: TC40_DependNetworkInfoArray;
+begin
+  tmp := ExtractDependInfo(ServiceTyp);
+  Result := SearchMinWorkload(tmp);
+  ResetDependInfoBuff(tmp);
+end;
+
+function TC40_InfoList.SearchService(arry: TC40_DependNetworkInfoArray; full_: Boolean): TC40_Info_Array;
 var
   L: TC40_InfoList;
   i, j: Integer;
-  found_: Boolean;
 begin
   L := TC40_InfoList.Create(False);
   { filter }
   for i := 0 to Count - 1 do
     begin
-      found_ := False;
-      for j := Low(arry) to high(arry) do
+      for j := low(arry) to high(arry) do
         if arry[j].Typ.Same(@Items[i].ServiceTyp) then
           begin
-            found_ := True;
-            break;
+            L.Add(Items[i]);
+            if not full_ then
+                break;
           end;
-      if found_ then
-          L.Add(Items[i]);
     end;
   { sort }
   TC40_InfoList.SortWorkLoad(L);
@@ -2747,42 +2860,38 @@ begin
   disposeObject(L);
 end;
 
+function TC40_InfoList.SearchService(arry: TC40_DependNetworkInfoArray): TC40_Info_Array;
+begin
+  Result := SearchService(arry, True);
+end;
+
 function TC40_InfoList.SearchService(ServiceTyp: U_String): TC40_Info_Array;
 var
-  L: TC40_InfoList;
+  tmp: TC40_DependNetworkInfoArray;
+begin
+  tmp := ExtractDependInfo(ServiceTyp);
+  Result := SearchService(tmp);
+  ResetDependInfoBuff(tmp);
+end;
+
+function TC40_InfoList.ExistsService(arry: TC40_DependNetworkInfoArray): Boolean;
+var
   i: Integer;
 begin
-  L := TC40_InfoList.Create(False);
-  { filter }
+  Result := True;
   for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ServiceTyp) then
-        L.Add(Items[i]);
-  { sort }
-  TC40_InfoList.SortWorkLoad(L);
-  Result := L.GetInfoArray;
-  disposeObject(L);
+    if Items[i].FoundServiceTyp(arry) then
+        exit;
+  Result := False;
 end;
 
 function TC40_InfoList.ExistsService(ServiceTyp: U_String): Boolean;
 var
-  i: Integer;
+  tmp: TC40_DependNetworkInfoArray;
 begin
-  Result := True;
-  for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ServiceTyp) then
-        exit;
-  Result := False;
-end;
-
-function TC40_InfoList.ExistsServiceAndPhysicsTunnel(ServiceTyp: U_String; PhysicsTunnel_: TC40_PhysicsTunnel): Boolean;
-var
-  i: Integer;
-begin
-  Result := True;
-  for i := 0 to Count - 1 do
-    if umlMultipleMatch(True, ServiceTyp, Items[i].ServiceTyp) and (Items[i].SamePhysicsAddr(PhysicsTunnel_)) then
-        exit;
-  Result := False;
+  tmp := ExtractDependInfo(ServiceTyp);
+  Result := ExistsService(tmp);
+  ResetDependInfoBuff(tmp);
 end;
 
 function TC40_InfoList.FindSame(Data_: TC40_Info): TC40_Info;
@@ -2966,6 +3075,7 @@ begin
 
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
+  Alias_or_Hash___ := ParamList.GetDefaultValue('Alias', C40_ServicePool.MakeAlias(ServiceTyp));
 
   P2PVM_Recv_Name_ := ServiceTyp + 'R';
   C40_ServicePool.MakeP2PVM_IPv6_Port(P2PVM_Recv_IP6_, P2PVM_Recv_Port_);
@@ -3050,6 +3160,62 @@ begin
   Result := ServiceInfo.Hash;
 end;
 
+function TC40_Custom_Service.GetAliasOrHash: U_String;
+begin
+  Result := umlTrimSpace(Alias_or_Hash___);
+  if Result.L = 0 then
+      Result := umlMD5ToStr(Hash);
+end;
+
+function TC40_Custom_Service.Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
+begin
+  Result := False;
+  recv_ := nil;
+  send_ := nil;
+  if Self is TC40_Dispatch_Service then
+    begin
+      recv_ := TC40_Dispatch_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Dispatch_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_NoAuth_Service then
+    begin
+      recv_ := TC40_Base_NoAuth_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_NoAuth_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStoreNoAuth_Service then
+    begin
+      recv_ := TC40_Base_DataStoreNoAuth_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_DataStoreNoAuth_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_VirtualAuth_Service then
+    begin
+      recv_ := TC40_Base_VirtualAuth_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_VirtualAuth_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStoreVirtualAuth_Service then
+    begin
+      recv_ := TC40_Base_DataStoreVirtualAuth_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_DataStoreVirtualAuth_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_Service then
+    begin
+      recv_ := TC40_Base_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_Service(Self).Service.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStore_Service then
+    begin
+      recv_ := TC40_Base_DataStore_Service(Self).Service.RecvTunnel;
+      send_ := TC40_Base_DataStore_Service(Self).Service.SendTunnel;
+      Result := True;
+    end;
+end;
+
 procedure TC40_Custom_Service.DoLinkSuccess(Trigger_: TCore_Object);
 begin
   C40PhysicsService.DoLinkSuccess(Self, Trigger_);
@@ -3101,6 +3267,32 @@ begin
         exit(Items[i]);
 end;
 
+function TC40_Custom_ServicePool.FindAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Service;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if AliasOrhash_.Same(Items[i].AliasOrHash) then
+        exit(Items[i]);
+end;
+
+function TC40_Custom_ServicePool.MakeAlias(preset_: U_String): U_String;
+var
+  i: Integer;
+begin
+  if FindAliasOrHash(preset_) = nil then
+      Result := preset_
+  else
+    begin
+      i := 1;
+      repeat
+        Result := PFormat('%s_%d', [preset_.Text, i]);
+        inc(i);
+      until FindAliasOrHash(preset_) = nil;
+    end;
+end;
+
 function TC40_Custom_ServicePool.GetServiceFromHash(Hash: TMD5): TC40_Custom_Service;
 var
   i: Integer;
@@ -3109,6 +3301,16 @@ begin
   for i := 0 to Count - 1 do
     if umlCompareMD5(Hash, Items[i].ServiceInfo.Hash) then
         Result := Items[i];
+end;
+
+function TC40_Custom_ServicePool.GetServiceFromAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Service;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if AliasOrhash_.Same(Items[i].AliasOrHash) then
+        exit(Items[i]);
 end;
 
 function TC40_Custom_ServicePool.ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -3207,6 +3409,7 @@ begin
 
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
+  Alias_or_Hash___ := ParamList.GetDefaultValue('Alias', C40_ClientPool.MakeAlias(source_.ServiceTyp));
 
   if PhysicsTunnel_ = nil then
       C40PhysicsTunnel := C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ClientInfo)
@@ -3261,6 +3464,62 @@ end;
 function TC40_Custom_Client.GetHash: TMD5;
 begin
   Result := ClientInfo.Hash;
+end;
+
+function TC40_Custom_Client.GetAliasOrHash: U_String;
+begin
+  Result := umlTrimSpace(Alias_or_Hash___);
+  if Result.L = 0 then
+      Result := umlMD5ToStr(Hash);
+end;
+
+function TC40_Custom_Client.Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
+begin
+  Result := False;
+  recv_ := nil;
+  send_ := nil;
+  if Self is TC40_Dispatch_Client then
+    begin
+      recv_ := TC40_Dispatch_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Dispatch_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_NoAuth_Client then
+    begin
+      recv_ := TC40_Base_NoAuth_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_NoAuth_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStoreNoAuth_Client then
+    begin
+      recv_ := TC40_Base_DataStoreNoAuth_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_DataStoreNoAuth_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_VirtualAuth_Client then
+    begin
+      recv_ := TC40_Base_VirtualAuth_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_VirtualAuth_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStoreVirtualAuth_Client then
+    begin
+      recv_ := TC40_Base_DataStoreVirtualAuth_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_DataStoreVirtualAuth_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_Client then
+    begin
+      recv_ := TC40_Base_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_Client(Self).Client.SendTunnel;
+      Result := True;
+    end
+  else if Self is TC40_Base_DataStore_Client then
+    begin
+      recv_ := TC40_Base_DataStore_Client(Self).Client.RecvTunnel;
+      send_ := TC40_Base_DataStore_Client(Self).Client.SendTunnel;
+      Result := True;
+    end;
 end;
 
 procedure TC40_Custom_Client.DoClientConnected;
@@ -3382,6 +3641,37 @@ end;
 function TC40_Custom_ClientPool.FindHash(hash_: TMD5): TC40_Custom_Client;
 begin
   Result := FindHash(hash_, False);
+end;
+
+function TC40_Custom_ClientPool.FindAliasOrHash(AliasOrhash_: U_String; isConnected: Boolean): TC40_Custom_Client;
+var
+  i: Integer;
+begin
+  Result := nil;
+  for i := 0 to Count - 1 do
+    if AliasOrhash_.Same(Items[i].AliasOrHash) and ((not isConnected) or (isConnected and Items[i].Connected)) then
+        exit(Items[i]);
+end;
+
+function TC40_Custom_ClientPool.FindAliasOrHash(AliasOrhash_: U_String): TC40_Custom_Client;
+begin
+  Result := FindAliasOrHash(AliasOrhash_, False);
+end;
+
+function TC40_Custom_ClientPool.MakeAlias(preset_: U_String): U_String;
+var
+  i: Integer;
+begin
+  if FindAliasOrHash(preset_) = nil then
+      Result := preset_
+  else
+    begin
+      i := 1;
+      repeat
+        Result := PFormat('%s_%d', [preset_.Text, i]);
+        inc(i);
+      until FindAliasOrHash(Result) = nil;
+    end;
 end;
 
 function TC40_Custom_ClientPool.ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -4130,7 +4420,8 @@ begin
 
   { check and build network }
   for i := 0 to ServiceInfoList.Count - 1 do
-      C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
+    if ServiceInfoList[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
+        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
 end;
 
 constructor TC40_Dispatch_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -4173,7 +4464,8 @@ begin
 
   { check and build network }
   for i := 0 to ServiceInfoList.Count - 1 do
-      C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
+    if ServiceInfoList[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
+        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
 end;
 
 destructor TC40_Dispatch_Client.Destroy;

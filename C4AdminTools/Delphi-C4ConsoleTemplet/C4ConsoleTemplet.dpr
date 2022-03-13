@@ -33,15 +33,20 @@ var
 procedure Do_Check_On_Exit;
 var
   n: string;
+  cH: TC40_Console_Help;
 begin
+  cH := TC40_Console_Help.Create;
   repeat
     TCompute.Sleep(100);
     Readln(n);
-  until umlMultipleMatch(['exit', 'close'], n);
+    cH.Run_HelpCmd(n);
+  until cH.IsExit;
+  disposeObject(cH);
   exit_signal := True;
 end;
 
 begin
+  StatusThreadID := False;
   Z.Net.C4_Console_APP.C40_Init_AppParamFromSystemCmdLine;
   if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
     begin
@@ -50,6 +55,5 @@ begin
       while not exit_signal do
           Z.Net.C4.C40Progress;
     end;
-
   Z.Net.C4.C40Clean;
 end.

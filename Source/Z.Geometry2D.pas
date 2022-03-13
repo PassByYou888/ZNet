@@ -96,6 +96,14 @@ function Rectf(Left, Top, Right, Bottom: TGeoFloat): TRectf;
 {$ENDIF}
 {$ENDREGION 'BaseType define'}
 {$REGION 'API'}
+
+function CompareCardinal(C1, C2: Cardinal): Integer;
+function CompareInteger(Int1, Int2: Integer): Integer;
+function CompareInt64(const Int1, Int2: int64): Integer;
+function ComparePointer(Item1, Item2: pointer): Integer;
+function CompareBool(Bool1, Bool2: boolean): Integer;
+function CompareDouble(const Double1, Double2: Double): Integer;
+
 function FAbs(const V: Single): Single; overload;
 function FAbs(const V: Double): Double; overload;
 function Clamp(const Value_, Min_, Max_: TGeoFloat): TGeoFloat; overload;
@@ -125,7 +133,7 @@ function vec2(const p: PVec2): TVec2; overload;
 function vec2(const f: TGeoFloat): TVec2; overload;
 function vec2(const X, Y: TGeoFloat): TVec2; overload;
 function vec2(const X, Y: TGeoInt): TVec2; overload;
-function vec2(const X, Y: Int64): TVec2; overload;
+function vec2(const X, Y: int64): TVec2; overload;
 function vec2(const pt: TPoint): TVec2; overload;
 function vec2(const pt: TPointf): TVec2; overload;
 
@@ -140,12 +148,12 @@ function RoundVec2(const V: TVec2): TVec2; overload;
 
 function MakePointf(const pt: TVec2): TPointf; overload;
 
-function IsZero(const V: TGeoFloat): Boolean; overload;
-function IsZero(const pt: TVec2): Boolean; overload;
-function IsZero(const R: TRectV2): Boolean; overload;
+function IsZero(const V: TGeoFloat): boolean; overload;
+function IsZero(const pt: TVec2): boolean; overload;
+function IsZero(const R: TRectV2): boolean; overload;
 
-function IsNan(const pt: TVec2): Boolean; overload;
-function IsNan(const X, Y: TGeoFloat): Boolean; overload;
+function IsNan(const pt: TVec2): boolean; overload;
+function IsNan(const X, Y: TGeoFloat): boolean; overload;
 function HypotX(const X, Y: Extended): TGeoFloat; overload;
 
 function PointNorm(const V: TVec2): TGeoFloat; overload;
@@ -222,18 +230,18 @@ function Pow(const V, n: TGeoFloat): TGeoFloat; overload;
 function MiddleVec2(const pt1, pt2: TVec2): TVec2; overload;
 function Vec2Middle(const pt1, pt2: TVec2): TVec2; overload;
 
-function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean; overload;
-function IsEqual(const Val1, Val2: TGeoFloat): Boolean; overload;
-function IsEqual(const Val1, Val2: TVec2): Boolean; overload;
-function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): Boolean; overload;
-function IsEqual(const Val1, Val2: TRectV2): Boolean; overload;
+function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; overload;
+function IsEqual(const Val1, Val2: TGeoFloat): boolean; overload;
+function IsEqual(const Val1, Val2: TVec2): boolean; overload;
+function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): boolean; overload;
+function IsEqual(const Val1, Val2: TRectV2): boolean; overload;
 
-function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean; overload;
-function NotEqual(const Val1, Val2: TGeoFloat): Boolean; overload;
-function NotEqual(const Val1, Val2: TVec2): Boolean; overload;
+function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; overload;
+function NotEqual(const Val1, Val2: TGeoFloat): boolean; overload;
+function NotEqual(const Val1, Val2: TVec2): boolean; overload;
 
-function LessThanOrEqual(const Val1, Val2: TGeoFloat): Boolean; overload;
-function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): Boolean; overload;
+function LessThanOrEqual(const Val1, Val2: TGeoFloat): boolean; overload;
+function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): boolean; overload;
 function GetEquilateralTriangleCen(pt1, pt2: TVec2): TVec2; overload;
 
 procedure Rotate(RotAng: TGeoFloat; const X, Y: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
@@ -257,31 +265,31 @@ function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGe
 function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const R: TRectV2): TRectV2; overload;
 function RectRotation(const axis: TVec2; const R: TRectV2; const Angle: TGeoFloat): TRectV2;
 
-function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): Boolean; overload;
-function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): Boolean;
-function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): Boolean; overload;
-function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): Boolean; overload;
-function PointInRect(const X, Y: TGeoInt; const R: TRect): Boolean; overload;
-function PointInRect(const pt: TPoint; const R: TRect): Boolean; overload;
-function PointInRect(const pt: TVec2; const R: TRectV2): Boolean; overload;
-function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): Boolean; overload;
-function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): Boolean; overload;
-function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): Boolean; overload;
-function Vec2InRect(const pt: TVec2; const R: TRectV2): Boolean; overload;
-function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): Boolean; overload;
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean; overload;
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean; overload;
-function RectToRectIntersect(const r1, r2: TRectV2): Boolean; overload;
-function RectToRectIntersect(const r1, r2: TRect): Boolean; overload;
-function RectToRectIntersect(const r1, r2: TRectf): Boolean; overload;
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean; overload;
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean; overload;
-function RectWithInRect(const r1, r2: TRectV2): Boolean; overload;
-function RectWithInRect(const r1, r2: TRect): Boolean; overload;
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean; overload;
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean; overload;
-function RectInRect(const r1, r2: TRectV2): Boolean; overload;
-function RectInRect(const r1, r2: TRect): Boolean; overload;
+function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
+function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): boolean;
+function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; overload;
+function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; overload;
+function PointInRect(const X, Y: TGeoInt; const R: TRect): boolean; overload;
+function PointInRect(const pt: TPoint; const R: TRect): boolean; overload;
+function PointInRect(const pt: TVec2; const R: TRectV2): boolean; overload;
+function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; overload;
+function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; overload;
+function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; overload;
+function Vec2InRect(const pt: TVec2; const R: TRectV2): boolean; overload;
+function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; overload;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
+function RectToRectIntersect(const r1, r2: TRectV2): boolean; overload;
+function RectToRectIntersect(const r1, r2: TRect): boolean; overload;
+function RectToRectIntersect(const r1, r2: TRectf): boolean; overload;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
+function RectWithInRect(const r1, r2: TRectV2): boolean; overload;
+function RectWithInRect(const r1, r2: TRect): boolean; overload;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
+function RectInRect(const r1, r2: TRectV2): boolean; overload;
+function RectInRect(const r1, r2: TRect): boolean; overload;
 
 function MakeRectV2(const centre: TVec2; const width, height: TGeoFloat): TRectV2; overload;
 function MakeRectV2(const X, Y, radius: TGeoFloat): TRectV2; overload;
@@ -398,7 +406,7 @@ function RectArea(const R: TRectV2): TGeoFloat; overload;
 function RectArea(const R: TRect): TGeoInt; overload;
 function RectSize(const R: TRectV2): TVec2;
 function RectSizeR(const R: TRectV2): TRectV2;
-function RectFit(const sour, dest: TRectV2; const Bound: Boolean): TRectV2; overload;
+function RectFit(const sour, dest: TRectV2; const Bound: boolean): TRectV2; overload;
 function RectFit(const sour, dest: TRectV2): TRectV2; overload;
 function RectFit(const width, height: TGeoFloat; const bk: TRectV2): TRectV2; overload;
 function FitRect(const sour, dest: TRectV2): TRectV2; overload;
@@ -418,31 +426,31 @@ function BoundRect(const r1: TRectV2; const p1, p2, p3, p4: TVec2): TRectV2; ove
 function BuffCentroid(const buff: TArrayVec2): TVec2; overload;
 function BuffCentroid(const p1, p2, p3, p4: TVec2): TVec2; overload;
 function BuffCentroid(const p1, p2, p3: TVec2): TVec2; overload;
-function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): Boolean;
+function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): boolean;
 function PolygonArea(const buff: TArrayVec2): TGeoFloat;
 
 function FastRamerDouglasPeucker(var Points: TArrayVec2; Epsilon_: TGeoFloat): TGeoInt;
 procedure FastVertexReduction(Points: TArrayVec2; Epsilon_: TGeoFloat; var output: TArrayVec2);
 
-function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): Boolean; overload;
+function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): boolean; overload;
 procedure Clip(const sour_, background_: TRectV2; var output: TRectV2); overload;
 function Clip(const sour, background: TRectV2): TRectV2; overload;
 
 function Orientation(const x1, y1, x2, y2, Px, Py: TGeoFloat): TGeoInt; overload;
 function Orientation(const x1, y1, z1, x2, y2, z2, x3, y3, z3, Px, Py, Pz: TGeoFloat): TGeoInt; overload;
-function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): Boolean; overload;
-function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean; overload;
-function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): Boolean; overload;
-function SimpleIntersect(const l1, l2: TLineV2): Boolean; overload;
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean; overload;
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): Boolean; overload;
-function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): Boolean; overload;
-function Intersect(const l1, l2: TLineV2; out pt: TVec2): Boolean; overload;
-function Intersect(const pt1, pt2, pt3, pt4: TVec2): Boolean; overload;
-function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): Boolean; overload;
-function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): Boolean; overload;
+function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): boolean; overload;
+function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
+function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): boolean; overload;
+function SimpleIntersect(const l1, l2: TLineV2): boolean; overload;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): boolean; overload;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): boolean; overload;
+function Intersect(const l1, l2: TLineV2; out pt: TVec2): boolean; overload;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2): boolean; overload;
+function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; overload;
+function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; overload;
 
-function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): Boolean;
+function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): boolean;
 procedure BuildSinCosCache(const oSin, oCos: PGeoFloatArray; const b, E: TGeoFloat);
 
 procedure ClosestPointOnSegmentFromPoint(const x1, y1, x2, y2, Px, Py: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
@@ -497,23 +505,23 @@ procedure ProjectionPoint(const Px, Py, Angle, Distance: TGeoFloat; out Nx, Ny: 
 function GetCicleRadiusInPolyEdge(R: TGeoFloat; PolySlices: TGeoInt): TGeoFloat;
 
 procedure Circle2LineIntersectionPoint(const lb, le, cp: TVec2; const radius: TGeoFloat;
-  out pt1in, pt2in: Boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
 procedure Circle2LineIntersectionPoint(const L: TLineV2; const cp: TVec2; radius: TGeoFloat;
-  out pt1in, pt2in: Boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
 
 procedure Circle2CircleIntersectionPoint(const cp1, cp2: TVec2; const r1, r2: TGeoFloat; out Point1, Point2: TVec2); overload;
 
 // circle collision Detector
-function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): Boolean; overload;
-function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): Boolean; overload;
+function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
+function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
 
-function Detect_Circle2CirclePoint(const p1, p2: TVec2; const r1, r2: TGeoFloat; out op1, op2: TVec2): Boolean;
+function Detect_Circle2CirclePoint(const p1, p2: TVec2; const r1, r2: TGeoFloat; out op1, op2: TVec2): boolean;
 
 // circle 2 line collision
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): Boolean; overload;
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): Boolean; overload;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): boolean; overload;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): boolean; overload;
 
-function SameLinePtr(const lb1, le1, lb2, le2: PVec2): Boolean;
+function SameLinePtr(const lb1, le1, lb2, le2: PVec2): boolean;
 
 function ComputeCurvePartPrecision(const pt1, pt2, pt3, pt4: TVec2): TGeoInt;
 function Interpolation_OutSide(const T_: TGeoFloat): TGeoFloat;
@@ -529,7 +537,7 @@ type
   public
     LeftTop, RightTop, RightBottom, LeftBottom: TVec2;
 
-    function IsZero: Boolean;
+    function IsZero: boolean;
     function BoundArea: TGeoFloat;
     function Area: TGeoFloat;
     function Rotation(Angle: TGeoFloat): TV2Rect4; overload;
@@ -551,8 +559,8 @@ type
     function Transform(v2: TVec2): TV2Rect4; overload;
     function Transform(X, Y: TGeoFloat): TV2Rect4; overload;
     function Expands(Dist: TGeoFloat): TV2Rect4;
-    function InHere(pt: TVec2): Boolean; overload;
-    function InHere(R: TRectV2): Boolean; overload;
+    function InHere(pt: TVec2): boolean; overload;
+    function InHere(R: TRectV2): boolean; overload;
     function GetArrayVec2: TArrayVec2;
     function GetNear(pt: TVec2): TVec2;
     function GetNearLine(const V: TVec2; out lb, le: PVec2): TVec2; overload;
@@ -614,7 +622,7 @@ type
   TVec2List = class(TCore_Object)
   private
     FList: TCore_List;
-    FUserData: Pointer;
+    FUserData: pointer;
     FUserObject: TCore_Object;
 
     function GetPoints(index: TGeoInt): PVec2;
@@ -675,9 +683,9 @@ type
     function Centroid: TVec2; overload;
     function Area: TGeoFloat;
 
-    function InHere(pt: TVec2): Boolean; overload;
-    function InRect(R: TRectV2): Boolean;
-    function Rect2Intersect(R: TRectV2): Boolean;
+    function InHere(pt: TVec2): boolean; overload;
+    function InRect(R: TRectV2): boolean;
+    function Rect2Intersect(R: TRectV2): boolean;
 
     procedure RotateAngle(axis: TVec2; Angle: TGeoFloat); overload;
     procedure Scale(Scale_: TGeoFloat); overload;
@@ -701,17 +709,17 @@ type
     procedure VertexReduction(Epsilon_: TGeoFloat); overload;
     procedure Reduction(Epsilon_: TGeoFloat); overload;
 
-    function Line2Intersect(const lb, le: TVec2; ClosedPolyMode: Boolean): Boolean; overload;
-    function Line2Intersect(const lb, le: TVec2; ClosedPolyMode: Boolean; output: TVec2List): Boolean; overload;
-    function Line2NearIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean; overload;
+    function Line2Intersect(const lb, le: TVec2; ClosedPolyMode: boolean): boolean; overload;
+    function Line2Intersect(const lb, le: TVec2; ClosedPolyMode: boolean; output: TVec2List): boolean; overload;
+    function Line2NearIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean; overload;
 
     procedure SortOfNear(const lb, le: TVec2); overload;
     procedure SortOfNear(const pt: TVec2); overload;
 
     procedure Reverse; overload;
 
-    function GetNearLine(const pt: TVec2; const ClosedMode: Boolean; out lb, le: TGeoInt): TVec2; overload;
-    function GetNearLine(const pt: TVec2; const ClosedMode: Boolean): TVec2; overload;
+    function GetNearLine(const pt: TVec2; const ClosedMode: boolean; out lb, le: TGeoInt): TVec2; overload;
+    function GetNearLine(const pt: TVec2; const ClosedMode: boolean): TVec2; overload;
     function GetNearLine(const pt: TVec2; const ExpandDist: TGeoFloat): TVec2; overload;
 
     procedure CutLineBeginPtToIdx(const pt: TVec2; const toidx: TGeoInt);
@@ -736,7 +744,7 @@ type
     function GetExpands(idx: TGeoInt; ExpandDist: TGeoFloat): TVec2;
     property Expands[idx: TGeoInt; ExpandDist: TGeoFloat]: TVec2 read GetExpands;
 
-    property UserData: Pointer read FUserData write FUserData;
+    property UserData: pointer read FUserData write FUserData;
     property UserObject: TCore_Object read FUserObject write FUserObject;
   end;
 {$ENDREGION 'TVec2List'}
@@ -751,7 +759,7 @@ type
 
   TLinesList = class(TLinesList_Decl)
   public
-    AutoFree: Boolean;
+    AutoFree: boolean;
 
     constructor Create;
     destructor Destroy; override;
@@ -797,18 +805,18 @@ type
     function Total: TGeoInt;
     function BuildArray: TArray2DPoint;
     function BuildPArray: TArrayPVec2;
-    function ExistsPVec(p: PVec2): Boolean;
+    function ExistsPVec(p: PVec2): boolean;
     procedure RotateAngle(axis: TVec2; Angle: TGeoFloat);
     procedure Scale(Scale_: TGeoFloat);
     procedure ProjectionTo(const sour, dest: TRectV2; const output: T2DPolygonGraph); overload;
     procedure ProjectionTo(const dest: TRectV2; const output: T2DPolygonGraph); overload;
-    function InHere(pt: TVec2): Boolean;
-    function InSurround(pt: TVec2): Boolean;
-    function InCollapse(pt: TVec2): Boolean;
+    function InHere(pt: TVec2): boolean;
+    function InSurround(pt: TVec2): boolean;
+    function InCollapse(pt: TVec2): boolean;
     function Pick(pt: TVec2): T2DPolygon;
     function BoundBox: TRectV2;
     function CollapseBounds: TRectV2Array;
-    function Line2Intersect(const lb, le: TVec2; output: T2DPolygon): Boolean;
+    function Line2Intersect(const lb, le: TVec2; output: T2DPolygon): boolean;
     function GetNearLine(const pt: TVec2; out output: T2DPolygon; out lb, le: TGeoInt): TVec2;
     procedure Transform(X, Y: TGeoFloat); overload;
     procedure Transform(V: TVec2); overload;
@@ -850,7 +858,7 @@ type
     FExpandMode: TExpandMode;
 
     FUserDataObject: TCore_Object;
-    FUserData: Pointer;
+    FUserData: pointer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -888,8 +896,8 @@ type
     procedure Delete(idx: TGeoInt); overload;
     procedure Clear; overload;
     function Count: TGeoInt; overload;
-    procedure CopyPoly(pl: TDeflectionPolygon; AReversed: Boolean);
-    procedure CopyExpandPoly(pl: TDeflectionPolygon; AReversed: Boolean; Dist: TGeoFloat);
+    procedure CopyPoly(pl: TDeflectionPolygon; AReversed: boolean);
+    procedure CopyExpandPoly(pl: TDeflectionPolygon; AReversed: boolean; Dist: TGeoFloat);
     procedure Reverse;
     function ScaleBeforeDistance: TGeoFloat;
     function ScaleAfterDistance: TGeoFloat;
@@ -901,7 +909,7 @@ type
 
     { rebuild }
     procedure Rebuild(pl: TVec2List; Scale_: TGeoFloat; angle_: TGeoFloat; ExpandMode_: TExpandMode; Position_: TVec2); overload;
-    procedure Rebuild(pl: TVec2List; reset_: Boolean); overload;
+    procedure Rebuild(pl: TVec2List; reset_: boolean); overload;
     procedure Rebuild; overload;
     procedure Rebuild(Scale_: TGeoFloat; angle_: TGeoFloat; ExpandMode_: TExpandMode; Position_: TVec2); overload;
 
@@ -909,30 +917,30 @@ type
     function Centroid: TVec2; overload;
     function Area: TGeoFloat;
 
-    function InHere(pt: TVec2): Boolean; overload;
-    function InHere(ExpandDistance_: TGeoFloat; pt: TVec2): Boolean; overload;
+    function InHere(pt: TVec2): boolean; overload;
+    function InHere(ExpandDistance_: TGeoFloat; pt: TVec2): boolean; overload;
 
     { * line intersect * }
-    function LineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean; overload;
-    function LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean; overload;
-    function LineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean;
-      out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean; overload;
-    function LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: Boolean;
-      out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean; overload;
+    function LineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean): boolean; overload;
+    function LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: boolean): boolean; overload;
+    function LineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean;
+      out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean; overload;
+    function LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: boolean;
+      out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean; overload;
 
     { * sample line intersect * }
-    function SimpleLineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean; overload;
+    function SimpleLineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean): boolean; overload;
 
     { * get minimum point from Polygon * }
-    function GetNearLine(const pt: TVec2; const ClosedPolyMode: Boolean; out lb, le: TGeoInt): TVec2; overload;
-    function GetNearLine(ExpandDistance_: TGeoFloat; const pt: TVec2; const ClosedPolyMode: Boolean; out lb, le: TGeoInt): TVec2; overload;
+    function GetNearLine(const pt: TVec2; const ClosedPolyMode: boolean; out lb, le: TGeoInt): TVec2; overload;
+    function GetNearLine(ExpandDistance_: TGeoFloat; const pt: TVec2; const ClosedPolyMode: boolean; out lb, le: TGeoInt): TVec2; overload;
 
-    function Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean): Boolean; overload;
-    function Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean; OutputLine: TDeflectionPolygonLines): Boolean; overload;
-    function Collision2Circle(ExpandDistance_: TGeoFloat; cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean; OutputLine: TDeflectionPolygonLines): Boolean; overload;
+    function Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean): boolean; overload;
+    function Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean; OutputLine: TDeflectionPolygonLines): boolean; overload;
+    function Collision2Circle(ExpandDistance_: TGeoFloat; cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean; OutputLine: TDeflectionPolygonLines): boolean; overload;
 
-    function PolygonIntersect(Poly_: TDeflectionPolygon): Boolean; overload;
-    function PolygonIntersect(vl_: TVec2List): Boolean; overload;
+    function PolygonIntersect(Poly_: TDeflectionPolygon): boolean; overload;
+    function PolygonIntersect(vl_: TVec2List): boolean; overload;
 
     function LerpToEdge(pt: TVec2; ProjDistance_, ExpandDistance_: TGeoFloat; FromIdx, toidx: TGeoInt): TVec2;
 
@@ -959,14 +967,14 @@ type
     procedure LoadFromStream(stream: TMS64); overload;
 
     property UserDataObject: TCore_Object read FUserDataObject write FUserDataObject;
-    property UserData: Pointer read FUserData write FUserData;
+    property UserData: pointer read FUserData write FUserData;
   end;
 
   TDeflectionPolygonList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TDeflectionPolygon>;
 
   TDeflectionPolygonList = class(TDeflectionPolygonList_Decl)
   public
-    AutoFree: Boolean;
+    AutoFree: boolean;
     BackgroundBox: TRectV2;
 
     constructor Create;
@@ -1010,7 +1018,7 @@ type
   TDeflectionPolygonLines = class(TCore_Persistent)
   private
     FList: TCore_List;
-    FUserData: Pointer;
+    FUserData: pointer;
     FUserObject: TCore_Object;
     function GetItems(index: TGeoInt): PDeflectionPolygonLine;
   public
@@ -1033,7 +1041,7 @@ type
     procedure SortOfNear(const pt: TVec2); overload;
     procedure SortOfFar(const pt: TVec2); overload;
 
-    property UserData: Pointer read FUserData write FUserData;
+    property UserData: pointer read FUserData write FUserData;
     property UserObject: TCore_Object read FUserObject write FUserObject;
   end;
 {$ENDREGION 'DeflectionPolygon'}
@@ -1061,8 +1069,8 @@ type
 
   TRectPackData = record
     Rect: TRectV2;
-    error: Boolean;
-    Data1: Pointer;
+    error: boolean;
+    Data1: pointer;
     Data2: TCore_Object;
   end;
 
@@ -1071,7 +1079,7 @@ type
   TRectPacking = class(TCore_Persistent)
   private
     FList: TCore_List;
-    function Pack(width, height: TGeoFloat; var X, Y: TGeoFloat): Boolean;
+    function Pack(width, height: TGeoFloat; var X, Y: TGeoFloat): boolean;
     function GetItems(const index: TGeoInt): PRectPackData;
   public
     MaxWidth, MaxHeight: TGeoFloat;
@@ -1082,11 +1090,11 @@ type
     destructor Destroy; override;
     procedure Clear;
     procedure Add(const X, Y, width, height: TGeoFloat); overload;
-    procedure Add(Data1: Pointer; Data2: TCore_Object; X, Y, width, height: TGeoFloat); overload;
-    procedure Add(Data1: Pointer; Data2: TCore_Object; R: TRectV2); overload;
-    procedure Add(Data1: Pointer; Data2: TCore_Object; width, height: TGeoFloat); overload;
-    function Data1Exists(const Data1: Pointer): Boolean;
-    function Data2Exists(const Data2: TCore_Object): Boolean;
+    procedure Add(Data1: pointer; Data2: TCore_Object; X, Y, width, height: TGeoFloat); overload;
+    procedure Add(Data1: pointer; Data2: TCore_Object; R: TRectV2); overload;
+    procedure Add(Data1: pointer; Data2: TCore_Object; width, height: TGeoFloat); overload;
+    function Data1Exists(const Data1: pointer): boolean;
+    function Data2Exists(const Data2: TCore_Object): boolean;
     function Count: TGeoInt;
     property Items[const index: TGeoInt]: PRectPackData read GetItems; default;
 
@@ -1115,7 +1123,7 @@ type
     TLinkedList = record
       Head, Tail: PNode;
       Num: TGeoInt;
-      Looped: Boolean;
+      Looped: boolean;
     end;
 
     TNodeList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<PNode>;
@@ -1195,7 +1203,7 @@ type
       'pol' - the polygon.
       'p' - the point.
     }
-    function Contains(const pol: PLinkedList; const p: TVec2): Boolean;
+    function Contains(const pol: PLinkedList; const p: TVec2): boolean;
     { The procedure THausdorf.copies the source list to the target list removing the duplicates of the items in the source list. }
     procedure DeleteCopies(var target, Source: PLinkedList);
     { The procedure THausdorf.calculates the Hausdorff distance from the first polygon to from second one. The data are stored in the specified list. }
@@ -1205,9 +1213,9 @@ type
       'target' - the list to be tested.
       'p' - the item to look for.
     }
-    function IsInList(const target: PLinkedList; const p: TVec2): Boolean;
+    function IsInList(const target: PLinkedList; const p: TVec2): boolean;
     { The function THausdorf.defines whether the current position of two convex polygons is optimal or not. }
-    function IsOptimal(var distVecs: PLinkedList): Boolean;
+    function IsOptimal(var distVecs: PLinkedList): boolean;
     {
       The procedure THausdorf.loops the list. It means, that it makes the head item be the next item after the tail.
       'target' - the list to be looped.
@@ -1267,7 +1275,7 @@ type
 
     function HausdorffReached(): TArrayVec2;
     function HausdorffDistance(): TGeoFloat;
-    function polygonsIsOptimal(): Boolean;
+    function polygonsIsOptimal(): boolean;
 
     class procedure TestAndPrint(const poly1_, poly2_: TVec2List);
     class procedure Test1();
@@ -1511,7 +1519,7 @@ begin
   Result[1] := Y;
 end;
 
-function vec2(const X, Y: Int64): TVec2;
+function vec2(const X, Y: int64): TVec2;
 begin
   Result[0] := X;
   Result[1] := Y;
@@ -1578,27 +1586,27 @@ begin
   Result.Y := pt[1];
 end;
 
-function IsZero(const V: TGeoFloat): Boolean;
+function IsZero(const V: TGeoFloat): boolean;
 begin
   Result := IsEqual(V, 0, C_Epsilon);
 end;
 
-function IsZero(const pt: TVec2): Boolean;
+function IsZero(const pt: TVec2): boolean;
 begin
   Result := IsEqual(pt[0], 0, C_Epsilon) and IsEqual(pt[1], 0, C_Epsilon);
 end;
 
-function IsZero(const R: TRectV2): Boolean;
+function IsZero(const R: TRectV2): boolean;
 begin
   Result := IsZero(R[0]) and IsZero(R[1]);
 end;
 
-function IsNan(const pt: TVec2): Boolean;
+function IsNan(const pt: TVec2): boolean;
 begin
   Result := IsNan(pt[0]) or IsNan(pt[1]);
 end;
 
-function IsNan(const X, Y: TGeoFloat): Boolean;
+function IsNan(const X, Y: TGeoFloat): boolean;
 begin
   Result := IsNan(X) or IsNan(Y);
 end;
@@ -2036,7 +2044,7 @@ begin
   Result[1] := (pt1[1] + pt2[1]) * 0.5;
 end;
 
-function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean;
+function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean;
 var
   Diff: TGeoFloat;
 begin
@@ -2045,27 +2053,27 @@ begin
   Result := ((-Epsilon_ <= Diff) and (Diff <= Epsilon_));
 end;
 
-function IsEqual(const Val1, Val2: TGeoFloat): Boolean;
+function IsEqual(const Val1, Val2: TGeoFloat): boolean;
 begin
   Result := IsEqual(Val1, Val2, C_Epsilon);
 end;
 
-function IsEqual(const Val1, Val2: TVec2): Boolean;
+function IsEqual(const Val1, Val2: TVec2): boolean;
 begin
   Result := IsEqual(Val1[0], Val2[0]) and IsEqual(Val1[1], Val2[1]);
 end;
 
-function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): Boolean;
+function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): boolean;
 begin
   Result := IsEqual(Val1[0], Val2[0], Epsilon_) and IsEqual(Val1[1], Val2[1], Epsilon_);
 end;
 
-function IsEqual(const Val1, Val2: TRectV2): Boolean;
+function IsEqual(const Val1, Val2: TRectV2): boolean;
 begin
   Result := IsEqual(Val1[0], Val2[0]) and IsEqual(Val1[1], Val2[1]);
 end;
 
-function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean;
+function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean;
 var
   Diff: TGeoFloat;
 begin
@@ -2074,22 +2082,22 @@ begin
   Result := ((-Epsilon_ > Diff) or (Diff > Epsilon_));
 end;
 
-function NotEqual(const Val1, Val2: TGeoFloat): Boolean;
+function NotEqual(const Val1, Val2: TGeoFloat): boolean;
 begin
   Result := NotEqual(Val1, Val2, C_Epsilon);
 end;
 
-function NotEqual(const Val1, Val2: TVec2): Boolean;
+function NotEqual(const Val1, Val2: TVec2): boolean;
 begin
   Result := NotEqual(Val1[0], Val2[0]) or NotEqual(Val1[1], Val2[1]);
 end;
 
-function LessThanOrEqual(const Val1, Val2: TGeoFloat): Boolean;
+function LessThanOrEqual(const Val1, Val2: TGeoFloat): boolean;
 begin
   Result := (Val1 < Val2) or IsEqual(Val1, Val2);
 end;
 
-function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): Boolean;
+function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): boolean;
 begin
   Result := (Val1 > Val2) or IsEqual(Val1, Val2);
 end;
@@ -2207,128 +2215,128 @@ begin
   Result[1] := Vec2Rotation(axis, R[1], Angle);
 end;
 
-function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): Boolean;
+function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): boolean;
 begin
   Result := (r2 - (PointDistance(cp1, cp2) + r1) >= Zero);
 end;
 
-function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): Boolean;
+function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): boolean;
 begin
   FixRect(R[0, 0], R[0, 1], R[1, 0], R[1, 1]);
   Result := PointInRect(cp, MakeRect(Vec2Sub(R[0], radius), Vec2Add(R[1], radius)));
 end;
 
-function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): Boolean;
+function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean;
 begin
   Result := ((x1 <= Px) and (Px <= x2) and (y1 <= Py) and (Py <= y2)) or ((x2 <= Px) and (Px <= x1) and (y2 <= Py) and (Py <= y1));
 end;
 
-function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): Boolean;
+function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean;
 begin
   Result := ((x1 <= Px) and (Px <= x2) and (y1 <= Py) and (Py <= y2)) or ((x2 <= Px) and (Px <= x1) and (y2 <= Py) and (Py <= y1));
 end;
 
-function PointInRect(const X, Y: TGeoInt; const R: TRect): Boolean;
+function PointInRect(const X, Y: TGeoInt; const R: TRect): boolean;
 begin
   Result := PointInRect(X, Y, R.Left, R.Top, R.Right, R.Bottom);
 end;
 
-function PointInRect(const pt: TPoint; const R: TRect): Boolean;
+function PointInRect(const pt: TPoint; const R: TRect): boolean;
 begin
   Result := PointInRect(pt.X, pt.Y, R.Left, R.Top, R.Right, R.Bottom);
 end;
 
-function PointInRect(const pt: TVec2; const R: TRectV2): Boolean;
+function PointInRect(const pt: TVec2; const R: TRectV2): boolean;
 begin
   Result := PointInRect(pt[0], pt[1], R[0, 0], R[0, 1], R[1, 0], R[1, 1]);
 end;
 
-function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): Boolean;
+function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean;
 begin
   Result := PointInRect(Px, Py, R[0, 0], R[0, 1], R[1, 0], R[1, 1]);
 end;
 
-function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): Boolean;
+function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean;
 begin
   Result := ((x1 <= Px) and (Px <= x2) and (y1 <= Py) and (Py <= y2)) or ((x2 <= Px) and (Px <= x1) and (y2 <= Py) and (Py <= y1));
 end;
 
-function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): Boolean;
+function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean;
 begin
   Result := ((x1 <= Px) and (Px <= x2) and (y1 <= Py) and (Py <= y2)) or ((x2 <= Px) and (Px <= x1) and (y2 <= Py) and (Py <= y1));
 end;
 
-function Vec2InRect(const pt: TVec2; const R: TRectV2): Boolean;
+function Vec2InRect(const pt: TVec2; const R: TRectV2): boolean;
 begin
   Result := Vec2InRect(pt[0], pt[1], R[0, 0], R[0, 1], R[1, 0], R[1, 1]);
 end;
 
-function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): Boolean;
+function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean;
 begin
   Result := Vec2InRect(Px, Py, R[0, 0], R[0, 1], R[1, 0], R[1, 1]);
 end;
 
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean;
 begin
   Result := (x1 <= x4) and (x2 >= x3) and (y1 <= y4) and (y2 >= y3);
 end;
 
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean;
 begin
   Result := (x1 <= x4) and (x2 >= x3) and (y1 <= y4) and (y2 >= y3);
 end;
 
-function RectToRectIntersect(const r1, r2: TRectV2): Boolean;
+function RectToRectIntersect(const r1, r2: TRectV2): boolean;
 begin
   Result := RectToRectIntersect(r1[0, 0], r1[0, 1], r1[1, 0], r1[1, 1], r2[0, 0], r2[0, 1], r2[1, 0], r2[1, 1]);
 end;
 
-function RectToRectIntersect(const r1, r2: TRect): Boolean;
+function RectToRectIntersect(const r1, r2: TRect): boolean;
 begin
   Result := RectToRectIntersect(r1.Left, r1.Top, r1.Right, r1.Bottom, r2.Left, r2.Top, r2.Right, r2.Bottom);
 end;
 
-function RectToRectIntersect(const r1, r2: TRectf): Boolean;
+function RectToRectIntersect(const r1, r2: TRectf): boolean;
 begin
   Result := RectToRectIntersect(r1.Left, r1.Top, r1.Right, r1.Bottom, r2.Left, r2.Top, r2.Right, r2.Bottom);
 end;
 
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean;
 begin
   Result := PointInRect(x1, y1, x3, y3, x4, y4) and PointInRect(x2, y2, x3, y3, x4, y4);
 end;
 
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean;
 begin
   Result := PointInRect(x1, y1, x3, y3, x4, y4) and PointInRect(x2, y2, x3, y3, x4, y4);
 end;
 
-function RectWithInRect(const r1, r2: TRectV2): Boolean;
+function RectWithInRect(const r1, r2: TRectV2): boolean;
 begin
   Result := RectWithInRect(r1[0, 0], r1[0, 1], r1[1, 0], r1[1, 1], r2[0, 0], r2[0, 1], r2[1, 0], r2[1, 1]);
 end;
 
-function RectWithInRect(const r1, r2: TRect): Boolean;
+function RectWithInRect(const r1, r2: TRect): boolean;
 begin
   Result := RectWithInRect(r1.Left, r1.Top, r1.Right, r1.Bottom, r2.Left, r2.Top, r2.Right, r2.Bottom);
 end;
 
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean;
 begin
   Result := PointInRect(x1, y1, x3, y3, x4, y4) and PointInRect(x2, y2, x3, y3, x4, y4);
 end;
 
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): Boolean;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean;
 begin
   Result := PointInRect(x1, y1, x3, y3, x4, y4) and PointInRect(x2, y2, x3, y3, x4, y4);
 end;
 
-function RectInRect(const r1, r2: TRectV2): Boolean;
+function RectInRect(const r1, r2: TRectV2): boolean;
 begin
   Result := RectInRect(r1[0, 0], r1[0, 1], r1[1, 0], r1[1, 1], r2[0, 0], r2[0, 1], r2[1, 0], r2[1, 1]);
 end;
 
-function RectInRect(const r1, r2: TRect): Boolean;
+function RectInRect(const r1, r2: TRect): boolean;
 begin
   Result := RectInRect(r1.Left, r1.Top, r1.Right, r1.Bottom, r2.Left, r2.Top, r2.Right, r2.Bottom);
 end;
@@ -3087,7 +3095,7 @@ begin
   Result[1] := RectSize(R)
 end;
 
-function RectFit(const sour, dest: TRectV2; const Bound: Boolean): TRectV2;
+function RectFit(const sour, dest: TRectV2; const Bound: boolean): TRectV2;
 var
   k, kw, kh: TGeoFloat;
   rs, bs, siz, pt: TVec2;
@@ -3366,7 +3374,7 @@ begin
   Result := BuffCentroid(buff);
 end;
 
-function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): Boolean;
+function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): boolean;
 var
   L, i: TGeoInt;
   pi, pj: TVec2;
@@ -3500,7 +3508,7 @@ begin
   SetLength(output, Count);
 end;
 
-function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): Boolean;
+function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): boolean;
 begin
   if RectToRectIntersect(x1, y1, x2, y2, x3, y3, x4, y4) then
     begin
@@ -3601,12 +3609,12 @@ begin
       Result := CoplanarOrientation; (* Orientaion is coplanar to plane if Result is 0 *)
 end;
 
-function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): Boolean;
+function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): boolean;
 begin
   Result := (Orientation(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4) = CoplanarOrientation);
 end;
 
-function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean;
+function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean;
 begin
   Result := (
     ((Orientation(x1, y1, x2, y2, x3, y3) * Orientation(x1, y1, x2, y2, x4, y4)) <= 0) and
@@ -3614,19 +3622,19 @@ begin
     );
 end;
 
-function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): Boolean;
+function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): boolean;
 begin
   Result := SimpleIntersect(Point1[0], Point1[1], Point2[0], Point2[1], Point3[0], Point3[1], Point4[0], Point4[1]);
 end;
 
-function SimpleIntersect(const l1, l2: TLineV2): Boolean;
+function SimpleIntersect(const l1, l2: TLineV2): boolean;
 begin
   Result := SimpleIntersect(
     l1[0, 0], l1[0, 1], l1[1, 0], l1[1, 1],
     l2[0, 0], l2[0, 1], l2[1, 0], l2[1, 1]);
 end;
 
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): Boolean;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean;
 var
   UpperX: TGeoFloat;
   UpperY: TGeoFloat;
@@ -3714,7 +3722,7 @@ begin
   Result := True;
 end;
 
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): Boolean;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): boolean;
 var
   UpperX: TGeoFloat;
   UpperY: TGeoFloat;
@@ -3837,12 +3845,12 @@ begin
     end;
 end;
 
-function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): Boolean;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): boolean;
 begin
   Result := Intersect(pt1[0], pt1[1], pt2[0], pt2[1], pt3[0], pt3[1], pt4[0], pt4[1], pt[0], pt[1]);
 end;
 
-function Intersect(const l1, l2: TLineV2; out pt: TVec2): Boolean;
+function Intersect(const l1, l2: TLineV2; out pt: TVec2): boolean;
 begin
   Result := Intersect(
     l1[0, 0], l1[0, 1], l1[1, 0], l1[1, 1],
@@ -3850,22 +3858,22 @@ begin
     pt[0], pt[1]);
 end;
 
-function Intersect(const pt1, pt2, pt3, pt4: TVec2): Boolean;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2): boolean;
 begin
   Result := Intersect(pt1[0], pt1[1], pt2[0], pt2[1], pt3[0], pt3[1], pt4[0], pt4[1]);
 end;
 
-function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): Boolean;
+function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean;
 begin
   Result := (PointDistance(pt, cp) <= (radius + radius));
 end;
 
-function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): Boolean;
+function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean;
 begin
   Result := (PointDistance(pt, cp) <= (radius + radius));
 end;
 
-function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): Boolean;
+function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): boolean;
 var
   Or1, Or2, Or3: TGeoInt;
 begin
@@ -3930,8 +3938,8 @@ var
   Vy: TGeoFloat;
   Wx: TGeoFloat;
   Wy: TGeoFloat;
-  c1: TGeoFloat;
-  c2: TGeoFloat;
+  C1: TGeoFloat;
+  C2: TGeoFloat;
   Ratio: TGeoFloat;
 begin
   Vx := x2 - x1;
@@ -3939,25 +3947,25 @@ begin
   Wx := Px - x1;
   Wy := Py - y1;
 
-  c1 := Vx * Wx + Vy * Wy;
+  C1 := Vx * Wx + Vy * Wy;
 
-  if c1 <= 0.0 then
+  if C1 <= 0.0 then
     begin
       Nx := x1;
       Ny := y1;
       exit;
     end;
 
-  c2 := Vx * Vx + Vy * Vy;
+  C2 := Vx * Vx + Vy * Vy;
 
-  if c2 <= c1 then
+  if C2 <= C1 then
     begin
       Nx := x2;
       Ny := y2;
       exit;
     end;
 
-  Ratio := c1 / c2;
+  Ratio := C1 / C2;
 
   Nx := x1 + Ratio * Vx;
   Ny := y1 + Ratio * Vy;
@@ -4191,12 +4199,12 @@ begin
 end;
 
 procedure Circle2LineIntersectionPoint(const lb, le, cp: TVec2; const radius: TGeoFloat;
-  out pt1in, pt2in: Boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2);
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2);
 var
   Px: TGeoFloat;
   Py: TGeoFloat;
-  S1In: Boolean;
-  s2In: Boolean;
+  S1In: boolean;
+  s2In: boolean;
   h: TGeoFloat;
   a: TGeoFloat;
 begin
@@ -4276,7 +4284,7 @@ begin
 end;
 
 procedure Circle2LineIntersectionPoint(const L: TLineV2; const cp: TVec2; radius: TGeoFloat;
-  out pt1in, pt2in: Boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2);
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2);
 begin
   Circle2LineIntersectionPoint(L[0], L[1], cp, radius, pt1in, pt2in, ICnt, pt1, pt2);
 end;
@@ -4323,19 +4331,19 @@ begin
   Point2[1] := Phi[1] + dx;
 end;
 
-function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): Boolean;
+function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean;
 begin
   // return point disace < sum
   Result := PointDistance(p1, p2) <= r1 + r2;
 end;
 
-function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): Boolean;
+function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean;
 begin
   // return point disace < sum
   Result := PointDistance(p1, p2) <= r1 + r2;
 end;
 
-function Detect_Circle2CirclePoint(const p1, p2: TVec2; const r1, r2: TGeoFloat; out op1, op2: TVec2): Boolean;
+function Detect_Circle2CirclePoint(const p1, p2: TVec2; const r1, r2: TGeoFloat; out op1, op2: TVec2): boolean;
 var
   Dist: TGeoFloat;
   a: TGeoFloat;
@@ -4382,7 +4390,7 @@ end;
 
 // circle 2 line collision
 
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): Boolean;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): boolean;
 var
   lineCen, v1, v2: TVec2;
 begin
@@ -4397,12 +4405,12 @@ begin
       Result := False;
 end;
 
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): Boolean;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): boolean;
 begin
   Result := Detect_Circle2Line(cp, R, L[0], L[1]);
 end;
 
-function SameLinePtr(const lb1, le1, lb2, le2: PVec2): Boolean;
+function SameLinePtr(const lb1, le1, lb2, le2: PVec2): boolean;
 begin
   Result := ((lb1 = lb2) and (le1 = le2)) or ((lb1 = le2) and (le1 = lb2));
 end;
@@ -4457,7 +4465,7 @@ begin
       Result := globalfactor * (pow3(t + 2) - 4 * pow3(t + 1) + 6 * pow3(t) - 4 * pow3(t - 1));
 end;
 
-function TV2Rect4.IsZero: Boolean;
+function TV2Rect4.IsZero: boolean;
 begin
   Result :=
     Z.Geometry2D.IsZero(LeftTop) and
@@ -4647,7 +4655,7 @@ begin
   DisposeObject(vl);
 end;
 
-function TV2Rect4.InHere(pt: TVec2): Boolean;
+function TV2Rect4.InHere(pt: TVec2): boolean;
 var
   buff: TArrayVec2;
 begin
@@ -4656,7 +4664,7 @@ begin
   SetLength(buff, 0);
 end;
 
-function TV2Rect4.InHere(R: TRectV2): Boolean;
+function TV2Rect4.InHere(R: TRectV2): boolean;
 var
   buff: TArrayVec2;
 begin
@@ -5580,7 +5588,7 @@ begin
   Result := Result * 0.5;
 end;
 
-function TVec2List.InHere(pt: TVec2): Boolean;
+function TVec2List.InHere(pt: TVec2): boolean;
 var
   i: TGeoInt;
   pi, pj: PVec2;
@@ -5603,7 +5611,7 @@ begin
     end;
 end;
 
-function TVec2List.InRect(R: TRectV2): Boolean;
+function TVec2List.InRect(R: TRectV2): boolean;
 var
   i: TGeoInt;
 begin
@@ -5612,7 +5620,7 @@ begin
       Result := Result or PointInRect(Points[i]^, R);
 end;
 
-function TVec2List.Rect2Intersect(R: TRectV2): Boolean;
+function TVec2List.Rect2Intersect(R: TRectV2): boolean;
 var
   i: TGeoInt;
   r4: TV2Rect4;
@@ -5705,7 +5713,7 @@ var
     Point[j] := Temp;
   end;
 
-  function hEqual(const p1, p2: T2DHullPoint): Boolean;
+  function hEqual(const p1, p2: T2DHullPoint): boolean;
   begin
     Result := IsEqual(p1.X, p2.X) and IsEqual(p1.Y, p2.Y);
   end;
@@ -5767,7 +5775,7 @@ var
     Stack[StackHeadPosition] := Pnt;
   end;
 
-  function Pop: Boolean;
+  function Pop: boolean;
   begin
     Result := False;
     if StackHeadPosition >= 0 then
@@ -5789,7 +5797,7 @@ var
     Result := Stack[StackHeadPosition - 1];
   end;
 
-  function PreHeadExist: Boolean;
+  function PreHeadExist: boolean;
   begin
     Result := (StackHeadPosition > 0);
   end;
@@ -6167,7 +6175,7 @@ begin
   VertexReduction(Epsilon_);
 end;
 
-function TVec2List.Line2Intersect(const lb, le: TVec2; ClosedPolyMode: Boolean): Boolean;
+function TVec2List.Line2Intersect(const lb, le: TVec2; ClosedPolyMode: boolean): boolean;
 var
   i: TGeoInt;
   p1, p2: PVec2;
@@ -6195,7 +6203,7 @@ begin
     end;
 end;
 
-function TVec2List.Line2Intersect(const lb, le: TVec2; ClosedPolyMode: Boolean; output: TVec2List): Boolean;
+function TVec2List.Line2Intersect(const lb, le: TVec2; ClosedPolyMode: boolean; output: TVec2List): boolean;
 var
   i: TGeoInt;
   p1, p2: PVec2;
@@ -6246,7 +6254,7 @@ begin
     end;
 end;
 
-function TVec2List.Line2NearIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean;
+function TVec2List.Line2NearIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean;
 var
   i: TGeoInt;
   p1, p2: PVec2;
@@ -6296,7 +6304,7 @@ end;
 
 procedure TVec2List.SortOfNear(const lb, le: TVec2);
 
-  function Compare_(Left, Right: Pointer): ShortInt;
+  function Compare_(Left, Right: pointer): ShortInt;
   var
     d1, d2: TGeoFloat;
   begin
@@ -6308,7 +6316,7 @@ procedure TVec2List.SortOfNear(const lb, le: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: Pointer;
+    p: pointer;
   begin
     repeat
       i := L;
@@ -6340,7 +6348,7 @@ end;
 
 procedure TVec2List.SortOfNear(const pt: TVec2);
 
-  function Compare_(Left, Right: Pointer): ShortInt;
+  function Compare_(Left, Right: pointer): ShortInt;
   var
     d1, d2: TGeoFloat;
   begin
@@ -6352,7 +6360,7 @@ procedure TVec2List.SortOfNear(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: Pointer;
+    p: pointer;
   begin
     repeat
       i := L;
@@ -6396,7 +6404,7 @@ begin
   FList := NewList;
 end;
 
-function TVec2List.GetNearLine(const pt: TVec2; const ClosedMode: Boolean; out lb, le: TGeoInt): TVec2;
+function TVec2List.GetNearLine(const pt: TVec2; const ClosedMode: boolean; out lb, le: TGeoInt): TVec2;
 var
   i: TGeoInt;
   pt1, pt2: PVec2;
@@ -6454,7 +6462,7 @@ begin
     end;
 end;
 
-function TVec2List.GetNearLine(const pt: TVec2; const ClosedMode: Boolean): TVec2;
+function TVec2List.GetNearLine(const pt: TVec2; const ClosedMode: boolean): TVec2;
 var
   i: TGeoInt;
   pt1, pt2: PVec2;
@@ -6940,7 +6948,7 @@ begin
       end;
 end;
 
-function T2DPolygonGraph.ExistsPVec(p: PVec2): Boolean;
+function T2DPolygonGraph.ExistsPVec(p: PVec2): boolean;
 var
   i: TGeoInt;
 begin
@@ -6994,7 +7002,7 @@ begin
   ProjectionTo(BoundBox, dest, output);
 end;
 
-function T2DPolygonGraph.InHere(pt: TVec2): Boolean;
+function T2DPolygonGraph.InHere(pt: TVec2): boolean;
 begin
   Result := False;
   if not InSurround(pt) then
@@ -7004,12 +7012,12 @@ begin
   Result := True;
 end;
 
-function T2DPolygonGraph.InSurround(pt: TVec2): Boolean;
+function T2DPolygonGraph.InSurround(pt: TVec2): boolean;
 begin
   Result := Surround.InHere(pt);
 end;
 
-function T2DPolygonGraph.InCollapse(pt: TVec2): Boolean;
+function T2DPolygonGraph.InCollapse(pt: TVec2): boolean;
 var
   i: TGeoInt;
 begin
@@ -7051,7 +7059,7 @@ begin
       Result[i] := Collapses[i].BoundBox;
 end;
 
-function T2DPolygonGraph.Line2Intersect(const lb, le: TVec2; output: T2DPolygon): Boolean;
+function T2DPolygonGraph.Line2Intersect(const lb, le: TVec2; output: T2DPolygon): boolean;
 var
   i: TGeoInt;
 begin
@@ -7522,7 +7530,7 @@ begin
   Result := FList.Count;
 end;
 
-procedure TDeflectionPolygon.CopyPoly(pl: TDeflectionPolygon; AReversed: Boolean);
+procedure TDeflectionPolygon.CopyPoly(pl: TDeflectionPolygon; AReversed: boolean);
   procedure _Append(a, d: TGeoFloat);
   var
     p: PDeflectionPolygonVec;
@@ -7558,7 +7566,7 @@ begin
     end;
 end;
 
-procedure TDeflectionPolygon.CopyExpandPoly(pl: TDeflectionPolygon; AReversed: Boolean; Dist: TGeoFloat);
+procedure TDeflectionPolygon.CopyExpandPoly(pl: TDeflectionPolygon; AReversed: boolean; Dist: TGeoFloat);
 var
   i: TGeoInt;
 begin
@@ -7698,7 +7706,7 @@ var
   end;
 
   function CompareAngles(const p1, p2: T2DHullPoint): TCompareResult;
-    function hEqual(const p1, p2: T2DHullPoint): Boolean;
+    function hEqual(const p1, p2: T2DHullPoint): boolean;
     begin
       Result := IsEqual(p1.X, p2.X) and IsEqual(p1.Y, p2.Y);
     end;
@@ -7759,7 +7767,7 @@ var
     Stack[StackHeadPosition] := Pnt;
   end;
 
-  function Pop: Boolean;
+  function Pop: boolean;
   begin
     Result := False;
     if StackHeadPosition >= 0 then
@@ -7781,7 +7789,7 @@ var
     Result := Stack[StackHeadPosition - 1];
   end;
 
-  function PreHeadExist: Boolean;
+  function PreHeadExist: boolean;
   begin
     Result := (StackHeadPosition > 0);
   end;
@@ -7939,7 +7947,7 @@ begin
       AddPoint(pl[i]^);
 end;
 
-procedure TDeflectionPolygon.Rebuild(pl: TVec2List; reset_: Boolean);
+procedure TDeflectionPolygon.Rebuild(pl: TVec2List; reset_: boolean);
 var
   i: TGeoInt;
   Ply: TDeflectionPolygon;
@@ -8085,7 +8093,7 @@ begin
   Result := Result * 0.5;
 end;
 
-function TDeflectionPolygon.InHere(pt: TVec2): Boolean;
+function TDeflectionPolygon.InHere(pt: TVec2): boolean;
 var
   i: TGeoInt;
   pi, pj: TVec2;
@@ -8110,7 +8118,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.InHere(ExpandDistance_: TGeoFloat; pt: TVec2): Boolean;
+function TDeflectionPolygon.InHere(ExpandDistance_: TGeoFloat; pt: TVec2): boolean;
 var
   i: TGeoInt;
   pi, pj: TVec2;
@@ -8135,7 +8143,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.LineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean;
+function TDeflectionPolygon.LineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean): boolean;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8168,7 +8176,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean;
+function TDeflectionPolygon.LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: boolean): boolean;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8199,7 +8207,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.LineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean;
+function TDeflectionPolygon.LineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8250,7 +8258,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: Boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): Boolean;
+function TDeflectionPolygon.LineIntersect(ExpandDistance_: TGeoFloat; const lb, le: TVec2; const ClosedPolyMode: boolean; out idx1, idx2: TGeoInt; out IntersectPt: TVec2): boolean;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8301,7 +8309,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.SimpleLineIntersect(const lb, le: TVec2; const ClosedPolyMode: Boolean): Boolean;
+function TDeflectionPolygon.SimpleLineIntersect(const lb, le: TVec2; const ClosedPolyMode: boolean): boolean;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8332,7 +8340,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.GetNearLine(const pt: TVec2; const ClosedPolyMode: Boolean; out lb, le: TGeoInt): TVec2;
+function TDeflectionPolygon.GetNearLine(const pt: TVec2; const ClosedPolyMode: boolean; out lb, le: TGeoInt): TVec2;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8390,7 +8398,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.GetNearLine(ExpandDistance_: TGeoFloat; const pt: TVec2; const ClosedPolyMode: Boolean; out lb, le: TGeoInt): TVec2;
+function TDeflectionPolygon.GetNearLine(ExpandDistance_: TGeoFloat; const pt: TVec2; const ClosedPolyMode: boolean; out lb, le: TGeoInt): TVec2;
 var
   i: TGeoInt;
   pt1, pt2: TVec2;
@@ -8446,7 +8454,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean): Boolean;
+function TDeflectionPolygon.Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean): boolean;
 var
   i: TGeoInt;
   curpt, destpt: TVec2;
@@ -8469,7 +8477,7 @@ begin
   Result := False;
 end;
 
-function TDeflectionPolygon.Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean; OutputLine: TDeflectionPolygonLines): Boolean;
+function TDeflectionPolygon.Collision2Circle(cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean; OutputLine: TDeflectionPolygonLines): boolean;
 var
   i: TGeoInt;
   curpt, destpt: TVec2;
@@ -8497,7 +8505,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.Collision2Circle(ExpandDistance_: TGeoFloat; cp: TVec2; R: TGeoFloat; ClosedPolyMode: Boolean; OutputLine: TDeflectionPolygonLines): Boolean;
+function TDeflectionPolygon.Collision2Circle(ExpandDistance_: TGeoFloat; cp: TVec2; R: TGeoFloat; ClosedPolyMode: boolean; OutputLine: TDeflectionPolygonLines): boolean;
 var
   i: TGeoInt;
   curpt, destpt: TVec2;
@@ -8525,7 +8533,7 @@ begin
     end;
 end;
 
-function TDeflectionPolygon.PolygonIntersect(Poly_: TDeflectionPolygon): Boolean;
+function TDeflectionPolygon.PolygonIntersect(Poly_: TDeflectionPolygon): boolean;
 var
   i: TGeoInt;
 begin
@@ -8553,7 +8561,7 @@ begin
   Result := False;
 end;
 
-function TDeflectionPolygon.PolygonIntersect(vl_: TVec2List): Boolean;
+function TDeflectionPolygon.PolygonIntersect(vl_: TVec2List): boolean;
 var
   i: TGeoInt;
 begin
@@ -9152,7 +9160,7 @@ end;
 
 procedure TDeflectionPolygonLines.SortOfNear(const pt: TVec2);
 
-  function Compare_(Left, Right: Pointer): ShortInt;
+  function Compare_(Left, Right: pointer): ShortInt;
   var
     d1, d2: TGeoFloat;
   begin
@@ -9164,7 +9172,7 @@ procedure TDeflectionPolygonLines.SortOfNear(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: Pointer;
+    p: pointer;
   begin
     repeat
       i := L;
@@ -9200,7 +9208,7 @@ end;
 
 procedure TDeflectionPolygonLines.SortOfFar(const pt: TVec2);
 
-  function Compare_(Left, Right: Pointer): ShortInt;
+  function Compare_(Left, Right: pointer): ShortInt;
   var
     d1, d2: TGeoFloat;
   begin
@@ -9212,7 +9220,7 @@ procedure TDeflectionPolygonLines.SortOfFar(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: Pointer;
+    p: pointer;
   begin
     repeat
       i := L;
@@ -9574,7 +9582,7 @@ begin
   DisposeObject(Graph);
 end;
 
-function TRectPacking.Pack(width, height: TGeoFloat; var X, Y: TGeoFloat): Boolean;
+function TRectPacking.Pack(width, height: TGeoFloat; var X, Y: TGeoFloat): boolean;
 var
   i: TGeoInt;
   p: PRectPackData;
@@ -9658,7 +9666,7 @@ begin
   FList.Add(p);
 end;
 
-procedure TRectPacking.Add(Data1: Pointer; Data2: TCore_Object; X, Y, width, height: TGeoFloat);
+procedure TRectPacking.Add(Data1: pointer; Data2: TCore_Object; X, Y, width, height: TGeoFloat);
 var
   p: PRectPackData;
 begin
@@ -9670,17 +9678,17 @@ begin
   FList.Add(p);
 end;
 
-procedure TRectPacking.Add(Data1: Pointer; Data2: TCore_Object; R: TRectV2);
+procedure TRectPacking.Add(Data1: pointer; Data2: TCore_Object; R: TRectV2);
 begin
   Add(Data1, Data2, 0, 0, RectWidth(R), RectHeight(R));
 end;
 
-procedure TRectPacking.Add(Data1: Pointer; Data2: TCore_Object; width, height: TGeoFloat);
+procedure TRectPacking.Add(Data1: pointer; Data2: TCore_Object; width, height: TGeoFloat);
 begin
   Add(Data1, Data2, 0, 0, width, height);
 end;
 
-function TRectPacking.Data1Exists(const Data1: Pointer): Boolean;
+function TRectPacking.Data1Exists(const Data1: pointer): boolean;
 var
   i: TGeoInt;
 begin
@@ -9691,7 +9699,7 @@ begin
   Result := False;
 end;
 
-function TRectPacking.Data2Exists(const Data2: TCore_Object): Boolean;
+function TRectPacking.Data2Exists(const Data2: TCore_Object): boolean;
 var
   i: TGeoInt;
 begin
@@ -9704,7 +9712,7 @@ end;
 
 procedure TRectPacking.Build(SpaceWidth, SpaceHeight: TGeoFloat);
 
-  function Compare_(Left, Right: Pointer): ShortInt;
+  function Compare_(Left, Right: pointer): ShortInt;
   begin
     Result := CompareFloat(RectArea(PRectPackData(Right)^.Rect), RectArea(PRectPackData(Left)^.Rect));
   end;
@@ -9712,7 +9720,7 @@ procedure TRectPacking.Build(SpaceWidth, SpaceHeight: TGeoFloat);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: Pointer;
+    p: pointer;
   begin
     repeat
       i := L;
@@ -10055,7 +10063,7 @@ begin
     end;
 end;
 
-function THausdorf.Contains(const pol: PLinkedList; const p: TVec2): Boolean;
+function THausdorf.Contains(const pol: PLinkedList; const p: TVec2): boolean;
 var
   ab, bc, ap_, bp: TVec2;
   pr1, pr2: TGeoFloat;
@@ -10142,7 +10150,7 @@ begin
   DeleteCopies(target, pom1);
 end;
 
-function THausdorf.IsInList(const target: PLinkedList; const p: TVec2): Boolean;
+function THausdorf.IsInList(const target: PLinkedList; const p: TVec2): boolean;
 var
   i: TGeoInt;
   curNode: PNode;
@@ -10167,7 +10175,7 @@ begin
   Result := False;
 end;
 
-function THausdorf.IsOptimal(var distVecs: PLinkedList): Boolean;
+function THausdorf.IsOptimal(var distVecs: PLinkedList): boolean;
 var
   pom: PLinkedList;
   Zero: TVec2;
@@ -10215,7 +10223,7 @@ end;
 function THausdorf.PointSectionDistanceVector(const a, b, p: TVec2): TVec2;
 var
   ab, ap_, bp: TVec2;
-  falls1, falls2: Boolean;
+  falls1, falls2: boolean;
   t: TGeoFloat;
   tAB: TVec2;
 begin
@@ -10412,7 +10420,7 @@ begin
   Result := Vec2Length(FOutput^.Head^.Data);
 end;
 
-function THausdorf.polygonsIsOptimal: Boolean;
+function THausdorf.polygonsIsOptimal: boolean;
 begin
   Result := IsOptimal(FOutput);
 end;
@@ -10538,7 +10546,7 @@ end;
 function ArrayBoundRect(arry: TArrayRectV2): TRectV2;
 var
   i: Integer;
-  Inited: Boolean;
+  Inited: boolean;
 begin
   if length(arry) > 0 then
     begin
@@ -10562,7 +10570,7 @@ end;
 function ArrayBoundRect(arry: TArrayV2Rect4): TRectV2;
 var
   i: Integer;
-  Inited: Boolean;
+  Inited: boolean;
 begin
   if length(arry) > 0 then
     begin

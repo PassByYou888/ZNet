@@ -26,11 +26,10 @@ type
 
   TDFBase = class(TCore_Object)
   protected
-    FID: Byte; // data frame id
+    FID: Byte;
   public
     constructor Create(ID: Byte);
     destructor Destroy; override;
-
     procedure LoadFromStream(stream: TCore_Stream); virtual; abstract;
     procedure SaveToStream(stream: TCore_Stream); virtual; abstract;
     procedure LoadFromJson(jarry: TZ_JsonArray; index_: Integer); virtual; abstract;
@@ -4760,7 +4759,7 @@ begin
     end
   else
     begin
-      DoStatus('dataframe decode error!');
+      DoStatus('TDFE decode error!');
       DisposeObject(StoreStream);
       exit;
     end;

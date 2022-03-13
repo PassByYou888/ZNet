@@ -53,6 +53,7 @@ type
     procedure cmd_FS2_PostFile(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure cmd_FS2_GetFile(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_FS2_SearchMultiMD5(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_RemoveFile(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_IncFileRef(Sender: TPeerIO; InData: TDFE);
@@ -88,8 +89,6 @@ type
   TC40_FS2_Client = class;
   TC40_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS2_Client>;
 
-{$REGION 'bridge_define'}
-
   TFS2_Client_CacheData = class
     Owner: TC40_FS2_Client;
     Stream: TZDB2_MS64;
@@ -100,6 +99,7 @@ type
 
   TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TFS2_Client_CacheData>;
 
+{$REGION 'bridge_define'}
   TFS2_Temp_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);
   TFS2_Temp_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_Client; State_: Boolean) of object;
 {$IFDEF FPC}
@@ -194,6 +194,32 @@ type
     OnResultC: TFS2_Temp_GetFileMD5C;
     OnResultM: TFS2_Temp_GetFileMD5M;
     OnResultP: TFS2_Temp_GetFileMD5P;
+    constructor Create; override;
+    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
+    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
+  end;
+
+  TFS2_SearchMultiMD5_State = record
+    MD5: TMD5;
+    IsFound: Boolean;
+  end;
+
+  TFS2_SearchMultiMD5_State_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TFS2_SearchMultiMD5_State>;
+
+  TFS2_Temp_SearchMultiMD5C = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
+  TFS2_Temp_SearchMultiMD5M = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) of object;
+{$IFDEF FPC}
+  TFS2_Temp_SearchMultiMD5P = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) is nested;
+{$ELSE FPC}
+  TFS2_Temp_SearchMultiMD5P = reference to procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
+{$ENDIF FPC}
+
+  TFS2_Temp_SearchMultiMD5 = class(TOnResultBridge)
+  public
+    Client: TC40_FS2_Client;
+    OnResultC: TFS2_Temp_SearchMultiMD5C;
+    OnResultM: TFS2_Temp_SearchMultiMD5M;
+    OnResultP: TFS2_Temp_SearchMultiMD5P;
     constructor Create; override;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
@@ -344,9 +370,12 @@ type
     procedure Progress; override;
 
     // fast copy
-    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
-    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
-    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
+    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC); overload;
+    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyM); overload;
+    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyP); overload;
+    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC); overload;
+    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM); overload;
+    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP); overload;
     // upload
     procedure FS2_PostFile(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
     procedure FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
@@ -360,6 +389,10 @@ type
     procedure FS2_GetFileMD5C(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5C);
     procedure FS2_GetFileMD5M(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5M);
     procedure FS2_GetFileMD5P(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5P);
+    // multi md5
+    procedure FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5C);
+    procedure FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5M);
+    procedure FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5P);
     // query md5 as files
     procedure FS2_GetMD5FilesC(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesC);
     procedure FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesM);
@@ -559,6 +592,20 @@ begin
       OutData.WriteBool(True);
       OutData.WriteString(fd.FileName);
       OutData.WriteMD5(fd.FileMD5);
+    end;
+end;
+
+procedure TC40_FS2_Service.cmd_FS2_SearchMultiMD5(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  MD5_: TMD5;
+  FL_: TPascalStringList;
+begin
+  while InData.R.NotEnd do
+    begin
+      MD5_ := InData.R.ReadMD5;
+      FL_ := MD5Pool[umlMD5ToStr(MD5_)];
+      OutData.WriteMD5(MD5_);
+      OutData.WriteBool((FL_ <> nil) and (FL_.Count > 0));
     end;
 end;
 
@@ -783,6 +830,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('FS2_PostFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_PostFile;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_GetFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetFile;
   DTNoAuthService.RecvTunnel.RegisterStream('FS2_GetFileMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetFileMD5;
+  DTNoAuthService.RecvTunnel.RegisterStream('FS2_SearchMultiMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_SearchMultiMD5;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_RemoveFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_RemoveFile;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_UpdateFileRef').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_UpdateFileRef;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_IncFileRef').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_IncFileRef;
@@ -1250,6 +1298,58 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
+constructor TFS2_Temp_SearchMultiMD5.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TFS2_Temp_SearchMultiMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+var
+  L: TFS2_SearchMultiMD5_State_List;
+  State_: TFS2_SearchMultiMD5_State;
+begin
+  L := TFS2_SearchMultiMD5_State_List.Create;
+  while Result_.R.NotEnd do
+    begin
+      State_.MD5 := Result_.R.ReadMD5;
+      State_.IsFound := Result_.R.ReadBool;
+      L.Add(State_);
+    end;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, L);
+    if Assigned(OnResultM) then
+        OnResultM(Client, L);
+    if Assigned(OnResultP) then
+        OnResultP(Client, L);
+  except
+  end;
+  DelayFreeObject(1.0, Self, L);
+end;
+
+procedure TFS2_Temp_SearchMultiMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+var
+  L: TFS2_SearchMultiMD5_State_List;
+begin
+  L := TFS2_SearchMultiMD5_State_List.Create;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, L);
+    if Assigned(OnResultM) then
+        OnResultM(Client, L);
+    if Assigned(OnResultP) then
+        OnResultP(Client, L);
+  except
+  end;
+  DelayFreeObject(1.0, Self, L);
+end;
+
 constructor TFS2_Temp_GetMD5Files.Create;
 begin
   inherited Create;
@@ -1633,6 +1733,63 @@ begin
   Cache.Progress;
 end;
 
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
+var
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
+begin
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp.Client := Self;
+  tmp.OnResultC := OnResult;
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(Stream_MD5_);
+  d.WriteInt64(Stream_Size_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
+var
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
+begin
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp.Client := Self;
+  tmp.OnResultM := OnResult;
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(Stream_MD5_);
+  d.WriteInt64(Stream_Size_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
+var
+  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  d: TDFE;
+begin
+  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp.Client := Self;
+  tmp.OnResultP := OnResult;
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(umlNow);
+  d.WriteInteger(0);
+  d.WriteMD5(Stream_MD5_);
+  d.WriteInt64(Stream_Size_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_CheckMD5AndFastCopy', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
 procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
 var
   tmp: TFS2_Temp_CheckMD5AndFastCopy;
@@ -1956,6 +2113,57 @@ begin
   d := TDFE.Create;
   d.WriteString(File_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_GetFileMD5', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5C);
+var
+  tmp: TFS2_Temp_SearchMultiMD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp.Client := Self;
+  tmp.OnResultC := OnResult;
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+      d.WriteMD5(arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_SearchMultiMD5', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5M);
+var
+  tmp: TFS2_Temp_SearchMultiMD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp.Client := Self;
+  tmp.OnResultM := OnResult;
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+      d.WriteMD5(arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_SearchMultiMD5', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5P);
+var
+  tmp: TFS2_Temp_SearchMultiMD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp.Client := Self;
+  tmp.OnResultP := OnResult;
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+      d.WriteMD5(arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_SearchMultiMD5', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
 end;

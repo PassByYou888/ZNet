@@ -1,10 +1,11 @@
 object C40AppTempletForm: TC40AppTempletForm
-  Left = 637
+  Left = 382
   Height = 500
-  Top = 194
+  Top = 115
   Width = 700
   HorzScrollBar.Page = 371
   VertScrollBar.Page = 498
+  Anchors = [akTop, akRight]
   AutoScroll = True
   Caption = 'Cloud 4.0 Application Templet.'
   ClientHeight = 500
@@ -97,7 +98,7 @@ object C40AppTempletForm: TC40AppTempletForm
             Left = 56
             Height = 21
             Top = 5
-            Width = 105
+            Width = 100
             EditLabel.Height = 13
             EditLabel.Width = 44
             EditLabel.Caption = 'Join Host'
@@ -106,10 +107,10 @@ object C40AppTempletForm: TC40AppTempletForm
             TabOrder = 0
           end
           object JoinPortEdit: TLabeledEdit
-            Left = 190
+            Left = 191
             Height = 21
             Top = 5
-            Width = 49
+            Width = 46
             EditLabel.Height = 13
             EditLabel.Width = 20
             EditLabel.Caption = 'Port'
@@ -118,30 +119,30 @@ object C40AppTempletForm: TC40AppTempletForm
             TabOrder = 1
           end
           object BuildDependNetButton: TButton
-            Left = 566
+            Left = 571
             Height = 25
-            Top = 3
-            Width = 76
+            Top = 1
+            Width = 71
             Anchors = [akTop, akRight]
             Caption = 'Build Tunnel'
             OnClick = BuildDependNetButtonClick
-            TabOrder = 3
+            TabOrder = 5
           end
           object resetDependButton: TButton
             Left = 648
             Height = 25
-            Top = 3
+            Top = 1
             Width = 42
             Anchors = [akTop, akRight]
             Caption = 'Reset'
             OnClick = resetDependButtonClick
-            TabOrder = 4
+            TabOrder = 6
           end
           object DependEdit: TLabeledEdit
-            Left = 293
+            Left = 283
             Height = 21
             Top = 5
-            Width = 267
+            Width = 127
             Anchors = [akTop, akLeft, akRight]
             EditLabel.Height = 13
             EditLabel.Width = 37
@@ -151,6 +152,24 @@ object C40AppTempletForm: TC40AppTempletForm
             TabOrder = 2
             OnChange = DependEditChange
             OnExit = DependEditExit
+          end
+          object JoinAuto_CheckBox: TCheckBox
+            Left = 415
+            Height = 21
+            Top = 9
+            Width = 45
+            Anchors = [akTop, akRight]
+            Caption = 'Auto'
+            TabOrder = 3
+          end
+          object JoinMinWorkload_CheckBox: TCheckBox
+            Left = 468
+            Height = 21
+            Top = 9
+            Width = 103
+            Anchors = [akTop, akRight]
+            Caption = 'Search Workload'
+            TabOrder = 4
           end
         end
         object DependNetListView: TListView
@@ -662,10 +681,19 @@ object C40AppTempletForm: TC40AppTempletForm
         ParentDoubleBuffered = False
         TabOrder = 5
       end
+      object Generate_Console_CmdLineButton: TButton
+        Left = 189
+        Height = 25
+        Top = 268
+        Width = 113
+        Caption = 'Generate Console '
+        OnClick = Generate_Console_CmdLineButtonClick
+        TabOrder = 9
+      end
     end
   end
   object netTimer: TTimer
-    Interval = 100
+    Interval = 200
     OnTimer = netTimerTimer
     Left = 50
     Top = 344

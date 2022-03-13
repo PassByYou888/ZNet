@@ -168,10 +168,13 @@ function umlInRange(const v, min_, max_: UInt64): Boolean; overload;
 function umlInRange(const v, min_, max_: Cardinal): Boolean; overload;
 function umlInRange(const v, min_, max_: Word): Boolean; overload;
 function umlInRange(const v, min_, max_: Byte): Boolean; overload;
+function umlInRange(const v, min_, max_: Int64): Boolean; overload;
 function umlInRange(const v, min_, max_: SmallInt): Boolean; overload;
 function umlInRange(const v, min_, max_: ShortInt): Boolean; overload;
 function umlInRange(const v, min_, max_: Double): Boolean; overload;
 function umlInRange(const v, min_, max_: Single): Boolean; overload;
+
+function umlCompareText(s1, s2: TPascalString): Integer;
 
 function umlGetResourceStream(const FileName: TPascalString): TCore_Stream;
 
@@ -1309,6 +1312,11 @@ begin
   Result := (v >= umlMin(min_, max_)) and (v <= umlMax(min_, max_));
 end;
 
+function umlInRange(const v, min_, max_: Int64): Boolean;
+begin
+  Result := (v >= umlMin(min_, max_)) and (v <= umlMax(min_, max_));
+end;
+
 function umlInRange(const v, min_, max_: SmallInt): Boolean;
 begin
   Result := (v >= umlMin(min_, max_)) and (v <= umlMax(min_, max_));
@@ -1327,6 +1335,37 @@ end;
 function umlInRange(const v, min_, max_: Single): Boolean;
 begin
   Result := (v >= umlMin(min_, max_)) and (v <= umlMax(min_, max_));
+end;
+
+function umlCompareText(s1, s2: TPascalString): Integer;
+  function comp_size(const A, B: Integer): Integer;
+  begin
+    if A = B then
+        Result := 0
+    else if A < B then
+        Result := -1
+    else
+        Result := 1;
+  end;
+
+  function IsWide_(p: PPascalString): Byte;
+  var
+    c: SystemChar;
+  begin
+    for c in p^.buff do
+      if Ord(c) > 127 then
+          exit(1);
+    Result := 0;
+  end;
+
+begin
+  Result := comp_size(IsWide_(@s1), IsWide_(@s2));
+  if Result = 0 then
+    begin
+      Result := comp_size(s1.L, s2.L);
+      if Result = 0 then
+          Result := CompareText(s1, s2);
+    end;
 end;
 
 function umlGetResourceStream(const FileName: TPascalString): TCore_Stream;
@@ -2403,7 +2442,7 @@ begin
 
   if (IOHnd.Position >= IOHnd.PrepareReadPosition) and (IOHnd.PrepareReadPosition + m64.Size >= IOHnd.Position + Size) then
     begin
-      CopyPtr(Pointer(NativeUInt(m64.Memory) + (IOHnd.Position - IOHnd.PrepareReadPosition)), @buff, Size);
+      CopyPtr(GetOffset(m64.Memory, IOHnd.Position - IOHnd.PrepareReadPosition), @buff, Size);
       inc(IOHnd.Position, Size);
       Result := True;
     end
@@ -6017,7 +6056,7 @@ begin
 {$IFDEF OptimizationMemoryStreamMD5}
   if stream is TCore_MemoryStream then
     begin
-      Result := umlMD5(Pointer(NativeUInt(TCore_MemoryStream(stream).Memory) + StartPos), EndPos - StartPos);
+      Result := umlMD5(GetOffset(TCore_MemoryStream(stream).Memory, StartPos), EndPos - StartPos);
       exit;
     end;
   if stream is TMS64 then
@@ -6325,7 +6364,7 @@ var
 begin
   if stream is TCore_MemoryStream then
     begin
-      Result := umlCRC16(Pointer(NativeUInt(TCore_MemoryStream(stream).Memory) + StartPos), EndPos - StartPos);
+      Result := umlCRC16(GetOffset(TCore_MemoryStream(stream).Memory, StartPos), EndPos - StartPos);
       exit;
     end;
   if stream is TMS64 then
@@ -6428,7 +6467,7 @@ var
 begin
   if stream is TCore_MemoryStream then
     begin
-      Result := umlCRC32(Pointer(NativeUInt(TCore_MemoryStream(stream).Memory) + StartPos), EndPos - StartPos);
+      Result := umlCRC32(GetOffset(TCore_MemoryStream(stream).Memory, StartPos), EndPos - StartPos);
       exit;
     end;
   if stream is TMS64 then

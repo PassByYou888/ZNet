@@ -38,7 +38,7 @@ type
 
   TMyCustom_Client = class(TC40_Base_VirtualAuth_Client)
   public
-    constructor Create(source_: TC40_Info; Param_: U_String); override;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
   end;
 
@@ -117,9 +117,9 @@ begin
   inherited Destroy;
 end;
 
-constructor TMyCustom_Client.Create(source_: TC40_Info; Param_: U_String);
+constructor TMyCustom_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(source_, Param_);
+  inherited Create(PhysicsTunnel_, source_, Param_);
 end;
 
 destructor TMyCustom_Client.Destroy;
