@@ -75,16 +75,21 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 // 该方法需要保证C4网络有DP
 C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel('127.0.0.1', 8888, 'dp|myService', nil);
 
+// SearchServiceAndBuildConnection优于GetOrCreatePhysicsTunnel
 // SearchServiceAndBuildConnection 是一次入网，不需要DP，不支持运行时调度
 // 该方法只要C4网络有服务器标识符，都能入网
 // SearchServiceAndBuildConnection 可以支持最优负载
 C40_PhysicsTunnelPool.SearchServiceAndBuildConnection('127.0.0.1', 8888, 'myService', nil);
+
+// 如果要支持运行时调度，只需要包含DP
+C40_PhysicsTunnelPool.SearchServiceAndBuildConnection('127.0.0.1', 8888, 'DP|myService', nil);
 ```
-3-13更新命令行脚本: **AutoTunnel/Tunnel**
+3-13更新C4入网的命令行脚本: **AutoTunnel/Tunnel**
 ```
+// C4脚本系统中的入网脚本，AutoTunnel方式优于Tunnel
 // autoTunnel=SearchServiceAndBuildConnection方式入网，为一次性
 // AutoTunnel(地址,端口,标识符,从服务器群选择负载最小的为false表示连上标识符为myService的全部服务器)
-myClient "AutoTunnel('127.0.0.1',9188,'myService',False)"
+myClient "AutoTunnel('127.0.0.1',9188,'DP|myService',False)"
 
 // Tunnel=GetOrCreatePhysicsTunnel方式入网，为一次性
 // Tunnel(地址,端口,标识符最好带有DP，这样C4才可以有自动化机制)
