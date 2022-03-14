@@ -217,7 +217,9 @@ type
       const Depend_: U_String; const OnEvent_: IC40_PhysicsTunnel_Event): TC40_PhysicsTunnel; overload;
     { fast service connection }
     procedure SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word; FullConnection_: Boolean;
-      const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event);
+      const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event); overload;
+    procedure SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word;
+      const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event); overload;
     { progress }
     procedure Progress;
   end;
@@ -2413,6 +2415,21 @@ begin
   tmp := TTemp_SearchServiceBridge.Create;
   tmp.Pool := Self;
   tmp.FullConnection_ := FullConnection_;
+  tmp.ServiceTyp := ServiceTyp;
+  tmp.OnEvent_ := OnEvent_;
+  Tunnel_ := GetOrCreatePhysicsTunnel(PhysicsAddr, PhysicsPort);
+  Tunnel_.QueryInfoM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchService_Event);
+end;
+
+procedure TC40_PhysicsTunnelPool.SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word;
+  const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event);
+var
+  tmp: TTemp_SearchServiceBridge;
+  Tunnel_: TC40_PhysicsTunnel;
+begin
+  tmp := TTemp_SearchServiceBridge.Create;
+  tmp.Pool := Self;
+  tmp.FullConnection_ := True;
   tmp.ServiceTyp := ServiceTyp;
   tmp.OnEvent_ := OnEvent_;
   Tunnel_ := GetOrCreatePhysicsTunnel(PhysicsAddr, PhysicsPort);
