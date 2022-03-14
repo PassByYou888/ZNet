@@ -69,6 +69,28 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 - 2022-3-13，优化DP接口：不再生成无用连接，即使生成链接，在默认5秒以后，也会kill掉无用的连接
 - 2022-3-13，下个版本的ZNet将会支持网盘，更新幅度应该较大（大家放心，C4不会改机制，不影响现有应用群），本次更新的所有demo和库都测试通过，属于稳定版本（已经提交Release包）
 
+3-13 机制更新说明: **GetOrCreatePhysicsTunnel/SearchServiceAndBuildConnection**
+```pascal
+// GetOrCreatePhysicsTunnel 入网以后不用再管了，有新服务器入网时它自动调度，离线也是自动处理
+// 该方法需要保证C4网络有DP
+C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel('127.0.0.1', 8888, 'dp|myService', nil);
+
+// SearchServiceAndBuildConnection 是一次入网，不需要DP，不支持运行时调度
+// 该方法只要C4网络有服务器标识符，都能入网
+// SearchServiceAndBuildConnection 可以支持最优负载
+C40_PhysicsTunnelPool.SearchServiceAndBuildConnection('127.0.0.1', 8888, 'myService', nil);
+```
+3-13更新命令行脚本: **AutoTunnel/Tunnel**
+```
+// autoTunnel=SearchServiceAndBuildConnection方式入网，为一次性
+// AutoTunnel(地址,端口,标识符,从服务器群选择负载最小的为false表示连上标识符为myService的全部服务器)
+myClient "AutoTunnel('127.0.0.1',9188,'myService',False)"
+
+// Tunnel=GetOrCreatePhysicsTunnel方式入网，为一次性
+// Tunnel(地址,端口,标识符最好带有DP，这样C4才可以有自动化机制)
+myClient "Tunnel('127.0.0.1','9188','DP|myService')"
+```
+
 **过去的更新日志**
 
 - 2022-2-13，修复了一个ZDB2重大bug：flush cache一个变量疏忽，导致写入错误的问题
