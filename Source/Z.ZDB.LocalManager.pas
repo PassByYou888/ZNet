@@ -2180,7 +2180,11 @@ var
 begin
   LM := TZDBLocalManager.Create;
   LM.RootPath := umlGetCurrentPath;
-  LM.InitMemoryDB('test');
+  with LM.InitMemoryDB('test') do
+    begin
+      DBEngine.HandlePtr^.IOHnd.Cache.UsedWriteCache := True;
+      DBEngine.HandlePtr^.IOHnd.Cache.UsedReadCache := True;
+    end;
   LM.PostData('test', 'hello world');
   wait_ := True;
   LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0,
