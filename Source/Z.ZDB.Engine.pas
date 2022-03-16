@@ -2682,7 +2682,7 @@ begin
       itmHnd.Name := '0x' + TCipher.BuffToString(@itmHnd.Item.RHeader.CurrentHeader, C_Int64_Size).Text;
       itmStream := TItemStream.Create(FDBEngine, itmHnd);
       Buff.Position := 0;
-      itmStream.CopyFrom(Buff, Buff.Size);
+      itmStream.CopyFrom64(Buff, Buff.Size);
       itmStream.UpdateHandle;
       DisposeObject(itmStream);
       Result := itmHnd.Item.RHeader.CurrentHeader;
@@ -3914,10 +3914,13 @@ var
   ms: TMemoryStream64;
   d: TTimeTick;
 begin
-  dbEng := TDBStore.CreateNewMemory;
+//  dbEng := TDBStore.CreateNewMemory;
+   dbEng := TDBStore.CreateNew(umlGetCurrentPath+'test3.ox');
   DoStatus('build struct...');
   d := GetTimeTickCount;
   DF := TDBEngineDF.Create;
+
+  SetMT19937Seed(0);
   for j := 1 to 15 do
       DF.WriteDouble(umlRandomRangeD(-10000, 10000));
   for j := 1 to 15 do
@@ -3929,27 +3932,21 @@ begin
     end;
 
   ms := TMemoryStream64.Create;
-  DF.EncodeTo(ms, True);
+  DF.EncodeTo(ms, False);
 
-  for i := 1 to 10000 do
+  for i := 1 to 1 do
       dbEng.AddData(ms, c_DF);
 
   dbEng.Update;
-  DoStatus(umlMD5Char(TMemoryStream64(dbEng.DBEngine.StreamEngine).Memory,
-    dbEng.DBEngine.StreamEngine.Size).Text);
-
   DoStatus('build struct (%d * %d = %s of data) time:%dms',
-    [DF.Count, dbEng.Count, umlSizeToStr(DF.Count * dbEng.Count).Text,
-    GetTimeTickCount - d]);
+    [DF.Count, dbEng.Count, umlSizeToStr(DF.Count * dbEng.Count).Text, GetTimeTickCount - d]);
 
-  // dbEng.Compress;
+  dbEng.Compress;
 
   DoStatus('query struct...');
   d := GetTimeTickCount;
 
   dbEng.QueryC(@test_QueryFilter, @test_QueryDone);
-  dbEng.QueryC(False, @test_QueryFilter, @test_QueryDone);
-
   dbEng.WaitQueryThread;
   DoStatus('query struct time:%dms', [GetTimeTickCount - d]);
 

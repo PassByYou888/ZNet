@@ -34,7 +34,6 @@ type
     CurrentBlockSeekPOS: Int64;
     CurrentFileSeekPOS: Int64;
     State: Integer;
-    MemorySiz: NativeUInt;
     procedure Write(var wVal: TItem);
     procedure Read(var rVal: TItem);
   end;
@@ -48,7 +47,6 @@ type
     FirstHeaderPOS: Int64;
     LastHeaderPOS: Int64;
     State: Integer;
-    MemorySiz: NativeUInt;
     procedure Write(var wVal: TField);
     procedure Read(var rVal: TField);
   end;
@@ -235,7 +233,7 @@ type
     function ItemSeek(var ItemHnd: TItemHandle; const ItemOffset: Int64): Boolean;
     function ItemGetPos(var ItemHnd: TItemHandle): Int64;
     function ItemGetSize(var ItemHnd: TItemHandle): Int64;
-    function ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; var Buffers): Boolean;
+    function ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffers): Boolean;
 
     // item stream
     function ItemReadToStream(var ItemHnd: TItemHandle; stream: TCore_Stream): Boolean; overload;
@@ -531,7 +529,6 @@ begin
   CurrentBlockSeekPOS := wVal.CurrentBlockSeekPOS;
   CurrentFileSeekPOS := wVal.CurrentFileSeekPOS;
   State := wVal.State;
-  MemorySiz := 0;
 end;
 
 procedure TObjectDataCacheItem.Read(var rVal: TItem);
@@ -555,7 +552,6 @@ begin
   FirstHeaderPOS := wVal.FirstHeaderPOS;
   LastHeaderPOS := wVal.LastHeaderPOS;
   State := wVal.State;
-  MemorySiz := 0;
 end;
 
 procedure TObjectDataCacheField.Read(var rVal: TField);
@@ -1699,7 +1695,7 @@ begin
   Result := db_ItemGetSize(ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; var Buffers): Boolean;
+function TObjectDataManager.ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffers): Boolean;
 begin
   Result := db_ItemWrite(siz, Buffers, ItemHnd, FDB_HND);
 end;
@@ -1798,8 +1794,7 @@ end;
 
 function TObjectDataManagerOfCache.CheckPreapreWrite(fPos: Int64): Boolean;
 begin
-  Result := (FDB_HND.IOHnd.Handle is TReliableFileStream) and
-    (not FDB_HND.IOHnd.IsOnlyRead) and (FDB_HND.IOHnd.IsOpen) and (fPos < FDB_HND.IOHnd.Size);
+  Result := (FDB_HND.IOHnd.Handle is TReliableFileStream) and (not FDB_HND.IOHnd.IsOnlyRead) and (FDB_HND.IOHnd.IsOpen) and (fPos < FDB_HND.IOHnd.Size);
 end;
 
 procedure TObjectDataManagerOfCache.DeleteHeaderProc(fPos: Int64);
@@ -2406,9 +2401,7 @@ begin
   // update Database header
   inherited UpdateIO;
 
-  if (not FDB_HND.IOHnd.IsOnlyRead)
-    and (FDB_HND.IOHnd.IsOpen)
-    and (FPrepareWritePool.Count > 0) then
+  if (not FDB_HND.IOHnd.IsOnlyRead) and (FDB_HND.IOHnd.IsOpen) and (FPrepareWritePool.Count > 0) then
     begin
       // step 1: flush to swap file
 {$IFDEF ZDB_PHYSICAL_FLUSH}
@@ -2927,9 +2920,22 @@ begin
 end;
 
 procedure TestObjectData();
+var
+  db: TObjectDataManagerOfCache;
+  ns: TPascalStringList;
+  itm: TItemStream;
 begin
-  TestObjectData_(TObjectDataManager);
-  TestObjectData_(TObjectDataManagerOfCache);
+  // TestObjectData_(TObjectDataManager);
+  // TestObjectData_(TObjectDataManagerOfCache);
+  db := TObjectDataManagerOfCache.CreateNew($FF, umlGetCurrentPath + 'test1.ox', 0);
+  ns := TPascalStringList.Create;
+  ns.Add('hello world');
+  itm := TItemStream.Create(db, '/', 'hello.txt');
+  ns.SaveToStream(itm);
+  ns.Free;
+  itm.UpdateHandle;
+  itm.Free;
+  db.Free;
 end;
 
 initialization

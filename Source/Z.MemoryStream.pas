@@ -948,8 +948,10 @@ begin
             n := BufSize
         else
             n := Count;
-        source.read(buffer^, n);
-        WritePtr(buffer, n);
+        if source.read(buffer^, n) <> n then
+            RaiseInfo('stream read error.');
+        if WritePtr(buffer, n) <> n then
+            RaiseInfo('stream write error.');
         dec(Count, n);
       end;
   finally

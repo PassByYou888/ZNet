@@ -306,6 +306,8 @@ type
     //
     // Modification operation
     function SetData(dataBaseName_: SystemString; StorePos: Int64; dSour: TMS64): Boolean;
+
+    class procedure Test_LM();
   end;
 
   TFillQueryData_C = procedure(dataBaseName_, pipeN: SystemString; StorePos: Int64; ID: Cardinal; DataSour: TMS64);
@@ -1141,6 +1143,38 @@ begin
   end;
 end;
 
+procedure TZDBLocalManager.ZDBEngProgress(const Name: PSystemString; Obj: TCore_Object);
+var
+  Database_: TZDBLMStore;
+begin
+  if Obj = nil then
+      Exit;
+
+  Database_ := TZDBLMStore(Obj);
+  if (Database_.DBEngine.Modification) and (GetTimeTick - Database_.FLastModifyTime > 1000) then
+    begin
+      Database_.Update;
+      Database_.FLastModifyTime := GetTimeTick;
+    end;
+end;
+
+procedure TZDBLocalManager.CadencerProgress(const deltaTime, newTime: Double);
+var
+  i: Integer;
+begin
+  FProgressPost.Progress(deltaTime);
+
+  for i := 0 to FQueryPipelineList.Count - 1 do
+    begin
+      try
+          TZDBPipeline(FQueryPipelineList[i]).Progress(deltaTime);
+      except
+      end;
+    end;
+
+  FDBPool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}ZDBEngProgress);
+end;
+
 procedure TZDBLocalManager.DoQueryFragmentData(pipe: TZDBPipeline; FragmentSour: TMS64);
 begin
   if not Assigned(FNotifyIntf) then
@@ -1344,6 +1378,58 @@ begin
   inherited Destroy;
 end;
 
+procedure TZDBLocalManager.Clear;
+var
+  lst: TCore_ListForObj;
+  i: Integer;
+begin
+  FProgressPost.ResetPost;
+
+  lst := TCore_ListForObj.Create;
+  FDBPool.GetAsList(lst);
+  for i := 0 to lst.Count - 1 do
+      TZDBLMStore(lst[i]).StopAllQuery;
+  DisposeObject(lst);
+
+  lst := TCore_ListForObj.Create;
+  FQueryPipelinePool.GetAsList(lst);
+  for i := 0 to lst.Count - 1 do
+      DisposeObject(lst[i]);
+  DisposeObject(lst);
+
+  FDBPool.Clear;
+end;
+
+procedure TZDBLocalManager.LoadDB(ReadOnly: Boolean);
+var
+  Arr: U_StringArray;
+  fn, n: SystemString;
+begin
+  Clear;
+  Arr := umlGetFileListWithFullPath(RootPath);
+  for fn in Arr do
+    begin
+      n := umlGetFileName(fn);
+      if not umlMultipleMatch(True, '*.CompressSwap.*', n) then
+        if umlMultipleMatch(True, '*.OX', n) then
+            InitDB(umlChangeFileExt(n, '').Text, ReadOnly);
+    end;
+  SetLength(Arr, 0);
+end;
+
+procedure TZDBLocalManager.SetRootPath(const Value: SystemString);
+begin
+  if TPascalString(FRootPath).Same(Value) then
+      Exit;
+  FRootPath := Value;
+  LoadDB(False);
+end;
+
+procedure TZDBLocalManager.Progress;
+begin
+  FCadencerEng.Progress;
+end;
+
 function TZDBLocalManager.InitDB(dataBaseName_: SystemString): TZDBLMStore;
 begin
   Result := InitDB(dataBaseName_, False);
@@ -1441,38 +1527,6 @@ begin
         FNotifyIntf.CreateDB(Result);
   except
   end;
-end;
-
-procedure TZDBLocalManager.ZDBEngProgress(const Name: PSystemString; Obj: TCore_Object);
-var
-  Database_: TZDBLMStore;
-begin
-  if Obj = nil then
-      Exit;
-
-  Database_ := TZDBLMStore(Obj);
-  if (Database_.DBEngine.Modification) and (GetTimeTick - Database_.FLastModifyTime > 1000) then
-    begin
-      Database_.Update;
-      Database_.FLastModifyTime := GetTimeTick;
-    end;
-end;
-
-procedure TZDBLocalManager.CadencerProgress(const deltaTime, newTime: Double);
-var
-  i: Integer;
-begin
-  FProgressPost.Progress(deltaTime);
-
-  for i := 0 to FQueryPipelineList.Count - 1 do
-    begin
-      try
-          TZDBPipeline(FQueryPipelineList[i]).Progress(deltaTime);
-      except
-      end;
-    end;
-
-  FDBPool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}ZDBEngProgress);
 end;
 
 procedure TZDBLocalManager.CloseDB(dataBaseName_: SystemString);
@@ -1982,58 +2036,6 @@ begin
   Result := d.AddData(dSour);
 end;
 
-procedure TZDBLocalManager.Clear;
-var
-  lst: TCore_ListForObj;
-  i: Integer;
-begin
-  FProgressPost.ResetPost;
-
-  lst := TCore_ListForObj.Create;
-  FDBPool.GetAsList(lst);
-  for i := 0 to lst.Count - 1 do
-      TZDBLMStore(lst[i]).StopAllQuery;
-  DisposeObject(lst);
-
-  lst := TCore_ListForObj.Create;
-  FQueryPipelinePool.GetAsList(lst);
-  for i := 0 to lst.Count - 1 do
-      DisposeObject(lst[i]);
-  DisposeObject(lst);
-
-  FDBPool.Clear;
-end;
-
-procedure TZDBLocalManager.LoadDB(ReadOnly: Boolean);
-var
-  Arr: U_StringArray;
-  fn, n: SystemString;
-begin
-  Clear;
-  Arr := umlGetFileListWithFullPath(RootPath);
-  for fn in Arr do
-    begin
-      n := umlGetFileName(fn);
-      if not umlMultipleMatch(True, '*.CompressSwap.*', n) then
-        if umlMultipleMatch(True, '*.OX', n) then
-            InitDB(umlChangeFileExt(n, '').Text, ReadOnly);
-    end;
-  SetLength(Arr, 0);
-end;
-
-procedure TZDBLocalManager.SetRootPath(const Value: SystemString);
-begin
-  if TPascalString(FRootPath).Same(Value) then
-      Exit;
-  FRootPath := Value;
-  LoadDB(False);
-end;
-
-procedure TZDBLocalManager.Progress;
-begin
-  FCadencerEng.Progress;
-end;
-
 function TZDBLocalManager.InsertData(dataBaseName_: SystemString; InsertPos: Int64; dSour: TCore_Stream; ID: Cardinal): Int64;
 var
   d: TZDBLMStore;
@@ -2169,6 +2171,38 @@ begin
   if d = nil then
       Exit;
   Result := d.SetData(StorePos, dSour);
+end;
+
+class procedure TZDBLocalManager.Test_LM;
+var
+  LM: TZDBLocalManager;
+  wait_: Boolean;
+begin
+  LM := TZDBLocalManager.Create;
+  LM.RootPath := umlGetCurrentPath;
+  LM.InitMemoryDB('test');
+  LM.PostData('test', 'hello world');
+  wait_ := True;
+  LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0,
+    procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
+    begin
+      if qState.IsString then
+        begin
+          DoStatus(qState.Eng.GetString(qState));
+        end;
+    end,
+    procedure(dPipe: TZDBPipeline)
+    begin
+      wait_ := False;
+    end);
+
+  while wait_ do
+    begin
+      LM.Progress;
+      CheckThread;
+    end;
+
+  DisposeObject(LM);
 end;
 
 initialization

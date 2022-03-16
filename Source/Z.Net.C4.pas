@@ -165,6 +165,7 @@ type
     procedure DoConnectAndBuildDependNetwork(Param1: Pointer; Param2: TObject; const state: Boolean);
   protected
     procedure ClientConnected(Sender: TZNet_Client); virtual;
+    procedure Do_Notify_All_Disconnect;
     procedure ClientDisconnect(Sender: TZNet_Client); virtual;
   public
     PhysicsAddr: U_String;
@@ -367,11 +368,13 @@ type
 {$ENDREGION 'p2pVMCustomService'}
 {$REGION 'p2pVMCustomClient'}
 
+  TOn_Client_Offline = procedure(Sender: TC40_Custom_Client) of object;
+
   TC40_Custom_Client = class(TCore_InterfacedObject)
   private
     FLastSafeCheckTime: TTimeTick;
   protected
-    procedure DoNetworkOffline; virtual;
+    procedure DoNetworkOffline; virtual; // trigger: offline
   public
     Param: U_String;
     ParamList: THashStringList;
@@ -379,6 +382,7 @@ type
     Alias_or_Hash___: U_String;
     ClientInfo: TC40_Info;
     C40PhysicsTunnel: TC40_PhysicsTunnel;
+    On_Client_Offline: TOn_Client_Offline;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -1291,6 +1295,7 @@ var
 begin
   umlGetSplitArray(info, tmp, '|<>');
   Result := ExtractDependInfo(tmp);
+  SetLength(tmp, 0);
 end;
 
 function ExtractDependInfo(arry: TC40_DependNetworkString): TC40_DependNetworkInfoArray;
@@ -1313,6 +1318,7 @@ var
 begin
   umlGetSplitArray(info, tmp, '|<>');
   Result := ExtractDependInfoToL(tmp);
+  SetLength(tmp, 0);
 end;
 
 function ExtractDependInfoToL(arry: TC40_DependNetworkString): TC40_DependNetworkInfoList;
@@ -1776,21 +1782,25 @@ begin
   end;
 end;
 
-procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
+procedure TC40_PhysicsTunnel.Do_Notify_All_Disconnect;
 var
   i: Integer;
+begin
+  try
+    for i := 0 to DependNetworkClientPool.Count - 1 do
+        DependNetworkClientPool[i].DoNetworkOffline;
+  except
+  end;
+end;
+
+procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
 begin
   try
     if Assigned(OnEvent) then
         OnEvent.C40_PhysicsTunnel_Disconnect(Self);
   except
   end;
-
-  try
-    for i := 0 to DependNetworkClientPool.Count - 1 do
-        DependNetworkClientPool[i].DoNetworkOffline;
-  except
-  end;
+  Sender.PostProgress.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Notify_All_Disconnect);
 end;
 
 constructor TC40_PhysicsTunnel.Create(Addr_: U_String; Port_: Word);
@@ -1828,6 +1838,7 @@ begin
       PhysicsTunnel.Disconnect;
   except
   end;
+  PhysicsTunnel.Progress;
   OnEvent := nil;
   C40_PhysicsTunnelPool.Remove(Self);
   PhysicsAddr := '';
@@ -3402,7 +3413,11 @@ end;
 
 procedure TC40_Custom_Client.DoNetworkOffline;
 begin
-
+  try
+    if Assigned(On_Client_Offline) then
+        On_Client_Offline(Self);
+  except
+  end;
 end;
 
 constructor TC40_Custom_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -3433,8 +3448,9 @@ begin
   else
       C40PhysicsTunnel := PhysicsTunnel_;
   C40PhysicsTunnel.DependNetworkClientPool.Add(Self);
-
   C40_ClientPool.Add(Self);
+
+  On_Client_Offline := nil;
 end;
 
 destructor TC40_Custom_Client.Destroy;

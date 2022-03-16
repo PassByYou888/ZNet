@@ -47,6 +47,8 @@ type
 
 implementation
 
+uses Z.MemoryStream;
+
 function TItemStream.GetSize: Int64;
 begin
   Result := DB_Engine.ItemGetSize(ItemHnd_Ptr^);
@@ -198,13 +200,20 @@ const
   MaxBufSize = $F000;
 var
   BufSize, N: Int64;
-  buffer: PByte;
+  buffer: Pointer;
 begin
   if Count <= 0 then
     begin
       Source.Position := 0;
       Count := Source.Size;
     end;
+
+  if Source is TMS64 then
+    begin
+      Result := Write64(TMS64(Source).Memory^, Count);
+      exit;
+    end;
+
   Result := Count;
   if Count > MaxBufSize then
       BufSize := MaxBufSize
@@ -218,12 +227,14 @@ begin
             N := BufSize
         else
             N := Count;
-        Source.ReadBuffer(buffer^, N);
-        WriteBuffer(buffer^, N);
+        if Source.Read(buffer^, N) <> N then
+            RaiseInfo('item read error.');
+        if Write64(buffer^, N) <> N then
+            RaiseInfo('item write error.');
         Dec(Count, N);
       end;
   finally
-      System.FreeMem(buffer);
+      System.FreeMemory(buffer);
   end;
 end;
 

@@ -99,8 +99,7 @@ type
     Size: Int64;
     Position: Int64;
     FileName: U_String;
-    FlushBuff: U_Stream;
-    FlushPosition: Int64;
+    PrepareWriteBuff: U_Stream;
     PrepareReadPosition: Int64;
     PrepareReadBuff: U_Stream;
     IORead, IOWrite: Int64;
@@ -263,8 +262,8 @@ function umlFileRead(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
 function umlBlockRead(var IOHnd: TIOHnd; var buff; const Size: Int64): Boolean;
 function umlFilePrepareWrite(var IOHnd: TIOHnd): Boolean;
 function umlFileFlushWrite(var IOHnd: TIOHnd): Boolean;
-function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
-function umlBlockWrite(var IOHnd: TIOHnd; var buff; const Size: Int64): Boolean;
+function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; const buff): Boolean;
+function umlBlockWrite(var IOHnd: TIOHnd; const buff; const Size: Int64): Boolean;
 function umlFileWriteFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
 function umlFileReadFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
 function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
@@ -2174,8 +2173,7 @@ begin
   IOHnd.Size := 0;
   IOHnd.Position := 0;
   IOHnd.FileName := '';
-  IOHnd.FlushBuff := nil;
-  IOHnd.FlushPosition := -1;
+  IOHnd.PrepareWriteBuff := nil;
   IOHnd.PrepareReadPosition := -1;
   IOHnd.PrepareReadBuff := nil;
   IOHnd.IORead := 0;
@@ -2459,7 +2457,6 @@ function umlFileRead(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
 var
   BuffPointer: Pointer;
   i: NativeInt;
-  BuffInt: NativeUInt;
 begin
   if not umlFileFlushWrite(IOHnd) then
     begin
@@ -2485,8 +2482,7 @@ begin
     if Size > C_MaxBufferFragmentSize then
       begin
         // process Chunk buffer
-        BuffInt := NativeUInt(@buff);
-        BuffPointer := Pointer(BuffInt);
+        BuffPointer := @buff;
         for i := 1 to (Size div C_MaxBufferFragmentSize) do
           begin
             if IOHnd.Handle.Read(BuffPointer^, C_MaxBufferFragmentSize) <> C_MaxBufferFragmentSize then
@@ -2495,8 +2491,7 @@ begin
                 Result := False;
                 exit;
               end;
-            BuffInt := BuffInt + C_MaxBufferFragmentSize;
-            BuffPointer := Pointer(BuffInt);
+            BuffPointer := GetOffset(BuffPointer, C_MaxBufferFragmentSize);
           end;
         // process buffer rest
         i := Size mod C_MaxBufferFragmentSize;
@@ -2540,13 +2535,12 @@ begin
   if not umlFileTest(IOHnd) then
       exit;
 
-  if IOHnd.FlushBuff <> nil then
+  if IOHnd.PrepareWriteBuff <> nil then
       exit;
 
   if (IOHnd.Handle is TCore_FileStream) or (IOHnd.Handle is TReliableFileStream) then
     begin
-      IOHnd.FlushBuff := TMS64.CustomCreate(1024 * 1024 * 8);
-      IOHnd.FlushPosition := IOHnd.Handle.Position;
+      IOHnd.PrepareWriteBuff := TMS64.CustomCreate(1024 * 1024 * 8);
     end;
 end;
 
@@ -2554,11 +2548,10 @@ function umlFileFlushWrite(var IOHnd: TIOHnd): Boolean;
 var
   m64: TMS64;
 begin
-  if IOHnd.FlushBuff <> nil then
+  if IOHnd.PrepareWriteBuff <> nil then
     begin
-      m64 := TMS64(IOHnd.FlushBuff);
-      IOHnd.FlushBuff := nil;
-
+      m64 := TMS64(IOHnd.PrepareWriteBuff);
+      IOHnd.PrepareWriteBuff := nil;
       if IOHnd.Handle.Write(m64.Memory^, m64.Size) <> m64.Size then
         begin
           IOHnd.Return := C_FileWriteError;
@@ -2567,15 +2560,15 @@ begin
         end;
       inc(IOHnd.IOWrite, m64.Size);
       DisposeObject(m64);
+      IOHnd.Handle.Position := IOHnd.Position;
     end;
   Result := True;
 end;
 
-function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
+function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; const buff): Boolean;
 var
   BuffPointer: Pointer;
   i: NativeInt;
-  BuffInt: NativeUInt;
 begin
   if (IOHnd.IsOnlyRead) or (not IOHnd.IsOpen) then
     begin
@@ -2597,9 +2590,9 @@ begin
   if Size <= $F000 then
       umlFilePrepareWrite(IOHnd);
 
-  if IOHnd.FlushBuff <> nil then
+  if IOHnd.PrepareWriteBuff <> nil then
     begin
-      if TMS64(IOHnd.FlushBuff).Write64(buff, Size) <> Size then
+      if TMS64(IOHnd.PrepareWriteBuff).Write64(buff, Size) <> Size then
         begin
           IOHnd.Return := C_FileWriteError;
           Result := False;
@@ -2612,8 +2605,8 @@ begin
       IOHnd.Return := C_NotError;
       Result := True;
 
-      // 64M flush buffer
-      if IOHnd.FlushBuff.Size > 64 * 1024 * 1024 then
+      // 8M flush buffer
+      if IOHnd.PrepareWriteBuff.Size > 8 * 1024 * 1024 then
           umlFileFlushWrite(IOHnd);
       exit;
     end;
@@ -2622,8 +2615,7 @@ begin
     if Size > C_MaxBufferFragmentSize then
       begin
         // process buffer chunk
-        BuffInt := NativeUInt(@buff);
-        BuffPointer := Pointer(BuffInt);
+        BuffPointer := @buff;
         for i := 1 to (Size div C_MaxBufferFragmentSize) do
           begin
             if IOHnd.Handle.Write(BuffPointer^, C_MaxBufferFragmentSize) <> C_MaxBufferFragmentSize then
@@ -2632,8 +2624,7 @@ begin
                 Result := False;
                 exit;
               end;
-            BuffInt := BuffInt + C_MaxBufferFragmentSize;
-            BuffPointer := Pointer(BuffInt);
+            BuffPointer := GetOffset(BuffPointer, C_MaxBufferFragmentSize);
           end;
         // process buffer rest
         i := Size mod C_MaxBufferFragmentSize;
@@ -2671,7 +2662,7 @@ begin
   end;
 end;
 
-function umlBlockWrite(var IOHnd: TIOHnd; var buff; const Size: Int64): Boolean;
+function umlBlockWrite(var IOHnd: TIOHnd; const buff; const Size: Int64): Boolean;
 begin
   Result := umlFileWrite(IOHnd, Size, buff);
 end;
@@ -2717,7 +2708,7 @@ end;
 
 function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
 begin
-  if Pos_ = IOHnd.Position then
+  if (Pos_ = IOHnd.Position) and (Pos_ = IOHnd.Handle.Position) then
     begin
       IOHnd.Return := C_NotError;
       Result := True;

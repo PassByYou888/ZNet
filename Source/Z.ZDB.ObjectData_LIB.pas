@@ -405,9 +405,9 @@ function dbHeader_FindPrev(const Name: U_String; const LastHeaderPOS, FirstHeade
 // internal: item block
 function dbItem_BlockCreate(var IOHnd: TIOHnd; var Item_: TItem): Boolean;
 function dbItem_BlockInit(var IOHnd: TIOHnd; var Item_: TItem): Boolean;
-function dbItem_BlockReadData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const _Size: Int64): Boolean;
-function dbItem_BlockAppendWriteData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const Size: Int64): Boolean;
-function dbItem_BlockWriteData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const Size: Int64): Boolean;
+function dbItem_BlockReadData(var IOHnd: TIOHnd; var Item_: TItem; var Buff_; const _Size: Int64): Boolean;
+function dbItem_BlockAppendWriteData(var IOHnd: TIOHnd; var Item_: TItem; const Buff_; const Size: Int64): Boolean;
+function dbItem_BlockWriteData(var IOHnd: TIOHnd; var Item_: TItem; const Buff_; const Size: Int64): Boolean;
 function dbItem_BlockSeekPOS(var IOHnd: TIOHnd; var Item_: TItem; const Position: Int64): Boolean;
 function dbItem_BlockGetPOS(var IOHnd: TIOHnd; var Item_: TItem): Int64;
 function dbItem_BlockSeekStartPOS(var IOHnd: TIOHnd; var Item_: TItem): Boolean;
@@ -509,8 +509,8 @@ function db_ItemBodyReset(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle
 function db_ItemReName(const FieldPos: Int64; const NewItemName, NewItemDescription: U_String; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 
 // API
-function db_ItemRead(const Size: Int64; var Buffers; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
-function db_ItemWrite(const Size: Int64; var Buffers; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
+function db_ItemRead(const Size: Int64; var Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
+function db_ItemWrite(const Size: Int64; const Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 
 // API
 function db_ItemSeekPos(const fPos: Int64; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
@@ -2400,12 +2400,11 @@ begin
   Result := True;
 end;
 
-function dbItem_BlockReadData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const _Size: Int64): Boolean;
+function dbItem_BlockReadData(var IOHnd: TIOHnd; var Item_: TItem; var Buff_; const _Size: Int64): Boolean;
 label
   Rep_Label;
 var
   BuffPointer: Pointer;
-  BuffInt: nativeUInt;
   DeformitySize, BlockPOS: Int64;
   ItemBlock: TItemBlock;
   Size: Int64;
@@ -2437,8 +2436,7 @@ begin
     end;
   ItemBlock := Item_.CurrentItemBlock;
   BlockPOS := Item_.CurrentBlockSeekPOS;
-  BuffInt := nativeUInt(@Buffers);
-  BuffPointer := Pointer(BuffInt);
+  BuffPointer := @Buff_;
   DeformitySize := Size;
 Rep_Label:
   if ItemBlock.Size - BlockPOS = 0 then
@@ -2515,8 +2513,7 @@ Rep_Label:
         exit;
       end;
   end;
-  BuffInt := BuffInt + (ItemBlock.Size - BlockPOS);
-  BuffPointer := Pointer(BuffInt);
+  BuffPointer := GetOffset(BuffPointer, ItemBlock.Size - BlockPOS);
   DeformitySize := DeformitySize - (ItemBlock.Size - BlockPOS);
   if dbItem_OnlyReadItemBlockRec(ItemBlock.NextBlockPOS, IOHnd, ItemBlock) = False then
     begin
@@ -2531,7 +2528,7 @@ Rep_Label:
   goto Rep_Label;
 end;
 
-function dbItem_BlockAppendWriteData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const Size: Int64): Boolean;
+function dbItem_BlockAppendWriteData(var IOHnd: TIOHnd; var Item_: TItem; const Buff_; const Size: Int64): Boolean;
 begin
   if (Item_.BlockCount > 0) and ((Item_.CurrentItemBlock.DataPosition + Item_.CurrentItemBlock.Size) = umlFileGetSize(IOHnd)) then
     begin
@@ -2541,7 +2538,7 @@ begin
           Result := False;
           exit;
         end;
-      if umlFileWrite(IOHnd, Size, Buffers) = False then
+      if umlFileWrite(IOHnd, Size, Buff_) = False then
         begin
           Item_.State := DB_Item_BlockWriteError;
           Result := False;
@@ -2581,7 +2578,7 @@ begin
       exit;
     end;
 
-  if umlFileWrite(IOHnd, Size, Buffers) = False then
+  if umlFileWrite(IOHnd, Size, Buff_) = False then
     begin
       Item_.State := DB_Item_BlockWriteError;
       Result := False;
@@ -2607,18 +2604,17 @@ begin
   Result := True;
 end;
 
-function dbItem_BlockWriteData(var IOHnd: TIOHnd; var Item_: TItem; var Buffers; const Size: Int64): Boolean;
+function dbItem_BlockWriteData(var IOHnd: TIOHnd; var Item_: TItem; const Buff_; const Size: Int64): Boolean;
 label
   Rep_Label;
 var
   BuffPointer: Pointer;
-  BuffInt: nativeUInt;
   DeformitySize, BlockPOS: Int64;
   ItemBlock: TItemBlock;
 begin
   if (Item_.Size = 0) or (Item_.BlockCount = 0) then
     begin
-      Result := dbItem_BlockAppendWriteData(IOHnd, Item_, Buffers, Size);
+      Result := dbItem_BlockAppendWriteData(IOHnd, Item_, Buff_, Size);
       exit;
     end;
   case Item_.CurrentItemBlock.ID of
@@ -2626,7 +2622,7 @@ begin
       begin
         if Item_.CurrentBlockSeekPOS = Item_.CurrentItemBlock.Size then
           begin
-            Result := dbItem_BlockAppendWriteData(IOHnd, Item_, Buffers, Size);
+            Result := dbItem_BlockAppendWriteData(IOHnd, Item_, Buff_, Size);
             exit;
           end;
       end;
@@ -2640,8 +2636,7 @@ begin
     end;
   ItemBlock := Item_.CurrentItemBlock;
   BlockPOS := Item_.CurrentBlockSeekPOS;
-  BuffInt := nativeUInt(@Buffers);
-  BuffPointer := Pointer(BuffInt);
+  BuffPointer := @Buff_;
   DeformitySize := Size;
 Rep_Label:
   if ItemBlock.Size - BlockPOS = 0 then
@@ -2709,8 +2704,7 @@ Rep_Label:
       Result := False;
       exit;
     end;
-  BuffInt := BuffInt + (ItemBlock.Size - BlockPOS);
-  BuffPointer := Pointer(BuffInt);
+  BuffPointer := GetOffset(BuffPointer, ItemBlock.Size - BlockPOS);
   DeformitySize := DeformitySize - (ItemBlock.Size - BlockPOS);
   case ItemBlock.ID of
     DB_Item_Last, DB_Item_1:
@@ -6318,7 +6312,7 @@ begin
   Result := True;
 end;
 
-function db_ItemRead(const Size: Int64; var Buffers; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
+function db_ItemRead(const Size: Int64; var Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 begin
   if ItemHnd_.OpenFlags = False then
     begin
@@ -6326,7 +6320,7 @@ begin
       Result := False;
       exit;
     end;
-  if dbItem_BlockReadData(DB_.IOHnd, ItemHnd_.Item, Buffers, Size) = False then
+  if dbItem_BlockReadData(DB_.IOHnd, ItemHnd_.Item, Buff_, Size) = False then
     begin
       DB_.State := ItemHnd_.Item.State;
       Result := False;
@@ -6336,7 +6330,7 @@ begin
   Result := True;
 end;
 
-function db_ItemWrite(const Size: Int64; var Buffers; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
+function db_ItemWrite(const Size: Int64; const Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 begin
   if ItemHnd_.OpenFlags = False then
     begin
@@ -6344,7 +6338,7 @@ begin
       Result := False;
       exit;
     end;
-  if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, Buffers, Size) = False then
+  if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, Buff_, Size) = False then
     begin
       DB_.State := ItemHnd_.Item.State;
       Result := False;
