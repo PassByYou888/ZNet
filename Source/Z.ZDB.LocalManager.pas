@@ -2177,6 +2177,22 @@ class procedure TZDBLocalManager.Test_LM;
 var
   LM: TZDBLocalManager;
   wait_: Boolean;
+{$IFDEF FPC}
+  procedure do_fpc_Query(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
+  begin
+    if qState.IsString then
+      begin
+        DoStatus(qState.Eng.GetString(qState));
+      end;
+  end;
+
+  procedure do_fpc_Query_Done(dPipe: TZDBPipeline);
+  begin
+    wait_ := False;
+  end;
+{$ENDIF FPC}
+
+
 begin
   LM := TZDBLocalManager.Create;
   LM.RootPath := umlGetCurrentPath;
@@ -2187,6 +2203,9 @@ begin
     end;
   LM.PostData('test', 'hello world');
   wait_ := True;
+{$IFDEF FPC}
+  LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0, @do_fpc_Query, @do_fpc_Query_Done);
+{$ELSE FPC}
   LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0,
     procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
     begin
@@ -2199,7 +2218,7 @@ begin
     begin
       wait_ := False;
     end);
-
+{$ENDIF FPC}
   while wait_ do
     begin
       LM.Progress;
