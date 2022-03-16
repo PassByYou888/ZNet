@@ -2637,9 +2637,14 @@ begin
   testList := TTestList_.Create;
 
   InitIOHnd(hnd1);
-  InitIOHnd(hnd2);
   umlFileCreateAsMemory(hnd1);
+  hnd1.Cache.UsedWriteCache := True;
+  hnd1.Cache.UsedReadCache := True;
+
+  InitIOHnd(hnd2);
   umlFileCreateAsMemory(hnd2);
+  hnd2.Cache.UsedWriteCache := True;
+  hnd2.Cache.UsedReadCache := True;
 
   db1 := TZDB2_Core_Space.Create(@hnd1);
   db1.AutoCloseIOHnd := True;
