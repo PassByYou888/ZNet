@@ -89,6 +89,16 @@ type
 
   PIOHnd = ^TIOHnd;
 
+  TIOHnd_Cache = record
+  private
+    PrepareWriteBuff: U_Stream;
+    PrepareReadPosition: Int64;
+    PrepareReadBuff: U_Stream;
+  public
+    UsedWriteCache: Boolean;
+    UsedReadCache: Boolean;
+  end;
+
   TIOHnd = record
   public
     IsOnlyRead: Boolean;
@@ -99,9 +109,7 @@ type
     Size: Int64;
     Position: Int64;
     FileName: U_String;
-    PrepareWriteBuff: U_Stream;
-    PrepareReadPosition: Int64;
-    PrepareReadBuff: U_Stream;
+    Cache: TIOHnd_Cache;
     IORead, IOWrite: Int64;
     ChangeFromWrite: Boolean;
     FixedStringL: Byte;
@@ -261,7 +269,7 @@ function umlFilePrepareRead(var IOHnd: TIOHnd; Size: Int64; var buff): Boolean;
 function umlFileRead(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
 function umlBlockRead(var IOHnd: TIOHnd; var buff; const Size: Int64): Boolean;
 function umlFilePrepareWrite(var IOHnd: TIOHnd): Boolean;
-function umlFileFlushWrite(var IOHnd: TIOHnd): Boolean;
+function umlFileFlushWriteCache(var IOHnd: TIOHnd): Boolean;
 function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; const buff): Boolean;
 function umlBlockWrite(var IOHnd: TIOHnd; const buff; const Size: Int64): Boolean;
 function umlFileWriteFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
@@ -2173,9 +2181,11 @@ begin
   IOHnd.Size := 0;
   IOHnd.Position := 0;
   IOHnd.FileName := '';
-  IOHnd.PrepareWriteBuff := nil;
-  IOHnd.PrepareReadPosition := -1;
-  IOHnd.PrepareReadBuff := nil;
+  IOHnd.Cache.UsedWriteCache := False;
+  IOHnd.Cache.PrepareWriteBuff := nil;
+  IOHnd.Cache.UsedReadCache := False;
+  IOHnd.Cache.PrepareReadPosition := -1;
+  IOHnd.Cache.PrepareReadBuff := nil;
   IOHnd.IORead := 0;
   IOHnd.IOWrite := 0;
   IOHnd.ChangeFromWrite := False;
@@ -2194,6 +2204,8 @@ begin
     end;
   stream.Position := 0;
   IOHnd.Handle := stream;
+  IOHnd.Cache.UsedWriteCache := (IOHnd.Handle is TCore_FileStream) or (IOHnd.Handle is TReliableFileStream);
+  IOHnd.Cache.UsedReadCache := IOHnd.Cache.UsedWriteCache;
   IOHnd.Return := C_NotError;
   IOHnd.Size := stream.Size;
   IOHnd.Position := stream.Position;
@@ -2230,6 +2242,8 @@ begin
     end;
   stream.Position := 0;
   IOHnd.Handle := stream;
+  IOHnd.Cache.UsedWriteCache := (IOHnd.Handle is TCore_FileStream) or (IOHnd.Handle is TReliableFileStream);
+  IOHnd.Cache.UsedReadCache := IOHnd.Cache.UsedWriteCache;
   IOHnd.Return := C_NotError;
   IOHnd.Size := stream.Size;
   IOHnd.Position := stream.Position;
@@ -2250,6 +2264,8 @@ begin
       exit;
     end;
   IOHnd.Handle := TMS64.CustomCreate(8192);
+  IOHnd.Cache.UsedWriteCache := False;
+  IOHnd.Cache.UsedReadCache := False;
   IOHnd.Return := C_NotError;
   IOHnd.Size := IOHnd.Handle.Size;
   IOHnd.Position := IOHnd.Handle.Position;
@@ -2277,6 +2293,8 @@ begin
     Result := False;
     exit;
   end;
+  IOHnd.Cache.UsedWriteCache := True;
+  IOHnd.Cache.UsedReadCache := True;
   IOHnd.Return := C_NotError;
   IOHnd.Size := 0;
   IOHnd.Position := 0;
@@ -2310,6 +2328,8 @@ begin
     Result := False;
     exit;
   end;
+  IOHnd.Cache.UsedWriteCache := True;
+  IOHnd.Cache.UsedReadCache := True;
   IOHnd.IsOnlyRead := OnlyRead_;
   IOHnd.Return := C_NotError;
   IOHnd.Size := IOHnd.Handle.Size;
@@ -2336,12 +2356,12 @@ begin
       exit;
     end;
 
-  umlFileFlushWrite(IOHnd);
+  umlFileFlushWriteCache(IOHnd);
 
-  if IOHnd.PrepareReadBuff <> nil then
-      DisposeObject(IOHnd.PrepareReadBuff);
-  IOHnd.PrepareReadBuff := nil;
-  IOHnd.PrepareReadPosition := -1;
+  if IOHnd.Cache.PrepareReadBuff <> nil then
+      DisposeObject(IOHnd.Cache.PrepareReadBuff);
+  IOHnd.Cache.PrepareReadBuff := nil;
+  IOHnd.Cache.PrepareReadPosition := -1;
 
   try
     if IOHnd.AutoFree then
@@ -2368,7 +2388,7 @@ begin
       exit;
     end;
 
-  umlFileFlushWrite(IOHnd);
+  umlFileFlushWriteCache(IOHnd);
   umlResetPrepareRead(IOHnd);
   IOHnd.ChangeFromWrite := False;
 
@@ -2389,10 +2409,10 @@ end;
 
 procedure umlResetPrepareRead(var IOHnd: TIOHnd);
 begin
-  if IOHnd.PrepareReadBuff <> nil then
-      DisposeObject(IOHnd.PrepareReadBuff);
-  IOHnd.PrepareReadBuff := nil;
-  IOHnd.PrepareReadPosition := -1;
+  if IOHnd.Cache.PrepareReadBuff <> nil then
+      DisposeObject(IOHnd.Cache.PrepareReadBuff);
+  IOHnd.Cache.PrepareReadBuff := nil;
+  IOHnd.Cache.PrepareReadPosition := -1;
 end;
 
 function umlFilePrepareRead(var IOHnd: TIOHnd; Size: Int64; var buff): Boolean;
@@ -2402,7 +2422,7 @@ var
 begin
   Result := False;
 
-  if not(IOHnd.Handle.InheritsFrom(TCore_FileStream) or IOHnd.Handle.InheritsFrom(TReliableFileStream)) then
+  if not IOHnd.Cache.UsedReadCache then
       exit;
 
   if Size > C_PrepareReadCacheSize then
@@ -2412,19 +2432,19 @@ begin
       exit;
     end;
 
-  if IOHnd.PrepareReadBuff = nil then
-      IOHnd.PrepareReadBuff := TMS64.Create;
+  if IOHnd.Cache.PrepareReadBuff = nil then
+      IOHnd.Cache.PrepareReadBuff := TMS64.Create;
 
-  m64 := TMS64(IOHnd.PrepareReadBuff);
+  m64 := TMS64(IOHnd.Cache.PrepareReadBuff);
 
-  if (IOHnd.Position < IOHnd.PrepareReadPosition) or (IOHnd.PrepareReadPosition + m64.Size < IOHnd.Position + Size) then
+  if (IOHnd.Position < IOHnd.Cache.PrepareReadPosition) or (IOHnd.Cache.PrepareReadPosition + m64.Size < IOHnd.Position + Size) then
     begin
       // prepare read buffer
       IOHnd.Handle.Position := IOHnd.Position;
-      IOHnd.PrepareReadPosition := IOHnd.Position;
+      IOHnd.Cache.PrepareReadPosition := IOHnd.Position;
 
       m64.Clear;
-      IOHnd.PrepareReadPosition := IOHnd.Handle.Position;
+      IOHnd.Cache.PrepareReadPosition := IOHnd.Handle.Position;
       if IOHnd.Handle.Size - IOHnd.Handle.Position >= C_PrepareReadCacheSize then
         begin
           Result := m64.CopyFrom(IOHnd.Handle, C_PrepareReadCacheSize) = C_PrepareReadCacheSize;
@@ -2438,9 +2458,9 @@ begin
         end;
     end;
 
-  if (IOHnd.Position >= IOHnd.PrepareReadPosition) and (IOHnd.PrepareReadPosition + m64.Size >= IOHnd.Position + Size) then
+  if (IOHnd.Position >= IOHnd.Cache.PrepareReadPosition) and (IOHnd.Cache.PrepareReadPosition + m64.Size >= IOHnd.Position + Size) then
     begin
-      CopyPtr(GetOffset(m64.Memory, IOHnd.Position - IOHnd.PrepareReadPosition), @buff, Size);
+      CopyPtr(GetOffset(m64.Memory, IOHnd.Position - IOHnd.Cache.PrepareReadPosition), @buff, Size);
       inc(IOHnd.Position, Size);
       Result := True;
     end
@@ -2458,7 +2478,7 @@ var
   BuffPointer: Pointer;
   i: NativeInt;
 begin
-  if not umlFileFlushWrite(IOHnd) then
+  if not umlFileFlushWriteCache(IOHnd) then
     begin
       Result := False;
       exit;
@@ -2531,27 +2551,18 @@ end;
 function umlFilePrepareWrite(var IOHnd: TIOHnd): Boolean;
 begin
   Result := True;
-
-  if not umlFileTest(IOHnd) then
-      exit;
-
-  if IOHnd.PrepareWriteBuff <> nil then
-      exit;
-
-  if (IOHnd.Handle is TCore_FileStream) or (IOHnd.Handle is TReliableFileStream) then
-    begin
-      IOHnd.PrepareWriteBuff := TMS64.CustomCreate(1024 * 1024 * 8);
-    end;
+  if umlFileTest(IOHnd) and IOHnd.Cache.UsedWriteCache and (IOHnd.Cache.PrepareWriteBuff = nil) then
+      IOHnd.Cache.PrepareWriteBuff := TMS64.CustomCreate(1024 * 1024 * 8);
 end;
 
-function umlFileFlushWrite(var IOHnd: TIOHnd): Boolean;
+function umlFileFlushWriteCache(var IOHnd: TIOHnd): Boolean;
 var
   m64: TMS64;
 begin
-  if IOHnd.PrepareWriteBuff <> nil then
+  if IOHnd.Cache.PrepareWriteBuff <> nil then
     begin
-      m64 := TMS64(IOHnd.PrepareWriteBuff);
-      IOHnd.PrepareWriteBuff := nil;
+      m64 := TMS64(IOHnd.Cache.PrepareWriteBuff);
+      IOHnd.Cache.PrepareWriteBuff := nil;
       if IOHnd.Handle.Write(m64.Memory^, m64.Size) <> m64.Size then
         begin
           IOHnd.Return := C_FileWriteError;
@@ -2590,9 +2601,9 @@ begin
   if Size <= $F000 then
       umlFilePrepareWrite(IOHnd);
 
-  if IOHnd.PrepareWriteBuff <> nil then
+  if IOHnd.Cache.PrepareWriteBuff <> nil then
     begin
-      if TMS64(IOHnd.PrepareWriteBuff).Write64(buff, Size) <> Size then
+      if TMS64(IOHnd.Cache.PrepareWriteBuff).Write64(buff, Size) <> Size then
         begin
           IOHnd.Return := C_FileWriteError;
           Result := False;
@@ -2606,8 +2617,8 @@ begin
       Result := True;
 
       // 8M flush buffer
-      if IOHnd.PrepareWriteBuff.Size > 8 * 1024 * 1024 then
-          umlFileFlushWrite(IOHnd);
+      if IOHnd.Cache.PrepareWriteBuff.Size > 8 * 1024 * 1024 then
+          umlFileFlushWriteCache(IOHnd);
       exit;
     end;
 
@@ -2715,7 +2726,7 @@ begin
       exit;
     end;
 
-  if not umlFileFlushWrite(IOHnd) then
+  if not umlFileFlushWriteCache(IOHnd) then
     begin
       Result := False;
       exit;
@@ -2739,7 +2750,7 @@ end;
 
 function umlFileSetSize(var IOHnd: TIOHnd; siz_: Int64): Boolean;
 begin
-  if not umlFileFlushWrite(IOHnd) then
+  if not umlFileFlushWriteCache(IOHnd) then
     begin
       Result := False;
       exit;
@@ -2884,27 +2895,27 @@ end;
 
 function umlCopyFile(const SourFile, DestFile: TPascalString): Boolean;
 var
-  _SH, _DH: TCore_FileStream;
+  SH_, DH_: TCore_FileStream;
 begin
   Result := False;
-  _SH := nil;
-  _DH := nil;
+  SH_ := nil;
+  DH_ := nil;
   try
     if not umlFileExists(SourFile) then
         exit;
     if umlMultipleMatch(True, ExpandFileName(SourFile.text), ExpandFileName(DestFile.text)) then
         exit;
-    _SH := TCore_FileStream.Create(SourFile.text, fmOpenRead or fmShareDenyNone);
-    _DH := TCore_FileStream.Create(DestFile.text, fmCreate);
-    Result := _DH.CopyFrom(_SH, _SH.Size) = _SH.Size;
-    DisposeObject(_SH);
-    DisposeObject(_DH);
+    SH_ := TCore_FileStream.Create(SourFile.text, fmOpenRead or fmShareDenyNone);
+    DH_ := TCore_FileStream.Create(DestFile.text, fmCreate);
+    Result := DH_.CopyFrom(SH_, SH_.Size) = SH_.Size;
+    DisposeObject(SH_);
+    DisposeObject(DH_);
     umlSetFileTime(DestFile, umlGetFileTime(SourFile));
   except
-    if _SH <> nil then
-        DisposeObject(_SH);
-    if _DH <> nil then
-        DisposeObject(_DH);
+    if SH_ <> nil then
+        DisposeObject(SH_);
+    if DH_ <> nil then
+        DisposeObject(DH_);
   end;
 end;
 
