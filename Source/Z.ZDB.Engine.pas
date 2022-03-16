@@ -3914,8 +3914,9 @@ var
   ms: TMemoryStream64;
   d: TTimeTick;
 begin
-//  dbEng := TDBStore.CreateNewMemory;
-   dbEng := TDBStore.CreateNew(umlGetCurrentPath+'test3.ox');
+  dbEng := TDBStore.CreateNewMemory;
+  dbEng.DBEngine.HandlePtr^.IOHnd.Cache.UsedWriteCache := True;
+  dbEng.DBEngine.HandlePtr^.IOHnd.Cache.UsedReadCache := True;
   DoStatus('build struct...');
   d := GetTimeTickCount;
   DF := TDBEngineDF.Create;
@@ -3934,7 +3935,7 @@ begin
   ms := TMemoryStream64.Create;
   DF.EncodeTo(ms, False);
 
-  for i := 1 to 1 do
+  for i := 1 to 10000 do
       dbEng.AddData(ms, c_DF);
 
   dbEng.Update;
