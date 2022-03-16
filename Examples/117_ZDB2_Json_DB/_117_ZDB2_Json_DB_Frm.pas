@@ -343,6 +343,8 @@ begin
   // zdb2的json数据引擎
   jdb_stream := TMS64.CustomCreate(100 * 1024 * 1024); // 如果用文件存，这里给TFilestream
   JDB := TZDB2_List_Json.Create(TZDB2_Json, nil, 500, jdb_stream, False, 100 * 1024 * 1024, 200, Cipher_);
+  JDB.IOHnd.Cache.UsedWriteCache := true;
+  JDB.IOHnd.Cache.UsedReadCache := true;
   JDB.AutoFreeStream := true;
   // IO cache 模型，给smBigData以后不会cache读写，一般只要是内存stream，都不用开cache
   JDB.CoreSpace.Mode := smBigData;
