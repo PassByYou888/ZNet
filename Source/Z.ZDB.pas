@@ -2746,6 +2746,8 @@ var
   n: U_String;
 begin
   Database := c.CreateAsStream($FF, TMS64.CustomCreate($FFFF), '', 0, False, True, True);
+  Database.HandlePtr^.IOHnd.Cache.UsedWriteCache := True;
+  Database.HandlePtr^.IOHnd.Cache.UsedReadCache := True;
 
   if Database.CreateRootField('_RootField') then
       DoStatus('CreateRootField ok')
@@ -2925,9 +2927,11 @@ var
   ns: TPascalStringList;
   itm: TItemStream;
 begin
-  // TestObjectData_(TObjectDataManager);
-  // TestObjectData_(TObjectDataManagerOfCache);
-  db := TObjectDataManagerOfCache.CreateNew($FF, umlGetCurrentPath + 'test1.ox', 0);
+  TestObjectData_(TObjectDataManager);
+  TestObjectData_(TObjectDataManagerOfCache);
+  db := TObjectDataManagerOfCache.CreateAsStream(TMS64.CustomCreate(1024 * 8), '', 0, False, True, True);
+  db.HandlePtr^.IOHnd.Cache.UsedWriteCache := True;
+  db.HandlePtr^.IOHnd.Cache.UsedReadCache := True;
   ns := TPascalStringList.Create;
   ns.Add('hello world');
   itm := TItemStream.Create(db, '/', 'hello.txt');
