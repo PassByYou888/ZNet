@@ -63,6 +63,7 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+- 2022-3-16，修复ZDB1.0的底层Cache：这个bug太难fixed了
 - 2022-3-13，机制更新：C4入网不会再产生无用的链接：例如Depend Network包含DP，而目标网络没有DP服务，则不会产生链接，此机制更新对现有应用群无影响
 - 2022-3-13，console app给出了help接口：当console启动时可以通过help查阅服务器和隧道的当前状态，另：所有的demo均使用console app模式
 - 2022-3-13，修复DocUserDBDemo的启动问题
