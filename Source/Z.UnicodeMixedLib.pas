@@ -6087,7 +6087,11 @@ begin
 
   if bufSiz < $40 then
     begin
-      stream.Read(DeltaBuf^, bufSiz);
+      if stream.Read(DeltaBuf^, bufSiz) <> bufSiz then
+        begin
+          FreeMemory(DeltaBuf);
+          exit(NullMD5);
+        end;
       p := DeltaBuf;
     end
   else
@@ -6099,7 +6103,11 @@ begin
                 Rest := deltaSize
             else
                 Rest := bufSiz;
-            stream.ReadBuffer(DeltaBuf^, Rest);
+            if stream.Read(DeltaBuf^, Rest) <> Rest then
+              begin
+                FreeMemory(DeltaBuf);
+                exit(NullMD5);
+              end;
 
             p := DeltaBuf;
           end;
