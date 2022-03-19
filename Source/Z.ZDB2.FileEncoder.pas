@@ -434,6 +434,7 @@ begin
   FProgressInfo := umlCombineFileName(OwnerPath, umlGetFileName(FileName));
   fs := TCore_FileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
   Result := EncodeFromStream(fs, chunkSize_, CM, BlockSize_);
+  DisposeObject(fs);
   Result.FileName := umlGetFileName(FileName);
   Result.OwnerPath := OwnerPath;
   Result.FimeTime := umlGetFileTime(FileName);
