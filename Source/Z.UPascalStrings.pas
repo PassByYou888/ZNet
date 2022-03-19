@@ -25,6 +25,7 @@ type
   PUSystemString = Z.PascalStrings.PSystemString;
   PUPascalString = Z.PascalStrings.PPascalString;
 {$ENDIF FPC}
+  PUSystemChar = ^USystemChar;
   TUOrdChar = (uc0to9, uc1to9, uc0to32, uc0to32no10, ucLoAtoF, ucHiAtoF, ucLoAtoZ, ucHiAtoZ, ucHex, ucAtoF, ucAtoZ, ucVisibled);
   TUOrdChars = set of TUOrdChar;
   TUHash = Cardinal;
@@ -124,7 +125,7 @@ type
     procedure Append(c: USystemChar); overload;
     procedure Append(const Fmt: USystemString; const Args: array of const); overload;
     function GetString(bPos, ePos: NativeInt): TUPascalString;
-    procedure Insert(AText: USystemString; idx: Integer);
+    procedure Insert(Text_: USystemString; idx: Integer);
     procedure FastAsText(var output: USystemString);
     procedure FastGetBytes(var output: TBytes);
     property Text: USystemString read GetText write SetText;
@@ -2008,9 +2009,9 @@ begin
       Result := Self.Copy(bPos, (ePos - bPos));
 end;
 
-procedure TUPascalString.Insert(AText: USystemString; idx: Integer);
+procedure TUPascalString.Insert(Text_: USystemString; idx: Integer);
 begin
-  Text := GetString(1, idx) + AText + GetString(idx + 1, Len);
+  Text := GetString(1, idx) + Text_ + GetString(idx + 1, Len);
 end;
 
 procedure TUPascalString.FastAsText(var output: USystemString);
