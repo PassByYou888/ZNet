@@ -430,7 +430,7 @@ end;
 constructor TMS64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := customDelta;
+  FDelta := umlMin(64, customDelta);
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
@@ -1375,7 +1375,7 @@ end;
 constructor TMem64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := customDelta;
+  FDelta := umlMin(64, customDelta);
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
