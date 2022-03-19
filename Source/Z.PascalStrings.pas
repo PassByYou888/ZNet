@@ -10,13 +10,14 @@ interface
 uses Z.Core;
 
 type
-  {$IFDEF FPC}
+{$IFDEF FPC}
   SystemChar = AnsiChar;
   SystemString = AnsiString;
-  {$ELSE FPC}
+{$ELSE FPC}
   SystemChar = Char;
   SystemString = String;
-  {$ENDIF FPC}
+{$ENDIF FPC}
+  PSystemChar = ^SystemChar;
   TArrayChar = array of SystemChar;
   THash = Cardinal;
   THash64 = UInt64;
@@ -117,7 +118,7 @@ type
     procedure Append(c: SystemChar); overload;
     procedure Append(const Fmt: SystemString; const Args: array of const); overload;
     function GetString(bPos, ePos: NativeInt): TPascalString;
-    procedure Insert(AText: SystemString; idx: Integer);
+    procedure Insert(Text_: SystemString; idx: Integer);
     procedure FastAsText(var output: SystemString);
     procedure FastGetBytes(var output: TBytes);
     property Text: SystemString read GetText write SetText;
@@ -1963,9 +1964,9 @@ begin
       Result := Self.Copy(bPos, (ePos - bPos));
 end;
 
-procedure TPascalString.Insert(AText: SystemString; idx: Integer);
+procedure TPascalString.Insert(Text_: SystemString; idx: Integer);
 begin
-  Text := GetString(1, idx) + AText + GetString(idx + 1, Len);
+  Text := GetString(1, idx) + Text_ + GetString(idx + 1, Len);
 end;
 
 procedure TPascalString.FastAsText(var output: SystemString);
