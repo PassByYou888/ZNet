@@ -559,8 +559,8 @@ type
   { DES Cipher }
   TDES = class(TCore_Object)
   strict private
-    class procedure JoinBlock(const l, r: DWORD; var Block: TDESBlock);
-    class procedure SplitBlock(const Block: TDESBlock; var l, r: DWORD);
+    class procedure JoinBlock(const L, R: DWORD; var Block: TDESBlock);
+    class procedure SplitBlock(const Block: TDESBlock; var L, R: DWORD);
   private
   public
     class procedure EncryptDES(const Context: TDESContext; var Block: TDESBlock);
@@ -1719,8 +1719,8 @@ type
       $A8, $47, $1F, $F0, $AF, $40, $18, $F7, $A6, $49, $11, $FE, $A1, $4E, $16, $F9,
       $B4, $5B, $03, $EC, $B3, $5C, $04, $EB, $BA, $55, $0D, $E2, $BD, $52, $0A, $E5);
 {$ENDREGION 'TwofishDefine'}
-    class function TwofishCalculateSBoxes(x: DWORD; l: Pointer; KeySize: DWORD): DWORD;
-    class function TwofishH(x: DWORD; l: Pointer; KeySize: DWORD): DWORD; overload;
+    class function TwofishCalculateSBoxes(x: DWORD; L: Pointer; KeySize: DWORD): DWORD;
+    class function TwofishH(x: DWORD; L: Pointer; KeySize: DWORD): DWORD; overload;
     class function TwofishH(const x: DWORD; const key: TTwofishKey): DWORD; overload;
     class function RSMDSMul(const x, y: Byte): Byte;
     class function MultiplyMDS(const E, O: DWORD): DWORD;
@@ -2777,27 +2777,36 @@ end;
 class function TCipher.HexToBuffer(const Hex: TPascalString; var Buf; BufSize: Cardinal): Boolean;
 var
   i, c: Integer;
-  filStr: TPascalString;
-  Count: Integer;
-  cChar: Char;
+  tmp: TMem64;
+  num: Integer;
+  cc: SystemChar;
 begin
-  Result := False;
-  filStr.Text := '';
-  for cChar in Hex.buff do
-    if CharIn(cChar, [c0to9, cLoAtoF, cHiAtoF]) then
-        filStr.Append(cChar);
-
-  FillPtrByte(@Buf, BufSize, 0);
-  Count := Min(filStr.Len div 2, BufSize);
-
-  for i := 0 to Count - 1 do
-    begin
-      val('$' + filStr[i * 2 + 1] + filStr[i * 2 + 2], TCCByteArray(Buf)[i], c);
-      if c <> 0 then
-          Exit;
-    end;
-
   Result := True;
+  FillPtrByte(@Buf, BufSize, 0);
+
+  if Hex.L > 0 then
+    begin
+      tmp := TMem64.CustomCreate(Hex.L + 1);
+      if Hex.L mod 2 > 0 then
+        begin
+          cc := '0';
+          tmp.Write64(cc, SizeOf(SystemChar));
+        end;
+      for cc in Hex.buff do
+        if CharIn(cc, cHex) then
+            tmp.Write64(cc, SizeOf(SystemChar));
+
+      num := umlMin((tmp.Size div SizeOf(SystemChar)) shr 1, BufSize);
+      for i := 0 to num - 1 do
+        begin
+          Val('$' +
+            PSystemChar(tmp.PositionAsPtr((i * 2) * SizeOf(SystemChar)))^ +
+            PSystemChar(tmp.PositionAsPtr((i * 2 + 1) * SizeOf(SystemChar)))^,
+            TCCByteArray(Buf)[i], c);
+          Result := Result and (c = 0);
+        end;
+      disposeObject(tmp);
+    end;
 end;
 
 class function TCipher.CopyKey(const k: TCipherKeyBuffer): TCipherKeyBuffer;
@@ -3650,79 +3659,79 @@ end;
 
 procedure TParallelCipher.DES64_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TDES.EncryptDES(PDESContext(key)^, PDESBlock(NativeUInt(buff) + p)^);
+    TDES.EncryptDES(PDESContext(key)^, PDESBlock(GetOffset(buff, p))^);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.DES128_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TDES.EncryptTripleDES(PTripleDESContext(key)^, PDESBlock(NativeUInt(buff) + p)^);
+    TDES.EncryptTripleDES(PTripleDESContext(key)^, PDESBlock(GetOffset(buff, p))^);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.DES192_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TDES.EncryptTripleDES3Key(PTripleDESContext3Key(key)^, PDESBlock(NativeUInt(buff) + p)^);
+    TDES.EncryptTripleDES3Key(PTripleDESContext3Key(key)^, PDESBlock(GetOffset(buff, p))^);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.Blowfish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TBlowfish.EncryptBF(PBFContext(key)^, PBFBlock(NativeUInt(buff) + p)^, PParallelCipherJobData(Job)^.Encrypt);
+    TBlowfish.EncryptBF(PBFContext(key)^, PBFBlock(GetOffset(buff, p))^, PParallelCipherJobData(Job)^.Encrypt);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.LBC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TLBC.EncryptLBC(PLBCContext(key)^, PLBCBlock(NativeUInt(buff) + p)^);
+    TLBC.EncryptLBC(PLBCContext(key)^, PLBCBlock(GetOffset(buff, p))^);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.LQC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   p := 0;
   repeat
-    TLBC.EncryptLQC(PKey128(key)^, PLQCBlock(NativeUInt(buff) + p)^, PParallelCipherJobData(Job)^.Encrypt);
+    TLBC.EncryptLQC(PKey128(key)^, PLQCBlock(GetOffset(buff, p))^, PParallelCipherJobData(Job)^.Encrypt);
     p := p + PParallelCipherJobData(Job)^.BlockLen;
   until p + PParallelCipherJobData(Job)^.BlockLen > Size;
 end;
 
 procedure TParallelCipher.TwoFish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        TTwofish.Encrypt(PTwofishKey(key)^, PTwofishBlock(NativeUInt(buff) + p)^);
+        TTwofish.Encrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3730,7 +3739,7 @@ begin
     begin
       p := 0;
       repeat
-        TTwofish.Decrypt(PTwofishKey(key)^, PTwofishBlock(NativeUInt(buff) + p)^);
+        TTwofish.Decrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -3738,13 +3747,13 @@ end;
 
 procedure TParallelCipher.XXTea512_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        XXTEAEncrypt(PKey128(key)^, PXXTEABlock(NativeUInt(buff) + p)^);
+        XXTEAEncrypt(PKey128(key)^, PXXTEABlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3752,7 +3761,7 @@ begin
     begin
       p := 0;
       repeat
-        XXTEADecrypt(PKey128(key)^, PXXTEABlock(NativeUInt(buff) + p)^);
+        XXTEADecrypt(PKey128(key)^, PXXTEABlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -3760,13 +3769,13 @@ end;
 
 procedure TParallelCipher.RC6_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        TRC6.Encrypt(PRC6Key(key)^, PRC6Block(NativeUInt(buff) + p)^);
+        TRC6.Encrypt(PRC6Key(key)^, PRC6Block(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3774,7 +3783,7 @@ begin
     begin
       p := 0;
       repeat
-        TRC6.Decrypt(PRC6Key(key)^, PRC6Block(NativeUInt(buff) + p)^);
+        TRC6.Decrypt(PRC6Key(key)^, PRC6Block(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -3782,13 +3791,13 @@ end;
 
 procedure TParallelCipher.Serpent_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        TSerpent.Encrypt(PSerpentkey(key)^, PSerpentBlock(NativeUInt(buff) + p)^);
+        TSerpent.Encrypt(PSerpentkey(key)^, PSerpentBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3796,7 +3805,7 @@ begin
     begin
       p := 0;
       repeat
-        TSerpent.Decrypt(PSerpentkey(key)^, PSerpentBlock(NativeUInt(buff) + p)^);
+        TSerpent.Decrypt(PSerpentkey(key)^, PSerpentBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -3804,13 +3813,13 @@ end;
 
 procedure TParallelCipher.Mars_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        TMars.Encrypt(PMarskey(key)^, PMarsBlock(NativeUInt(buff) + p)^);
+        TMars.Encrypt(PMarskey(key)^, PMarsBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3818,7 +3827,7 @@ begin
     begin
       p := 0;
       repeat
-        TMars.Decrypt(PMarskey(key)^, PMarsBlock(NativeUInt(buff) + p)^);
+        TMars.Decrypt(PMarskey(key)^, PMarsBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -3826,13 +3835,13 @@ end;
 
 procedure TParallelCipher.Rijndael_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 var
-  p: NativeUInt;
+  p: NativeInt;
 begin
   if PParallelCipherJobData(Job)^.Encrypt then
     begin
       p := 0;
       repeat
-        TRijndael.Encrypt(PRijndaelkey(key)^, PRijndaelBlock(NativeUInt(buff) + p)^);
+        TRijndael.Encrypt(PRijndaelkey(key)^, PRijndaelBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end
@@ -3840,7 +3849,7 @@ begin
     begin
       p := 0;
       repeat
-        TRijndael.Decrypt(PRijndaelkey(key)^, PRijndaelBlock(NativeUInt(buff) + p)^);
+        TRijndael.Decrypt(PRijndaelkey(key)^, PRijndaelBlock(GetOffset(buff, p))^);
         p := p + PParallelCipherJobData(Job)^.BlockLen;
       until p + PParallelCipherJobData(Job)^.BlockLen > Size;
     end;
@@ -4489,6 +4498,7 @@ procedure InitSysCBCAndDefaultKey(rand: Int64);
 var
   i: Integer;
   Seed: TInt64;
+  cc: Byte;
 begin
 {$IFDEF Parallel}
   { system default Parallel depth }
@@ -4540,7 +4550,7 @@ begin
   Parallel := TParallelCipher.Create;
   Parallel.BlockDepth := DefaultParallelDepth;
   Result := Parallel.EncryptBuffer(cs, sour, Size, @k, Encrypt, ProcessTail);
-  DisposeObject(Parallel);
+  disposeObject(Parallel);
 end;
 
 function SequEncryptWithParallel(const ca: TCipherSecurityArray; sour: Pointer; Size: NativeInt; const key: TCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
@@ -4622,7 +4632,7 @@ begin
   Parallel := TParallelCipher.Create;
   Parallel.BlockDepth := DefaultParallelDepth;
   Result := Parallel.EncryptBufferCBC(cs, sour, Size, @k, Encrypt, ProcessTail);
-  DisposeObject(Parallel);
+  disposeObject(Parallel);
 end;
 
 function SequEncryptCBCWithParallel(const ca: TCipherSecurityArray; sour: Pointer; Size: NativeInt; const key: TCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
@@ -4683,7 +4693,7 @@ begin
 
   Result.Text := vl.AsText;
 
-  DisposeObject([vl]);
+  disposeObject([vl]);
 end;
 
 procedure GenerateSequHash(hssArry: THashSecuritys; sour: Pointer; Size: NativeInt; output: TListPascalString);
@@ -4704,7 +4714,7 @@ begin
 
   vl.ExportAsStrings(output);
 
-  DisposeObject([vl]);
+  disposeObject([vl]);
 end;
 
 procedure GenerateSequHash(hssArry: THashSecuritys; sour: Pointer; Size: NativeInt; output: TCore_Stream);
@@ -4725,7 +4735,7 @@ begin
 
   vl.SaveToStream(output);
 
-  DisposeObject([vl]);
+  disposeObject([vl]);
 end;
 
 function CompareSequHash(HashVL: THashStringList; sour: Pointer; Size: NativeInt): Boolean;
@@ -4763,7 +4773,7 @@ begin
           Break;
     end;
 
-  DisposeObject([ns]);
+  disposeObject([ns]);
 end;
 
 function CompareSequHash(hashData: TPascalString; sour: Pointer; Size: NativeInt): Boolean;
@@ -4773,7 +4783,7 @@ begin
   vl := THashStringList.Create;
   vl.AsText := hashData.Text;
   Result := CompareSequHash(vl, sour, Size);
-  DisposeObject(vl);
+  disposeObject(vl);
 end;
 
 function CompareSequHash(hashData: TListPascalString; sour: Pointer; Size: NativeInt): Boolean;
@@ -4783,7 +4793,7 @@ begin
   vl := THashStringList.Create;
   vl.ImportFromStrings(hashData);
   Result := CompareSequHash(vl, sour, Size);
-  DisposeObject(vl);
+  disposeObject(vl);
 end;
 
 function CompareSequHash(hashData: TCore_Stream; sour: Pointer; Size: NativeInt): Boolean;
@@ -4793,7 +4803,7 @@ begin
   vl := THashStringList.Create;
   vl.LoadFromStream(hashData);
   Result := CompareSequHash(vl, sour, Size);
-  DisposeObject(vl);
+  disposeObject(vl);
 end;
 
 function GenerateMemoryHash(hssArry: THashSecuritys; sour: Pointer; Size: NativeInt): TPascalString;
@@ -4803,7 +4813,7 @@ begin
   m64 := TMS64.Create;
   GenerateSequHash(hssArry, sour, Size, m64);
   umlEncodeStreamBASE64(m64, Result);
-  DisposeObject(m64);
+  disposeObject(m64);
   Result := '(' + Result + ')';
 end;
 
@@ -4821,7 +4831,7 @@ begin
       m64 := TMS64.Create;
       umlDecodeStreamBASE64(n, m64);
       Result := CompareSequHash(m64, sour, Size);
-      DisposeObject(m64);
+      disposeObject(m64);
     end;
 end;
 
@@ -4834,7 +4844,7 @@ begin
   m64 := TMS64.Create;
   GenerateSequHash(hssArry, @buff[0], length(buff), m64);
   umlEncodeStreamBASE64(m64, Result);
-  DisposeObject(m64);
+  disposeObject(m64);
   Result := '(' + Result + ')';
   SetLength(buff, 0);
 end;
@@ -4855,7 +4865,7 @@ begin
       m64 := TMS64.Create;
       umlDecodeStreamBASE64(n, m64);
       Result := CompareSequHash(m64, @buff[0], length(buff));
-      DisposeObject(m64);
+      disposeObject(m64);
       SetLength(buff, 0);
     end;
 end;
@@ -4998,7 +5008,7 @@ begin
 
   output.write(head, SizeOf(head));
   output.write(m64.Memory^, m64.Size);
-  DisposeObject(m64);
+  disposeObject(m64);
 end;
 
 function QuantumDecrypt(input, output: TCore_Stream; key: TCipherKeyBuffer): Boolean;
@@ -5014,7 +5024,7 @@ begin
   m64 := TMS64.Create;
   if m64.CopyFrom(input, head.Size) <> head.Size then
     begin
-      DisposeObject(m64);
+      disposeObject(m64);
       Exit;
     end;
 
@@ -5029,13 +5039,13 @@ begin
   // compare
   if not TCipher.CompareHash(h, head.hash) then
     begin
-      DisposeObject(m64);
+      disposeObject(m64);
       Exit;
     end;
 
   m64.Position := 0;
   output.CopyFrom(m64, m64.Size);
-  DisposeObject(m64);
+  disposeObject(m64);
 
   Result := True;
 end;
@@ -5211,103 +5221,103 @@ const
     $00000000, $10041040, $00040040, $10000040, $10040000, $10001000, $10001040, $00000000,
     $10041040, $00041000, $00041000, $00001040, $00001040, $00040040, $10000000, $10041000));
 var
-  i, l, r, Work: DWORD;
+  i, L, R, Work: DWORD;
   CPtr: PDWORD;
 
-  procedure IPerm(var l, r: DWORD);
+  procedure IPerm(var L, R: DWORD);
   var
     Work: DWORD;
   begin
-    Work := ((l shr 4) xor r) and $0F0F0F0F;
-    r := r xor Work;
-    l := l xor Work shl 4;
+    Work := ((L shr 4) xor R) and $0F0F0F0F;
+    R := R xor Work;
+    L := L xor Work shl 4;
 
-    Work := ((l shr 16) xor r) and $0000FFFF;
-    r := r xor Work;
-    l := l xor Work shl 16;
+    Work := ((L shr 16) xor R) and $0000FFFF;
+    R := R xor Work;
+    L := L xor Work shl 16;
 
-    Work := ((r shr 2) xor l) and $33333333;
-    l := l xor Work;
-    r := r xor Work shl 2;
+    Work := ((R shr 2) xor L) and $33333333;
+    L := L xor Work;
+    R := R xor Work shl 2;
 
-    Work := ((r shr 8) xor l) and $00FF00FF;
-    l := l xor Work;
-    r := r xor Work shl 8;
+    Work := ((R shr 8) xor L) and $00FF00FF;
+    L := L xor Work;
+    R := R xor Work shl 8;
 
-    r := (r shl 1) or (r shr 31);
-    Work := (l xor r) and $AAAAAAAA;
-    l := l xor Work;
-    r := r xor Work;
-    l := (l shl 1) or (l shr 31);
+    R := (R shl 1) or (R shr 31);
+    Work := (L xor R) and $AAAAAAAA;
+    L := L xor Work;
+    R := R xor Work;
+    L := (L shl 1) or (L shr 31);
   end;
 
-  procedure FPerm(var l, r: DWORD);
+  procedure FPerm(var L, R: DWORD);
   var
     Work: DWORD;
   begin
-    l := l;
+    L := L;
 
-    r := (r shl 31) or (r shr 1);
-    Work := (l xor r) and $AAAAAAAA;
-    l := l xor Work;
-    r := r xor Work;
-    l := (l shr 1) or (l shl 31);
+    R := (R shl 31) or (R shr 1);
+    Work := (L xor R) and $AAAAAAAA;
+    L := L xor Work;
+    R := R xor Work;
+    L := (L shr 1) or (L shl 31);
 
-    Work := ((l shr 8) xor r) and $00FF00FF;
-    r := r xor Work;
-    l := l xor Work shl 8;
+    Work := ((L shr 8) xor R) and $00FF00FF;
+    R := R xor Work;
+    L := L xor Work shl 8;
 
-    Work := ((l shr 2) xor r) and $33333333;
-    r := r xor Work;
-    l := l xor Work shl 2;
+    Work := ((L shr 2) xor R) and $33333333;
+    R := R xor Work;
+    L := L xor Work shl 2;
 
-    Work := ((r shr 16) xor l) and $0000FFFF;
-    l := l xor Work;
-    r := r xor Work shl 16;
+    Work := ((R shr 16) xor L) and $0000FFFF;
+    L := L xor Work;
+    R := R xor Work shl 16;
 
-    Work := ((r shr 4) xor l) and $0F0F0F0F;
-    l := l xor Work;
-    r := r xor Work shl 4;
+    Work := ((R shr 4) xor L) and $0F0F0F0F;
+    L := L xor Work;
+    R := R xor Work shl 4;
   end;
 
 begin
-  SplitBlock(Block, l, r);
-  IPerm(l, r);
+  SplitBlock(Block, L, R);
+  IPerm(L, R);
 
   CPtr := @Context;
   for i := 0 to 7 do
     begin
-      Work := (((r shr 4) or (r shl 28)) xor CPtr^);
+      Work := (((R shr 4) or (R shl 28)) xor CPtr^);
       inc(CPtr);
-      l := l xor SPBox[6, Work and $3F];
-      l := l xor SPBox[4, Work shr 8 and $3F];
-      l := l xor SPBox[2, Work shr 16 and $3F];
-      l := l xor SPBox[0, Work shr 24 and $3F];
+      L := L xor SPBox[6, Work and $3F];
+      L := L xor SPBox[4, Work shr 8 and $3F];
+      L := L xor SPBox[2, Work shr 16 and $3F];
+      L := L xor SPBox[0, Work shr 24 and $3F];
 
-      Work := (r xor CPtr^);
+      Work := (R xor CPtr^);
       inc(CPtr);
-      l := l xor SPBox[7, Work and $3F];
-      l := l xor SPBox[5, Work shr 8 and $3F];
-      l := l xor SPBox[3, Work shr 16 and $3F];
-      l := l xor SPBox[1, Work shr 24 and $3F];
+      L := L xor SPBox[7, Work and $3F];
+      L := L xor SPBox[5, Work shr 8 and $3F];
+      L := L xor SPBox[3, Work shr 16 and $3F];
+      L := L xor SPBox[1, Work shr 24 and $3F];
 
-      Work := (((l shr 4) or (l shl 28)) xor CPtr^);
+      Work := (((L shr 4) or (L shl 28)) xor CPtr^);
       inc(CPtr);
-      r := r xor SPBox[6, Work and $3F];
-      r := r xor SPBox[4, Work shr 8 and $3F];
-      r := r xor SPBox[2, Work shr 16 and $3F];
-      r := r xor SPBox[0, Work shr 24 and $3F];
+      R := R xor SPBox[6, Work and $3F];
+      R := R xor SPBox[4, Work shr 8 and $3F];
+      R := R xor SPBox[2, Work shr 16 and $3F];
+      R := R xor SPBox[0, Work shr 24 and $3F];
 
-      Work := (l xor CPtr^);
+      Work := (L xor CPtr^);
       inc(CPtr);
-      r := r xor SPBox[7, Work and $3F];
-      r := r xor SPBox[5, Work shr 8 and $3F];
-      r := r xor SPBox[3, Work shr 16 and $3F];
-      r := r xor SPBox[1, Work shr 24 and $3F];
+      R := R xor SPBox[7, Work and $3F];
+      R := R xor SPBox[5, Work shr 8 and $3F];
+      R := R xor SPBox[3, Work shr 16 and $3F];
+      R := R xor SPBox[1, Work shr 24 and $3F];
     end;
 
-  FPerm(l, r);
-  JoinBlock(l, r, Block);
+  FPerm(L, R);
+  JoinBlock(L, R, Block);
 end;
 
 class procedure TDES.EncryptTripleDES(const Context: TTripleDESContext; var Block: TDESBlock);
@@ -5341,27 +5351,27 @@ var
   PC1M: array [0 .. 55] of Byte;
   PC1R: array [0 .. 55] of Byte;
   KS: array [0 .. 7] of Byte;
-  i, j, l, m: Integer;
+  i, j, L, m: Integer;
 begin
   { convert PC1 to bits of key }
   for j := 0 to 55 do begin
-      l := PC1[j];
-      m := l mod 8;
-      PC1M[j] := Ord((key[l div 8] and CBitMask[m]) <> 0);
+      L := PC1[j];
+      m := L mod 8;
+      PC1M[j] := Ord((key[L div 8] and CBitMask[m]) <> 0);
     end;
 
   { key chunk for each iteration }
   for i := 0 to 15 do begin
       { rotate PC1 the right amount }
       for j := 0 to 27 do begin
-          l := j + CTotRot[i];
-          if (l < 28) then begin
-              PC1R[j] := PC1M[l];
-              PC1R[j + 28] := PC1M[l + 28];
+          L := j + CTotRot[i];
+          if (L < 28) then begin
+              PC1R[j] := PC1M[L];
+              PC1R[j + 28] := PC1M[L + 28];
             end
           else begin
-              PC1R[j] := PC1M[l - 28];
-              PC1R[j + 28] := PC1M[l];
+              PC1R[j] := PC1M[L - 28];
+              PC1R[j + 28] := PC1M[L];
             end;
         end;
 
@@ -5369,8 +5379,8 @@ begin
       FillPtrByte(@KS, SizeOf(KS), 0);
       for j := 0 to 47 do
         if Boolean(PC1R[PC2[j]]) then begin
-            l := j div 6;
-            KS[l] := KS[l] or CBitMask[j mod 6] shr 2;
+            L := j div 6;
+            KS[L] := KS[L] or CBitMask[j mod 6] shr 2;
           end;
 
       { now convert to odd/even interleaved form for use in F }
@@ -5421,13 +5431,13 @@ begin
     end;
 end;
 
-class procedure TDES.JoinBlock(const l, r: DWORD; var Block: TDESBlock);
+class procedure TDES.JoinBlock(const L, R: DWORD; var Block: TDESBlock);
 var
   Temp: TDesConverter;
   i: Integer;
 begin
-  Temp.DWords[0] := DWORD(l);
-  Temp.DWords[1] := DWORD(r);
+  Temp.DWords[0] := DWORD(L);
+  Temp.DWords[1] := DWORD(R);
   for i := low(Block) to high(Block) do
       Block[i] := Temp.Bytes[7 - i];
 end;
@@ -5464,15 +5474,15 @@ begin
   key := Work1;
 end;
 
-class procedure TDES.SplitBlock(const Block: TDESBlock; var l, r: DWORD);
+class procedure TDES.SplitBlock(const Block: TDESBlock; var L, R: DWORD);
 var
   Temp: TDesConverter;
   i: Integer;
 begin
   for i := low(Block) to high(Block) do
       Temp.Bytes[7 - i] := Block[i];
-  l := Temp.DWords[1];
-  r := Temp.DWords[0];
+  L := Temp.DWords[1];
+  R := Temp.DWords[0];
 end;
 
 class procedure TSHA1.SHA1Clear(var Context: TSHA1Context);
@@ -6672,19 +6682,19 @@ var
   Right: TBCHalfBlock;
   Left: TBCHalfBlock;
   AA, BB: Integer;
-  CC, DD: Integer;
-  r, t: Integer;
+  cc, DD: Integer;
+  R, t: Integer;
 begin
   CopyPtr(@Block, @Blocks, SizeOf(Blocks)); { !!.01 }
   Right := Blocks[0];
   Left := Blocks[1];
 
-  for r := 0 to Context.Rounds - 1 do begin
+  for R := 0 to Context.Rounds - 1 do begin
       { transform the right side }
       AA := Right[0];
-      BB := TBCHalfBlock(Context.SubKeys64[r])[0];
-      CC := Right[1];
-      DD := TBCHalfBlock(Context.SubKeys64[r])[1];
+      BB := TBCHalfBlock(Context.SubKeys64[R])[0];
+      cc := Right[1];
+      DD := TBCHalfBlock(Context.SubKeys64[R])[1];
 
       { mix it once... }
       AA := AA + DD;
@@ -6693,11 +6703,11 @@ begin
       BB := BB + AA;
       AA := AA + BB;
       BB := BB xor (BB shl 13);
-      CC := CC + BB;
-      BB := BB + CC;
-      CC := CC xor (CC shr 17);
-      DD := DD + CC;
-      CC := CC + DD;
+      cc := cc + BB;
+      BB := BB + cc;
+      cc := cc xor (cc shr 17);
+      DD := DD + cc;
+      cc := cc + DD;
       DD := DD xor (DD shl 9);
       AA := AA + DD;
       DD := DD + AA;
@@ -6705,17 +6715,17 @@ begin
       BB := BB + AA;
       AA := AA + BB;
       BB := BB xor (BB shl 7);
-      CC := CC + BB;
-      BB := BB + CC;
-      CC := CC xor (DD shr 15);
-      DD := DD + CC;
-      CC := CC + DD;
+      cc := cc + BB;
+      BB := BB + cc;
+      cc := cc xor (DD shr 15);
+      DD := DD + cc;
+      cc := cc + DD;
       DD := DD xor (DD shl 11);
 
       { swap sets... }
       t := AA;
-      AA := CC;
-      CC := t;
+      AA := cc;
+      cc := t;
       t := BB;
       BB := DD;
       DD := t;
@@ -6727,11 +6737,11 @@ begin
       BB := BB + AA;
       AA := AA + BB;
       BB := BB xor (BB shl 13);
-      CC := CC + BB;
-      BB := BB + CC;
-      CC := CC xor (CC shr 17);
-      DD := DD + CC;
-      CC := CC + DD;
+      cc := cc + BB;
+      BB := BB + cc;
+      cc := cc xor (cc shr 17);
+      DD := DD + cc;
+      cc := cc + DD;
       DD := DD xor (DD shl 9);
       AA := AA + DD;
       DD := DD + AA;
@@ -6739,15 +6749,15 @@ begin
       BB := BB + AA;
       AA := AA + BB;
       BB := BB xor (BB shl 7);
-      CC := CC + BB;
-      BB := BB + CC;
-      CC := CC xor (DD shr 15);
-      DD := DD + CC;
-      CC := CC + DD;
+      cc := cc + BB;
+      BB := BB + cc;
+      cc := cc xor (DD shr 15);
+      DD := DD + cc;
+      cc := cc + DD;
       DD := DD xor (DD shl 11);
 
       Work[0] := Left[0] xor AA xor BB;
-      Work[1] := Left[1] xor CC xor DD;
+      Work[1] := Left[1] xor cc xor DD;
 
       Left := Right;
       Right := Work;
@@ -6769,21 +6779,21 @@ var
   Work: Integer;
   Right: Integer;
   Left: Integer;
-  r: Integer;
+  R: Integer;
   AA, BB: Integer;
-  CC, DD: Integer;
+  cc, DD: Integer;
 begin
   CopyPtr(@key, @KeyInts, SizeOf(KeyInts)); { !!.01 }
   CopyPtr(@Block, @Blocks, SizeOf(Blocks)); { !!.01 }
   Right := Blocks[0];
   Left := Blocks[1];
 
-  for r := 0 to 3 do begin
+  for R := 0 to 3 do begin
       { transform the right side }
       AA := Right;
-      BB := KeyInts[CKeyBox[Encrypt, r, 0]];
-      CC := KeyInts[CKeyBox[Encrypt, r, 1]];
-      DD := KeyInts[CKeyBox[Encrypt, r, 2]];
+      BB := KeyInts[CKeyBox[Encrypt, R, 0]];
+      cc := KeyInts[CKeyBox[Encrypt, R, 1]];
+      DD := KeyInts[CKeyBox[Encrypt, R, 2]];
 
       { commented code does not affect results - removed for speed }
       AA := AA + DD;
@@ -6792,20 +6802,20 @@ begin
       BB := BB + AA;
       AA := AA + BB;
       BB := BB xor (BB shl 13);
-      CC := CC + BB;
-      BB := BB + CC;
-      CC := CC xor (CC shr 17);
-      DD := DD + CC;
-      CC := CC + DD;
+      cc := cc + BB;
+      BB := BB + cc;
+      cc := cc xor (cc shr 17);
+      DD := DD + cc;
+      cc := cc + DD;
       DD := DD xor (DD shl 9);
       AA := AA + DD;
       DD := DD + AA;
       AA := AA xor (AA shr 3);
       BB := BB + AA; { AA := AA + BB; }
       BB := BB xor (BB shl 7);
-      CC := CC + BB; { BB := BB + CC; }
-      CC := CC xor (DD shr 15);
-      DD := DD + CC; { CC := CC + DD; }
+      cc := cc + BB; { BB := BB + CC; }
+      cc := cc xor (DD shr 15);
+      DD := DD + cc; { CC := CC + DD; }
       DD := DD xor (DD shl 11);
 
       Work := Left xor DD;
@@ -6828,10 +6838,10 @@ type
 var
   KeyArray: PDWordArray;
   AA, BB: DWORD;
-  CC, DD: DWORD;
+  cc, DD: DWORD;
   EE, FF: DWORD;
   GG, hh: DWORD;
-  i, r: Integer;
+  i, R: Integer;
   Temp: TDCPTFSubKeys;
 begin
   KeyArray := @key;
@@ -6844,7 +6854,7 @@ begin
 
       AA := KeyArray^[0];
       BB := BCSalts[i];
-      CC := KeyArray^[1];
+      cc := KeyArray^[1];
       DD := BCSalts[i];
       EE := KeyArray^[2];
       FF := BCSalts[i];
@@ -6853,15 +6863,15 @@ begin
 
       { mix all the bits around for 8 rounds }
       { achieves avalanche and eliminates funnels }
-      for r := 0 to 7 do begin
+      for R := 0 to 7 do begin
           AA := AA xor (BB shl 11);
           DD := DD + AA;
-          BB := BB + CC;
-          BB := BB xor (CC shr 2);
+          BB := BB + cc;
+          BB := BB xor (cc shr 2);
           EE := EE + BB;
-          CC := CC + DD;
-          CC := CC xor (DD shl 8);
-          FF := FF + CC;
+          cc := cc + DD;
+          cc := cc xor (DD shl 8);
+          FF := FF + cc;
           DD := DD + EE;
           DD := DD xor (EE shr 16);
           GG := GG + DD;
@@ -6876,14 +6886,14 @@ begin
           BB := BB + GG;
           hh := hh + AA;
           hh := hh xor (AA shr 9);
-          CC := CC + hh;
+          cc := cc + hh;
           AA := AA + BB;
         end;
 
       { assign value to subkey }
       Context.SubKeysInts[i, 0] := AA;
       Context.SubKeysInts[i, 1] := BB;
-      Context.SubKeysInts[i, 2] := CC;
+      Context.SubKeysInts[i, 2] := cc;
       Context.SubKeysInts[i, 3] := DD;
       Context.SubKeysInts[i, 4] := EE;
       Context.SubKeysInts[i, 5] := FF;
@@ -7082,8 +7092,8 @@ end;
 
 class procedure THashMD.UpdateLMD(var Context: TLMDContext; const Buf; BufSize: NativeInt);
 var
-  AA, BB, CC, DD: DWORD;
-  i, r: NativeInt;
+  AA, BB, cc, DD: DWORD;
+  i, R: NativeInt;
 begin
   for i := 0 to BufSize - 1 do
     with Context do begin
@@ -7100,12 +7110,12 @@ begin
         if (KeyIndex = SizeOf(key) div 2) then begin
             AA := KeyInts[3];
             BB := KeyInts[2];
-            CC := KeyInts[1];
+            cc := KeyInts[1];
             DD := KeyInts[0];
 
             { mix all the bits around for 4 rounds }
             { achieves avalanche and eliminates funnels }
-            for r := 0 to 3 do
+            for R := 0 to 3 do
               begin
                 inc(AA, DD);
                 inc(DD, AA);
@@ -7113,11 +7123,11 @@ begin
                 inc(BB, AA);
                 inc(AA, BB);
                 BB := BB xor (BB shl 13);
-                inc(CC, BB);
-                inc(BB, CC);
-                CC := CC xor (CC shr 17);
-                inc(DD, CC);
-                inc(CC, DD);
+                inc(cc, BB);
+                inc(BB, cc);
+                cc := cc xor (cc shr 17);
+                inc(DD, cc);
+                inc(cc, DD);
                 DD := DD xor (DD shl 9);
                 inc(AA, DD);
                 inc(DD, AA);
@@ -7125,17 +7135,17 @@ begin
                 inc(BB, AA);
                 inc(AA, BB);
                 BB := BB xor (BB shl 7);
-                inc(CC, BB);
-                inc(BB, CC);
-                CC := CC xor (DD shr 15);
-                inc(DD, CC);
-                inc(CC, DD);
+                inc(cc, BB);
+                inc(BB, cc);
+                cc := cc xor (DD shr 15);
+                inc(DD, cc);
+                inc(cc, DD);
                 DD := DD xor (DD shl 11);
               end;
 
             KeyInts[0] := AA;
             KeyInts[1] := BB;
-            KeyInts[2] := CC;
+            KeyInts[2] := cc;
             KeyInts[3] := DD;
 
             KeyIndex := 0;
@@ -7171,13 +7181,13 @@ end;
 
 class procedure TLSC.EncryptLSC(var Context: TLSCContext; var Buf; BufSize: Integer);
 var
-  l, y, x: Integer;
+  L, y, x: Integer;
   i, a: Integer;
 begin
   i := Context.index;
   a := Context.Accumulator;
 
-  for l := 0 to BufSize - 1 do begin
+  for L := 0 to BufSize - 1 do begin
       i := i + 1;
 
       x := Context.SBox[Byte(i)];
@@ -7186,7 +7196,7 @@ begin
       Context.SBox[Byte(y)] := x;
 
       a := a + Context.SBox[Byte(Byte(y shr 8) + Byte(y))];
-      TCCByteArray(Buf)[l] := TCCByteArray(Buf)[l] xor Byte(a); { !!.01 }
+      TCCByteArray(Buf)[L] := TCCByteArray(Buf)[L] xor Byte(a); { !!.01 }
     end;
 
   Context.index := i;
@@ -7195,7 +7205,7 @@ end;
 
 class procedure TLSC.InitEncryptLSC(const key; KeySize: Integer; var Context: TLSCContext);
 var
-  r, i, a: Integer;
+  R, i, a: Integer;
   x: Byte;
 begin
   { initialize SBox }
@@ -7203,7 +7213,7 @@ begin
       Context.SBox[i] := i;
 
   a := 0;
-  for r := 0 to 2 do { 3 rounds - "A" accumulates }
+  for R := 0 to 2 do { 3 rounds - "A" accumulates }
     for i := 0 to 255 do
       begin
         a := a + Context.SBox[i] + TCCByteArray(key)[i mod KeySize]; { !!.01 }
@@ -7263,7 +7273,7 @@ type
 var
   Temp: T128Bit;
   PTemp: PCCByteArray;
-  i, l: NativeInt;
+  i, L: NativeInt;
 begin
 {$IFDEF RangeCheck}{$R-}{$ENDIF}
   Temp[0] := $243F6A88; { first 16 bytes of Pi in binary }
@@ -7271,8 +7281,8 @@ begin
   Temp[2] := $0C110496;
   Temp[3] := $C709C289;
 
-  l := BufSize div SizeOf(T128Bit);
-  for i := 0 to l - 1 do begin
+  L := BufSize div SizeOf(T128Bit);
+  for i := 0 to L - 1 do begin
       Temp[0] := Temp[0] + T128BitArray(Buf)[i][0]; { !!.01 }
       Temp[1] := Temp[1] + T128BitArray(Buf)[i][1]; { !!.01 }
       Temp[2] := Temp[2] + T128BitArray(Buf)[i][2]; { !!.01 }
@@ -7281,10 +7291,10 @@ begin
     end;
 
   PTemp := @Temp;
-  if (BufSize > l * SizeOf(T128Bit)) then
+  if (BufSize > L * SizeOf(T128Bit)) then
     begin
-      for i := 0 to (BufSize - l * SizeOf(T128Bit)) - 1 do
-          inc(PTemp^[i], PCCByteArray(@Buf)^[(l * SizeOf(T128Bit)) + i]); { !!.01 }
+      for i := 0 to (BufSize - L * SizeOf(T128Bit)) - 1 do
+          inc(PTemp^[i], PCCByteArray(@Buf)^[(L * SizeOf(T128Bit)) + i]); { !!.01 }
       Mix128(Temp);
     end;
 
@@ -7294,11 +7304,11 @@ end;
 
 class procedure TMISC.Mix128(var x: T128Bit);
 var
-  AA, BB, CC, DD: DWORD;
+  AA, BB, cc, DD: DWORD;
 begin
   AA := x[0];
   BB := x[1];
-  CC := x[2];
+  cc := x[2];
   DD := x[3];
 
   AA := AA + DD;
@@ -7307,11 +7317,11 @@ begin
   BB := BB + AA;
   AA := AA + BB;
   BB := BB xor (BB shl 13);
-  CC := CC + BB;
-  BB := BB + CC;
-  CC := CC xor (CC shr 17);
-  DD := DD + CC;
-  CC := CC + DD;
+  cc := cc + BB;
+  BB := BB + cc;
+  cc := cc xor (cc shr 17);
+  DD := DD + cc;
+  cc := cc + DD;
   DD := DD xor (DD shl 9);
   AA := AA + DD;
   DD := DD + AA;
@@ -7319,16 +7329,16 @@ begin
   BB := BB + AA;
   AA := AA + BB;
   BB := BB xor (BB shl 7);
-  CC := CC + BB;
-  BB := BB + CC;
-  CC := CC xor (DD shr 15);
-  DD := DD + CC;
-  CC := CC + DD;
+  cc := cc + BB;
+  BB := BB + cc;
+  cc := cc xor (DD shr 15);
+  DD := DD + cc;
+  cc := cc + DD;
   DD := DD xor (DD shl 11);
 
   x[0] := AA;
   x[1] := BB;
-  x[2] := CC;
+  x[2] := cc;
   x[3] := DD;
 end;
 
@@ -7366,12 +7376,12 @@ end;
 
 class function TMISC.Random32Byte(var Seed: Integer): Byte;
 var
-  l: Integer;
-  r: TInt32;
+  L: Integer;
+  R: TInt32;
 begin
-  l := Ran01(Seed);
-  r := TInt32(l);
-  Result := r.LoLo xor r.LoHi xor r.HiLo xor r.HiHi;
+  L := Ran01(Seed);
+  R := TInt32(L);
+  Result := R.LoLo xor R.LoHi xor R.HiLo xor R.HiHi;
 end;
 
 class function TMISC.Random64(var Seed: TInt64): Integer;
@@ -7383,12 +7393,12 @@ end;
 
 class function TMISC.Random64Byte(var Seed: TInt64): Byte;
 var
-  l: Integer;
-  r: TInt32;
+  L: Integer;
+  R: TInt32;
 begin
-  l := Random64(Seed);
-  r := TInt32(l);
-  Result := r.LoLo xor r.LoHi xor r.HiLo xor r.HiHi;
+  L := Random64(Seed);
+  R := TInt32(L);
+  Result := R.LoLo xor R.LoHi xor R.HiLo xor R.HiHi;
 end;
 
 class function TMISC.RolX(i, c: DWORD): DWORD;
@@ -8577,7 +8587,7 @@ end;
 
 class procedure TMars.Encrypt(var KeyContext: TMarskey; var Data: TMarsBlock);
 var
-  l, m, r, t, a, b, c, d: DWORD;
+  L, m, R, t, a, b, c, d: DWORD;
 begin
 {$IFDEF RangeCheck}{$R-}{$ENDIF}
   a := PDWORD(@Data[0])^;
@@ -8634,245 +8644,245 @@ begin
   c := c xor Mars_SBox[((d shr 24) and $FF) + 256];
   d := TRC6.RRot32(d, 24);
   m := a + KeyContext[4];
-  r := TRC6.LRot32(a, 13) * KeyContext[5];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[5];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   a := TRC6.LRot32(a, 13);
-  b := b + l;
+  b := b + L;
   c := c + m;
-  d := d xor r;
+  d := d xor R;
   m := b + KeyContext[6];
-  r := TRC6.LRot32(b, 13) * KeyContext[7];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[7];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   b := TRC6.LRot32(b, 13);
-  c := c + l;
+  c := c + L;
   d := d + m;
-  a := a xor r;
+  a := a xor R;
   m := c + KeyContext[8];
-  r := TRC6.LRot32(c, 13) * KeyContext[9];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[9];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   c := TRC6.LRot32(c, 13);
-  d := d + l;
+  d := d + L;
   a := a + m;
-  b := b xor r;
+  b := b xor R;
   m := d + KeyContext[10];
-  r := TRC6.LRot32(d, 13) * KeyContext[11];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[11];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   d := TRC6.LRot32(d, 13);
-  a := a + l;
+  a := a + L;
   b := b + m;
-  c := c xor r;
+  c := c xor R;
   m := a + KeyContext[12];
-  r := TRC6.LRot32(a, 13) * KeyContext[13];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[13];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   a := TRC6.LRot32(a, 13);
-  b := b + l;
+  b := b + L;
   c := c + m;
-  d := d xor r;
+  d := d xor R;
   m := b + KeyContext[14];
-  r := TRC6.LRot32(b, 13) * KeyContext[15];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[15];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   b := TRC6.LRot32(b, 13);
-  c := c + l;
+  c := c + L;
   d := d + m;
-  a := a xor r;
+  a := a xor R;
   m := c + KeyContext[16];
-  r := TRC6.LRot32(c, 13) * KeyContext[17];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[17];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   c := TRC6.LRot32(c, 13);
-  d := d + l;
+  d := d + L;
   a := a + m;
-  b := b xor r;
+  b := b xor R;
   m := d + KeyContext[18];
-  r := TRC6.LRot32(d, 13) * KeyContext[19];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[19];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   d := TRC6.LRot32(d, 13);
-  a := a + l;
+  a := a + L;
   b := b + m;
-  c := c xor r;
+  c := c xor R;
   m := a + KeyContext[20];
-  r := TRC6.LRot32(a, 13) * KeyContext[21];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[21];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   a := TRC6.LRot32(a, 13);
-  d := d + l;
+  d := d + L;
   c := c + m;
-  b := b xor r;
+  b := b xor R;
   m := b + KeyContext[22];
-  r := TRC6.LRot32(b, 13) * KeyContext[23];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[23];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   b := TRC6.LRot32(b, 13);
-  a := a + l;
+  a := a + L;
   d := d + m;
-  c := c xor r;
+  c := c xor R;
   m := c + KeyContext[24];
-  r := TRC6.LRot32(c, 13) * KeyContext[25];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[25];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   c := TRC6.LRot32(c, 13);
-  b := b + l;
+  b := b + L;
   a := a + m;
-  d := d xor r;
+  d := d xor R;
   m := d + KeyContext[26];
-  r := TRC6.LRot32(d, 13) * KeyContext[27];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[27];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   d := TRC6.LRot32(d, 13);
-  c := c + l;
+  c := c + L;
   b := b + m;
-  a := a xor r;
+  a := a xor R;
   m := a + KeyContext[28];
-  r := TRC6.LRot32(a, 13) * KeyContext[29];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[29];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   a := TRC6.LRot32(a, 13);
-  d := d + l;
+  d := d + L;
   c := c + m;
-  b := b xor r;
+  b := b xor R;
   m := b + KeyContext[30];
-  r := TRC6.LRot32(b, 13) * KeyContext[31];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[31];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   b := TRC6.LRot32(b, 13);
-  a := a + l;
+  a := a + L;
   d := d + m;
-  c := c xor r;
+  c := c xor R;
   m := c + KeyContext[32];
-  r := TRC6.LRot32(c, 13) * KeyContext[33];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[33];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   c := TRC6.LRot32(c, 13);
-  b := b + l;
+  b := b + L;
   a := a + m;
-  d := d xor r;
+  d := d xor R;
   m := d + KeyContext[34];
-  r := TRC6.LRot32(d, 13) * KeyContext[35];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[35];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
   d := TRC6.LRot32(d, 13);
-  c := c + l;
+  c := c + L;
   b := b + m;
-  a := a xor r;
+  a := a xor R;
   b := b xor Mars_SBox[(a and $FF) + 256];
   c := c - Mars_SBox[(a shr 24) and $FF];
   d := d - Mars_SBox[((a shr 16) and $FF) + 256];
@@ -8931,7 +8941,7 @@ end;
 
 class procedure TMars.Decrypt(var KeyContext: TMarskey; var Data: TMarsBlock);
 var
-  l, m, r, t, a, b, c, d: DWORD;
+  L, m, R, t, a, b, c, d: DWORD;
 begin
 {$IFDEF RangeCheck}{$R-}{$ENDIF}
   a := PDWORD(@Data[0])^;
@@ -8989,244 +8999,244 @@ begin
   b := b xor Mars_SBox[(a and $FF) + 256];
   d := TRC6.RRot32(d, 13);
   m := d + KeyContext[34];
-  r := TRC6.LRot32(d, 13) * KeyContext[35];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[35];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  c := c - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  c := c - L;
   b := b - m;
-  a := a xor r;
+  a := a xor R;
   c := TRC6.RRot32(c, 13);
   m := c + KeyContext[32];
-  r := TRC6.LRot32(c, 13) * KeyContext[33];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[33];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  b := b - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  b := b - L;
   a := a - m;
-  d := d xor r;
+  d := d xor R;
   b := TRC6.RRot32(b, 13);
   m := b + KeyContext[30];
-  r := TRC6.LRot32(b, 13) * KeyContext[31];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[31];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  a := a - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  a := a - L;
   d := d - m;
-  c := c xor r;
+  c := c xor R;
   a := TRC6.RRot32(a, 13);
   m := a + KeyContext[28];
-  r := TRC6.LRot32(a, 13) * KeyContext[29];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[29];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  d := d - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  d := d - L;
   c := c - m;
-  b := b xor r;
+  b := b xor R;
   d := TRC6.RRot32(d, 13);
   m := d + KeyContext[26];
-  r := TRC6.LRot32(d, 13) * KeyContext[27];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[27];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  c := c - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  c := c - L;
   b := b - m;
-  a := a xor r;
+  a := a xor R;
   c := TRC6.RRot32(c, 13);
   m := c + KeyContext[24];
-  r := TRC6.LRot32(c, 13) * KeyContext[25];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[25];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  b := b - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  b := b - L;
   a := a - m;
-  d := d xor r;
+  d := d xor R;
   b := TRC6.RRot32(b, 13);
   m := b + KeyContext[22];
-  r := TRC6.LRot32(b, 13) * KeyContext[23];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[23];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  a := a - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  a := a - L;
   d := d - m;
-  c := c xor r;
+  c := c xor R;
   a := TRC6.RRot32(a, 13);
   m := a + KeyContext[20];
-  r := TRC6.LRot32(a, 13) * KeyContext[21];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[21];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  d := d - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  d := d - L;
   c := c - m;
-  b := b xor r;
+  b := b xor R;
   d := TRC6.RRot32(d, 13);
   m := d + KeyContext[18];
-  r := TRC6.LRot32(d, 13) * KeyContext[19];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[19];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  a := a - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  a := a - L;
   b := b - m;
-  c := c xor r;
+  c := c xor R;
   c := TRC6.RRot32(c, 13);
   m := c + KeyContext[16];
-  r := TRC6.LRot32(c, 13) * KeyContext[17];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[17];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  d := d - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  d := d - L;
   a := a - m;
-  b := b xor r;
+  b := b xor R;
   b := TRC6.RRot32(b, 13);
   m := b + KeyContext[14];
-  r := TRC6.LRot32(b, 13) * KeyContext[15];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[15];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  c := c - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  c := c - L;
   d := d - m;
-  a := a xor r;
+  a := a xor R;
   a := TRC6.RRot32(a, 13);
   m := a + KeyContext[12];
-  r := TRC6.LRot32(a, 13) * KeyContext[13];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[13];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  b := b - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  b := b - L;
   c := c - m;
-  d := d xor r;
+  d := d xor R;
   d := TRC6.RRot32(d, 13);
   m := d + KeyContext[10];
-  r := TRC6.LRot32(d, 13) * KeyContext[11];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(d, 13) * KeyContext[11];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  a := a - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  a := a - L;
   b := b - m;
-  c := c xor r;
+  c := c xor R;
   c := TRC6.RRot32(c, 13);
   m := c + KeyContext[8];
-  r := TRC6.LRot32(c, 13) * KeyContext[9];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(c, 13) * KeyContext[9];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  d := d - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  d := d - L;
   a := a - m;
-  b := b xor r;
+  b := b xor R;
   b := TRC6.RRot32(b, 13);
   m := b + KeyContext[6];
-  r := TRC6.LRot32(b, 13) * KeyContext[7];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(b, 13) * KeyContext[7];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  c := c - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  c := c - L;
   d := d - m;
-  a := a xor r;
+  a := a xor R;
   a := TRC6.RRot32(a, 13);
   m := a + KeyContext[4];
-  r := TRC6.LRot32(a, 13) * KeyContext[5];
-  l := Mars_SBox[m and $1FF];
-  r := TRC6.LRot32(r, 5);
-  t := r and $1F;
+  R := TRC6.LRot32(a, 13) * KeyContext[5];
+  L := Mars_SBox[m and $1FF];
+  R := TRC6.LRot32(R, 5);
+  t := R and $1F;
   m := TRC6.LRot32(m, t);
-  l := l xor r;
-  r := TRC6.LRot32(r, 5);
-  l := l xor r;
-  t := r and $1F;
-  l := TRC6.LRot32(l, t);
-  b := b - l;
+  L := L xor R;
+  R := TRC6.LRot32(R, 5);
+  L := L xor R;
+  t := R and $1F;
+  L := TRC6.LRot32(L, t);
+  b := b - L;
   c := c - m;
-  d := d xor r;
+  d := d xor R;
   d := TRC6.LRot32(d, 24);
   c := c xor Mars_SBox[((d shr 24) and $FF) + 256];
   b := b - Mars_SBox[(d shr 16) and $FF];
@@ -9312,7 +9322,7 @@ const
     140, 161, 137, 13, 191, 230, 66, 104, 65, 153, 45, 15, 176, 84, 187, 22);
 var
   KC, Rounds: DWORD;
-  j, r, t, rconpointer: Integer;
+  j, R, t, rconpointer: Integer;
   tk: array [0 .. 8 - 1, 0 .. 3] of Byte;
 begin
   FillPtrByte(@tk, SizeOf(tk), 0);
@@ -9333,25 +9343,25 @@ begin
       Rounds := 14;
     end;
   KeyContext.NumRounds := Rounds;
-  r := 0;
+  R := 0;
   t := 0;
   j := 0;
-  while (j < KC) and (r < (Rounds + 1)) do
+  while (j < KC) and (R < (Rounds + 1)) do
     begin
       while (j < KC) and (t < 4) do
         begin
-          KeyContext.rk[r, t] := PDWORD(@tk[j])^;
+          KeyContext.rk[R, t] := PDWORD(@tk[j])^;
           inc(j);
           inc(t);
         end;
       if t = 4 then
         begin
           t := 0;
-          inc(r);
+          inc(R);
         end;
     end;
   rconpointer := 0;
-  while (r < (Rounds + 1)) do
+  while (R < (Rounds + 1)) do
     begin
       tk[0, 0] := tk[0, 0] xor s_box[tk[KC - 1, 1]];
       tk[0, 1] := tk[0, 1] xor s_box[tk[KC - 1, 2]];
@@ -9378,24 +9388,24 @@ begin
               PDWORD(@tk[j])^ := PDWORD(@tk[j])^ xor PDWORD(@tk[j - 1])^;
         end;
       j := 0;
-      while (j < KC) and (r < (Rounds + 1)) do
+      while (j < KC) and (R < (Rounds + 1)) do
         begin
           while (j < KC) and (t < 4) do
             begin
-              KeyContext.rk[r, t] := PDWORD(@tk[j])^;
+              KeyContext.rk[R, t] := PDWORD(@tk[j])^;
               inc(j);
               inc(t);
             end;
           if t = 4 then
             begin
-              inc(r);
+              inc(R);
               t := 0;
             end;
         end;
     end;
   CopyPtr(@KeyContext.rk, @KeyContext.drk, SizeOf(KeyContext.rk));
-  for r := 1 to (Rounds - 1) do
-      InvMixColumn(@KeyContext.drk[r], 4);
+  for R := 1 to (Rounds - 1) do
+      InvMixColumn(@KeyContext.drk[R], 4);
 end;
 
 class procedure TRijndael.Encrypt(var KeyContext: TRijndaelkey; var Data: TRijndaelBlock);
@@ -9405,7 +9415,7 @@ end;
 
 class procedure TRijndael.Encrypt(var KeyContext: TRijndaelkey; var B1, B2, B3, B4: DWORD);
 var
-  r: DWORD;
+  R: DWORD;
   tempb: array [0 .. 3, 0 .. 3] of Byte;
   a: array [0 .. 3, 0 .. 3] of Byte;
 begin
@@ -9413,12 +9423,12 @@ begin
   PDWORD(@a[1, 0])^ := B2;
   PDWORD(@a[2, 0])^ := B3;
   PDWORD(@a[3, 0])^ := B4;
-  for r := 0 to (KeyContext.NumRounds - 2) do
+  for R := 0 to (KeyContext.NumRounds - 2) do
     begin
-      PDWORD(@tempb[0])^ := PDWORD(@a[0])^ xor KeyContext.rk[r, 0];
-      PDWORD(@tempb[1])^ := PDWORD(@a[1])^ xor KeyContext.rk[r, 1];
-      PDWORD(@tempb[2])^ := PDWORD(@a[2])^ xor KeyContext.rk[r, 2];
-      PDWORD(@tempb[3])^ := PDWORD(@a[3])^ xor KeyContext.rk[r, 3];
+      PDWORD(@tempb[0])^ := PDWORD(@a[0])^ xor KeyContext.rk[R, 0];
+      PDWORD(@tempb[1])^ := PDWORD(@a[1])^ xor KeyContext.rk[R, 1];
+      PDWORD(@tempb[2])^ := PDWORD(@a[2])^ xor KeyContext.rk[R, 2];
+      PDWORD(@tempb[3])^ := PDWORD(@a[3])^ xor KeyContext.rk[R, 3];
       PDWORD(@a[0])^ := PDWORD(@T1[tempb[0, 0]])^ xor PDWORD(@T2[tempb[1, 1]])^ xor PDWORD(@T3[tempb[2, 2]])^ xor PDWORD(@T4[tempb[3, 3]])^;
       PDWORD(@a[1])^ := PDWORD(@T1[tempb[1, 0]])^ xor PDWORD(@T2[tempb[2, 1]])^ xor PDWORD(@T3[tempb[3, 2]])^ xor PDWORD(@T4[tempb[0, 3]])^;
       PDWORD(@a[2])^ := PDWORD(@T1[tempb[2, 0]])^ xor PDWORD(@T2[tempb[3, 1]])^ xor PDWORD(@T3[tempb[0, 2]])^ xor PDWORD(@T4[tempb[1, 3]])^;
@@ -9458,7 +9468,7 @@ end;
 
 class procedure TRijndael.Decrypt(var KeyContext: TRijndaelkey; var B1, B2, B3, B4: DWORD);
 var
-  r: Integer;
+  R: Integer;
   tempb: array [0 .. 3, 0 .. 3] of Byte;
   a: array [0 .. 3, 0 .. 3] of Byte;
 begin
@@ -9467,12 +9477,12 @@ begin
   PDWORD(@a[2, 0])^ := B3;
   PDWORD(@a[3, 0])^ := B4;
 
-  for r := KeyContext.NumRounds downto 2 do
+  for R := KeyContext.NumRounds downto 2 do
     begin
-      PDWORD(@tempb[0])^ := PDWORD(@a[0])^ xor KeyContext.drk[r, 0];
-      PDWORD(@tempb[1])^ := PDWORD(@a[1])^ xor KeyContext.drk[r, 1];
-      PDWORD(@tempb[2])^ := PDWORD(@a[2])^ xor KeyContext.drk[r, 2];
-      PDWORD(@tempb[3])^ := PDWORD(@a[3])^ xor KeyContext.drk[r, 3];
+      PDWORD(@tempb[0])^ := PDWORD(@a[0])^ xor KeyContext.drk[R, 0];
+      PDWORD(@tempb[1])^ := PDWORD(@a[1])^ xor KeyContext.drk[R, 1];
+      PDWORD(@tempb[2])^ := PDWORD(@a[2])^ xor KeyContext.drk[R, 2];
+      PDWORD(@tempb[3])^ := PDWORD(@a[3])^ xor KeyContext.drk[R, 3];
 
       PDWORD(@a[0])^ := PDWORD(@T5[tempb[0, 0]])^ xor PDWORD(@T6[tempb[3, 1]])^ xor PDWORD(@T7[tempb[2, 2]])^ xor PDWORD(@T8[tempb[1, 3]])^;
       PDWORD(@a[1])^ := PDWORD(@T5[tempb[1, 0]])^ xor PDWORD(@T6[tempb[0, 1]])^ xor PDWORD(@T7[tempb[3, 2]])^ xor PDWORD(@T8[tempb[2, 3]])^;
@@ -9508,7 +9518,7 @@ begin
   B4 := PDWORD(@a[3])^ xor KeyContext.drk[0, 3];
 end;
 
-class function TTwofish.TwofishCalculateSBoxes(x: DWORD; l: Pointer; KeySize: DWORD): DWORD;
+class function TTwofish.TwofishCalculateSBoxes(x: DWORD; L: Pointer; KeySize: DWORD): DWORD;
 var
   b0, B1, B2, B3: Byte;
 begin
@@ -9521,33 +9531,33 @@ begin
 
   if KeySize > 192 then
     begin
-      b0 := P8x8[1, b0] xor PByte(NativeUInt(l) + 12)^;
-      B1 := P8x8[0, B1] xor PByte(NativeUInt(l) + 13)^;
-      B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 14)^;
-      B3 := P8x8[1, B3] xor PByte(NativeUInt(l) + 15)^;
+      b0 := P8x8[1, b0] xor PByte(NativeUInt(L) + 12)^;
+      B1 := P8x8[0, B1] xor PByte(NativeUInt(L) + 13)^;
+      B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 14)^;
+      B3 := P8x8[1, B3] xor PByte(NativeUInt(L) + 15)^;
     end;
   if KeySize > 128 then
     begin
-      b0 := P8x8[1, b0] xor PByte(NativeUInt(l) + 8)^;
-      B1 := P8x8[1, B1] xor PByte(NativeUInt(l) + 9)^;
-      B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 10)^;
-      B3 := P8x8[0, B3] xor PByte(NativeUInt(l) + 11)^;
+      b0 := P8x8[1, b0] xor PByte(NativeUInt(L) + 8)^;
+      B1 := P8x8[1, B1] xor PByte(NativeUInt(L) + 9)^;
+      B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 10)^;
+      B3 := P8x8[0, B3] xor PByte(NativeUInt(L) + 11)^;
     end;
 
-  b0 := P8x8[0, b0] xor PByte(NativeUInt(l) + 4)^;
-  B1 := P8x8[1, B1] xor PByte(NativeUInt(l) + 5)^;
-  B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 6)^;
-  B3 := P8x8[1, B3] xor PByte(NativeUInt(l) + 7)^;
+  b0 := P8x8[0, b0] xor PByte(NativeUInt(L) + 4)^;
+  B1 := P8x8[1, B1] xor PByte(NativeUInt(L) + 5)^;
+  B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 6)^;
+  B3 := P8x8[1, B3] xor PByte(NativeUInt(L) + 7)^;
 
-  b0 := P8x8[1, P8x8[0, b0] xor PByte(l)^];
-  B1 := P8x8[0, P8x8[0, B1] xor PByte(NativeUInt(l) + 1)^];
-  B2 := P8x8[1, P8x8[1, B2] xor PByte(NativeUInt(l) + 2)^];
-  B3 := P8x8[0, P8x8[1, B3] xor PByte(NativeUInt(l) + 3)^];
+  b0 := P8x8[1, P8x8[0, b0] xor PByte(L)^];
+  B1 := P8x8[0, P8x8[0, B1] xor PByte(NativeUInt(L) + 1)^];
+  B2 := P8x8[1, P8x8[1, B2] xor PByte(NativeUInt(L) + 2)^];
+  B3 := P8x8[0, P8x8[1, B3] xor PByte(NativeUInt(L) + 3)^];
 
   Result := DWORD(b0) or (DWORD(B1) shl 8) or (DWORD(B2) shl 16) or (DWORD(B3) shl 24);
 end;
 
-class function TTwofish.TwofishH(x: DWORD; l: Pointer; KeySize: DWORD): DWORD;
+class function TTwofish.TwofishH(x: DWORD; L: Pointer; KeySize: DWORD): DWORD;
 var
   b0, B1, B2, B3, z0, z1, z2, z3: Byte;
 begin
@@ -9558,28 +9568,28 @@ begin
 
   if KeySize > 192 then
     begin
-      b0 := P8x8[1, b0] xor PByte(NativeUInt(l) + 12)^;
-      B1 := P8x8[0, B1] xor PByte(NativeUInt(l) + 13)^;
-      B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 14)^;
-      B3 := P8x8[1, B3] xor PByte(NativeUInt(l) + 15)^;
+      b0 := P8x8[1, b0] xor PByte(NativeUInt(L) + 12)^;
+      B1 := P8x8[0, B1] xor PByte(NativeUInt(L) + 13)^;
+      B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 14)^;
+      B3 := P8x8[1, B3] xor PByte(NativeUInt(L) + 15)^;
     end;
   if KeySize > 128 then
     begin
-      b0 := P8x8[1, b0] xor PByte(NativeUInt(l) + 8)^;
-      B1 := P8x8[1, B1] xor PByte(NativeUInt(l) + 9)^;
-      B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 10)^;
-      B3 := P8x8[0, B3] xor PByte(NativeUInt(l) + 11)^;
+      b0 := P8x8[1, b0] xor PByte(NativeUInt(L) + 8)^;
+      B1 := P8x8[1, B1] xor PByte(NativeUInt(L) + 9)^;
+      B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 10)^;
+      B3 := P8x8[0, B3] xor PByte(NativeUInt(L) + 11)^;
     end;
 
-  b0 := P8x8[0, b0] xor PByte(NativeUInt(l) + 4)^;
-  B1 := P8x8[1, B1] xor PByte(NativeUInt(l) + 5)^;
-  B2 := P8x8[0, B2] xor PByte(NativeUInt(l) + 6)^;
-  B3 := P8x8[1, B3] xor PByte(NativeUInt(l) + 7)^;
+  b0 := P8x8[0, b0] xor PByte(NativeUInt(L) + 4)^;
+  B1 := P8x8[1, B1] xor PByte(NativeUInt(L) + 5)^;
+  B2 := P8x8[0, B2] xor PByte(NativeUInt(L) + 6)^;
+  B3 := P8x8[1, B3] xor PByte(NativeUInt(L) + 7)^;
 
-  b0 := P8x8[1, P8x8[0, b0] xor PByte(l)^];
-  B1 := P8x8[0, P8x8[0, B1] xor PByte(NativeUInt(l) + 1)^];
-  B2 := P8x8[1, P8x8[1, B2] xor PByte(NativeUInt(l) + 2)^];
-  B3 := P8x8[0, P8x8[1, B3] xor PByte(NativeUInt(l) + 3)^];
+  b0 := P8x8[1, P8x8[0, b0] xor PByte(L)^];
+  B1 := P8x8[0, P8x8[0, B1] xor PByte(NativeUInt(L) + 1)^];
+  B2 := P8x8[1, P8x8[1, B2] xor PByte(NativeUInt(L) + 2)^];
+  B3 := P8x8[0, P8x8[1, B3] xor PByte(NativeUInt(L) + 3)^];
 
   z0 := b0 xor ArrEF[B1] xor Arr5B[B2] xor Arr5B[B3];
   z1 := Arr5B[b0] xor ArrEF[B1] xor ArrEF[B2] xor B3;
@@ -10153,7 +10163,7 @@ begin
           DoStatus('test %s level %d error.', [ClassName, FLevel]);
     end;
 
-  DisposeObject(m64);
+  disposeObject(m64);
 end;
 
 constructor TCipher_DES64.Create(KeyBuffer_: TCipherKeyBuffer);
@@ -10990,7 +11000,7 @@ begin
   DoStatus('stream mode md5 :' + umlStreamMD5String(sour).Text);
   DoStatus('pointer mode md5:' + umlMD5String(sour.Memory, sour.Size).Text);
 
-  DisposeObject(sour);
+  disposeObject(sour);
 
   DoStatus('Generate and verify QuantumCryptographyPassword test');
   s := GenerateQuantumCryptographyPassword('123456');
@@ -11096,7 +11106,7 @@ begin
       if not TCipher.CompareHash(TCipher.GenerateSHA1Hash(Dest.Memory, Dest.Size), sourHash) then
           DoStatus('%s Parallel hash error!', [GetEnumName(TypeInfo(TCipherSecurity), Integer(cs))]);
 
-      DisposeObject(Parallel);
+      disposeObject(Parallel);
     end;
 
   for cs in TCipher.AllCipher do
@@ -11121,7 +11131,7 @@ begin
       if not TCipher.CompareHash(TCipher.GenerateSHA1Hash(Dest.Memory, Dest.Size), sourHash) then
           DoStatus('%s normal 2 Parallel hash error!', [GetEnumName(TypeInfo(TCipherSecurity), Integer(cs))]);
 
-      DisposeObject(Parallel);
+      disposeObject(Parallel);
     end;
 
   for cs in TCipher.AllCipher do
@@ -11146,7 +11156,7 @@ begin
       if not TCipher.CompareHash(TCipher.GenerateSHA1Hash(Dest.Memory, Dest.Size), sourHash) then
           DoStatus('%s Parallel 2 normal hash error!', [GetEnumName(TypeInfo(TCipherSecurity), Integer(cs))]);
 
-      DisposeObject(Parallel);
+      disposeObject(Parallel);
     end;
 {$ENDIF}
   DoStatus(#13#10'normal cipher performance test');
@@ -11195,7 +11205,7 @@ begin
       DoStatus('%s - instance encrypt performance:%dms', [GetEnumName(TypeInfo(TCipherSecurity), Integer(cs)), GetTimeTick - d]);
       if not TCipher.CompareHash(TCipher.GenerateSHA1Hash(Dest.Memory, Dest.Size), sourHash) then
           DoStatus('%s decrypt for %s hash error!', [cBase.ClassName, GetEnumName(TypeInfo(TCipherSecurity), Integer(cs))]);
-      DisposeObject(cBase);
+      disposeObject(cBase);
     end;
 
   for cs in TCipher.AllCipher do
@@ -11221,7 +11231,7 @@ begin
       DoStatus('%s - instance encrypt performance:%dms', [GetEnumName(TypeInfo(TCipherSecurity), Integer(cs)), GetTimeTick - d]);
       if not TCipher.CompareHash(TCipher.GenerateSHA1Hash(Dest.Memory, Dest.Size), sourHash) then
           DoStatus('%s encrypt for %s hash error!', [cBase.ClassName, GetEnumName(TypeInfo(TCipherSecurity), Integer(cs))]);
-      DisposeObject(cBase);
+      disposeObject(cBase);
     end;
 
   // hash performance
@@ -11240,7 +11250,7 @@ begin
     end;
 
   DoStatus(#13#10'Cipher test done!');
-  DisposeObject([ps, sour, Dest]);
+  disposeObject([ps, sour, Dest]);
 end;
 
 initialization
