@@ -1834,11 +1834,15 @@ end;
 
 destructor TC40_PhysicsTunnel.Destroy;
 begin
+  PhysicsTunnel.OnInterface := nil;
   try
-      PhysicsTunnel.Disconnect;
+    if PhysicsTunnel.Connected then
+      begin
+        PhysicsTunnel.Disconnect;
+        Do_Notify_All_Disconnect();
+      end;
   except
   end;
-  PhysicsTunnel.Progress;
   OnEvent := nil;
   C40_PhysicsTunnelPool.Remove(Self);
   PhysicsAddr := '';
@@ -3317,7 +3321,7 @@ begin
       repeat
         Result := PFormat('%s_%d', [preset_.Text, i]);
         inc(i);
-      until FindAliasOrHash(preset_) = nil;
+      until FindAliasOrHash(Result) = nil;
     end;
 end;
 
@@ -3354,13 +3358,20 @@ end;
 
 function TC40_Custom_ServicePool.ExistsOnlyInstance(ServiceTyp: U_String): Boolean;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  Result := True;
-  for i := 0 to Count - 1 do
-    if Items[i].ServiceInfo.OnlyInstance and ServiceTyp.Same(@Items[i].ServiceInfo.ServiceTyp) then
-        exit;
   Result := False;
+  arry_ := ExtractDependInfo(ServiceTyp);
+
+  for i := 0 to Count - 1 do
+    if Items[i].ServiceInfo.OnlyInstance and Items[i].ServiceInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := True;
+        break;
+      end;
+
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ServicePool.GetC40Array: TC40_Custom_Service_Array;
@@ -3374,15 +3385,18 @@ end;
 
 function TC40_Custom_ServicePool.GetFromServiceTyp(ServiceTyp: U_String): TC40_Custom_Service_Array;
 var
+  arry_: TC40_DependNetworkInfoArray;
   L: TC40_Custom_ServicePool;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   L := TC40_Custom_ServicePool.Create;
   for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ServiceInfo.ServiceTyp) then
+    if Items[i].ServiceInfo.FoundServiceTyp(arry_) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
   disposeObject(L);
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ServicePool.GetFromPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): TC40_Custom_Service_Array;
@@ -3624,17 +3638,18 @@ end;
 
 constructor TC40_Custom_ClientPool_Wait.Create(dependNetwork_: U_String);
 var
-  arry: TArrayPascalString;
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
   inherited Create;
-  umlGetSplitArray(dependNetwork_, arry, '|<>');
-  SetLength(States_, length(arry));
-  for i := 0 to length(arry) - 1 do
+  arry_ := ExtractDependInfo(dependNetwork_);
+  SetLength(States_, length(arry_));
+  for i := 0 to length(arry_) - 1 do
     begin
-      States_[i].ServiceTyp_ := arry[i];
+      States_[i].ServiceTyp_ := arry_[i].Typ;
       States_[i].Client_ := nil;
     end;
+  ResetDependInfoBuff(arry_);
 
   Pool_ := nil;
   On_C := nil;
@@ -3731,13 +3746,18 @@ end;
 
 function TC40_Custom_ClientPool.ExistsServiceTyp(ServiceTyp: U_String): Boolean;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  Result := True;
-  for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) then
-        exit;
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := False;
+  for i := 0 to Count - 1 do
+    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := True;
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.ExistsClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
@@ -3762,22 +3782,34 @@ end;
 
 function TC40_Custom_ClientPool.ExistsConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].Connected then
-        exit(Items[i]);
+    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := Items[i];
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.ExistsConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].Connected and ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].InheritsFrom(Class_) then
-        exit(Items[i]);
+    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := Items[i];
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.FindPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -3804,13 +3836,18 @@ end;
 
 function TC40_Custom_ClientPool.FindServiceTyp(ServiceTyp: U_String): Boolean;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  Result := True;
-  for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) then
-        exit;
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := False;
+  for i := 0 to Count - 1 do
+    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := True;
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.FindClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
@@ -3835,22 +3872,34 @@ end;
 
 function TC40_Custom_ClientPool.FindConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].Connected then
-        exit(Items[i]);
+    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := Items[i];
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.FindConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
 var
+  arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].Connected and ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) and Items[i].InheritsFrom(Class_) then
-        exit(Items[i]);
+    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+      begin
+        Result := Items[i];
+        break;
+      end;
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.GetClientFromHash(Hash: TMD5): TC40_Custom_Client;
@@ -3915,17 +3964,20 @@ end;
 
 function TC40_Custom_ClientPool.SearchServiceTyp(ServiceTyp: U_String; isConnected: Boolean): TC40_Custom_Client_Array;
 var
+  arry_: TC40_DependNetworkInfoArray;
   L: TC40_Custom_ClientPool;
   i: Integer;
 begin
+  arry_ := ExtractDependInfo(ServiceTyp);
   L := TC40_Custom_ClientPool.Create;
   for i := 0 to Count - 1 do
-    if ServiceTyp.Same(@Items[i].ClientInfo.ServiceTyp) then
+    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
       if (not isConnected) or (isConnected and Items[i].Connected) then
           L.Add(Items[i]);
   SortWorkLoad(L);
   Result := L.GetC40Array;
   disposeObject(L);
+  ResetDependInfoBuff(arry_);
 end;
 
 function TC40_Custom_ClientPool.SearchServiceTyp(ServiceTyp: U_String): TC40_Custom_Client_Array;
@@ -4641,7 +4693,13 @@ begin
   for i := 0 to Count - 1 do
     begin
       p := Items[i];
-      DoStatus('Type "%s" Service "%s" Client "%s"', [p^.ServiceTyp.Text, p^.ServiceClass.ClassName, p^.ClientClass.ClassName]);
+      DoStatusNoLn();
+      DoStatusNoLn('Type "%s"', [p^.ServiceTyp.Text]);
+      if p^.ServiceClass <> nil then
+          DoStatusNoLn(' Service "%s"', [p^.ServiceClass.ClassName]);
+      if p^.ClientClass <> nil then
+          DoStatusNoLn(' Client "%s"', [p^.ClientClass.ClassName]);
+      DoStatusNoLn();
     end;
 end;
 
