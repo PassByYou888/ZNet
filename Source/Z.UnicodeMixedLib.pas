@@ -540,7 +540,9 @@ const
   ZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   umlNullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   umlZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  Null_Buff_MD5: TMD5 = (212, 29, 140, 217, 143, 0, 178, 4, 233, 128, 9, 152, 236, 248, 66, 126);
 
+function umlStrToMD5(hex: TPascalString): TMD5;
 procedure umlTransformMD5(var Accu; const Buf);
 function umlMD5(const buffPtr: PByte; bufSiz: NativeUInt): TMD5;
 function umlMD5Char(const buffPtr: PByte; const BuffSize: NativeUInt): TPascalString;
@@ -560,7 +562,9 @@ function umlCombineMD5(const m1, m2, m3: TMD5): TMD5; overload;
 function umlCombineMD5(const m1, m2, m3, m4: TMD5): TMD5; overload;
 function umlCombineMD5(const buff: array of TMD5): TMD5; overload;
 function umlMD5ToStr(md5: TMD5): TPascalString; overload;
+function umlMD5ToStr(const buffPtr: PByte; bufSiz: NativeUInt): TPascalString; overload;
 function umlMD5ToString(md5: TMD5): TPascalString; overload;
+function umlMD5ToString(const buffPtr: PByte; bufSiz: NativeUInt): TPascalString; overload;
 function umlMD52String(md5: TMD5): TPascalString; overload;
 function umlMD5Compare(const m1, m2: TMD5): Boolean;
 function umlCompareMD5(const m1, m2: TMD5): Boolean;
@@ -766,7 +770,7 @@ uses
 {$IF Defined(WIN32) or Defined(WIN64)}
   Z.md5,
 {$ENDIF}
-  Z.Status, Z.MemoryStream;
+  Z.Cipher, Z.Status, Z.MemoryStream;
 
 procedure TReliableFileStream.InitIO;
 begin
@@ -2791,11 +2795,15 @@ function umlGetFileTime(const FileName: TPascalString): TDateTime;
 var
   SR: TSR;
 begin
-  if umlFindFirstFile(FileName, SR) then
-      Result := CovFileDate_(SR.FindData.ftLastWriteTime)
-  else
+  try
+    if umlFindFirstFile(FileName, SR) then
+        Result := CovFileDate_(SR.FindData.ftLastWriteTime)
+    else
+        Result := 0;
+    umlFindClose(SR);
+  except
       Result := 0;
-  umlFindClose(SR);
+  end;
 end;
 {$ELSE MSWINDOWS}
 
@@ -2803,21 +2811,28 @@ end;
 var
   f: THandle;
 begin
-  f := FileOpen(FileName.text, fmOpenRead or fmShareDenyNone);
-  if f <> THandle(-1) then
-    begin
-      Result := FileDateToDateTime(FileGetDate(f));
-      FileClose(f);
-    end
-  else
+  try
+    f := FileOpen(FileName.text, fmOpenRead or fmShareDenyNone);
+    if f <> THandle(-1) then
+      begin
+        Result := FileDateToDateTime(FileGetDate(f));
+        FileClose(f);
+      end
+    else
+        Result := 0;
+  except
       Result := 0;
+  end;
 end;
 {$ENDIF MSWINDOWS}
 
 
 procedure umlSetFileTime(const FileName: TPascalString; newTime: TDateTime);
 begin
-  FileSetDate(FileName.text, DateTimeToFileDate(newTime));
+  try
+      FileSetDate(FileName.text, DateTimeToFileDate(newTime));
+  except
+  end;
 end;
 
 function umlGetFileSize(const FileName: TPascalString): Int64;
@@ -2825,13 +2840,16 @@ var
   SR: TSR;
 begin
   Result := 0;
-  if umlFindFirstFile(FileName, SR) = True then
-    begin
-      Result := SR.Size;
-      while umlFindNextFile(SR) do
-          Result := Result + SR.Size;
-    end;
-  umlFindClose(SR);
+  try
+    if umlFindFirstFile(FileName, SR) = True then
+      begin
+        Result := SR.Size;
+        while umlFindNextFile(SR) do
+            Result := Result + SR.Size;
+      end;
+    umlFindClose(SR);
+  except
+  end;
 end;
 
 function umlGetFileCount(const FileName: TPascalString): Integer;
@@ -5841,6 +5859,11 @@ begin
       SetLength(dest, 0);
 end;
 
+function umlStrToMD5(hex: TPascalString): TMD5;
+begin
+  TCipher.HexToBuffer(hex, Result[0], SizeOf(TMD5));
+end;
+
 procedure umlTransformMD5(var Accu; const Buf);
 {$IF Defined(FastMD5) and Defined(Delphi) and (Defined(WIN32) or Defined(WIN64))}
 begin
@@ -5953,7 +5976,7 @@ begin
   inc(TDigestCardinal(Accu)[2], c);
   inc(TDigestCardinal(Accu)[3], d)
 end;
-{$IFEND}
+{$ENDIF}
 
 
 function umlMD5(const buffPtr: PByte; bufSiz: NativeUInt): TMD5;
@@ -6007,7 +6030,7 @@ begin
   PCardinal(@ChunkBuff[$3C])^ := Hi;
   umlTransformMD5(Result, ChunkBuff);
 end;
-{$IFEND}
+{$ENDIF}
 
 
 function umlMD5Char(const buffPtr: PByte; const BuffSize: NativeUInt): TPascalString;
@@ -6066,7 +6089,7 @@ begin
       Result := umlMD5(TMS64(stream).PositionAsPtr(StartPos), EndPos - StartPos);
       exit;
     end;
-{$IFEND}
+{$ENDIF OptimizationMemoryStreamMD5}
   //
 
   Lo := 0;
@@ -6137,7 +6160,7 @@ begin
   PCardinal(@ChunkBuff[$3C])^ := Hi;
   umlTransformMD5(Result, ChunkBuff);
 end;
-{$IFEND}
+{$ENDIF}
 
 
 function umlStreamMD5(stream: TCore_Stream): TMD5;
@@ -6275,6 +6298,11 @@ begin
     end;
 end;
 
+function umlMD5ToStr(const buffPtr: PByte; bufSiz: NativeUInt): TPascalString;
+begin
+  Result := umlMD5ToStr(umlMD5(buffPtr, bufSiz));
+end;
+
 function umlMD5ToString(md5: TMD5): TPascalString;
 const
   HexArr: array [0 .. 15] of U_Char = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
@@ -6287,6 +6315,11 @@ begin
       Result.buff[i * 2] := HexArr[(md5[i] shr 4) and $0F];
       Result.buff[i * 2 + 1] := HexArr[md5[i] and $0F];
     end;
+end;
+
+function umlMD5ToString(const buffPtr: PByte; bufSiz: NativeUInt): TPascalString;
+begin
+  Result := umlMD5ToString(umlMD5(buffPtr, bufSiz));
 end;
 
 function umlMD52String(md5: TMD5): TPascalString;
@@ -7555,7 +7588,7 @@ begin
     end
   else
       Result := ExLibs[LibName];
-{$IFEND}
+{$ENDIF}
 end;
 
 function FreeExtLib(LibName: SystemString): Boolean;
@@ -7573,14 +7606,14 @@ begin
       ExLibs.Delete(LibName);
       Result := True;
     end;
-{$IFEND}
+{$ENDIF}
 end;
 
 function GetExtProc(const LibName, ProcName: SystemString): Pointer;
 {$IF not(Defined(IOS) and Defined(CPUARM))}
 var
   h: HMODULE;
-{$IFEND}
+{$ENDIF}
 begin
   Result := nil;
 {$IF not(Defined(IOS) and Defined(CPUARM))}
@@ -7591,7 +7624,7 @@ begin
       if Result = nil then
           DoStatus('error external libray: %s - %s', [LibName, ProcName]);
     end;
-{$IFEND}
+{$ENDIF}
 end;
 
 {$IFDEF RangeCheck}{$R-}{$ENDIF}
@@ -7712,7 +7745,11 @@ begin
       new(p);
       p^.Time_ := ft;
       p^.Size_ := fs;
-      p^.md5 := umlFileMD5___(FileName);
+      try
+          p^.md5 := umlFileMD5___(FileName);
+      except
+          p^.md5 := Null_Buff_MD5;
+      end;
       FHash.Add(FileName, p, False);
       Result := p^.md5;
     end
@@ -7722,7 +7759,11 @@ begin
         begin
           p^.Time_ := ft;
           p^.Size_ := fs;
-          p^.md5 := umlFileMD5___(FileName);
+          try
+              p^.md5 := umlFileMD5___(FileName);
+          except
+              p^.md5 := Null_Buff_MD5;
+          end;
         end;
       Result := p^.md5;
     end;
