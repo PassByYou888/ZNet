@@ -33,6 +33,7 @@ type
     function Do_Exit(var OP_Param: TOpParam): Variant;
     function Do_Service(var OP_Param: TOpParam): Variant;
     function Do_Tunnel(var OP_Param: TOpParam): Variant;
+    function Do_Reg(var OP_Param: TOpParam): Variant;
     function Do_Cmd(var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
@@ -167,6 +168,7 @@ begin
   DoStatus('exit()/close(), safe close this console.');
   DoStatus('service(ip, port), local service report.');
   DoStatus('tunnel(ip, port), tunnel report.');
+  DoStatus('RegInfo(), C4 registed info.');
   DoStatus('cmd(), current command line.');
   DoStatus('');
   Result := True;
@@ -245,6 +247,12 @@ begin
   Result := True;
 end;
 
+function TC40_Console_Help.Do_Reg(var OP_Param: TOpParam): Variant;
+begin
+  C40_Registed.Print;
+  Result := True;
+end;
+
 function TC40_Console_Help.Do_Cmd(var OP_Param: TOpParam): Variant;
 var
   i: Integer;
@@ -269,6 +277,7 @@ begin
   opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
   opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
   opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
+  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg);
   opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd);
 end;
 
