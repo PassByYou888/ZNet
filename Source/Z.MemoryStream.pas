@@ -117,6 +117,7 @@ type
     function ReadCurrency: Currency;
     function PrepareReadString: Boolean;
     function ReadString: TPascalString;
+    procedure IgnoreReadString;
     function ReadANSI(L: Integer): TPascalString;
     function ReadMD5: TMD5;
   end;
@@ -288,6 +289,7 @@ type
     function ReadCurrency: Currency;
     function PrepareReadString: Boolean;
     function ReadString: TPascalString;
+    procedure IgnoreReadString;
     function ReadANSI(L: Integer): TPascalString;
     function ReadMD5: TMD5;
   end;
@@ -343,7 +345,7 @@ procedure ParallelDecompressFile(const sour, dest: SystemString);
 function CompressUTF8(const sour_: TBytes): TBytes;
 function DecompressUTF8(const sour_: TBytes): TBytes;
 
-// Serialized api
+// Serialized write
 procedure StreamWriteBool(const stream: TCore_Stream; const buff: Boolean);
 procedure StreamWriteInt8(const stream: TCore_Stream; const buff: ShortInt);
 procedure StreamWriteInt16(const stream: TCore_Stream; const buff: SmallInt);
@@ -359,6 +361,8 @@ procedure StreamWriteCurrency(const stream: TCore_Stream; const buff: Currency);
 procedure StreamWriteString(const stream: TCore_Stream; const buff: TPascalString);
 function ComputeStreamWriteStringSize(buff: TPascalString): Integer;
 procedure StreamWriteMD5(const stream: TCore_Stream; const buff: TMD5);
+
+// Serialized read
 function StreamReadBool(const stream: TCore_Stream): Boolean;
 function StreamReadInt8(const stream: TCore_Stream): ShortInt;
 function StreamReadInt16(const stream: TCore_Stream): SmallInt;
@@ -372,6 +376,7 @@ function StreamReadSingle(const stream: TCore_Stream): Single;
 function StreamReadDouble(const stream: TCore_Stream): Double;
 function StreamReadCurrency(const stream: TCore_Stream): Currency;
 function StreamReadString(const stream: TCore_Stream): TPascalString;
+procedure StreamIgnoreReadString(const stream: TCore_Stream);
 function StreamReadMD5(const stream: TCore_Stream): TMD5;
 
 procedure DoStatus(const v: TMS64); overload;
@@ -1142,6 +1147,23 @@ begin
       end;
   except
       Result := '';
+  end;
+end;
+
+procedure TMS64.IgnoreReadString;
+var
+  L: Cardinal;
+  b: TBytes;
+begin
+  try
+    L := ReadUInt32;
+    if L > 0 then
+      begin
+        SetLength(b, L);
+        ReadPtr(@b[0], L);
+        SetLength(b, 0);
+      end;
+  except
   end;
 end;
 
@@ -1972,10 +1994,31 @@ begin
   L := ReadUInt32;
   if L > 0 then
     begin
-      SetLength(b, L);
-      ReadPtr(@b[0], L);
-      Result.Bytes := b;
-      SetLength(b, 0);
+      try
+        SetLength(b, L);
+        ReadPtr(@b[0], L);
+        Result.Bytes := b;
+        SetLength(b, 0);
+      except
+          Result := '';
+      end;
+    end;
+end;
+
+procedure TMem64.IgnoreReadString;
+var
+  L: Cardinal;
+  b: TBytes;
+begin
+  L := ReadUInt32;
+  if L > 0 then
+    begin
+      try
+        SetLength(b, L);
+        ReadPtr(@b[0], L);
+        SetLength(b, 0);
+      except
+      end;
     end;
 end;
 
@@ -2720,6 +2763,23 @@ begin
       end;
   except
       Result := '';
+  end;
+end;
+
+procedure StreamIgnoreReadString(const stream: TCore_Stream);
+var
+  L: Cardinal;
+  b: TBytes;
+begin
+  try
+    L := StreamReadUInt32(stream);
+    if L > 0 then
+      begin
+        SetLength(b, L);
+        stream.read(b[0], L);
+        SetLength(b, 0);
+      end;
+  except
   end;
 end;
 
