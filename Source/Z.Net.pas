@@ -1434,15 +1434,17 @@ type
     property IOPool: TUInt32HashObjectList read FPeerIO_HashPool;
 
     { custom struct: user custom instance one }
-    property PeerClientUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
-    property PeerIOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
-    property IOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
-    property IODefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
-    property UserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
-    property ExternalDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write FPeerIOUserDefineClass;
+    procedure SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
+    property PeerClientUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property PeerIOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property IOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property IODefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property UserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property ExternalDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
 
     { custom special struct: user custom instance two }
-    property PeerClientUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    procedure SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
+    property PeerClientUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write SetPeerIOUserSpecialClass;
     property PeerIOUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
     property IOUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
     property IOSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
@@ -2258,10 +2260,14 @@ type
 
   TOnHPC_Stream_C = procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
   TOnHPC_Stream_M = procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE) of object;
+  TOnHPC_Stream_Done_C = procedure(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
+  TOnHPC_Stream_Done_M = procedure(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE) of object;
 {$IFDEF FPC}
   TOnHPC_Stream_P = procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE) is nested;
+  TOnHPC_Stream_Done_P = procedure(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE) is nested;
 {$ELSE FPC}
   TOnHPC_Stream_P = reference to procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
+  TOnHPC_Stream_Done_P = reference to procedure(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
 {$ENDIF FPC}
 
   THPC_Stream = class
@@ -2278,6 +2284,9 @@ type
     UserData: Pointer;
     UserObject: TCore_Object;
     InData, OutData: TDFE;
+    OnDone_C: TOnHPC_Stream_Done_C;
+    OnDone_M: TOnHPC_Stream_Done_M;
+    OnDone_P: TOnHPC_Stream_Done_P;
     property ID: Cardinal read WorkID;
     constructor Create;
     destructor Destroy; override;
@@ -2349,12 +2358,16 @@ procedure RunHPC_DirectStreamP(Sender: TPeerIO;
 type
   THPC_Console = class;
 
-  TOnHPC_Console_C = procedure(ThSender: THPC_Console; ThInData, ThOutData: SystemString);
-  TOnHPC_Console_M = procedure(ThSender: THPC_Console; ThInData, ThOutData: SystemString) of object;
+  TOnHPC_Console_C = procedure(ThSender: THPC_Console; ThInData: SystemString; var ThOutData: SystemString);
+  TOnHPC_Console_M = procedure(ThSender: THPC_Console; ThInData: SystemString; var ThOutData: SystemString) of object;
+  TOnHPC_Console_Done_C = procedure(ThSender: THPC_Console; IO: TPeerIO; ThInData: SystemString; var ThOutData: SystemString);
+  TOnHPC_Console_Done_M = procedure(ThSender: THPC_Console; IO: TPeerIO; ThInData: SystemString; var ThOutData: SystemString) of object;
 {$IFDEF FPC}
-  TOnHPC_Console_P = procedure(ThSender: THPC_Console; ThInData, ThOutData: SystemString) is nested;
+  TOnHPC_Console_P = procedure(ThSender: THPC_Console; ThInData: SystemString; var ThOutData: SystemString) is nested;
+  TOnHPC_Console_Done_P = procedure(ThSender: THPC_Console; IO: TPeerIO; ThInData: SystemString; var ThOutData: SystemString) is nested;
 {$ELSE FPC}
-  TOnHPC_Console_P = reference to procedure(ThSender: THPC_Console; ThInData, ThOutData: SystemString);
+  TOnHPC_Console_P = reference to procedure(ThSender: THPC_Console; ThInData: SystemString; var ThOutData: SystemString);
+  TOnHPC_Console_Done_P = reference to procedure(ThSender: THPC_Console; IO: TPeerIO; ThInData: SystemString; var ThOutData: SystemString);
 {$ENDIF FPC}
 
   THPC_Console = class
@@ -2371,6 +2384,9 @@ type
     UserData: Pointer;
     UserObject: TCore_Object;
     InData, OutData: SystemString;
+    OnDone_C: TOnHPC_Console_Done_C;
+    OnDone_M: TOnHPC_Console_Done_M;
+    OnDone_P: TOnHPC_Console_Done_P;
     property ID: Cardinal read WorkID;
     constructor Create;
     destructor Destroy; override;
@@ -3316,6 +3332,15 @@ begin
 
         if P_IO <> nil then
           begin
+            try
+              if Assigned(OnDone_C) then
+                  OnDone_C(Self, P_IO, InData, OutData);
+              if Assigned(OnDone_M) then
+                  OnDone_M(Self, P_IO, InData, OutData);
+              if Assigned(OnDone_P) then
+                  OnDone_P(Self, P_IO, InData, OutData);
+            except
+            end;
             P_IO.OutDataFrame.Assign(OutData);
             P_IO.ContinueResultSend;
           end;
@@ -3338,6 +3363,9 @@ begin
   UserObject := nil;
   InData := TDFE.Create;
   OutData := TDFE.Create;
+  OnDone_C := nil;
+  OnDone_M := nil;
+  OnDone_P := nil;
 end;
 
 destructor THPC_Stream.Destroy;
@@ -3582,6 +3610,16 @@ begin
 
         if P_IO <> nil then
           begin
+            try
+              if Assigned(OnDone_C) then
+                  OnDone_C(Self, P_IO, InData, OutData);
+              if Assigned(OnDone_M) then
+                  OnDone_M(Self, P_IO, InData, OutData);
+              if Assigned(OnDone_P) then
+                  OnDone_P(Self, P_IO, InData, OutData);
+            except
+            end;
+
             P_IO.OutText := OutData;
             P_IO.ContinueResultSend;
           end;
@@ -3604,6 +3642,9 @@ begin
   UserObject := nil;
   InData := '';
   OutData := '';
+  OnDone_C := nil;
+  OnDone_M := nil;
+  OnDone_P := nil;
 end;
 
 destructor THPC_Console.Destroy;
@@ -6840,7 +6881,7 @@ begin
   FOwnerFramework.Lock_All_IO;
 
   FID := OwnerFramework_.MakeID;
-  FIO_Create_TimeTick:=GetTimeTick();
+  FIO_Create_TimeTick := GetTimeTick();
 
   FHeadToken := C_DataHeadToken;
   FTailToken := C_DataTailToken;
@@ -9924,6 +9965,26 @@ end;
 procedure TZNet.CopyParamTo(Dest: TZNet);
 begin
   Dest.CopyParamFrom(Self);
+end;
+
+procedure TZNet.SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
+begin
+  // safe
+  if FPeerIOUserDefineClass <> nil then
+    if not Value.InheritsFrom(FPeerIOUserDefineClass) then
+        RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserDefineClass.ClassName]);
+  // update
+  FPeerIOUserDefineClass := Value;
+end;
+
+procedure TZNet.SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
+begin
+  // safe
+  if FPeerIOUserSpecialClass <> nil then
+    if not Value.InheritsFrom(FPeerIOUserSpecialClass) then
+        RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserSpecialClass.ClassName]);
+  // update
+  FPeerIOUserSpecialClass := Value;
 end;
 
 function TZNet_Server.CanExecuteCommand(Sender: TPeerIO; Cmd: SystemString): Boolean;
