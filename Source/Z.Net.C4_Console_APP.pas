@@ -277,6 +277,7 @@ begin
   opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
   opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
   opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
+  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
   opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg);
   opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd);
 end;
