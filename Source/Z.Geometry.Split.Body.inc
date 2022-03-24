@@ -16,7 +16,7 @@ const
   sNoTriangleForVertex = 'No triangle for vertex';
   sCrossSegmentIntersectionError = 'CrossSegment-Intersection Error';
 
-function CompareCardinal(C1, C2: Cardinal): integer;
+function CompareCardinal(const C1, C2: Cardinal): integer;
 begin
   if C1 < C2 then
       Result := -1
@@ -27,7 +27,7 @@ begin
       Result := 0;
 end;
 
-function CompareInteger(Int1, Int2: integer): integer;
+function CompareInteger(const Int1, Int2: integer): integer;
 begin
   if Int1 < Int2 then
       Result := -1
@@ -49,18 +49,18 @@ begin
       Result := 0;
 end;
 
-function ComparePointer(Item1, Item2: pointer): integer;
+function ComparePointer(const Item1, Item2: pointer): integer;
 begin
-  if integer(Item1) < integer(Item2) then
+  if NativeUInt(Item1) < NativeUInt(Item2) then
       Result := -1
   else
-    if integer(Item1) > integer(Item2) then
+    if NativeUInt(Item1) > NativeUInt(Item2) then
       Result := 1
   else
       Result := 0;
 end;
 
-function CompareBool(Bool1, Bool2: boolean): integer;
+function CompareBool(const Bool1, Bool2: boolean): integer;
 begin
   if Bool1 < Bool2 then
       Result := -1
