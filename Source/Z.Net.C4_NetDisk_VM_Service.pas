@@ -233,6 +233,7 @@ type
     procedure cmd_GetOnlineNum(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetOnlineList(sender: TPeerIO; InData, OutData: TDFE);
     // netdisk(FS2+Directory)
+    procedure cmd_Get_NetDisk_Config(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_SearchMultiMD5_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_CheckAndCopy_NetDisk_File(sender: TPeerIO; InData, OutData: TDFE);
@@ -245,7 +246,6 @@ type
     procedure cmd_Get_NetDisk_File_Frag(sender: TPeerIO; InData: TDFE);
     procedure cmd_Get_NetDisk_File_List(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_SpaceInfo(sender: TPeerIO; InData, OutData: TDFE);
-    procedure cmd_Get_NetDisk_Config(sender: TPeerIO; InData, OutData: TDFE);
   public
     // deployment
     property UserDB_Client: TC40_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
@@ -796,27 +796,96 @@ begin
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Msg(sender: TC40_UserDB_Client; FromUserName_, ToUserName_, Msg_: U_String);
+var
+  d: TDFE;
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+  i: Integer;
 begin
+  d := TDFE.Create;
+  d.WriteString(FromUserName_);
+  d.WriteString(ToUserName_);
+  d.WriteString(Msg_);
+  L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
+  for i := 0 to L.count - 1 do
+      L[i].SendTunnel.Owner.SendDirectStreamCmd('userMsg', d);
+  L.Free;
+  DisposeObject(d);
+
   PostLog('%s User_Msg to %s', [FromUserName_.Text, ToUserName_.Text], Msg_);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Open(sender: TC40_UserDB_Client; userName_, ToUserName_: U_String);
+var
+  d: TDFE;
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+  i: Integer;
 begin
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  d.WriteString(ToUserName_);
+  L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
+  for i := 0 to L.count - 1 do
+      L[i].SendTunnel.Owner.SendDirectStreamCmd('userOnline', d);
+  L.Free;
+  DisposeObject(d);
+
   PostLog('%s User_Open to %s', [userName_.Text, ToUserName_.Text]);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Close(sender: TC40_UserDB_Client; userName_, ToUserName_: U_String);
+var
+  d: TDFE;
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+  i: Integer;
 begin
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  d.WriteString(ToUserName_);
+  L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
+  for i := 0 to L.count - 1 do
+      L[i].SendTunnel.Owner.SendDirectStreamCmd('userOffline', d);
+  L.Free;
+  DisposeObject(d);
+
   PostLog('%s User_Close to %s', [userName_.Text, ToUserName_.Text]);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Request_Friend(sender: TC40_UserDB_Client; FromUserName_, DestFriendUserName_, Msg_: U_String);
+var
+  d: TDFE;
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+  i: Integer;
 begin
+  d := TDFE.Create;
+  d.WriteString(FromUserName_);
+  d.WriteString(DestFriendUserName_);
+  d.WriteString(Msg_);
+  L := Search_IO_Def_From_UserPrimaryIdentifier(DestFriendUserName_);
+  for i := 0 to L.count - 1 do
+      L[i].SendTunnel.Owner.SendDirectStreamCmd('userRequestFriend', d);
+  L.Free;
+  DisposeObject(d);
+
   PostLog('%s User_Request_Friend to %s', [FromUserName_.Text, DestFriendUserName_.Text], Msg_);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Kick(sender: TC40_UserDB_Client; userName_: U_String);
+var
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+  i: Integer;
+  p2p_IO: TP2PVM_PeerIO;
 begin
+  L := Search_IO_Def_From_UserPrimaryIdentifier(userName_);
+  for i := 0 to L.count - 1 do
+    if L[i].Owner is TP2PVM_PeerIO then
+      begin
+        p2p_IO := L[i].Owner as TP2PVM_PeerIO;
+        if p2p_IO.LinkVM <> nil then
+          if p2p_IO.LinkVM.Owner_IO <> nil then
+              p2p_IO.LinkVM.Owner_IO.Disconnect;
+      end;
+  L.Free;
+
   PostLog('%s User_Kick', [userName_.Text]);
 end;
 
@@ -1066,6 +1135,11 @@ begin
   Max_Num := InData.R.ReadInteger;
   UserDB_Client.Usr_OnlineListM(Max_Num, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_OnlineList);
   sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Get_NetDisk_Config(sender: TPeerIO; InData, OutData: TDFE);
+begin
+  OutData.WriteInt64(File_Chunk_Size);
 end;
 
 procedure TC40_NetDisk_VM_Service.cmd_Get_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
@@ -1637,11 +1711,6 @@ begin
   sender.PauseResultSend;
 end;
 
-procedure TC40_NetDisk_VM_Service.cmd_Get_NetDisk_Config(sender: TPeerIO; InData, OutData: TDFE);
-begin
-  OutData.WriteInt64(File_Chunk_Size);
-end;
-
 procedure TC40_NetDisk_VM_Service.Automated_Config_NetDisk_Service_Relevance;
 var
   i: Integer;
@@ -1751,6 +1820,7 @@ begin
   DTNoAuth.RecvTunnel.RegisterStream('GetOnlineList').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetOnlineList;
 
   // network VM
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Config').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_Config;
   DTNoAuth.RecvTunnel.RegisterStream('Get_FS_Service').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_FS_Service;
   DTNoAuth.RecvTunnel.RegisterStream('SearchMultiMD5_FS_Service').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchMultiMD5_FS_Service;
   DTNoAuth.RecvTunnel.RegisterStream('CheckAndCopy_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CheckAndCopy_NetDisk_File;
@@ -1763,7 +1833,6 @@ begin
   DTNoAuth.RecvTunnel.RegisterDirectStream('Get_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_List;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_SpaceInfo;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Config').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_Config;
 
   FUserDB_Client := nil;
   FDirectory_Client := nil;
