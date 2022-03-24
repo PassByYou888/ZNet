@@ -1529,6 +1529,7 @@ begin
     for i := 0 to Remote_Frag_List.Count - 1 do
         Current_Local_MD5_Chunk[i] := Null_Buff_MD5;
 
+    // compare stream md5
     if umlCompareMD5(umlStreamMD5(stream), Remote_Frag_List.MD5) or (Remote_Frag_List.Count = 0) then
       begin
         SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_File_Same);
@@ -1583,6 +1584,7 @@ begin
     begin
       DoStatus('skip chunk position:%d size:%d md5:%s',
         [Remote_Frag_List[Current_Remote_Frag_Index]^.Pos_, Remote_Frag_List[Current_Remote_Frag_Index]^.Size_, umlMD5ToStr(MD5).Text]);
+
       // do next
       if Current_Remote_Frag_Index + 1 < Remote_Frag_List.Count then
         begin
