@@ -97,11 +97,11 @@ function Rectf(Left, Top, Right, Bottom: TGeoFloat): TRectf;
 {$ENDREGION 'BaseType define'}
 {$REGION 'API'}
 
-function CompareCardinal(C1, C2: Cardinal): Integer;
-function CompareInteger(Int1, Int2: Integer): Integer;
+function CompareCardinal(const C1, C2: Cardinal): Integer;
+function CompareInteger(const Int1, Int2: Integer): Integer;
 function CompareInt64(const Int1, Int2: int64): Integer;
-function ComparePointer(Item1, Item2: pointer): Integer;
-function CompareBool(Bool1, Bool2: boolean): Integer;
+function ComparePointer(const Item1, Item2: pointer): Integer;
+function CompareBool(const Bool1, Bool2: boolean): Integer;
 function CompareDouble(const Double1, Double2: Double): Integer;
 
 function FAbs(const V: Single): Single; overload;
