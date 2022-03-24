@@ -14,7 +14,7 @@ uses
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
-  Z.ZDB2, Z.ZDB2.HS, Z.GHashList,
+  Z.GHashList,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth,
   Z.Net.C4_NetDisk_Directory,
   Z.Net.C4;
