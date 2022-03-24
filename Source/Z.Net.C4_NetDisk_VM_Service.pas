@@ -262,6 +262,10 @@ type
     procedure Progress; override;
 
     function Search_IO_Def_From_UserPrimaryIdentifier(PrimaryIdentifier_: U_String): TC40_NetDisk_VM_Service_RecvIO_Define_List;
+    procedure PostLog(info: SystemString); overload;
+    procedure PostLog(info1, info2: SystemString); overload;
+    procedure PostLog(const v: SystemString; const Args: array of const); overload;
+    procedure PostLog(const v: SystemString; const Args: array of const; info2: SystemString); overload;
   end;
 
 implementation
@@ -310,6 +314,8 @@ begin
       IO.OutDataFrame.WriteBool(True);
       IO.OutDataFrame.WriteString(info_);
       IO.ContinueResultSend;
+
+      VM_Service.PostLog('%s auth successed.', [IO_Def_.PrimaryIdentifier.Text], info_);
     end
   else
     begin
@@ -318,6 +324,7 @@ begin
           IO.OutDataFrame.WriteBool(False);
           IO.OutDataFrame.WriteString(info_);
           IO.ContinueResultSend;
+          VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], info_);
         end;
     end;
   DelayFreeObj(1.0, self);
@@ -337,6 +344,7 @@ begin
           IO.OutDataFrame.WriteBool(False);
           IO.OutDataFrame.WriteString('PrimaryIdentifier error.');
           IO.ContinueResultSend;
+          VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], 'PrimaryIdentifier error.');
         end;
       DelayFreeObj(1.0, self);
     end;
@@ -355,6 +363,7 @@ begin
       IO.OutDataFrame.WriteBool(False);
       IO.OutDataFrame.WriteString(info_);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -365,6 +374,7 @@ begin
   IO.OutDataFrame.WriteString(info);
   IO.ContinueResultSend;
   DelayFreeObj(1.0, self);
+  VM_Service.PostLog('%s create Directory DB successed.', [userName_.Text], info);
 end;
 
 procedure TTemp_Reg_Bridge.Do_Usr_Reg(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
@@ -385,33 +395,43 @@ begin
           DisposeObject(j_);
           // create directory db
           VM_Service.Directory_Client.NewDB_M(userName_, {$IFDEF FPC}@{$ENDIF FPC}Do_NewDB);
+          VM_Service.PostLog('%s reg successed.', [userName_.Text], info_);
           exit;
         end;
       IO.OutDataFrame.WriteBool(False);
       IO.OutDataFrame.WriteString(info_);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s reg failed.', [userName_.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
 
 procedure TTemp_NewIdentifier_Bridge.Do_Usr_NewIdentifier(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
   if CheckIO then
     begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       IO.OutDFE.WriteBool(State_);
       IO.OutDFE.WriteString(info_);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s new Identifier: %s', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
 
 procedure TTemp_GetAlias_Bridge.Do_Usr_Get(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString; Json_: TZJ);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
   if CheckIO then
     begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       if Json_.IndexOf('Alias') >= 0 then
           IO.OutDFE.WriteString(Json_.S['Alias']);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s GetAlias: %s', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -419,23 +439,30 @@ end;
 procedure TTemp_GetMyFriends_Bridge.Do_Usr_GetFriends(sender: TC40_UserDB_Client; FriendArry: U_StringArray);
 var
   i: Integer;
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
   if CheckIO then
     begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       for i := 0 to length(FriendArry) - 1 do
           IO.OutDFE.WriteString(FriendArry[i]);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s GetFriends', [IO_Def.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
 
 procedure TTemp_GetOnlineNum_Bridge.Do_Usr_OnlineNum(sender: TC40_UserDB_Client; Online_Num, User_Num: Integer);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
   if CheckIO then
     begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       IO.OutDFE.WriteInteger(Online_Num);
       IO.OutDFE.WriteInteger(User_Num);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s Get Online Num.', [IO_Def.PrimaryIdentifier.Text], PFormat('online:%d user:%d', [Online_Num, User_Num]));
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -443,11 +470,13 @@ end;
 procedure TTemp_GetOnlineList_Bridge.Do_Usr_OnlineList(sender: TC40_UserDB_Client; arry: U_StringArray);
 var
   i: Integer;
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
   if CheckIO then
     begin
       for i := low(arry) to high(arry) do
           IO.OutDFE.WriteString(arry[i]);
+      VM_Service.PostLog('%s Get Online List.', [IO_Def.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -522,6 +551,7 @@ begin
       IO.OutDataFrame.WriteBool(True);
       IO.OutDataFrame.WriteString(FS_Pair.First.FS2.AliasOrHash);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s SearchMultiMD5.', [IO_Def.PrimaryIdentifier.Text], FS_Pair.First.FS2.AliasOrHash);
     end;
 
   for i := 0 to FS_Pair.count - 1 do
@@ -541,6 +571,7 @@ begin
       IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(info);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s PutItemMD5.', [IO_Def.PrimaryIdentifier.Text], info);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -564,10 +595,12 @@ begin
           p^.Size_ := frag_size_;
           IO_Def.NetDisk_File_Frag.Add(p);
           IO.OutDataFrame.WriteString('copy frag "%s" successed.', [p^.FS_File.Text]);
+          VM_Service.PostLog('%s CheckMD5AndFastCopy successed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
         end
       else
         begin
           IO.OutDataFrame.WriteString('no found frag "%s"', [umlMD5ToStr(frag_md5_).Text]);
+          VM_Service.PostLog('%s CheckMD5AndFastCopy failed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
         end;
 
       IO.ContinueResultSend;
@@ -589,6 +622,7 @@ begin
       d.WritePointer(Event_);
       IO_Def.SendTunnel.Owner.SendDirectStreamCmd('Done_PostFile_Frag', d);
       DisposeObject(d);
+      VM_Service.PostLog('%s Done_PostFile_Frag.', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -608,6 +642,7 @@ begin
       IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(info);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s PutItemFrag.', [IO_Def.PrimaryIdentifier.Text], info);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -626,6 +661,7 @@ begin
       IO.OutDataFrame.WriteDataFrame(d);
       IO.ContinueResultSend;
       DisposeObject(d);
+      VM_Service.PostLog('%s GetItemFrag.', [IO_Def.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -641,6 +677,7 @@ begin
       IO.OutDataFrame.WriteString(info_);
       IO.OutDataFrame.WriteMD5(MD5_);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s FS2_GetFileMD5.', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -661,6 +698,7 @@ begin
           m64.WriteUInt64(Event_);
           m64.WritePtr(Stream.Memory, Stream.Size);
           IO_Def.SendTunnel.Owner.SendCompleteBuffer('Done_Get_File_Frag', m64, True);
+          VM_Service.PostLog('%s Done_Get_File_Frag.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
         end
       else
         begin
@@ -669,6 +707,7 @@ begin
           d.WritePointer(Event_);
           IO_Def.SendTunnel.Owner.SendDirectStreamCmd('Get_File_Error', d);
           DisposeObject(d);
+          VM_Service.PostLog('%s Get_File_Error.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
         end;
     end;
   DelayFreeObj(1.0, self);
@@ -690,6 +729,7 @@ begin
           IO.OutDataFrame.WriteDouble(arry[i].Time_);
         end;
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s GetItemList.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -708,6 +748,7 @@ begin
       IO.OutDataFrame.WriteInt64(Item_Num);
       IO.OutDataFrame.WriteInt64(ItemSpace);
       IO.ContinueResultSend;
+      VM_Service.PostLog('%s SpaceInfo.', [IO_Def.PrimaryIdentifier.Text], PFormat('filed:%d item:%d space:%d', [Field_Num, Item_Num, ItemSpace]));
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -735,6 +776,7 @@ begin
               UserDB_Client.Usr_Set(IO_Def.PrimaryIdentifier, 'Detail', IO_Def.UserJson);
           UserDB_Client.Usr_Close(IO_Def.PrimaryIdentifier);
         end;
+      PostLog('%s UserOut_Event.', [IO_Def.PrimaryIdentifier.Text]);
     end;
   inherited DoUserOut_Event(sender, UserDefineIO);
 end;
@@ -755,27 +797,27 @@ end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Msg(sender: TC40_UserDB_Client; FromUserName_, ToUserName_, Msg_: U_String);
 begin
-
+  PostLog('%s User_Msg to %s', [FromUserName_.Text, ToUserName_.Text], Msg_);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Open(sender: TC40_UserDB_Client; userName_, ToUserName_: U_String);
 begin
-
+  PostLog('%s User_Open to %s', [userName_.Text, ToUserName_.Text]);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Close(sender: TC40_UserDB_Client; userName_, ToUserName_: U_String);
 begin
-
+  PostLog('%s User_Close to %s', [userName_.Text, ToUserName_.Text]);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Request_Friend(sender: TC40_UserDB_Client; FromUserName_, DestFriendUserName_, Msg_: U_String);
 begin
-
+  PostLog('%s User_Request_Friend to %s', [FromUserName_.Text, DestFriendUserName_.Text], Msg_);
 end;
 
 procedure TC40_NetDisk_VM_Service.Do_User_Kick(sender: TC40_UserDB_Client; userName_: U_String);
 begin
-
+  PostLog('%s User_Kick to %s', [userName_.Text]);
 end;
 
 function TC40_NetDisk_VM_Service.Get_Directory_Client: TC40_NetDisk_Directory_Client;
@@ -1065,6 +1107,7 @@ begin
         OutData.WriteInt64(FFS2_Client_Pool[i].Remote_FS_DB_Size);
         OutData.WriteCardinal(FFS2_Client_Pool[i].MaxFileSize);
       end;
+  PostLog('%s Get_FS_Service', [IO_Def.PrimaryIdentifier.Text]);
 end;
 
 procedure TC40_NetDisk_VM_Service.cmd_SearchMultiMD5_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
@@ -1290,6 +1333,7 @@ begin
       exit;
     end;
   tmp := TTemp_CheckAndCopy_NetDisk_File_Frag_Bridge.Create(sender);
+  tmp.VM_Service := self;
   tmp.frag_md5_ := InData.R.ReadMD5;    // 2, file md5
   tmp.frag_pos_ := InData.R.ReadInt64;  // 3, fragment pos
   tmp.frag_size_ := InData.R.ReadInt64; // 4, file size
@@ -1548,6 +1592,7 @@ begin
     end;
 
   tmp := TTemp_Get_NetDisk_File_List_Bridge.Create(sender);
+  tmp.VM_Service := self;
   tmp.DB_Field := InData.R.ReadString;
   FDirectory_Client.GetItemList_M(IO_Def.PrimaryIdentifier, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
 
@@ -1587,6 +1632,7 @@ begin
     end;
 
   tmp := TTemp_Get_NetDisk_SpaceInfo_Bridge.Create(sender);
+  tmp.VM_Service := self;
   FDirectory_Client.SpaceInfo_M(IO_Def.PrimaryIdentifier, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SpaceInfo);
   sender.PauseResultSend;
 end;
@@ -1755,6 +1801,30 @@ begin
       if IO_Def.LinkOk and IO_Def.AuthDone and PrimaryIdentifier_.Same(@IO_Def.PrimaryIdentifier) then
           Result.Add(IO_Def);
     end;
+end;
+
+procedure TC40_NetDisk_VM_Service.PostLog(info: SystemString);
+begin
+  if (Log_Client = nil) or (not Log_Client.Connected) then
+      exit;
+  Log_Client.PostLog('NetDisk_VM_' + AliasOrHash + '_' + MakeNowDateStr, info, '');
+end;
+
+procedure TC40_NetDisk_VM_Service.PostLog(info1, info2: SystemString);
+begin
+  if (Log_Client = nil) or (not Log_Client.Connected) then
+      exit;
+  Log_Client.PostLog('NetDisk_VM_' + AliasOrHash + '_' + MakeNowDateStr, info1, info2);
+end;
+
+procedure TC40_NetDisk_VM_Service.PostLog(const v: SystemString; const Args: array of const);
+begin
+  PostLog(PFormat(v, Args));
+end;
+
+procedure TC40_NetDisk_VM_Service.PostLog(const v: SystemString; const Args: array of const; info2: SystemString);
+begin
+  PostLog(PFormat(v, Args), info2);
 end;
 
 initialization
