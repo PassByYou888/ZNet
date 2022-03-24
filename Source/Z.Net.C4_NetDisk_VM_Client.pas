@@ -475,6 +475,7 @@ type
     FFile_Chunk_Size: Int64;
     procedure Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(sender: TDT_P2PVM_NoAuth_Custom_Client); override;
     procedure Do_Get_NetDisk_Config(sender: TPeerIO; Result_: TDataFrameEngine);
+    procedure Do_Reconnect_Usr_Auth(sender: TC40_NetDisk_VM_Client; State_: Boolean; info_: SystemString);
   public
     OnUserEvent: I_C40_NetDisk_VM_Client_Event;
     Last_UserName, Last_Passwd: U_String;
@@ -511,6 +512,9 @@ type
     procedure GeTOnlineList_M(Max_Num: Integer; OnResult: TOn_Usr_GeTOnlineListM);
     procedure GeTOnlineList_P(Max_Num: Integer; OnResult: TOn_Usr_GeTOnlineListP);
     // net disk vm
+    procedure Get_NetDisk_SpaceInfo_C(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoC);
+    procedure Get_NetDisk_SpaceInfo_M(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoM);
+    procedure Get_NetDisk_SpaceInfo_P(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoP);
     procedure Get_FS_Service_C(OnResult: TOn_Usr_Get_FS_ServiceC);
     procedure Get_FS_Service_M(OnResult: TOn_Usr_Get_FS_ServiceM);
     procedure Get_FS_Service_P(OnResult: TOn_Usr_Get_FS_ServiceP);
@@ -540,9 +544,6 @@ type
     procedure Get_NetDisk_File_List_C(DB_Field: U_String; OnResult: TOn_Usr_Get_NetDisk_File_ListC);
     procedure Get_NetDisk_File_List_M(DB_Field: U_String; OnResult: TOn_Usr_Get_NetDisk_File_ListM);
     procedure Get_NetDisk_File_List_P(DB_Field: U_String; OnResult: TOn_Usr_Get_NetDisk_File_ListP);
-    procedure Get_NetDisk_SpaceInfo_C(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoC);
-    procedure Get_NetDisk_SpaceInfo_M(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoM);
-    procedure Get_NetDisk_SpaceInfo_P(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoP);
     // automated
     procedure Auto_Post_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TOn_Usr_Auto_Post_FileC);
     procedure Auto_Post_File_M(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TOn_Usr_Auto_Post_FileM);
@@ -1757,6 +1758,16 @@ end;
 procedure TC40_NetDisk_VM_Client.Do_Get_NetDisk_Config(sender: TPeerIO; Result_: TDataFrameEngine);
 begin
   FFile_Chunk_Size := Result_.R.ReadInt64;
+  DoStatus('Chunk: %d', [FFile_Chunk_Size]);
+  if Auth_Done then
+      AuthM(Last_UserName, Last_Passwd, {$IFDEF FPC}@{$ENDIF FPC}Do_Reconnect_Usr_Auth);
+end;
+
+procedure TC40_NetDisk_VM_Client.Do_Reconnect_Usr_Auth(sender: TC40_NetDisk_VM_Client; State_: Boolean; info_: SystemString);
+begin
+  DoStatus(info_);
+  if not State_ then
+      C40PhysicsTunnel.PhysicsTunnel.DelayCloseIO(1);
 end;
 
 constructor TC40_NetDisk_VM_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -2182,6 +2193,48 @@ begin
   d := TDFE.Create;
   d.WriteInteger(Max_Num);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GeTOnlineList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_C(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoC);
+var
+  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
+  d: TDFE;
+begin
+  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_M(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoM);
+var
+  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
+  d: TDFE;
+begin
+  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_P(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoP);
+var
+  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
+  d: TDFE;
+begin
+  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2649,48 +2702,6 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_File_List', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_C(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoC);
-var
-  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
-  d: TDFE;
-begin
-  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
-  tmp.Client := self;
-  tmp.OnResultC := OnResult;
-
-  d := TDFE.Create;
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_M(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoM);
-var
-  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
-  d: TDFE;
-begin
-  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
-  tmp.Client := self;
-  tmp.OnResultM := OnResult;
-
-  d := TDFE.Create;
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_VM_Client.Get_NetDisk_SpaceInfo_P(OnResult: TOn_Usr_Get_NetDisk_SpaceInfoP);
-var
-  tmp: TOn_Usr_Get_NetDisk_SpaceInfo;
-  d: TDFE;
-begin
-  tmp := TOn_Usr_Get_NetDisk_SpaceInfo.Create;
-  tmp.Client := self;
-  tmp.OnResultP := OnResult;
-
-  d := TDFE.Create;
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
