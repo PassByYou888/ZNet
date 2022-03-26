@@ -46,7 +46,8 @@ type
 
     procedure Rebuild;
     procedure Clear;
-    procedure Delete(N_: SystemString);
+    procedure Delete(Section_: SystemString);
+    procedure DeleteKey(Section_, Key_: SystemString);
 
     function Exists(N_: SystemString): Boolean;
 
@@ -382,6 +383,7 @@ begin
     end;
 
   DisposeObject(tmpSecLst);
+  FIsChanged := True;
 end;
 
 procedure THashTextEngine.Clear;
@@ -390,13 +392,24 @@ begin
   FSectionHashVariantList.Clear;
   FSectionHashStringList.Clear;
   FComment.Clear;
+  FIsChanged := True;
 end;
 
-procedure THashTextEngine.Delete(N_: SystemString);
+procedure THashTextEngine.Delete(Section_: SystemString);
 begin
-  FSectionList.Delete(N_);
-  FSectionHashVariantList.Delete(N_);
-  FSectionHashStringList.Delete(N_);
+  FSectionList.Delete(Section_);
+  FSectionHashVariantList.Delete(Section_);
+  FSectionHashStringList.Delete(Section_);
+  FIsChanged := True;
+end;
+
+procedure THashTextEngine.DeleteKey(Section_, Key_: SystemString);
+begin
+  if FSectionHashVariantList.Exists(Section_) then
+      THashVariantList(FSectionHashVariantList[Section_]).Delete(Key_);
+  if FSectionHashStringList.Exists(Section_) then
+      THashStringList(FSectionHashStringList[Section_]).Delete(Key_);
+  FIsChanged := True;
 end;
 
 function THashTextEngine.Exists(N_: SystemString): Boolean;
