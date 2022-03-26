@@ -237,12 +237,12 @@ type
 
   TC40_Custom_ClientPool_Wait_States = array of TC40_Custom_ClientPool_Wait_Data;
 
-  TOn_C40_Custom_Client_EventC = procedure(States_: TC40_Custom_ClientPool_Wait_States);
-  TOn_C40_Custom_Client_EventM = procedure(States_: TC40_Custom_ClientPool_Wait_States) of object;
+  TOn_C40_Custom_Client_EventC = procedure(States: TC40_Custom_ClientPool_Wait_States);
+  TOn_C40_Custom_Client_EventM = procedure(States: TC40_Custom_ClientPool_Wait_States) of object;
 {$IFDEF FPC}
-  TOn_C40_Custom_Client_EventP = procedure(States_: TC40_Custom_ClientPool_Wait_States) is nested;
+  TOn_C40_Custom_Client_EventP = procedure(States: TC40_Custom_ClientPool_Wait_States) is nested;
 {$ELSE FPC}
-  TOn_C40_Custom_Client_EventP = reference to procedure(States_: TC40_Custom_ClientPool_Wait_States);
+  TOn_C40_Custom_Client_EventP = reference to procedure(States: TC40_Custom_ClientPool_Wait_States);
 {$ENDIF FPC}
 
   TC40_Custom_ClientPool_Wait = class
