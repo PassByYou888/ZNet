@@ -609,12 +609,12 @@ end;
 
 function TMS64.PositionAsPtr(const Position_: Int64): Pointer;
 begin
-  Result := Pointer(NativeUInt(FMemory) + Position_);
+  Result := GetOffset(FMemory, Position_);
 end;
 
 function TMS64.PositionAsPtr: Pointer;
 begin
-  Result := Pointer(NativeUInt(FMemory) + FPosition);
+  Result := GetOffset(FMemory, FPosition);
 end;
 
 function TMS64.PosAsPtr(const Position_: Int64): Pointer;
@@ -664,14 +664,14 @@ begin
           for j := 0 to Num - 1 do
             begin
               stream.ReadBuffer(p^, ChunkSize);
-              p := Pointer(NativeUInt(p) + ChunkSize);
+              p := GetOffset(p, ChunkSize);
             end;
 
           { Process remaining bytes }
           if Rest > 0 then
             begin
               stream.ReadBuffer(p^, Rest);
-              p := Pointer(NativeUInt(p) + Rest);
+              p := GetOffset(p, Rest);
             end;
         end
       else
@@ -723,14 +723,14 @@ begin
           for j := 0 to Num - 1 do
             begin
               stream.WriteBuffer(p^, ChunkSize);
-              p := Pointer(NativeUInt(p) + ChunkSize);
+              p := GetOffset(p, ChunkSize);
             end;
 
           { Process remaining bytes }
           if Rest > 0 then
             begin
               stream.WriteBuffer(p^, Rest);
-              p := Pointer(NativeUInt(p) + Rest);
+              p := GetOffset(p, Rest);
             end;
         end
       else
@@ -790,7 +790,7 @@ begin
                   SetCapacity(p);
               FSize := p;
             end;
-          CopyPtr(@buffer, PByte(NativeUInt(FMemory) + FPosition), Count);
+          CopyPtr(@buffer, GetOffset(FMemory, FPosition), Count);
           FPosition := p;
           Result := Count;
           Exit;
@@ -833,7 +833,7 @@ begin
                   SetCapacity(p);
               FSize := p;
             end;
-          CopyPtr(@buffer[Offset], PByte(NativeUInt(FMemory) + FPosition), Count);
+          CopyPtr(@buffer[Offset], GetOffset(FMemory, FPosition), Count);
           FPosition := p;
           Result := Count;
           Exit;
@@ -860,7 +860,7 @@ begin
         begin
           if Result > Count then
               Result := Count;
-          CopyPtr(PByte(NativeUInt(FMemory) + FPosition), @buffer, Result);
+          CopyPtr(GetOffset(FMemory, FPosition), @buffer, Result);
           inc(FPosition, Result);
           Exit;
         end;
@@ -894,7 +894,7 @@ begin
           if p > Count then
               p := Count;
 
-          CopyPtr(PByte(NativeUInt(FMemory) + FPosition), @buffer[Offset], p);
+          CopyPtr(GetOffset(FMemory, FPosition), @buffer[Offset], p);
           inc(FPosition, p);
           Result := p;
           Exit;
