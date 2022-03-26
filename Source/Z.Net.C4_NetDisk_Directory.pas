@@ -110,6 +110,9 @@ type
     procedure cmd_RemoveItem(Sender: TPeerIO; InData: TDFE);
     procedure cmd_NewField(Sender: TPeerIO; InData: TDFE);
     procedure cmd_SpaceInfo(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_SearchItem(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_CopyItem(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_CopyField(Sender: TPeerIO; InData: TDFE);
   public
     // directory
     Directory_ZDB2_RecycleMemoryTimeOut: TTimeTick;
@@ -278,6 +281,43 @@ type
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
+  TON_SearchItem_Data = record
+    DB_Field, DB_Item: SystemString;
+    ModificationTime: TDateTime;
+  end;
+
+  TON_SearchItem_Data_array = array of TON_SearchItem_Data;
+
+  TON_SearchItem_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+  TON_SearchItem_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array) of object;
+{$IFDEF FPC}
+  TON_SearchItem_P = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array) is nested;
+{$ELSE FPC}
+  TON_SearchItem_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+{$ENDIF FPC}
+
+  TON_Temp_SearchItem = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Directory_Client;
+    OnResultC: TON_SearchItem_C;
+    OnResultM: TON_SearchItem_M;
+    OnResultP: TON_SearchItem_P;
+    constructor Create; override;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TCopyItem_Info = record
+    Sour_DB_Name, Sour_DB_Field, Sour_DB_Item, Dest_DB_Name, Dest_DB_Field: SystemString;
+  end;
+
+  TCopyItem_Info_Array = array of TCopyItem_Info;
+
+  TCopyField_Info = record
+    Sour_DB_Name, Sour_DB_Field, Dest_DB_Name, Dest_DB_Field: SystemString;
+  end;
+
+  TCopyField_Info_Array = array of TCopyField_Info;
+
 {$ENDREGION 'bridge define'}
 
   TC40_NetDisk_Directory_Client = class(TC40_Base_NoAuth_Client)
@@ -328,10 +368,19 @@ type
     // new field
     procedure NewField(DB_Name, DB_Field: U_String);
 
-    // space
+    // space info
     procedure SpaceInfo_C(DB_Name: U_String; OnResult: TON_SpaceInfo_C);
     procedure SpaceInfo_M(DB_Name: U_String; OnResult: TON_SpaceInfo_M);
     procedure SpaceInfo_P(DB_Name: U_String; OnResult: TON_SpaceInfo_P);
+
+    // search
+    procedure SearchItem_C(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_C);
+    procedure SearchItem_M(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_M);
+    procedure SearchItem_P(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_P);
+
+    // copy
+    procedure CopyItem(arry: TCopyItem_Info_Array);
+    procedure CopyField(arry: TCopyField_Info_Array);
   end;
 
 implementation
@@ -911,6 +960,122 @@ begin
     end;
 end;
 
+procedure TC40_NetDisk_Directory_Service.cmd_SearchItem(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  DB_Name, DB_Field, DB_Search: U_String;
+  fd: TDirectory_Service_User_File_DB;
+  ir: TItemRecursionSearch;
+begin
+  DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  DB_Search := InData.R.ReadString;
+  fd := Directory_HashPool[DB_Name];
+  if fd = nil then
+    begin
+      // create file db
+      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
+      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
+      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
+      Directory_HashPool.Add(fd.DB_Name, fd);
+      fd.Stream.Save;
+    end;
+
+  if fd.Stream.Data.RecursionSearchFirst(DB_Field, DB_Search, ir) then
+    begin
+      repeat
+        if ir.ReturnHeader.ID = DB_Header_Item_ID then
+          begin
+            OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader));
+            OutData.WriteString(ir.ReturnHeader.Name);
+            OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
+          end;
+      until not fd.Stream.Data.RecursionSearchNext(ir);
+    end;
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_CopyItem(Sender: TPeerIO; InData: TDFE);
+var
+  Sour_DB_Name, Sour_DB_Field, Sour_DB_Item: U_String;
+  Sour_FD: TDirectory_Service_User_File_DB;
+  Dest_DB_Name, Dest_DB_Field: U_String;
+  Dest_FD: TDirectory_Service_User_File_DB;
+begin
+  while InData.R.NotEnd do
+    begin
+      // read sour info
+      Sour_DB_Name := InData.R.ReadString;
+      Sour_DB_Field := InData.R.ReadString;
+      Sour_DB_Item := InData.R.ReadString;
+      Sour_FD := Directory_HashPool[Sour_DB_Name];
+      if Sour_FD = nil then
+        begin
+          // create file db
+          Sour_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
+          Sour_FD.Stream.Data.Reserved := String_To_Reserved(Sour_DB_Name);
+          Sour_FD.DB_Name := Reserved_To_String(Sour_FD.Stream.Data.Reserved);
+          Directory_HashPool.Add(Sour_FD.DB_Name, Sour_FD);
+          Sour_FD.Stream.Save;
+        end;
+
+      // read dest info
+      Dest_DB_Name := InData.R.ReadString;
+      Dest_DB_Field := InData.R.ReadString;
+      Dest_FD := Directory_HashPool[Dest_DB_Name];
+      if Dest_FD = nil then
+        begin
+          // create file db
+          Dest_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
+          Dest_FD.Stream.Data.Reserved := String_To_Reserved(Dest_DB_Name);
+          Dest_FD.DB_Name := Reserved_To_String(Dest_FD.Stream.Data.Reserved);
+          Directory_HashPool.Add(Dest_FD.DB_Name, Dest_FD);
+          Dest_FD.Stream.Save;
+        end;
+
+      Sour_FD.Stream.Data.CopyItemToPath(Sour_DB_Field, Sour_DB_Item, Dest_FD.Stream.Data, Dest_DB_Field);
+    end;
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_CopyField(Sender: TPeerIO; InData: TDFE);
+var
+  Sour_DB_Name, Sour_DB_Field: U_String;
+  Sour_FD: TDirectory_Service_User_File_DB;
+  Dest_DB_Name, Dest_DB_Field: U_String;
+  Dest_FD: TDirectory_Service_User_File_DB;
+begin
+  while InData.R.NotEnd do
+    begin
+      // read sour info
+      Sour_DB_Name := InData.R.ReadString;
+      Sour_DB_Field := InData.R.ReadString;
+      Sour_FD := Directory_HashPool[Sour_DB_Name];
+      if Sour_FD = nil then
+        begin
+          // create file db
+          Sour_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
+          Sour_FD.Stream.Data.Reserved := String_To_Reserved(Sour_DB_Name);
+          Sour_FD.DB_Name := Reserved_To_String(Sour_FD.Stream.Data.Reserved);
+          Directory_HashPool.Add(Sour_FD.DB_Name, Sour_FD);
+          Sour_FD.Stream.Save;
+        end;
+
+      // read dest info
+      Dest_DB_Name := InData.R.ReadString;
+      Dest_DB_Field := InData.R.ReadString;
+      Dest_FD := Directory_HashPool[Dest_DB_Name];
+      if Dest_FD = nil then
+        begin
+          // create file db
+          Dest_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
+          Dest_FD.Stream.Data.Reserved := String_To_Reserved(Dest_DB_Name);
+          Dest_FD.DB_Name := Reserved_To_String(Dest_FD.Stream.Data.Reserved);
+          Directory_HashPool.Add(Dest_FD.DB_Name, Dest_FD);
+          Dest_FD.Stream.Save;
+        end;
+
+      Sour_FD.Stream.Data.CopyFieldToPath(Sour_DB_Field, Dest_FD.Stream.Data, Dest_DB_Field);
+    end;
+end;
+
 constructor TC40_NetDisk_Directory_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
   Directory_FS: TCore_Stream;
@@ -931,6 +1096,10 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('NewField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewField;
   DTNoAuthService.RecvTunnel.RegisterStream('SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SpaceInfo;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchItem;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyItem;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyField;
+
   // instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
@@ -1377,6 +1546,41 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
+constructor TON_Temp_SearchItem.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_SearchItem.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+var
+  SearchResult: TON_SearchItem_Data_array;
+  i: Integer;
+begin
+  SetLength(SearchResult, Result_.count div 3);
+  while Result_.R.NotEnd do
+    begin
+      SearchResult[i].DB_Field := Result_.R.ReadString;
+      SearchResult[i].DB_Item := Result_.R.ReadString;
+      SearchResult[i].ModificationTime := Result_.R.ReadDouble;
+      inc(i);
+    end;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, SearchResult);
+    if Assigned(OnResultM) then
+        OnResultM(Client, SearchResult);
+    if Assigned(OnResultP) then
+        OnResultP(Client, SearchResult);
+  except
+  end;
+  DelayFreeObject(1.0, self);
+end;
+
 constructor TC40_NetDisk_Directory_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
@@ -1788,6 +1992,92 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchItem_C(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_C);
+var
+  tmp: TON_Temp_SearchItem;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchItem.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Search);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchItem_M(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_M);
+var
+  tmp: TON_Temp_SearchItem;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchItem.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Search);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchItem_P(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_P);
+var
+  tmp: TON_Temp_SearchItem;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchItem.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Search);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.CopyItem(arry: TCopyItem_Info_Array);
+var
+  i: Integer;
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+    begin
+      d.WriteString(arry[i].Sour_DB_Name);
+      d.WriteString(arry[i].Sour_DB_Field);
+      d.WriteString(arry[i].Sour_DB_Item);
+      d.WriteString(arry[i].Dest_DB_Name);
+      d.WriteString(arry[i].Dest_DB_Field);
+    end;
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CopyItem', d);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.CopyField(arry: TCopyField_Info_Array);
+var
+  i: Integer;
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+    begin
+      d.WriteString(arry[i].Sour_DB_Name);
+      d.WriteString(arry[i].Sour_DB_Field);
+      d.WriteString(arry[i].Dest_DB_Name);
+      d.WriteString(arry[i].Dest_DB_Field);
+    end;
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CopyField', d);
   disposeObject(d);
 end;
 
