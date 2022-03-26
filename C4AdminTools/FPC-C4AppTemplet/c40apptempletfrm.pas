@@ -40,6 +40,8 @@ uses
   Z.ZDB2.Custom, Z.ZDB2, Z.ZDB2.DFE, Z.ZDB2.HS, Z.ZDB2.HV, Z.ZDB2.Json, Z.ZDB2.MS64, Z.ZDB2.NM, Z.ZDB2.TE, Z.ZDB2.FileEncoder,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB,
   Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
+  Z.Net.C4_NetDisk_VM_Service, Z.Net.C4_NetDisk_VM_Client, Z.Net.C4_NetDisk_Directory,
+  Z.Net.C4_TEKeyValue,
   Z.Net.PhysicsIO;
 
 type
