@@ -1415,8 +1415,12 @@ begin
       for i := 0 to identifier_arry.Count - 1 do
         begin
           if UserIdentifierHash.Exists(identifier_arry.S[i]) then
+            begin
               DoStatus('repeat user %s', [identifier_arry.S[i]]);
-          UserIdentifierHash.Add(identifier_arry.S[i], Json);
+              UserIdentifierHash.Add(identifier_arry.S[i], Json);
+            end
+          else
+              UserIdentifierHash.FastAdd(identifier_arry.S[i], Json);
         end;
       Json.RecycleMemory;
     end;
