@@ -906,7 +906,7 @@ begin
     begin
       buff := n.Bytes;
       if length(buff) > FixedStringL - 1 then
-          n.DeleteFirst
+          n.DeleteLast
       else
           break;
     end;
