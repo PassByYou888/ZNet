@@ -111,8 +111,9 @@ type
 
     function CopyTo(DestDB: TObjectDataManager): Boolean;
     function CopyToPath(DestDB: TObjectDataManager; destPath: SystemString): Boolean;
-    function CopyFieldToPath(fieldPos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean;
-    function CopyItemToPath(const Path_, DBItemName: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
+    function CopyFieldToPath(fieldPos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
+    function CopyFieldToPath(Path_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
+    function CopyItemToPath(Path_, DB_Item_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
 
     // export to stream
     procedure SaveToStream(stream: TCore_Stream);
@@ -201,46 +202,46 @@ type
     function GetHeader(hPos: Int64; var h: THeader): Boolean;
 
     // item api
-    function GetItemSize(const Path_, DBItemName: SystemString): Int64;
-    function ItemCreate(const Path_, DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
-    function ItemDelete(const Path_, DBItemName: SystemString): Boolean;
-    function ItemExists(const Path_, DBItemName: SystemString): Boolean;
-    function ItemOpen(const Path_, DBItemName: SystemString; var ItemHnd: TItemHandle): Boolean;
-    function ItemAutoOpenOrCreate(const Path_, DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function GetItemSize(const Path_, DB_Item_: SystemString): Int64;
+    function ItemCreate(const Path_, DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function ItemDelete(const Path_, DB_Item_: SystemString): Boolean;
+    function ItemExists(const Path_, DB_Item_: SystemString): Boolean;
+    function ItemOpen(const Path_, DB_Item_: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function ItemAutoOpenOrCreate(const Path_, DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
     function ItemUpdate(var ItemHnd: TItemHandle): Boolean;
     function ItemClose(var ItemHnd: TItemHandle): Boolean;
     function ItemCopyTo(var ItemHnd: TItemHandle; DestDB: TObjectDataManager; var DestItemHandle: TItemHandle; const CopySize: Int64): Boolean;
     function ItemMove(const Path_, ItemName, destPath: SystemString): Boolean;
     function ItemRename(const fieldPos: Int64; var ItemHnd: TItemHandle; const NewName, NewDescription: SystemString): Boolean;
-    function ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
-    function ItemFastCreate(const fPos: Int64; const DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function ItemFastCreate(const fPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
     function ItemFastOpen(const hPos: Int64; var ItemHnd: TItemHandle): Boolean;
     function ItemFastResetBody(const fPos: Int64): Boolean;
-    function ItemFastExists(const fieldPos: Int64; const DBItemName: SystemString): Boolean;
-    function ItemFastFindFirst(const fieldPos: Int64; const DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
-    function ItemFastFindLast(const fieldPos: Int64; const DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFastExists(const fieldPos: Int64; const DB_Item_: SystemString): Boolean;
+    function ItemFastFindFirst(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFastFindLast(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFastFindNext(var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFastFindPrev(var ItemSearchHandle: TItemSearch): Boolean;
-    function ItemFindFirst(const Path_, DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
-    function ItemFindLast(const Path_, DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFindFirst(const Path_, DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFindLast(const Path_, DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFindNext(var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFindPrev(var ItemSearchHandle: TItemSearch): Boolean;
 
     // item block operation
-    function ItemRead(var ItemHnd: TItemHandle; const siz: Int64; var Buffers): Boolean; overload;
+    function ItemRead(var ItemHnd: TItemHandle; const siz: Int64; var Buffer_): Boolean; overload;
     function ItemSeekStart(var ItemHnd: TItemHandle): Boolean;
     function ItemSeekLast(var ItemHnd: TItemHandle): Boolean;
     function ItemSeek(var ItemHnd: TItemHandle; const ItemOffset: Int64): Boolean;
     function ItemGetPos(var ItemHnd: TItemHandle): Int64;
     function ItemGetSize(var ItemHnd: TItemHandle): Int64;
-    function ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffers): Boolean;
+    function ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffer_): Boolean;
 
     // item stream
     function ItemReadToStream(var ItemHnd: TItemHandle; stream: TCore_Stream): Boolean; overload;
     function ItemReadToStream(hPos: Int64; stream: TCore_Stream): Boolean; overload;
     function ItemWriteFromStream(var ItemHnd: TItemHandle; stream: TCore_Stream): Boolean; overload;
-    function ItemReadToStream(const Path_, DBItemName: SystemString; stream: TCore_Stream): Boolean; overload;
-    function ItemWriteFromStream(const Path_, DBItemName: SystemString; stream: TCore_Stream): Boolean; overload;
+    function ItemReadToStream(const Path_, DB_Item_: SystemString; stream: TCore_Stream): Boolean; overload;
+    function ItemWriteFromStream(const Path_, DB_Item_: SystemString; stream: TCore_Stream): Boolean; overload;
 
     // recursion
     function RecursionSearchFirst(const InitPath, Filter: SystemString; var RecursionSearchHnd: TItemRecursionSearch): Boolean;
@@ -746,14 +747,23 @@ begin
       Result := db_CopyFieldTo('*', FDB_HND, fieldPos, DestDB.FDB_HND, DestFieldPos);
 end;
 
-function TObjectDataManager.CopyItemToPath(const Path_, DBItemName: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
+function TObjectDataManager.CopyFieldToPath(Path_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Boolean;
+var
+  fieldPos: Int64;
+begin
+  Result := False;
+  if GetPathField(Path_, fieldPos) then
+      Result := CopyFieldToPath(fieldPos, DestDB, destPath);
+end;
+
+function TObjectDataManager.CopyItemToPath(Path_, DB_Item_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
 var
   srHnd: TItemSearch;
   sourItmHnd, destItmHnd: TItemHandle;
 begin
   Result := 0;
   DestDB.CreateField(destPath, '');
-  if ItemFindFirst(Path_, DBItemName, srHnd) then
+  if ItemFindFirst(Path_, DB_Item_, srHnd) then
     begin
       repeat
         if ItemFastOpen(srHnd.HeaderPOS, sourItmHnd) then
@@ -1474,51 +1484,51 @@ begin
   Result := dbHeader_ReadRec(hPos, FDB_HND.IOHnd, h);
 end;
 
-function TObjectDataManager.GetItemSize(const Path_, DBItemName: SystemString): Int64;
+function TObjectDataManager.GetItemSize(const Path_, DB_Item_: SystemString): Int64;
 var
   DBItemHandle: TItemHandle;
 begin
   Init_TTMDBItemHandle(DBItemHandle);
-  if db_GetItem(Path_, DBItemName, FDefaultItemID, DBItemHandle.Item, FDB_HND) then
+  if db_GetItem(Path_, DB_Item_, FDefaultItemID, DBItemHandle.Item, FDB_HND) then
       Result := DBItemHandle.Item.Size
   else
       Result := 0;
 end;
 
-function TObjectDataManager.ItemCreate(const Path_, DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemCreate(const Path_, DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
 {
   It can automatically create a path
 }
 begin
   Init_TTMDBItemHandle(ItemHnd);
-  Result := db_ItemCreate(Path_, DBItemName, DBItemDescription, FDefaultItemID, ItemHnd, FDB_HND);
+  Result := db_ItemCreate(Path_, DB_Item_, DBItemDescription, FDefaultItemID, ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemDelete(const Path_, DBItemName: SystemString): Boolean;
+function TObjectDataManager.ItemDelete(const Path_, DB_Item_: SystemString): Boolean;
 begin
-  Result := db_DeleteItem(Path_, DBItemName, FDefaultItemID, FDB_HND);
+  Result := db_DeleteItem(Path_, DB_Item_, FDefaultItemID, FDB_HND);
 end;
 
-function TObjectDataManager.ItemExists(const Path_, DBItemName: SystemString): Boolean;
+function TObjectDataManager.ItemExists(const Path_, DB_Item_: SystemString): Boolean;
 var
   ItemSearchHnd: TItemSearch;
 begin
   Init_TTMDBSearchItem(ItemSearchHnd);
-  Result := db_FindFirstItem(Path_, DBItemName, FDefaultItemID, ItemSearchHnd, FDB_HND);
+  Result := db_FindFirstItem(Path_, DB_Item_, FDefaultItemID, ItemSearchHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemOpen(const Path_, DBItemName: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemOpen(const Path_, DB_Item_: SystemString; var ItemHnd: TItemHandle): Boolean;
 begin
   Init_TTMDBItemHandle(ItemHnd);
-  Result := db_ItemOpen(Path_, DBItemName, FDefaultItemID, ItemHnd, FDB_HND);
+  Result := db_ItemOpen(Path_, DB_Item_, FDefaultItemID, ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemAutoOpenOrCreate(const Path_, DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemAutoOpenOrCreate(const Path_, DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
 begin
-  if ItemExists(Path_, DBItemName) then
-      Result := ItemOpen(Path_, DBItemName, ItemHnd)
+  if ItemExists(Path_, DB_Item_) then
+      Result := ItemOpen(Path_, DB_Item_, ItemHnd)
   else
-      Result := ItemCreate(Path_, DBItemName, DBItemDescription, ItemHnd);
+      Result := ItemCreate(Path_, DB_Item_, DBItemDescription, ItemHnd);
 end;
 
 function TObjectDataManager.ItemUpdate(var ItemHnd: TItemHandle): Boolean;
@@ -1534,23 +1544,24 @@ end;
 function TObjectDataManager.ItemCopyTo(var ItemHnd: TItemHandle; DestDB: TObjectDataManager; var DestItemHandle: TItemHandle; const CopySize: Int64): Boolean;
 var
   i: Integer;
-  buff: array [0 .. C_BufferChunkSize] of Byte;
+  p: Pointer;
 begin
   Result := False;
+  p := System.GetMemory(C_BufferChunkSize);
   if CopySize > C_BufferChunkSize then
     begin
       for i := 1 to (CopySize div C_BufferChunkSize) do
         begin
-          if not ItemRead(ItemHnd, C_BufferChunkSize, buff) then
+          if not ItemRead(ItemHnd, C_BufferChunkSize, p^) then
               Exit;
-          if not DestDB.ItemWrite(DestItemHandle, C_BufferChunkSize, buff) then
+          if not DestDB.ItemWrite(DestItemHandle, C_BufferChunkSize, p^) then
               Exit;
         end;
       if (CopySize mod C_BufferChunkSize) > 0 then
         begin
-          if not ItemRead(ItemHnd, CopySize mod C_BufferChunkSize, buff) then
+          if not ItemRead(ItemHnd, CopySize mod C_BufferChunkSize, p^) then
               Exit;
-          if not DestDB.ItemWrite(DestItemHandle, CopySize mod C_BufferChunkSize, buff) then
+          if not DestDB.ItemWrite(DestItemHandle, CopySize mod C_BufferChunkSize, p^) then
               Exit;
         end;
     end
@@ -1558,12 +1569,13 @@ begin
     begin
       if CopySize > 0 then
         begin
-          if not ItemRead(ItemHnd, CopySize, buff) then
+          if not ItemRead(ItemHnd, CopySize, p^) then
               Exit;
-          if not DestDB.ItemWrite(DestItemHandle, CopySize, buff) then
+          if not DestDB.ItemWrite(DestItemHandle, CopySize, p^) then
               Exit;
         end;
     end;
+  System.FreeMemory(p);
   Result := True;
 end;
 
@@ -1577,16 +1589,16 @@ begin
   Result := db_ItemReName(fieldPos, NewName, NewDescription, ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
 begin
   Init_TTMDBItemHandle(ItemHnd);
-  Result := db_ItemFastInsertNew(DBItemName, DBItemDescription, fieldPos, InsertHeaderPos, FDefaultItemID, ItemHnd, FDB_HND);
+  Result := db_ItemFastInsertNew(DB_Item_, DBItemDescription, fieldPos, InsertHeaderPos, FDefaultItemID, ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastCreate(const fPos: Int64; const DBItemName, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemFastCreate(const fPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
 begin
   Init_TTMDBItemHandle(ItemHnd);
-  Result := db_ItemFastCreate(DBItemName, DBItemDescription, fPos, FDefaultItemID, ItemHnd, FDB_HND);
+  Result := db_ItemFastCreate(DB_Item_, DBItemDescription, fPos, FDefaultItemID, ItemHnd, FDB_HND);
 end;
 
 function TObjectDataManager.ItemFastOpen(const hPos: Int64; var ItemHnd: TItemHandle): Boolean;
@@ -1603,24 +1615,24 @@ begin
     and db_ItemBodyReset(ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastExists(const fieldPos: Int64; const DBItemName: SystemString): Boolean;
+function TObjectDataManager.ItemFastExists(const fieldPos: Int64; const DB_Item_: SystemString): Boolean;
 var
   ItemSearchHnd: TItemSearch;
 begin
   Init_TTMDBSearchItem(ItemSearchHnd);
-  Result := db_FastFindFirstItem(fieldPos, DBItemName, FDefaultItemID, ItemSearchHnd, FDB_HND);
+  Result := db_FastFindFirstItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastFindFirst(const fieldPos: Int64; const DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFastFindFirst(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FastFindFirstItem(fieldPos, DBItemName, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FastFindFirstItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastFindLast(const fieldPos: Int64; const DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFastFindLast(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FastFindLastItem(fieldPos, DBItemName, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FastFindLastItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
 function TObjectDataManager.ItemFastFindNext(var ItemSearchHandle: TItemSearch): Boolean;
@@ -1633,16 +1645,16 @@ begin
   Result := db_FastFindPrevItem(ItemSearchHandle, FDefaultItemID, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFindFirst(const Path_, DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFindFirst(const Path_, DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FindFirstItem(Path_, DBItemName, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FindFirstItem(Path_, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFindLast(const Path_, DBItemName: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFindLast(const Path_, DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FindLastItem(Path_, DBItemName, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FindLastItem(Path_, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
 function TObjectDataManager.ItemFindNext(var ItemSearchHandle: TItemSearch): Boolean;
@@ -1655,9 +1667,9 @@ begin
   Result := db_FindPrevItem(ItemSearchHandle, FDefaultItemID, FDB_HND);
 end;
 
-function TObjectDataManager.ItemRead(var ItemHnd: TItemHandle; const siz: Int64; var Buffers): Boolean;
+function TObjectDataManager.ItemRead(var ItemHnd: TItemHandle; const siz: Int64; var Buffer_): Boolean;
 begin
-  Result := db_ItemRead(siz, Buffers, ItemHnd, FDB_HND);
+  Result := db_ItemRead(siz, Buffer_, ItemHnd, FDB_HND);
 end;
 
 function TObjectDataManager.ItemSeekStart(var ItemHnd: TItemHandle): Boolean;
@@ -1695,9 +1707,9 @@ begin
   Result := db_ItemGetSize(ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffers): Boolean;
+function TObjectDataManager.ItemWrite(var ItemHnd: TItemHandle; const siz: Int64; const Buffer_): Boolean;
 begin
-  Result := db_ItemWrite(siz, Buffers, ItemHnd, FDB_HND);
+  Result := db_ItemWrite(siz, Buffer_, ItemHnd, FDB_HND);
 end;
 
 function TObjectDataManager.ItemReadToStream(var ItemHnd: TItemHandle; stream: TCore_Stream): Boolean;
@@ -1732,22 +1744,22 @@ begin
   DisposeObject(sour);
 end;
 
-function TObjectDataManager.ItemReadToStream(const Path_, DBItemName: SystemString; stream: TCore_Stream): Boolean;
+function TObjectDataManager.ItemReadToStream(const Path_, DB_Item_: SystemString; stream: TCore_Stream): Boolean;
 var
   itmHnd: TItemHandle;
 begin
   Result := False;
-  if not ItemOpen(Path_, DBItemName, itmHnd) then
+  if not ItemOpen(Path_, DB_Item_, itmHnd) then
       Exit;
   Result := ItemReadToStream(itmHnd, stream);
 end;
 
-function TObjectDataManager.ItemWriteFromStream(const Path_, DBItemName: SystemString; stream: TCore_Stream): Boolean;
+function TObjectDataManager.ItemWriteFromStream(const Path_, DB_Item_: SystemString; stream: TCore_Stream): Boolean;
 var
   itmHnd: TItemHandle;
 begin
   Result := False;
-  if ItemCreate(Path_, DBItemName, DBItemName, itmHnd) then
+  if ItemCreate(Path_, DB_Item_, DB_Item_, itmHnd) then
       Result := ItemWriteFromStream(itmHnd, stream);
 end;
 
