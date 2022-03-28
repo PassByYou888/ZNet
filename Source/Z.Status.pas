@@ -56,6 +56,7 @@ procedure DoStatus(const v: SystemString); overload;
 procedure DoStatus(const v: TPascalString); overload;
 procedure DoStatus(const v: TUPascalString); overload;
 procedure DoStatus(const v: TMD5); overload;
+procedure DoStatus(const p: Pointer; const siz: Integer); overload;
 procedure DoStatus; overload;
 
 procedure DoStatusNoLn(const v: TPascalString); overload;
@@ -74,6 +75,8 @@ var
   StatusThreadID: Boolean;
 
 implementation
+
+uses Z.Cipher;
 
 procedure bufHashToString(hash: Pointer; Size: NativeInt; var output: TPascalString);
 const
@@ -215,6 +218,11 @@ end;
 procedure DoStatus(const v: TMD5);
 begin
   DoStatus(umlMD5ToString(v).Text);
+end;
+
+procedure DoStatus(const p: Pointer; const siz: Integer);
+begin
+  DoStatus(TCipher.BuffToString(p, siz));
 end;
 
 type
