@@ -23,9 +23,11 @@ uses
   Z.Net.C4_UserDB,
   Z.Net.C4_FS2,
   Z.Net.C4_Log_DB,
+  Z.Net.C4_TEKeyValue,
   Z.Net.C4;
 
 type
+{$REGION 'define_bridge'}
   TC40_NetDisk_VM_Service = class;
 
   TC40_NetDisk_VM_Service_SendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
@@ -58,6 +60,7 @@ type
   public
     VM_Service: TC40_NetDisk_VM_Service;
     IO_Def_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+    procedure Do_ExistsDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
     procedure Do_Usr_GetDetail(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString; Json_: TZJ);
     procedure Do_Usr_GetPrimaryIdentifier(sender: TC40_UserDB_Client; State_: Boolean; info_, PrimaryIdentifier_: SystemString);
     procedure Do_Usr_Auth(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
@@ -190,6 +193,35 @@ type
     procedure Do_SpaceInfo(sender: TC40_NetDisk_Directory_Client; Field_Num, Item_Num, ItemSpace: Int64);
   end;
 
+  TBuild_Share_Disk_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_VM_Service;
+    Share_Directory_DB_Name: U_String;
+    procedure Do_NewDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
+  end;
+
+  TGet_Share_Disk_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_VM_Service;
+    procedure Do_GetKey(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  end;
+
+  TGet_Share_Disk_File_List_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_VM_Service;
+    Share_Directory_DB_Name: U_String;
+    DB_Field: U_String;
+    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+  end;
+
+  TGet_Share_Disk_File_Frag_Info_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_VM_Service;
+    procedure Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
+  end;
+
+{$ENDREGION 'define_bridge'}
+
   TC40_NetDisk_VM_Service = class(TC40_Base_NoAuth_Service, I_ON_C40_UserDB_Client_Notify)
   protected
     procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
@@ -216,6 +248,11 @@ type
     function Get_Log_Client: TC40_Log_DB_Client;
     procedure Set_Log_Client(const Value: TC40_Log_DB_Client);
   protected
+    // TEKeyValue Interface
+    FTEKeyValue_Client: TC40_TEKeyValue_Client;
+    function Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
+    procedure Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+  protected
     // FS2.0 interface
     FFS2_Client_Pool: TC40_FS2_Client_List;
   protected
@@ -232,7 +269,7 @@ type
     procedure cmd_GetMyFriends(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetOnlineNum(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetOnlineList(sender: TPeerIO; InData, OutData: TDFE);
-    // netdisk(FS2+Directory)
+    // netdisk
     procedure cmd_Get_NetDisk_Config(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_SearchMultiMD5_FS_Service(sender: TPeerIO; InData, OutData: TDFE);
@@ -246,14 +283,26 @@ type
     procedure cmd_Get_NetDisk_File_Frag(sender: TPeerIO; InData: TDFE);
     procedure cmd_Get_NetDisk_File_List(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_SpaceInfo(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Remove_Item(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Remove_Field(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Copy_Item(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Copy_Field(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Build_Share_Disk(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Get_Share_Disk(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Remove_Share_Disk(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Get_Share_Disk_File_List(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Get_Share_Disk_File_Frag_Info(sender: TPeerIO; InData, OutData: TDFE);
   public
     // deployment
     property UserDB_Client: TC40_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
     property Directory_Client: TC40_NetDisk_Directory_Client read Get_Directory_Client write Set_Directory_Client;
+    property TEKeyValue_Client: TC40_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
     property FS2_Client_Pool: TC40_FS2_Client_List read FFS2_Client_Pool;
     property Log_Client: TC40_Log_DB_Client read Get_Log_Client write Set_Log_Client;
+    // automated
     procedure Automated_Config_NetDisk_Service_Relevance;
-    function Check_NetDisk_Service_Relevance: Boolean;
+    function Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean; overload;
+    function Check_NetDisk_Service_Relevance(): Boolean; overload;
   public
     File_Chunk_Size: Int64;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
@@ -266,6 +315,10 @@ type
     procedure PostLog(info1, info2: SystemString); overload;
     procedure PostLog(const v: SystemString; const Args: array of const); overload;
     procedure PostLog(const v: SystemString; const Args: array of const; info2: SystemString); overload;
+    class function PrimaryIdentifierToDirectory(PrimaryIdentifier_: U_String): U_String;
+    class function ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
+    class function IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
+    class function IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
   end;
 
 implementation
@@ -304,27 +357,57 @@ begin
   DisposeObjectAndNil(NetDisk_File_Frag);
 end;
 
+procedure TAuth_Bridge.Do_ExistsDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
+begin
+  if CheckIO then
+    begin
+      if Successed then
+        begin
+          IO.OutDataFrame.WriteBool(True);
+          IO.OutDataFrame.WriteString('auth and check directory DB successed.');
+          IO.OutDataFrame.WriteString(IO_Def_.PrimaryIdentifier);
+          IO.ContinueResultSend;
+          VM_Service.PostLog('%s auth and check directory DB successed.', [IO_Def_.PrimaryIdentifier.Text]);
+          IO_Def_.AuthDone := True;
+        end
+      else
+        begin
+          IO.OutDataFrame.WriteBool(False);
+          IO.OutDataFrame.WriteString('no found directory DB');
+          IO.ContinueResultSend;
+          VM_Service.PostLog('%s auth failed. no found directory %s.',
+            [IO_Def_.PrimaryIdentifier.Text, VM_Service.PrimaryIdentifierToDirectory(IO_Def_.PrimaryIdentifier).Text]);
+        end;
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
 procedure TAuth_Bridge.Do_Usr_GetDetail(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString; Json_: TZJ);
 begin
-  if CheckIO and State_ then
+  if CheckIO then
     begin
-      IO_Def_.UserJson.Assign(Json_);
-      IO_Def_.UserJson_MD5 := IO_Def_.UserJson.MD5;
-      sender.Usr_Open(IO_Def_.PrimaryIdentifier);
-      IO.OutDataFrame.WriteBool(True);
-      IO.OutDataFrame.WriteString(info_);
-      IO.ContinueResultSend;
-
-      VM_Service.PostLog('%s auth successed.', [IO_Def_.PrimaryIdentifier.Text], info_);
-    end
-  else
-    begin
-      if CheckIO then
+      if State_ then
+        begin
+          IO_Def_.UserJson.Assign(Json_);
+          IO_Def_.UserJson_MD5 := IO_Def_.UserJson.MD5;
+          sender.Usr_Open(IO_Def_.PrimaryIdentifier);
+          if (VM_Service.Directory_Client <> nil) and (VM_Service.Directory_Client.Connected) then
+            begin
+              VM_Service.Directory_Client.ExistsDB_M(
+                VM_Service.PrimaryIdentifierToDirectory(IO_Def_.PrimaryIdentifier), {$IFDEF FPC}@{$ENDIF FPC}Do_ExistsDB);
+              exit;
+            end;
+          IO.OutDataFrame.WriteBool(False);
+          IO.OutDataFrame.WriteString('directory is offline.');
+          IO.ContinueResultSend;
+          VM_Service.PostLog('%s auth failed. directory is offline.', [IO_Def_.PrimaryIdentifier.Text], info_);
+        end
+      else
         begin
           IO.OutDataFrame.WriteBool(False);
           IO.OutDataFrame.WriteString(info_);
           IO.ContinueResultSend;
-          VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], info_);
+          VM_Service.PostLog('%s Usr_GetDetail failed.', [IO_Def_.PrimaryIdentifier.Text], info_);
         end;
     end;
   DelayFreeObj(1.0, self);
@@ -332,29 +415,26 @@ end;
 
 procedure TAuth_Bridge.Do_Usr_GetPrimaryIdentifier(sender: TC40_UserDB_Client; State_: Boolean; info_, PrimaryIdentifier_: SystemString);
 begin
-  if CheckIO and State_ and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
+  if CheckIO then
     begin
-      IO_Def_.PrimaryIdentifier := PrimaryIdentifier_;
-      VM_Service.UserDB_Client.Usr_GetM(IO_Def_.UserName, 'Detail', {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetDetail);
-    end
-  else
-    begin
-      if CheckIO then
+      if State_ and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
         begin
-          IO.OutDataFrame.WriteBool(False);
-          IO.OutDataFrame.WriteString('PrimaryIdentifier error.');
-          IO.ContinueResultSend;
-          VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], 'PrimaryIdentifier error.');
+          IO_Def_.PrimaryIdentifier := PrimaryIdentifier_;
+          VM_Service.UserDB_Client.Usr_GetM(IO_Def_.UserName, 'Detail', {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetDetail);
+          exit;
         end;
-      DelayFreeObj(1.0, self);
+      IO.OutDataFrame.WriteBool(False);
+      IO.OutDataFrame.WriteString('PrimaryIdentifier error.');
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], 'PrimaryIdentifier error.');
     end;
+  DelayFreeObj(1.0, self);
 end;
 
 procedure TAuth_Bridge.Do_Usr_Auth(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
 begin
   if CheckIO then
     begin
-      IO_Def_.AuthDone := State_;
       if (State_) and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
         begin
           VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetPrimaryIdentifier);
@@ -374,7 +454,10 @@ begin
   IO.OutDataFrame.WriteString(info);
   IO.ContinueResultSend;
   DelayFreeObj(1.0, self);
-  VM_Service.PostLog('%s create Directory DB successed.', [userName_.Text], info);
+  if Successed then
+      VM_Service.PostLog('%s create Directory DB successed.', [userName_.Text], info)
+  else
+      VM_Service.PostLog('%s create Directory DB failed.', [userName_.Text], info)
 end;
 
 procedure TReg_Bridge.Do_Usr_Reg(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
@@ -394,7 +477,7 @@ begin
           VM_Service.UserDB_Client.Usr_Set(userName_, 'Detail', j_);
           DisposeObject(j_);
           // create directory db
-          VM_Service.Directory_Client.NewDB_M(userName_, {$IFDEF FPC}@{$ENDIF FPC}Do_NewDB);
+          VM_Service.Directory_Client.NewDB_M(VM_Service.PrimaryIdentifierToDirectory(userName_), {$IFDEF FPC}@{$ENDIF FPC}Do_NewDB);
           VM_Service.PostLog('%s reg successed.', [userName_.Text], info_);
           exit;
         end;
@@ -571,7 +654,7 @@ begin
       IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(info);
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s PutItemMD5.', [IO_Def.PrimaryIdentifier.Text], info);
+      VM_Service.PostLog('%s CheckAndCopy_NetDisk_File.', [IO_Def.PrimaryIdentifier.Text], info);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -595,12 +678,12 @@ begin
           p^.Size_ := frag_size_;
           IO_Def.NetDisk_File_Frag.Add(p);
           IO.OutDataFrame.WriteString('copy frag "%s" successed.', [p^.FS_File.Text]);
-          VM_Service.PostLog('%s CheckMD5AndFastCopy successed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
+          VM_Service.PostLog('%s CheckAndCopy_NetDisk_File_Frag successed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
         end
       else
         begin
           IO.OutDataFrame.WriteString('no found frag "%s"', [umlMD5ToStr(frag_md5_).Text]);
-          VM_Service.PostLog('%s CheckMD5AndFastCopy failed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
+          VM_Service.PostLog('%s CheckAndCopy_NetDisk_File_Frag failed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
         end;
 
       IO.ContinueResultSend;
@@ -622,7 +705,7 @@ begin
       d.WritePointer(Event_);
       IO_Def.SendTunnel.Owner.SendDirectStreamCmd('Done_PostFile_Frag', d);
       DisposeObject(d);
-      VM_Service.PostLog('%s Done_PostFile_Frag.', [IO_Def.PrimaryIdentifier.Text], info_);
+      VM_Service.PostLog('%s Post_NetDisk_File_Frag.', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -642,7 +725,7 @@ begin
       IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(info);
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s PutItemFrag.', [IO_Def.PrimaryIdentifier.Text], info);
+      VM_Service.PostLog('%s EndPost_NetDisk_File.', [IO_Def.PrimaryIdentifier.Text], info);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -661,7 +744,7 @@ begin
       IO.OutDataFrame.WriteDataFrame(d);
       IO.ContinueResultSend;
       DisposeObject(d);
-      VM_Service.PostLog('%s GetItemFrag.', [IO_Def.PrimaryIdentifier.Text]);
+      VM_Service.PostLog('%s Get_NetDisk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -677,7 +760,7 @@ begin
       IO.OutDataFrame.WriteString(info_);
       IO.OutDataFrame.WriteMD5(MD5_);
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s FS2_GetFileMD5.', [IO_Def.PrimaryIdentifier.Text], info_);
+      VM_Service.PostLog('%s Get_NetDisk_File_Frag_MD5.', [IO_Def.PrimaryIdentifier.Text], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -694,11 +777,13 @@ begin
       if Successed then
         begin
           m64 := TMS64.Create;
+          m64.Size := Stream.Size + 16;
+          m64.Position := 0;
           m64.WriteInt64(Pos_);
           m64.WriteUInt64(Event_);
           m64.WritePtr(Stream.Memory, Stream.Size);
           IO_Def.SendTunnel.Owner.SendCompleteBuffer('Done_Get_File_Frag', m64, True);
-          VM_Service.PostLog('%s Done_Get_File_Frag.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
+          VM_Service.PostLog('%s Get_NetDisk_File_Frag.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
         end
       else
         begin
@@ -707,7 +792,7 @@ begin
           d.WritePointer(Event_);
           IO_Def.SendTunnel.Owner.SendDirectStreamCmd('Get_File_Error', d);
           DisposeObject(d);
-          VM_Service.PostLog('%s Get_File_Error.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
+          VM_Service.PostLog('%s Get_NetDisk_File_Frag failed.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
         end;
     end;
   DelayFreeObj(1.0, self);
@@ -729,7 +814,7 @@ begin
           IO.OutDataFrame.WriteDouble(arry[i].Time_);
         end;
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s GetItemList.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
+      VM_Service.PostLog('%s Get_NetDisk_File_List.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -737,7 +822,6 @@ end;
 procedure TGet_NetDisk_SpaceInfo_Bridge.Do_SpaceInfo(sender: TC40_NetDisk_Directory_Client; Field_Num, Item_Num, ItemSpace: Int64);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
-  i: Integer;
 begin
   if CheckIO then
     begin
@@ -748,7 +832,108 @@ begin
       IO.OutDataFrame.WriteInt64(Item_Num);
       IO.OutDataFrame.WriteInt64(ItemSpace);
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s SpaceInfo.', [IO_Def.PrimaryIdentifier.Text], PFormat('filed:%d item:%d space:%d', [Field_Num, Item_Num, ItemSpace]));
+      VM_Service.PostLog('%s Get_NetDisk_SpaceInfo.', [IO_Def.PrimaryIdentifier.Text],
+        PFormat('filed:%d item:%d space:%d', [Field_Num, Item_Num, ItemSpace]));
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TBuild_Share_Disk_Bridge.Do_NewDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  Time_: Double;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+      if Successed then
+        begin
+          IO.OutDataFrame.WriteBool(True);
+          IO.OutDataFrame.WriteString('done.');
+          IO.OutDataFrame.WriteString(Share_Directory_DB_Name);
+          IO.ContinueResultSend;
+
+          VM_Service.PostLog('%s Build_Share_Disk %s',
+            [IO_Def.PrimaryIdentifier.Text, Share_Directory_DB_Name.Text]);
+          if (VM_Service.TEKeyValue_Client <> nil) and (VM_Service.FTEKeyValue_Client.Connected) then
+            begin
+              VM_Service.TEKeyValue_Client.SetTextValue(IO_Def.PrimaryIdentifier, 'Share', Share_Directory_DB_Name, umlDateTimeToStr(umlNow));
+              VM_Service.TEKeyValue_Client.Rebuild(IO_Def.PrimaryIdentifier);
+              VM_Service.PostLog('%s Build_Share_Disk %s, and Update KeyValue',
+                [IO_Def.PrimaryIdentifier.Text, Share_Directory_DB_Name.Text]);
+            end
+          else
+            begin
+              VM_Service.PostLog('%s Build_Share_Disk %s. KeyValue is offline.',
+                [IO_Def.PrimaryIdentifier.Text, Share_Directory_DB_Name.Text]);
+            end;
+        end
+      else
+        begin
+          Time_ := umlNow;
+          Share_Directory_DB_Name := VM_Service.ShareToDirectory(IO_Def.PrimaryIdentifier, umlMD5(@Time_, 8));
+          sender.NewDB_M(Share_Directory_DB_Name, {$IFDEF FPC}@{$ENDIF FPC}Do_NewDB);
+          exit;
+        end;
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TGet_Share_Disk_Bridge.Do_GetKey(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  i: Integer;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(True);
+      IO.OutDataFrame.WriteString('Done.');
+      for i := low(arry) to high(arry) do
+          IO.OutDataFrame.WriteString(arry[i]);
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s Get_Share_Disk.', [IO_Def.PrimaryIdentifier.Text]);
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TGet_Share_Disk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  i: Integer;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(True);
+      for i := Low(arry) to high(arry) do
+        begin
+          IO.OutDataFrame.WriteString(arry[i].Name);
+          IO.OutDataFrame.WriteInt64(arry[i].num);
+          IO.OutDataFrame.WriteDouble(arry[i].Time_);
+        end;
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s Get_Share_Disk_File_List.', [IO_Def.PrimaryIdentifier.Text],
+        PFormat('%s@%s', [Share_Directory_DB_Name.Text, DB_Field.Text]));
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TGet_Share_Disk_File_Frag_Info_Bridge.Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  d: TDFE;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(Successed);
+      d := TDFE.Create;
+      L.Encode(d);
+      IO.OutDataFrame.WriteDataFrame(d);
+      IO.ContinueResultSend;
+      DisposeObject(d);
+      VM_Service.PostLog('%s Get_Share_Disk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -907,6 +1092,16 @@ end;
 procedure TC40_NetDisk_VM_Service.Set_Log_Client(const Value: TC40_Log_DB_Client);
 begin
   FLog_Client := Value;
+end;
+
+function TC40_NetDisk_VM_Service.Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
+begin
+  Result := FTEKeyValue_Client;
+end;
+
+procedure TC40_NetDisk_VM_Service.Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+begin
+  FTEKeyValue_Client := Value;
 end;
 
 procedure TC40_NetDisk_VM_Service.cmd_Auth(sender: TPeerIO; InData, OutData: TDFE);
@@ -1284,7 +1479,10 @@ begin
   tmp.file_time := InData.R.ReadDouble;
   tmp.file_Size := InData.R.ReadInt64;
   FDirectory_Client.PutItemMD5_M(
-    IO_Def.PrimaryIdentifier, tmp.file_Field, tmp.file_item, umlMD5ToStr(tmp.file_MD5), {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemMD5);
+    PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
+    tmp.file_Field,
+    tmp.file_item,
+    umlMD5ToStr(tmp.file_MD5), {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemMD5);
   sender.PauseResultSend;
 end;
 
@@ -1497,7 +1695,10 @@ begin
   tmp.VM_Service := self;
   IO_Def.NetDisk_File_Frag.SortPos;
   FDirectory_Client.PutItemFrag_M(
-    IO_Def.PrimaryIdentifier, IO_Def.NetDisk_File_Field, IO_Def.NetDisk_File_Item, IO_Def.NetDisk_File_Frag, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemFrag);
+    PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
+    IO_Def.NetDisk_File_Field,
+    IO_Def.NetDisk_File_Item,
+    IO_Def.NetDisk_File_Frag, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -1536,7 +1737,10 @@ begin
   tmp.VM_Service := self;
   DB_Field := InData.R.ReadString;
   DB_Item := InData.R.ReadString;
-  FDirectory_Client.GetItemFrag_M(IO_Def.PrimaryIdentifier, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemFrag);
+  FDirectory_Client.GetItemFrag_M(
+    PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
+    DB_Field,
+    DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -1668,7 +1872,7 @@ begin
   tmp := TGet_NetDisk_File_List_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.DB_Field := InData.R.ReadString;
-  FDirectory_Client.GetItemList_M(IO_Def.PrimaryIdentifier, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
+  FDirectory_Client.GetItemList_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
 
   sender.PauseResultSend;
 end;
@@ -1707,7 +1911,345 @@ begin
 
   tmp := TGet_NetDisk_SpaceInfo_Bridge.Create(sender);
   tmp.VM_Service := self;
-  FDirectory_Client.SpaceInfo_M(IO_Def.PrimaryIdentifier, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SpaceInfo);
+  FDirectory_Client.SpaceInfo_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SpaceInfo);
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Remove_Item(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  DB_Field: U_String;
+  DB_Remove_Item_: U_String;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  DB_Field := InData.R.ReadString;
+  DB_Remove_Item_ := InData.R.ReadString;
+
+  FDirectory_Client.RemoveItem(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), DB_Field, DB_Remove_Item_);
+  PostLog('%s Remove Item %s',
+    [IO_Def.PrimaryIdentifier.Text, umlCombineUnixFileName(DB_Field, DB_Remove_Item_).Text]);
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Remove_Field(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  DB_Field: U_String;
+  DB_Remove_Field_: U_String;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  DB_Field := InData.R.ReadString;
+  DB_Remove_Field_ := InData.R.ReadString;
+
+  FDirectory_Client.RemoveField(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), DB_Field, DB_Remove_Field_);
+  PostLog('%s Remove Field %s',
+    [IO_Def.PrimaryIdentifier.Text, umlCombineUnixPath(DB_Field, DB_Remove_Field_).Text]);
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Copy_Item(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  arry: TCopyItem_Info_Array;
+  i: Integer;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  i := 0;
+  SetLength(arry, InData.count div 5);
+  while InData.R.NotEnd do
+    begin
+      arry[i].Sour_DB_Name := InData.R.ReadString;
+      if arry[i].Sour_DB_Name = '' then
+          arry[i].Sour_DB_Name := PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier);
+      arry[i].Sour_DB_Field := InData.R.ReadString;
+      arry[i].Sour_DB_Item := InData.R.ReadString;
+
+      arry[i].Dest_DB_Name := InData.R.ReadString;
+      if arry[i].Dest_DB_Name = '' then
+          arry[i].Dest_DB_Name := PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier);
+      arry[i].Dest_DB_Field := InData.R.ReadString;
+
+      PostLog('%s CopyItem %s@%s -> %s@%s',
+        [IO_Def.PrimaryIdentifier.Text,
+        arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
+        arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
+
+      inc(i);
+    end;
+
+  FDirectory_Client.CopyItem(arry);
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Copy_Field(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  arry: TCopyField_Info_Array;
+  i: Integer;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  i := 0;
+  SetLength(arry, InData.count div 4);
+  while InData.R.NotEnd do
+    begin
+      arry[i].Sour_DB_Name := InData.R.ReadString;
+      if arry[i].Sour_DB_Name = '' then
+          arry[i].Sour_DB_Name := PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier);
+      arry[i].Sour_DB_Field := InData.R.ReadString;
+
+      arry[i].Dest_DB_Name := InData.R.ReadString;
+      if arry[i].Dest_DB_Name = '' then
+          arry[i].Dest_DB_Name := PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier);
+      arry[i].Dest_DB_Field := InData.R.ReadString;
+
+      PostLog('%s CopyField %s@%s -> %s@%s',
+        [IO_Def.PrimaryIdentifier.Text, arry[i].Sour_DB_Name, arry[i].Sour_DB_Field, arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
+
+      inc(i);
+    end;
+
+  FDirectory_Client.CopyField(arry);
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Build_Share_Disk(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  tmp: TBuild_Share_Disk_Bridge;
+  Time_: TDateTime;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+  if (FTEKeyValue_Client = nil) or (not FTEKeyValue_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FTEKeyValue is offline.');
+      exit;
+    end;
+
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TBuild_Share_Disk_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  Time_ := umlNow;
+  tmp.Share_Directory_DB_Name := ShareToDirectory(IO_Def.PrimaryIdentifier, umlMD5(@Time_, 8));
+  FDirectory_Client.NewDB_M(tmp.Share_Directory_DB_Name, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_NewDB);
+
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Get_Share_Disk(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  tmp: TGet_Share_Disk_Bridge;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+  if (FTEKeyValue_Client = nil) or (not FTEKeyValue_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FTEKeyValue is offline.');
+      exit;
+    end;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TGet_Share_Disk_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  TEKeyValue_Client.GetKey_M(IO_Def.PrimaryIdentifier, 'Share', {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetKey);
+
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Remove_Share_Disk(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  Share_Directory_DB_Name: U_String;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  if (FTEKeyValue_Client = nil) or (not FTEKeyValue_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  Share_Directory_DB_Name := InData.R.ReadString;
+
+  if IsMyShareDirectory(IO_Def.PrimaryIdentifier, Share_Directory_DB_Name) then
+    begin
+      TEKeyValue_Client.RemoveKey(IO_Def.PrimaryIdentifier, 'Share', Share_Directory_DB_Name);
+      TEKeyValue_Client.Rebuild(IO_Def.PrimaryIdentifier);
+      FDirectory_Client.RemoveDB(Share_Directory_DB_Name);
+      PostLog('%s Remove_Share_Disk %s.', [IO_Def.PrimaryIdentifier.Text, Share_Directory_DB_Name.Text]);
+    end;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Get_Share_Disk_File_List(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  tmp: TGet_Share_Disk_File_List_Bridge;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TGet_Share_Disk_File_List_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  tmp.Share_Directory_DB_Name := InData.R.ReadString;
+  tmp.DB_Field := InData.R.ReadString;
+  if not IsShareDirectory(tmp.Share_Directory_DB_Name) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('%s not is share.', [tmp.Share_Directory_DB_Name.Text]);
+      tmp.Free;
+      exit;
+    end;
+  FDirectory_Client.GetItemList_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
+
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Get_Share_Disk_File_Frag_Info(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  tmp: TGet_Share_Disk_File_Frag_Info_Bridge;
+  Share_Directory_DB_Name, DB_Field, DB_Item: U_String;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  Share_Directory_DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  DB_Item := InData.R.ReadString;
+  if not IsShareDirectory(Share_Directory_DB_Name) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('%s not is share.', [Share_Directory_DB_Name.Text]);
+      exit;
+    end;
+
+  tmp := TGet_Share_Disk_File_Frag_Info_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  FDirectory_Client.GetItemFrag_M(
+    Share_Directory_DB_Name,
+    DB_Field,
+    DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -1718,6 +2260,7 @@ var
 begin
   UserDB_Client := nil;
   Directory_Client := nil;
+  TEKeyValue_Client := nil;
   Log_Client := nil;
   FS2_Client_Pool.Clear;
   for i := 0 to Z.Net.C4.C40_ClientPool.count - 1 do
@@ -1727,6 +2270,8 @@ begin
           UserDB_Client := cc as TC40_UserDB_Client
       else if cc is TC40_NetDisk_Directory_Client then
           Directory_Client := cc as TC40_NetDisk_Directory_Client
+      else if cc is TC40_TEKeyValue_Client then
+          TEKeyValue_Client := cc as TC40_TEKeyValue_Client
       else if cc is TC40_Log_DB_Client then
           Log_Client := cc as TC40_Log_DB_Client
       else if cc is TC40_FS2_Client then
@@ -1734,38 +2279,56 @@ begin
     end;
 end;
 
-function TC40_NetDisk_VM_Service.Check_NetDisk_Service_Relevance: Boolean;
+function TC40_NetDisk_VM_Service.Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean;
 var
   i: Integer;
 begin
   Result := True;
   if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
     begin
-      DoStatus('Check UserDB_Client passed.');
+      if Status_ then
+          DoStatus('Check UserDB_Client passed.');
     end
   else
     begin
-      DoStatus('Check UserDB_Client error!');
+      if Status_ then
+          DoStatus('Check UserDB_Client error!');
       Result := Result and False;
     end;
 
   if (Directory_Client <> nil) and (Directory_Client.Connected) then
     begin
-      DoStatus('Check Directory_Client passed.');
+      if Status_ then
+          DoStatus('Check Directory_Client passed.');
     end
   else
     begin
-      DoStatus('Check Directory_Client error!');
+      if Status_ then
+          DoStatus('Check Directory_Client error!');
+      Result := Result and False;
+    end;
+
+  if (TEKeyValue_Client <> nil) and (TEKeyValue_Client.Connected) then
+    begin
+      if Status_ then
+          DoStatus('Check TEKeyValue_Client passed.');
+    end
+  else
+    begin
+      if Status_ then
+          DoStatus('Check TEKeyValue_Client error!');
       Result := Result and False;
     end;
 
   if (Log_Client <> nil) and (Log_Client.Connected) then
     begin
-      DoStatus('Check Log_Client passed.');
+      if Status_ then
+          DoStatus('Check Log_Client passed.');
     end
   else
     begin
-      DoStatus('Check Log_Client error!');
+      if Status_ then
+          DoStatus('Check Log_Client error!');
       Result := Result and False;
     end;
 
@@ -1774,14 +2337,21 @@ begin
     begin
       if FS2_Client_Pool[i].Connected then
         begin
-          DoStatus('Check FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+          if Status_ then
+              DoStatus('Check FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
         end
       else
         begin
-          DoStatus('Check FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+          if Status_ then
+              DoStatus('Check FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
           Result := Result and False;
         end;
     end;
+end;
+
+function TC40_NetDisk_VM_Service.Check_NetDisk_Service_Relevance: Boolean;
+begin
+  Result := Check_NetDisk_Service_Relevance(True);
 end;
 
 constructor TC40_NetDisk_VM_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
@@ -1833,9 +2403,19 @@ begin
   DTNoAuth.RecvTunnel.RegisterDirectStream('Get_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_List;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_SpaceInfo;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Item;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Field;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Item;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Field;
+  DTNoAuth.RecvTunnel.RegisterStream('Build_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Build_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_List;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_Frag_Info').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_Frag_Info;
 
   FUserDB_Client := nil;
   FDirectory_Client := nil;
+  FTEKeyValue_Client := nil;
   FLog_Client := nil;
   FFS2_Client_Pool := TC40_FS2_Client_List.Create;
 end;
@@ -1849,6 +2429,11 @@ end;
 procedure TC40_NetDisk_VM_Service.SafeCheck;
 begin
   inherited SafeCheck;
+  if not Check_NetDisk_Service_Relevance(False) then
+    begin
+      Automated_Config_NetDisk_Service_Relevance();
+      Check_NetDisk_Service_Relevance();
+    end;
 end;
 
 procedure TC40_NetDisk_VM_Service.Progress;
@@ -1894,6 +2479,26 @@ end;
 procedure TC40_NetDisk_VM_Service.PostLog(const v: SystemString; const Args: array of const; info2: SystemString);
 begin
   PostLog(PFormat(v, Args), info2);
+end;
+
+class function TC40_NetDisk_VM_Service.PrimaryIdentifierToDirectory(PrimaryIdentifier_: U_String): U_String;
+begin
+  Result := PrimaryIdentifier_;
+end;
+
+class function TC40_NetDisk_VM_Service.ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
+begin
+  Result := 'S:' + PrimaryIdentifier_ + '_' + umlMD5ToStr(MD5_);
+end;
+
+class function TC40_NetDisk_VM_Service.IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
+begin
+  Result := umlMultipleMatch('S:' + PrimaryIdentifier_ + '_*', Share_Directory_DB_Name);
+end;
+
+class function TC40_NetDisk_VM_Service.IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
+begin
+  Result := umlMultipleMatch('S:*', Share_Directory_DB_Name);
 end;
 
 initialization
