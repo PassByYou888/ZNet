@@ -999,6 +999,13 @@ begin
       exit;
     end;
 
+  if UserName_.Exists([':', '/', '\', '?', '*', '"', '|', ',']) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('User name "%s" illegal symbols', [UserName_.Text]);
+      exit;
+    end;
+
   if (length(passwd_.Bytes) < 6) then
     begin
       OutData.WriteBool(False);
@@ -1132,6 +1139,13 @@ begin
     begin
       OutData.WriteBool(False);
       OutData.WriteString('New Identifier is too short');
+      exit;
+    end;
+
+  if NewIdentifier_.Exists([':', '/', '\', '?', '*', '"', '|', ',']) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('New Identifier "%s" illegal symbols', [NewIdentifier_.Text]);
       exit;
     end;
 
