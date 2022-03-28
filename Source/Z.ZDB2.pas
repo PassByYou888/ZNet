@@ -103,7 +103,7 @@ type
     procedure SavingMemory;
   end;
 
-  TZDB2_SpacePlan = class
+  TZDB2_Space_Planner = class
   private
     FCore: TZDB2_Core_Space;
     FStruct: TZDB2_BlockStoreDataStruct;
@@ -629,7 +629,7 @@ begin
       SetLength(Items[i].Buffer, 0);
 end;
 
-constructor TZDB2_SpacePlan.Create(Core_: TZDB2_Core_Space);
+constructor TZDB2_Space_Planner.Create(Core_: TZDB2_Core_Space);
 begin
   inherited Create;
   FCore := Core_;
@@ -646,7 +646,7 @@ begin
   FWriteID := FCore.FBlockCount;
 end;
 
-destructor TZDB2_SpacePlan.Destroy;
+destructor TZDB2_Space_Planner.Destroy;
 begin
   Flush;
   FStruct.Clean;
@@ -654,7 +654,7 @@ begin
   inherited;
 end;
 
-function TZDB2_SpacePlan.WriteStream(Stream_: TCore_Stream; BlockSize_: WORD; var SpaceHnd: TZDB2_BlockHandle): Boolean;
+function TZDB2_Space_Planner.WriteStream(Stream_: TCore_Stream; BlockSize_: WORD; var SpaceHnd: TZDB2_BlockHandle): Boolean;
 var
   BlockSize: WORD;
   Total_: Int64;
@@ -690,7 +690,7 @@ begin
           begin
             if Stream_.Read(SwapBuff_^, BlockSize) <> BlockSize then
               begin
-                TZDB2_Core_Space.ErrorInfo('TZDB2_SpacePlan.WriteStream Read error.');
+                TZDB2_Core_Space.ErrorInfo('TZDB2_Space_Planner.WriteStream Read error.');
                 exit;
               end;
             BlockBuffer_[BlockID_].Position := umlFileGetPOS(FCore.FSpace_IOHnd^);
@@ -702,7 +702,7 @@ begin
             FCore.DoEncrypt(SwapBuff_, BlockSize);
             if not umlBlockWrite(FCore.FSpace_IOHnd^, SwapBuff_^, BlockSize) then
               begin
-                TZDB2_Core_Space.ErrorInfo('TZDB2_SpacePlan.WriteStream umlBlockWrite error.');
+                TZDB2_Core_Space.ErrorInfo('TZDB2_Space_Planner.WriteStream umlBlockWrite error.');
                 exit;
               end;
             dec(Total_, BlockSize);
@@ -711,7 +711,7 @@ begin
           begin
             if Stream_.Read(SwapBuff_^, Total_) <> Total_ then
               begin
-                TZDB2_Core_Space.ErrorInfo('TZDB2_SpacePlan.WriteStream Read error.');
+                TZDB2_Core_Space.ErrorInfo('TZDB2_Space_Planner.WriteStream Read error.');
                 exit;
               end;
             BlockBuffer_[BlockID_].Position := umlFileGetPOS(FCore.FSpace_IOHnd^);
@@ -724,7 +724,7 @@ begin
             FCore.DoEncrypt(SwapBuff_, Total_);
             if not umlBlockWrite(FCore.FSpace_IOHnd^, SwapBuff_^, Total_) then
               begin
-                TZDB2_Core_Space.ErrorInfo('TZDB2_SpacePlan.WriteStream umlBlockWrite error.');
+                TZDB2_Core_Space.ErrorInfo('TZDB2_Space_Planner.WriteStream umlBlockWrite error.');
                 exit;
               end;
             Total_ := 0;
@@ -748,7 +748,7 @@ begin
   end;
 end;
 
-function TZDB2_SpacePlan.WriteStream(Stream_: TCore_Stream; BlockSize_: WORD; var ID: Integer): Boolean;
+function TZDB2_Space_Planner.WriteStream(Stream_: TCore_Stream; BlockSize_: WORD; var ID: Integer): Boolean;
 var
   SpaceHnd: TZDB2_BlockHandle;
 begin
@@ -757,7 +757,7 @@ begin
       ID := SpaceHnd[0]
 end;
 
-function TZDB2_SpacePlan.WriteFile(FileName_: SystemString; BlockSize_: WORD; var SpaceHnd: TZDB2_BlockHandle): Boolean;
+function TZDB2_Space_Planner.WriteFile(FileName_: SystemString; BlockSize_: WORD; var SpaceHnd: TZDB2_BlockHandle): Boolean;
 var
   fs: TCore_FileStream;
 begin
@@ -772,7 +772,7 @@ begin
   end;
 end;
 
-function TZDB2_SpacePlan.WriteFile(FileName_: SystemString; BlockSize_: WORD; var ID: Integer): Boolean;
+function TZDB2_Space_Planner.WriteFile(FileName_: SystemString; BlockSize_: WORD; var ID: Integer): Boolean;
 var
   fs: TCore_FileStream;
 begin
@@ -787,7 +787,7 @@ begin
   end;
 end;
 
-function TZDB2_SpacePlan.Flush: Boolean;
+function TZDB2_Space_Planner.Flush: Boolean;
 var
   i, j, k: Integer;
   BlockBuffer_: TZDB2_BlockBuffer;
@@ -2625,7 +2625,7 @@ var
   p: PTest_;
   hnd1, hnd2: TIOHnd;
   db1, db2: TZDB2_Core_Space;
-  db1_place: TZDB2_SpacePlan;
+  db1_place: TZDB2_Space_Planner;
   hnd1_1, hnd2_2: TIOHnd;
   db1_1, db2_2: TZDB2_Core_Space;
   i: Integer;
@@ -2649,7 +2649,7 @@ begin
   db1 := TZDB2_Core_Space.Create(@hnd1);
   db1.AutoCloseIOHnd := True;
   db1.Cipher := Cipher_;
-  db1_place := TZDB2_SpacePlan.Create(db1);
+  db1_place := TZDB2_Space_Planner.Create(db1);
 
   db2 := TZDB2_Core_Space.Create(@hnd2);
   db2.Cipher := Cipher_;
