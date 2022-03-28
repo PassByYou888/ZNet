@@ -55,7 +55,7 @@ end;
 
 procedure Do_Test(cli: TC40_TEKeyValue_Client);
 var
-  m: Integer;
+  j, m: Integer;
 begin
   // ¹Ø±Õlog
   Z.Net.C4.C40SetQuietMode(True);
@@ -86,6 +86,9 @@ begin
   for m := 1 to 10 do
       cli.SetTextValue('my_db', 'my_section', PFormat('ASCII_Key_%d', [m]), TPascalString.RandomString(10, [cAtoZ]));
   cli.Rebuild('my_db');
+
+  for j := 1 to 100 do
+      cli.Rebuild(PFormat('my_db_%d', [j]));
 
   cli.GetTextKey_P('my_db', 'my_section', procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray)
     var
