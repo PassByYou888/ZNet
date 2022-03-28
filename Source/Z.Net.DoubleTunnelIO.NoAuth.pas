@@ -62,7 +62,7 @@ type
     FCadencerEngine: TCadencer;
     FProgressEngine: TNProgressPost;
     FFileSystem: Boolean;
-    FFileReceiveDirectory: SystemString;
+    FFileShareDirectory: SystemString;
     { event }
     FOnLinkSuccess: TNoAuth_OnLinkSuccess;
     FOnUserOut: TNoAuth_OnUserOut;
@@ -129,8 +129,9 @@ type
     property PostExecute: TNProgressPost read FProgressEngine;
 
     property FileSystem: Boolean read FFileSystem write FFileSystem;
-    property FileReceiveDirectory: SystemString read FFileReceiveDirectory write FFileReceiveDirectory;
-    property PublicFileDirectory: SystemString read FFileReceiveDirectory write FFileReceiveDirectory;
+    property FileReceiveDirectory: SystemString read FFileShareDirectory write FFileShareDirectory;
+    property PublicFileDirectory: SystemString read FFileShareDirectory write FFileShareDirectory;
+    property FileShareDirectory: SystemString read FFileShareDirectory write FFileShareDirectory;
 
     property RecvTunnel: TZNet_Server read FRecvTunnel;
     property SendTunnel: TZNet_Server read FSendTunnel;
@@ -928,7 +929,7 @@ begin
       Exit;
 
   fileName := InData.Reader.ReadString;
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
       OutData.WriteBool(False);
@@ -952,7 +953,7 @@ begin
 
   fileName := InData.Reader.ReadString;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if umlFileExists(fullfn) then
     begin
       OutData.WriteBool(True);
@@ -976,7 +977,7 @@ begin
   StartPos := ThInData.Reader.ReadInt64;
   EndPos := ThInData.Reader.ReadInt64;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
       ThOutData.WriteBool(False);
@@ -1037,7 +1038,7 @@ begin
   remoteinfo := InData.Reader.ReadString;
   RemoteBackcallAddr := InData.Reader.ReadPointer;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
       OutData.WriteBool(False);
@@ -1092,7 +1093,7 @@ begin
   remoteinfo := InData.Reader.ReadString;
   RemoteBackcallAddr := InData.Reader.ReadPointer;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
       OutData.WriteBool(False);
@@ -1153,7 +1154,7 @@ begin
   StartPos := InData.Reader.ReadInt64;
   FSize := InData.Reader.ReadInt64;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fn);
+  fullfn := umlCombineFileName(FFileShareDirectory, fn);
   UserDefineIO.FCurrentReceiveFileName := fullfn;
   try
     if (StartPos > 0) and (umlFileExists(fullfn)) then
@@ -1242,7 +1243,7 @@ begin
   EndPos := InData.Reader.ReadInt64;
   RemoteBackcallAddr := InData.Reader.ReadPointer;
 
-  fullfn := umlCombineFileName(FFileReceiveDirectory, fileName);
+  fullfn := umlCombineFileName(FFileShareDirectory, fileName);
   if not umlFileExists(fullfn) then
     begin
       OutData.WriteBool(False);
@@ -1430,10 +1431,10 @@ begin
   FProgressEngine := TNProgressPost.Create;
 
   FFileSystem := {$IFDEF DoubleIOFileSystem}True{$ELSE DoubleIOFileSystem}False{$ENDIF DoubleIOFileSystem};
-  FFileReceiveDirectory := umlCurrentPath;
+  FFileShareDirectory := umlCurrentPath;
 
-  if not umlDirectoryExists(FFileReceiveDirectory) then
-      umlCreateDirectory(FFileReceiveDirectory);
+  if not umlDirectoryExists(FFileShareDirectory) then
+      umlCreateDirectory(FFileShareDirectory);
 
   SwitchAsDefaultPerformance;
 
