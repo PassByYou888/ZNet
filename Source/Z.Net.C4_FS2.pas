@@ -78,7 +78,6 @@ type
     FileHashPool: TFS2_Service_File_Data_Pool;
     MD5Pool: TFS2_Service_MD5_Data_Pool;
     FileDatabase: TZDB2_List_MS64;
-
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
     procedure SafeCheck; override;
@@ -398,7 +397,8 @@ type
     procedure FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesM);
     procedure FS2_GetMD5FilesP(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesP);
     // remove
-    procedure FS2_RemoveFile(File_Name: U_String);
+    procedure FS2_RemoveFile(File_Name: U_String); overload;
+    procedure FS2_RemoveFile(arry: U_StringArray); overload;
     // ref
     procedure FS2_UpdateFileRef(File_Name: U_String; ref_: Integer);
     procedure FS2_IncFileRef(File_Name: U_String; inc_ref_: Integer);
@@ -615,21 +615,23 @@ var
   fd: TFS2_Service_File_Data;
   FL_: TPascalStringList;
 begin
-  fn := InData.R.ReadString;
-  fd := FileHashPool[fn];
-  if fd = nil then
-      exit;
-
-  FL_ := MD5Pool[umlMD5ToStr(fd.FileMD5)];
-  if FL_ <> nil then
+  while InData.R.NotEnd do
     begin
-      FL_.DeleteString(fn);
-      if FL_.Count = 0 then
-          MD5Pool.Delete(umlMD5ToStr(fd.FileMD5));
+      fn := InData.R.ReadString;
+      fd := FileHashPool[fn];
+      if fd <> nil then
+        begin
+          FL_ := MD5Pool[umlMD5ToStr(fd.FileMD5)];
+          if FL_ <> nil then
+            begin
+              FL_.DeleteString(fn);
+              if FL_.Count = 0 then
+                  MD5Pool.Delete(umlMD5ToStr(fd.FileMD5));
+            end;
+          FileHashPool.Delete(fn);
+          FileDatabaseIsUpdate := True;
+        end;
     end;
-
-  FileHashPool.Delete(fn);
-  FileDatabaseIsUpdate := True;
 end;
 
 procedure TC40_FS2_Service.cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
@@ -2220,6 +2222,21 @@ begin
   FileCacheHashPool.Delete(File_Name);
   d := TDFE.Create;
   d.WriteString(File_Name);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS2_RemoveFile', d);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_RemoveFile(arry: U_StringArray);
+var
+  d: TDFE;
+  i: Integer;
+begin
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+    begin
+      FileCacheHashPool.Delete(arry[i]);
+      d.WriteString(arry[i]);
+    end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS2_RemoveFile', d);
   disposeObject(d);
 end;
