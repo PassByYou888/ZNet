@@ -33,6 +33,8 @@ type
     procedure cmd_GetSection(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetKey(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetTextKey(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_GetKeyValue(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_GetTextKeyValue(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_ExistsSection(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_ExistsKey(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_RemoveSection(sender: TPeerIO; InData: TDFE);
@@ -134,6 +136,42 @@ type
     OnResultC: TON_GetTextKey_C;
     OnResultM: TON_GetTextKey_M;
     OnResultP: TON_GetTextKey_P;
+    constructor Create; override;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TON_GetKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
+  TON_GetKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) of object;
+{$IFDEF FPC}
+  TON_GetKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) is nested;
+{$ELSE FPC}
+  TON_GetKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
+{$ENDIF FPC}
+
+  TON_Temp_GetKeyValue = class(TOnResultBridge)
+  public
+    Client: TC40_TEKeyValue_Client;
+    OnResultC: TON_GetKeyValue_C;
+    OnResultM: TON_GetKeyValue_M;
+    OnResultP: TON_GetKeyValue_P;
+    constructor Create; override;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TON_GetTextKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
+  TON_GetTextKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) of object;
+{$IFDEF FPC}
+  TON_GetTextKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) is nested;
+{$ELSE FPC}
+  TON_GetTextKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
+{$ENDIF FPC}
+
+  TON_Temp_GetTextKeyValue = class(TOnResultBridge)
+  public
+    Client: TC40_TEKeyValue_Client;
+    OnResultC: TON_GetTextKeyValue_C;
+    OnResultM: TON_GetTextKeyValue_M;
+    OnResultP: TON_GetTextKeyValue_P;
     constructor Create; override;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -258,6 +296,12 @@ type
     procedure GetTextKey_C(TEName_, Section_: U_String; OnResult: TON_GetTextKey_C);
     procedure GetTextKey_M(TEName_, Section_: U_String; OnResult: TON_GetTextKey_M);
     procedure GetTextKey_P(TEName_, Section_: U_String; OnResult: TON_GetTextKey_P);
+    procedure GetKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_C);
+    procedure GetKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_M);
+    procedure GetKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_P);
+    procedure GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_C);
+    procedure GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_M);
+    procedure GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_P);
     procedure ExistsSection_C(TEName_, Section_: U_String; OnResult: TON_ExistsSection_C);
     procedure ExistsSection_M(TEName_, Section_: U_String; OnResult: TON_ExistsSection_M);
     procedure ExistsSection_P(TEName_, Section_: U_String; OnResult: TON_ExistsSection_P);
@@ -397,6 +441,32 @@ begin
   for i := 0 to L.Count - 1 do
       OutData.WriteString(L[i]);
   disposeObject(L);
+end;
+
+procedure TC40_TEKeyValue_Service.cmd_GetKeyValue(sender: TPeerIO; InData, OutData: TDFE);
+var
+  TEName_, Section_: U_String;
+  TE: TZDB2_HashTextEngine;
+  VL: THashVariantList;
+begin
+  TEName_ := InData.R.ReadString;
+  Section_ := InData.R.ReadString;
+  TE := GetOrCreateTE(TEName_);
+  VL := TE.Data.VariantList[Section_];
+  OutData.WriteVariantList(VL);
+end;
+
+procedure TC40_TEKeyValue_Service.cmd_GetTextKeyValue(sender: TPeerIO; InData, OutData: TDFE);
+var
+  TEName_, Section_: U_String;
+  TE: TZDB2_HashTextEngine;
+  HS: THashStringList;
+begin
+  TEName_ := InData.R.ReadString;
+  Section_ := InData.R.ReadString;
+  TE := GetOrCreateTE(TEName_);
+  HS := TE.Data.HStringList[Section_];
+  OutData.WriteHashStringList(HS);
 end;
 
 procedure TC40_TEKeyValue_Service.cmd_ExistsSection(sender: TPeerIO; InData, OutData: TDFE);
@@ -556,6 +626,8 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('GetSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetSection;
   DTNoAuthService.RecvTunnel.RegisterStream('GetKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetKey;
   DTNoAuthService.RecvTunnel.RegisterStream('GetTextKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetTextKey;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetKeyValue').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetKeyValue;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetTextKeyValue').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetTextKeyValue;
   DTNoAuthService.RecvTunnel.RegisterStream('ExistsSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsSection;
   DTNoAuthService.RecvTunnel.RegisterStream('ExistsKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsKey;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveSection;
@@ -787,6 +859,62 @@ begin
   end;
   SetLength(arry, 0);
   DelayFreeObject(1.0, self);
+end;
+
+constructor TON_Temp_GetKeyValue.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_GetKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+var
+  L: THashVariantList;
+begin
+  L := THashVariantList.Create;
+  Result_.R.ReadVariantList(L);
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, L);
+    if Assigned(OnResultM) then
+        OnResultM(Client, L);
+    if Assigned(OnResultP) then
+        OnResultP(Client, L);
+  except
+  end;
+  DelayFreeObject(1.0, self, L);
+end;
+
+constructor TON_Temp_GetTextKeyValue.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_GetTextKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+var
+  L: THashStringList;
+begin
+  L := THashStringList.Create;
+  Result_.R.ReadHashStringList(L);
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, L);
+    if Assigned(OnResultM) then
+        OnResultM(Client, L);
+    if Assigned(OnResultP) then
+        OnResultP(Client, L);
+  except
+  end;
+  DelayFreeObject(1.0, self, L);
 end;
 
 constructor TON_Temp_ExistsSection.Create;
@@ -1183,6 +1311,102 @@ begin
   D.WriteString(TEName_);
   D.WriteString(Section_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetTextKey', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_C);
+var
+  tmp: TON_Temp_GetKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_M);
+var
+  tmp: TON_Temp_GetKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_P);
+var
+  tmp: TON_Temp_GetKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_C);
+var
+  tmp: TON_Temp_GetTextKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetTextKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_M);
+var
+  tmp: TON_Temp_GetTextKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetTextKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_P);
+var
+  tmp: TON_Temp_GetTextKeyValue;
+  D: TDFE;
+begin
+  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  D.WriteString(Section_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetTextKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   disposeObject(D);
 end;
 
