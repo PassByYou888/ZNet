@@ -99,6 +99,7 @@ type
 
   TC40_NetDisk_Directory_Service = class(TC40_Base_NoAuth_Service)
   protected
+    procedure cmd_ExistsDB(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_NewDB(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_RemoveDB(Sender: TPeerIO; InData: TDFE);
     procedure cmd_GetItemList(Sender: TPeerIO; InData, OutData: TDFE);
@@ -146,6 +147,24 @@ type
 {$REGION 'bridge define'}
 
   TC40_NetDisk_Directory_Client = class;
+
+  TON_ExistsDB_C = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
+  TON_ExistsDB_M = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean) of object;
+{$IFDEF FPC}
+  TON_ExistsDB_P = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean) is nested;
+{$ELSE FPC}
+  TON_ExistsDB_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
+{$ENDIF FPC}
+
+  TON_Temp_ExistsDB = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Directory_Client;
+    OnResultC: TON_ExistsDB_C;
+    OnResultM: TON_ExistsDB_M;
+    OnResultP: TON_ExistsDB_P;
+    constructor Create; override;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+  end;
 
   TON_NewDB_C = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
   TON_NewDB_M = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString) of object;
@@ -326,58 +345,50 @@ type
     destructor Destroy; override;
     procedure Progress; override;
 
+    // exists database
+    procedure ExistsDB_C(DB_Name: U_String; OnResult: TON_ExistsDB_C);
+    procedure ExistsDB_M(DB_Name: U_String; OnResult: TON_ExistsDB_M);
+    procedure ExistsDB_P(DB_Name: U_String; OnResult: TON_ExistsDB_P);
     // new database
     procedure NewDB_C(DB_Name: U_String; OnResult: TON_NewDB_C);
     procedure NewDB_M(DB_Name: U_String; OnResult: TON_NewDB_M);
     procedure NewDB_P(DB_Name: U_String; OnResult: TON_NewDB_P);
-
     // remove database
     procedure RemoveDB(DB_Name: U_String);
-
     // list
     procedure GetItemList_C(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_C);
     procedure GetItemList_M(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_M);
     procedure GetItemList_P(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_P);
-
     // frag
     procedure GetItemFrag_C(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_C);
     procedure GetItemFrag_M(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_M);
     procedure GetItemFrag_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_P);
-
     // found md5
     procedure FoundMD5_C(frag_md5_name: U_String; OnResult: TON_FoundMD5_C);
     procedure FoundMD5_M(frag_md5_name: U_String; OnResult: TON_FoundMD5_M);
     procedure FoundMD5_P(frag_md5_name: U_String; OnResult: TON_FoundMD5_P);
-
     // put frag
     procedure PutItemFrag_C(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_C);
     procedure PutItemFrag_M(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_M);
     procedure PutItemFrag_P(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_P);
-
     // put md5
     procedure PutItemMD5_C(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_C);
     procedure PutItemMD5_M(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_M);
     procedure PutItemMD5_P(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_P);
-
     // remove field
     procedure RemoveField(DB_Name, DB_Field, DB_Remove_Field_: U_String);
-
     // remove item
     procedure RemoveItem(DB_Name, DB_Field, DB_Remove_Item_: U_String);
-
     // new field
     procedure NewField(DB_Name, DB_Field: U_String);
-
     // space info
     procedure SpaceInfo_C(DB_Name: U_String; OnResult: TON_SpaceInfo_C);
     procedure SpaceInfo_M(DB_Name: U_String; OnResult: TON_SpaceInfo_M);
     procedure SpaceInfo_P(DB_Name: U_String; OnResult: TON_SpaceInfo_P);
-
     // search
     procedure SearchItem_C(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_C);
     procedure SearchItem_M(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_M);
     procedure SearchItem_P(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_P);
-
     // copy
     procedure CopyItem(arry: TCopyItem_Info_Array);
     procedure CopyField(arry: TCopyField_Info_Array);
@@ -595,6 +606,14 @@ begin
   FragSpaceUpdateTime := GetTimeTick();
 end;
 
+procedure TC40_NetDisk_Directory_Service.cmd_ExistsDB(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  DB_Name: U_String;
+begin
+  DB_Name := InData.R.ReadString;
+  OutData.WriteBool(Directory_HashPool.Exists(DB_Name));
+end;
+
 procedure TC40_NetDisk_Directory_Service.cmd_NewDB(Sender: TPeerIO; InData, OutData: TDFE);
 var
   DB_Name: U_String;
@@ -605,6 +624,13 @@ begin
     begin
       OutData.WriteBool(False);
       OutData.WriteString('repeat DB: %s', [DB_Name.Text]);
+      exit;
+    end;
+
+  if umlTrimSpace(DB_Name) = '' then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('DB name is Null');
       exit;
     end;
 
@@ -650,14 +676,7 @@ begin
   DB_Field := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
-    begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
-    end;
+      exit;
 
   if fd.Stream.Data.FieldFindFirst(DB_Field, '*', fr) then
     begin
@@ -764,12 +783,9 @@ begin
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
     begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
+      OutData.WriteBool(False);
+      OutData.WriteString('no found db: %s', [DB_Name.Text]);
+      exit;
     end;
 
   fd.Stream.Data.CreateField(DB_Field, '');
@@ -825,12 +841,9 @@ begin
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
     begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
+      OutData.WriteBool(False);
+      OutData.WriteString('no found db: %s', [DB_Name.Text]);
+      exit;
     end;
 
   fd.Stream.Data.CreateField(DB_Field, '');
@@ -865,14 +878,7 @@ begin
   DB_Remove_Field_ := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
-    begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
-    end;
+      exit;
   fd.Stream.Data.FieldDelete(DB_Field, DB_Remove_Field_);
   fd.IsChanged := True;
 end;
@@ -889,14 +895,7 @@ begin
   DB_Remove_Item_ := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
-    begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
-    end;
+      exit;
   fd.Stream.Data.ItemDelete(DB_Field, DB_Remove_Item_);
   fd.IsChanged := True;
 end;
@@ -911,14 +910,7 @@ begin
   DB_Field := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
-    begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
-    end;
+      exit;
   fd.Stream.Data.CreateField(DB_Field, '');
   fd.IsChanged := True;
 end;
@@ -934,12 +926,10 @@ begin
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
     begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
+      OutData.WriteInt64(0);
+      OutData.WriteInt64(0);
+      OutData.WriteInt64(0);
+      exit;
     end;
   if GetTimeTick() - fd.FragSpaceUpdateTime > 3000 then
     begin
@@ -971,14 +961,7 @@ begin
   DB_Search := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
-    begin
-      // create file db
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-      fd.Stream.Data.Reserved := String_To_Reserved(DB_Name);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      Directory_HashPool.Add(fd.DB_Name, fd);
-      fd.Stream.Save;
-    end;
+      exit;
 
   if fd.Stream.Data.RecursionSearchFirst(DB_Field, DB_Search, ir) then
     begin
@@ -1006,32 +989,17 @@ begin
       Sour_DB_Name := InData.R.ReadString;
       Sour_DB_Field := InData.R.ReadString;
       Sour_DB_Item := InData.R.ReadString;
-      Sour_FD := Directory_HashPool[Sour_DB_Name];
-      if Sour_FD = nil then
-        begin
-          // create file db
-          Sour_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-          Sour_FD.Stream.Data.Reserved := String_To_Reserved(Sour_DB_Name);
-          Sour_FD.DB_Name := Reserved_To_String(Sour_FD.Stream.Data.Reserved);
-          Directory_HashPool.Add(Sour_FD.DB_Name, Sour_FD);
-          Sour_FD.Stream.Save;
-        end;
-
       // read dest info
       Dest_DB_Name := InData.R.ReadString;
       Dest_DB_Field := InData.R.ReadString;
-      Dest_FD := Directory_HashPool[Dest_DB_Name];
-      if Dest_FD = nil then
-        begin
-          // create file db
-          Dest_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-          Dest_FD.Stream.Data.Reserved := String_To_Reserved(Dest_DB_Name);
-          Dest_FD.DB_Name := Reserved_To_String(Dest_FD.Stream.Data.Reserved);
-          Directory_HashPool.Add(Dest_FD.DB_Name, Dest_FD);
-          Dest_FD.Stream.Save;
-        end;
 
-      Sour_FD.Stream.Data.CopyItemToPath(Sour_DB_Field, Sour_DB_Item, Dest_FD.Stream.Data, Dest_DB_Field);
+      Sour_FD := Directory_HashPool[Sour_DB_Name];
+      if Sour_FD <> nil then
+        begin
+          Dest_FD := Directory_HashPool[Dest_DB_Name];
+          if Dest_FD <> nil then
+              Sour_FD.Stream.Data.CopyItemToPath(Sour_DB_Field, Sour_DB_Item, Dest_FD.Stream.Data, Dest_DB_Field);
+        end;
     end;
 end;
 
@@ -1047,32 +1015,17 @@ begin
       // read sour info
       Sour_DB_Name := InData.R.ReadString;
       Sour_DB_Field := InData.R.ReadString;
-      Sour_FD := Directory_HashPool[Sour_DB_Name];
-      if Sour_FD = nil then
-        begin
-          // create file db
-          Sour_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-          Sour_FD.Stream.Data.Reserved := String_To_Reserved(Sour_DB_Name);
-          Sour_FD.DB_Name := Reserved_To_String(Sour_FD.Stream.Data.Reserved);
-          Directory_HashPool.Add(Sour_FD.DB_Name, Sour_FD);
-          Sour_FD.Stream.Save;
-        end;
-
       // read dest info
       Dest_DB_Name := InData.R.ReadString;
       Dest_DB_Field := InData.R.ReadString;
-      Dest_FD := Directory_HashPool[Dest_DB_Name];
-      if Dest_FD = nil then
-        begin
-          // create file db
-          Dest_FD := TDirectory_Service_User_File_DB.Create(self, Directory_Database.NewData);
-          Dest_FD.Stream.Data.Reserved := String_To_Reserved(Dest_DB_Name);
-          Dest_FD.DB_Name := Reserved_To_String(Dest_FD.Stream.Data.Reserved);
-          Directory_HashPool.Add(Dest_FD.DB_Name, Dest_FD);
-          Dest_FD.Stream.Save;
-        end;
 
-      Sour_FD.Stream.Data.CopyFieldToPath(Sour_DB_Field, Dest_FD.Stream.Data, Dest_DB_Field);
+      Sour_FD := Directory_HashPool[Sour_DB_Name];
+      if Sour_FD <> nil then
+        begin
+          Dest_FD := Directory_HashPool[Dest_DB_Name];
+          if Dest_FD <> nil then
+              Sour_FD.Stream.Data.CopyFieldToPath(Sour_DB_Field, Dest_FD.Stream.Data, Dest_DB_Field);
+        end;
     end;
 end;
 
@@ -1085,6 +1038,7 @@ var
   md5_frag: TDirectory_Service_MD5_Data_Frag;
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
+  DTNoAuthService.RecvTunnel.RegisterStream('ExistsDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsDB;
   DTNoAuthService.RecvTunnel.RegisterStream('NewDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewDB;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveDB;
   DTNoAuthService.RecvTunnel.RegisterStream('GetItemList').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemList;
@@ -1325,6 +1279,33 @@ begin
   except
   end;
   DelayFreeObj(1.0, self);
+end;
+
+constructor TON_Temp_ExistsDB.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_ExistsDB.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+var
+  Successed: Boolean;
+begin
+  Successed := Result_.R.ReadBool;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, Successed);
+    if Assigned(OnResultM) then
+        OnResultM(Client, Successed);
+    if Assigned(OnResultP) then
+        OnResultP(Client, Successed);
+  except
+  end;
+  DelayFreeObject(1.0, self);
 end;
 
 constructor TON_Temp_NewDB.Create;
@@ -1594,6 +1575,51 @@ end;
 procedure TC40_NetDisk_Directory_Client.Progress;
 begin
   inherited Progress;
+end;
+
+procedure TC40_NetDisk_Directory_Client.ExistsDB_C(DB_Name: U_String; OnResult: TON_ExistsDB_C);
+var
+  tmp: TON_Temp_ExistsDB;
+  d: TDFE;
+begin
+  tmp := TON_Temp_ExistsDB.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.ExistsDB_M(DB_Name: U_String; OnResult: TON_ExistsDB_M);
+var
+  tmp: TON_Temp_ExistsDB;
+  d: TDFE;
+begin
+  tmp := TON_Temp_ExistsDB.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.ExistsDB_P(DB_Name: U_String; OnResult: TON_ExistsDB_P);
+var
+  tmp: TON_Temp_ExistsDB;
+  d: TDFE;
+begin
+  tmp := TON_Temp_ExistsDB.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.NewDB_C(DB_Name: U_String; OnResult: TON_NewDB_C);
