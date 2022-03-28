@@ -6971,8 +6971,7 @@ begin
   InitSequencePacketModel(128, $FFFF);
 
   FP2PVMTunnel := nil;
-  SetLength(FP2PAuthToken, $FF);
-  FillPtrByte(@FP2PAuthToken[0], Length(FP2PAuthToken), $0);
+  SetLength(FP2PAuthToken, 0);
 
   OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalSendByteBuffer;
   OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalSaveReceiveBuffer;
@@ -7179,7 +7178,7 @@ begin
   FSequencePacketSignal := False;
 
   d := TDFE.Create;
-  d.WriteInteger(umlRandomRange(-MaxInt, MaxInt));
+  d.WriteInteger(umlRandomRange64(-MaxInt, MaxInt));
   SendStreamCmdM(C_BuildP2PAuthToken, d, {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.CommandResult_BuildP2PAuthToken);
   DisposeObject(d);
   InternalProcessAllSendCmd(nil, False, False);
@@ -9222,13 +9221,14 @@ end;
 
 procedure TZNet.SwitchDefaultPerformance;
 const
-  C_CipherSecurity: array [0 .. 6] of TCipherSecurity = (csDES64, csDES128, csDES192, csBlowfish, csLBC, csLQC, csXXTea512);
+  C_CipherSecurity: array [0 .. 11] of TCipherSecurity =
+    (csDES64, csDES128, csDES192, csBlowfish, csLBC, csLQC, csXXTea512, csRC6, csSerpent, csMars, csRijndael, csTwoFish);
 var
   i: Integer;
 begin
   FFastEncrypt := True;
   FUsedParallelEncrypt := True;
-  FHashSecurity := THashSecurity.hsFastMD5;
+  FHashSecurity := THashSecurity.hsNone;
   FSendDataCompressed := False;
   FCompleteBufferCompressed := False;
   SetLength(FCipherSecurityArray, Length(C_CipherSecurity));
