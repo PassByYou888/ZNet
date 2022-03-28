@@ -54,20 +54,7 @@ begin
       Result := nil;
 end;
 
-function ConsoleProc(CtrlType: DWORD): Bool; stdcall;
 begin
-  case CtrlType of
-    CTRL_C_EVENT, CTRL_BREAK_EVENT, CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT:
-      begin
-        TCompute.SyncC(Z.Net.C4.C40Clean);
-      end;
-  end;
-  Result := True;
-end;
-
-begin
-  SetConsoleCtrlHandler(@ConsoleProc, True);
-
   // 打开Log信息
   Z.Net.C4.C40_QuietMode := False;
 
