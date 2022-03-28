@@ -213,6 +213,7 @@ type
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
     function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle;
+    function GetSpaceHndAsText(ID_: Integer): U_String;
     function GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;
     function CheckWriteSpace(Siz_: Int64): Boolean; overload;
     function CheckWriteSpace(Siz_: Int64; Space_: TZDB2_BlockPtrList): Boolean; overload;
@@ -1742,6 +1743,29 @@ begin
     inc(num);
     i := FBlockBuffer[i].Next;
   until i < 0;
+end;
+
+function TZDB2_Core_Space.GetSpaceHndAsText(ID_: Integer): U_String;
+var
+  Hnd: TZDB2_BlockHandle;
+  i: Integer;
+  buff_: U_String;
+  m64: TMem64;
+begin
+  Hnd := GetSpaceHnd(ID_);
+  m64 := TMem64.CustomCreate(1024);
+  for i in Hnd do
+    begin
+      buff_ := if_(m64.Position > 0, ', ', '') + umlIntToStr(i);
+      if buff_.L > 0 then
+          m64.WritePtr(@buff_.buff[0], buff_.L * SystemCharSize);
+    end;
+  Result.L := m64.Size div SystemCharSize;
+  if Result.L > 0 then
+      CopyPtr(m64.Memory, @Result.buff[0], Result.L * SystemCharSize);
+  SetLength(Hnd, 0);
+  DisposeObject(m64);
+  buff_ := '';
 end;
 
 function TZDB2_Core_Space.GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;

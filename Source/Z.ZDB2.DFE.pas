@@ -107,7 +107,12 @@ begin
   if FData = nil then
       exit;
   if (Keep <= 0) and (GetTimeTick - FAlive > FTimeOut) then
+    begin
       Save;
+{$IFDEF DEBUG}
+      DoStatus('%s -> %s Space Recycle ID %s size:%d', [UnitName, ClassName, CoreSpace.GetSpaceHndAsText(FID).Text, CoreSpace.GetDataSize(FID)]);
+{$ENDIF DEBUG}
+    end;
 end;
 
 procedure TZDB2_DFE.Load;
