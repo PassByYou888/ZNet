@@ -1060,9 +1060,9 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   // directory database
-  Directory_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('Directory_RecycleMemory', '5*1000'), 5 * 1000);
+  Directory_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('Directory_RecycleMemory', '30*1000'), 30 * 1000);
   Directory_ZDB2_DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('Directory_DeltaSpace', '128*1024*1024'), 128 * 1024 * 1024);
-  Directory_ZDB2_BlockSize := EStrToInt(ParamList.GetDefaultValue('Directory_BlockSize', '1536'), 1536);
+  Directory_ZDB2_BlockSize := EStrToInt(ParamList.GetDefaultValue('Directory_BlockSize', '8192'), 8192);
   Directory_ZDB2_EnabledCipher := EStrToBool(ParamList.GetDefaultValue('Directory_EnabledCipher', 'True'), True);
   Directory_ZDB2_CipherName := ParamList.GetDefaultValue('Directory_Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
   Directory_ZDB2_Password := ParamList.GetDefaultValue('Directory_Password', Z.Net.C4.C40_Password);
