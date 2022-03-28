@@ -163,14 +163,16 @@ const
 
 type
   THeader = record
-    CurrentHeader: Int64;                        // nowrite
+    CurrentHeader: Int64; // nowrite
+    //
     NextHeader, PrevHeader, DataPosition: Int64; // store position
     ID: Byte;                                    // DB_Header_Field_ID, DB_Header_Item_ID
     PositionID: Byte;                            // DB_Header_First, DB_Header_Medium, DB_Header_Last, DB_Header_1
     CreateTime, ModificationTime: Double;        // time
     UserProperty: Cardinal;                      // external define
     Name: U_String;                              // header name
-    State: Integer;                              // nowrite
+    //
+    State: Integer; // nowrite
   end;
 
   PHeader = ^THeader;
@@ -179,7 +181,8 @@ type
     ID: Byte;                                                         // block ID
     CurrentBlockPOS, NextBlockPOS, PrevBlockPOS, DataPosition: Int64; // data pos
     Size: Int64;                                                      // block size
-    State: Integer;                                                   // nowrite
+    //
+    State: Integer; // nowrite
   end;
 
   PItemBlock = ^TItemBlock;
@@ -191,11 +194,12 @@ type
     FirstBlockPOS, LastBlockPOS: Int64; // item block pos
     Size: Int64;                        // size
     BlockCount: Int64;                  // block count
-    CurrentBlockSeekPOS: Int64;         // nowrite
-    CurrentFileSeekPOS: Int64;          // nowrite
-    CurrentItemBlock: TItemBlock;       // nowrite
-    DataModification: Boolean;          // nowrite
-    State: Integer;                     // nowrite
+    //
+    CurrentBlockSeekPOS: Int64;   // nowrite
+    CurrentFileSeekPOS: Int64;    // nowrite
+    CurrentItemBlock: TItemBlock; // nowrite
+    DataModification: Boolean;    // nowrite
+    State: Integer;               // nowrite
   end;
 
   PItem = ^TItem;
@@ -206,12 +210,13 @@ type
     Description: U_String;                // description
     HeaderCount: Int64;                   // children
     FirstHeaderPOS, LastHeaderPOS: Int64; // header pos
+    //
     State: Integer;                       // nowrite
   end;
 
   PField = ^TField;
 
-  // internal used
+  // internal
   TFieldSearch = record
     RHeader: THeader;
     InitFlags: Boolean;
