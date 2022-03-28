@@ -255,7 +255,15 @@ type
     procedure AddDoubleTunenlID(R, S: Cardinal);
   end;
 
-  TQueueState = (qsUnknow, qsSendConsoleCMD, qsSendStreamCMD, qsSendDirectConsoleCMD, qsSendDirectStreamCMD, qsSendBigStream, qsSendCompleteBuffer);
+  TQueueState = (
+    qsUnknow,
+    qsSendConsoleCMD,
+    qsSendStreamCMD,
+    qsSendDirectConsoleCMD,
+    qsSendDirectStreamCMD,
+    qsSendBigStream,
+    qsSendCompleteBuffer
+    );
 
   TQueueData = record
     { queue state }
