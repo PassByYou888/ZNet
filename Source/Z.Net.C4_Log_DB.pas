@@ -477,7 +477,7 @@ begin
     begin
       fn := umlCombineFileName(C40_DB_Directory, LogDB_.Text + '.Log_ZDB2');
       try
-        if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(fn) then
+        if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), true) and umlFileExists(fn) then
             fs := TCore_FileStream.Create(fn, fmOpenReadWrite)
         else
             fs := TCore_FileStream.Create(fn, fmCreate);
@@ -719,6 +719,10 @@ begin
   d.WriteString(Log2_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('PostLog', d);
   disposeObject(d);
+  if Log2_ <> '' then
+      DoStatus('Log1:%s Log2:%s -> %s', [Log1_, Log2_, LogDB])
+  else
+      DoStatus('Log:%s -> %s', [Log1_, LogDB]);
 end;
 
 procedure TC40_Log_DB_Client.PostLog(LogDB, Log_: SystemString);
