@@ -299,7 +299,7 @@ type
     property TEKeyValue_Client: TC40_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
     property FS2_Client_Pool: TC40_FS2_Client_List read FFS2_Client_Pool;
     property Log_Client: TC40_Log_DB_Client read Get_Log_Client write Set_Log_Client;
-    // automated
+    // automated config.
     procedure Automated_Config_NetDisk_Service_Relevance;
     function Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean; overload;
     function Check_NetDisk_Service_Relevance(): Boolean; overload;
@@ -369,6 +369,8 @@ begin
           IO.ContinueResultSend;
           VM_Service.PostLog('%s auth and check directory DB successed.', [IO_Def_.PrimaryIdentifier.Text]);
           IO_Def_.AuthDone := True;
+          if (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
+              VM_Service.UserDB_Client.Usr_Open(IO_Def_.PrimaryIdentifier);
         end
       else
         begin
@@ -390,7 +392,6 @@ begin
         begin
           IO_Def_.UserJson.Assign(Json_);
           IO_Def_.UserJson_MD5 := IO_Def_.UserJson.MD5;
-          sender.Usr_Open(IO_Def_.PrimaryIdentifier);
           if (VM_Service.Directory_Client <> nil) and (VM_Service.Directory_Client.Connected) then
             begin
               VM_Service.Directory_Client.ExistsDB_M(
