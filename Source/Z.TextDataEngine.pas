@@ -49,7 +49,8 @@ type
     procedure Delete(Section_: SystemString);
     procedure DeleteKey(Section_, Key_: SystemString);
 
-    function Exists(N_: SystemString): Boolean;
+    function Exists(Section_: SystemString): Boolean;
+    function ExistsKey(Section_, Key_: SystemString): Boolean;
 
     function GetDefaultValue(const SectionName, KeyName: SystemString; const DefaultValue: Variant): Variant;
     procedure SetDefaultValue(const SectionName, KeyName: SystemString; const Value: Variant);
@@ -65,6 +66,7 @@ type
     procedure DataExport(TextList_: TCore_Strings); overload;
     procedure DataExport(TextList_: TListPascalString); overload;
 
+    procedure SwapInstance(sour: THashTextEngine);
     procedure Merge(sour: THashTextEngine);
     procedure Assign(sour: THashTextEngine);
     function Same(sour: THashTextEngine): Boolean;
@@ -412,9 +414,18 @@ begin
   FIsChanged := True;
 end;
 
-function THashTextEngine.Exists(N_: SystemString): Boolean;
+function THashTextEngine.Exists(Section_: SystemString): Boolean;
 begin
-  Result := FSectionList.Exists(N_) or FSectionHashVariantList.Exists(N_) or FSectionHashStringList.Exists(N_);
+  Result := FSectionList.Exists(Section_) or FSectionHashVariantList.Exists(Section_) or FSectionHashStringList.Exists(Section_);
+end;
+
+function THashTextEngine.ExistsKey(Section_, Key_: SystemString): Boolean;
+begin
+  Result := False;
+  if FSectionHashVariantList.Exists(Section_) then
+      Result := THashVariantList(FSectionHashVariantList[Section_]).Exists(Key_) or Result;
+  if FSectionHashStringList.Exists(Section_) then
+      Result := THashStringList(FSectionHashStringList[Section_]).Exists(Key_) or Result;
 end;
 
 function THashTextEngine.GetDefaultValue(const SectionName, KeyName: SystemString; const DefaultValue: Variant): Variant;
@@ -602,6 +613,41 @@ begin
         end;
 
   DisposeObject(tmpSecLst);
+end;
+
+procedure THashTextEngine.SwapInstance(sour: THashTextEngine);
+var
+  bak_FComment: TCore_Strings;
+  bak_FSectionList, bak_FSectionHashVariantList, bak_FSectionHashStringList: THashObjectList;
+  bak_FAutoUpdateDefaultValue: Boolean;
+  bak_FSectionPoolSize, bak_FListPoolSize: Integer;
+begin
+  bak_FComment := FComment;
+  bak_FSectionList := FSectionList;
+  bak_FSectionHashVariantList := FSectionHashVariantList;
+  bak_FSectionHashStringList := FSectionHashStringList;
+  bak_FAutoUpdateDefaultValue := FAutoUpdateDefaultValue;
+  bak_FSectionPoolSize := FSectionPoolSize;
+  bak_FListPoolSize := FListPoolSize;
+
+  FComment := sour.FComment;
+  FSectionList := sour.FSectionList;
+  FSectionHashVariantList := sour.FSectionHashVariantList;
+  FSectionHashStringList := sour.FSectionHashStringList;
+  FAutoUpdateDefaultValue := sour.FAutoUpdateDefaultValue;
+  FSectionPoolSize := sour.FSectionPoolSize;
+  FListPoolSize := sour.FListPoolSize;
+
+  sour.FComment := bak_FComment;
+  sour.FSectionList := bak_FSectionList;
+  sour.FSectionHashVariantList := bak_FSectionHashVariantList;
+  sour.FSectionHashStringList := bak_FSectionHashStringList;
+  sour.FAutoUpdateDefaultValue := bak_FAutoUpdateDefaultValue;
+  sour.FSectionPoolSize := bak_FSectionPoolSize;
+  sour.FListPoolSize := bak_FListPoolSize;
+
+  IsChanged := True;
+  sour.IsChanged := True;
 end;
 
 procedure THashTextEngine.Merge(sour: THashTextEngine);
