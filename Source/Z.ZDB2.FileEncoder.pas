@@ -57,7 +57,7 @@ type
   TZDB2_File_Encoder = class
   private
     FCore: TZDB2_Core_Space;
-    FPlace: TZDB2_SpacePlan;
+    FPlace: TZDB2_Space_Planner;
     FIOThread: TIO_Thread;
     FEncoderFiles: TZDB2_FIL;
     FMaxQueue: Integer;
@@ -251,7 +251,7 @@ begin
   FCore.Cipher := Cipher_;
   FCore.AutoCloseIOHnd := True;
   FCore.AutoFreeIOHnd := True;
-  FPlace := TZDB2_SpacePlan.Create(FCore);
+  FPlace := TZDB2_Space_Planner.Create(FCore);
 
   FIOThread := TIO_Thread.Create(ThNum_);
   FEncoderFiles := TZDB2_FIL.Create;
