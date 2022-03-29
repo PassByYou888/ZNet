@@ -1773,7 +1773,6 @@ begin
   Remote_Frag_List.MD5 := L.MD5;
   Remote_Frag_List.Size := L.Size;
   Remote_Frag_List.Time_ := L.Time_;
-  Remote_Frag_List.Ref_ := L.Ref_;
 
   TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Compute_Local_Frag);
   IsBusy := True;
