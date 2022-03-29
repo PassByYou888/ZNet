@@ -332,6 +332,14 @@ var
 begin
   if IOHnd.IsOnlyRead then
       exit;
+
+  if (PHead_(@CoreSpace.UserCustomHeader^[0])^.Identifier = $FFFF) and
+    CoreSpace.Check(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID) then
+    begin
+      CoreSpace.RemoveData(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID, False);
+      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
+    end;
+
   sum_ := 0;
   if Count > 0 then
     for i := 0 to Count - 1 do
