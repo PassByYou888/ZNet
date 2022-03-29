@@ -222,7 +222,7 @@ type
 
 {$ENDREGION 'define_bridge'}
 
-  TC40_NetDisk_VM_Service = class(TC40_Base_NoAuth_Service, I_ON_C40_UserDB_Client_Notify)
+  TC40_NetDisk_VM_Service = class(TC40_Base_NoAuth_Service, I_ON_C40_UserDB_Client_Notify, I_ON_C40_NetDisk_Directory_Client_Interface)
   protected
     procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
     procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
@@ -242,6 +242,8 @@ type
     FDirectory_Client: TC40_NetDisk_Directory_Client;
     function Get_Directory_Client: TC40_NetDisk_Directory_Client;
     procedure Set_Directory_Client(const Value: TC40_NetDisk_Directory_Client);
+    procedure Do_Remove_Directory_MD5(arry: U_StringArray);
+    procedure Do_Remove_Directory_Invalid_Frag(arry: U_StringArray);
   protected
     // log interface
     FLog_Client: TC40_Log_DB_Client;
@@ -1082,7 +1084,24 @@ end;
 
 procedure TC40_NetDisk_VM_Service.Set_Directory_Client(const Value: TC40_NetDisk_Directory_Client);
 begin
+  if FDirectory_Client <> nil then
+      FDirectory_Client.ON_C40_NetDisk_Directory_Client_Interface := nil;
   FDirectory_Client := Value;
+  if FDirectory_Client <> nil then
+      FDirectory_Client.ON_C40_NetDisk_Directory_Client_Interface := self;
+end;
+
+procedure TC40_NetDisk_VM_Service.Do_Remove_Directory_MD5(arry: U_StringArray);
+begin
+
+end;
+
+procedure TC40_NetDisk_VM_Service.Do_Remove_Directory_Invalid_Frag(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := 0 to FFS2_Client_Pool.count - 1 do
+      FFS2_Client_Pool[i].RemoveCache(arry);
 end;
 
 function TC40_NetDisk_VM_Service.Get_Log_Client: TC40_Log_DB_Client;
