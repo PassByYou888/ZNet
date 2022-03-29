@@ -113,7 +113,7 @@ type
     OnResultC: TFS2_Temp_CheckMD5AndFastCopyC;
     OnResultM: TFS2_Temp_CheckMD5AndFastCopyM;
     OnResultP: TFS2_Temp_CheckMD5AndFastCopyP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -193,7 +193,7 @@ type
     OnResultC: TFS2_Temp_GetFileMD5C;
     OnResultM: TFS2_Temp_GetFileMD5M;
     OnResultP: TFS2_Temp_GetFileMD5P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -219,7 +219,7 @@ type
     OnResultC: TFS2_Temp_SearchMultiMD5C;
     OnResultM: TFS2_Temp_SearchMultiMD5M;
     OnResultP: TFS2_Temp_SearchMultiMD5P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -238,7 +238,7 @@ type
     OnResultC: TFS2_Temp_GetMD5FilesC;
     OnResultM: TFS2_Temp_GetMD5FilesM;
     OnResultP: TFS2_Temp_GetMD5FilesP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -277,7 +277,7 @@ type
     OnResultC: TFS2_Temp_SizeC;
     OnResultM: TFS2_Temp_SizeM;
     OnResultP: TFS2_Temp_SizeP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -306,7 +306,7 @@ type
     OnResultC: TFS2_Temp_SearchC;
     OnResultM: TFS2_Temp_SearchM;
     OnResultP: TFS2_Temp_SearchP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -333,7 +333,7 @@ type
     OnResultC: TFS2_Temp_PoolFragC;
     OnResultM: TFS2_Temp_PoolFragM;
     OnResultP: TFS2_Temp_PoolFragP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -412,9 +412,9 @@ type
     procedure FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchC);
     procedure FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchM);
     procedure FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchP);
-    procedure FS2_PoolFragC(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
-    procedure FS2_PoolFragM(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
-    procedure FS2_PoolFragP(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
+    procedure FS2_PoolFragC(OnResult: TFS2_Temp_PoolFragC);
+    procedure FS2_PoolFragM(OnResult: TFS2_Temp_PoolFragM);
+    procedure FS2_PoolFragP(OnResult: TFS2_Temp_PoolFragP);
   end;
 
 implementation
@@ -805,17 +805,10 @@ end;
 
 procedure TC40_FS2_Service.cmd_FS2_PoolFrag(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  bIndex, num_, eIndex, i: Integer;
+  i: Integer;
   fd: TFS2_Service_File_Data;
 begin
-  bIndex := InData.R.ReadInteger;
-  num_ := InData.R.ReadInteger;
-  bIndex := umlClamp(bIndex, 0, FileDatabase.Count - 1);
-  eIndex := umlClamp(bIndex + num_, 0, FileDatabase.Count - 1);
-  if eIndex = bIndex then
-      eIndex := FileDatabase.Count - 1;
-
-  for i := bIndex to eIndex do
+  for i := 0 to FileDatabase.Count - 1 do
     begin
       fd := TFS2_Service_ZDB2_MS64(FileDatabase[i]).Service_File_Data;
       if fd <> nil then
@@ -2390,7 +2383,7 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragC(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
+procedure TC40_FS2_Client.FS2_PoolFragC(OnResult: TFS2_Temp_PoolFragC);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2400,14 +2393,12 @@ begin
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(bIndex);
-  d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragM(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
+procedure TC40_FS2_Client.FS2_PoolFragM(OnResult: TFS2_Temp_PoolFragM);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2417,14 +2408,12 @@ begin
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(bIndex);
-  d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragP(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
+procedure TC40_FS2_Client.FS2_PoolFragP(OnResult: TFS2_Temp_PoolFragP);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2434,8 +2423,6 @@ begin
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(bIndex);
-  d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
