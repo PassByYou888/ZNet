@@ -8,13 +8,14 @@ unit Z.Status;
 interface
 
 uses
-{$IFNDEF FPC}
+{$IFDEF DELPHI}
 {$IF Defined(WIN32) or Defined(WIN64)}
   Windows,
 {$ELSEIF not Defined(Linux)}
   FMX.Types,
-{$IFEND}
-{$IFEND FPC}
+{$ENDIF}
+{$ENDIF DELPHI}
+  // compatible
   SysUtils, Classes, SyncObjs,
 {$IFDEF FPC}
   Z.FPC.GenericList, fgl,
@@ -413,16 +414,16 @@ begin
         end;
     end;
 
-{$IFNDEF FPC}
+{$IFDEF DELPHI}
   if (StatusActive) and ((IDEOutput) or (ID = 2)) and (DebugHook <> 0) then
     begin
 {$IF Defined(WIN32) or Defined(WIN64)}
       OutputDebugString(PWideChar('"' + Text_ + '"'));
 {$ELSEIF not Defined(Linux)}
       FMX.Types.Log.d('"' + Text_ + '"');
-{$IFEND}
+{$ENDIF}
     end;
-{$IFEND FPC}
+{$ENDIF DELPHI}
   if (StatusActive) and ((ConsoleOutput) or (ID = 2)) and (IsConsole) then
       Writeln(Text_.Text);
 end;
@@ -576,7 +577,7 @@ begin
 
   StatusActive := True;
   LastDoStatus := '';
-  IDEOutput := False;
+  IDEOutput := {$IFDEF FPC}False{$ELSE FPC}DebugHook > 0{$ENDIF FPC};
   ConsoleOutput := True;
   OnDoStatusHook := {$IFDEF FPC}@{$ENDIF FPC}InternalDoStatus;
   StatusThreadID := True;
