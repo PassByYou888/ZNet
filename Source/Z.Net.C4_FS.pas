@@ -143,7 +143,7 @@ type
     OnResultC: TFS_Temp_GetFileMD5C;
     OnResultM: TFS_Temp_GetFileMD5M;
     OnResultP: TFS_Temp_GetFileMD5P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -182,7 +182,7 @@ type
     OnResultC: TFS_Temp_SizeC;
     OnResultM: TFS_Temp_SizeM;
     OnResultP: TFS_Temp_SizeP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -210,7 +210,7 @@ type
     OnResultC: TFS_Temp_SearchC;
     OnResultM: TFS_Temp_SearchM;
     OnResultP: TFS_Temp_SearchP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
