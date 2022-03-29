@@ -131,6 +131,11 @@ type
     property MinKeySize: NativeInt read FMinNameSize;
     property MaxNameSize: NativeInt read FMaxNameSize;
     property MinNameSize: NativeInt read FMinNameSize;
+    // alias
+    property MaxKeyLen: NativeInt read FMaxNameSize;
+    property MinKeyLen: NativeInt read FMinNameSize;
+    property MaxNameLen: NativeInt read FMaxNameSize;
+    property MinNameLen: NativeInt read FMinNameSize;
   end;
 
   PHashList = ^THashList;
