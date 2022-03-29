@@ -70,7 +70,7 @@ type
     OnResultC: TON_Get_XNAT_MappingC;
     OnResultM: TON_Get_XNAT_MappingM;
     OnResultP: TON_Get_XNAT_MappingP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -342,7 +342,7 @@ constructor TXNAT_C4_VS_Mapping.Create(Owner_: TC40_XNAT_Client_Tool);
 begin
   inherited Create;
   Owner := Owner_;
-  Owner.XNAT_VS_List.Add(self);
+  Owner.XNAT_VS_List.Add(Self);
 end;
 
 destructor TXNAT_C4_VS_Mapping.Destroy;
@@ -351,7 +351,7 @@ var
 begin
   i := 0;
   while i < Owner.XNAT_VS_List.count do
-    if Owner.XNAT_VS_List[i] = self then
+    if Owner.XNAT_VS_List[i] = Self then
         Owner.XNAT_VS_List.Delete(i)
     else
         inc(i);
@@ -412,7 +412,7 @@ begin
   except
   end;
 
-  DelayFreeObj(1.0, self);
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TC40_XNAT_Client_Tool.Do_Get_XNAT_Service(Sender: TPeerIO; Result_: TDFE);
@@ -461,7 +461,7 @@ var
 begin
   d := TDFE.Create;
   tmp := TON_Get_XNAT_Mapping.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_XNAT_Mapping', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
@@ -475,7 +475,7 @@ var
 begin
   d := TDFE.Create;
   tmp := TON_Get_XNAT_Mapping.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_XNAT_Mapping', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
@@ -489,7 +489,7 @@ var
 begin
   d := TDFE.Create;
   tmp := TON_Get_XNAT_Mapping.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_XNAT_Mapping', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
@@ -519,7 +519,7 @@ var
   tmp: TBuild_Physics_Service_Bridge;
 begin
   tmp := TBuild_Physics_Service_Bridge.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.Mapping := Mapping;
   tmp.MaxWorkload := MaxWorkload;
   tmp.OnResultC := OnResult;
@@ -531,7 +531,7 @@ var
   tmp: TBuild_Physics_Service_Bridge;
 begin
   tmp := TBuild_Physics_Service_Bridge.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.Mapping := Mapping;
   tmp.MaxWorkload := MaxWorkload;
   tmp.OnResultM := OnResult;
@@ -543,7 +543,7 @@ var
   tmp: TBuild_Physics_Service_Bridge;
 begin
   tmp := TBuild_Physics_Service_Bridge.Create;
-  tmp.Client := self;
+  tmp.Client := Self;
   tmp.Mapping := Mapping;
   tmp.MaxWorkload := MaxWorkload;
   tmp.OnResultP := OnResult;
