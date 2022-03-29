@@ -171,7 +171,7 @@ type
     OnResultC: TON_ExistsDB_C;
     OnResultM: TON_ExistsDB_M;
     OnResultP: TON_ExistsDB_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -189,7 +189,7 @@ type
     OnResultC: TON_NewDB_C;
     OnResultM: TON_NewDB_M;
     OnResultP: TON_NewDB_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -215,7 +215,7 @@ type
     OnResultC: TON_GetItemList_C;
     OnResultM: TON_GetItemList_M;
     OnResultP: TON_GetItemList_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -233,7 +233,7 @@ type
     OnResultC: TON_GetItemFrag_C;
     OnResultM: TON_GetItemFrag_M;
     OnResultP: TON_GetItemFrag_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -251,7 +251,7 @@ type
     OnResultC: TON_FoundMD5_C;
     OnResultM: TON_FoundMD5_M;
     OnResultP: TON_FoundMD5_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -269,7 +269,7 @@ type
     OnResultC: TON_PutItemFrag_C;
     OnResultM: TON_PutItemFrag_M;
     OnResultP: TON_PutItemFrag_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -287,7 +287,7 @@ type
     OnResultC: TON_PutItemMD5_C;
     OnResultM: TON_PutItemMD5_M;
     OnResultP: TON_PutItemMD5_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -305,7 +305,7 @@ type
     OnResultC: TON_SpaceInfo_C;
     OnResultM: TON_SpaceInfo_M;
     OnResultP: TON_SpaceInfo_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -330,7 +330,7 @@ type
     OnResultC: TON_SearchItem_C;
     OnResultM: TON_SearchItem_M;
     OnResultP: TON_SearchItem_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -360,7 +360,7 @@ type
     OnResultC: TON_SearchInvalidFrag_C;
     OnResultM: TON_SearchInvalidFrag_M;
     OnResultP: TON_SearchInvalidFrag_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -1168,7 +1168,7 @@ var
     if Opti_Directory_File_Hash.Exists(Name_^) then
       begin
         for i := 0 to Obj_.Frag_Pool.count - 1 do
-            Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i].FS_File, 1);
+            Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i]^.FS_File, 1);
       end
     else
         L.Add(Name_^, Obj_);
@@ -1192,10 +1192,10 @@ var
         d.WriteString(L[i]);
         Obj_ := TDirectory_Service_MD5_Data_Frag(L.Objects[i]);
         for j := 0 to Obj_.Frag_Pool.count - 1 do
-          if not Opti_Directory_Frag_Hash.Exists(Obj_.Frag_Pool[j].FS_File) then
+          if not Opti_Directory_Frag_Hash.Exists(Obj_.Frag_Pool[j]^.FS_File) then
             begin
-              invalid_Frag.Add(Obj_.Frag_Pool[j].FS_File, nil);
-              DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j].FS_File.Text, Obj_.Frag_Pool[j].Size_]);
+              invalid_Frag.Add(Obj_.Frag_Pool[j]^.FS_File, nil);
+              DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j]^.FS_File.Text, Obj_.Frag_Pool[j]^.Size_]);
             end;
         DoStatus('%s recycle data space "%s" size:%d', [ServiceInfo.ServiceTyp.Text, L[i].Text, Obj_.Frag_Pool.Size]);
 
@@ -1234,7 +1234,7 @@ begin
       if Opti_Directory_File_Hash.Exists(Name_^) then
         begin
           for i := 0 to Obj_.Frag_Pool.count - 1 do
-              Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i].FS_File, 1);
+              Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i]^.FS_File, 1);
         end
       else
           L.Add(Name_^, Obj_);
