@@ -965,7 +965,7 @@ begin
   NMBigPool := TVAR_Service_NMBigPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('NM_HashPool', '1024*1024'), 1024 * 1024),
     nil);
-  // NMBigPool.AccessOptimization := True;
+  NMBigPool.AccessOptimization := True;
   NMBigPool.IgnoreCase := True;
   OnChange := nil;
   OnRemove := nil;
