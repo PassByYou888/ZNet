@@ -118,7 +118,7 @@ type
     OnResultC: TON_NM_GetC;
     OnResultM: TON_NM_GetM;
     OnResultP: TON_NM_GetP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -138,7 +138,7 @@ type
     OnResultC: TON_NM_GetValueC;
     OnResultM: TON_NM_GetValueM;
     OnResultP: TON_NM_GetValueP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -157,7 +157,7 @@ type
     OnResultC: TON_NM_OpenC;
     OnResultM: TON_NM_OpenM;
     OnResultP: TON_NM_OpenP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -176,7 +176,7 @@ type
     OnResultC: TON_NM_ScriptC;
     OnResultM: TON_NM_ScriptM;
     OnResultP: TON_NM_ScriptP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -195,7 +195,7 @@ type
     OnResultC: TON_NM_SearchC;
     OnResultM: TON_NM_SearchM;
     OnResultP: TON_NM_SearchP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
