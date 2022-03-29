@@ -48,7 +48,7 @@ type
     OnResultC: TON_MakeSeedC;
     OnResultM: TON_MakeSeedM;
     OnResultP: TON_MakeSeedP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
