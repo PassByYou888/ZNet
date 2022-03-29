@@ -126,7 +126,7 @@ type
     OnResultC: TON_Usr_IsOpenC;
     OnResultM: TON_Usr_IsOpenM;
     OnResultP: TON_Usr_IsOpenP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -145,7 +145,7 @@ type
     OnResultC: TON_Usr_GetFriendsC;
     OnResultM: TON_Usr_GetFriendsM;
     OnResultP: TON_Usr_GetFriendsP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -164,7 +164,7 @@ type
     OnResultC: TON_Usr_OnlineNumC;
     OnResultM: TON_Usr_OnlineNumM;
     OnResultP: TON_Usr_OnlineNumP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -183,7 +183,7 @@ type
     OnResultC: TON_Usr_OnlineListC;
     OnResultM: TON_Usr_OnlineListM;
     OnResultP: TON_Usr_OnlineListP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -202,7 +202,7 @@ type
     OnResultC: TON_Usr_RegC;
     OnResultM: TON_Usr_RegM;
     OnResultP: TON_Usr_RegP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -221,7 +221,7 @@ type
     OnResultC: TON_Usr_ExistsC;
     OnResultM: TON_Usr_ExistsM;
     OnResultP: TON_Usr_ExistsP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -240,7 +240,7 @@ type
     OnResultC: TON_Usr_AuthC;
     OnResultM: TON_Usr_AuthM;
     OnResultP: TON_Usr_AuthP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -259,7 +259,7 @@ type
     OnResultC: TON_Usr_ChangePasswordC;
     OnResultM: TON_Usr_ChangePasswordM;
     OnResultP: TON_Usr_ChangePasswordP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -278,7 +278,7 @@ type
     OnResultC: TON_Usr_NewIdentifierC;
     OnResultM: TON_Usr_NewIdentifierM;
     OnResultP: TON_Usr_NewIdentifierP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -297,7 +297,7 @@ type
     OnResultC: TON_Usr_GetC;
     OnResultM: TON_Usr_GetM;
     OnResultP: TON_Usr_GetP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -316,7 +316,7 @@ type
     OnResultC: TON_Usr_GetPrimaryIdentifierC;
     OnResultM: TON_Usr_GetPrimaryIdentifierM;
     OnResultP: TON_Usr_GetPrimaryIdentifierP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
