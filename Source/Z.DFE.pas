@@ -319,7 +319,7 @@ type
     function ComputeEncodeSize: Int64; override;
 
     function GetBuffer: TCore_Stream;
-    procedure SetBuffer(_Buffer: TCore_Stream);
+    procedure SetBuffer(Value_: TCore_Stream);
     property Buffer: TCore_Stream read GetBuffer write SetBuffer;
     property InstanceBuffer: TMS64 read FBuffer write FBuffer;
   end;
@@ -620,27 +620,34 @@ type
     function EncodeAsSelectCompressor(output: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function EncodeAsSelectCompressor(output: TCore_Stream): Integer; overload;
     // ZLib compressor
+    function EncodeAsZLib(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer; overload;
     function EncodeAsZLib(output: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function EncodeAsZLib(output: TCore_Stream): Integer; overload;
     // Deflate compressor
+    function EncodeAsDeflate(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer; overload;
     function EncodeAsDeflate(output: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function EncodeAsDeflate(output: TCore_Stream): Integer; overload;
     // BRRC compressor
+    function EncodeAsBRRC(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer; overload;
     function EncodeAsBRRC(output: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function EncodeAsBRRC(output: TCore_Stream): Integer; overload;
+    // state
     function IsCompressed(source: TCore_Stream): Boolean;
-
+    // decoder
     function DecodeFrom(source: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function DecodeFrom(source: TCore_Stream): Integer; overload;
     procedure EncodeToBytes(const Compressed, FastMode: Boolean; var output: TBytes);
     procedure DecodeFromBytes(var buff: TBytes); overload;
     procedure DecodeFromBytes(var buff: TBytes; const FastMode: Boolean); overload;
+    // md5
     function GetMD5(const FastMode: Boolean): TMD5;
     function Compare(source: TDFE): Boolean;
+    // file
     procedure LoadFromStream(stream: TCore_Stream);
     procedure SaveToStream(stream: TCore_Stream);
     procedure LoadFromFile(fileName_: U_String);
     procedure SaveToFile(fileName_: U_String);
+    // list
     property Data[index_: Integer]: TDFBase read GetData; default;
     property List: TCore_ListForObj read FDataList;
   end;
@@ -792,22 +799,22 @@ end;
 
 procedure TDFString.LoadFromStream(stream: TCore_Stream);
 var
-  _Len: Integer;
+  Size_: Integer;
 begin
-  stream.Read(_Len, C_Integer_Size);
-  SetLength(Buffer, _Len);
-  if (_Len > 0) then
-      stream.Read(Buffer[0], _Len);
+  stream.Read(Size_, C_Integer_Size);
+  SetLength(Buffer, Size_);
+  if (Size_ > 0) then
+      stream.Read(Buffer[0], Size_);
 end;
 
 procedure TDFString.SaveToStream(stream: TCore_Stream);
 var
-  _Len: Integer;
+  Size_: Integer;
 begin
-  _Len := length(Buffer);
-  stream.write(_Len, C_Integer_Size);
-  if _Len > 0 then
-      stream.write(Buffer[0], _Len);
+  Size_ := length(Buffer);
+  stream.write(Size_, C_Integer_Size);
+  if Size_ > 0 then
+      stream.write(Buffer[0], Size_);
 end;
 
 procedure TDFString.LoadFromJson(jarry: TZ_JsonArray; index_: Integer);
@@ -1647,24 +1654,24 @@ end;
 
 procedure TDFStream.LoadFromStream(stream: TCore_Stream);
 var
-  _Len: Integer;
+  Size_: Integer;
 begin
   FBuffer.Clear;
-  stream.Read(_Len, C_Integer_Size);
-  if (_Len > 0) then
-      FBuffer.CopyFrom(stream, _Len);
+  stream.Read(Size_, C_Integer_Size);
+  if (Size_ > 0) then
+      FBuffer.CopyFrom(stream, Size_);
 end;
 
 procedure TDFStream.SaveToStream(stream: TCore_Stream);
 var
-  _Len: Integer;
+  Size_: Integer;
 begin
-  _Len := FBuffer.Size;
-  stream.write(_Len, C_Integer_Size);
-  if _Len > 0 then
+  Size_ := FBuffer.Size;
+  stream.write(Size_, C_Integer_Size);
+  if Size_ > 0 then
     begin
       FBuffer.Position := 0;
-      stream.CopyFrom(FBuffer, _Len);
+      stream.CopyFrom(FBuffer, Size_);
     end;
 end;
 
@@ -1695,16 +1702,20 @@ begin
   Result := FBuffer;
 end;
 
-procedure TDFStream.SetBuffer(_Buffer: TCore_Stream);
+procedure TDFStream.SetBuffer(Value_: TCore_Stream);
 var
   p_: Int64;
 begin
   FBuffer.Clear;
-  p_ := _Buffer.Position;
-  _Buffer.Position := 0;
-  if _Buffer.Size > 0 then
-      FBuffer.CopyFrom(_Buffer, _Buffer.Size);
-  _Buffer.Position := p_;
+  p_ := Value_.Position;
+  Value_.Position := 0;
+  if Value_.Size > 0 then
+    begin
+      FBuffer.Size := Value_.Size;
+      FBuffer.Position := 0;
+      FBuffer.CopyFrom(Value_, Value_.Size);
+    end;
+  Value_.Position := p_;
 end;
 
 constructor TDFVariant.Create(ID: Byte);
@@ -2590,39 +2601,39 @@ end;
 
 procedure TDFE.WriteStrings(v: TCore_Strings);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
+  m64 := TMS64.CustomCreate(umlMax(8192, v.Count * 10));
 {$IFDEF FPC}
-  v.SaveToStream(d);
+  v.SaveToStream(m64);
 {$ELSE}
-  v.SaveToStream(d, TEncoding.UTF8);
+  v.SaveToStream(m64, TEncoding.UTF8);
 {$ENDIF}
-  d.Position := 0;
-  WriteStream(d);
-  DisposeObject(d);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WriteListStrings(v: TListString);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  v.SaveToStream(d);
-  d.Position := 0;
-  WriteStream(d);
-  DisposeObject(d);
+  m64 := TMS64.CustomCreate(umlMax(8192, v.Count * 10));
+  v.SaveToStream(m64);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WritePascalStrings(v: TListPascalString);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  v.SaveToStream(d);
-  d.Position := 0;
-  WriteStream(d);
-  DisposeObject(d);
+  m64 := TMS64.CustomCreate(umlMax(8192, v.Count * 10));
+  v.SaveToStream(m64);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WriteDataFrame(v: TDFE);
@@ -2654,41 +2665,41 @@ end;
 
 procedure TDFE.WriteHashStringList(v: THashStringList);
 var
-  ms: TMS64;
-  h: THashStringTextStream;
+  m64: TMS64;
+  hash_: THashStringTextStream;
 begin
-  ms := TMS64.Create;
-  h := THashStringTextStream.Create(v);
-  h.SaveToStream(ms);
-  DisposeObject(h);
-  ms.Position := 0;
-  WriteStream(ms);
-  DisposeObject(ms);
+  m64 := TMS64.Create;
+  hash_ := THashStringTextStream.Create(v);
+  hash_.SaveToStream(m64);
+  DisposeObject(hash_);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WriteVariantList(v: THashVariantList);
 var
-  ms: TMS64;
-  h: THashVariantTextStream;
+  m64: TMS64;
+  hash_: THashVariantTextStream;
 begin
-  ms := TMS64.Create;
-  h := THashVariantTextStream.Create(v);
-  h.SaveToStream(ms);
-  DisposeObject(h);
-  ms.Position := 0;
-  WriteStream(ms);
-  DisposeObject(ms);
+  m64 := TMS64.Create;
+  hash_ := THashVariantTextStream.Create(v);
+  hash_.SaveToStream(m64);
+  DisposeObject(hash_);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WriteSectionText(v: TSectionTextData);
 var
-  ms: TMS64;
+  m64: TMS64;
 begin
-  ms := TMS64.Create;
-  v.SaveToStream(ms);
-  ms.Position := 0;
-  WriteStream(ms);
-  DisposeObject(ms);
+  m64 := TMS64.Create;
+  v.SaveToStream(m64);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.WriteTextSection(v: TSectionTextData);
@@ -2703,13 +2714,13 @@ end;
 
 procedure TDFE.WriteJson(v: TZ_JsonObject; Formated_: Boolean);
 var
-  ms: TMS64;
+  m64: TMS64;
 begin
-  ms := TMS64.Create;
-  v.SaveToStream(ms, Formated_);
-  ms.Position := 0;
-  WriteStream(ms);
-  DisposeObject(ms);
+  m64 := TMS64.Create;
+  v.SaveToStream(m64, Formated_);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 
 {$IFDEF DELPHI}
@@ -2717,13 +2728,13 @@ end;
 
 procedure TDFE.WriteJson(v: TJsonObject);
 var
-  ms: TMS64;
+  m64: TMS64;
 begin
-  ms := TMS64.Create;
-  v.SaveToStream(ms, True, TEncoding.UTF8, True);
-  ms.Position := 0;
-  WriteStream(ms);
-  DisposeObject(ms);
+  m64 := TMS64.Create;
+  v.SaveToStream(m64, True, TEncoding.UTF8, True);
+  m64.Position := 0;
+  WriteStream(m64);
+  DisposeObject(m64);
 end;
 {$ENDIF DELPHI}
 
@@ -3300,9 +3311,14 @@ begin
     begin
       with TDFStream(Obj_) do
         begin
-          Buffer.Position := 0;
-          output.CopyFrom(Buffer, Buffer.Size);
-          Buffer.Position := 0;
+          if (output is TMS64) and (output.Size = 0) then
+            begin
+              output.Size := Buffer.Size;
+              output.Position := 0;
+            end;
+          InstanceBuffer.Position := 0;
+          output.CopyFrom(InstanceBuffer, InstanceBuffer.Size);
+          InstanceBuffer.Position := 0;
         end;
     end
   else if output is TMS64 then
@@ -3396,48 +3412,48 @@ end;
 
 procedure TDFE.ReadStrings(index_: Integer; output: TCore_Strings);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
 
 {$IFDEF FPC}
-  output.LoadFromStream(d);
+  output.LoadFromStream(m64);
 {$ELSE}
-  output.LoadFromStream(d, TEncoding.UTF8);
+  output.LoadFromStream(m64, TEncoding.UTF8);
 {$ENDIF}
-  DisposeObject(d);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadListStrings(index_: Integer; output: TListString);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
 
-  output.LoadFromStream(d);
-  DisposeObject(d);
+  output.LoadFromStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadPascalStrings(index_: Integer; output: TListPascalString);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
 
-  output.LoadFromStream(d);
-  DisposeObject(d);
+  output.LoadFromStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadDataFrame(index_: Integer; output: TDFE);
 var
   Obj_: TDFBase;
-  d: TMS64;
+  m64: TMS64;
 begin
   Obj_ := Data[index_];
   if Obj_ is TDFStream then
@@ -3448,51 +3464,51 @@ begin
     end
   else
     begin
-      d := TMS64.Create;
-      ReadStream(index_, d);
-      d.Position := 0;
-      output.DecodeFrom(d, True);
-      DisposeObject(d);
+      m64 := TMS64.Create;
+      ReadStream(index_, m64);
+      m64.Position := 0;
+      output.DecodeFrom(m64, True);
+      DisposeObject(m64);
     end;
 end;
 
 procedure TDFE.ReadHashStringList(index_: Integer; output: THashStringList);
 var
-  d: TMS64;
-  h: THashStringTextStream;
+  m64: TMS64;
+  hash_: THashStringTextStream;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
-  h := THashStringTextStream.Create(output);
-  h.LoadFromStream(d);
-  DisposeObject(h);
-  DisposeObject(d);
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
+  hash_ := THashStringTextStream.Create(output);
+  hash_.LoadFromStream(m64);
+  DisposeObject(hash_);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadVariantList(index_: Integer; output: THashVariantList);
 var
-  d: TMS64;
-  h: THashVariantTextStream;
+  m64: TMS64;
+  hash_: THashVariantTextStream;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
-  h := THashVariantTextStream.Create(output);
-  h.LoadFromStream(d);
-  DisposeObject(h);
-  DisposeObject(d);
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
+  hash_ := THashVariantTextStream.Create(output);
+  hash_.LoadFromStream(m64);
+  DisposeObject(hash_);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadSectionText(index_: Integer; output: TSectionTextData);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
-  output.LoadFromStream(d);
-  DisposeObject(d);
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
+  output.LoadFromStream(m64);
+  DisposeObject(m64);
 end;
 
 procedure TDFE.ReadTextSection(index_: Integer; output: TSectionTextData);
@@ -3502,14 +3518,14 @@ end;
 
 procedure TDFE.ReadJson(index_: Integer; output: TZ_JsonObject);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
   output.Clear;
-  output.LoadFromStream(d);
-  DisposeObject(d);
+  output.LoadFromStream(m64);
+  DisposeObject(m64);
 end;
 
 {$IFDEF DELPHI}
@@ -3517,14 +3533,14 @@ end;
 
 procedure TDFE.ReadJson(index_: Integer; output: TJsonObject);
 var
-  d: TMS64;
+  m64: TMS64;
 begin
-  d := TMS64.Create;
-  ReadStream(index_, d);
-  d.Position := 0;
+  m64 := TMS64.Create;
+  ReadStream(index_, m64);
+  m64.Position := 0;
   output.Clear;
-  output.LoadFromStream(d, TEncoding.UTF8, True);
-  DisposeObject(d);
+  output.LoadFromStream(m64, TEncoding.UTF8, True);
+  DisposeObject(m64);
 end;
 {$ENDIF DELPHI}
 
@@ -4221,7 +4237,7 @@ begin
   Result := EncodeAsSelectCompressor(output, False);
 end;
 
-function TDFE.EncodeAsZLib(output: TCore_Stream; const FastMode: Boolean): Integer;
+function TDFE.EncodeAsZLib(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer;
 var
   i: Integer;
   DataFrame_: TDFBase;
@@ -4246,7 +4262,7 @@ begin
     end;
 
   // if encode size too large(>1M), we use EncodeAsSelectCompressor
-  if ComputeEncodeSize > 1024 * 1024 then
+  if AutoCompressed and (ComputeEncodeSize > 1024 * 1024) then
     begin
       Result := EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB, output, FastMode);
       exit;
@@ -4323,12 +4339,17 @@ begin
   DisposeObject(compStream);
 end;
 
+function TDFE.EncodeAsZLib(output: TCore_Stream; const FastMode: Boolean): Integer;
+begin
+  Result := EncodeAsZLib(output, FastMode, True);
+end;
+
 function TDFE.EncodeAsZLib(output: TCore_Stream): Integer;
 begin
   Result := EncodeAsZLib(output, False);
 end;
 
-function TDFE.EncodeAsDeflate(output: TCore_Stream; const FastMode: Boolean): Integer;
+function TDFE.EncodeAsDeflate(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer;
 var
   i: Integer;
   DataFrame_: TDFBase;
@@ -4352,7 +4373,7 @@ begin
     end;
 
   // if encode size too large(>1M), we use EncodeAsSelectCompressor
-  if ComputeEncodeSize > 1024 * 1024 then
+  if AutoCompressed and (ComputeEncodeSize > 1024 * 1024) then
     begin
       Result := EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB, output, FastMode);
       exit;
@@ -4431,12 +4452,17 @@ begin
   DisposeObject(compStream);
 end;
 
+function TDFE.EncodeAsDeflate(output: TCore_Stream; const FastMode: Boolean): Integer;
+begin
+  Result := EncodeAsDeflate(output, FastMode, True);
+end;
+
 function TDFE.EncodeAsDeflate(output: TCore_Stream): Integer;
 begin
   Result := EncodeAsDeflate(output, False);
 end;
 
-function TDFE.EncodeAsBRRC(output: TCore_Stream; const FastMode: Boolean): Integer;
+function TDFE.EncodeAsBRRC(output: TCore_Stream; const FastMode, AutoCompressed: Boolean): Integer;
 var
   i: Integer;
   DataFrame_: TDFBase;
@@ -4460,7 +4486,7 @@ begin
     end;
 
   // if encode size too large(>1M), we use EncodeAsSelectCompressor
-  if ComputeEncodeSize > 1024 * 1024 then
+  if AutoCompressed and (ComputeEncodeSize > 1024 * 1024) then
     begin
       Result := EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB, output, FastMode);
       exit;
@@ -4537,6 +4563,11 @@ begin
   compStream.Position := 0;
   output.CopyFrom(compStream, compStream.Size);
   DisposeObject(compStream);
+end;
+
+function TDFE.EncodeAsBRRC(output: TCore_Stream; const FastMode: Boolean): Integer;
+begin
+  Result := EncodeAsBRRC(output, FastMode, True);
 end;
 
 function TDFE.EncodeAsBRRC(output: TCore_Stream): Integer;
