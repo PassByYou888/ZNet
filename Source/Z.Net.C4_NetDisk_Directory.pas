@@ -41,7 +41,6 @@ type
     MD5: TMD5;
     Size: Int64;
     Time_: Double;
-    Ref_: Integer;
     constructor Create;
     destructor Destroy; override;
     procedure Clean;
@@ -55,10 +54,7 @@ type
   public
     Owner: TC40_NetDisk_Directory_Service;
     Stream: TZDB2_DFE;
-    MD5: TMD5;
-    Size: Int64;
-    Time_: Double;
-    Ref_: Integer;
+    Frag_Pool: TDirectory_MD5_Data_Frag_Struct_List;
     constructor Create(Owner_: TC40_NetDisk_Directory_Service; Stream_: TZDB2_DFE);
     destructor Destroy; override;
     procedure ReadInfo;
@@ -95,6 +91,7 @@ type
     procedure Do_Compute_SpaceInfo(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
     procedure Do_Compute_SpaceInfo_Done(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
   end;
+
 {$ENDREGION 'service struct define'}
 
   TC40_NetDisk_Directory_Service = class(TC40_Base_NoAuth_Service)
@@ -114,8 +111,20 @@ type
     procedure cmd_SearchItem(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_CopyItem(Sender: TPeerIO; InData: TDFE);
     procedure cmd_CopyField(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_SearchInvalidFrag(Sender: TPeerIO; InData, OutData: TDFE);
+  protected
+    // optimize
+    Opti_RunNum: Int64;
+    Opti_IsBusy: Boolean;
+    Opti_Directory_File_Hash: THashVariantList;
+    Opti_Directory_Frag_Hash: THashVariantList;
+    Opti_Directory_Progress_Index: Integer;
+    procedure Init_Opti;
+    procedure Free_Opti;
+    procedure Opti_Remove_invalid_MD5_and_Rebuild_Frag_Hash;
+    procedure Opti_Progress();
   public
-    // directory
+    // ZDB1.0 directory struct
     Directory_ZDB2_RecycleMemoryTimeOut: TTimeTick;
     Directory_ZDB2_DeltaSpace: Int64;
     Directory_ZDB2_BlockSize: Word;
@@ -126,7 +135,7 @@ type
     C40_Directory_Database_File: U_String;
     Directory_HashPool: TDirectory_Service_User_File_DB_Pool;
     Directory_Database: TZDB2_List_ObjectDataManager;
-    // md5
+    // file-md5-desc
     MD5_ZDB2_RecycleMemoryTimeOut: TTimeTick;
     MD5_ZDB2_DeltaSpace: Int64;
     MD5_ZDB2_BlockSize: Word;
@@ -337,10 +346,37 @@ type
 
   TCopyField_Info_Array = array of TCopyField_Info;
 
+  TON_SearchInvalidFrag_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+  TON_SearchInvalidFrag_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray) of object;
+{$IFDEF FPC}
+  TON_SearchInvalidFrag_P = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray) is nested;
+{$ELSE FPC}
+  TON_SearchInvalidFrag_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+{$ENDIF FPC}
+
+  TON_Temp_SearchInvalidFrag = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Directory_Client;
+    OnResultC: TON_SearchInvalidFrag_C;
+    OnResultM: TON_SearchInvalidFrag_M;
+    OnResultP: TON_SearchInvalidFrag_P;
+    constructor Create; override;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+  end;
+
 {$ENDREGION 'bridge define'}
 
+  I_ON_C40_NetDisk_Directory_Client_Interface = interface
+    procedure Do_Remove_Directory_MD5(arry: U_StringArray);
+    procedure Do_Remove_Directory_Invalid_Frag(arry: U_StringArray);
+  end;
+
   TC40_NetDisk_Directory_Client = class(TC40_Base_NoAuth_Client)
+  protected
+    procedure cmd_Remove_Directory_MD5(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_Remove_Directory_Invalid_Frag(Sender: TPeerIO; InData: TDFE);
   public
+    ON_C40_NetDisk_Directory_Client_Interface: I_ON_C40_NetDisk_Directory_Client_Interface;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
@@ -392,6 +428,10 @@ type
     // copy
     procedure CopyItem(arry: TCopyItem_Info_Array);
     procedure CopyField(arry: TCopyField_Info_Array);
+    // SearchInvalidFrag
+    procedure SearchInvalidFrag_C(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_C);
+    procedure SearchInvalidFrag_M(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_M);
+    procedure SearchInvalidFrag_P(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_P);
   end;
 
 implementation
@@ -402,7 +442,6 @@ begin
   MD5 := NullMD5;
   Size := 0;
   Time_ := umlNow;
-  Ref_ := 0;
 end;
 
 destructor TDirectory_MD5_Data_Frag_Struct_List.Destroy;
@@ -487,7 +526,6 @@ begin
   d.WriteMD5(MD5);
   d.WriteInt64(Size);
   d.WriteDouble(Time_);
-  d.WriteInteger(Ref_);
   for i := 0 to count - 1 do
     begin
       p := items[i];
@@ -506,7 +544,6 @@ begin
   MD5 := d.R.ReadMD5;
   Size := d.R.ReadInt64;
   Time_ := d.R.ReadDouble;
-  Ref_ := d.R.ReadInteger;
   if Pool_ then
     while d.R.NotEnd do
       begin
@@ -524,31 +561,21 @@ begin
   inherited Create;
   Owner := Owner_;
   Stream := Stream_;
-  MD5 := NullMD5;
-  Size := 0;
-  Time_ := umlNow;
-  Ref_ := 0;
+  Frag_Pool := TDirectory_MD5_Data_Frag_Struct_List.Create;
 end;
 
 destructor TDirectory_Service_MD5_Data_Frag.Destroy;
 begin
   if (Owner.MD5_Database <> nil) and (Stream <> nil) then
       Owner.MD5_Database.Remove(Stream, True);
+  DisposeObject(Frag_Pool);
   inherited Destroy;
 end;
 
 procedure TDirectory_Service_MD5_Data_Frag.ReadInfo;
-var
-  L: TDirectory_MD5_Data_Frag_Struct_List;
 begin
-  L := TDirectory_MD5_Data_Frag_Struct_List.Create;
   Stream.Data.R.Index := 0;
-  L.Decode(Stream.Data, False);
-  MD5 := L.MD5;
-  Size := L.Size;
-  Time_ := L.Time_;
-  Ref_ := L.Ref_;
-  disposeObject(L);
+  Frag_Pool.Decode(Stream.Data, True);
 end;
 
 constructor TDirectory_Service_User_File_DB.Create(Owner_: TC40_NetDisk_Directory_Service; Stream_: TZDB2_ObjectDataManager);
@@ -597,13 +624,86 @@ begin
                 inc(ItemSpace, StreamReadInt64(itm_stream));
               except
               end;
-              disposeObject(itm_stream);
+              DisposeObject(itm_stream);
             end;
         end;
       until not Stream.Data.RecursionSearchNext(ir);
     end;
   IsChanged := False;
   FragSpaceUpdateTime := GetTimeTick();
+end;
+
+constructor TTemp_Compute_SpaceInfo.Create;
+begin
+  inherited Create;
+  Service := nil;
+  DB_Name := '';
+  Field_Num := 0;
+  Item_Num := 0;
+  ItemSpace := 0;
+end;
+
+destructor TTemp_Compute_SpaceInfo.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TTemp_Compute_SpaceInfo.Do_Compute_SpaceInfo(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
+var
+  dbEng: TObjectDataManager;
+  ir: TItemRecursionSearch;
+  itm_stream: TItemStream;
+begin
+  ThSender.OnDone_M := {$IFDEF FPC}@{$ENDIF FPC}Do_Compute_SpaceInfo_Done;
+  dbEng := nil;
+  try
+    dbEng := TObjectDataManager.CreateAsStream(TMS64(ThSender.UserObject), '', DBMarshal.ID, False, False, True);
+    if dbEng.RecursionSearchFirst('/', '*', ir) then
+      begin
+        repeat
+          case ir.ReturnHeader.ID of
+            DB_Header_Field_ID: inc(Field_Num);
+            DB_Header_Item_ID:
+              begin
+                inc(Item_Num);
+                itm_stream := TItemStream.Create(dbEng, ir.ReturnHeader.CurrentHeader);
+                try
+                  StreamIgnoreReadString(itm_stream);
+                  inc(ItemSpace, StreamReadInt64(itm_stream));
+                except
+                end;
+                DisposeObject(itm_stream);
+              end;
+          end;
+        until not dbEng.RecursionSearchNext(ir);
+      end;
+    ThOutData.WriteInt64(Field_Num);
+    ThOutData.WriteInt64(Item_Num);
+    ThOutData.WriteInt64(ItemSpace + dbEng.Size);
+  except
+    ThOutData.WriteInt64(0);
+    ThOutData.WriteInt64(0);
+    ThOutData.WriteInt64(0);
+  end;
+  DisposeObject(dbEng);
+end;
+
+procedure TTemp_Compute_SpaceInfo.Do_Compute_SpaceInfo_Done(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
+var
+  fd: TDirectory_Service_User_File_DB;
+begin
+  try
+    fd := Service.Directory_HashPool[DB_Name];
+    if fd <> nil then
+      begin
+        fd.Field_Num := Field_Num;
+        fd.Item_Num := Item_Num;
+        fd.ItemSpace := ItemSpace;
+        fd.FragSpaceUpdateTime := GetTimeTick();
+      end;
+  except
+  end;
+  DelayFreeObj(1.0, self);
 end;
 
 procedure TC40_NetDisk_Directory_Service.cmd_ExistsDB(Sender: TPeerIO; InData, OutData: TDFE);
@@ -692,7 +792,7 @@ begin
         itm_stream := TItemStream.Create(fd.Stream.Data, ir.HeaderPOS);
         md5_name_ := StreamReadString(itm_stream);
         Size_ := StreamReadInt64(itm_stream);
-        disposeObject(itm_stream);
+        DisposeObject(itm_stream);
         OutData.WriteString('i:%s|%s', [ir.Name.Text, md5_name_.Text]); // item
         OutData.WriteInt64(Size_);                                      // size
         OutData.WriteDouble(ir.FieldSearch.RHeader.ModificationTime);   // time
@@ -740,7 +840,7 @@ begin
           OutData.WriteBool(False);
           OutData.WriteString('loss frag: %s:%s/%s', [DB_Name.Text, DB_Field.Text, DB_Item.Text]);
         end;
-      disposeObject(itm_stream);
+      DisposeObject(itm_stream);
     end
   else
     begin
@@ -802,8 +902,8 @@ begin
       // write item
       itm_stream := TItemStream.Create(fd.Stream.Data, itmHnd);
       StreamWriteString(itm_stream, frag_md5_name);
-      StreamWriteInt64(itm_stream, md5_frag.Size);
-      disposeObject(itm_stream);
+      StreamWriteInt64(itm_stream, md5_frag.Frag_Pool.Size);
+      DisposeObject(itm_stream);
 
       OutData.WriteBool(True);
       OutData.WriteString('item %s/%s create done', [DB_Field.Text, DB_Item.Text]);
@@ -853,8 +953,8 @@ begin
       // write item
       itm_stream := TItemStream.Create(fd.Stream.Data, itmHnd);
       StreamWriteString(itm_stream, frag_md5_name);
-      StreamWriteInt64(itm_stream, md5_frag.Size);
-      disposeObject(itm_stream);
+      StreamWriteInt64(itm_stream, md5_frag.Frag_Pool.Size);
+      DisposeObject(itm_stream);
       OutData.WriteBool(True);
       OutData.WriteString('item %s/%s create done', [DB_Field.Text, DB_Item.Text]);
     end
@@ -1029,6 +1129,168 @@ begin
     end;
 end;
 
+procedure TC40_NetDisk_Directory_Service.cmd_SearchInvalidFrag(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  frag_: SystemString;
+begin
+  if Opti_RunNum > 0 then
+    while InData.R.NotEnd do
+      begin
+        frag_ := InData.R.ReadString;
+        if not Opti_Directory_Frag_Hash.Exists(frag_) then
+            OutData.WriteString(frag_);
+      end;
+end;
+
+procedure TC40_NetDisk_Directory_Service.Init_Opti;
+begin
+  Opti_RunNum := 0;
+  Opti_IsBusy := False;
+  Opti_Directory_File_Hash := THashVariantList.CustomCreate(1024 * 1024);
+  Opti_Directory_Frag_Hash := THashVariantList.CustomCreate(1024 * 1024);
+  Opti_Directory_Progress_Index := 0;
+end;
+
+procedure TC40_NetDisk_Directory_Service.Free_Opti;
+begin
+  DisposeObject(Opti_Directory_File_Hash);
+  DisposeObject(Opti_Directory_Frag_Hash);
+end;
+
+procedure TC40_NetDisk_Directory_Service.Opti_Remove_invalid_MD5_and_Rebuild_Frag_Hash;
+var
+  L: TPascalStringList;
+{$IFDEF FPC}
+  procedure fpc_progress_(const Name_: PSystemString; Obj_: TDirectory_Service_MD5_Data_Frag);
+  var
+    i: Integer;
+  begin
+    if Opti_Directory_File_Hash.Exists(Name_^) then
+      begin
+        for i := 0 to Obj_.Frag_Pool.count - 1 do
+            Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i].FS_File, 1);
+      end
+    else
+        L.Add(Name_^, Obj_);
+  end;
+{$ENDIF FPC}
+  procedure Do_Remove_MD5Pool_And_Send_Notify;
+  var
+    invalid_Frag: THashList;
+    i, j: Integer;
+    Obj_: TDirectory_Service_MD5_Data_Frag;
+    d: TDFE;
+    arry: TArrayPascalString;
+  begin
+    if L.count = 0 then
+        exit;
+    invalid_Frag := THashList.CustomCreate(1024);
+    d := TDFE.Create;
+
+    for i := 0 to L.count - 1 do
+      begin
+        d.WriteString(L[i]);
+        Obj_ := TDirectory_Service_MD5_Data_Frag(L.Objects[i]);
+        for j := 0 to Obj_.Frag_Pool.count - 1 do
+          if not Opti_Directory_Frag_Hash.Exists(Obj_.Frag_Pool[j].FS_File) then
+            begin
+              invalid_Frag.Add(Obj_.Frag_Pool[j].FS_File, nil);
+              DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j].FS_File.Text, Obj_.Frag_Pool[j].Size_]);
+            end;
+        DoStatus('%s recycle data space "%s" size:%d', [ServiceInfo.ServiceTyp.Text, L[i].Text, Obj_.Frag_Pool.Size]);
+
+        Obj_.Stream.Remove;
+        Obj_.Stream := nil;
+        MD5_Pool.Delete(L[i]);
+      end;
+    MD5_Database.Flush(False);
+
+    Service.SendTunnel.BroadcastDirectStreamCmd('Remove_Directory_MD5', d);
+    DisposeObject(d);
+
+    if invalid_Frag.count > 0 then
+      begin
+        invalid_Frag.GetNameList(arry);
+        d := TDFE.Create;
+        for i := Low(arry) to high(arry) do
+            d.WriteString(arry[i]);
+        Service.SendTunnel.BroadcastDirectStreamCmd('Remove_Directory_Invalid_Frag', d);
+        DisposeObject(d);
+        SetLength(arry, 0);
+      end;
+    DisposeObject(invalid_Frag);
+  end;
+
+begin
+  Opti_Directory_Frag_Hash.Clear;
+  L := TPascalStringList.Create;
+{$IFDEF FPC}
+  MD5_Pool.ProgressP(@fpc_progress_);
+{$ELSE FPC}
+  MD5_Pool.ProgressP(procedure(const Name_: PSystemString; Obj_: TDirectory_Service_MD5_Data_Frag)
+    var
+      i: Integer;
+    begin
+      if Opti_Directory_File_Hash.Exists(Name_^) then
+        begin
+          for i := 0 to Obj_.Frag_Pool.count - 1 do
+              Opti_Directory_Frag_Hash.IncValue(Obj_.Frag_Pool[i].FS_File, 1);
+        end
+      else
+          L.Add(Name_^, Obj_);
+    end);
+{$ENDIF FPC}
+  Do_Remove_MD5Pool_And_Send_Notify;
+  DisposeObject(L);
+  inc(Opti_RunNum);
+end;
+
+procedure TC40_NetDisk_Directory_Service.Opti_Progress();
+var
+  tk: TTimeTick;
+  Eng_: TZDB2_ObjectDataManager;
+  Eng_Is_Activted: Boolean;
+  ir: TItemRecursionSearch;
+  itm_stream: TItemStream;
+begin
+  if not Opti_IsBusy then
+      exit;
+
+  tk := GetTimeTick();
+  while Opti_Directory_Progress_Index < Directory_Database.count do
+    begin
+      try
+        Eng_ := Directory_Database[Opti_Directory_Progress_Index];
+        Eng_Is_Activted := Eng_.Data_Direct <> nil;
+
+        if Eng_.Data.RecursionSearchFirst('/', '*', ir) then
+          begin
+            repeat
+              if ir.ReturnHeader.ID = DB_Header_Item_ID then
+                begin
+                  try
+                    itm_stream := TItemStream.Create(Eng_.Data, ir.ReturnHeader.CurrentHeader);
+                    Opti_Directory_File_Hash.IncValue(StreamReadString(itm_stream), 1);
+                    DisposeObject(itm_stream);
+                  except
+                  end;
+                end;
+            until not Eng_.Data.RecursionSearchNext(ir);
+          end;
+        if not Eng_Is_Activted then
+            Eng_.RecycleMemory;
+        inc(Opti_Directory_Progress_Index);
+      except
+      end;
+
+      if GetTimeTick() - tk > 10 then
+          exit;
+    end;
+  Opti_Remove_invalid_MD5_and_Rebuild_Frag_Hash;
+  Opti_IsBusy := False;
+  Opti_Directory_Progress_Index := 0;
+end;
+
 constructor TC40_NetDisk_Directory_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
   Directory_FS: TCore_Stream;
@@ -1053,6 +1315,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyField;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchInvalidFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchInvalidFrag;
 
   // instance
   ServiceInfo.OnlyInstance := True;
@@ -1108,7 +1371,7 @@ begin
           Directory_HashPool.Add(fd.DB_Name, fd);
         end
       else
-          disposeObject(fd);
+          DisposeObject(fd);
     end;
 
   // md5 frag database
@@ -1152,8 +1415,10 @@ begin
       inc(i);
       md5_frag.ReadInfo;
       md5_frag.Stream.RecycleMemory;
-      MD5_Pool.Add(umlMD5ToStr(md5_frag.MD5), md5_frag);
+      MD5_Pool.Add(umlMD5ToStr(md5_frag.Frag_Pool.MD5), md5_frag);
     end;
+
+  Init_Opti();
 end;
 
 destructor TC40_NetDisk_Directory_Service.Destroy;
@@ -1170,6 +1435,7 @@ destructor TC40_NetDisk_Directory_Service.Destroy;
 
 
 begin
+  Free_Opti();
   Directory_Database.Flush;
   MD5_Database.Flush;
 {$IFDEF FPC}
@@ -1199,6 +1465,12 @@ begin
   inherited SafeCheck;
   Directory_Database.Flush;
   MD5_Database.Flush;
+  if not Opti_IsBusy then
+    begin
+      Opti_IsBusy := True;
+      Opti_Directory_File_Hash.Clear;
+      Opti_Directory_Progress_Index := 0;
+    end;
 end;
 
 procedure TC40_NetDisk_Directory_Service.Progress;
@@ -1206,79 +1478,7 @@ begin
   inherited Progress;
   Directory_Database.Progress;
   MD5_Database.Progress;
-end;
-
-constructor TTemp_Compute_SpaceInfo.Create;
-begin
-  inherited Create;
-  Service := nil;
-  DB_Name := '';
-  Field_Num := 0;
-  Item_Num := 0;
-  ItemSpace := 0;
-end;
-
-destructor TTemp_Compute_SpaceInfo.Destroy;
-begin
-  inherited Destroy;
-end;
-
-procedure TTemp_Compute_SpaceInfo.Do_Compute_SpaceInfo(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
-var
-  dbEng: TObjectDataManager;
-  ir: TItemRecursionSearch;
-  itm_stream: TItemStream;
-begin
-  ThSender.OnDone_M := {$IFDEF FPC}@{$ENDIF FPC}Do_Compute_SpaceInfo_Done;
-  dbEng := nil;
-  try
-    dbEng := TObjectDataManager.CreateAsStream(TMS64(ThSender.UserObject), '', DBMarshal.ID, False, False, True);
-    if dbEng.RecursionSearchFirst('/', '*', ir) then
-      begin
-        repeat
-          case ir.ReturnHeader.ID of
-            DB_Header_Field_ID: inc(Field_Num);
-            DB_Header_Item_ID:
-              begin
-                inc(Item_Num);
-                itm_stream := TItemStream.Create(dbEng, ir.ReturnHeader.CurrentHeader);
-                try
-                  StreamIgnoreReadString(itm_stream);
-                  inc(ItemSpace, StreamReadInt64(itm_stream));
-                except
-                end;
-                disposeObject(itm_stream);
-              end;
-          end;
-        until not dbEng.RecursionSearchNext(ir);
-      end;
-    ThOutData.WriteInt64(Field_Num);
-    ThOutData.WriteInt64(Item_Num);
-    ThOutData.WriteInt64(ItemSpace + dbEng.Size);
-  except
-    ThOutData.WriteInt64(0);
-    ThOutData.WriteInt64(0);
-    ThOutData.WriteInt64(0);
-  end;
-  disposeObject(dbEng);
-end;
-
-procedure TTemp_Compute_SpaceInfo.Do_Compute_SpaceInfo_Done(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
-var
-  fd: TDirectory_Service_User_File_DB;
-begin
-  try
-    fd := Service.Directory_HashPool[DB_Name];
-    if fd <> nil then
-      begin
-        fd.Field_Num := Field_Num;
-        fd.Item_Num := Item_Num;
-        fd.ItemSpace := ItemSpace;
-        fd.FragSpaceUpdateTime := GetTimeTick();
-      end;
-  except
-  end;
-  DelayFreeObj(1.0, self);
+  Opti_Progress;
 end;
 
 constructor TON_Temp_ExistsDB.Create;
@@ -1398,7 +1598,7 @@ begin
       tmp := TDFE.Create;
       Result_.R.ReadDataFrame(tmp);
       L.Decode(tmp, True);
-      disposeObject(tmp);
+      DisposeObject(tmp);
     end
   else
       DoStatus(Result_.R.ReadString);
@@ -1559,16 +1759,88 @@ begin
         OnResultP(Client, SearchResult);
   except
   end;
+  SetLength(SearchResult, 0);
   DelayFreeObject(1.0, self);
+end;
+
+constructor TON_Temp_SearchInvalidFrag.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_SearchInvalidFrag.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+var
+  SearchResult: U_StringArray;
+  i: Integer;
+begin
+  SetLength(SearchResult, Result_.count);
+  for i := 0 to Result_.count - 1 do
+      SearchResult[i] := Result_.ReadString(i);
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, SearchResult);
+    if Assigned(OnResultM) then
+        OnResultM(Client, SearchResult);
+    if Assigned(OnResultP) then
+        OnResultP(Client, SearchResult);
+  except
+  end;
+  SetLength(SearchResult, 0);
+  DelayFreeObject(1.0, self);
+end;
+
+procedure TC40_NetDisk_Directory_Client.cmd_Remove_Directory_MD5(Sender: TPeerIO; InData: TDFE);
+var
+  arry: U_StringArray;
+  i: Integer;
+begin
+  SetLength(arry, InData.count);
+  for i := 0 to InData.count - 1 do
+      arry[i] := InData.ReadString(i);
+  if Assigned(ON_C40_NetDisk_Directory_Client_Interface) then
+    begin
+      try
+          ON_C40_NetDisk_Directory_Client_Interface.Do_Remove_Directory_MD5(arry);
+      except
+      end;
+    end;
+  SetLength(arry, 0);
+end;
+
+procedure TC40_NetDisk_Directory_Client.cmd_Remove_Directory_Invalid_Frag(Sender: TPeerIO; InData: TDFE);
+var
+  arry: U_StringArray;
+  i: Integer;
+begin
+  SetLength(arry, InData.count);
+  for i := 0 to InData.count - 1 do
+      arry[i] := InData.ReadString(i);
+  if Assigned(ON_C40_NetDisk_Directory_Client_Interface) then
+    begin
+      try
+          ON_C40_NetDisk_Directory_Client_Interface.Do_Remove_Directory_Invalid_Frag(arry);
+      except
+      end;
+    end;
+  SetLength(arry, 0);
 end;
 
 constructor TC40_NetDisk_Directory_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
+  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Directory_MD5;
+  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_Invalid_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Directory_Invalid_Frag;
+  ON_C40_NetDisk_Directory_Client_Interface := nil;
 end;
 
 destructor TC40_NetDisk_Directory_Client.Destroy;
 begin
+  ON_C40_NetDisk_Directory_Client_Interface := nil;
   inherited Destroy;
 end;
 
@@ -1589,7 +1861,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.ExistsDB_M(DB_Name: U_String; OnResult: TON_ExistsDB_M);
@@ -1604,7 +1876,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.ExistsDB_P(DB_Name: U_String; OnResult: TON_ExistsDB_P);
@@ -1619,7 +1891,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.NewDB_C(DB_Name: U_String; OnResult: TON_NewDB_C);
@@ -1634,7 +1906,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.NewDB_M(DB_Name: U_String; OnResult: TON_NewDB_M);
@@ -1649,7 +1921,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.NewDB_P(DB_Name: U_String; OnResult: TON_NewDB_P);
@@ -1664,7 +1936,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.RemoveDB(DB_Name: U_String);
@@ -1674,7 +1946,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveDB', d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemList_C(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_C);
@@ -1690,7 +1962,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemList_M(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_M);
@@ -1706,7 +1978,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemList_P(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_P);
@@ -1722,7 +1994,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemFrag_C(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_C);
@@ -1739,7 +2011,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemFrag_M(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_M);
@@ -1756,7 +2028,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.GetItemFrag_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_P);
@@ -1773,7 +2045,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.FoundMD5_C(frag_md5_name: U_String; OnResult: TON_FoundMD5_C);
@@ -1788,7 +2060,7 @@ begin
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.FoundMD5_M(frag_md5_name: U_String; OnResult: TON_FoundMD5_M);
@@ -1803,7 +2075,7 @@ begin
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.FoundMD5_P(frag_md5_name: U_String; OnResult: TON_FoundMD5_P);
@@ -1818,7 +2090,7 @@ begin
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemFrag_C(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_C);
@@ -1838,9 +2110,9 @@ begin
   nd := TDFE.Create;
   L.Encode(nd);
   d.WriteDataFrame(nd);
-  disposeObject(nd);
+  DisposeObject(nd);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemFrag_M(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_M);
@@ -1860,9 +2132,9 @@ begin
   nd := TDFE.Create;
   L.Encode(nd);
   d.WriteDataFrame(nd);
-  disposeObject(nd);
+  DisposeObject(nd);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemFrag_P(DB_Name, DB_Field, DB_Item: U_String; L: TDirectory_MD5_Data_Frag_Struct_List; OnResult: TON_PutItemFrag_P);
@@ -1882,9 +2154,9 @@ begin
   nd := TDFE.Create;
   L.Encode(nd);
   d.WriteDataFrame(nd);
-  disposeObject(nd);
+  DisposeObject(nd);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemMD5_C(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_C);
@@ -1902,7 +2174,7 @@ begin
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemMD5_M(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_M);
@@ -1920,7 +2192,7 @@ begin
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.PutItemMD5_P(DB_Name, DB_Field, DB_Item, frag_md5_name: U_String; OnResult: TON_PutItemMD5_P);
@@ -1938,7 +2210,7 @@ begin
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.RemoveField(DB_Name, DB_Field, DB_Remove_Field_: U_String);
@@ -1950,7 +2222,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Remove_Field_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveField', d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.RemoveItem(DB_Name, DB_Field, DB_Remove_Item_: U_String);
@@ -1962,7 +2234,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Remove_Item_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveItem', d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.NewField(DB_Name, DB_Field: U_String);
@@ -1973,7 +2245,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('NewField', d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SpaceInfo_C(DB_Name: U_String; OnResult: TON_SpaceInfo_C);
@@ -1988,7 +2260,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SpaceInfo_M(DB_Name: U_String; OnResult: TON_SpaceInfo_M);
@@ -2003,7 +2275,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SpaceInfo_P(DB_Name: U_String; OnResult: TON_SpaceInfo_P);
@@ -2018,7 +2290,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SearchItem_C(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_C);
@@ -2035,7 +2307,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SearchItem_M(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_M);
@@ -2052,7 +2324,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.SearchItem_P(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_P);
@@ -2069,7 +2341,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.CopyItem(arry: TCopyItem_Info_Array);
@@ -2087,7 +2359,7 @@ begin
       d.WriteString(arry[i].Dest_DB_Field);
     end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CopyItem', d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 procedure TC40_NetDisk_Directory_Client.CopyField(arry: TCopyField_Info_Array);
@@ -2104,7 +2376,58 @@ begin
       d.WriteString(arry[i].Dest_DB_Field);
     end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CopyField', d);
-  disposeObject(d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchInvalidFrag_C(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_C);
+var
+  tmp: TON_Temp_SearchInvalidFrag;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TON_Temp_SearchInvalidFrag.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  for i := low(frag_arry) to high(frag_arry) do
+      d.WriteString(frag_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchInvalidFrag_M(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_M);
+var
+  tmp: TON_Temp_SearchInvalidFrag;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TON_Temp_SearchInvalidFrag.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  for i := low(frag_arry) to high(frag_arry) do
+      d.WriteString(frag_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchInvalidFrag_P(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_P);
+var
+  tmp: TON_Temp_SearchInvalidFrag;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TON_Temp_SearchInvalidFrag.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  for i := low(frag_arry) to high(frag_arry) do
+      d.WriteString(frag_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
 end;
 
 initialization
