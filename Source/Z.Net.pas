@@ -130,6 +130,14 @@ type
 {$ELSE FPC}
   TZNet_Progress_OnEvent_P = reference to procedure(Sender: TZNet_Progress);
 {$ENDIF FPC}
+  TOnAutomatedP2PVMClientConnectionDone_C = procedure(Sender: TZNet; P_IO: TPeerIO);
+  TOnAutomatedP2PVMClientConnectionDone_M = procedure(Sender: TZNet; P_IO: TPeerIO) of object;
+{$IFDEF FPC}
+  TOnAutomatedP2PVMClientConnectionDone_P = procedure(Sender: TZNet; P_IO: TPeerIO) is nested;
+{$ELSE FPC}
+  TOnAutomatedP2PVMClientConnectionDone_P = reference to procedure(Sender: TZNet; P_IO: TPeerIO);
+{$ENDIF FPC}
+  TZNet_Progress_Free_Event = procedure(Sender: TZNet_Progress) of object;
 
   TIO_ID_List = class(TIO_ID_List_Decl)
   public
@@ -144,16 +152,33 @@ type
 
   POnStateStruct = ^TOnStateStruct;
 
-  TOnResultBridge = class
+  TOnResultBridge_Templet = class
+  public
+    // console event
+    procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual; abstract;
+    procedure DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString); virtual; abstract;
+    procedure DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString); virtual; abstract;
+    // stream event
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); virtual; abstract;
+    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); virtual; abstract;
+    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual; abstract;
+  end;
+
+  TOnResultBridge = class(TOnResultBridge_Templet)
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual;
-    procedure DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString); virtual;
-    procedure DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString); virtual;
-    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); virtual;
-    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); virtual;
-    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual;
+  end;
+
+  TProgress_Bridge = class
+  private
+    procedure DoFree(Sender: TZNet_Progress);
+  public
+    Framework: TZNet;
+    ProgressInstance: TZNet_Progress;
+    constructor Create(Framework_: TZNet); virtual;
+    destructor Destroy; override;
+    procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
   TStateParamBridge = class
@@ -1098,20 +1123,11 @@ type
     function FoundClient(Client: TZNet_WithP2PVM_Client): PAutomatedP2PVMClientData;
   end;
 
-  TOnAutomatedP2PVMClientConnectionDone_C = procedure(Sender: TZNet; P_IO: TPeerIO);
-  TOnAutomatedP2PVMClientConnectionDone_M = procedure(Sender: TZNet; P_IO: TPeerIO) of object;
-{$IFDEF FPC}
-  TOnAutomatedP2PVMClientConnectionDone_P = procedure(Sender: TZNet; P_IO: TPeerIO) is nested;
-{$ELSE FPC}
-  TOnAutomatedP2PVMClientConnectionDone_P = reference to procedure(Sender: TZNet; P_IO: TPeerIO);
-{$ENDIF FPC}
-  TZNet_Progress_Event = procedure(Sender: TZNet_Progress) of object;
-
   TZNet_Progress = class
   private
     FOwnerFramework: TZNet;
   public
-    OnFree: TZNet_Progress_Event;
+    OnFree: TZNet_Progress_Free_Event;
     OnProgress_C: TZNet_Progress_OnEvent_C;
     OnProgress_M: TZNet_Progress_OnEvent_M;
     OnProgress_P: TZNet_Progress_OnEvent_P;
@@ -3866,32 +3882,32 @@ begin
   inherited Destroy;
 end;
 
-procedure TOnResultBridge.DoConsoleEvent(Sender: TPeerIO; Result_: SystemString);
+procedure TProgress_Bridge.DoFree(Sender: TZNet_Progress);
 begin
-
+  ProgressInstance := nil;
 end;
 
-procedure TOnResultBridge.DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString);
+constructor TProgress_Bridge.Create(Framework_: TZNet);
 begin
-
+  inherited Create;
+  Framework := Framework_;
+  ProgressInstance := Framework.AddProgresss;
+  ProgressInstance.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  ProgressInstance.OnProgress_M := {$IFDEF FPC}@{$ENDIF FPC}Progress;
 end;
 
-procedure TOnResultBridge.DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString);
+destructor TProgress_Bridge.Destroy;
 begin
-
+  if ProgressInstance <> nil then
+    begin
+      ProgressInstance.ResetEvent;
+      ProgressInstance.NextProgressDoFree := True;
+      ProgressInstance := nil;
+    end;
+  inherited Destroy;
 end;
 
-procedure TOnResultBridge.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
-begin
-
-end;
-
-procedure TOnResultBridge.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
-begin
-
-end;
-
-procedure TOnResultBridge.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TProgress_Bridge.Progress(Sender: TZNet_Progress);
 begin
 
 end;
