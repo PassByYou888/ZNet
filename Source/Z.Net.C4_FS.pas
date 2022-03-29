@@ -241,6 +241,8 @@ type
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
+    procedure RemoveCache(File_Name: U_String); overload;
+    procedure RemoveCache(arry: U_StringArray); overload;
     // upload
     procedure FS_PostFile(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
     procedure FS_PostFile_C(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS_PostFile_DoneC);
@@ -255,7 +257,8 @@ type
     procedure FS_GetFileMD5M(File_Name: U_String; OnResult: TFS_Temp_GetFileMD5M);
     procedure FS_GetFileMD5P(File_Name: U_String; OnResult: TFS_Temp_GetFileMD5P);
     // remove
-    procedure FS_RemoveFile(File_Name: U_String);
+    procedure FS_RemoveFile(File_Name: U_String); overload;
+    procedure FS_RemoveFile(arry: U_StringArray); overload;
     // admin
     procedure FS_SizeC(FileNames: U_StringArray; OnResult: TFS_Temp_SizeC);
     procedure FS_SizeM(FileNames: U_StringArray; OnResult: TFS_Temp_SizeM);
@@ -346,8 +349,22 @@ begin
 end;
 
 procedure TC40_FS_Service.cmd_FS_RemoveFile(Sender: TPeerIO; InData: TDFE);
+var
+  fn: U_String;
+  fd: TFS_Service_File_Data;
 begin
-  FileHashPool.Delete(InData.R.ReadString);
+  while InData.R.NotEnd do
+    begin
+      fn := InData.R.ReadString;
+      fd := FileHashPool[fn];
+      if fd <> nil then
+        begin
+          fd.Stream.Remove;
+          fd.Stream := nil;
+          FileHashPool.Delete(fn);
+        end;
+    end;
+  FileDatabase.Flush(False);
 end;
 
 procedure TC40_FS_Service.cmd_FS_Size(Sender: TPeerIO; InData, OutData: TDFE);
@@ -994,6 +1011,19 @@ begin
   Cache.Progress;
 end;
 
+procedure TC40_FS_Client.RemoveCache(File_Name: U_String);
+begin
+  FileCacheHashPool.Delete(File_Name);
+end;
+
+procedure TC40_FS_Client.RemoveCache(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      FileCacheHashPool.Delete(arry[i]);
+end;
+
 procedure TC40_FS_Client.FS_PostFile(File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
 var
   tmp: TFS_Temp_Post_File_Tunnel;
@@ -1206,6 +1236,21 @@ begin
   FileCacheHashPool.Delete(File_Name);
   d := TDFE.Create;
   d.WriteString(File_Name);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS_RemoveFile', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_FS_Client.FS_RemoveFile(arry: U_StringArray);
+var
+  d: TDFE;
+  i: Integer;
+begin
+  d := TDFE.Create;
+  for i := low(arry) to high(arry) do
+    begin
+      FileCacheHashPool.Delete(arry[i]);
+      d.WriteString(arry[i]);
+    end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS_RemoveFile', d);
   DisposeObject(d);
 end;
