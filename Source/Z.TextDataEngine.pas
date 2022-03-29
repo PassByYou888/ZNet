@@ -78,8 +78,8 @@ type
     procedure SaveToFile(FileName: SystemString);
 
     function TotalCount: NativeInt;
-    function MaxSectionNameLen: Integer;
-    function MinSectionNameLen: Integer;
+    function MaxSectionNameSize: Integer;
+    function MinSectionNameSize: Integer;
 
     function GetAsText: SystemString;
     procedure SetAsText(const Value: SystemString);
@@ -313,7 +313,7 @@ end;
 
 constructor THashTextEngine.Create;
 begin
-  Create(10, 10);
+  Create(16, 16);
 end;
 
 constructor THashTextEngine.Create(SectionPoolSize_: Integer);
@@ -802,16 +802,16 @@ begin
   DisposeObject(tmpSecLst);
 end;
 
-function THashTextEngine.MaxSectionNameLen: Integer;
+function THashTextEngine.MaxSectionNameSize: Integer;
 begin
-  Result := umlMax(FSectionList.HashList.MaxNameLen,
-    umlMax(FSectionHashVariantList.HashList.MaxNameLen, FSectionHashStringList.HashList.MaxNameLen));
+  Result := umlMax(FSectionList.HashList.MaxNameSize,
+    umlMax(FSectionHashVariantList.HashList.MaxNameSize, FSectionHashStringList.HashList.MaxNameSize));
 end;
 
-function THashTextEngine.MinSectionNameLen: Integer;
+function THashTextEngine.MinSectionNameSize: Integer;
 begin
-  Result := umlMin(FSectionList.HashList.MinNameLen,
-    umlMin(FSectionHashVariantList.HashList.MinNameLen, FSectionHashStringList.HashList.MinNameLen));
+  Result := umlMin(FSectionList.HashList.MinNameSize,
+    umlMin(FSectionHashVariantList.HashList.MinNameSize, FSectionHashStringList.HashList.MinNameSize));
 end;
 
 function THashTextEngine.GetAsText: SystemString;
