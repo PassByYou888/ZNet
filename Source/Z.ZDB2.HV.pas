@@ -381,7 +381,10 @@ begin
         end;
     end
   else
+    begin
       FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
+      Clear(False);
+    end;
 
   if flush_core_space then
       CoreSpace.Save;
