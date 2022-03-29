@@ -112,7 +112,7 @@ type
     OnResultC: TON_QueryLogC;
     OnResultM: TON_QueryLogM;
     OnResultP: TON_QueryLogP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -130,7 +130,7 @@ type
     OnResultC: TON_GetLogDBC;
     OnResultM: TON_GetLogDBM;
     OnResultP: TON_GetLogDBP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
 
