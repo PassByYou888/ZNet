@@ -59,7 +59,7 @@ type
     OnResultC: TON_GetAliasC;
     OnResultM: TON_GetAliasM;
     OnResultP: TON_GetAliasP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
