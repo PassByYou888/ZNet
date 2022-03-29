@@ -314,6 +314,7 @@ type
   TFS2_PoolFragInfo = record
     FileName: SystemString;
     MD5: TMD5;
+    FileTime: TDateTime;
   end;
 
   TFS2_PoolFragInfo_Array = array of TFS2_PoolFragInfo;
@@ -367,6 +368,8 @@ type
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
+    procedure RemoveCache(File_Name: U_String); overload;
+    procedure RemoveCache(arry: U_StringArray); overload;
 
     // fast copy
     procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC); overload;
@@ -409,9 +412,9 @@ type
     procedure FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchC);
     procedure FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchM);
     procedure FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchP);
-    procedure FS2_PoolFragC(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
-    procedure FS2_PoolFragM(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
-    procedure FS2_PoolFragP(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
+    procedure FS2_PoolFragC(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
+    procedure FS2_PoolFragM(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
+    procedure FS2_PoolFragP(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
   end;
 
 implementation
@@ -628,10 +631,14 @@ begin
               if FL_.Count = 0 then
                   MD5Pool.Delete(umlMD5ToStr(fd.FileMD5));
             end;
+
+          fd.Stream.Remove;
+          fd.Stream := nil;
           FileHashPool.Delete(fn);
           FileDatabaseIsUpdate := True;
         end;
     end;
+  FileDatabase.Flush(False);
 end;
 
 procedure TC40_FS2_Service.cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
@@ -798,20 +805,24 @@ end;
 
 procedure TC40_FS2_Service.cmd_FS2_PoolFrag(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  begin_, num_, end_, i: Integer;
+  bIndex, num_, eIndex, i: Integer;
   fd: TFS2_Service_File_Data;
 begin
-  begin_ := InData.R.ReadInteger;
+  bIndex := InData.R.ReadInteger;
   num_ := InData.R.ReadInteger;
-  begin_ := umlClamp(begin_, 0, FileDatabase.Count - 1);
-  end_ := umlClamp(begin_ + num_, 0, FileDatabase.Count - 1);
-  for i := begin_ to end_ do
+  bIndex := umlClamp(bIndex, 0, FileDatabase.Count - 1);
+  eIndex := umlClamp(bIndex + num_, 0, FileDatabase.Count - 1);
+  if eIndex = bIndex then
+      eIndex := FileDatabase.Count - 1;
+
+  for i := bIndex to eIndex do
     begin
       fd := TFS2_Service_ZDB2_MS64(FileDatabase[i]).Service_File_Data;
       if fd <> nil then
         begin
           OutData.WriteString(fd.FileName);
           OutData.WriteMD5(fd.FileMD5);
+          OutData.WriteDouble(fd.FileTime);
         end;
     end;
 end;
@@ -1595,12 +1606,13 @@ var
   arry: TFS2_PoolFragInfo_Array;
   i: Integer;
 begin
-  SetLength(arry, Result_.Count div 2);
+  SetLength(arry, Result_.Count div 3);
   i := 0;
   while Result_.R.NotEnd do
     begin
       arry[i].FileName := Result_.R.ReadString;
       arry[i].MD5 := Result_.R.ReadMD5;
+      arry[i].FileTime := Result_.R.ReadDouble;
       inc(i);
     end;
 
@@ -1733,6 +1745,19 @@ procedure TC40_FS2_Client.Progress;
 begin
   inherited Progress;
   Cache.Progress;
+end;
+
+procedure TC40_FS2_Client.RemoveCache(File_Name: U_String);
+begin
+  FileCacheHashPool.Delete(File_Name);
+end;
+
+procedure TC40_FS2_Client.RemoveCache(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      FileCacheHashPool.Delete(arry[i]);
 end;
 
 procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
@@ -2365,7 +2390,7 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragC(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
+procedure TC40_FS2_Client.FS2_PoolFragC(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragC);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2375,14 +2400,14 @@ begin
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(begin_);
+  d.WriteInteger(bIndex);
   d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragM(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
+procedure TC40_FS2_Client.FS2_PoolFragM(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragM);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2392,14 +2417,14 @@ begin
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(begin_);
+  d.WriteInteger(bIndex);
   d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragP(begin_, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
+procedure TC40_FS2_Client.FS2_PoolFragP(bIndex, num_: Integer; OnResult: TFS2_Temp_PoolFragP);
 var
   tmp: TFS2_Temp_PoolFrag;
   d: TDFE;
@@ -2409,7 +2434,7 @@ begin
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
-  d.WriteInteger(begin_);
+  d.WriteInteger(bIndex);
   d.WriteInteger(num_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS2_PoolFrag', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
