@@ -124,6 +124,11 @@ type
   U_ByteArray = array [0 .. MaxInt div SizeOf(Byte) - 1] of Byte;
   P_ByteArray = ^U_ByteArray;
 
+  TListPascalString_Helper_ = class helper for TListPascalString
+  public
+    procedure FillToArry(var Output_: U_StringArray);
+  end;
+
 function umlBytesOf(const s: TPascalString): TBytes;
 function umlStringOf(const s: TBytes): TPascalString; overload;
 
@@ -925,6 +930,15 @@ begin
   buff := s.Bytes;
   Result := length(buff) > FixedStringL - 1;
   SetLength(buff, 0);
+end;
+
+procedure TListPascalString_Helper_.FillToArry(var Output_: U_StringArray);
+var
+  i: Integer;
+begin
+  SetLength(Output_, Count);
+  for i := 0 to Count - 1 do
+      Output_[i] := Items[i];
 end;
 
 function umlBytesOf(const s: TPascalString): TBytes;
