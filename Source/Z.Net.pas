@@ -5601,23 +5601,38 @@ end;
 procedure TPeerIO.Sync_InternalSendConsoleCmd;
 var
   d: TDFE;
+  enSiz: Int64;
   Stream: TMS64;
 begin
   if not OwnerFramework.QuietMode then
       PrintCommand('internal send console: %s', FSyncPick^.Cmd);
 
   d := TDFE.Create;
-  Stream := TMS64.Create;
 
   d.WriteString(FSyncPick^.Cmd);
   d.WriteString(FSyncPick^.ConsoleData);
 
+  enSiz := d.ComputeEncodeSize;
+  Stream := TMS64.CustomCreate(umlClamp(enSiz, 1024, 1024 * 1024));
+
   if FOwnerFramework.FSendDataCompressed then
-      d.EncodeAsSelectCompressor(Stream, True)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
+      else
+          d.EncodeAsZLib(Stream, True, False);
+    end
   else if FOwnerFramework.FFastEncrypt then
-      d.FastEncodeTo(Stream)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
+      else
+          d.FastEncode32To(Stream, enSiz);
+    end
+  else if enSiz > Stream.Delta then
+      d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
-      d.EncodeTo(Stream, True);
+      d.EncodeTo(Stream, True, False);
 
   InternalSendConsoleBuff(Stream, FSyncPick^.Cipher);
 
@@ -5631,23 +5646,38 @@ end;
 procedure TPeerIO.Sync_InternalSendStreamCmd;
 var
   d: TDFE;
+  enSiz: Int64;
   Stream: TMS64;
 begin
   if not OwnerFramework.QuietMode then
       PrintCommand('internal send stream: %s', FSyncPick^.Cmd);
 
   d := TDFE.Create;
-  Stream := TMS64.Create;
 
   d.WriteString(FSyncPick^.Cmd);
   d.WriteStream(FSyncPick^.StreamData);
 
+  enSiz := d.ComputeEncodeSize;
+  Stream := TMS64.CustomCreate(umlClamp(enSiz, 1024, 1024 * 1024));
+
   if FOwnerFramework.FSendDataCompressed then
-      d.EncodeAsSelectCompressor(Stream, True)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
+      else
+          d.EncodeAsZLib(Stream, True, False);
+    end
   else if FOwnerFramework.FFastEncrypt then
-      d.FastEncodeTo(Stream)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
+      else
+          d.FastEncode32To(Stream, enSiz);
+    end
+  else if enSiz > Stream.Delta then
+      d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
-      d.EncodeTo(Stream, True);
+      d.EncodeTo(Stream, True, False);
 
   InternalSendStreamBuff(Stream, FSyncPick^.Cipher);
 
@@ -5661,23 +5691,38 @@ end;
 procedure TPeerIO.Sync_InternalSendDirectConsoleCmd;
 var
   d: TDFE;
+  enSiz: Int64;
   Stream: TMS64;
 begin
   if not OwnerFramework.QuietMode then
       PrintCommand('internal send direct console: %s', FSyncPick^.Cmd);
 
   d := TDFE.Create;
-  Stream := TMS64.Create;
 
   d.WriteString(FSyncPick^.Cmd);
   d.WriteString(FSyncPick^.ConsoleData);
 
+  enSiz := d.ComputeEncodeSize;
+  Stream := TMS64.CustomCreate(umlClamp(enSiz, 1024, 1024 * 1024));
+
   if FOwnerFramework.FSendDataCompressed then
-      d.EncodeAsSelectCompressor(Stream, True)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
+      else
+          d.EncodeAsZLib(Stream, True, False);
+    end
   else if FOwnerFramework.FFastEncrypt then
-      d.FastEncodeTo(Stream)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
+      else
+          d.FastEncode32To(Stream, enSiz);
+    end
+  else if enSiz > Stream.Delta then
+      d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
-      d.EncodeTo(Stream, True);
+      d.EncodeTo(Stream, True, False);
 
   InternalSendDirectConsoleBuff(Stream, FSyncPick^.Cipher);
 
@@ -5691,23 +5736,38 @@ end;
 procedure TPeerIO.Sync_InternalSendDirectStreamCmd;
 var
   d: TDFE;
+  enSiz: Int64;
   Stream: TMS64;
 begin
   if not OwnerFramework.QuietMode then
       PrintCommand('internal send direct stream: %s', FSyncPick^.Cmd);
 
   d := TDFE.Create;
-  Stream := TMS64.Create;
 
   d.WriteString(FSyncPick^.Cmd);
   d.WriteStream(FSyncPick^.StreamData);
 
+  enSiz := d.ComputeEncodeSize;
+  Stream := TMS64.CustomCreate(umlClamp(enSiz, 1024, 1024 * 1024));
+
   if FOwnerFramework.FSendDataCompressed then
-      d.EncodeAsSelectCompressor(Stream, True)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
+      else
+          d.EncodeAsZLib(Stream, True, False);
+    end
   else if FOwnerFramework.FFastEncrypt then
-      d.FastEncodeTo(Stream)
+    begin
+      if enSiz > Stream.Delta then
+          d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
+      else
+          d.FastEncode32To(Stream, enSiz);
+    end
+  else if enSiz > Stream.Delta then
+      d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
-      d.EncodeTo(Stream, True);
+      d.EncodeTo(Stream, True, False);
 
   InternalSendDirectStreamBuff(Stream, FSyncPick^.Cipher);
 
@@ -5738,17 +5798,17 @@ end;
 
 procedure TPeerIO.Sync_ExecuteConsole;
 var
-  d: TTimeTick;
+  Tick_: TTimeTick;
 begin
   FReceiveCommandRuning := True;
   if not OwnerFramework.QuietMode then
       PrintCommand('execute console: %s', FInCmd);
 
-  d := GetTimeTick;
+  Tick_ := GetTimeTick;
   FOwnerFramework.ExecuteConsole(Self, FInCmd, FInText, FOutText);
   FReceiveCommandRuning := False;
 
-  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - d);
+  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - Tick_);
 
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecConsole]);
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
@@ -5756,17 +5816,17 @@ end;
 
 procedure TPeerIO.Sync_ExecuteStream;
 var
-  d: TTimeTick;
+  Tick_: TTimeTick;
 begin
   FReceiveCommandRuning := True;
   if not OwnerFramework.QuietMode then
       PrintCommand('execute stream: %s', FInCmd);
 
-  d := GetTimeTick;
+  Tick_ := GetTimeTick;
   FOwnerFramework.ExecuteStream(Self, FInCmd, FInDataFrame, FOutDataFrame);
   FReceiveCommandRuning := False;
 
-  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - d);
+  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - Tick_);
 
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecStream]);
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
@@ -5774,17 +5834,17 @@ end;
 
 procedure TPeerIO.Sync_ExecuteDirectConsole;
 var
-  d: TTimeTick;
+  Tick_: TTimeTick;
 begin
   FReceiveCommandRuning := True;
   if not OwnerFramework.QuietMode then
       PrintCommand('execute direct console: %s', FInCmd);
 
-  d := GetTimeTick;
+  Tick_ := GetTimeTick;
   FOwnerFramework.ExecuteDirectConsole(Self, FInCmd, FInText);
   FReceiveCommandRuning := False;
 
-  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - d);
+  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - Tick_);
 
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecDirestConsole]);
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
@@ -5792,17 +5852,17 @@ end;
 
 procedure TPeerIO.Sync_ExecuteDirectStream;
 var
-  d: TTimeTick;
+  Tick_: TTimeTick;
 begin
   FReceiveCommandRuning := True;
   if not OwnerFramework.QuietMode then
       PrintCommand('execute direct stream: %s', FInCmd);
 
-  d := GetTimeTick;
+  Tick_ := GetTimeTick;
   FOwnerFramework.ExecuteDirectStream(Self, FInCmd, FInDataFrame);
   FReceiveCommandRuning := False;
 
-  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - d);
+  FOwnerFramework.CmdMaxExecuteConsumeStatistics.SetMax(FInCmd, GetTimeTick - Tick_);
 
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecDirestStream]);
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
@@ -5830,17 +5890,31 @@ end;
 
 procedure TPeerIO.Sync_SendStreamResult;
 var
+  enSiz: Int64;
   m64: TMS64;
 begin
   BeginSend;
-  m64 := TMS64.Create;
+  enSiz := FOutDataFrame.ComputeEncodeSize;
+  m64 := TMS64.CustomCreate(umlClamp(enSiz, 1024, 1024 * 1024));
 
   if FOwnerFramework.FSendDataCompressed then
-      FOutDataFrame.EncodeAsSelectCompressor(m64, True)
+    begin
+      if enSiz > m64.Delta then
+          FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, m64, True)
+      else
+          FOutDataFrame.EncodeAsZLib(m64, True, False);
+    end
   else if FOwnerFramework.FFastEncrypt then
-      FOutDataFrame.FastEncodeTo(m64)
+    begin
+      if enSiz > m64.Delta then
+          FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, m64, True)
+      else
+          FOutDataFrame.FastEncode32To(m64, enSiz);
+    end
+  else if enSiz > m64.Delta then
+      FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, m64, True)
   else
-      FOutDataFrame.EncodeTo(m64, True);
+      FOutDataFrame.EncodeTo(m64, True, False);
 
   SendCardinal(FHeadToken);
   SendInteger(m64.Size);
@@ -7641,6 +7715,7 @@ var
   headBuff: array [0 .. 2] of Byte;
   b: TBytes;
   buff: TMS64;
+  enSiz: Int64;
   dHead, dTail: Cardinal;
   Len: Integer;
   Code: TBytes;
@@ -7663,11 +7738,24 @@ begin
           buff.WritePtr(@b[0], Length(b));
         end
       else if FOwnerFramework.FSendDataCompressed then
-          FOutDataFrame.EncodeAsSelectCompressor(buff, True)
+        begin
+          if FOutDataFrame.ComputeEncodeSize > 1024 * 1024 then
+              FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, buff, True)
+          else
+              FOutDataFrame.EncodeAsZLib(buff, True, False);
+        end
       else if FOwnerFramework.FFastEncrypt then
-          FOutDataFrame.FastEncodeTo(buff)
+        begin
+          enSiz := FOutDataFrame.ComputeEncodeSize;
+          if enSiz > 1024 * 1024 then
+              FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, buff, True)
+          else
+              FOutDataFrame.FastEncode32To(buff, enSiz);
+        end
+      else if FOutDataFrame.ComputeEncodeSize > 1024 * 1024 then
+          FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, buff, True)
       else
-          FOutDataFrame.EncodeTo(buff, True);
+          FOutDataFrame.EncodeTo(buff, True, False);
 
       dHead := FHeadToken;
       dTail := FTailToken;
