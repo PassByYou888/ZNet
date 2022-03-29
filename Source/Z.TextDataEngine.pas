@@ -77,9 +77,12 @@ type
     procedure LoadFromFile(FileName: SystemString);
     procedure SaveToFile(FileName: SystemString);
 
-    function TotalCount: NativeInt;
+    function TotalCount: Integer;
+    property Count: Integer read TotalCount;
     function MaxSectionNameSize: Integer;
+    property MaxSectionNameLen: Integer read MaxSectionNameSize;
     function MinSectionNameSize: Integer;
+    property MinSectionNameLen: Integer read MinSectionNameSize;
 
     function GetAsText: SystemString;
     procedure SetAsText(const Value: SystemString);
@@ -775,7 +778,7 @@ begin
   end;
 end;
 
-function THashTextEngine.TotalCount: NativeInt;
+function THashTextEngine.TotalCount: Integer;
 var
   i: Integer;
   tmpSecLst: TListPascalString;
