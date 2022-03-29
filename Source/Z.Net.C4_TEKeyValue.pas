@@ -82,7 +82,7 @@ type
     OnResultC: TON_GetTE_C;
     OnResultM: TON_GetTE_M;
     OnResultP: TON_GetTE_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -100,7 +100,7 @@ type
     OnResultC: TON_GetSection_C;
     OnResultM: TON_GetSection_M;
     OnResultP: TON_GetSection_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -118,7 +118,7 @@ type
     OnResultC: TON_GetKey_C;
     OnResultM: TON_GetKey_M;
     OnResultP: TON_GetKey_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -136,7 +136,7 @@ type
     OnResultC: TON_GetTextKey_C;
     OnResultM: TON_GetTextKey_M;
     OnResultP: TON_GetTextKey_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -154,7 +154,7 @@ type
     OnResultC: TON_GetKeyValue_C;
     OnResultM: TON_GetKeyValue_M;
     OnResultP: TON_GetKeyValue_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -172,7 +172,7 @@ type
     OnResultC: TON_GetTextKeyValue_C;
     OnResultM: TON_GetTextKeyValue_M;
     OnResultP: TON_GetTextKeyValue_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -190,7 +190,7 @@ type
     OnResultC: TON_ExistsSection_C;
     OnResultM: TON_ExistsSection_M;
     OnResultP: TON_ExistsSection_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -208,7 +208,7 @@ type
     OnResultC: TON_ExistsKey_C;
     OnResultM: TON_ExistsKey_M;
     OnResultP: TON_ExistsKey_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -226,7 +226,7 @@ type
     OnResultC: TON_GetValue_C;
     OnResultM: TON_GetValue_M;
     OnResultP: TON_GetValue_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -244,7 +244,7 @@ type
     OnResultC: TON_GetTextValue_C;
     OnResultM: TON_GetTextValue_M;
     OnResultP: TON_GetTextValue_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
@@ -269,7 +269,7 @@ type
     OnResultC: TON_SearchTE_C;
     OnResultM: TON_SearchTE_M;
     OnResultP: TON_SearchTE_P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 {$ENDREGION 'bridge_define'}
