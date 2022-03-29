@@ -195,7 +195,7 @@ type
     procedure QueryInfoP(OnResult: TDCT40_OnQueryResultP);
     function DependNetworkIsConnected: Boolean;
     { event }
-    procedure DoClientConnected(Custom_Client_: TC40_Custom_Client);
+    procedure DoNetworkOnline(Custom_Client_: TC40_Custom_Client);
   end;
 
   TC40_PhysicsTunnelPool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_PhysicsTunnel>;
@@ -420,9 +420,6 @@ type
   TC40_Custom_Client = class(TCore_InterfacedObject)
   private
     FLastSafeCheckTime: TTimeTick;
-  protected
-    procedure DoClientConnected; virtual; // trigger: connected
-    procedure DoNetworkOffline; virtual;  // trigger: offline
   public
     Param: U_String;
     ParamList: THashStringList;
@@ -443,6 +440,9 @@ type
     function GetAliasOrHash: U_String;
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
+    // event
+    procedure DoNetworkOnline; virtual;  // trigger: connected
+    procedure DoNetworkOffline; virtual; // trigger: offline
   end;
 
   TC40_Custom_Client_Class = class of TC40_Custom_Client;
@@ -2318,7 +2318,7 @@ begin
   Result := True;
 end;
 
-procedure TC40_PhysicsTunnel.DoClientConnected(Custom_Client_: TC40_Custom_Client);
+procedure TC40_PhysicsTunnel.DoNetworkOnline(Custom_Client_: TC40_Custom_Client);
 begin
   if Assigned(OnEvent) then
       OnEvent.C40_PhysicsTunnel_Client_Connected(Self, Custom_Client_);
@@ -3754,9 +3754,9 @@ begin
     end;
 end;
 
-procedure TC40_Custom_Client.DoClientConnected;
+procedure TC40_Custom_Client.DoNetworkOnline;
 begin
-  C40PhysicsTunnel.DoClientConnected(Self);
+  C40PhysicsTunnel.DoNetworkOnline(Self);
 end;
 
 procedure TC40_Custom_ClientPool.Progress;
@@ -4588,7 +4588,7 @@ procedure TC40_Dispatch_Client.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sende
 begin
   PostLocalServiceInfo(True);
   RequestUpdate();
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 procedure TC40_Dispatch_Client.DoDelayCheckLocalServiceInfo;
@@ -4842,7 +4842,7 @@ end;
 
 procedure TC40_Base_NoAuth_Client.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client);
 begin
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_NoAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -4930,7 +4930,7 @@ end;
 
 procedure TC40_Base_DataStoreNoAuth_Client.Do_DT_P2PVM_DataStoreNoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client);
 begin
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_DataStoreNoAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -5037,7 +5037,7 @@ begin
       NoDTLink := False;
       Client.RegisterUserAndLogin := False;
     end;
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_VirtualAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -5157,7 +5157,7 @@ begin
       NoDTLink := False;
       Client.RegisterUserAndLogin := False;
     end;
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_DataStoreVirtualAuth_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -5274,7 +5274,7 @@ begin
       NoDTLink := False;
       Client.RegisterUserAndLogin := False;
     end;
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -5392,7 +5392,7 @@ begin
       NoDTLink := False;
       Client.RegisterUserAndLogin := False;
     end;
-  DoClientConnected();
+  DoNetworkOnline();
 end;
 
 constructor TC40_Base_DataStore_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
