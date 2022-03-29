@@ -65,7 +65,7 @@ type
     FFirst: PHashListData;
     FLast: PHashListData;
 
-    FMaxNameLen, FMinNameLen: NativeInt;
+    FMaxNameSize, FMinNameSize: NativeInt;
 
     function GetListTable(hash: THash; AutoCreate: Boolean): TCore_List;
     function GetKeyData(const Name: SystemString): PHashListData;
@@ -127,10 +127,10 @@ type
 
     property OnFreePtr: TOnPtr read FOnFreePtr write FOnFreePtr;
 
-    property MaxKeyLen: NativeInt read FMaxNameLen;
-    property MinKeyLen: NativeInt read FMinNameLen;
-    property MaxNameLen: NativeInt read FMaxNameLen;
-    property MinNameLen: NativeInt read FMinNameLen;
+    property MaxKeySize: NativeInt read FMaxNameSize;
+    property MinKeySize: NativeInt read FMinNameSize;
+    property MaxNameSize: NativeInt read FMaxNameSize;
+    property MinNameSize: NativeInt read FMinNameSize;
   end;
 
   PHashList = ^THashList;
@@ -1508,24 +1508,24 @@ end;
 
 function THashList.GetKeyData(const Name: SystemString): PHashListData;
 var
-  lName: SystemString;
-  newhash: THash;
+  Low_Name: SystemString;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PHashListData;
 begin
   Result := nil;
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
-  lst := GetListTable(newhash, False);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PHashListData(lst[i]);
-        if (newhash = pData^.qHash) and (lName = pData^.LowerCaseName) then
+        if (New_Hash = pData^.qHash) and (Low_Name = pData^.LowerCaseName) then
           begin
             Result := pData;
 
@@ -1683,8 +1683,8 @@ begin
   FOnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
   FFirst := nil;
   FLast := nil;
-  FMaxNameLen := -1;
-  FMinNameLen := -1;
+  FMaxNameSize := -1;
+  FMinNameSize := -1;
   SetLength(FListBuffer, 0);
   SetHashBlockCount(HashPoolSize_);
 end;
@@ -1706,8 +1706,8 @@ begin
   FIDSeed := 0;
   FFirst := nil;
   FLast := nil;
-  FMaxNameLen := -1;
-  FMinNameLen := -1;
+  FMaxNameSize := -1;
+  FMinNameSize := -1;
   if Length(FListBuffer) = 0 then
       Exit;
 
@@ -1870,27 +1870,27 @@ end;
 
 procedure THashList.Delete(const Name: SystemString);
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
-  lName: SystemString;
+  Low_Name: SystemString;
   lst: TCore_List;
   _ItemData: PHashListData;
 begin
   if FCount = 0 then
       Exit;
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
-  lst := GetListTable(newhash, False);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (lName = _ItemData^.LowerCaseName) then
+          if (New_Hash = _ItemData^.qHash) and (Low_Name = _ItemData^.LowerCaseName) then
             begin
               DoDelete(_ItemData);
               if (FAutoFreeData) and (_ItemData^.Data <> nil) then
@@ -1913,47 +1913,47 @@ begin
   if FCount = 0 then
     begin
       FIDSeed := 1;
-      FMaxNameLen := -1;
-      FMinNameLen := -1;
+      FMaxNameSize := -1;
+      FMinNameSize := -1;
     end;
 end;
 
 function THashList.Add(const Name: SystemString; Data_: Pointer; const Overwrite_: Boolean): PHashListData;
 var
-  newhash: THash;
+  New_Hash: THash;
   L: NativeInt;
   lst: TCore_List;
   i: Integer;
-  lName: SystemString;
+  Low_Name: SystemString;
   pData: PHashListData;
 begin
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
 
-  L := Length(lName);
+  L := Length(Low_Name);
   if Count > 0 then
     begin
-      if L > FMaxNameLen then
-          FMaxNameLen := L;
-      if L < FMinNameLen then
-          FMinNameLen := L;
+      if L > FMaxNameSize then
+          FMaxNameSize := L;
+      if L < FMinNameSize then
+          FMinNameSize := L;
     end
   else
     begin
-      FMaxNameLen := L;
-      FMinNameLen := L;
+      FMaxNameSize := L;
+      FMinNameSize := L;
     end;
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := 0 to lst.Count - 1 do
         begin
           pData := PHashListData(lst[i]);
-          if (newhash = pData^.qHash) and (lName = pData^.LowerCaseName) then
+          if (New_Hash = pData^.qHash) and (Low_Name = pData^.LowerCaseName) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -1989,8 +1989,8 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
-  pData^.LowerCaseName := lName;
+  pData^.qHash := New_Hash;
+  pData^.LowerCaseName := Low_Name;
   pData^.OriginName := Name;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -2014,41 +2014,41 @@ end;
 
 procedure THashList.SetValue(const Name: SystemString; const Data_: Pointer);
 var
-  newhash: THash;
+  New_Hash: THash;
   L: NativeInt;
   lst: TCore_List;
   i: Integer;
-  lName: SystemString;
+  Low_Name: SystemString;
   pData: PHashListData;
   Done: Boolean;
 begin
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
 
-  L := Length(lName);
+  L := Length(Low_Name);
   if Count > 0 then
     begin
-      if L > FMaxNameLen then
-          FMaxNameLen := L;
-      if L < FMinNameLen then
-          FMinNameLen := L;
+      if L > FMaxNameSize then
+          FMaxNameSize := L;
+      if L < FMinNameSize then
+          FMinNameSize := L;
     end
   else
     begin
-      FMaxNameLen := L;
-      FMinNameLen := L;
+      FMaxNameSize := L;
+      FMinNameSize := L;
     end;
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     for i := 0 to lst.Count - 1 do
       begin
         pData := PHashListData(lst[i]);
-        if (newhash = pData^.qHash) and (lName = pData^.LowerCaseName) then
+        if (New_Hash = pData^.qHash) and (Low_Name = pData^.LowerCaseName) then
           begin
             if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
               begin
@@ -2065,8 +2065,8 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
-      pData^.LowerCaseName := lName;
+      pData^.qHash := New_Hash;
+      pData^.LowerCaseName := Low_Name;
       pData^.OriginName := Name;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -2086,11 +2086,11 @@ end;
 
 function THashList.Insert(Name, InsertToBefore_: SystemString; Data_: Pointer; const Overwrite_: Boolean): PHashListData;
 var
-  newhash: THash;
+  New_Hash: THash;
   L: NativeInt;
   lst: TCore_List;
   i: Integer;
-  lName: SystemString;
+  Low_Name: SystemString;
   InsertDest_, pData: PHashListData;
 begin
   InsertDest_ := NameData[InsertToBefore_];
@@ -2101,32 +2101,32 @@ begin
     end;
 
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
 
-  L := Length(lName);
+  L := Length(Low_Name);
   if Count > 0 then
     begin
-      if L > FMaxNameLen then
-          FMaxNameLen := L;
-      if L < FMinNameLen then
-          FMinNameLen := L;
+      if L > FMaxNameSize then
+          FMaxNameSize := L;
+      if L < FMinNameSize then
+          FMinNameSize := L;
     end
   else
     begin
-      FMaxNameLen := L;
-      FMinNameLen := L;
+      FMaxNameSize := L;
+      FMinNameSize := L;
     end;
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := 0 to lst.Count - 1 do
         begin
           pData := PHashListData(lst[i]);
-          if (newhash = pData^.qHash) and (lName = pData^.LowerCaseName) then
+          if (New_Hash = pData^.qHash) and (Low_Name = pData^.LowerCaseName) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -2162,8 +2162,8 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
-  pData^.LowerCaseName := lName;
+  pData^.qHash := New_Hash;
+  pData^.LowerCaseName := Low_Name;
   pData^.OriginName := Name;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -2211,28 +2211,28 @@ end;
 
 function THashList.Exists(const Name: SystemString): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PHashListData;
-  lName: SystemString;
+  Low_Name: SystemString;
 begin
   Result := False;
   if FCount = 0 then
       Exit;
   if FIgnoreCase then
-      lName := LowerCase(Name)
+      Low_Name := LowerCase(Name)
   else
-      lName := Name;
-  newhash := MakeHashS(@lName);
-  lst := GetListTable(newhash, False);
+      Low_Name := Name;
+  New_Hash := MakeHashS(@Low_Name);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PHashListData(lst[i]);
-            if (newhash = pData^.qHash) and (lName = pData^.LowerCaseName) then
+            if (New_Hash = pData^.qHash) and (Low_Name = pData^.LowerCaseName) then
                 Exit(True);
           end;
     end;
@@ -2405,19 +2405,19 @@ end;
 
 function TInt64HashObjectList.Geti64Data(i64: Int64): PInt64HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PInt64HashListObjectStruct;
 begin
   Result := nil;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PInt64HashListObjectStruct(lst[i]);
-        if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+        if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
           begin
             Result := pData;
             if (FAccessOptimization) and (pData^.ID < FIDSeed - 1) then
@@ -2639,22 +2639,22 @@ end;
 
 procedure TInt64HashObjectList.Delete(i64: Int64);
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   _ItemData: PInt64HashListObjectStruct;
 begin
   if FCount = 0 then
       Exit;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (i64 = _ItemData^.i64) then
+          if (New_Hash = _ItemData^.qHash) and (i64 = _ItemData^.i64) then
             begin
               DoDelete(_ItemData);
               if (FAutoFreeData) and (_ItemData^.Data <> nil) then
@@ -2680,20 +2680,20 @@ end;
 
 function TInt64HashObjectList.Add(i64: Int64; Data_: TCore_Object; const Overwrite_: Boolean): PInt64HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PInt64HashListObjectStruct;
 begin
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -2729,7 +2729,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.i64 := i64;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -2748,22 +2748,22 @@ end;
 
 procedure TInt64HashObjectList.SetValue(i64: Int64; Data_: TCore_Object);
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PInt64HashListObjectStruct;
   Done: Boolean;
 begin
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
                 begin
@@ -2781,7 +2781,7 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
+      pData^.qHash := New_Hash;
       pData^.i64 := i64;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -2800,7 +2800,7 @@ end;
 
 function TInt64HashObjectList.Insert(i64, InsertToBefore_: Int64; Data_: TCore_Object; const Overwrite_: Boolean): PInt64HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   InsertDest_, pData: PInt64HashListObjectStruct;
@@ -2812,15 +2812,15 @@ begin
       Exit;
     end;
 
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -2856,7 +2856,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.i64 := i64;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -2875,7 +2875,7 @@ end;
 
 function TInt64HashObjectList.Exists(i64: Int64): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PInt64HashListObjectStruct;
@@ -2883,15 +2883,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PInt64HashListObjectStruct(lst[i]);
-            if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+            if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
                 Exit(True);
           end;
     end;
@@ -3076,19 +3076,19 @@ end;
 
 function TInt64HashPointerList.Geti64Data(i64: Int64): PInt64HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PInt64HashListPointerStruct;
 begin
   Result := nil;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PInt64HashListPointerStruct(lst[i]);
-        if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+        if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
           begin
             Result := pData;
             if (FAccessOptimization) and (pData^.ID < FIDSeed - 1) then
@@ -3320,22 +3320,22 @@ end;
 
 procedure TInt64HashPointerList.Delete(i64: Int64);
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   _ItemData: PInt64HashListPointerStruct;
 begin
   if FCount = 0 then
       Exit;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (i64 = _ItemData^.i64) then
+          if (New_Hash = _ItemData^.qHash) and (i64 = _ItemData^.i64) then
             begin
               DoDelete(_ItemData);
               if (FAutoFreeData) and (_ItemData^.Data <> nil) then
@@ -3361,20 +3361,20 @@ end;
 
 function TInt64HashPointerList.Add(i64: Int64; Data_: Pointer; const Overwrite_: Boolean): PInt64HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PInt64HashListPointerStruct;
 begin
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -3412,7 +3412,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.i64 := i64;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -3433,22 +3433,22 @@ end;
 
 procedure TInt64HashPointerList.SetValue(i64: Int64; Data_: Pointer);
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PInt64HashListPointerStruct;
   Done: Boolean;
 begin
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
                 begin
@@ -3467,7 +3467,7 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
+      pData^.qHash := New_Hash;
       pData^.i64 := i64;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -3488,7 +3488,7 @@ end;
 
 function TInt64HashPointerList.Insert(i64, InsertToBefore_: Int64; Data_: Pointer; const Overwrite_: Boolean): PInt64HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   InsertDest_, pData: PInt64HashListPointerStruct;
@@ -3500,15 +3500,15 @@ begin
       Exit;
     end;
 
-  newhash := MakeHashI64(i64);
+  New_Hash := MakeHashI64(i64);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PInt64HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+          if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -3546,7 +3546,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.i64 := i64;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -3567,7 +3567,7 @@ end;
 
 function TInt64HashPointerList.Exists(i64: Int64): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PInt64HashListPointerStruct;
@@ -3575,15 +3575,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashI64(i64);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashI64(i64);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PInt64HashListPointerStruct(lst[i]);
-            if (newhash = pData^.qHash) and (i64 = pData^.i64) then
+            if (New_Hash = pData^.qHash) and (i64 = pData^.i64) then
                 Exit(True);
           end;
     end;
@@ -3756,19 +3756,19 @@ end;
 
 function TUInt32HashObjectList.Getu32Data(u32: UInt32): PUInt32HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PUInt32HashListObjectStruct;
 begin
   Result := nil;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PUInt32HashListObjectStruct(lst[i]);
-        if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+        if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
           begin
             Result := pData;
             if (FAccessOptimization) and (pData^.ID < FIDSeed - 1) then
@@ -3983,22 +3983,22 @@ end;
 
 procedure TUInt32HashObjectList.Delete(u32: UInt32);
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   _ItemData: PUInt32HashListObjectStruct;
 begin
   if FCount = 0 then
       Exit;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (u32 = _ItemData^.u32) then
+          if (New_Hash = _ItemData^.qHash) and (u32 = _ItemData^.u32) then
             begin
               DoDelete(_ItemData);
               if (FAutoFreeData) and (_ItemData^.Data <> nil) then
@@ -4024,20 +4024,20 @@ end;
 
 function TUInt32HashObjectList.Add(u32: UInt32; Data_: TCore_Object; const Overwrite_: Boolean): PUInt32HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PUInt32HashListObjectStruct;
 begin
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -4073,7 +4073,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.u32 := u32;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -4092,22 +4092,22 @@ end;
 
 procedure TUInt32HashObjectList.SetValue(u32: UInt32; Data_: TCore_Object);
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PUInt32HashListObjectStruct;
   Done: Boolean;
 begin
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
                 begin
@@ -4125,7 +4125,7 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
+      pData^.qHash := New_Hash;
       pData^.u32 := u32;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -4144,7 +4144,7 @@ end;
 
 function TUInt32HashObjectList.Insert(u32, InsertToBefore_: UInt32; Data_: TCore_Object; const Overwrite_: Boolean): PUInt32HashListObjectStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   InsertDest_, pData: PUInt32HashListObjectStruct;
@@ -4156,15 +4156,15 @@ begin
       Exit;
     end;
 
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListObjectStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -4197,7 +4197,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.u32 := u32;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -4216,7 +4216,7 @@ end;
 
 function TUInt32HashObjectList.Exists(u32: UInt32): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PUInt32HashListObjectStruct;
@@ -4224,15 +4224,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PUInt32HashListObjectStruct(lst[i]);
-            if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+            if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
                 Exit(True);
           end;
     end;
@@ -4428,19 +4428,19 @@ end;
 
 function TUInt32HashPointerList.Getu32Data(u32: UInt32): PUInt32HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PUInt32HashListPointerStruct;
 begin
   Result := nil;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PUInt32HashListPointerStruct(lst[i]);
-        if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+        if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
           begin
             Result := pData;
             if (FAccessOptimization) and (pData^.ID < FIDSeed - 1) then
@@ -4664,7 +4664,7 @@ end;
 
 function TUInt32HashPointerList.Delete(u32: UInt32): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   _ItemData: PUInt32HashListPointerStruct;
@@ -4672,15 +4672,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (u32 = _ItemData^.u32) then
+          if (New_Hash = _ItemData^.qHash) and (u32 = _ItemData^.u32) then
             begin
               DoDelete(_ItemData);
               if (FAutoFreeData) and (_ItemData^.Data <> nil) then
@@ -4707,20 +4707,20 @@ end;
 
 function TUInt32HashPointerList.Add(u32: UInt32; Data_: Pointer; const Overwrite_: Boolean): PUInt32HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PUInt32HashListPointerStruct;
 begin
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -4754,7 +4754,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.u32 := u32;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -4775,22 +4775,22 @@ end;
 
 procedure TUInt32HashPointerList.SetValue(u32: UInt32; Data_: Pointer);
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PUInt32HashListPointerStruct;
   Done: Boolean;
 begin
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
                 begin
@@ -4809,7 +4809,7 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
+      pData^.qHash := New_Hash;
       pData^.u32 := u32;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -4829,7 +4829,7 @@ end;
 
 function TUInt32HashPointerList.Insert(u32, InsertToBefore_: UInt32; Data_: Pointer; const Overwrite_: Boolean): PUInt32HashListPointerStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   InsertDest_, pData: PUInt32HashListPointerStruct;
@@ -4841,15 +4841,15 @@ begin
       Exit;
     end;
 
-  newhash := MakeHashU32(u32);
+  New_Hash := MakeHashU32(u32);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PUInt32HashListPointerStruct(lst[i]);
-          if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+          if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
             begin
               DoDelete(pData);
               if (FAutoFreeData) and (pData^.Data <> nil) and (pData^.Data <> Data_) then
@@ -4883,7 +4883,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.u32 := u32;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -4904,7 +4904,7 @@ end;
 
 function TUInt32HashPointerList.Exists(u32: UInt32): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PUInt32HashListPointerStruct;
@@ -4912,15 +4912,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashU32(u32);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashU32(u32);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PUInt32HashListPointerStruct(lst[i]);
-            if (newhash = pData^.qHash) and (u32 = pData^.u32) then
+            if (New_Hash = pData^.qHash) and (u32 = pData^.u32) then
                 Exit(True);
           end;
     end;
@@ -5116,19 +5116,19 @@ end;
 
 function TPointerHashNativeUIntList.GetNPtrData(NPtr: Pointer): PPointerHashListNativeUIntStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PPointerHashListNativeUIntStruct;
 begin
   Result := nil;
-  newhash := MakeHashP(NPtr);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashP(NPtr);
+  lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
       begin
         pData := PPointerHashListNativeUIntStruct(lst[i]);
-        if (newhash = pData^.qHash) and (NPtr = pData^.NPtr) then
+        if (New_Hash = pData^.qHash) and (NPtr = pData^.NPtr) then
           begin
             Result := pData;
             if (FAccessOptimization) and (pData^.ID < FIDSeed - 1) then
@@ -5374,7 +5374,7 @@ end;
 
 function TPointerHashNativeUIntList.Delete(NPtr: Pointer): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   _ItemData: PPointerHashListNativeUIntStruct;
@@ -5382,15 +5382,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashP(NPtr);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashP(NPtr);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       i := 0;
       while i < lst.Count do
         begin
           _ItemData := lst[i];
-          if (newhash = _ItemData^.qHash) and (NPtr = _ItemData^.NPtr) then
+          if (New_Hash = _ItemData^.qHash) and (NPtr = _ItemData^.NPtr) then
             begin
               dec(FTotal, _ItemData^.Data);
               DoDelete(_ItemData);
@@ -5415,20 +5415,20 @@ end;
 
 function TPointerHashNativeUIntList.Add(NPtr: Pointer; Data_: NativeUInt; const Overwrite_: Boolean): PPointerHashListNativeUIntStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PPointerHashListNativeUIntStruct;
 begin
-  newhash := MakeHashP(NPtr);
+  New_Hash := MakeHashP(NPtr);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PPointerHashListNativeUIntStruct(lst[i]);
-          if (newhash = pData^.qHash) and (NPtr = pData^.NPtr) then
+          if (New_Hash = pData^.qHash) and (NPtr = pData^.NPtr) then
             begin
               dec(FTotal, pData^.Data);
               DoDelete(pData);
@@ -5459,7 +5459,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.NPtr := NPtr;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -5485,22 +5485,22 @@ end;
 
 procedure TPointerHashNativeUIntList.SetValue(NPtr: Pointer; Data_: NativeUInt);
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   pData: PPointerHashListNativeUIntStruct;
   Done: Boolean;
 begin
-  newhash := MakeHashP(NPtr);
+  New_Hash := MakeHashP(NPtr);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   Done := False;
   if (lst.Count > 0) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PPointerHashListNativeUIntStruct(lst[i]);
-          if (newhash = pData^.qHash) and (NPtr = pData^.NPtr) then
+          if (New_Hash = pData^.qHash) and (NPtr = pData^.NPtr) then
             begin
               dec(FTotal, pData^.Data);
               pData^.Data := Data_;
@@ -5513,7 +5513,7 @@ begin
   if not Done then
     begin
       new(pData);
-      pData^.qHash := newhash;
+      pData^.qHash := New_Hash;
       pData^.NPtr := NPtr;
       pData^.Data := Data_;
       pData^.ID := FIDSeed;
@@ -5539,7 +5539,7 @@ end;
 
 function TPointerHashNativeUIntList.Insert(NPtr, InsertToBefore_: Pointer; Data_: NativeUInt; const Overwrite_: Boolean): PPointerHashListNativeUIntStruct;
 var
-  newhash: THash;
+  New_Hash: THash;
   lst: TCore_List;
   i: Integer;
   InsertDest_, pData: PPointerHashListNativeUIntStruct;
@@ -5551,15 +5551,15 @@ begin
       Exit;
     end;
 
-  newhash := MakeHashP(NPtr);
+  New_Hash := MakeHashP(NPtr);
 
-  lst := GetListTable(newhash, True);
+  lst := GetListTable(New_Hash, True);
   if (lst.Count > 0) and (Overwrite_) then
     begin
       for i := lst.Count - 1 downto 0 do
         begin
           pData := PPointerHashListNativeUIntStruct(lst[i]);
-          if (newhash = pData^.qHash) and (NPtr = pData^.NPtr) then
+          if (New_Hash = pData^.qHash) and (NPtr = pData^.NPtr) then
             begin
               dec(FTotal, pData^.Data);
               DoDelete(pData);
@@ -5590,7 +5590,7 @@ begin
     end;
 
   new(pData);
-  pData^.qHash := newhash;
+  pData^.qHash := New_Hash;
   pData^.NPtr := NPtr;
   pData^.Data := Data_;
   pData^.ID := FIDSeed;
@@ -5616,7 +5616,7 @@ end;
 
 function TPointerHashNativeUIntList.Exists(NPtr: Pointer): Boolean;
 var
-  newhash: THash;
+  New_Hash: THash;
   i: Integer;
   lst: TCore_List;
   pData: PPointerHashListNativeUIntStruct;
@@ -5624,15 +5624,15 @@ begin
   Result := False;
   if FCount = 0 then
       Exit;
-  newhash := MakeHashP(NPtr);
-  lst := GetListTable(newhash, False);
+  New_Hash := MakeHashP(NPtr);
+  lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
       if lst.Count > 0 then
         for i := lst.Count - 1 downto 0 do
           begin
             pData := PPointerHashListNativeUIntStruct(lst[i]);
-            if (newhash = pData^.qHash) and (NPtr = pData^.NPtr) then
+            if (New_Hash = pData^.qHash) and (NPtr = pData^.NPtr) then
                 Exit(True);
           end;
     end;
