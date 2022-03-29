@@ -37,7 +37,7 @@ type
     OnResultC: TOn_Usr_AuthC;
     OnResultM: TOn_Usr_AuthM;
     OnResultP: TOn_Usr_AuthP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -56,7 +56,7 @@ type
     OnResultC: TOn_Usr_RegC;
     OnResultM: TOn_Usr_RegM;
     OnResultP: TOn_Usr_RegP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamParamEvent(sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
@@ -75,7 +75,7 @@ type
     OnResultC: TOn_Usr_NewLoginNameC;
     OnResultM: TOn_Usr_NewLoginNameM;
     OnResultP: TOn_Usr_NewLoginNameP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -93,7 +93,7 @@ type
     OnResultC: TOn_Usr_GetAliasC;
     OnResultM: TOn_Usr_GetAliasM;
     OnResultP: TOn_Usr_GetAliasP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -111,7 +111,7 @@ type
     OnResultC: TOn_Usr_GetMyFriendsC;
     OnResultM: TOn_Usr_GetMyFriendsM;
     OnResultP: TOn_Usr_GetMyFriendsP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -129,7 +129,7 @@ type
     OnResultC: TOn_Usr_GeTOnlineNumC;
     OnResultM: TOn_Usr_GeTOnlineNumM;
     OnResultP: TOn_Usr_GeTOnlineNumP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -147,7 +147,7 @@ type
     OnResultC: TOn_Usr_GeTOnlineListC;
     OnResultM: TOn_Usr_GeTOnlineListM;
     OnResultP: TOn_Usr_GeTOnlineListP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -173,7 +173,7 @@ type
     OnResultC: TOn_Usr_Get_FS_ServiceC;
     OnResultM: TOn_Usr_Get_FS_ServiceM;
     OnResultP: TOn_Usr_Get_FS_ServiceP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -191,7 +191,7 @@ type
     OnResultC: TOn_Usr_SearchMultiMD5_FS_ServiceC;
     OnResultM: TOn_Usr_SearchMultiMD5_FS_ServiceM;
     OnResultP: TOn_Usr_SearchMultiMD5_FS_ServiceP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -209,7 +209,7 @@ type
     OnResultC: TOn_Usr_CheckAndCopy_NetDisk_FileC;
     OnResultM: TOn_Usr_CheckAndCopy_NetDisk_FileM;
     OnResultP: TOn_Usr_CheckAndCopy_NetDisk_FileP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -227,7 +227,7 @@ type
     OnResultC: TOn_Usr_BeginPost_NetDisk_FileC;
     OnResultM: TOn_Usr_BeginPost_NetDisk_FileM;
     OnResultP: TOn_Usr_BeginPost_NetDisk_FileP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -245,7 +245,7 @@ type
     OnResultC: TOn_Usr_CheckAndCopy_NetDisk_File_FragC;
     OnResultM: TOn_Usr_CheckAndCopy_NetDisk_File_FragM;
     OnResultP: TOn_Usr_CheckAndCopy_NetDisk_File_FragP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -263,7 +263,7 @@ type
     OnResultC: TOn_Usr_EndPost_NetDisk_FileC;
     OnResultM: TOn_Usr_EndPost_NetDisk_FileM;
     OnResultP: TOn_Usr_EndPost_NetDisk_FileP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -281,7 +281,7 @@ type
     OnResultC: TOn_Usr_Get_NetDisk_File_Frag_InfoC;
     OnResultM: TOn_Usr_Get_NetDisk_File_Frag_InfoM;
     OnResultP: TOn_Usr_Get_NetDisk_File_Frag_InfoP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -299,7 +299,7 @@ type
     OnResultC: TOn_Usr_Get_NetDisk_File_Frag_MD5C;
     OnResultM: TOn_Usr_Get_NetDisk_File_Frag_MD5M;
     OnResultP: TOn_Usr_Get_NetDisk_File_Frag_MD5P;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -325,7 +325,7 @@ type
     OnResultC: TOn_Usr_Get_NetDisk_File_ListC;
     OnResultM: TOn_Usr_Get_NetDisk_File_ListM;
     OnResultP: TOn_Usr_Get_NetDisk_File_ListP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -343,7 +343,7 @@ type
     OnResultC: TOn_Usr_Get_NetDisk_SpaceInfoC;
     OnResultM: TOn_Usr_Get_NetDisk_SpaceInfoM;
     OnResultP: TOn_Usr_Get_NetDisk_SpaceInfoP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -361,7 +361,7 @@ type
     OnResultC: TOn_Usr_Build_Share_DiskC;
     OnResultM: TOn_Usr_Build_Share_DiskM;
     OnResultP: TOn_Usr_Build_Share_DiskP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -379,7 +379,7 @@ type
     OnResultC: TOn_Usr_Get_Share_DiskC;
     OnResultM: TOn_Usr_Get_Share_DiskM;
     OnResultP: TOn_Usr_Get_Share_DiskP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -397,7 +397,7 @@ type
     OnResultC: TOn_Usr_Get_Share_Disk_File_ListC;
     OnResultM: TOn_Usr_Get_Share_Disk_File_ListM;
     OnResultP: TOn_Usr_Get_Share_Disk_File_ListP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
@@ -415,7 +415,7 @@ type
     OnResultC: TOn_Usr_Get_Share_Disk_File_Frag_InfoC;
     OnResultM: TOn_Usr_Get_Share_Disk_File_Frag_InfoM;
     OnResultP: TOn_Usr_Get_Share_Disk_File_Frag_InfoP;
-    constructor Create; override;
+    constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
