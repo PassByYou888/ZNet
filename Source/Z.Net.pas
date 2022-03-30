@@ -1,5 +1,5 @@
 ﻿{ ****************************************************************************** }
-{ * communication framework written by QQ 600585@qq.com                        * }
+{ * communication framework                                                    * }
 { ****************************************************************************** }
 
 unit Z.Net;
@@ -137,11 +137,13 @@ type
 {$ELSE FPC}
   TOnAutomatedP2PVMClientConnectionDone_P = reference to procedure(Sender: TZNet; P_IO: TPeerIO);
 {$ENDIF FPC}
-  TZNet_Progress_Free_Event = procedure(Sender: TZNet_Progress) of object;
+  TZNet_Progress_Free_OnEvent = procedure(Sender: TZNet_Progress) of object;
 
   TIO_ID_List = class(TIO_ID_List_Decl)
   public
   end;
+
+  TIO_ID_Pool = TIO_ID_List;
 
   TOnStateStruct = record
     On_C: TOnState_C;
@@ -152,6 +154,7 @@ type
 
   POnStateStruct = ^TOnStateStruct;
 
+  // tool: client - bridge templet
   TOnResultBridge_Templet = class
   public
     // console event
@@ -164,12 +167,14 @@ type
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual; abstract;
   end;
 
+  // tool: client - bridge
   TOnResultBridge = class(TOnResultBridge_Templet)
   public
     constructor Create; virtual;
     destructor Destroy; override;
   end;
 
+  // tool: client and service - free bridge
   TProgress_Bridge = class
   private
     procedure DoFree(Sender: TZNet_Progress);
@@ -181,6 +186,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
+  // tool: state bridge
   TStateParamBridge = class
   public
     OnNotifyC: TOnParamState_C;
@@ -194,6 +200,7 @@ type
     procedure DoStateResult(const State: Boolean);
   end;
 
+  // tool: Service - free bridge
   TCustomEventBridge = class
   private
     procedure DoFree(Sender: TZNet_Progress);
@@ -208,6 +215,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
+  // tool: Service - stream bridge
   TStreamEventBridge = class
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
@@ -232,6 +240,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
+  // tool: Service - console bridge
   TConsoleEventBridge = class
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
@@ -256,6 +265,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
+  // tool: p2pVM bridge
   TP2PVM_CloneConnectEventBridge = class
   private
     OnResultC: TOnP2PVM_CloneConnectEvent_C;
@@ -1127,7 +1137,7 @@ type
   private
     FOwnerFramework: TZNet;
   public
-    OnFree: TZNet_Progress_Free_Event;
+    OnFree: TZNet_Progress_Free_OnEvent;
     OnProgress_C: TZNet_Progress_OnEvent_C;
     OnProgress_M: TZNet_Progress_OnEvent_M;
     OnProgress_P: TZNet_Progress_OnEvent_P;
@@ -2502,8 +2512,8 @@ function CompareIPV6(const IP1, IP2: TIPV6): Boolean;
 function TranslateBindAddr(addr: SystemString): SystemString;
 procedure ExtractHostAddress(var Host: U_String; var Port: Word);
 
-procedure SyncMethod(t: TCore_Thread; Sync: Boolean; proc: TThreadMethod);
-procedure DoExecuteResult(c: TPeerIO; const QueuePtr: PQueueData; const AResultText: SystemString; AResultDF: TDFE);
+procedure SyncMethod(t: TCore_Thread; Sync: Boolean; OnProc: TThreadMethod);
+procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 {$ENDREGION 'api'}
 {$REGION 'ConstAndVariant'}
 
@@ -3212,121 +3222,121 @@ begin
     end;
 end;
 
-procedure SyncMethod(t: TCore_Thread; Sync: Boolean; proc: TThreadMethod);
+procedure SyncMethod(t: TCore_Thread; Sync: Boolean; OnProc: TThreadMethod);
 begin
   if Sync then
     begin
       try
-          TCore_Thread.Synchronize(t, proc);
+          TCore_Thread.Synchronize(t, OnProc);
       except
       end;
     end
   else
     begin
       try
-          proc();
+          OnProc();
       except
       end;
     end;
 end;
 
-procedure DoExecuteResult(c: TPeerIO; const QueuePtr: PQueueData; const AResultText: SystemString; AResultDF: TDFE);
+procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 var
-  aInData: TDFE;
+  InData: TDFE;
 begin
   if QueuePtr = nil then
       exit;
 
-  c.FReceiveResultRuning := True;
+  IO.FReceiveResultRuning := True;
 
   try
     if Assigned(QueuePtr^.OnConsoleMethod) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute console on result: %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute console on result: %s', QueuePtr^.Cmd);
         try
-            QueuePtr^.OnConsoleMethod(c, AResultText);
+            QueuePtr^.OnConsoleMethod(IO, Result_Text);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnConsoleParamMethod) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute console on param result: %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute console on param result: %s', QueuePtr^.Cmd);
         try
-            QueuePtr^.OnConsoleParamMethod(c, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, AResultText);
+            QueuePtr^.OnConsoleParamMethod(IO, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, Result_Text);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnConsoleProc) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute console on result(proc): %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute console on result(proc): %s', QueuePtr^.Cmd);
         try
-            QueuePtr^.OnConsoleProc(c, AResultText);
+            QueuePtr^.OnConsoleProc(IO, Result_Text);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnConsoleParamProc) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute console on param result(proc): %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute console on param result(proc): %s', QueuePtr^.Cmd);
         try
-            QueuePtr^.OnConsoleParamProc(c, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, AResultText);
+            QueuePtr^.OnConsoleParamProc(IO, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, Result_Text);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnStreamMethod) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute stream on result: %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute stream on result: %s', QueuePtr^.Cmd);
         try
-          AResultDF.Reader.index := 0;
-          QueuePtr^.OnStreamMethod(c, AResultDF);
+          Result_DF.Reader.index := 0;
+          QueuePtr^.OnStreamMethod(IO, Result_DF);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnStreamParamMethod) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute stream on param result: %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute stream on param result: %s', QueuePtr^.Cmd);
         try
-          AResultDF.Reader.index := 0;
-          aInData := TDFE.Create;
+          Result_DF.Reader.index := 0;
+          InData := TDFE.Create;
           QueuePtr^.StreamData.Position := 0;
-          aInData.DecodeFrom(QueuePtr^.StreamData, True);
-          QueuePtr^.OnStreamParamMethod(c, QueuePtr^.Param1, QueuePtr^.Param2, aInData, AResultDF);
-          DisposeObject(aInData);
+          InData.DecodeFrom(QueuePtr^.StreamData, True);
+          QueuePtr^.OnStreamParamMethod(IO, QueuePtr^.Param1, QueuePtr^.Param2, InData, Result_DF);
+          DisposeObject(InData);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnStreamProc) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute stream on result(proc): %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute stream on result(proc): %s', QueuePtr^.Cmd);
         try
-          AResultDF.Reader.index := 0;
-          QueuePtr^.OnStreamProc(c, AResultDF);
+          Result_DF.Reader.index := 0;
+          QueuePtr^.OnStreamProc(IO, Result_DF);
         except
         end;
       end;
     if Assigned(QueuePtr^.OnStreamParamProc) then
       begin
-        if not c.OwnerFramework.QuietMode then
-            c.PrintCommand('execute stream on result(parameter + proc): %s', QueuePtr^.Cmd);
+        if not IO.OwnerFramework.QuietMode then
+            IO.PrintCommand('execute stream on result(parameter + proc): %s', QueuePtr^.Cmd);
         try
-          AResultDF.Reader.index := 0;
-          aInData := TDFE.Create;
+          Result_DF.Reader.index := 0;
+          InData := TDFE.Create;
           QueuePtr^.StreamData.Position := 0;
-          aInData.DecodeFrom(QueuePtr^.StreamData, True);
-          QueuePtr^.OnStreamParamProc(c, QueuePtr^.Param1, QueuePtr^.Param2, aInData, AResultDF);
-          DisposeObject(aInData);
+          InData.DecodeFrom(QueuePtr^.StreamData, True);
+          QueuePtr^.OnStreamParamProc(IO, QueuePtr^.Param1, QueuePtr^.Param2, InData, Result_DF);
+          DisposeObject(InData);
         except
         end;
       end;
   except
   end;
-  c.FReceiveResultRuning := False;
+  IO.FReceiveResultRuning := False;
 end;
 
 procedure THPC_Stream.Run(Sender: TCompute);
@@ -4336,11 +4346,11 @@ begin
       exit;
   try
     MD5Name := umlStreamMD5String(stream_);
-    tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZServer_' + MD5Name.Text + '.tmp');
+    tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + '.tmp');
     i := 1;
     while umlFileExists(tmpFileName) do
       begin
-        tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZServer_' + MD5Name.Text + PFormat('(%d).tmp', [i]));
+        tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + PFormat('(%d).tmp', [i]));
         inc(i);
       end;
     Result := TSwapSpaceFileStream.Create(tmpFileName, fmCreate);
@@ -11299,14 +11309,14 @@ begin
       FServerState.Reset();
       if Result_.Reader.IsEnd then
         begin
-          Warning('protocol version upgrade zserver from https://github.com/PassByYou888/ZServer4D');
+          Warning('protocol version upgrade ZNet from https://github.com/PassByYou888/ZNet');
         end
       else
         begin
           FInitedTimeMD5 := Result_.Reader.ReadMD5();
           if Result_.Reader.IsEnd then
             begin
-              Warning('protocol version upgrade zserver from https://github.com/PassByYou888/ZServer4D');
+              Warning('protocol version upgrade ZNet from https://github.com/PassByYou888/ZNet');
             end
           else
             begin
