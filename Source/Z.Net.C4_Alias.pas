@@ -69,12 +69,12 @@ type
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
-    procedure SetAlias(Name_, Hash_: U_String); overload;
-    procedure SetAlias(Name_: U_String; Hash_: TMD5); overload;
-    procedure GetAlias_C(Names_: U_ArrayString; OnResult: TON_GetAliasC);
-    procedure GetAlias_M(Names_: U_ArrayString; OnResult: TON_GetAliasM);
-    procedure GetAlias_P(Names_: U_ArrayString; OnResult: TON_GetAliasP);
-    procedure RemoveAlias(Name_: U_String);
+    procedure SetAlias(alias_, Name_: U_String); overload;
+    procedure SetAlias(alias_: U_String; Hash_: TMD5); overload;
+    procedure GetAlias_C(arry: U_ArrayString; OnResult: TON_GetAliasC);
+    procedure GetAlias_M(arry: U_ArrayString; OnResult: TON_GetAliasM);
+    procedure GetAlias_P(arry: U_ArrayString; OnResult: TON_GetAliasP);
+    procedure RemoveAlias(alias_: U_String);
     procedure SearchAlias_C(Filter_: U_String; OnResult: TON_GetAliasC);
     procedure SearchAlias_M(Filter_: U_String; OnResult: TON_GetAliasM);
     procedure SearchAlias_P(Filter_: U_String; OnResult: TON_GetAliasP);
@@ -84,27 +84,28 @@ implementation
 
 procedure TC40_Alias_Service.cmd_SetAlias(Sender: TPeerIO; InData: TDFE);
 var
+  alias_, Name_: U_String;
   i: Integer;
-  N_, Hash_: U_String;
   HS: TZDB2_HashString;
 begin
+  alias_ := InData.R.ReadString;
+  Name_ := InData.R.ReadString;
+
   for i := 0 to Alias_DB.Count - 1 do
     begin
       HS := Alias_DB[i];
-      if N_.Same(HS.Data.GetDefaultValue('Alias', '')) then
+      if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
           HS.Remove;
     end;
 
-  N_ := InData.R.ReadString;
-  Hash_ := InData.R.ReadString;
   HS := Alias_DB.NewData();
-  HS.Data['Alias'] := N_;
-  HS.Data['Name'] := Hash_;
+  HS.Data['Alias'] := alias_;
+  HS.Data['Name'] := Name_;
   Alias_DB.Flush(False);
 end;
 
 procedure TC40_Alias_Service.cmd_GetAlias(Sender: TPeerIO; InData, OutData: TDFE);
-  function found_(N_: U_String): TZDB2_HashString;
+  function Do_found(alias_: U_String): TZDB2_HashString;
   var
     i: Integer;
     HS: TZDB2_HashString;
@@ -113,7 +114,7 @@ procedure TC40_Alias_Service.cmd_GetAlias(Sender: TPeerIO; InData, OutData: TDFE
     for i := 0 to Alias_DB.Count - 1 do
       begin
         HS := Alias_DB[i];
-        if N_.Same(HS.Data.GetDefaultValue('Alias', '')) then
+        if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
           begin
             Result := HS;
             exit;
@@ -126,7 +127,7 @@ var
 begin
   while InData.R.NotEnd do
     begin
-      tmp := found_(InData.R.ReadString);
+      tmp := Do_found(InData.R.ReadString);
       if tmp <> nil then
         begin
           OutData.WriteString(tmp.Data.GetDefaultValue('Alias', ''));
@@ -138,14 +139,14 @@ end;
 procedure TC40_Alias_Service.cmd_RemoveAlias(Sender: TPeerIO; InData: TDFE);
 var
   i: Integer;
-  N_: U_String;
+  alias_: U_String;
   HS: TZDB2_HashString;
 begin
-  N_ := InData.R.ReadString;
+  alias_ := InData.R.ReadString;
   for i := 0 to Alias_DB.Count - 1 do
     begin
       HS := Alias_DB[i];
-      if umlMultipleMatch(N_, HS.Data.GetDefaultValue('Alias', '')) then
+      if umlMultipleMatch(alias_, HS.Data.GetDefaultValue('Alias', '')) then
           HS.Remove;
     end;
   Alias_DB.Flush(False);
@@ -154,14 +155,14 @@ end;
 procedure TC40_Alias_Service.cmd_SearchAlias(Sender: TPeerIO; InData, OutData: TDFE);
 var
   i: Integer;
-  N_: U_String;
+  Filter_: U_String;
   HS: TZDB2_HashString;
 begin
-  N_ := InData.R.ReadString;
+  Filter_ := InData.R.ReadString;
   for i := 0 to Alias_DB.Count - 1 do
     begin
       HS := Alias_DB[i];
-      if umlSearchMatch(N_, HS.Data.GetDefaultValue('Alias', '')) then
+      if umlSearchMatch(Filter_, HS.Data.GetDefaultValue('Alias', '')) then
         begin
           OutData.WriteString(HS.Data.GetDefaultValue('Alias', ''));
           OutData.WriteString(HS.Data.GetDefaultValue('Name', ''));
@@ -303,23 +304,23 @@ begin
   inherited Progress;
 end;
 
-procedure TC40_Alias_Client.SetAlias(Name_, Hash_: U_String);
+procedure TC40_Alias_Client.SetAlias(alias_, Name_: U_String);
 var
   d: TDFE;
 begin
   d := TDFE.Create;
+  d.WriteString(alias_);
   d.WriteString(Name_);
-  d.WriteString(Hash_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('SetAlias', d);
   DisposeObject(d);
 end;
 
-procedure TC40_Alias_Client.SetAlias(Name_: U_String; Hash_: TMD5);
+procedure TC40_Alias_Client.SetAlias(alias_: U_String; Hash_: TMD5);
 begin
-  SetAlias(Name_, umlMD5ToStr(Hash_));
+  SetAlias(alias_, umlMD5ToStr(Hash_));
 end;
 
-procedure TC40_Alias_Client.GetAlias_C(Names_: U_ArrayString; OnResult: TON_GetAliasC);
+procedure TC40_Alias_Client.GetAlias_C(arry: U_ArrayString; OnResult: TON_GetAliasC);
 var
   tmp: TON_Temp_GetAliasC;
   d: TDFE;
@@ -329,14 +330,14 @@ begin
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
-  for i := low(Names_) to high(Names_) do
-      d.WriteString(Names_[i]);
+  for i := low(arry) to high(arry) do
+      d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_Alias_Client.GetAlias_M(Names_: U_ArrayString; OnResult: TON_GetAliasM);
+procedure TC40_Alias_Client.GetAlias_M(arry: U_ArrayString; OnResult: TON_GetAliasM);
 var
   tmp: TON_Temp_GetAliasC;
   d: TDFE;
@@ -346,14 +347,14 @@ begin
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
-  for i := low(Names_) to high(Names_) do
-      d.WriteString(Names_[i]);
+  for i := low(arry) to high(arry) do
+      d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_Alias_Client.GetAlias_P(Names_: U_ArrayString; OnResult: TON_GetAliasP);
+procedure TC40_Alias_Client.GetAlias_P(arry: U_ArrayString; OnResult: TON_GetAliasP);
 var
   tmp: TON_Temp_GetAliasC;
   d: TDFE;
@@ -363,19 +364,19 @@ begin
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
-  for i := low(Names_) to high(Names_) do
-      d.WriteString(Names_[i]);
+  for i := low(arry) to high(arry) do
+      d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_Alias_Client.RemoveAlias(Name_: U_String);
+procedure TC40_Alias_Client.RemoveAlias(alias_: U_String);
 var
   d: TDFE;
 begin
   d := TDFE.Create;
-  d.WriteString(Name_);
+  d.WriteString(alias_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveAlias', d);
   DisposeObject(d);
 end;
