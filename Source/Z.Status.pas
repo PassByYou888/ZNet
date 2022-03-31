@@ -418,9 +418,9 @@ begin
   if (StatusActive) and ((IDEOutput) or (ID = 2)) and (DebugHook <> 0) then
     begin
 {$IF Defined(WIN32) or Defined(WIN64)}
-      OutputDebugString(PWideChar('"' + Text_ + '"'));
+      OutputDebugString(PWideChar('"' + Text_.Text + '"'));
 {$ELSEIF not Defined(Linux)}
-      FMX.Types.Log.d('"' + Text_ + '"');
+      FMX.Types.Log.d('"' + Text_.Text + '"');
 {$ENDIF}
     end;
 {$ENDIF DELPHI}
