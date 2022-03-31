@@ -83,7 +83,11 @@ type
     procedure Automated_Config_NetDisk_Admin_Relevance;
     function Check_NetDisk_Admin_Relevance(Status_: Boolean): Boolean; overload;
     function Check_NetDisk_Admin_Relevance(): Boolean; overload;
+  protected
+    procedure cmd_Enabled_Automated_Admin_Program(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_Check_And_Recycle_Fragment_For_FS2(Sender: TPeerIO; InData: TDFE);
   public
+    Enabled_Automated_Admin_Program: Boolean;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
     procedure SafeCheck; override;
@@ -93,14 +97,21 @@ type
     procedure PostLog(const v: SystemString; const Args: array of const); overload;
     procedure PostLog(const v: SystemString; const Args: array of const; info2: SystemString); overload;
 
-    procedure Check_And_Recycle_Fragment_For_FS2(FS2_Cli: TC40_FS2_Client);
+    procedure Check_And_Recycle_Fragment_For_FS2(FS2_Cli: TC40_FS2_Client); overload;
+    procedure Check_And_Recycle_Fragment_For_FS2(); overload;
   end;
+
+{$REGION 'Define_And_Bridge'}
+{$ENDREGION 'Define_And_Bridge'}
 
   TC40_NetDisk_Admin_Tool_Client = class(TC40_Base_NoAuth_Client)
   public
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
+
+    procedure Enabled_Automated_Admin_Program(value_: Boolean);
+    procedure Check_And_Recycle_Fragment_For_FS2;
   end;
 
 implementation
@@ -156,7 +167,7 @@ begin
       L := TPascalStringList.Create;
       time_ := IncDay(umlNow, -7);
       for i := low(arry) to high(arry) do
-        if CompareDateTime(arry[i].FileTime, time_) < 0 then
+        if CompareDateTime(arry[i].FileTime, time_) <= 0 then
             L.Add(arry[i].FileName);
 
       if L.Count > 0 then
@@ -229,10 +240,9 @@ procedure TC40_NetDisk_Admin_Tool_Service.Do_Remove_Directory_Invalid_Frag(arry:
 var
   i: Integer;
 begin
-  for i := 0 to FFS2_Client_Pool.Count - 1 do
-    begin
-      FFS2_Client_Pool[i].FS2_RemoveFile(arry);
-    end;
+  if Enabled_Automated_Admin_Program then
+    for i := 0 to FFS2_Client_Pool.Count - 1 do
+        FFS2_Client_Pool[i].FS2_RemoveFile(arry);
   for i := low(arry) to high(arry) do
       PostLog('%s - remove cache and Invalid Frag "%s"', [ServiceInfo.ServiceTyp.Text, arry[i]]);
 end;
@@ -337,6 +347,16 @@ begin
   Result := Check_NetDisk_Admin_Relevance(True);
 end;
 
+procedure TC40_NetDisk_Admin_Tool_Service.cmd_Enabled_Automated_Admin_Program(Sender: TPeerIO; InData: TDFE);
+begin
+  Enabled_Automated_Admin_Program := InData.R.ReadBool;
+end;
+
+procedure TC40_NetDisk_Admin_Tool_Service.cmd_Check_And_Recycle_Fragment_For_FS2(Sender: TPeerIO; InData: TDFE);
+begin
+  Check_And_Recycle_Fragment_For_FS2;
+end;
+
 constructor TC40_NetDisk_Admin_Tool_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
@@ -344,6 +364,12 @@ begin
   ServiceInfo.OnlyInstance := False;
   UpdateToGlobalDispatch;
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
+
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Enabled_Automated_Admin_Program').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Enabled_Automated_Admin_Program;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Check_And_Recycle_Fragment_For_FS2').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Check_And_Recycle_Fragment_For_FS2;
+
+  Enabled_Automated_Admin_Program := EStrToBool(ParamList.GetDefaultValue('Enabled_Automated_Admin_Program', 'False'), False);
+
   FUserDB_Client := nil;
   FDirectory_Client := nil;
   FTEKeyValue_Client := nil;
@@ -358,8 +384,6 @@ begin
 end;
 
 procedure TC40_NetDisk_Admin_Tool_Service.SafeCheck;
-var
-  i: Integer;
 begin
   inherited SafeCheck;
   if not Check_NetDisk_Admin_Relevance(False) then
@@ -367,11 +391,8 @@ begin
       Automated_Config_NetDisk_Admin_Relevance();
       Check_NetDisk_Admin_Relevance();
     end
-  else
-    begin
-      for i := 0 to FS2_Client_Pool.Count - 1 do
-          Check_And_Recycle_Fragment_For_FS2(FS2_Client_Pool[i]);
-    end;
+  else if Enabled_Automated_Admin_Program then
+      Check_And_Recycle_Fragment_For_FS2;
 end;
 
 procedure TC40_NetDisk_Admin_Tool_Service.Progress;
@@ -414,6 +435,14 @@ begin
   FS2_Cli.FS2_PoolFragM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PoolFrag);
 end;
 
+procedure TC40_NetDisk_Admin_Tool_Service.Check_And_Recycle_Fragment_For_FS2;
+var
+  i: Integer;
+begin
+  for i := 0 to FS2_Client_Pool.Count - 1 do
+      Check_And_Recycle_Fragment_For_FS2(FS2_Client_Pool[i]);
+end;
+
 constructor TC40_NetDisk_Admin_Tool_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
@@ -427,6 +456,21 @@ end;
 procedure TC40_NetDisk_Admin_Tool_Client.Progress;
 begin
   inherited Progress;
+end;
+
+procedure TC40_NetDisk_Admin_Tool_Client.Enabled_Automated_Admin_Program(value_: Boolean);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteBool(value_);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Enabled_Automated_Admin_Program', d);
+  disposeObject(d);
+end;
+
+procedure TC40_NetDisk_Admin_Tool_Client.Check_And_Recycle_Fragment_For_FS2;
+begin
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Check_And_Recycle_Fragment_For_FS2');
 end;
 
 initialization
