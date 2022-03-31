@@ -1147,7 +1147,7 @@ begin
     begin
       d := TDFE.Create;
       Result_.R.ReadDataFrame(d);
-      L.Decode(d, True);
+      L.Decode(d);
     end
   else
     begin
@@ -1438,7 +1438,7 @@ begin
     begin
       d := TDFE.Create;
       Result_.R.ReadDataFrame(d);
-      L.Decode(d, True);
+      L.Decode(d);
     end
   else
     begin
