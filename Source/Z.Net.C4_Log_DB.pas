@@ -31,18 +31,30 @@ type
   TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_ZDB2_List_HashString>;
   TLog_DB_List = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TC40_ZDB2_List_HashString>;
 
+  TC40_Log_DB_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  public
+    Log_DB_Service: TC40_Log_DB_Service;
+    Sync_Log: Boolean;
+    constructor Create(Owner_: TPeerIO); override;
+    destructor Destroy; override;
+  end;
+
   TC40_Log_DB_Service = class(TC40_Base_NoAuth_Service)
+  protected
+    procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
   private
-    procedure cmd_PostLog(Sender: TPeerIO; InData: TDFE);
-    procedure cmd_QueryLog(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure cmd_QueryAndRemoveLog(Sender: TPeerIO; InData: TDFE);
-    procedure cmd_RemoveLog(Sender: TPeerIO; InData: TDFE);
-    procedure cmd_GetLogDB(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure cmd_CloseDB(Sender: TPeerIO; InData: TDFE);
-    procedure cmd_RemoveDB(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_PostLog(sender: TPeerIO; InData: TDFE);
+    procedure cmd_QueryLog(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_QueryAndRemoveLog(sender: TPeerIO; InData: TDFE);
+    procedure cmd_RemoveLog(sender: TPeerIO; InData: TDFE);
+    procedure cmd_GetLogDB(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_CloseDB(sender: TPeerIO; InData: TDFE);
+    procedure cmd_RemoveDB(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Enabled_LogMonitor(sender: TPeerIO; InData: TDFE);
   private
     WaitFreeList: TLog_DB_List;
-    procedure Do_Create_ZDB2_HashString(Sender: TZDB2_List_HashString; Obj: TZDB2_HashString);
+    procedure Do_Create_ZDB2_HashString(sender: TZDB2_List_HashString; Obj: TZDB2_HashString);
     procedure Do_DB_Pool_SafeCheck(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
     procedure Do_DB_Pool_Progress(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
   public
@@ -65,6 +77,8 @@ type
     function GetDB(const LogDB: SystemString): TC40_ZDB2_List_HashString;
     procedure PostLog(const LogDB, Log1_, Log2_: SystemString);
   end;
+
+{$REGION 'Client_Define_And_Bridge'}
 
   TLogData__ = record
   private
@@ -97,12 +111,12 @@ type
 
   TC40_Log_DB_Client = class;
 
-  TON_QueryLogC = procedure(Sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData);
-  TON_QueryLogM = procedure(Sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData) of object;
+  TON_QueryLogC = procedure(sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData);
+  TON_QueryLogM = procedure(sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData) of object;
 {$IFDEF FPC}
-  TON_QueryLogP = procedure(Sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData) is nested;
+  TON_QueryLogP = procedure(sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData) is nested;
 {$ELSE FPC}
-  TON_QueryLogP = reference to procedure(Sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData);
+  TON_QueryLogP = reference to procedure(sender: TC40_Log_DB_Client; LogDB: SystemString; arry: TArrayLogData);
 {$ENDIF FPC}
 
   TON_QueryLog = class(TOnResultBridge)
@@ -113,15 +127,15 @@ type
     OnResultM: TON_QueryLogM;
     OnResultP: TON_QueryLogP;
     constructor Create;
-    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetLogDBC = procedure(Sender: TC40_Log_DB_Client; arry: U_StringArray);
-  TON_GetLogDBM = procedure(Sender: TC40_Log_DB_Client; arry: U_StringArray) of object;
+  TON_GetLogDBC = procedure(sender: TC40_Log_DB_Client; arry: U_StringArray);
+  TON_GetLogDBM = procedure(sender: TC40_Log_DB_Client; arry: U_StringArray) of object;
 {$IFDEF FPC}
-  TON_GetLogDBP = procedure(Sender: TC40_Log_DB_Client; arry: U_StringArray) is nested;
+  TON_GetLogDBP = procedure(sender: TC40_Log_DB_Client; arry: U_StringArray) is nested;
 {$ELSE FPC}
-  TON_GetLogDBP = reference to procedure(Sender: TC40_Log_DB_Client; arry: U_StringArray);
+  TON_GetLogDBP = reference to procedure(sender: TC40_Log_DB_Client; arry: U_StringArray);
 {$ENDIF FPC}
 
   TON_GetLogDB = class(TOnResultBridge)
@@ -131,11 +145,19 @@ type
     OnResultM: TON_GetLogDBM;
     OnResultP: TON_GetLogDBP;
     constructor Create;
-    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
+  end;
+{$ENDREGION 'Client_Define_And_Bridge'}
+
+  I_ON_C40_Log_DB_Client_Interface = interface
+    procedure Do_Sync_Log(LogDB, Log1_, Log2_: SystemString);
   end;
 
   TC40_Log_DB_Client = class(TC40_Base_NoAuth_Client)
+  private
+    procedure cmd_Log(sender: TPeerIO; InData: TDFE);
   public
+    ON_C40_Log_DB_Client_Interface: I_ON_C40_Log_DB_Client_Interface;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure PostLog(LogDB, Log1_, Log2_: SystemString); overload;
@@ -154,6 +176,7 @@ type
     procedure GetLogDBP(OnResult: TON_GetLogDBP);
     procedure CloseDB(LogDB: SystemString);
     procedure RemoveDB(LogDB: SystemString);
+    procedure Enabled_LogMonitor(Sync_Log: Boolean);
   end;
 
 function MakeNowDateStr(): SystemString;
@@ -214,17 +237,54 @@ begin
       fastSort_(L_, 0, length(L_) - 1);
 end;
 
-procedure TC40_Log_DB_Service.cmd_PostLog(Sender: TPeerIO; InData: TDFE);
+constructor TC40_Log_DB_Service_RecvTunnel_NoAuth.Create(Owner_: TPeerIO);
+begin
+  inherited Create(Owner_);
+  Log_DB_Service := nil;
+  Sync_Log := False;
+end;
+
+destructor TC40_Log_DB_Service_RecvTunnel_NoAuth.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TC40_Log_DB_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+var
+  IO_Def: TC40_Log_DB_Service_RecvTunnel_NoAuth;
+begin
+  inherited DoLinkSuccess_Event(sender, UserDefineIO);
+  IO_Def := TC40_Log_DB_Service_RecvTunnel_NoAuth(UserDefineIO);
+  IO_Def.Log_DB_Service := self;
+end;
+
+procedure TC40_Log_DB_Service.DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+begin
+  inherited DoUserOut_Event(sender, UserDefineIO);
+end;
+
+procedure TC40_Log_DB_Service.cmd_PostLog(sender: TPeerIO; InData: TDFE);
 var
   LogDB, Log1_, Log2_: SystemString;
+  Arry_: TIO_Array;
+  ID_: Cardinal;
+  IO_Def: TC40_Log_DB_Service_RecvTunnel_NoAuth;
 begin
   LogDB := InData.R.ReadString;
   Log1_ := InData.R.ReadString;
   Log2_ := InData.R.ReadString;
   PostLog(LogDB, Log1_, Log2_);
+
+  DTNoAuthService.RecvTunnel.GetIO_Array(Arry_);
+  for ID_ in Arry_ do
+    begin
+      IO_Def := DTNoAuthService.RecvTunnel[ID_].UserDefine as TC40_Log_DB_Service_RecvTunnel_NoAuth;
+      if IO_Def.LinkOk and IO_Def.Sync_Log then
+          IO_Def.SendTunnel.Owner.SendDirectStreamCmd('Log', InData);
+    end;
 end;
 
-procedure TC40_Log_DB_Service.cmd_QueryLog(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_Log_DB_Service.cmd_QueryLog(sender: TPeerIO; InData, OutData: TDFE);
 var
   LogDB: SystemString;
   bTime, eTime: TDateTime;
@@ -267,7 +327,7 @@ begin
     end;
 end;
 
-procedure TC40_Log_DB_Service.cmd_QueryAndRemoveLog(Sender: TPeerIO; InData: TDFE);
+procedure TC40_Log_DB_Service.cmd_QueryAndRemoveLog(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
   bTime, eTime: TDateTime;
@@ -310,7 +370,7 @@ begin
     end;
 end;
 
-procedure TC40_Log_DB_Service.cmd_RemoveLog(Sender: TPeerIO; InData: TDFE);
+procedure TC40_Log_DB_Service.cmd_RemoveLog(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
   arry: TDFArrayInteger;
@@ -340,7 +400,7 @@ begin
   disposeObject(L);
 end;
 
-procedure TC40_Log_DB_Service.cmd_GetLogDB(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_Log_DB_Service.cmd_GetLogDB(sender: TPeerIO; InData, OutData: TDFE);
 var
   fArry: U_StringArray;
   fn: U_SystemString;
@@ -352,7 +412,7 @@ begin
   SetLength(fArry, 0);
 end;
 
-procedure TC40_Log_DB_Service.cmd_CloseDB(Sender: TPeerIO; InData: TDFE);
+procedure TC40_Log_DB_Service.cmd_CloseDB(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
 begin
@@ -360,7 +420,7 @@ begin
   DB_Pool.Delete(LogDB);
 end;
 
-procedure TC40_Log_DB_Service.cmd_RemoveDB(Sender: TPeerIO; InData: TDFE);
+procedure TC40_Log_DB_Service.cmd_RemoveDB(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
   fn: U_String;
@@ -372,7 +432,17 @@ begin
       umlDeleteFile(fn);
 end;
 
-procedure TC40_Log_DB_Service.Do_Create_ZDB2_HashString(Sender: TZDB2_List_HashString; Obj: TZDB2_HashString);
+procedure TC40_Log_DB_Service.cmd_Enabled_LogMonitor(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_Log_DB_Service_RecvTunnel_NoAuth;
+begin
+  IO_Def := DTNoAuthService.GetUserDefineRecvTunnel(sender) as TC40_Log_DB_Service_RecvTunnel_NoAuth;
+  if not IO_Def.LinkOk then
+      exit;
+  IO_Def.Sync_Log := InData.R.ReadBool;
+end;
+
+procedure TC40_Log_DB_Service.Do_Create_ZDB2_HashString(sender: TZDB2_List_HashString; Obj: TZDB2_HashString);
 begin
 
 end;
@@ -392,6 +462,9 @@ end;
 constructor TC40_Log_DB_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
+  // custom
+  DTNoAuth.RecvTunnel.PeerClientUserDefineClass := TC40_Log_DB_Service_RecvTunnel_NoAuth;
+
   DTNoAuthService.RecvTunnel.SendDataCompressed := true;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('PostLog').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_PostLog;
   DTNoAuthService.RecvTunnel.RegisterStream('QueryLog').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_QueryLog;
@@ -400,6 +473,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('GetLogDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetLogDB;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CloseDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CloseDB;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveDB;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Enabled_LogMonitor').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Enabled_LogMonitor;
   Service.QuietMode := true;
   // is only instance
   ServiceInfo.OnlyInstance := true;
@@ -634,7 +708,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_QueryLog.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+procedure TON_QueryLog.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   arry: TArrayLogData;
   i: Integer;
@@ -676,7 +750,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_GetLogDB.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+procedure TON_GetLogDB.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   arry: U_StringArray;
   i: Integer;
@@ -698,14 +772,28 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
+procedure TC40_Log_DB_Client.cmd_Log(sender: TPeerIO; InData: TDFE);
+var
+  LogDB, Log1_, Log2_: SystemString;
+begin
+  LogDB := InData.R.ReadString;
+  Log1_ := InData.R.ReadString;
+  Log2_ := InData.R.ReadString;
+  if Assigned(ON_C40_Log_DB_Client_Interface) then
+      ON_C40_Log_DB_Client_Interface.Do_Sync_Log(LogDB, Log1_, Log2_);
+end;
+
 constructor TC40_Log_DB_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
   Client.QuietMode := true;
+  DTNoAuthClient.RecvTunnel.RegisterDirectStream('Log').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Log;
+  ON_C40_Log_DB_Client_Interface := nil;
 end;
 
 destructor TC40_Log_DB_Client.Destroy;
 begin
+  ON_C40_Log_DB_Client_Interface := nil;
   inherited Destroy;
 end;
 
@@ -894,6 +982,16 @@ begin
   d := TDFE.Create;
   d.WriteString(LogDB);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveDB', d);
+  disposeObject(d);
+end;
+
+procedure TC40_Log_DB_Client.Enabled_LogMonitor(Sync_Log: Boolean);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteBool(Sync_Log);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Enabled_LogMonitor', d);
   disposeObject(d);
 end;
 
