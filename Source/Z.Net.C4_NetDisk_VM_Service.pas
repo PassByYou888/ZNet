@@ -736,18 +736,35 @@ end;
 procedure TGet_NetDisk_File_Frag_Info_Bridge.Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  i: Integer;
+  test_passed: Integer;
   d: TDFE;
 begin
   if CheckIO then
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
-      IO.OutDataFrame.WriteBool(Successed);
-      d := TDFE.Create;
-      L.Encode(d);
-      IO.OutDataFrame.WriteDataFrame(d);
-      IO.ContinueResultSend;
-      DisposeObject(d);
-      VM_Service.PostLog('%s Get_NetDisk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
+
+      test_passed := 0;
+      for i := 0 to L.count - 1 do
+        if Z.Net.C4.C40_ClientPool.FindAliasOrHash(L[i]^.FS_AliasOrHash, True) <> nil then
+            inc(test_passed);
+
+      if test_passed >= L.count then
+        begin
+          IO.OutDataFrame.WriteBool(Successed);
+          d := TDFE.Create;
+          L.Encode(d);
+          IO.OutDataFrame.WriteDataFrame(d);
+          IO.ContinueResultSend;
+          DisposeObject(d);
+          VM_Service.PostLog('%s Get_NetDisk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
+        end
+      else
+        begin
+          IO.OutDataFrame.WriteBool(False);
+          IO.OutDataFrame.WriteString('Get_NetDisk_File_Frag_Info error: no found FS2 AliasOrHash.');
+          IO.ContinueResultSend;
+        end;
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -925,18 +942,35 @@ end;
 procedure TGet_Share_Disk_File_Frag_Info_Bridge.Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  i: Integer;
+  test_passed: Integer;
   d: TDFE;
 begin
   if CheckIO then
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
-      IO.OutDataFrame.WriteBool(Successed);
-      d := TDFE.Create;
-      L.Encode(d);
-      IO.OutDataFrame.WriteDataFrame(d);
-      IO.ContinueResultSend;
-      DisposeObject(d);
-      VM_Service.PostLog('%s Get_Share_Disk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
+
+      test_passed := 0;
+      for i := 0 to L.count - 1 do
+        if Z.Net.C4.C40_ClientPool.FindAliasOrHash(L[i]^.FS_AliasOrHash, True) <> nil then
+            inc(test_passed);
+
+      if test_passed >= L.count then
+        begin
+          IO.OutDataFrame.WriteBool(Successed);
+          d := TDFE.Create;
+          L.Encode(d);
+          IO.OutDataFrame.WriteDataFrame(d);
+          IO.ContinueResultSend;
+          DisposeObject(d);
+          VM_Service.PostLog('%s Get_Share_Disk_File_Frag_Info.', [IO_Def.PrimaryIdentifier.Text]);
+        end
+      else
+        begin
+          IO.OutDataFrame.WriteBool(False);
+          IO.OutDataFrame.WriteString('Get_Share_Disk_File_Frag_Info error: no found FS2 AliasOrHash.');
+          IO.ContinueResultSend;
+        end;
     end;
   DelayFreeObj(1.0, self);
 end;
