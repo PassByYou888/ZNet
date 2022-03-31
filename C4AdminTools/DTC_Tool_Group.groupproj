@@ -30,7 +30,7 @@
         <Projects Include="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="Delphi-DTC40_TEKeyValue_Templet\DTC40_TEKeyValue_Templet.dproj">
+        <Projects Include="Delphi-DTC40_TEKeyValue_AdminTool\DTC40_TEKeyValue_Templet.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -123,13 +123,13 @@
         <MSBuild Projects="Delphi-DTC40_FS2.0_AdminTool\DTC40_FS2_AdminTool.dproj" Targets="Make"/>
     </Target>
     <Target Name="DTC40_TEKeyValue_Templet">
-        <MSBuild Projects="Delphi-DTC40_TEKeyValue_Templet\DTC40_TEKeyValue_Templet.dproj"/>
+        <MSBuild Projects="Delphi-DTC40_TEKeyValue_AdminTool\DTC40_TEKeyValue_Templet.dproj"/>
     </Target>
     <Target Name="DTC40_TEKeyValue_Templet:Clean">
-        <MSBuild Projects="Delphi-DTC40_TEKeyValue_Templet\DTC40_TEKeyValue_Templet.dproj" Targets="Clean"/>
+        <MSBuild Projects="Delphi-DTC40_TEKeyValue_AdminTool\DTC40_TEKeyValue_Templet.dproj" Targets="Clean"/>
     </Target>
     <Target Name="DTC40_TEKeyValue_Templet:Make">
-        <MSBuild Projects="Delphi-DTC40_TEKeyValue_Templet\DTC40_TEKeyValue_Templet.dproj" Targets="Make"/>
+        <MSBuild Projects="Delphi-DTC40_TEKeyValue_AdminTool\DTC40_TEKeyValue_Templet.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
         <CallTarget Targets="C40AppTemplet;C4ConsoleTemplet;DTC40_AdminTool_Templet;DTC40_UserDB_AdminTool;DTC40_FS_AdminTool;DTC40_Log_AdminTool;DTC40_Var_AdminTool;DTC40_Alias_AdminTool;DTC40_FS2_AdminTool;DTC40_TEKeyValue_Templet"/>

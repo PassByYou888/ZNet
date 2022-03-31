@@ -47,7 +47,7 @@ type
     Panel1: TPanel;
     UpdateMemoTo_TE_Button: TButton;
     TE_Name_Edit: TLabeledEdit;
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure netTimerTimer(Sender: TObject);
     procedure BuildDependNetButtonClick(Sender: TObject);
     procedure queryButtonClick(Sender: TObject);
@@ -104,7 +104,7 @@ begin
   inherited;
 end;
 
-procedure TDTC40_TEKeyValue_Templet_Form.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TDTC40_TEKeyValue_Templet_Form.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   WriteConfig;
   Action := caFree;
