@@ -1,0 +1,312 @@
+object DTC40_TEKeyValue_AdminTool_Form: TDTC40_TEKeyValue_AdminTool_Form
+  Left = 354
+  Height = 497
+  Top = 118
+  Width = 1069
+  Caption = 'C40 TEKeyValue Admin tool.'
+  ClientHeight = 497
+  ClientWidth = 1069
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnClose = FormClose
+  LCLVersion = '2.0.12.0'
+  object _B_Splitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 8
+    Top = 339
+    Width = 1069
+    Align = alBottom
+    AutoSnap = False
+    Color = clBlue
+    ParentColor = False
+    ResizeAnchor = akBottom
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 150
+    Top = 347
+    Width = 1069
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentDoubleBuffered = False
+    ScrollBars = ssVertical
+    TabOrder = 0
+    WordWrap = False
+  end
+  object TopBarPanel: TPanel
+    Left = 0
+    Height = 31
+    Top = 0
+    Width = 1069
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 31
+    ClientWidth = 1069
+    TabOrder = 1
+    object JoinHostEdit: TLabeledEdit
+      Left = 56
+      Height = 21
+      Top = 5
+      Width = 105
+      EditLabel.Height = 13
+      EditLabel.Width = 44
+      EditLabel.Caption = 'Join Host'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 0
+    end
+    object JoinPortEdit: TLabeledEdit
+      Left = 190
+      Height = 21
+      Top = 5
+      Width = 49
+      EditLabel.Height = 13
+      EditLabel.Width = 20
+      EditLabel.Caption = 'Port'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 1
+    end
+    object DependEdit: TLabeledEdit
+      Left = 284
+      Height = 21
+      Top = 5
+      Width = 147
+      EditLabel.Height = 13
+      EditLabel.Width = 37
+      EditLabel.Caption = 'Depend'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 2
+    end
+    object BuildDependNetButton: TButton
+      Left = 935
+      Height = 25
+      Top = 2
+      Width = 76
+      Anchors = [akTop, akRight]
+      Caption = 'Build Tunnel'
+      OnClick = BuildDependNetButtonClick
+      TabOrder = 6
+    end
+    object resetDependButton: TButton
+      Left = 1017
+      Height = 25
+      Top = 2
+      Width = 42
+      Anchors = [akTop, akRight]
+      Caption = 'Reset'
+      OnClick = resetDependButtonClick
+      TabOrder = 7
+    end
+    object serviceComboBox: TComboBox
+      Left = 528
+      Height = 21
+      Top = 4
+      Width = 236
+      Anchors = [akTop, akLeft, akRight]
+      ItemHeight = 13
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object queryButton: TButton
+      Left = 437
+      Height = 25
+      Top = 2
+      Width = 85
+      Caption = 'query to ->'
+      OnClick = queryButtonClick
+      TabOrder = 3
+    end
+    object DTC4PasswdEdit: TLabeledEdit
+      Left = 825
+      Height = 21
+      Top = 4
+      Width = 104
+      Anchors = [akTop, akRight]
+      EchoMode = emPassword
+      EditLabel.Height = 13
+      EditLabel.Width = 52
+      EditLabel.Caption = 'C4 Passwd'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      PasswordChar = '*'
+      TabOrder = 5
+    end
+  end
+  object cliPanel: TPanel
+    Left = 0
+    Height = 308
+    Top = 31
+    Width = 1069
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 308
+    ClientWidth = 1069
+    TabOrder = 2
+    object lpLSplitter: TSplitter
+      Left = 326
+      Height = 308
+      Top = 0
+      Width = 8
+      AutoSnap = False
+      Color = clBlue
+      MinSize = 250
+      ParentColor = False
+    end
+    object leftPanel: TPanel
+      Left = 0
+      Height = 308
+      Top = 0
+      Width = 326
+      Align = alLeft
+      BevelOuter = bvNone
+      ClientHeight = 308
+      ClientWidth = 326
+      TabOrder = 0
+      object TE_ListView: TListView
+        Left = 0
+        Height = 275
+        Top = 33
+        Width = 326
+        Align = alClient
+        BorderStyle = bsNone
+        Columns = <        
+          item
+            AutoSize = True
+            Caption = 'Text Engine'
+            Width = 84
+          end>
+        HideSelection = False
+        MultiSelect = True
+        ParentColor = True
+        ReadOnly = True
+        RowSelect = True
+        ShowColumnHeaders = False
+        TabOrder = 0
+        ViewStyle = vsReport
+        OnCreateItemClass = TE_ListViewCreateItemClass
+        OnSelectItem = TE_ListViewSelectItem
+      end
+      object TE_L_ToolBarPanel: TPanel
+        Left = 0
+        Height = 33
+        Top = 0
+        Width = 326
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 33
+        ClientWidth = 326
+        TabOrder = 1
+        object search_TE_Button: TButton
+          Left = 260
+          Height = 25
+          Top = 4
+          Width = 54
+          Anchors = [akTop, akRight]
+          Caption = 'Serach'
+          OnClick = search_TE_ButtonClick
+          TabOrder = 0
+        end
+        object SearchEdit: TLabeledEdit
+          Left = 56
+          Height = 21
+          Top = 6
+          Width = 120
+          Anchors = [akTop, akLeft, akRight]
+          EditLabel.Height = 13
+          EditLabel.Width = 24
+          EditLabel.Caption = 'text:'
+          EditLabel.ParentColor = False
+          LabelPosition = lpLeft
+          TabOrder = 1
+        end
+        object NumEdit: TLabeledEdit
+          Left = 214
+          Height = 21
+          Top = 6
+          Width = 40
+          Anchors = [akTop, akRight]
+          EditLabel.Height = 13
+          EditLabel.Width = 25
+          EditLabel.Caption = 'Num:'
+          EditLabel.ParentColor = False
+          LabelPosition = lpLeft
+          TabOrder = 2
+          Text = '5000'
+        end
+      end
+    end
+    object rCliPanel: TPanel
+      Left = 334
+      Height = 308
+      Top = 0
+      Width = 735
+      Align = alClient
+      BevelOuter = bvNone
+      ClientHeight = 308
+      ClientWidth = 735
+      TabOrder = 1
+      object TE_Memo: TMemo
+        Left = 0
+        Height = 275
+        Top = 33
+        Width = 735
+        Align = alClient
+        BorderStyle = bsNone
+        Font.CharSet = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -13
+        Font.Name = 'Consolas'
+        ParentColor = True
+        ParentFont = False
+        ScrollBars = ssBoth
+        TabOrder = 0
+        WordWrap = False
+      end
+      object Panel1: TPanel
+        Left = 0
+        Height = 33
+        Top = 0
+        Width = 735
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 33
+        ClientWidth = 735
+        TabOrder = 1
+        object UpdateMemoTo_TE_Button: TButton
+          Left = 182
+          Height = 25
+          Top = 4
+          Width = 69
+          Anchors = [akTop, akRight]
+          Caption = 'Update'
+          OnClick = UpdateMemoTo_TE_ButtonClick
+          TabOrder = 0
+        end
+        object TE_Name_Edit: TLabeledEdit
+          Left = 56
+          Height = 21
+          Top = 6
+          Width = 120
+          EditLabel.Height = 13
+          EditLabel.Width = 46
+          EditLabel.Caption = 'TE Name:'
+          EditLabel.ParentColor = False
+          LabelPosition = lpLeft
+          TabOrder = 1
+        end
+      end
+    end
+  end
+  object netTimer: TTimer
+    Interval = 10
+    OnTimer = netTimerTimer
+    Left = 74
+    Top = 242
+  end
+end
