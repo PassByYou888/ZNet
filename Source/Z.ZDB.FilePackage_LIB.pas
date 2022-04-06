@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB.FilePackage_LIB;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

@@ -35,7 +35,7 @@ type
       OnResultC: TON_Usr_NewLoginNameC;
       OnResultM: TON_Usr_NewLoginNameM;
       OnResultP: TON_Usr_NewLoginNameP;
-      constructor Create; override;
+      constructor Create;
       procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
     end;
 
@@ -53,7 +53,7 @@ type
       OnResultC: TON_Usr_GetAliasC;
       OnResultM: TON_Usr_GetAliasM;
       OnResultP: TON_Usr_GetAliasP;
-      constructor Create; override;
+      constructor Create;
       procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
     end;
 
@@ -71,7 +71,7 @@ type
       OnResultC: TON_Usr_GetMyFriendC;
       OnResultM: TON_Usr_GetMyFriendM;
       OnResultP: TON_Usr_GetMyFriendP;
-      constructor Create; override;
+      constructor Create;
       procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
     end;
   private

@@ -57,9 +57,9 @@ begin
   Z.Net.C4.C40_ClientPool.WaitConnectedDoneP('RandSeed', procedure(States_: TC40_Custom_ClientPool_Wait_States)
     var
       i: Integer;
-      L: TListCardinal;
+      L: TUInt32List;
     begin
-      L := TListCardinal.Create;
+      L := TUInt32List.Create;
       for i := 0 to 100 do
           GetRandSeed_Client.MakeSeed_P('my_group', 1000, 9999,
           procedure(sender: TC40_RandSeed_Client; Seed_: UInt32)

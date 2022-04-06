@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.C4_PascalRewrite_Client;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

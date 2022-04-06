@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB.LocalManager;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -158,7 +158,7 @@ type
     FQueryPipelineList: TCore_ListForObj;
     FTaskSeed: Cardinal;
     FCadencerEng: TCadencer;
-    FProgressPost: TNProgressPost;
+    FProgressPost: TN_Progress_Tool;
     FPipelineClass: TZDBPipelineClass;
     FNotifyIntf: IZDBLocalManagerNotify;
   protected
@@ -171,11 +171,11 @@ type
   protected
     procedure DoQueryFragmentData(pipe: TZDBPipeline; FragmentSour: TMS64); virtual;
     procedure DoQueryDone(pipe: TZDBPipeline); virtual;
-    procedure DelayFreePipe(Sender: TNPostExecute); virtual;
+    procedure DelayFreePipe(Sender: TN_Post_Execute); virtual;
     procedure DoQueryCopy(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
     procedure DoCopyDone(dPipe: TZDBPipeline);
     procedure DoCompressDone(dPipe: TZDBPipeline);
-    procedure DelayReplaceDB(Sender: TNPostExecute);
+    procedure DelayReplaceDB(Sender: TN_Post_Execute);
   public
     constructor Create;
     destructor Destroy; override;
@@ -191,7 +191,7 @@ type
     property RootPath: SystemString read FRootPath write SetRootPath;
 
     procedure Progress; virtual;
-    property ProgressPost: TNProgressPost read FProgressPost;
+    property ProgressPost: TN_Progress_Tool read FProgressPost;
 
     // local operation
     function InitDB(dataBaseName_: SystemString): TZDBLMStore; overload;
@@ -1200,7 +1200,7 @@ begin
       Data1 := pipe;
 end;
 
-procedure TZDBLocalManager.DelayFreePipe(Sender: TNPostExecute);
+procedure TZDBLocalManager.DelayFreePipe(Sender: TN_Post_Execute);
 var
   i: Integer;
   sour, pl: TZDBPipeline;
@@ -1275,7 +1275,7 @@ begin
     end;
 end;
 
-procedure TZDBLocalManager.DelayReplaceDB(Sender: TNPostExecute);
+procedure TZDBLocalManager.DelayReplaceDB(Sender: TN_Post_Execute);
 var
   SourceDatabaseName_: SystemString;
   replaceN: SystemString;
@@ -1348,7 +1348,7 @@ begin
   FTaskSeed := 1;
   FCadencerEng := TCadencer.Create;
   FCadencerEng.ProgressInterface := Self;
-  FProgressPost := TNProgressPost.Create;
+  FProgressPost := TN_Progress_Tool.Create;
   FPipelineClass := TZDBPipeline;
   FNotifyIntf := nil;
 end;

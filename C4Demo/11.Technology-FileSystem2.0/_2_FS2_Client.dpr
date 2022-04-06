@@ -115,7 +115,7 @@ begin
 
                       // FS2_PoolFrag方法可以实现对FS2.0的大规模远程遍历，对FS2.0的备份和同步，提供基础遍历支持功能
                       // 注意：FS2_PoolFrag的遍历机制必须分批进行
-                      GetMyFS_Client.FS2_PoolFragP(0, 100, procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array)
+                      GetMyFS_Client.FS2_PoolFragP(procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array)
                         var
                           i: integer;
                         begin

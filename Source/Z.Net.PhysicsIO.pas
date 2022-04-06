@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.PhysicsIO;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

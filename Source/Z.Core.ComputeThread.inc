@@ -1,4 +1,7 @@
 type
+  PComputeDispatchData = ^TComputeDispatch;
+  TCompute_Dispatch_Queue_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PComputeDispatchData>;
+
   TComputeDispatch = record
     OnRun_C: TRunWithThread_C;
     OnRun_M: TRunWithThread_M;
@@ -11,14 +14,15 @@ type
     OnDone_P: TRunWithThread_P;
     UserData: Pointer;
     UserObject: TCore_Object;
+    IsRuning_, IsExit_: PBoolean;
+    // internal
+    IsPicked__: PBoolean;
+    Pool_Queue_Ptr__: TCompute_Dispatch_Queue_Pool.PQueueStruct;
     procedure Init;
-    procedure AssignTo(th: TCompute);
+    procedure AssignTo(Th: TCompute);
   end;
 
-  PComputeDispatchData = ^TComputeDispatch;
-
-  TCoreComputeThreadPool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TCompute>;
-  TComputeDispatchPool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PComputeDispatchData>;
+  TCompute_Dispatch_Order = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TComputeDispatch>;
 
   TParallelOverflow = record
   public
@@ -29,14 +33,16 @@ type
   end;
 
 var
-  CoreThreadPool: TCoreComputeThreadPool;
-  ComputeDispatchCritical: TCritical;
-  ComputeThreadTaskRunning: TAtomInteger;
-  ParallelGranularity: Integer;
-  MaxActivtedParallel: Integer;
-  ParallelOverflow: TParallelOverflow;
-  ComputeDispatchPool: TComputeDispatchPool;
-  IdleComputeThreadSum: TAtomInt;
+  Core_Dispatch_Order__: TCompute_Dispatch_Order;
+  Core_Dispatch_Order_Activted__, Core_Dispatch_Order_IsExit__: Boolean;
+  Core_Thread_Pool__: TCoreCompute_Thread_Pool;
+  Compute_Dispatch_Critical__: TCritical;
+  Compute_Thread_Task_Running__: TAtomInt;
+  Parallel_Granularity__: Integer;
+  Max_Activted_Parallel__: Integer;
+  Parallel_Overflow__: TParallelOverflow;
+  Compute_Dispatch_Queue_Pool__: TCompute_Dispatch_Queue_Pool;
+  IDLE_Compute_Thread_Sum: TAtomInt;
 
 procedure TComputeDispatch.Init;
 begin
@@ -51,21 +57,28 @@ begin
   OnDone_P := nil;
   UserData := nil;
   UserObject := nil;
+  IsRuning_ := nil;
+  IsExit_ := nil;
+  // internal
+  IsPicked__ := nil;
+  Pool_Queue_Ptr__ := nil;
 end;
 
-procedure TComputeDispatch.AssignTo(th: TCompute);
+procedure TComputeDispatch.AssignTo(Th: TCompute);
 begin
-  th.OnRun_C := OnRun_C;
-  th.OnRun_M := OnRun_M;
-  th.OnRun_P := OnRun_P;
-  th.OnRun_C_NP := OnRun_C_NP;
-  th.OnRun_M_NP := OnRun_M_NP;
-  th.OnRun_P_NP := OnRun_P_NP;
-  th.OnDone_C := OnDone_C;
-  th.OnDone_M := OnDone_M;
-  th.OnDone_P := OnDone_P;
-  th.UserData := UserData;
-  th.UserObject := UserObject;
+  Th.OnRun_C := OnRun_C;
+  Th.OnRun_M := OnRun_M;
+  Th.OnRun_P := OnRun_P;
+  Th.OnRun_C_NP := OnRun_C_NP;
+  Th.OnRun_M_NP := OnRun_M_NP;
+  Th.OnRun_P_NP := OnRun_P_NP;
+  Th.OnDone_C := OnDone_C;
+  Th.OnDone_M := OnDone_M;
+  Th.OnDone_P := OnDone_P;
+  Th.UserData := UserData;
+  Th.UserObject := UserObject;
+  Th.IsRuning := IsRuning_;
+  Th.IsExit := IsExit_;
 end;
 
 procedure TParallelOverflow.Acquire;
@@ -82,103 +95,199 @@ end;
 
 function TParallelOverflow.Busy(): Boolean;
 begin
-  Result := (MaxActivtedParallel > 0) and (ActivtedParallel >= MaxActivtedParallel);
+  Result := (Max_Activted_Parallel__ > 0) and (ActivtedParallel >= Max_Activted_Parallel__);
 end;
 
-function PickOrCreateThread(): TCompute;
+function Pick_Or_Create_Compute_Thread(): TCompute;
 begin
   Result := TCompute.Create;
-  CoreThreadPool.Add(Result);
+  Result.Thread_Pool_Queue_Data_Ptr := Core_Thread_Pool__.Add(Result);
 end;
 
 procedure PostComputeDispatchData(var Data: TComputeDispatch);
-var
-  tk: TTimeTick;
-  done: Boolean;
-  th: TCompute;
 begin
-  // check for idle thread, and again run.
-  if IdleComputeThreadSum.V > 0 then
+  Core_Dispatch_Order__.Push(Data);
+end;
+
+function Max_Thread_Supported: Integer;
+begin
+  Result := Parallel_Granularity__ * 10;
+end;
+
+type
+  TCore_Dispatch_Order_Thread = class(TCore_Thread)
+  protected
+    procedure Execute; override;
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+procedure TCore_Dispatch_Order_Thread.Execute;
+  procedure Do_Pick(var Data_: TComputeDispatch);
+  var
+    Tick: TTimeTick;
+    IsPicked_: Boolean;
+    Th: TCompute;
+  begin
+    // check for idle thread, and again run.
+    while (IDLE_Compute_Thread_Sum.V > 0) or (Compute_Thread_Task_Running__.V > Max_Thread_Supported) do
+      begin
+        // init atom
+        IsPicked_ := False;
+        Compute_Dispatch_Critical__.Acquire;
+        Data_.IsPicked__ := @IsPicked_;
+        Data_.Pool_Queue_Ptr__ := Compute_Dispatch_Queue_Pool__.Add(@Data_);
+        Tick := GetTimeTick();
+        Compute_Dispatch_Critical__.Release;
+
+        // check
+        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < 1000) do
+          begin
+            Compute_Dispatch_Critical__.Acquire;
+            if IsPicked_ then
+              begin
+                Compute_Dispatch_Critical__.Release;
+                exit;
+              end
+            else
+              begin
+                Compute_Dispatch_Critical__.Release;
+              end;
+          end;
+
+        Compute_Dispatch_Critical__.Acquire;
+        if IsPicked_ then
+          begin
+            Compute_Dispatch_Critical__.Release;
+            exit;
+          end
+        else
+          begin
+            // remove
+            Compute_Dispatch_Queue_Pool__.Remove(Data_.Pool_Queue_Ptr__);
+            Data_.IsPicked__ := nil;
+            Compute_Dispatch_Critical__.Release;
+          end;
+      end;
+
+    // create thread
+    Compute_Dispatch_Critical__.Acquire;
+    inc(Compute_Thread_Task_Running__.LockP()^);
+    Compute_Thread_Task_Running__.Unlock;
+    Th := Pick_Or_Create_Compute_Thread();
+    Data_.AssignTo(Th);
+    Th.Start();
+    Compute_Dispatch_Critical__.Release;
+  end;
+
+var
+  Last_TK, IDLE_TK: TTimeTick;
+begin
+  Last_TK := GetTimeTick();
+  while True do
     begin
-      ComputeDispatchCritical.Acquire;
-      ComputeDispatchPool.Add(@Data);
-      ComputeDispatchCritical.Release;
-      tk := GetTimeTick();
-      while (IdleComputeThreadSum.V > 0) and (GetTimeTick() - tk < 5) do
+      if Core_Dispatch_Order__.Num > 0 then
         begin
-          ComputeDispatchCritical.Acquire;
-          done := ComputeDispatchPool.IndexOf(@Data) < 0;
-          ComputeDispatchCritical.Release;
-          if done then
-              exit;
-        end;
-      ComputeDispatchCritical.Acquire;
-      done := ComputeDispatchPool.IndexOf(@Data) < 0;
-      if not done then
-          ComputeDispatchPool.Remove(@Data);
-      ComputeDispatchCritical.Release;
-      if done then
-          exit;
+          Do_Pick(Core_Dispatch_Order__.First^.Data);
+          Core_Dispatch_Order__.Next;
+          Last_TK := GetTimeTick()
+        end
+      else if Core_Dispatch_Order_Activted__ then
+        begin
+          IDLE_TK := GetTimeTick() - Last_TK;
+          if IDLE_TK > 1000 then
+            begin
+              TCompute.Sleep(10);
+            end
+          else if IDLE_TK > 100 then
+            begin
+              TCompute.Sleep(1);
+            end;
+        end
+      else
+          break;
     end;
 
-  // create thread
-  ComputeDispatchCritical.Acquire;
-  inc(ComputeThreadTaskRunning.LockP()^);
-  ComputeThreadTaskRunning.Unlock;
-  th := PickOrCreateThread();
-  Data.AssignTo(th);
-  th.Start();
-  ComputeDispatchCritical.Release;
+  Core_Dispatch_Order_IsExit__ := True;
+end;
+
+constructor TCore_Dispatch_Order_Thread.Create;
+begin
+  inherited Create(True);
+  FreeOnTerminate := True;
+end;
+
+destructor TCore_Dispatch_Order_Thread.Destroy;
+begin
+  inherited Destroy;
 end;
 
 procedure InitCoreThreadPool(Thread_Num: Integer);
 var
-  th: TCompute;
+  Th: TCore_Dispatch_Order_Thread;
 begin
-  CoreThreadPool := TCoreComputeThreadPool.Create;
-  ComputeThreadTaskRunning := TAtomInteger.Create(0);
-  ParallelGranularity := Thread_Num;
-  ComputeDispatchCritical := TCritical.Create;
-  MaxActivtedParallel := 0;
-  ParallelOverflow.ActivtedParallel := 0;
-  ComputeDispatchPool := TComputeDispatchPool.Create;
-  IdleComputeThreadSum := TAtomInt.Create(0);
+  Core_Dispatch_Order__ := TCompute_Dispatch_Order.Create;
+  Core_Dispatch_Order_Activted__ := True;
+  Core_Dispatch_Order_IsExit__ := False;
+  Core_Thread_Pool__ := TCoreCompute_Thread_Pool.Create;
+  Compute_Thread_Task_Running__ := TAtomInt.Create(0);
+  Parallel_Granularity__ := Thread_Num;
+  Compute_Dispatch_Critical__ := TCritical.Create;
+  Max_Activted_Parallel__ := 0;
+  Parallel_Overflow__.ActivtedParallel := 0;
+  Compute_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
+  IDLE_Compute_Thread_Sum := TAtomInt.Create(0);
+
+  // create dispatch thread
+  Th := TCore_Dispatch_Order_Thread.Create;
+  Th.Start();
 end;
 
 procedure FreeCoreThreadPool;
 begin
+  Core_Dispatch_Order_Activted__ := False;
+  while not Core_Dispatch_Order_IsExit__ do
+      TCompute.Sleep(1);
+
   while TCompute.ActivtedTask() > 0 do
       CheckThreadSynchronize(1);
 
-  CoreThreadPool.Free;
-  CoreThreadPool := nil;
+  Core_Thread_Pool__.Free;
+  Core_Thread_Pool__ := nil;
+  Core_Dispatch_Order__.Free;
+  Core_Dispatch_Order__ := nil;
 
-  ComputeThreadTaskRunning.Free;
-  ComputeThreadTaskRunning := nil;
+  Compute_Thread_Task_Running__.Free;
+  Compute_Thread_Task_Running__ := nil;
 
-  ComputeDispatchCritical.Free;
-  ComputeDispatchCritical := nil;
+  Compute_Dispatch_Critical__.Free;
+  Compute_Dispatch_Critical__ := nil;
 
-  ComputeDispatchPool.Free;
-  ComputeDispatchPool := nil;
+  Compute_Dispatch_Queue_Pool__.Free;
+  Compute_Dispatch_Queue_Pool__ := nil;
 
-  IdleComputeThreadSum.Free;
-  IdleComputeThreadSum := nil;
+  IDLE_Compute_Thread_Sum.Free;
+  IDLE_Compute_Thread_Sum := nil;
 end;
 
 procedure TCompute.Execute;
 var
-  tk: TTimeTick;
+  Tick: TTimeTick;
   NoTask: Boolean;
-  i: Integer;
 begin
   FRndInstance := InternalMT19937__();
-  AtomInc(PMD19937Core(FRndInstance)^.Instance);
+  AtomInc(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
 
   while True do
     begin
-      try
 {$IFDEF MT19937SeedOnTComputeThreadIs0} SetMT19937Seed(0); {$ELSE MT19937SeedOnTComputeThreadIs0} MT19937Randomize(); {$ENDIF MT19937SeedOnTComputeThreadIs0}
+      if IsRuning <> nil then
+          IsRuning^ := True;
+      if IsExit <> nil then
+          IsExit^ := False;
+
+      try
         if Assigned(OnRun_C) then
             OnRun_C(Self);
         if Assigned(OnRun_M) then
@@ -194,46 +303,48 @@ begin
       except
       end;
 
+      if IsRuning <> nil then
+          IsRuning^ := False;
+      if IsExit <> nil then
+          IsExit^ := True;
+
       if Assigned(OnDone_C) or Assigned(OnDone_M) or Assigned(OnDone_P) then
           Synchronize({$IFDEF FPC}@{$ENDIF FPC}Done_Sync);
 
       // check for idle thread, and again run.
-      tk := GetTimeTick;
       NoTask := True;
-      inc(IdleComputeThreadSum.LockP()^);
-      IdleComputeThreadSum.Unlock();
-      for i := 1 to 100 do
-        begin
-          while NoTask and (GetTimeTick - tk < 10) do
-            begin
-              ComputeDispatchCritical.Acquire;
-              if ComputeDispatchPool.Count > 0 then
-                begin
-                  ComputeDispatchPool[0]^.AssignTo(Self);
-                  ComputeDispatchPool.Delete(0);
-                  NoTask := False;
-                end;
-              ComputeDispatchCritical.Release;
-            end;
-          if not NoTask then
-              break;
-          // little delay
-          Sleep(1);
-        end;
-      dec(IdleComputeThreadSum.LockP()^);
-      IdleComputeThreadSum.Unlock();
+      inc(IDLE_Compute_Thread_Sum.LockP()^);
+      IDLE_Compute_Thread_Sum.Unlock();
+      Tick := GetTimeTick;
+      repeat
+        Compute_Dispatch_Critical__.Acquire;
+        if Compute_Dispatch_Queue_Pool__.Num > 0 then
+          begin
+            Compute_Dispatch_Queue_Pool__.First^.Data^.AssignTo(Self);
+            if Compute_Dispatch_Queue_Pool__.First^.Data^.IsPicked__ <> nil then
+                Compute_Dispatch_Queue_Pool__.First^.Data^.IsPicked__^ := True;
+            Compute_Dispatch_Queue_Pool__.Next;
+            NoTask := False;
+          end;
+        Compute_Dispatch_Critical__.Release;
+        if NoTask then
+            Sleep(1);
+      until (not NoTask) or (GetTimeTick - Tick > 5000);
+
+      dec(IDLE_Compute_Thread_Sum.LockP()^);
+      IDLE_Compute_Thread_Sum.Unlock();
       if NoTask then
           break;
     end;
 
-  dec(ComputeThreadTaskRunning.LockP()^);
-  ComputeThreadTaskRunning.Unlock();
+  dec(Compute_Thread_Task_Running__.LockP()^);
+  Compute_Thread_Task_Running__.Unlock();
 
-  ComputeDispatchCritical.Acquire;
-  CoreThreadPool.Remove(Self);
-  ComputeDispatchCritical.Release;
+  Compute_Dispatch_Critical__.Acquire;
+  Core_Thread_Pool__.Remove(Thread_Pool_Queue_Data_Ptr);
+  Compute_Dispatch_Critical__.Release;
 
-  AtomDec(PMD19937Core(FRndInstance)^.Instance);
+  AtomDec(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
   FRndInstance := nil;
   RemoveMT19937Thread(Self);
 end;
@@ -255,6 +366,7 @@ constructor TCompute.Create;
 begin
   inherited Create(True);
   FreeOnTerminate := True;
+  Thread_Pool_Queue_Data_Ptr := nil;
   OnRun_C := nil;
   OnRun_M := nil;
   OnRun_P := nil;
@@ -266,6 +378,8 @@ begin
   OnDone_P := nil;
   UserData := nil;
   UserObject := nil;
+  IsRuning := nil;
+  IsExit := nil;
   FRndInstance := nil;
 end;
 
@@ -274,37 +388,43 @@ begin
   inherited Destroy;
 end;
 
+class function TCompute.Physics_Thread_Num(): Integer;
+begin
+  Result := Compute_Thread_Task_Running__.V;
+end;
+
 class function TCompute.ActivtedTask(): Integer;
 begin
-  ComputeDispatchCritical.Acquire;
-  Result := CoreThreadPool.Count;
-  ComputeDispatchCritical.Release;
+  Compute_Dispatch_Critical__.Acquire;
+  Result := Core_Thread_Pool__.Num + Core_Dispatch_Order__.Num;
+  Compute_Dispatch_Critical__.Release;
 end;
 
 class function TCompute.WaitTask(): Integer;
 begin
-  Result := IdleComputeThreadSum.V;
+  Result := Core_Dispatch_Order__.Num;
 end;
 
 class function TCompute.TotalTask(): Integer;
 begin
-  Result := ComputeThreadTaskRunning.V;
+  Result := Compute_Thread_Task_Running__.V + Core_Dispatch_Order__.Num;
 end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted: %d Suspend: %d Granularity:%d MaxParallel:%d/%d',
-    [TotalTask(), ActivtedTask(), WaitTask(), ParallelGranularity, ParallelOverflow.ActivtedParallel, MaxActivtedParallel]);
+  Result := Format('Compute:%d Activted: %d Suspend: %d physics: %d/%d Granularity:%d MaxParallel:%d/%d',
+    [TotalTask(), ActivtedTask(), WaitTask(), Physics_Thread_Num(), Max_Thread_Supported,
+      Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;
 begin
-  Result := ParallelGranularity;
+  Result := Parallel_Granularity__;
 end;
 
 class function TCompute.GetMaxActivtedParallel: Integer;
 begin
-  Result := MaxActivtedParallel;
+  Result := Max_Activted_Parallel__;
 end;
 
 type
@@ -424,6 +544,25 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_C := OnRun;
+  Dispatch_.OnDone_C := OnDone;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C);
 var
   Dispatch_: TComputeDispatch;
@@ -432,6 +571,24 @@ begin
   Dispatch_.OnRun_C := OnRun;
   Dispatch_.UserData := Data;
   Dispatch_.UserObject := Obj;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_C := OnRun;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -446,6 +603,24 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunC(const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_C := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunC_NP(const OnRun: TRunWithThread_C_NP);
 var
   Dispatch_: TComputeDispatch;
@@ -454,6 +629,24 @@ begin
   Dispatch_.OnRun_C_NP := OnRun;
   Dispatch_.UserData := nil;
   Dispatch_.UserObject := nil;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunC_NP(const OnRun: TRunWithThread_C_NP; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_C_NP := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -469,6 +662,25 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_M := OnRun;
+  Dispatch_.OnDone_M := OnDone;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M);
 var
   Dispatch_: TComputeDispatch;
@@ -477,6 +689,24 @@ begin
   Dispatch_.OnRun_M := OnRun;
   Dispatch_.UserData := Data;
   Dispatch_.UserObject := Obj;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_M := OnRun;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -491,6 +721,24 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunM(const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_M := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunM_NP(const OnRun: TRunWithThread_M_NP);
 var
   Dispatch_: TComputeDispatch;
@@ -499,6 +747,24 @@ begin
   Dispatch_.OnRun_M_NP := OnRun;
   Dispatch_.UserData := nil;
   Dispatch_.UserObject := nil;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunM_NP(const OnRun: TRunWithThread_M_NP; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_M_NP := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -514,6 +780,25 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_P := OnRun;
+  Dispatch_.OnDone_P := OnDone;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P);
 var
   Dispatch_: TComputeDispatch;
@@ -522,6 +807,24 @@ begin
   Dispatch_.OnRun_P := OnRun;
   Dispatch_.UserData := Data;
   Dispatch_.UserObject := Obj;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_P := OnRun;
+  Dispatch_.UserData := Data;
+  Dispatch_.UserObject := Obj;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -536,6 +839,24 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+class procedure TCompute.RunP(const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_P := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
+  PostComputeDispatchData(Dispatch_);
+end;
+
 class procedure TCompute.RunP_NP(const OnRun: TRunWithThread_P_NP);
 var
   Dispatch_: TComputeDispatch;
@@ -544,6 +865,24 @@ begin
   Dispatch_.OnRun_P_NP := OnRun;
   Dispatch_.UserData := nil;
   Dispatch_.UserObject := nil;
+  PostComputeDispatchData(Dispatch_);
+end;
+
+class procedure TCompute.RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean);
+var
+  Dispatch_: TComputeDispatch;
+begin
+  if IsRuning_ <> nil then
+      IsRuning_^ := True;
+  if IsExit_ <> nil then
+      IsExit_^ := False;
+
+  Dispatch_.Init;
+  Dispatch_.OnRun_P_NP := OnRun;
+  Dispatch_.UserData := nil;
+  Dispatch_.UserObject := nil;
+  Dispatch_.IsRuning_ := IsRuning_;
+  Dispatch_.IsExit_ := IsExit_;
   PostComputeDispatchData(Dispatch_);
 end;
 
@@ -557,9 +896,19 @@ begin
   MainThreadProgress.PostC1(OnSync);
 end;
 
+class procedure TCompute.PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostC1(OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
 begin
   MainThreadProgress.PostC2(Data1, OnSync);
+end;
+
+class procedure TCompute.PostC2(Data1: Pointer; OnSync: TThreadPost_C2; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostC2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
 class procedure TCompute.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
@@ -567,9 +916,19 @@ begin
   MainThreadProgress.PostC3(Data1, Data2, Data3, OnSync);
 end;
 
+class procedure TCompute.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostC3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
 begin
   MainThreadProgress.PostC4(Data1, Data2, OnSync);
+end;
+
+class procedure TCompute.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostC4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
 
 class procedure TCompute.PostM1(OnSync: TThreadPost_M1);
@@ -577,9 +936,19 @@ begin
   MainThreadProgress.PostM1(OnSync);
 end;
 
+class procedure TCompute.PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostM1(OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
 begin
   MainThreadProgress.PostM2(Data1, OnSync);
+end;
+
+class procedure TCompute.PostM2(Data1: Pointer; OnSync: TThreadPost_M2; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostM2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
 class procedure TCompute.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
@@ -587,9 +956,19 @@ begin
   MainThreadProgress.PostM3(Data1, Data2, Data3, OnSync);
 end;
 
+class procedure TCompute.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostM3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
 begin
   MainThreadProgress.PostM4(Data1, Data2, OnSync);
+end;
+
+class procedure TCompute.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostM4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
 
 class procedure TCompute.PostP1(OnSync: TThreadPost_P1);
@@ -597,9 +976,19 @@ begin
   MainThreadProgress.PostP1(OnSync);
 end;
 
+class procedure TCompute.PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostP1(OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
 begin
   MainThreadProgress.PostP2(Data1, OnSync);
+end;
+
+class procedure TCompute.PostP2(Data1: Pointer; OnSync: TThreadPost_P2; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostP2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
 class procedure TCompute.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
@@ -607,7 +996,17 @@ begin
   MainThreadProgress.PostP3(Data1, Data2, Data3, OnSync);
 end;
 
+class procedure TCompute.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostP3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
 class procedure TCompute.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
 begin
   MainThreadProgress.PostP4(Data1, Data2, OnSync);
+end;
+
+class procedure TCompute.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean);
+begin
+  MainThreadProgress.PostP4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;

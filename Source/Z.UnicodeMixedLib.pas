@@ -783,7 +783,7 @@ begin
       exit;
 
   DoStatus(PFormat('Reliable IO Open : %s', [umlGetFileName(FileName).text]));
-  DoStatus(PFormat('Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(SourceIO.Size).text]));
+  DoStatus(PFormat('Create Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(SourceIO.Size).text]));
 
   BackupFileIO := TCore_FileStream.Create(FBackupFileName, fmCreate);
   BackupFileIO.Size := SourceIO.Size;

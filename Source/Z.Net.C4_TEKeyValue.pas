@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.C4_TEKeyValue;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

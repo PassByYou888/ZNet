@@ -182,6 +182,7 @@
     {$I-} { Input output checking }
     {$IF Defined(Android) or Defined(IOS)}
       {$O-} { close optimization }
+      {$UNDEF INLINE_ASM}
     {$ELSE}
       {$O+} { open optimization }
       {$INLINE AUTO} { inline }
@@ -199,6 +200,9 @@
     {$DEFINE PhysicsIO_On_CrossSocket}
     // {$DEFINE PhysicsIO_On_Indy}
   {$ELSEIF Defined(IOS)}
+    {$DEFINE SMALL_RASTER_FONT_Build_In}
+    {$DEFINE PhysicsIO_On_Indy}
+  {$ELSEIF Defined(OSX)}
     {$DEFINE SMALL_RASTER_FONT_Build_In}
     {$DEFINE PhysicsIO_On_Indy}
   {$ELSE}
@@ -275,7 +279,7 @@
 {$A+} { Word Align Data }
 {$Q-} { Overflow checking }
 {$B-} { Complete boolean evaluation }
-{$J-} { Writeable typed constants }
+{$J+} { Writeable typed constants }
 
 (*
   Pointer math is simply treating any given typed pointer in some narrow,

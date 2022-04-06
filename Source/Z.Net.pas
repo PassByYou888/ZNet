@@ -4,7 +4,7 @@
 
 unit Z.Net;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 
 interface
@@ -158,19 +158,19 @@ type
   TOnResultBridge_Templet = class
   public
     // console event
-    procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual; abstract;
-    procedure DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString); virtual; abstract;
-    procedure DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString); virtual; abstract;
+    procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual;
+    procedure DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString); virtual;
+    procedure DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString); virtual;
     // stream event
-    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); virtual; abstract;
-    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); virtual; abstract;
-    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual; abstract;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); virtual;
+    procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); virtual;
+    procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual;
   end;
 
   // tool: client - bridge
   TOnResultBridge = class(TOnResultBridge_Templet)
   public
-    constructor Create; virtual;
+    constructor Create;
     destructor Destroy; override;
   end;
 
@@ -1179,7 +1179,7 @@ type
     FMaxCompleteBufferSize: Cardinal;
     FCompleteBufferCompressionCondition: Cardinal;
     FPrintParams: THashVariantList;
-    FPostProgress: TNProgressPostWithCadencer;
+    FPostProgress: TN_Progress_ToolWithCadencer;
     FFrameworkIsServer: Boolean;
     FFrameworkIsClient: Boolean;
     FFrameworkInfo: SystemString;
@@ -1210,12 +1210,12 @@ type
     function CanSendCommand(Sender: TPeerIO; Cmd: SystemString): Boolean; virtual;
     function CanRegCommand(Sender: TZNet; Cmd: SystemString): Boolean; virtual;
 
-    procedure DelayClose(Sender: TNPostExecute);
-    procedure DelayFree(Sender: TNPostExecute);
-    procedure DelayExecuteOnResultState(Sender: TNPostExecute);
-    procedure DelayExecuteOnCompleteBufferState(Sender: TNPostExecute);
+    procedure DelayClose(Sender: TN_Post_Execute);
+    procedure DelayFree(Sender: TN_Post_Execute);
+    procedure DelayExecuteOnResultState(Sender: TN_Post_Execute);
+    procedure DelayExecuteOnCompleteBufferState(Sender: TN_Post_Execute);
 
-    procedure IDLE_Trace_Execute(Sender: TNPostExecute);
+    procedure IDLE_Trace_Execute(Sender: TN_Post_Execute);
 
     { make seed and return only ID }
     function MakeID: Cardinal;
@@ -1238,9 +1238,9 @@ type
     procedure Command_InitP2PTunnel(Sender: TPeerIO; InData: SystemString);
     procedure Command_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
 
-    procedure VMAuthSuccessAfterDelayExecute(Sender: TNPostExecute);
-    procedure VMAuthSuccessDelayExecute(Sender: TNPostExecute);
-    procedure VMAuthFailedDelayExecute(Sender: TNPostExecute);
+    procedure VMAuthSuccessAfterDelayExecute(Sender: TN_Post_Execute);
+    procedure VMAuthSuccessDelayExecute(Sender: TN_Post_Execute);
+    procedure VMAuthFailedDelayExecute(Sender: TN_Post_Execute);
   protected
     { automated p2pVM }
     FAutomatedP2PVMServiceBind: TAutomatedP2PVMServiceBind;
@@ -1255,12 +1255,12 @@ type
 
     procedure InitAutomatedP2PVM;
     procedure FreeAutomatedP2PVM;
-    procedure DoAutomatedP2PVMClient_DelayRequest(Sender: TNPostExecute);
+    procedure DoAutomatedP2PVMClient_DelayRequest(Sender: TN_Post_Execute);
     procedure DoAutomatedP2PVMClient_Request(IO_ID: Cardinal);
     procedure AutomatedP2PVMClient_BuildP2PAuthTokenResult(P_IO: TPeerIO);
     procedure AutomatedP2PVMClient_OpenP2PVMTunnelResult(P_IO: TPeerIO; VMauthState: Boolean);
     procedure AutomatedP2PVMClient_ConnectionResult(Param1: Pointer; Param2: TObject; const ConnectionState: Boolean);
-    procedure AutomatedP2PVMClient_Delay_Done(Sender: TNPostExecute);
+    procedure AutomatedP2PVMClient_Delay_Done(Sender: TN_Post_Execute);
     procedure AutomatedP2PVMClient_Done(P_IO: TPeerIO);
   protected
     { large-scale IO support }
@@ -1350,11 +1350,11 @@ type
     procedure UnLock_All_IO; virtual;
 
     { delay run support }
-    property ProgressEngine: TNProgressPostWithCadencer read FPostProgress;
-    property ProgressPost: TNProgressPostWithCadencer read FPostProgress;
-    property PostProgress: TNProgressPostWithCadencer read FPostProgress;
-    property PostRun: TNProgressPostWithCadencer read FPostProgress;
-    property PostExecute: TNProgressPostWithCadencer read FPostProgress;
+    property ProgressEngine: TN_Progress_ToolWithCadencer read FPostProgress;
+    property ProgressPost: TN_Progress_ToolWithCadencer read FPostProgress;
+    property PostProgress: TN_Progress_ToolWithCadencer read FPostProgress;
+    property PostRun: TN_Progress_ToolWithCadencer read FPostProgress;
+    property PostExecute: TN_Progress_ToolWithCadencer read FPostProgress;
 
     { framework token }
     property FrameworkIsServer: Boolean read FFrameworkIsServer;
@@ -2247,12 +2247,12 @@ type
     { connection }
     procedure BuildStableIO_Result(Sender: TPeerIO; Result_: TDFE);
     procedure AsyncConnectResult(const cState: Boolean);
-    procedure PostConnection(Sender: TNPostExecute);
+    procedure PostConnection(Sender: TN_Post_Execute);
 
     { reconnection }
     procedure OpenStableIO_Result(Sender: TPeerIO; Result_: TDFE);
     procedure AsyncReconnectionResult(const cState: Boolean);
-    procedure PostReconnection(Sender: TNPostExecute);
+    procedure PostReconnection(Sender: TN_Post_Execute);
     procedure Reconnection;
 
     function GetStopCommunicationTimeTick: TTimeTick;
@@ -3882,6 +3882,36 @@ begin
   On_P := nil;
 end;
 
+procedure TOnResultBridge_Templet.DoConsoleEvent(Sender: TPeerIO; Result_: SystemString);
+begin
+
+end;
+
+procedure TOnResultBridge_Templet.DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString);
+begin
+
+end;
+
+procedure TOnResultBridge_Templet.DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString);
+begin
+
+end;
+
+procedure TOnResultBridge_Templet.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+begin
+
+end;
+
+procedure TOnResultBridge_Templet.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+begin
+
+end;
+
+procedure TOnResultBridge_Templet.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+begin
+
+end;
+
 constructor TOnResultBridge.Create;
 begin
   inherited Create;
@@ -4882,11 +4912,11 @@ function TPeerIO.GetSequencePacketState: SystemString;
 begin
   Result := PFormat('History: %s (block: %d) Received Pool: %s (block: %d) Total Memory: %s',
     [umlSizeToStr(SendingSequencePacketHistoryMemory).Text,
-    SendingSequencePacketHistory.Count,
-    umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
-    SequencePacketReceivedPool.Count,
-    umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
-    ]);
+      SendingSequencePacketHistory.Count,
+      umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
+      SequencePacketReceivedPool.Count,
+      umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
+      ]);
 end;
 
 function TPeerIO.GetSequencePacketUsagePhysicsMemory: Int64;
@@ -5171,7 +5201,7 @@ begin
                   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stSequencePacketMatched]);
                 end
               else if (FSequencePacketSignal) and ((p^.SequenceNumber > SequenceNumberOnReceivedCounter) or
-                (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
+                  (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
                 begin
                   p^.data := TMS64.Create;
                   p^.data.CopyFrom(fastSwap, p^.Size);
@@ -8426,7 +8456,7 @@ begin
   AtomInc(Statistics[TStatisticsType.stTotalCommandReg]);
 end;
 
-procedure TZNet.DelayClose(Sender: TNPostExecute);
+procedure TZNet.DelayClose(Sender: TN_Post_Execute);
 var
   IO_ID: Cardinal;
   c_IO: TPeerIO;
@@ -8439,7 +8469,7 @@ begin
     end;
 end;
 
-procedure TZNet.DelayFree(Sender: TNPostExecute);
+procedure TZNet.DelayFree(Sender: TN_Post_Execute);
 var
   IO_ID: Cardinal;
   c_IO: TPeerIO;
@@ -8450,7 +8480,7 @@ begin
       DisposeObject(c_IO);
 end;
 
-procedure TZNet.DelayExecuteOnResultState(Sender: TNPostExecute);
+procedure TZNet.DelayExecuteOnResultState(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
   nQueue: PQueueData;
@@ -8466,7 +8496,7 @@ begin
   DisposeQueueData(nQueue);
 end;
 
-procedure TZNet.DelayExecuteOnCompleteBufferState(Sender: TNPostExecute);
+procedure TZNet.DelayExecuteOnCompleteBufferState(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
   Cmd: SystemString;
@@ -8487,7 +8517,7 @@ begin
     end;
 end;
 
-procedure TZNet.IDLE_Trace_Execute(Sender: TNPostExecute);
+procedure TZNet.IDLE_Trace_Execute(Sender: TN_Post_Execute);
 var
   p: PIDLE_Trace;
   p_id: Cardinal;
@@ -8706,7 +8736,7 @@ begin
   Sender.ResetSequencePacketBuffer;
 end;
 
-procedure TZNet.VMAuthSuccessAfterDelayExecute(Sender: TNPostExecute);
+procedure TZNet.VMAuthSuccessAfterDelayExecute(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
 begin
@@ -8739,7 +8769,7 @@ begin
   p2pVMTunnelOpenAfter(P_IO, P_IO.p2pVMTunnel);
 end;
 
-procedure TZNet.VMAuthSuccessDelayExecute(Sender: TNPostExecute);
+procedure TZNet.VMAuthSuccessDelayExecute(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
 begin
@@ -8751,7 +8781,7 @@ begin
   p2pVMTunnelOpen(P_IO, P_IO.p2pVMTunnel);
 end;
 
-procedure TZNet.VMAuthFailedDelayExecute(Sender: TNPostExecute);
+procedure TZNet.VMAuthFailedDelayExecute(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
 begin
@@ -8804,7 +8834,7 @@ begin
   DisposeObject(FAutomatedP2PVMClientBind);
 end;
 
-procedure TZNet.DoAutomatedP2PVMClient_DelayRequest(Sender: TNPostExecute);
+procedure TZNet.DoAutomatedP2PVMClient_DelayRequest(Sender: TN_Post_Execute);
 var
   IO_ID: Cardinal;
 begin
@@ -8927,7 +8957,7 @@ begin
       AutomatedP2PVMClient_Done(P_IO);
 end;
 
-procedure TZNet.AutomatedP2PVMClient_Delay_Done(Sender: TNPostExecute);
+procedure TZNet.AutomatedP2PVMClient_Delay_Done(Sender: TN_Post_Execute);
 var
   P_IO: TPeerIO;
 begin
@@ -9057,7 +9087,7 @@ begin
   FPrintParams.AutoUpdateDefaultValue := True;
   FPrintParams.Add(C_CipherModel, False);
 
-  FPostProgress := TNProgressPostWithCadencer.Create;
+  FPostProgress := TN_Progress_ToolWithCadencer.Create;
 
   FFrameworkIsServer := True;
   FFrameworkIsClient := True;
@@ -15578,7 +15608,7 @@ begin
     end;
 end;
 
-procedure TZNet_CustomStableClient.PostConnection(Sender: TNPostExecute);
+procedure TZNet_CustomStableClient.PostConnection(Sender: TN_Post_Execute);
 begin
   if FStableClientIO.WaitConnecting then
       exit;
@@ -15669,7 +15699,7 @@ begin
     end;
 end;
 
-procedure TZNet_CustomStableClient.PostReconnection(Sender: TNPostExecute);
+procedure TZNet_CustomStableClient.PostReconnection(Sender: TN_Post_Execute);
 begin
   if not FStableClientIO.Activted then
       exit;

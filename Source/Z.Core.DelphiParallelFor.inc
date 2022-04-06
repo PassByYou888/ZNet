@@ -7,7 +7,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -20,11 +20,11 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
       TParallel.&For(b, e, OnFor);
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 
@@ -34,7 +34,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -47,11 +47,11 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
       TParallel.&For(b, e, OnFor);
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 {$ELSE SystemParallel}
@@ -98,7 +98,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -111,9 +111,9 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
-    Depth := ParallelGranularity;
+    Depth := Parallel_Granularity__;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -173,7 +173,7 @@ begin
 
     Critical.Free;
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 
@@ -218,7 +218,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -231,9 +231,9 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
-    Depth := ParallelGranularity;
+    Depth := Parallel_Granularity__;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -293,7 +293,7 @@ begin
 
     Critical.Free;
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 
@@ -338,7 +338,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -351,10 +351,10 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(ParallelGranularity, e - b + 1);
+    Depth := Min(Parallel_Granularity__, e - b + 1);
     SetLength(states, Depth);
 
     i := 0;
@@ -363,7 +363,7 @@ begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := ParallelGranularity;
+        p^.Granularity := Parallel_Granularity__;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -386,7 +386,7 @@ begin
 
     Critical.Free;
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 
@@ -431,7 +431,7 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or ParallelOverflow.Busy() then
+  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
@@ -444,10 +444,10 @@ begin
         end;
       exit;
     end;
-  ParallelOverflow.Acquire;
+  Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(ParallelGranularity, e - b + 1);
+    Depth := Min(Parallel_Granularity__, e - b + 1);
     SetLength(states, Depth);
 
     i := 0;
@@ -456,7 +456,7 @@ begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := ParallelGranularity;
+        p^.Granularity := Parallel_Granularity__;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -479,7 +479,7 @@ begin
 
     Critical.Free;
   finally
-      ParallelOverflow.Release;
+      Parallel_Overflow__.Release;
   end;
 end;
 

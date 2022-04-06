@@ -97,434 +97,434 @@ function Rectf(Left, Top, Right, Bottom: TGeoFloat): TRectf;
 {$ENDREGION 'BaseType define'}
 {$REGION 'API'}
 
-function CompareCardinal(const C1, C2: Cardinal): Integer;
-function CompareInteger(const Int1, Int2: Integer): Integer;
-function CompareInt64(const Int1, Int2: int64): Integer;
-function ComparePointer(const Item1, Item2: pointer): Integer;
-function CompareBool(const Bool1, Bool2: boolean): Integer;
-function CompareDouble(const Double1, Double2: Double): Integer;
+function CompareCardinal(const C1, C2: Cardinal): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareInteger(const Int1, Int2: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareInt64(const Int1, Int2: int64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function ComparePointer(const Item1, Item2: pointer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareBool(const Bool1, Bool2: boolean): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareDouble(const Double1, Double2: Double): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function FAbs(const V: Single): Single; overload;
-function FAbs(const V: Double): Double; overload;
-function Clamp(const Value_, Min_, Max_: TGeoFloat): TGeoFloat; overload;
-function MaxF(const v1, v2: TGeoFloat): TGeoFloat;
-function MinF(const v1, v2: TGeoFloat): TGeoFloat;
-function CompareFloat(const f1, f2, Epsilon_: TGeoFloat): ShortInt; overload;
-function CompareFloat(const f1, f2: TGeoFloat): ShortInt; overload;
+function FAbs(const V: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FAbs(const V: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const Value_, Min_, Max_: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MaxF(const v1, v2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function MinF(const v1, v2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareFloat(const f1, f2, Epsilon_: TGeoFloat): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function CompareFloat(const f1, f2: TGeoFloat): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function CompareGeoInt(const g1, g2: TGeoInt): ShortInt;
 
-function MakeVec2(const X, Y: TGeoFloat): TVec2; overload;
-function MakeVec2(const X, Y: TGeoInt): TVec2; overload;
-function MakePoint(const X, Y: TGeoFloat): TVec2; overload;
-function MakePoint(const X, Y: TGeoInt): TVec2; overload;
-function MakePoint(const pt: TVec2): TPoint; overload;
-function Point2Point(const pt: TVec2): TPoint; overload;
-function Point2Pointf(const pt: TVec2): TPointf; overload;
-function PointMake(const X, Y: TGeoFloat): TVec2; overload;
-function PointMake(const pt: TPoint): TVec2; overload;
-function PointMake(const pt: TPointf): TVec2; overload;
+function MakeVec2(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeVec2(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakePoint(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakePoint(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakePoint(const pt: TVec2): TPoint; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Point2Point(const pt: TVec2): TPoint; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Point2Pointf(const pt: TVec2): TPointf; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointMake(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointMake(const pt: TPoint): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointMake(const pt: TPointf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Make2DPoint(const X, Y: TGeoFloat): TVec2; overload;
-function Make2DPoint(const X, Y: TGeoInt): TVec2; overload;
-function Make2DPoint(const pt: TPoint): TVec2; overload;
-function Make2DPoint(const pt: TPointf): TVec2; overload;
+function Make2DPoint(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Make2DPoint(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Make2DPoint(const pt: TPoint): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Make2DPoint(const pt: TPointf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function vec2(const p: PVec2): TVec2; overload;
-function vec2(const f: TGeoFloat): TVec2; overload;
-function vec2(const X, Y: TGeoFloat): TVec2; overload;
-function vec2(const X, Y: TGeoInt): TVec2; overload;
-function vec2(const X, Y: int64): TVec2; overload;
-function vec2(const pt: TPoint): TVec2; overload;
-function vec2(const pt: TPointf): TVec2; overload;
+function vec2(const p: PVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const f: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const X, Y: int64): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const pt: TPoint): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const pt: TPointf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function LineV2(const x1, y1, x2, y2: TGeoFloat): TLineV2; overload;
-function LineV2(const lb, le: TVec2): TLineV2; overload;
-function LineV2(const lb, le: TPoint): TLineV2; overload;
-function LineV2(const L: TLineV2_P): TLineV2; overload;
-function LineV2(const L: PLineV2_P): TLineV2; overload;
-function LineV2(const L: PLineV2): TLineV2; overload;
+function LineV2(const x1, y1, x2, y2: TGeoFloat): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineV2(const lb, le: TVec2): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineV2(const lb, le: TPoint): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineV2(const L: TLineV2_P): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineV2(const L: PLineV2_P): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineV2(const L: PLineV2): TLineV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RoundVec2(const V: TVec2): TVec2; overload;
+function RoundVec2(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function MakePointf(const pt: TVec2): TPointf; overload;
+function MakePointf(const pt: TVec2): TPointf; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function IsZero(const V: TGeoFloat): boolean; overload;
-function IsZero(const pt: TVec2): boolean; overload;
-function IsZero(const R: TRectV2): boolean; overload;
+function IsZero(const V: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsZero(const pt: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsZero(const R: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function IsNan(const pt: TVec2): boolean; overload;
-function IsNan(const X, Y: TGeoFloat): boolean; overload;
-function HypotX(const X, Y: Extended): TGeoFloat; overload;
+function IsNan(const pt: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsNan(const X, Y: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function HypotX(const X, Y: Extended): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function PointNorm(const V: TVec2): TGeoFloat; overload;
-function PointNegate(const V: TVec2): TVec2; overload;
+function PointNorm(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointNegate(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Vec2Norm(const V: TVec2): TGeoFloat; overload;
-function Vec2Negate(const V: TVec2): TVec2; overload;
+function Vec2Norm(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Negate(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function vec2Inv(const V: TVec2): TVec2; overload;
-procedure SetVec2(var V: TVec2; const vSrc: TVec2); overload;
+function vec2Inv(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure SetVec2(var V: TVec2; const vSrc: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Vec2Direction(sour, dest: TVec2): TVec2;
-function RectDirection(sour, dest: TRectV2): TRectV2;
+function Vec2Direction(sour, dest: TVec2): TVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function RectDirection(sour, dest: TRectV2): TRectV2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function Vec2Add(const v1, v2: TVec2): TVec2; overload;
-function Vec2Add(const v1: TVec2; v2: TGeoFloat): TVec2; overload;
-function Vec2Add(const v1: TVec2; X, Y: TGeoFloat): TVec2; overload;
-function Vec2Add(const v1: TGeoFloat; v2: TVec2): TVec2; overload;
-function Vec2Add(const v1: TArrayVec2; v2: TVec2): TArrayVec2; overload;
-function Vec2Add(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; overload;
+function Vec2Add(const v1, v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Add(const v1: TVec2; v2: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Add(const v1: TVec2; X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Add(const v1: TGeoFloat; v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Add(const v1: TArrayVec2; v2: TVec2): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Add(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Vec2Sub(const v1, v2: TVec2): TVec2; overload;
-function Vec2Sub(const v1: TVec2; v2: TGeoFloat): TVec2; overload;
-function Vec2Sub(const v1: TGeoFloat; v2: TVec2): TVec2; overload;
-function Vec2Sub(const v1: TArrayVec2; v2: TVec2): TArrayVec2; overload;
-function Vec2Sub(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; overload;
+function Vec2Sub(const v1, v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Sub(const v1: TVec2; v2: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Sub(const v1: TGeoFloat; v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Sub(const v1: TArrayVec2; v2: TVec2): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Sub(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Vec2Mul(const v1, v2: TVec2): TVec2; overload;
-function Vec2Mul(const v1, v2: TVec2; const v3: TGeoFloat): TVec2; overload;
-function Vec2Mul(const v1, v2: TVec2; const v3, v4: TGeoFloat): TVec2; overload;
-function Vec2Mul(const v1, v2, v3: TVec2): TVec2; overload;
-function Vec2Mul(const v1, v2, v3, v4: TVec2): TVec2; overload;
-function Vec2Mul(const v1: TVec2; const v2: TGeoFloat): TVec2; overload;
-function Vec2Mul(const v1: TVec2; const v2, v3: TGeoFloat): TVec2; overload;
-function Vec2Mul(const v1: TVec2; const v2, v3, v4: TGeoFloat): TVec2; overload;
-function Vec2Mul(const v1: TGeoFloat; const v2: TVec2): TVec2; overload;
-function Vec2Mul(const v1: TArrayVec2; v2: TVec2): TArrayVec2; overload;
-function Vec2Mul(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; overload;
+function Vec2Mul(const v1, v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1, v2: TVec2; const v3: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1, v2: TVec2; const v3, v4: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1, v2, v3: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1, v2, v3, v4: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TVec2; const v2: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TVec2; const v2, v3: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TVec2; const v2, v3, v4: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TGeoFloat; const v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TArrayVec2; v2: TVec2): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Mul(const v1: TArrayVec2; v2: TGeoFloat): TArrayVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Vec2Div(const v1: TVec2; const v2: TGeoFloat): TVec2; overload;
-function Vec2Div(const v1, v2: TVec2): TVec2; overload;
-function Vec2Div(const v1: TGeoFloat; const v2: TVec2): TVec2; overload;
+function Vec2Div(const v1: TVec2; const v2: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Div(const v1, v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Div(const v1: TGeoFloat; const v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function PointNormalize(const V: TVec2): TVec2; overload;
-function Vec2Normalize(const V: TVec2): TVec2; overload;
+function PointNormalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Normalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function PointLength(const V: TVec2): TGeoFloat; overload;
-function Vec2Length(const V: TVec2): TGeoFloat; overload;
+function PointLength(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Length(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-procedure PointScale(var V: TVec2; factor: TGeoFloat); overload;
-function PointDotProduct(const v1, v2: TVec2): TGeoFloat; overload;
+procedure PointScale(var V: TVec2; factor: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointDotProduct(const v1, v2: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Distance(const x1, y1, x2, y2: TGeoFloat): TGeoFloat; overload;
-function Distance(const x1, y1, z1, x2, y2, z2: TGeoFloat): TGeoFloat; overload;
-function Distance(const L: TLineV2): TGeoFloat; overload;
-function Distance(const f1, f2: TGeoFloat): TGeoFloat; overload;
+function Distance(const x1, y1, x2, y2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Distance(const x1, y1, z1, x2, y2, z2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Distance(const L: TLineV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Distance(const f1, f2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function FloatDistance(const f1, f2: TGeoFloat): TGeoFloat; overload;
-function PointDistance(const x1, y1, x2, y2: TGeoFloat): TGeoFloat; overload;
-function PointDistance(const v1, v2: TVec2): TGeoFloat; overload;
-function Vec2Distance(const v1, v2: TVec2): TGeoFloat; overload;
-function LineDistance(const L: TLineV2): TGeoFloat; overload;
-function PointLayDistance(const v1, v2: TVec2): TGeoFloat; overload;
-function SqrDistance(const v1, v2: TVec2): TGeoFloat; overload;
+function FloatDistance(const f1, f2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointDistance(const x1, y1, x2, y2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointDistance(const v1, v2: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Distance(const v1, v2: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function LineDistance(const L: TLineV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointLayDistance(const v1, v2: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function SqrDistance(const v1, v2: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function PointLerp(const v1, v2: TVec2; t: TGeoFloat): TVec2; overload;
-function PointLerpTo(const sour, dest: TVec2; const d: TGeoFloat): TVec2; overload;
-function Vec2Lerp(const v1, v2: TVec2; t: TGeoFloat): TVec2; overload;
-function Vec2LerpTo(const sour, dest: TVec2; const d: TGeoFloat): TVec2; overload;
-procedure SwapPoint(var v1, v2: TVec2); overload;
-procedure SwapVec2(var v1, v2: TVec2); overload;
-function Pow(V: TGeoFloat): TGeoFloat; overload;
-function Pow(const V, n: TGeoFloat): TGeoFloat; overload;
-function MiddleVec2(const pt1, pt2: TVec2): TVec2; overload;
-function Vec2Middle(const pt1, pt2: TVec2): TVec2; overload;
+function PointLerp(const v1, v2: TVec2; t: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointLerpTo(const sour, dest: TVec2; const d: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Lerp(const v1, v2: TVec2; t: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2LerpTo(const sour, dest: TVec2; const d: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure SwapPoint(var v1, v2: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure SwapVec2(var v1, v2: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Pow(V: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Pow(const V, n: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MiddleVec2(const pt1, pt2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Middle(const pt1, pt2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; overload;
-function IsEqual(const Val1, Val2: TGeoFloat): boolean; overload;
-function IsEqual(const Val1, Val2: TVec2): boolean; overload;
-function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): boolean; overload;
-function IsEqual(const Val1, Val2: TRectV2): boolean; overload;
+function IsEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual(const Val1, Val2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual(const Val1, Val2: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual(const Val1, Val2: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; overload;
-function NotEqual(const Val1, Val2: TGeoFloat): boolean; overload;
-function NotEqual(const Val1, Val2: TVec2): boolean; overload;
+function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function NotEqual(const Val1, Val2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function NotEqual(const Val1, Val2: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function LessThanOrEqual(const Val1, Val2: TGeoFloat): boolean; overload;
-function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): boolean; overload;
+function LessThanOrEqual(const Val1, Val2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function GreaterThanOrEqual(const Val1, Val2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function GetEquilateralTriangleCen(pt1, pt2: TVec2): TVec2; overload;
 
-procedure Rotate(RotAng: TGeoFloat; const X, Y: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
-function Rotate(const RotAng: TGeoFloat; const Point: TVec2): TVec2; overload;
-function NormalizeDegAngle(const Angle: TGeoFloat): TGeoFloat; overload;
+procedure Rotate(RotAng: TGeoFloat; const X, Y: TGeoFloat; out Nx, Ny: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Rotate(const RotAng: TGeoFloat; const Point: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function NormalizeDegAngle(const Angle: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 // axis to pt angle
-function PointAngle(const axis, pt: TVec2): TGeoFloat; overload;
-function Vec2Angle(const axis, pt: TVec2): TGeoFloat; overload;
+function PointAngle(const axis, pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Angle(const axis, pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 // null point to pt angle
-function PointAngle(const pt: TVec2): TGeoFloat; overload;
-function Vec2Angle(const pt: TVec2): TGeoFloat; overload;
+function PointAngle(const pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Angle(const pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function AngleDistance(const s, a: TGeoFloat): TGeoFloat; overload;
-function PointRotation(const axis: TVec2; const Dist, Angle: TGeoFloat): TVec2; overload;
-function PointRotation(const axis, pt: TVec2; const Angle: TGeoFloat): TVec2; overload;
-function Vec2Rotation(const axis: TVec2; const Dist, Angle: TGeoFloat): TVec2; overload;
-function Vec2Rotation(const axis, pt: TVec2; const Angle: TGeoFloat): TVec2; overload;
-function Vec2Rotation(const sour_r: TRectV2; const Angle: TGeoFloat; const pt: TVec2): TVec2; overload;
-function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const pt: TVec2): TVec2; overload;
-function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const R: TRectV2): TRectV2; overload;
+function AngleDistance(const s, a: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointRotation(const axis: TVec2; const Dist, Angle: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointRotation(const axis, pt: TVec2; const Angle: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Rotation(const axis: TVec2; const Dist, Angle: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Rotation(const axis, pt: TVec2; const Angle: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Rotation(const sour_r: TRectV2; const Angle: TGeoFloat; const pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Rotation(const sour_r: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectRotation(const axis: TVec2; const R: TRectV2; const Angle: TGeoFloat): TRectV2;
 
-function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
-function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): boolean;
-function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; overload;
-function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; overload;
-function PointInRect(const X, Y: TGeoInt; const R: TRect): boolean; overload;
-function PointInRect(const pt: TPoint; const R: TRect): boolean; overload;
-function PointInRect(const pt: TVec2; const R: TRectV2): boolean; overload;
-function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; overload;
-function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; overload;
-function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; overload;
-function Vec2InRect(const pt: TVec2; const R: TRectV2): boolean; overload;
-function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; overload;
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
-function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
-function RectToRectIntersect(const r1, r2: TRectV2): boolean; overload;
-function RectToRectIntersect(const r1, r2: TRect): boolean; overload;
-function RectToRectIntersect(const r1, r2: TRectf): boolean; overload;
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
-function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
-function RectWithInRect(const r1, r2: TRectV2): boolean; overload;
-function RectWithInRect(const r1, r2: TRect): boolean; overload;
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
-function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; overload;
-function RectInRect(const r1, r2: TRectV2): boolean; overload;
-function RectInRect(const r1, r2: TRect): boolean; overload;
+function CircleInCircle(const cp1, cp2: TVec2; const r1, r2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function CircleInRect(const cp: TVec2; const radius: TGeoFloat; R: TRectV2): boolean; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function PointInRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInRect(const X, Y: TGeoInt; const R: TRect): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInRect(const pt: TPoint; const R: TRect): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInRect(const pt: TVec2; const R: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2InRect(const Px, Py: TGeoFloat; const x1, y1, x2, y2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2InRect(const Px, Py: TGeoInt; const x1, y1, x2, y2: TGeoInt): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2InRect(const pt: TVec2; const R: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2InRect(const Px, Py: TGeoFloat; const R: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectToRectIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectToRectIntersect(const r1, r2: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectToRectIntersect(const r1, r2: TRect): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectToRectIntersect(const r1, r2: TRectf): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWithInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWithInRect(const r1, r2: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWithInRect(const r1, r2: TRect): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectInRect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoInt): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectInRect(const r1, r2: TRectV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectInRect(const r1, r2: TRect): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function MakeRectV2(const centre: TVec2; const width, height: TGeoFloat): TRectV2; overload;
-function MakeRectV2(const X, Y, radius: TGeoFloat): TRectV2; overload;
-function MakeRectV2(const x1, y1, x2, y2: TGeoFloat): TRectV2; overload;
-function MakeRectV2(const p1, p2: TVec2): TRectV2; overload;
-function MakeRectV2(const X, Y: TGeoFloat; const p2: TVec2): TRectV2; overload;
-function MakeRectV2(const R: TRect): TRectV2; overload;
-function MakeRectV2(const R: TRectf): TRectV2; overload;
+function MakeRectV2(const centre: TVec2; const width, height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const X, Y, radius: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const x1, y1, x2, y2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const p1, p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const X, Y: TGeoFloat; const p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const R: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectV2(const R: TRectf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectV2(): TRectV2; overload;
-function RectV2(const centre: TVec2; const width, height: TGeoFloat): TRectV2; overload;
-function RectV2(const X, Y, radius: TGeoFloat): TRectV2; overload;
-function RectV2(const x1, y1, x2, y2: TGeoFloat): TRectV2; overload;
-function RectV2(const p1, p2: TVec2): TRectV2; overload;
-function RectV2(const p1, p2: TPointf): TRectV2; overload;
-function RectV2(const X, Y: TGeoFloat; const p2: TVec2): TRectV2; overload;
-function RectV2(const R: TRect): TRectV2; overload;
-function RectV2(const R: TRectf): TRectV2; overload;
-function RectV2(const R: TRectV2): TRectV2; overload;
+function RectV2(): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const centre: TVec2; const width, height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const X, Y, radius: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const x1, y1, x2, y2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const p1, p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const p1, p2: TPointf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const X, Y: TGeoFloat; const p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const R: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const R: TRectf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectV2(const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function MakeRect(const centre: TVec2; const width, height: TGeoFloat): TRectV2; overload;
-function MakeRect(const X, Y, radius: TGeoFloat): TRectV2; overload;
-function MakeRect(const x1, y1, x2, y2: TGeoFloat): TRectV2; overload;
-function MakeRect(const p1, p2: TVec2): TRectV2; overload;
-function MakeRect(const R: TRect): TRectV2; overload;
-function MakeRect(const R: TRectf): TRectV2; overload;
+function MakeRect(const centre: TVec2; const width, height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRect(const X, Y, radius: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRect(const x1, y1, x2, y2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRect(const p1, p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRect(const R: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRect(const R: TRectf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RoundRect(const R: TRectV2): TRect; overload;
-function RoundRectV2(const R: TRectV2): TRectV2; overload;
+function RoundRect(const R: TRectV2): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundRectV2(const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Rect2Rect(const R: TRectV2): TRect; overload;
-function Rect2Rect(const R: TRect): TRectV2; overload;
+function Rect2Rect(const R: TRectV2): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Rect2Rect(const R: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectMake(const X, Y, radius: TGeoFloat): TRectV2; overload;
-function RectMake(const x1, y1, x2, y2: TGeoFloat): TRectV2; overload;
-function RectMake(const p1, p2: TVec2): TRectV2; overload;
-function RectMake(const R: TRect): TRectV2; overload;
-function RectMake(const R: TRectf): TRectV2; overload;
+function RectMake(const X, Y, radius: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMake(const x1, y1, x2, y2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMake(const p1, p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMake(const R: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMake(const R: TRectf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectAdd(const R: TRectV2; v2: TVec2): TRectV2; overload;
-function RectAdd(const r1, r2: TRectV2): TRectV2; overload;
+function RectAdd(const R: TRectV2; v2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectAdd(const r1, r2: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectSub(const r1, r2: TRectV2): TRectV2; overload;
-function RectSub(const R: TRectV2; pt: TVec2): TRectV2; overload;
+function RectSub(const r1, r2: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectSub(const R: TRectV2; pt: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectMul(const r1, r2: TRectV2): TRectV2; overload;
-function RectMul(const r1: TRectV2; v2: TVec2): TRectV2; overload;
-function RectMul(const r1: TRectV2; f2: TGeoFloat): TRectV2; overload;
+function RectMul(const r1, r2: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMul(const r1: TRectV2; v2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectMul(const r1: TRectV2; f2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectDiv(const r1, r2: TRectV2): TRectV2; overload;
-function RectDiv(const r1: TRectV2; f2: TGeoFloat): TRectV2; overload;
-function RectDiv(const r1: TRectV2; v2: TVec2): TRectV2; overload;
+function RectDiv(const r1, r2: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectDiv(const r1: TRectV2; f2: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectDiv(const r1: TRectV2; v2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectOffset(const R: TRectV2; Offset: TVec2): TRectV2; overload;
-function RectSizeLerp(const R: TRectV2; const rSizeLerp: TGeoFloat): TRectV2; overload;
-function RectCenScale(const R: TRectV2; const rSizeScale: TGeoFloat): TRectV2; overload;
-function RectEdge(const R: TRectV2; const Edge: TGeoFloat): TRectV2; overload;
-function RectEdge(const R: TRectV2; const Edge: TVec2): TRectV2; overload;
-function RectCentre(const R: TRectV2): TVec2; overload;
-function RectCentre(const R: TRect): TVec2; overload;
-function RectCentre(const R: TRectf): TVec2; overload;
+function RectOffset(const R: TRectV2; Offset: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectSizeLerp(const R: TRectV2; const rSizeLerp: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectCenScale(const R: TRectV2; const rSizeScale: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectEdge(const R: TRectV2; const Edge: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectEdge(const R: TRectV2; const Edge: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectCentre(const R: TRectV2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectCentre(const R: TRect): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectCentre(const R: TRectf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Tri(const v1, v2, v3: TVec2): TTriangle;
-function TriAdd(const t: TTriangle; V: TVec2): TTriangle;
-function TriSub(const t: TTriangle; V: TVec2): TTriangle;
-function TriMul(const t: TTriangle; V: TVec2): TTriangle;
-function TriDiv(const t: TTriangle; V: TVec2): TTriangle;
-function TriCentre(const t: TTriangle): TVec2;
+function Tri(const v1, v2, v3: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function TriAdd(const t: TTriangle; V: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function TriSub(const t: TTriangle; V: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function TriMul(const t: TTriangle; V: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function TriDiv(const t: TTriangle; V: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function TriCentre(const t: TTriangle): TVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function TriExpand(const t: TTriangle; Dist: TGeoFloat): TTriangle;
-function TriRound(const t: TTriangle): TTriangle;
+function TriRound(const t: TTriangle): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function Vec2Transform(const sour, dest: TRectV2; sour_pt: TVec2): TVec2; overload;
-function Vec2Transform(const sour, dest: TRectV2; const sourAngle, destAngle: TGeoFloat; const sour_pt: TVec2): TVec2; overload;
-function RectTransform(const sour, dest, sour_rect: TRectV2): TRectV2; overload;
-function RectTransform(const sour, dest: TRectV2; const sour_rect: TRect): TRectV2; overload;
-function RectTransform(const sour, dest: TRectV2; const sour_rect: TRectf): TRectV2; overload;
+function Vec2Transform(const sour, dest: TRectV2; sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2Transform(const sour, dest: TRectV2; const sourAngle, destAngle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectTransform(const sour, dest, sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectTransform(const sour, dest: TRectV2; const sour_rect: TRect): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectTransform(const sour, dest: TRectV2; const sour_rect: TRectf): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; overload;
-function RectScaleSpace(const R: TRect; const SS_width, SS_height: TGeoInt): TRect; overload;
-function CalibrationRectInRect(const R, Area: TRectV2): TRectV2; overload;
-function CalibrationRectInRect(const R, Area: TRect): TRect; overload;
+function RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectScaleSpace(const R: TRect; const SS_width, SS_height: TGeoInt): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function CalibrationRectInRect(const R, Area: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function CalibrationRectInRect(const R, Area: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-procedure FixRect(var Left, Top, Right, Bottom: TGeoInt); overload;
-procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat); overload;
-function FixRect(R: TRectV2): TRectV2; overload;
-function FixRect(R: TRect): TRect; overload;
-procedure FixedRect(var Left, Top, Right, Bottom: TGeoInt); overload;
-procedure FixedRect(var Left, Top, Right, Bottom: TGeoFloat); overload;
-function FixedRect(R: TRectV2): TRectV2; overload;
-function FixedRect(R: TRect): TRect; overload;
-procedure ForwardRect(var Left, Top, Right, Bottom: TGeoInt); overload;
-procedure ForwardRect(var Left, Top, Right, Bottom: TGeoFloat); overload;
-function ForwardRect(R: TRectV2): TRectV2; overload;
-function ForwardRect(R: TRect): TRect; overload;
+procedure FixRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FixRect(R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FixRect(R: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure FixedRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure FixedRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FixedRect(R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FixedRect(R: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure ForwardRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure ForwardRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ForwardRect(R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ForwardRect(R: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function MakeRect(const R: TRectV2): TRect; overload;
-function MakeRectf(const R: TRectV2): TRectf; overload;
+function MakeRect(const R: TRectV2): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MakeRectf(const R: TRectV2): TRectf; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectWidth(const R: TRectV2): TGeoFloat; overload;
-function RectHeight(const R: TRectV2): TGeoFloat; overload;
-function RectWidth(const R: TRect): TGeoInt; overload;
-function RectHeight(const R: TRect): TGeoInt; overload;
-function RectWidth(const R: TRectf): TGeoFloat; overload;
-function RectHeight(const R: TRectf): TGeoFloat; overload;
+function RectWidth(const R: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectHeight(const R: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWidth(const R: TRect): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectHeight(const R: TRect): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectWidth(const R: TRectf): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectHeight(const R: TRectf): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RoundWidth(const R: TRectV2): TGeoInt; overload;
-function RoundHeight(const R: TRectV2): TGeoInt; overload;
-function RoundWidth(const R: TRect): TGeoInt; overload;
-function RoundHeight(const R: TRect): TGeoInt; overload;
-function RoundWidth(const R: TRectf): TGeoInt; overload;
-function RoundHeight(const R: TRectf): TGeoInt; overload;
+function RoundWidth(const R: TRectV2): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundHeight(const R: TRectV2): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundWidth(const R: TRect): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundHeight(const R: TRect): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundWidth(const R: TRectf): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RoundHeight(const R: TRectf): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectArea(const R: TRectV2): TGeoFloat; overload;
-function RectArea(const R: TRect): TGeoInt; overload;
-function RectSize(const R: TRectV2): TVec2;
-function RectSizeR(const R: TRectV2): TRectV2;
-function RectFit(const sour, dest: TRectV2; const Bound: boolean): TRectV2; overload;
-function RectFit(const sour, dest: TRectV2): TRectV2; overload;
-function RectFit(const width, height: TGeoFloat; const bk: TRectV2): TRectV2; overload;
-function FitRect(const sour, dest: TRectV2): TRectV2; overload;
-function FitRect(const width, height: TGeoFloat; const bk: TRectV2): TRectV2; overload;
-function BoundRect(const buff: TArrayPoint): TRect; overload;
-function BoundRect(const p1, p2, p3: TPoint): TRect; overload;
-function BoundRect(const p1, p2, p3, p4: TPoint): TRect; overload;
-function BoundRect(const r1, r2: TRect): TRect; overload;
-function BoundRect(const buff: TArrayVec2): TRectV2; overload;
-function BoundRect(const p1, p2, p3: TVec2): TRectV2; overload;
-function BoundRect(const p1, p2, p3, p4: TVec2): TRectV2; overload;
-function BoundRect(const r1, r2: TRectV2): TRectV2; overload;
-function BoundRect(const r1: TRectV2; const p1: TVec2): TRectV2; overload;
-function BoundRect(const r1: TRectV2; const p1, p2: TVec2): TRectV2; overload;
-function BoundRect(const r1: TRectV2; const p1, p2, p3: TVec2): TRectV2; overload;
-function BoundRect(const r1: TRectV2; const p1, p2, p3, p4: TVec2): TRectV2; overload;
-function BuffCentroid(const buff: TArrayVec2): TVec2; overload;
-function BuffCentroid(const p1, p2, p3, p4: TVec2): TVec2; overload;
-function BuffCentroid(const p1, p2, p3: TVec2): TVec2; overload;
-function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): boolean;
-function PolygonArea(const buff: TArrayVec2): TGeoFloat;
+function RectArea(const R: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectArea(const R: TRect): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectSize(const R: TRectV2): TVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function RectSizeR(const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function RectFit(const sour, dest: TRectV2; const Bound: boolean): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectFit(const sour, dest: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectFit(const width, height: TGeoFloat; const bk: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FitRect(const sour, dest: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FitRect(const width, height: TGeoFloat; const bk: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const buff: TArrayPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const p1, p2, p3: TPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const p1, p2, p3, p4: TPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1, r2: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const buff: TArrayVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const p1, p2, p3: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const p1, p2, p3, p4: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1, r2: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1: TRectV2; const p1: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1: TRectV2; const p1, p2: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1: TRectV2; const p1, p2, p3: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const r1: TRectV2; const p1, p2, p3, p4: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BuffCentroid(const buff: TArrayVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BuffCentroid(const p1, p2, p3, p4: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BuffCentroid(const p1, p2, p3: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInPolygon(pt: TVec2; const PolygonBuff: TArrayVec2): boolean; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function PolygonArea(const buff: TArrayVec2): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function FastRamerDouglasPeucker(var Points: TArrayVec2; Epsilon_: TGeoFloat): TGeoInt;
+function FastRamerDouglasPeucker(var Points: TArrayVec2; Epsilon_: TGeoFloat): TGeoInt; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 procedure FastVertexReduction(Points: TArrayVec2; Epsilon_: TGeoFloat; var output: TArrayVec2);
 
-function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): boolean; overload;
-procedure Clip(const sour_, background_: TRectV2; var output: TRectV2); overload;
-function Clip(const sour, background: TRectV2): TRectV2; overload;
+function Clip(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out Cx1, Cy1, Cx2, Cy2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure Clip(const sour_, background_: TRectV2; var output: TRectV2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clip(const sour, background: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Orientation(const x1, y1, x2, y2, Px, Py: TGeoFloat): TGeoInt; overload;
-function Orientation(const x1, y1, z1, x2, y2, z2, x3, y3, z3, Px, Py, Pz: TGeoFloat): TGeoInt; overload;
-function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): boolean; overload;
-function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
-function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): boolean; overload;
-function SimpleIntersect(const l1, l2: TLineV2): boolean; overload;
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; overload;
-function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): boolean; overload;
-function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): boolean; overload;
-function Intersect(const l1, l2: TLineV2; out pt: TVec2): boolean; overload;
-function Intersect(const pt1, pt2, pt3, pt4: TVec2): boolean; overload;
-function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; overload;
-function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; overload;
+function Orientation(const x1, y1, x2, y2, Px, Py: TGeoFloat): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Orientation(const x1, y1, z1, x2, y2, z2, x3, y3, z3, Px, Py, Pz: TGeoFloat): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Coplanar(const x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function SimpleIntersect(const Point1, Point2, Point3, Point4: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function SimpleIntersect(const l1, l2: TLineV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Intersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat; out ix, iy: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2; out pt: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Intersect(const l1, l2: TLineV2; out pt: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Intersect(const pt1, pt2, pt3, pt4: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function PointInCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Vec2InCircle(const pt, cp: TVec2; radius: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): boolean;
-procedure BuildSinCosCache(const oSin, oCos: PGeoFloatArray; const b, E: TGeoFloat);
+function PointInTriangle(const Px, Py, x1, y1, x2, y2, x3, y3: TGeoFloat): boolean; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure BuildSinCosCache(const oSin, oCos: PGeoFloatArray; const b, E: TGeoFloat); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-procedure ClosestPointOnSegmentFromPoint(const x1, y1, x2, y2, Px, Py: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
-function ClosestPointOnSegmentFromPoint(const lb, le, pt: TVec2): TVec2; overload;
-function ClosestPointOnSegmentFromLine(const L: TLineV2; const pt: TVec2): TVec2; overload;
-function ClosestPointOnSegmentFromLine(const pt: TVec2; const L: TLineV2): TVec2; overload;
+procedure ClosestPointOnSegmentFromPoint(const x1, y1, x2, y2, Px, Py: TGeoFloat; out Nx, Ny: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ClosestPointOnSegmentFromPoint(const lb, le, pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ClosestPointOnSegmentFromLine(const L: TLineV2; const pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ClosestPointOnSegmentFromLine(const pt: TVec2; const L: TLineV2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function MinimumDistanceFromPointToLine(const Px, Py, x1, y1, x2, y2: TGeoFloat): TGeoFloat; overload;
-function MinimumDistanceFromPointToLine(const pt: TVec2; const L: TLineV2): TGeoFloat; overload;
-function MinimumDistanceFromPointToLine(const L: TLineV2; const pt: TVec2): TGeoFloat; overload;
-function MinimumDistanceFromPointToLine(const lb, le, pt: TVec2): TGeoFloat; overload;
+function MinimumDistanceFromPointToLine(const Px, Py, x1, y1, x2, y2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinimumDistanceFromPointToLine(const pt: TVec2; const L: TLineV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinimumDistanceFromPointToLine(const L: TLineV2; const pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinimumDistanceFromPointToLine(const lb, le, pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 // projection
-function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2; overload;
-function RectProjection(const sour, dest: TRectV2; const sour_rect: TRectV2): TRectV2; overload;
-function RectProjectionArrayV2(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;
+function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjection(const sour, dest: TRectV2; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionArrayV2(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function RectProjectionRotationDest(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; overload;
-function RectProjectionRotationDest(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; overload;
-function RectProjectionRotationSource(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; overload;
-function RectProjectionRotationSource(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; overload;
+function RectProjectionRotationDest(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationDest(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationSource(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationSource(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function RectProjectionRotationDest(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; overload;
-function RectProjectionRotationDest(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; overload;
-function RectProjectionRotationSource(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; overload;
-function RectProjectionRotationSource(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; overload;
+function RectProjectionRotationDest(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationDest(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationSource(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjectionRotationSource(const sour, dest: TRectV2; const Angle: TGeoFloat; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function RectRotationProjection(
   const sour, dest: TRectV2;
   const sourAxis, destAxis: TVec2;
   const sourAngle, destAngle: TGeoFloat;
-  const sour_pt: TVec2): TVec2; overload;
+  const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectRotationProjection(
   const sour, dest: TRectV2;
   const sourAxis, destAxis: TVec2;
   const sourAngle, destAngle: TGeoFloat;
-  const sour_rect: TRectV2): TRectV2; overload;
+  const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectRotationProjection(
   const sour, dest: TRectV2;
   const sourAngle, destAngle: TGeoFloat;
-  const sour_pt: TVec2): TVec2; overload;
+  const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectRotationProjection(
   const sour, dest: TRectV2;
   const sourAngle, destAngle: TGeoFloat;
-  const sour_rect: TRectV2): TRectV2; overload;
+  const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Quadrant(const Angle: TGeoFloat): TGeoInt; overload;
-procedure ProjectionPoint(const Srcx, Srcy, Dstx, Dsty, Dist: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
-procedure ProjectionPoint(const Srcx, Srcy, Srcz, Dstx, Dsty, Dstz, Dist: TGeoFloat; out Nx, Ny, Nz: TGeoFloat); overload;
-procedure ProjectionPoint(const Px, Py, Angle, Distance: TGeoFloat; out Nx, Ny: TGeoFloat); overload;
+function Quadrant(const Angle: TGeoFloat): TGeoInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure ProjectionPoint(const Srcx, Srcy, Dstx, Dsty, Dist: TGeoFloat; out Nx, Ny: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure ProjectionPoint(const Srcx, Srcy, Srcz, Dstx, Dsty, Dstz, Dist: TGeoFloat; out Nx, Ny, Nz: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+procedure ProjectionPoint(const Px, Py, Angle, Distance: TGeoFloat; out Nx, Ny: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function GetCicleRadiusInPolyEdge(R: TGeoFloat; PolySlices: TGeoInt): TGeoFloat;
+function GetCicleRadiusInPolyEdge(R: TGeoFloat; PolySlices: TGeoInt): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
 procedure Circle2LineIntersectionPoint(const lb, le, cp: TVec2; const radius: TGeoFloat;
-  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 procedure Circle2LineIntersectionPoint(const L: TLineV2; const cp: TVec2; radius: TGeoFloat;
-  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); overload;
+  out pt1in, pt2in: boolean; out ICnt: TGeoInt; out pt1, pt2: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-procedure Circle2CircleIntersectionPoint(const cp1, cp2: TVec2; const r1, r2: TGeoFloat; out Point1, Point2: TVec2); overload;
+procedure Circle2CircleIntersectionPoint(const cp1, cp2: TVec2; const r1, r2: TGeoFloat; out Point1, Point2: TVec2); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 // circle collision Detector
-function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
-function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; overload;
+function Detect_Circle2Circle(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function CircleCollision(const p1, p2: TVec2; const r1, r2: TGeoFloat): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function Detect_Circle2CirclePoint(const p1, p2: TVec2; const r1, r2: TGeoFloat; out op1, op2: TVec2): boolean;
 
 // circle 2 line collision
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): boolean; overload;
-function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): boolean; overload;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const lb, le: TVec2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Detect_Circle2Line(const cp: TVec2; const R: TGeoFloat; const L: TLineV2): boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function SameLinePtr(const lb1, le1, lb2, le2: PVec2): boolean;
+function SameLinePtr(const lb1, le1, lb2, le2: PVec2): boolean; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-function ComputeCurvePartPrecision(const pt1, pt2, pt3, pt4: TVec2): TGeoInt;
-function Interpolation_OutSide(const T_: TGeoFloat): TGeoFloat;
+function ComputeCurvePartPrecision(const pt1, pt2, pt3, pt4: TVec2): TGeoInt; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function Interpolation_OutSide(const T_: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function Interpolation_InSide(const t: TGeoFloat): TGeoFloat;
 {$ENDREGION 'API'}
 {$REGION 'TV2Rect4'}

@@ -467,7 +467,7 @@ function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
           end;
       end
     else
-        raise Exception.Create('Z.OpCode failed');
+        raise Exception.Create('load OpCode failed');
   end;
 
 var

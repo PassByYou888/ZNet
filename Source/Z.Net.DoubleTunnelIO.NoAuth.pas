@@ -4,7 +4,7 @@
 
 unit Z.Net.DoubleTunnelIO.NoAuth;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -60,7 +60,7 @@ type
   protected
     FRecvTunnel, FSendTunnel: TZNet_Server;
     FCadencerEngine: TCadencer;
-    FProgressEngine: TNProgressPost;
+    FProgressEngine: TN_Progress_Tool;
     FFileSystem: Boolean;
     FFileShareDirectory: SystemString;
     { event }
@@ -122,11 +122,11 @@ type
 
     property CadencerEngine: TCadencer read FCadencerEngine;
 
-    property ProgressEngine: TNProgressPost read FProgressEngine;
-    property ProgressPost: TNProgressPost read FProgressEngine;
-    property PostProgress: TNProgressPost read FProgressEngine;
-    property PostRun: TNProgressPost read FProgressEngine;
-    property PostExecute: TNProgressPost read FProgressEngine;
+    property ProgressEngine: TN_Progress_Tool read FProgressEngine;
+    property ProgressPost: TN_Progress_Tool read FProgressEngine;
+    property PostProgress: TN_Progress_Tool read FProgressEngine;
+    property PostRun: TN_Progress_Tool read FProgressEngine;
+    property PostExecute: TN_Progress_Tool read FProgressEngine;
 
     property FileSystem: Boolean read FFileSystem write FFileSystem;
     property FileReceiveDirectory: SystemString read FFileShareDirectory write FFileShareDirectory;
@@ -211,7 +211,7 @@ type
     FCurrentReceiveStreamFileName: SystemString;
 
     FCadencerEngine: TCadencer;
-    FProgressEngine: TNProgressPost;
+    FProgressEngine: TN_Progress_Tool;
 
     FLastCadencerTime: Double;
     FServerDelay: Double;
@@ -376,11 +376,11 @@ type
 
     property CadencerEngine: TCadencer read FCadencerEngine;
 
-    property ProgressEngine: TNProgressPost read FProgressEngine;
-    property ProgressPost: TNProgressPost read FProgressEngine;
-    property PostProgress: TNProgressPost read FProgressEngine;
-    property PostRun: TNProgressPost read FProgressEngine;
-    property PostExecute: TNProgressPost read FProgressEngine;
+    property ProgressEngine: TN_Progress_Tool read FProgressEngine;
+    property ProgressPost: TN_Progress_Tool read FProgressEngine;
+    property PostProgress: TN_Progress_Tool read FProgressEngine;
+    property PostRun: TN_Progress_Tool read FProgressEngine;
+    property PostExecute: TN_Progress_Tool read FProgressEngine;
 
     property ServerDelay: Double read FServerDelay;
 
@@ -1428,7 +1428,7 @@ begin
 
   FCadencerEngine := TCadencer.Create;
   FCadencerEngine.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}CadencerProgress;
-  FProgressEngine := TNProgressPost.Create;
+  FProgressEngine := TN_Progress_Tool.Create;
 
   FFileSystem := {$IFDEF DoubleIOFileSystem}True{$ELSE DoubleIOFileSystem}False{$ENDIF DoubleIOFileSystem};
   FFileShareDirectory := umlCurrentPath;
@@ -2179,7 +2179,7 @@ begin
 
   FCadencerEngine := TCadencer.Create;
   FCadencerEngine.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}CadencerProgress;
-  FProgressEngine := TNProgressPost.Create;
+  FProgressEngine := TN_Progress_Tool.Create;
 
   FLastCadencerTime := 0;
   FServerDelay := 0;

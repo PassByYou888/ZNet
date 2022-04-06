@@ -53,7 +53,7 @@ type
     FOnProgress_C: TCadencerProgress_C;
     FOnProgress_P: TCadencerProgress_P;
     FProgressing: Integer;
-    FProgressIntf: ICadencerProgressInterface;
+    FOn_Progress_Interface: ICadencerProgressInterface;
   protected
     function StoreTimeMultiplier: Boolean;
     procedure SetEnabled(const val_: Boolean);
@@ -120,8 +120,8 @@ type
     property OnProgress_C: TCadencerProgress_C read FOnProgress_C write FOnProgress_C;
     property OnProgress_P: TCadencerProgress_P read FOnProgress_P write FOnProgress_P;
     { interface }
-    property ProgressInterface: ICadencerProgressInterface read FProgressIntf write FProgressIntf;
-    property OnProgressInterface: ICadencerProgressInterface read FProgressIntf write FProgressIntf;
+    property ProgressInterface: ICadencerProgressInterface read FOn_Progress_Interface write FOn_Progress_Interface;
+    property OnProgressInterface: ICadencerProgressInterface read FOn_Progress_Interface write FOn_Progress_Interface;
   end;
 
 implementation
@@ -195,7 +195,7 @@ begin
   FOnProgress := nil;
   FOnProgress_C := nil;
   FOnProgress_P := nil;
-  FProgressIntf := nil;
+  FOn_Progress_Interface := nil;
 end;
 
 destructor TCadencer.Destroy;
@@ -254,8 +254,8 @@ begin
                           FOnProgress_C(Self, deltaTime, newTime);
                       if Assigned(FOnProgress_P) then
                           FOnProgress_P(Self, deltaTime, newTime);
-                      if Assigned(FProgressIntf) then
-                          FProgressIntf.CadencerProgress(deltaTime, newTime);
+                      if Assigned(FOn_Progress_Interface) then
+                          FOn_Progress_Interface.CadencerProgress(deltaTime, newTime);
                     except
                     end;
 

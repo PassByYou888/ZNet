@@ -100,64 +100,73 @@ type
     class procedure Test();
   end;
 
-  TPost_ThreadPool = class;
+  TThread_Event_Pool__ = class;
 
-  TPost_Thread = class
-  private
-    FOwner: TPost_ThreadPool;
-    FBindTh: TCompute;
-    FPost: TThreadPost;
-    FActivted: TAtomBool;
-    procedure ThRun(thSender: TCompute);
-  public
-    constructor Create(Owner_: TPost_ThreadPool);
-    destructor Destroy; override;
+  TThread_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TThread_Event_Pool__>;
 
-    property BindTh: TCompute read FBindTh;
-    property Post: TThreadPost read FPost;
-
-    procedure PostC1(OnSync: TThreadPost_C1);
-    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
-    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
-    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
-
-    procedure PostM1(OnSync: TThreadPost_M1);
-    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
-    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
-    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
-
-    procedure PostP1(OnSync: TThreadPost_P1);
-    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
-    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
-    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
-  end;
-
-  TPost_ThreadPool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TPost_Thread>;
-
-  TPost_ThreadPool = class(TPost_ThreadPool_Decl)
+  TThread_Pool = class(TThread_Pool_Decl)
   private
     FCritical: TCritical;
     FQueueOptimized: Boolean;
-    FNextID: Integer;
-    procedure AddTh(th: TPost_Thread);
-    procedure RemoveTh(th: TPost_Thread);
   public
     constructor Create(ThNum_: Integer);
     destructor Destroy; override;
     property QueueOptimized: Boolean read FQueueOptimized write FQueueOptimized;
 
-    function ThNum: Integer;
-    function TaskNum: Integer;
+    function ThNum: NativeInt;
+    function TaskNum: NativeInt;
 
     procedure Wait(); overload;
-    procedure Wait(th: TPost_Thread); overload;
+    procedure Wait(Th: TThread_Event_Pool__); overload;
 
-    function Next_Thread: TPost_Thread;
-    function MinLoad_Thread: TPost_Thread;
-    function IDLE_Thread: TPost_Thread;
+    function Next_Thread: TThread_Event_Pool__;
+    function MinLoad_Thread: TThread_Event_Pool__;
+    function IDLE_Thread: TThread_Event_Pool__;
 
     procedure DoTest_C();
     class procedure Test();
+  end;
+
+  TThread_Event_Pool__ = class
+  private
+    FOwner: TThread_Pool;
+    FBindTh: TCompute;
+    FPost: TThreadPost;
+    FActivted: TAtomBool;
+    FPool_Data_Ptr: TThread_Pool.PQueueStruct;
+    procedure ThRun(ThSender: TCompute);
+  public
+    constructor Create(Owner_: TThread_Pool);
+    destructor Destroy; override;
+
+    property Post: TThreadPost read FPost;
+    // post thread Call
+    procedure PostC1(OnSync: TThreadPost_C1); overload;
+    procedure PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2); overload;
+    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3); overload;
+    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4); overload;
+    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean); overload;
+    // post thread Method
+    procedure PostM1(OnSync: TThreadPost_M1); overload;
+    procedure PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2); overload;
+    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3); overload;
+    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4); overload;
+    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean); overload;
+    // post thread Proc
+    procedure PostP1(OnSync: TThreadPost_P1); overload;
+    procedure PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2); overload;
+    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3); overload;
+    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4); overload;
+    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean); overload;
   end;
 
 procedure Test_IOData__C(Sender: TIO_Thread_Data);
@@ -487,160 +496,40 @@ begin
     end;
 end;
 
-procedure TPost_Thread.ThRun(thSender: TCompute);
-var
-  L: Integer;
-  LastTK, IdleTK: TTimeTick;
-begin
-  FBindTh := thSender;
-  FPost := TThreadPost.Create(thSender.ThreadID);
-  FPost.OneStep := False;
-  FPost.ResetRandomSeed := False;
-  FActivted := TAtomBool.Create(True);
-
-  FOwner.AddTh(Self);
-
-  LastTK := GetTimeTick();
-  while FActivted.V do
-    begin
-      L := FPost.Progress(FPost.ThreadID);
-      if L > 0 then
-          LastTK := GetTimeTick()
-      else
-        begin
-          IdleTK := GetTimeTick() - LastTK;
-          if IdleTK > 1000 then
-              TCompute.Sleep(1);
-        end;
-    end;
-
-  FBindTh := nil;
-  DisposeObjectAndNil(FPost);
-  DisposeObjectAndNil(FActivted);
-
-  FOwner.RemoveTh(Self);
-  Free;
-end;
-
-constructor TPost_Thread.Create(Owner_: TPost_ThreadPool);
-begin
-  inherited Create;
-  FOwner := Owner_;
-  FBindTh := nil;
-  FPost := nil;
-  FActivted := nil;
-  TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}ThRun);
-end;
-
-destructor TPost_Thread.Destroy;
-begin
-  inherited Destroy;
-end;
-
-procedure TPost_Thread.PostC1(OnSync: TThreadPost_C1);
-begin
-  FPost.PostC1(OnSync);
-end;
-
-procedure TPost_Thread.PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
-begin
-  FPost.PostC2(Data1, OnSync);
-end;
-
-procedure TPost_Thread.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
-begin
-  FPost.PostC3(Data1, Data2, Data3, OnSync);
-end;
-
-procedure TPost_Thread.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
-begin
-  FPost.PostC4(Data1, Data2, OnSync);
-end;
-
-procedure TPost_Thread.PostM1(OnSync: TThreadPost_M1);
-begin
-  FPost.PostM1(OnSync);
-end;
-
-procedure TPost_Thread.PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
-begin
-  FPost.PostM2(Data1, OnSync);
-end;
-
-procedure TPost_Thread.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
-begin
-  FPost.PostM3(Data1, Data2, Data3, OnSync);
-end;
-
-procedure TPost_Thread.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
-begin
-  FPost.PostM4(Data1, Data2, OnSync);
-end;
-
-procedure TPost_Thread.PostP1(OnSync: TThreadPost_P1);
-begin
-  FPost.PostP1(OnSync);
-end;
-
-procedure TPost_Thread.PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
-begin
-  FPost.PostP2(Data1, OnSync);
-end;
-
-procedure TPost_Thread.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
-begin
-  FPost.PostP3(Data1, Data2, Data3, OnSync);
-end;
-
-procedure TPost_Thread.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
-begin
-  FPost.PostP4(Data1, Data2, OnSync);
-end;
-
-procedure TPost_ThreadPool.AddTh(th: TPost_Thread);
-begin
-  FCritical.Lock;
-  Add(th);
-  FCritical.UnLock;
-end;
-
-procedure TPost_ThreadPool.RemoveTh(th: TPost_Thread);
-var
-  i: Integer;
-begin
-  FCritical.Lock;
-  i := 0;
-  while i < Count do
-    begin
-      if items[i] = th then
-          Delete(i)
-      else
-          inc(i);
-    end;
-  FCritical.UnLock;
-end;
-
-constructor TPost_ThreadPool.Create(ThNum_: Integer);
+constructor TThread_Pool.Create(ThNum_: Integer);
 var
   i: Integer;
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  FNextID := 0;
   FQueueOptimized := True;
+
   for i := 0 to ThNum_ - 1 do
-      TPost_Thread.Create(Self);
+      TThread_Event_Pool__.Create(Self);
+
   while ThNum() < ThNum_ do
       TCompute.Sleep(1);
 end;
 
-destructor TPost_ThreadPool.Destroy;
-var
-  i: Integer;
+destructor TThread_Pool.Destroy;
+{$IFDEF FPC}
+  procedure fpc_progress_(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+  begin
+    p^.Data.FActivted.V := False;
+  end;
+{$ENDIF FPC}
+
+
 begin
   FCritical.Lock;
-  for i := 0 to Count - 1 do
-      items[i].FActivted.V := False;
+{$IFDEF FPC}
+  Progress_P(@fpc_progress_);
+{$ELSE FPC}
+  Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+    begin
+      p^.Data.FActivted.V := False;
+    end);
+{$ENDIF FPC}
   FCritical.UnLock;
 
   while ThNum > 0 do
@@ -650,113 +539,162 @@ begin
   inherited Destroy;
 end;
 
-function TPost_ThreadPool.ThNum: Integer;
+function TThread_Pool.ThNum: NativeInt;
 begin
   FCritical.Lock;
-  Result := Count;
+  Result := Num;
   FCritical.UnLock;
 end;
 
-function TPost_ThreadPool.TaskNum: Integer;
+function TThread_Pool.TaskNum: NativeInt;
 var
-  i: Integer;
+  R_: Int64;
+{$IFDEF FPC}
+  procedure fpc_progress_(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+  begin
+    inc(R_, p^.Data.FPost.Count);
+  end;
+{$ENDIF FPC}
+
+
 begin
-  FCritical.Lock;
-  Result := 0;
-  for i := 0 to Count - 1 do
-      inc(Result, items[i].FPost.Count);
-  FCritical.UnLock;
+  R_ := 0;
+{$IFDEF FPC}
+  Progress_P(@fpc_progress_);
+{$ELSE FPC}
+  Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+    begin
+      inc(R_, p^.Data.FPost.Count);
+    end);
+{$ENDIF FPC}
+  Result := R_;
 end;
 
-procedure TPost_ThreadPool.Wait;
+procedure TThread_Pool.Wait;
 begin
   while TaskNum > 0 do
       TCompute.Sleep(1);
 end;
 
-procedure TPost_ThreadPool.Wait(th: TPost_Thread);
+procedure TThread_Pool.Wait(Th: TThread_Event_Pool__);
 begin
-  while th.FPost.Count > 0 do
+  while Th.FPost.Count > 0 do
       TCompute.Sleep(1);
 end;
 
-function TPost_ThreadPool.Next_Thread: TPost_Thread;
+function TThread_Pool.Next_Thread: TThread_Event_Pool__;
 begin
-  if ThNum = 0 then
-      RaiseInfo('pool is empty.');
-  FCritical.Acquire;
-  try
-    if FNextID >= Count then
-        FNextID := 0;
-    Result := items[FNextID];
-    inc(FNextID);
-  finally
-      FCritical.Release;
-  end;
-end;
-
-function TPost_ThreadPool.MinLoad_Thread: TPost_Thread;
-var
-  i, id_: Integer;
-  th: TPost_Thread;
-begin
-  if ThNum = 0 then
-      RaiseInfo('pool is empty.');
-  FCritical.Acquire;
-  try
-    for i := 0 to Count - 1 do
-      if (not items[i].FPost.Busy) then
-        begin
-          if (FQueueOptimized) and (i < Count - 1) then
-              Move(i, Count - 1);
-          Result := items[i];
-          exit;
-        end;
-
-    th := items[0];
-    id_ := 0;
-    for i := 1 to Count - 1 do
-      if items[i].FPost.Count < th.FPost.Count then
-        begin
-          th := items[i];
-          id_ := i;
-        end;
-    if (FQueueOptimized) and (id_ < Count - 1) then
-        Move(id_, Count - 1);
-    Result := th;
-  finally
-      FCritical.Release;
-  end;
-end;
-
-function TPost_ThreadPool.IDLE_Thread: TPost_Thread;
-var
-  i: Integer;
-begin
-  if ThNum = 0 then
-      RaiseInfo('pool is empty.');
-  FCritical.Acquire;
   Result := nil;
+  if Num = 0 then
+      exit;
+  FCritical.Acquire;
   try
-    for i := 0 to Count - 1 do
-      if not items[i].FPost.Busy then
-          exit(items[i]);
+    Result := First^.Data;
+    MoveToLast(First);
   finally
       FCritical.Release;
   end;
 end;
 
-procedure TPost_ThreadPool.DoTest_C;
+function TThread_Pool.MinLoad_Thread: TThread_Event_Pool__;
+var
+  Eng_: PQueueStruct;
+{$IFDEF FPC}
+  procedure do_fpc_Progress(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+  begin
+    if Eng_ = nil then
+        Eng_ := p
+    else if p^.Data.FPost.Count < Eng_^.Data.FPost.Count then
+        Eng_ := p;
+  end;
+{$ENDIF FPC}
+
+
+begin
+  Result := nil;
+  if Num = 0 then
+      exit;
+  FCritical.Acquire;
+  Eng_ := nil;
+  try
+{$IFDEF FPC}
+    Progress_P(@do_fpc_Progress);
+{$ELSE FPC}
+    Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+      begin
+        if Eng_ = nil then
+            Eng_ := p
+        else if p^.Data.FPost.Count < Eng_^.Data.FPost.Count then
+            Eng_ := p;
+      end);
+{$ENDIF FPC}
+    if Eng_ <> nil then
+      begin
+        Result := Eng_^.Data;
+        if FQueueOptimized then
+            MoveToLast(Eng_);
+      end;
+  finally
+      FCritical.Release;
+  end;
+end;
+
+function TThread_Pool.IDLE_Thread: TThread_Event_Pool__;
+var
+  Eng_: PQueueStruct;
+{$IFDEF FPC}
+  procedure do_fpc_Progress(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+  begin
+    if not p^.Data.FPost.Busy then
+      begin
+        Eng_ := p;
+        Aborted := True;
+      end;
+  end;
+{$ENDIF FPC}
+
+
+begin
+  Result := nil;
+  if Num = 0 then
+      exit;
+  FCritical.Acquire;
+  Eng_ := nil;
+  try
+{$IFDEF FPC}
+    Progress_P(@do_fpc_Progress);
+{$ELSE FPC}
+    Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+      begin
+        if not p^.Data.FPost.Busy then
+          begin
+            Eng_ := p;
+            Aborted := True;
+          end;
+      end);
+{$ENDIF FPC}
+    if Eng_ <> nil then
+      begin
+        Result := Eng_^.Data;
+        if FQueueOptimized then
+            MoveToLast(Eng_);
+      end;
+  finally
+      FCritical.Release;
+  end;
+end;
+
+procedure TThread_Pool.DoTest_C;
 begin
   DoStatus('current post thread: %d', [TCompute.CurrentThread.ThreadID]);
 end;
 
-class procedure TPost_ThreadPool.Test;
+class procedure TThread_Pool.Test;
 var
-  pool: TPost_ThreadPool;
+  pool: TThread_Pool;
   i: Integer;
 begin
-  pool := TPost_ThreadPool.Create(2);
+  pool := TThread_Pool.Create(2);
   for i := 0 to 9 do
       pool.Next_Thread.PostM1({$IFDEF FPC}@{$ENDIF FPC}pool.DoTest_C);
   pool.Wait;
@@ -764,6 +702,180 @@ begin
       pool.MinLoad_Thread.PostM1({$IFDEF FPC}@{$ENDIF FPC}pool.DoTest_C);
   pool.Wait;
   DisposeObject(pool);
+end;
+
+procedure TThread_Event_Pool__.ThRun(ThSender: TCompute);
+var
+  L: NativeInt;
+  Last_TK, IDLE_TK: TTimeTick;
+begin
+  FBindTh := ThSender;
+  FPost := TThreadPost.Create(ThSender.ThreadID);
+  FPost.OneStep := False;
+  FPost.ResetRandomSeed := False;
+  FActivted := TAtomBool.Create(True);
+
+  FOwner.FCritical.Lock;
+  FPool_Data_Ptr := FOwner.Add(Self);
+  FOwner.FCritical.UnLock;
+
+  Last_TK := GetTimeTick();
+  while FActivted.V do
+    begin
+      L := FPost.Progress(FPost.ThreadID);
+      if L > 0 then
+          Last_TK := GetTimeTick()
+      else
+        begin
+          IDLE_TK := GetTimeTick() - Last_TK;
+          if IDLE_TK > 1000 then
+              TCompute.Sleep(1);
+        end;
+    end;
+
+  FOwner.FCritical.Lock;
+  FOwner.Remove(FPool_Data_Ptr);
+  FOwner.FCritical.UnLock;
+
+  FBindTh := nil;
+  DisposeObjectAndNil(FPost);
+  DisposeObjectAndNil(FActivted);
+  Free;
+end;
+
+constructor TThread_Event_Pool__.Create(Owner_: TThread_Pool);
+begin
+  inherited Create;
+  FOwner := Owner_;
+  FBindTh := nil;
+  FPost := nil;
+  FActivted := nil;
+  TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}ThRun);
+end;
+
+destructor TThread_Event_Pool__.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TThread_Event_Pool__.PostC1(OnSync: TThreadPost_C1);
+begin
+  FPost.PostC1(OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostC1(OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
+begin
+  FPost.PostC2(Data1, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostC2(Data1: Pointer; OnSync: TThreadPost_C2; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostC2(Data1, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+begin
+  FPost.PostC3(Data1, Data2, Data3, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostC3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+begin
+  FPost.PostC4(Data1, Data2, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostC4(Data1, Data2, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostM1(OnSync: TThreadPost_M1);
+begin
+  FPost.PostM1(OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostM1(OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
+begin
+  FPost.PostM2(Data1, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostM2(Data1: Pointer; OnSync: TThreadPost_M2; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostM2(Data1, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+begin
+  FPost.PostM3(Data1, Data2, Data3, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostM3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+begin
+  FPost.PostM4(Data1, Data2, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostM4(Data1, Data2, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostP1(OnSync: TThreadPost_P1);
+begin
+  FPost.PostP1(OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostP1(OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
+begin
+  FPost.PostP2(Data1, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostP2(Data1: Pointer; OnSync: TThreadPost_P2; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostP2(Data1, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+begin
+  FPost.PostP3(Data1, Data2, Data3, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostP3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
+end;
+
+procedure TThread_Event_Pool__.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+begin
+  FPost.PostP4(Data1, Data2, OnSync);
+end;
+
+procedure TThread_Event_Pool__.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean);
+begin
+  FPost.PostP4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
 
 end.

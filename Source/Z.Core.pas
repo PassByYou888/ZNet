@@ -239,8 +239,6 @@ type
 {$Region 'OrderStruct'}
   {$IFDEF FPC}generic{$ENDIF FPC}TOrderStruct<T_> = class(TCore_Object)
   public type
-    T = T_;
-    PT_ = ^T_;
     POrderStruct_ = ^TOrderStruct_;
     TOrderStruct_ = record
       Data: T_;
@@ -264,13 +262,11 @@ type
     procedure Next;
     procedure Push(Data: T_);
     property Num: NativeInt read FNum;
-    property OnFreeOrderStruct: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
     property OnFree: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}TOrderPtrStruct<T_> = class(TCore_Object)
   public type
-    T = T_;
     PT_ = ^T_;
     POrderPtrStruct_ = ^TOrderPtrStruct_;
     TOrderPtrStruct_ = record
@@ -296,14 +292,11 @@ type
     procedure Push(Data: T_);
     procedure PushPtr(Data: PT_);
     property Num: NativeInt read FNum;
-    property OnFreeOrderStruct: TOnFreeOrderPtrStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
     property OnFree: TOnFreeOrderPtrStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}TCriticalOrderStruct<T_> = class(TCore_Object)
   public type
-    T = T_;
-    PT_ = ^T_;
     POrderStruct_ = ^TOrderStruct_;
     TOrderStruct_ = record
       Data: T_;
@@ -318,6 +311,7 @@ type
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderStruct;
     procedure DoInternalFree(p: POrderStruct_);
   public
+    property Critical: TCritical read FCritical;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
@@ -329,13 +323,11 @@ type
     procedure Push(Data: T_);
     function GetNum: NativeInt;
     property Num: NativeInt read GetNum;
-    property OnFreeCriticalOrderStruct: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
     property OnFree: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}TCriticalOrderPtrStruct<T_> = class(TCore_Object)
   public type
-    T = T_;
     PT_ = ^T_;
     POrderPtrStruct_ = ^TOrderPtrStruct_;
     TOrderPtrStruct_ = record
@@ -351,6 +343,7 @@ type
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderPtrStruct;
     procedure DoInternalFree(p: POrderPtrStruct_);
   public
+    property Critical: TCritical read FCritical;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(Data: PT_); virtual;
@@ -363,11 +356,166 @@ type
     procedure PushPtr(Data: PT_);
     function GetNum: NativeInt;
     property Num: NativeInt read GetNum;
-    property OnFreeCriticalOrderStruct: TOnFreeCriticalOrderPtrStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
     property OnFree: TOnFreeCriticalOrderPtrStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
   end;
-
 {$EndRegion 'OrderStruct'}
+{$Region 'BigList'}
+  {$IFDEF FPC}generic{$ENDIF FPC} TBigList<T_> = class(TCore_Object)
+  public type
+    PQueueStruct = ^TQueueStruct;
+    PPQueueStruct = ^PQueueStruct;
+
+    TQueueStruct = record
+      Data: T_;
+      Next: PQueueStruct;
+      Prev: PQueueStruct;
+{$IFDEF DEBUG}
+      Instance_: TCore_Object;
+{$ENDIF DEBUG}
+    end;
+
+    TArray_T_ = array of T_;
+    TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
+    TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
+    PQueueArrayStruct = ^TQueueArrayStruct;
+    TOnFreeQueueStruct = procedure(var p: T_) of object;
+    TQueneStructProgress_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructProgress_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
+{$IFDEF FPC}
+    TQueneStructProgress_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+{$ELSE FPC}
+    TQueneStructProgress_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+{$ENDIF FPC}
+  private
+    FRecycle_Pool__: TRecycle_Pool__;
+    FFirst: PQueueStruct;
+    FLast: PQueueStruct;
+    FNum: NativeInt;
+    FOnFreeQueueStruct: TOnFreeQueueStruct;
+    FChanged: Boolean;
+    FList: Pointer;
+    FProgress_Busy: NativeInt;
+    procedure DoInternalFree(p: PQueueStruct);
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure DoFree(var Data: T_); virtual;
+    procedure Push_To_Recycle_Pool(p: PQueueStruct);
+    procedure Free_Recycle_Pool;
+    procedure Clear;
+    property First: PQueueStruct read FFirst;
+    property Last: PQueueStruct read FLast;
+    procedure Next;
+    function Add(Data: T_): PQueueStruct;
+    function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
+    procedure Remove(p: PQueueStruct);
+    procedure Move_Before(p, To_: PQueueStruct);
+    procedure MoveToFirst(p: PQueueStruct);
+    procedure MoveToLast(p: PQueueStruct);
+    procedure Exchange(p1, p2: PQueueStruct);
+    function Found(p1: PQueueStruct): Boolean;
+    property Progress_Busy: NativeInt read FProgress_Busy;
+    procedure Progress_C(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_C); overload;
+    procedure Progress_M(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_M); overload;
+    procedure Progress_P(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_P); overload;
+    procedure Progress_C(OnProgress: TQueneStructProgress_C); overload;
+    procedure Progress_M(OnProgress: TQueneStructProgress_M); overload;
+    procedure Progress_P(OnProgress: TQueneStructProgress_P); overload;
+    function ToArray(): TArray_T_;
+    function BuildArrayMemory: PQueueArrayStruct;
+    function CheckList: PQueueArrayStruct;
+    function GetList(const Index: NativeInt): PQueueStruct;
+    procedure SetList(const Index: NativeInt; const Value: PQueueStruct);
+    property List[const Index: NativeInt]: PQueueStruct read GetList write SetList;
+    function GetItems(const Index: NativeInt): T_;
+    procedure SetItems(const Index: NativeInt; const Value: T_);
+    property Items[const Index: NativeInt]: T_ read GetItems write SetItems; default;
+    property Num: NativeInt read FNum;
+    property Count: NativeInt read FNum;
+    property OnFree: TOnFreeQueueStruct read FOnFreeQueueStruct write FOnFreeQueueStruct;
+    function Check: Boolean;
+    class procedure Test;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC} TCriticalBigList<T_> = class(TCore_Object)
+  public type
+    PQueueStruct = ^TQueueStruct;
+    PPQueueStruct = ^PQueueStruct;
+
+    TQueueStruct = record
+      Data: T_;
+      Next: PQueueStruct;
+      Prev: PQueueStruct;
+{$IFDEF DEBUG}
+      Instance_: TCore_Object;
+{$ENDIF DEBUG}
+    end;
+
+    TArray_T_ = array of T_;
+    TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
+    TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
+    PQueueArrayStruct = ^TQueueArrayStruct;
+    TOnFreeQueueStruct = procedure(var p: T_) of object;
+    TQueneStructProgress_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructProgress_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
+{$IFDEF FPC}
+    TQueneStructProgress_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+{$ELSE FPC}
+    TQueneStructProgress_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+{$ENDIF FPC}
+  private
+    FCritical: TCritical;
+    FRecycle_Pool__: TRecycle_Pool__;
+    FFirst: PQueueStruct;
+    FLast: PQueueStruct;
+    FNum: NativeInt;
+    FOnFreeQueueStruct: TOnFreeQueueStruct;
+    FChanged: Boolean;
+    FList: Pointer;
+    FProgress_Busy: NativeInt;
+    procedure DoInternalFree(p: PQueueStruct);
+  public
+    property Critical: TCritical read FCritical;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure DoFree(var Data: T_); virtual;
+    procedure Push_To_Recycle_Pool(p: PQueueStruct);
+    procedure Free_Recycle_Pool;
+    procedure Clear;
+    property First: PQueueStruct read FFirst;
+    property Last: PQueueStruct read FLast;
+    procedure Next;
+    function Add(Data: T_): PQueueStruct;
+    function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
+    procedure Remove(p: PQueueStruct);
+    procedure Move_Before(p, To_: PQueueStruct);
+    procedure MoveToFirst(p: PQueueStruct);
+    procedure MoveToLast(p: PQueueStruct);
+    procedure Exchange(p1, p2: PQueueStruct);
+    function Found(p1: PQueueStruct): Boolean;
+    property Progress_Busy: NativeInt read FProgress_Busy;
+    procedure Progress_C(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_C); overload;
+    procedure Progress_M(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_M); overload;
+    procedure Progress_P(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_P); overload;
+    procedure Progress_C(OnProgress: TQueneStructProgress_C); overload;
+    procedure Progress_M(OnProgress: TQueneStructProgress_M); overload;
+    procedure Progress_P(OnProgress: TQueneStructProgress_P); overload;
+    function ToArray(): TArray_T_;
+    function BuildArrayMemory: PQueueArrayStruct;
+    function CheckList: PQueueArrayStruct;
+    function GetList(const Index: NativeInt): PQueueStruct;
+    procedure SetList(const Index: NativeInt; const Value: PQueueStruct);
+    property List[const Index: NativeInt]: PQueueStruct read GetList write SetList;
+    function GetItems(const Index: NativeInt): T_;
+    procedure SetItems(const Index: NativeInt; const Value: T_);
+    property Items[const Index: NativeInt]: T_ read GetItems write SetItems; default;
+    property Num: NativeInt read FNum;
+    property Count: NativeInt read FNum;
+    property OnFree: TOnFreeQueueStruct read FOnFreeQueueStruct write FOnFreeQueueStruct;
+    function Check: Boolean;
+    class procedure Test;
+  end;
+{$EndRegion 'BigList'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -389,65 +537,79 @@ type
   TThreadPost_P4 = reference to procedure(Data1: Pointer; Data2: TCore_Object);
 {$ENDIF FPC}
 
-  TThreadPostData = record
-    On_C1: TThreadPost_C1;
-    On_C2: TThreadPost_C2;
-    On_C3: TThreadPost_C3;
-    On_C4: TThreadPost_C4;
-    On_M1: TThreadPost_M1;
-    On_M2: TThreadPost_M2;
-    On_M3: TThreadPost_M3;
-    On_M4: TThreadPost_M4;
-    On_P1: TThreadPost_P1;
-    On_P2: TThreadPost_P2;
-    On_P3: TThreadPost_P3;
-    On_P4: TThreadPost_P4;
-    Data1: Pointer;
-    Data2: TCore_Object;
-    Data3: Variant;
-    procedure Init;
-  end;
-
-  TThreadPostDataOrder = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderPtrStruct<TThreadPostData>;
-
   TThreadPost = class(TCore_Object)
+  private type
+    TThread_Post_Data = record
+      On_C1: TThreadPost_C1;
+      On_C2: TThreadPost_C2;
+      On_C3: TThreadPost_C3;
+      On_C4: TThreadPost_C4;
+      On_M1: TThreadPost_M1;
+      On_M2: TThreadPost_M2;
+      On_M3: TThreadPost_M3;
+      On_M4: TThreadPost_M4;
+      On_P1: TThreadPost_P1;
+      On_P2: TThreadPost_P2;
+      On_P3: TThreadPost_P3;
+      On_P4: TThreadPost_P4;
+      Data1: Pointer;
+      Data2: TCore_Object;
+      Data3: Variant;
+      IsRuning, IsExit: PBoolean;
+      procedure Init;
+    end;
+
+    TThread_Post_Data_Order_Struct__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderPtrStruct<TThread_Post_Data>;
   protected
     FCritical: TCritical;
     FThreadID: TThreadID;
-    FSyncPool: TThreadPostDataOrder;
+    FSyncPool: TThread_Post_Data_Order_Struct__;
     FProgressing: TAtomBool;
     FOneStep: Boolean;
     FResetRandomSeed: Boolean;
-    procedure FreeThreadProgressPostData(p: TThreadPostDataOrder.PT_);
+    procedure FreeThreadProgressPostData(p: TThread_Post_Data_Order_Struct__.PT_);
   public
     constructor Create(ThreadID_: TThreadID);
     destructor Destroy; override;
     property ThreadID: TThreadID read FThreadID write FThreadID;
     property OneStep: Boolean read FOneStep write FOneStep;
     property ResetRandomSeed: Boolean read FResetRandomSeed write FResetRandomSeed;
-    property SyncPool: TThreadPostDataOrder read FSyncPool;
-    function Count: Integer;
+    property SyncPool: TThread_Post_Data_Order_Struct__ read FSyncPool;
+    function Count: NativeInt;
+    property Num: NativeInt read Count;
     function Busy: Boolean;
 
-    function Progress(ThreadID_: TThreadID): Integer; overload;
-    function Progress(Thread_: TThread): Integer; overload;
+    function Progress(ThreadID_: TThreadID): NativeInt; overload;
+    function Progress(Thread_: TThread): NativeInt; overload;
     function Progress(): Integer; overload;
 
-    // post thread synchronization
-    procedure PostC1(OnSync: TThreadPost_C1);
-    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
-    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
-    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
-
-    procedure PostM1(OnSync: TThreadPost_M1);
-    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
-    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
-    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
-
-    procedure PostP1(OnSync: TThreadPost_P1);
-    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
-    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
-    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+    // post thread synchronization,Call
+    procedure PostC1(OnSync: TThreadPost_C1); overload;
+    procedure PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2); overload;
+    procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3); overload;
+    procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4); overload;
+    procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean); overload;
+    // post thread synchronization,Method
+    procedure PostM1(OnSync: TThreadPost_M1); overload;
+    procedure PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2); overload;
+    procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3); overload;
+    procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4); overload;
+    procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean); overload;
+    // post thread synchronization,Proc
+    procedure PostP1(OnSync: TThreadPost_P1); overload;
+    procedure PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2); overload;
+    procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3); overload;
+    procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean); overload;
+    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4); overload;
+    procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean); overload;
   end;
 
 {$EndRegion 'ThreadPost'}
@@ -465,9 +627,11 @@ type
   TRunWithThread_P = reference to procedure(ThSender: TCompute);
   TRunWithThread_P_NP = reference to procedure();
   {$ENDIF FPC}
+  TCoreCompute_Thread_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCompute>;
 
   TCompute = class(TCore_Thread)
   private
+    Thread_Pool_Queue_Data_Ptr: TCoreCompute_Thread_Pool.PQueueStruct;
     OnRun_C: TRunWithThread_C;
     OnRun_M: TRunWithThread_M;
     OnRun_P: TRunWithThread_P;
@@ -477,6 +641,7 @@ type
     OnDone_C: TRunWithThread_C;
     OnDone_M: TRunWithThread_M;
     OnDone_P: TRunWithThread_P;
+    IsRuning, IsExit: PBoolean;
     FRndInstance: Pointer;
   protected
     procedure Execute; override;
@@ -487,6 +652,7 @@ type
 
     constructor Create;
     destructor Destroy; override;
+    class function Physics_Thread_Num(): Integer;
     class function ActivtedTask(): Integer;
     class function WaitTask(): Integer;
     class function TotalTask(): Integer;
@@ -506,39 +672,64 @@ type
     // build-in synchronization Proc
     class procedure SyncP(const OnRun_: TRunWithThread_P_NP); overload;
     class procedure SyncP(const Thread_: TThread; OnRun_: TRunWithThread_P_NP); overload;
+
     // build-in asynchronous call
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunC(const OnRun: TRunWithThread_C); overload;
+    class procedure RunC(const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunC_NP(const OnRun: TRunWithThread_C_NP); overload;
+    class procedure RunC_NP(const OnRun: TRunWithThread_C_NP; IsRuning_, IsExit_: PBoolean); overload;
     // build-in asynchronous methoc
     class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunM(const OnRun: TRunWithThread_M); overload;
+    class procedure RunM(const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunM_NP(const OnRun: TRunWithThread_M_NP); overload;
+    class procedure RunM_NP(const OnRun: TRunWithThread_M_NP; IsRuning_, IsExit_: PBoolean); overload;
     // build-in asynchronous proc
     class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunP(const OnRun: TRunWithThread_P); overload;
+    class procedure RunP(const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunP_NP(const OnRun: TRunWithThread_P_NP); overload;
+    class procedure RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean); overload;
 
     // main thread
     class procedure ProgressPost();
-    // post to main thread call
-    class procedure PostC1(OnSync: TThreadPost_C1);
-    class procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
-    class procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
-    class procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
-    // post to main thread method
-    class procedure PostM1(OnSync: TThreadPost_M1);
-    class procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
-    class procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
-    class procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
-    // post to main thread proc
-    class procedure PostP1(OnSync: TThreadPost_P1);
-    class procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
-    class procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
-    class procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+    // post main thread synchronization,Call
+    class procedure PostC1(OnSync: TThreadPost_C1); overload;
+    class procedure PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2); overload;
+    class procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3); overload;
+    class procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4); overload;
+    class procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean); overload;
+    // post main thread synchronization,Method
+    class procedure PostM1(OnSync: TThreadPost_M1); overload;
+    class procedure PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2); overload;
+    class procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3); overload;
+    class procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4); overload;
+    class procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean); overload;
+    // post main thread synchronization,Proc
+    class procedure PostP1(OnSync: TThreadPost_P1); overload;
+    class procedure PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2); overload;
+    class procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3); overload;
+    class procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4); overload;
+    class procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean); overload;
   end;
 
   // TCompute alias
@@ -571,6 +762,27 @@ type
   end;
 
   TRandom = TMT19937Random;
+
+  TMT19937 = class
+  public
+    class function CoreToDelphi: Boolean; static;
+    class function InstanceNum(): Integer; static;
+    class procedure SetSeed(seed: Integer); static;
+    class function GetSeed(): Integer; static;
+    class procedure Randomize(); static;
+    class function Rand32(L: Integer): Integer; overload; static;
+    class procedure Rand32(L: Integer; dest: PInteger; num: NativeInt); overload; static;
+    class function Rand64(L: Int64): Int64; overload; static;
+    class procedure Rand64(L: Int64; dest: PInt64; num: NativeInt); overload; static;
+    class function RandE: Extended; overload; static;
+    class procedure RandE(dest: PExtended; num: NativeInt); overload; static;
+    class function RandF: Single; overload; static;
+    class procedure RandF(dest: PSingle; num: NativeInt); overload; static;
+    class function RandD: Double; overload; static;
+    class procedure RandD(dest: PDouble; num: NativeInt); overload; static;
+    class procedure SaveToStream(stream: TCore_Stream); static;
+    class procedure LoadFromStream(stream: TCore_Stream); static;
+  end;
 {$EndRegion 'MT19937Random'}
 {$Region 'LineProcessor'}
   {$IFDEF FPC}generic{$ENDIF FPC}TLineProcessor<T_> = class
@@ -738,40 +950,40 @@ function CheckThread(Timeout: Integer): Boolean; overload;
 // core thread pool
 procedure FreeCoreThreadPool;
 
-procedure DisposeObject(const Obj: TObject); overload;
+procedure DisposeObject(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure DisposeObject(const objs: array of TObject); overload;
-procedure FreeObj(const Obj: TObject);
-procedure FreeObject(const Obj: TObject); overload;
+procedure FreeObj(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FreeObject(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure FreeObject(const objs: array of TObject); overload;
-procedure DisposeObjectAndNil(var Obj);
-procedure FreeObjAndNil(var Obj);
+procedure DisposeObjectAndNil(var Obj);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FreeObjAndNil(var Obj);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 procedure LockObject(Obj: TObject);
 procedure UnLockObject(Obj: TObject);
 
-function DeltaStep(const value_, Delta_: NativeInt): NativeInt;
-procedure AtomInc(var x: Int64); overload;
-procedure AtomInc(var x: Int64; const v: Int64); overload;
-procedure AtomDec(var x: Int64); overload;
-procedure AtomDec(var x: Int64; const v: Int64); overload;
-procedure AtomInc(var x: UInt64); overload;
-procedure AtomInc(var x: UInt64; const v: UInt64); overload;
-procedure AtomDec(var x: UInt64); overload;
-procedure AtomDec(var x: UInt64; const v: UInt64); overload;
-procedure AtomInc(var x: Integer); overload;
-procedure AtomInc(var x: Integer; const v:Integer); overload;
-procedure AtomDec(var x: Integer); overload;
-procedure AtomDec(var x: Integer; const v:Integer); overload;
-procedure AtomInc(var x: Cardinal); overload;
-procedure AtomInc(var x: Cardinal; const v:Cardinal); overload;
-procedure AtomDec(var x: Cardinal); overload;
-procedure AtomDec(var x: Cardinal; const v:Cardinal); overload;
+function DeltaStep(const value_, Delta_: NativeInt): NativeInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure AtomInc(var x: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Int64; const v: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Int64; const v: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: UInt64; const v: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: UInt64; const v: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Integer; const v:Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Integer; const v:Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Cardinal; const v:Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Cardinal; const v:Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-procedure FillPtrByte(const dest:Pointer; Count: NativeUInt; const Value: Byte);
-procedure FillPtr(const dest:Pointer; Count: NativeUInt; const Value: Byte);
-procedure FillByte(const dest:Pointer; Count: NativeUInt; const Value: Byte);
-function CompareMemory(const p1, p2: Pointer; Count: NativeUInt): Boolean;
-procedure CopyPtr(const sour, dest: Pointer; Count: NativeUInt);
+procedure FillPtrByte(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FillPtr(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FillByte(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function CompareMemory(const p1, p2: Pointer; Size: NativeUInt): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure CopyPtr(const sour, dest: Pointer; Size: NativeUInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 procedure RaiseInfo(const n: string); overload;
 procedure RaiseInfo(const n: string; const Args: array of const); overload;
@@ -781,8 +993,8 @@ function IsMobile: Boolean;
 function GetTimeTick(): TTimeTick;
 function GetTimeTickCount(): TTimeTick;
 function GetCrashTimeTick(): TTimeTick;
-function SameF(const A, B: Double; Epsilon: Double = 0): Boolean; overload;
-function SameF(const A, B: Single; Epsilon: Single = 0): Boolean; overload;
+function SameF(const A, B: Double; Epsilon: Double = 0): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function SameF(const A, B: Single; Epsilon: Single = 0): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
 // MT19937 random num
 function MT19937CoreToDelphi: Boolean;
@@ -803,90 +1015,90 @@ procedure MT19937RandD(dest: PDouble; num: NativeInt); overload;
 procedure MT19937SaveToStream(stream: TCore_Stream);
 procedure MT19937LoadFromStream(stream: TCore_Stream);
 
-function ROL8(const Value: Byte; Shift: Byte): Byte;
-function ROL16(const Value: Word; Shift: Byte): Word;
-function ROL32(const Value: Cardinal; Shift: Byte): Cardinal;
-function ROL64(const Value: UInt64; Shift: Byte): UInt64;
-function ROR8(const Value: Byte; Shift: Byte): Byte;
-function ROR16(const Value: Word; Shift: Byte): Word;
-function ROR32(const Value: Cardinal; Shift: Byte): Cardinal;
-function ROR64(const Value: UInt64; Shift: Byte): UInt64;
+function ROL8(const Value: Byte; Shift: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL16(const Value: Word; Shift: Byte): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL32(const Value: Cardinal; Shift: Byte): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL64(const Value: UInt64; Shift: Byte): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR8(const Value: Byte; Shift: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR16(const Value: Word; Shift: Byte): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR32(const Value: Cardinal; Shift: Byte): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR64(const Value: UInt64; Shift: Byte): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function Endian(const Value: SmallInt): SmallInt; overload;
-function Endian(const Value: Word): Word; overload;
-function Endian(const Value: Integer): Integer; overload;
-function Endian(const Value: Cardinal): Cardinal; overload;
-function Endian(const Value: Int64): Int64; overload;
-function Endian(const Value: UInt64): UInt64; overload;
+function Endian(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function BE2N(const Value: SmallInt): SmallInt; overload;
-function BE2N(const Value: Word): Word; overload;
-function BE2N(const Value: Integer): Integer; overload;
-function BE2N(const Value: Cardinal): Cardinal; overload;
-function BE2N(const Value: Int64): Int64; overload;
-function BE2N(const Value: UInt64): UInt64; overload;
+function BE2N(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function LE2N(const Value: SmallInt): SmallInt; overload;
-function LE2N(const Value: Word): Word; overload;
-function LE2N(const Value: Integer): Integer; overload;
-function LE2N(const Value: Cardinal): Cardinal; overload;
-function LE2N(const Value: Int64): Int64; overload;
-function LE2N(const Value: UInt64): UInt64; overload;
+function LE2N(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function N2BE(const Value: SmallInt): SmallInt; overload;
-function N2BE(const Value: Word): Word; overload;
-function N2BE(const Value: Integer): Integer; overload;
-function N2BE(const Value: Cardinal): Cardinal; overload;
-function N2BE(const Value: Int64): Int64; overload;
-function N2BE(const Value: UInt64): UInt64; overload;
+function N2BE(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function N2LE(const Value: SmallInt): SmallInt; overload;
-function N2LE(const Value: Word): Word; overload;
-function N2LE(const Value: Integer): Integer; overload;
-function N2LE(const Value: Cardinal): Cardinal; overload;
-function N2LE(const Value: Int64): Int64; overload;
-function N2LE(const Value: UInt64): UInt64; overload;
+function N2LE(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-procedure Swap(var v1, v2: Byte); overload;
-procedure Swap(var v1, v2: Word); overload;
-procedure Swap(var v1, v2: Integer); overload;
-procedure Swap(var v1, v2: Cardinal); overload;
-procedure Swap(var v1, v2: Int64); overload;
-procedure Swap(var v1, v2: UInt64); overload;
+procedure Swap(var v1, v2: Byte);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Word);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 {$IFDEF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: NativeInt); overload;
-procedure Swap(var v1, v2: NativeUInt); overload;
+procedure Swap(var v1, v2: NativeInt);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: NativeUInt);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 {$ENDIF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: string); overload;
-procedure Swap(var v1, v2: Single); overload;
-procedure Swap(var v1, v2: Double); overload;
-procedure Swap(var v1, v2: Pointer); overload;
+procedure Swap(var v1, v2: string);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Single);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Double);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Pointer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure SwapVariant(var v1, v2: Variant);
-function Swap(const v: Word): Word; overload;
-function Swap(const v: Cardinal): Cardinal; overload;
-function Swap(const v: UInt64): UInt64; overload;
+function Swap(const v: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Swap(const v: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Swap(const v: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function SAR16(const Value: SmallInt; const Shift: Byte): SmallInt;
-function SAR32(const Value: Integer; Shift: Byte): Integer;
-function SAR64(const Value: Int64; Shift: Byte): Int64;
+function SAR16(const Value: SmallInt; const Shift: Byte): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function SAR32(const Value: Integer; Shift: Byte): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function SAR64(const Value: Int64; Shift: Byte): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function MemoryAlign(addr: Pointer; alignment_: NativeUInt): Pointer;
+function MemoryAlign(addr: Pointer; alignment_: NativeUInt): Pointer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function if_(const bool_: Boolean; const True_, False_: Boolean): Boolean; overload;
-function if_(const bool_: Boolean; const True_, False_: ShortInt): ShortInt; overload;
-function if_(const bool_: Boolean; const True_, False_: SmallInt): SmallInt; overload;
-function if_(const bool_: Boolean; const True_, False_: Integer): Integer; overload;
-function if_(const bool_: Boolean; const True_, False_: Int64): Int64; overload;
-function if_(const bool_: Boolean; const True_, False_: Byte): Byte; overload;
-function if_(const bool_: Boolean; const True_, False_: Word): Word; overload;
-function if_(const bool_: Boolean; const True_, False_: Cardinal): Cardinal; overload;
-function if_(const bool_: Boolean; const True_, False_: UInt64): UInt64; overload;
-function if_(const bool_: Boolean; const True_, False_: Single): Single; overload;
-function if_(const bool_: Boolean; const True_, False_: Double): Double; overload;
-function if_(const bool_: Boolean; const True_, False_: string): string; overload;
-function ifv_(const bool_: Boolean; const True_, False_: Variant): Variant;
-function GetOffset(p_: Pointer; offset_: NativeInt): Pointer; inline;
-function GetPtr(p_: Pointer; offset_: NativeInt): Pointer; inline;
+function if_(const bool_: Boolean; const True_, False_: Boolean): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: ShortInt): ShortInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Single): Single;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Double): Double;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: string): string;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function ifv_(const bool_: Boolean; const True_, False_: Variant): Variant;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function GetOffset(p_: Pointer; offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function GetPtr(p_: Pointer; offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 {$EndRegion 'core api'}
 {$Region 'core var'}
@@ -926,20 +1138,16 @@ implementation
 
 procedure DisposeObject(const Obj: TObject);
 begin
-  if Obj <> nil then
-    begin
-      try
-        {$IFDEF AUTOREFCOUNT}
-        Obj.DisposeOf;
-        {$ELSE AUTOREFCOUNT}
-        Obj.Free;
-        {$ENDIF AUTOREFCOUNT}
-        {$IFDEF CriticalSimulateAtomic}
-        _RecycleLocker(Obj);
-        {$ENDIF CriticalSimulateAtomic}
-      except
-      end;
-    end;
+  if Obj = nil then
+    exit;
+  try
+    {$IFDEF AUTOREFCOUNT}
+    Obj.DisposeOf;
+    {$ELSE AUTOREFCOUNT}
+    Obj.Free;
+    {$ENDIF AUTOREFCOUNT}
+  except
+  end;
 end;
 
 procedure DisposeObject(const objs: array of TObject);
@@ -991,10 +1199,10 @@ var
 {$ENDIF CriticalSimulateAtomic}
 begin
 {$IFDEF FPC}
-  _LockCriticalObj(Obj);
+  Lock_Critical_Obj__(Obj);
 {$ELSE FPC}
 {$IFDEF CriticalSimulateAtomic}
-  _LockCriticalObj(Obj);
+  Lock_Critical_Obj__(Obj);
 {$ELSE CriticalSimulateAtomic}
   {$IFDEF ANTI_DEAD_ATOMIC_LOCK}
   d := GetTimeTick;
@@ -1011,69 +1219,69 @@ end;
 procedure UnLockObject(Obj: TObject);
 begin
 {$IFDEF FPC}
-  _UnLockCriticalObj(Obj);
+  UnLock_Critical_Obj__(Obj);
 {$ELSE FPC}
   {$IFDEF CriticalSimulateAtomic}
-  _UnLockCriticalObj(Obj);
+  UnLock_Critical_Obj__(Obj);
   {$ELSE CriticalSimulateAtomic}
   TMonitor.Exit(Obj);
   {$ENDIF CriticalSimulateAtomic}
 {$ENDIF FPC}
 end;
 
-procedure FillPtrByte(const dest: Pointer; Count: NativeUInt; const Value: Byte);
+procedure FillPtrByte(const dest: Pointer; Size: NativeUInt; const Value: Byte);
 {$IFDEF FillPtr_Used_FillChar}
 begin
-  FillChar(dest^, Count, Value);
+  FillChar(dest^, Size, Value);
 end;
 {$ELSE FillPtr_Used_FillChar}
 var
   d: PByte;
   v: UInt64;
 begin
-  if Count = 0 then
+  if Size = 0 then
       Exit;
   v := Value or (Value shl 8) or (Value shl 16) or (Value shl 24);
   v := v or (v shl 32);
   d := dest;
-  while Count >= 8 do
+  while Size >= 8 do
     begin
       PUInt64(d)^ := v;
-      dec(Count, 8);
+      dec(Size, 8);
       inc(d, 8);
     end;
-  if Count >= 4 then
+  if Size >= 4 then
     begin
       PCardinal(d)^ := PCardinal(@v)^;
-      dec(Count, 4);
+      dec(Size, 4);
       inc(d, 4);
     end;
-  if Count >= 2 then
+  if Size >= 2 then
     begin
       PWORD(d)^ := PWORD(@v)^;
-      dec(Count, 2);
+      dec(Size, 2);
       inc(d, 2);
     end;
-  if Count > 0 then
+  if Size > 0 then
       d^ := Value;
 end;
 {$ENDIF FillPtr_Used_FillChar}
 
-procedure FillPtr(const dest:Pointer; Count: NativeUInt; const Value: Byte);
+procedure FillPtr(const dest:Pointer; Size: NativeUInt; const Value: Byte);
 begin
-  FillPtrByte(dest, Count, Value);
+  FillPtrByte(dest, Size, Value);
 end;
 
-procedure FillByte(const dest:Pointer; Count: NativeUInt; const Value: Byte);
+procedure FillByte(const dest:Pointer; Size: NativeUInt; const Value: Byte);
 begin
-  FillPtrByte(dest, Count, Value);
+  FillPtrByte(dest, Size, Value);
 end;
 
-function CompareMemory(const p1, p2: Pointer; Count: NativeUInt): Boolean;
+function CompareMemory(const p1, p2: Pointer; Size: NativeUInt): Boolean;
 var
   b1, b2: PByte;
 begin;
-  if Count = 0 then
+  if Size = 0 then
     begin
       Result := True;
       Exit;
@@ -1081,46 +1289,46 @@ begin;
   Result := False;
   b1 := p1;
   b2 := p2;
-  while (Count >= 8) do
+  while (Size >= 8) do
     begin
       if PUInt64(b2)^ <> PUInt64(b1)^ then
           Exit;
-      dec(Count, 8);
+      dec(Size, 8);
       inc(b2, 8);
       inc(b1, 8);
     end;
-  if Count >= 4 then
+  if Size >= 4 then
     begin
       if PCardinal(b2)^ <> PCardinal(b1)^ then
           Exit;
-      dec(Count, 4);
+      dec(Size, 4);
       inc(b2, 4);
       inc(b1, 4);
     end;
-  if Count >= 2 then
+  if Size >= 2 then
     begin
       if PWORD(b2)^ <> PWORD(b1)^ then
           Exit;
-      dec(Count, 2);
+      dec(Size, 2);
       inc(b2, 2);
       inc(b1, 2);
     end;
-  if Count > 0 then
+  if Size > 0 then
     if b2^ <> b1^ then
         Exit;
   Result := True;
 end;
 
-procedure CopyPtr(const sour, dest: Pointer; Count: NativeUInt);
+procedure CopyPtr(const sour, dest: Pointer; Size: NativeUInt);
 {$IFDEF CopyPtr_Used_Move}
 begin
-  Move(sour^, dest^, Count);
+  Move(sour^, dest^, Size);
 end;
 {$ELSE CopyPtr_Used_Move}
 var
   s, d: NativeUInt;
 begin
-  if Count = 0 then
+  if Size = 0 then
       exit;
   if sour = dest then
       exit;
@@ -1132,56 +1340,56 @@ begin
   // thanks,qq4700653,LOK
   if d > s then
     begin
-      inc(s, Count);
-      inc(d, Count);
-      while Count >= 8 do
+      inc(s, Size);
+      inc(d, Size);
+      while Size >= 8 do
         begin
           dec(d, 8);
           dec(s, 8);
-          dec(Count, 8);
+          dec(Size, 8);
           PUInt64(d)^ := PUInt64(s)^;
         end;
-      if Count >= 4 then
+      if Size >= 4 then
         begin
           dec(d, 4);
           dec(s, 4);
-          dec(Count, 4);
+          dec(Size, 4);
           PCardinal(d)^ := PCardinal(s)^;
         end;
-      if Count >= 2 then
+      if Size >= 2 then
         begin
           dec(d, 2);
           dec(s, 2);
-          dec(Count, 2);
+          dec(Size, 2);
           PWORD(d)^ := PWORD(s)^;
         end;
-      if Count > 0 then
+      if Size > 0 then
           PByte(d - 1)^ := PByte(s - 1)^;
     end
   else
     begin
-      while Count >= 8 do
+      while Size >= 8 do
         begin
           PUInt64(d)^ := PUInt64(s)^;
-          dec(Count, 8);
+          dec(Size, 8);
           inc(d, 8);
           inc(s, 8);
         end;
-      if Count >= 4 then
+      if Size >= 4 then
         begin
           PCardinal(d)^ := PCardinal(s)^;
-          dec(Count, 4);
+          dec(Size, 4);
           inc(d, 4);
           inc(s, 4);
         end;
-      if Count >= 2 then
+      if Size >= 2 then
         begin
           PWORD(d)^ := PWORD(s)^;
-          dec(Count, 2);
+          dec(Size, 2);
           inc(d, 2);
           inc(s, 2);
         end;
-      if Count > 0 then
+      if Size > 0 then
           PByte(d)^ := PByte(s)^;
     end;
 end;
@@ -1211,17 +1419,14 @@ var
 
 function GetTimeTick(): TTimeTick;
 var
-  tick: Cardinal;
+  Sys_Tick: Cardinal;
 begin
-  CoreTimeTickCritical.Acquire;
-  try
-    tick := TCore_Thread.GetTickCount();
-    inc(Core_RunTime_Tick, tick - Core_Step_Tick);
-    Core_Step_Tick := tick;
-    Result := Core_RunTime_Tick;
-  finally
-      CoreTimeTickCritical.Release;
-  end;
+  TimeTick_Critical__.Acquire;
+  Sys_Tick := TCore_Thread.GetTickCount();
+  inc(Core_RunTime_Tick, Sys_Tick - Core_Step_Tick);
+  Core_Step_Tick := Sys_Tick;
+  Result := Core_RunTime_Tick;
+  TimeTick_Critical__.Release;
 end;
 
 function GetTimeTickCount(): TTimeTick;
@@ -1385,15 +1590,16 @@ end;
 {$I Z.Core.AtomVar.inc}
 {$I Z.Core.LineProcessor.inc}
 {$I Z.Core.OrderData.inc}
+{$I Z.Core.BigList.inc}
 
 function GetParallelGranularity: Integer;
 begin
-  Result := ParallelGranularity;
+  Result := Parallel_Granularity__;
 end;
 
 procedure SetParallelGranularity(Thread_Num: Integer);
 begin
-  ParallelGranularity := Thread_Num;
+  Parallel_Granularity__ := Thread_Num;
 end;
 
 procedure Nop;
@@ -1464,15 +1670,15 @@ end;
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   OnCheckThreadSynchronize := nil;
-  WorkInParallelCore := TAtomBool.Create({$IFDEF FPC}True{$ELSE FPC}DebugHook = 0{$ENDIF FPC});
+  WorkInParallelCore := TAtomBool.Create(True);
   ParallelCore := WorkInParallelCore;
   GlobalMemoryHook := TAtomBool.Create(True);
   Core_RunTime_Tick := C_Tick_Day * 3;
   Core_Step_Tick := TCore_Thread.GetTickCount();
-  InitCriticalLock();
+  Init_Critical_System();
   InitMT19937Rand();
   CoreInitedTimeTick := GetTimeTick();
-  InitCoreThreadPool(CpuCount);
+  InitCoreThreadPool(CpuCount * 2);
   MainThreadProgress := TThreadPost.Create(MainThreadID);
   MainThSynchronizeRunning := False;
   MainThreadPost := MainThreadProgress;
@@ -1481,7 +1687,7 @@ finalization
   FreeCoreThreadPool;
   MainThreadProgress.Free;
   FreeMT19937Rand();
-  FreeCriticalLock;
+  Free_Critical_System;
   WorkInParallelCore.Free;
   WorkInParallelCore := nil;
   GlobalMemoryHook.Free;

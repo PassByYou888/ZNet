@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB2;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -58,6 +58,7 @@ type
   end;
 
   TZDB2_BlockHandle = array of Integer;
+  PZDB2_BlockHandle = ^TZDB2_BlockHandle;
   TZDB2_BlockBuffer = array of TZDB2_Block;
   TZDB2_BlockWriteCache = array of TZDB2_BlockCache;
   TZDB2_OnProgress = procedure(Total_, current_: Integer) of object;
@@ -135,6 +136,7 @@ type
   private
     FCipher_: TCipher_Base;
   public
+    class function GetCipherSecurity(CipherSecurityString_: U_String): TCipherSecurity;
     constructor Create(CipherSecurity_: TCipherSecurity; password_: U_String; Level_: Integer; Tail_, CBC_: Boolean); overload;
     constructor Create(CipherSecurityString_: U_String; password_: U_String; Level_: Integer; Tail_, CBC_: Boolean); overload;
     destructor Destroy; override;
@@ -196,10 +198,15 @@ type
     function DoEncryptTemp(buff: Pointer; Size: NativeInt; BuffProtected_: Boolean): Pointer;
     function GetState: PZDB2_Core_SpaceState;
   public
+    class function CheckStream(stream: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
     constructor Create(IOHnd_: PIOHnd);
     destructor Destroy; override;
 
     class procedure ErrorInfo(const Text_: SystemString); static;
+    class function Combine_Handle(hnd1, hnd2: TZDB2_BlockHandle): TZDB2_BlockHandle; overload; static;
+    class function Combine_Handle(L1, L2: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
+    class function Get_Handle(Hnd: TZDB2_BlockHandle): TZDB2_BlockHandle; overload; static;
+    class function Get_Handle(L: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
 
     // space
     procedure Save();
@@ -979,6 +986,20 @@ begin
   end;
 end;
 
+class function TZDB2_Cipher.GetCipherSecurity(CipherSecurityString_: U_String): TCipherSecurity;
+var
+  arry: TCipherSecurityArray;
+  i: Integer;
+  cs: TCipherSecurity;
+begin
+  arry := TCipher.AllCipher;
+  cs := TCipherSecurity.csNone;
+  for i := low(arry) to high(arry) do
+    if CipherSecurityString_.Same(TCipher.CCipherSecurityName[arry[i]]) then
+        cs := arry[i];
+  Result := cs;
+end;
+
 constructor TZDB2_Cipher.Create(CipherSecurity_: TCipherSecurity; password_: U_String; Level_: Integer; Tail_, CBC_: Boolean);
 begin
   inherited Create;
@@ -1286,6 +1307,25 @@ begin
   Result := @FState;
 end;
 
+class function TZDB2_Core_Space.CheckStream(stream: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
+var
+  bak_pos: Int64;
+  ioHnd: TIOHnd;
+  tmp: TZDB2_Core_Space;
+begin
+  Result := False;
+  bak_pos := stream.Position;
+  InitIOHnd(ioHnd);
+  if umlFileOpenAsStream('', stream, ioHnd, True) then
+    begin
+      tmp := TZDB2_Core_Space.Create(@ioHnd);
+      tmp.Cipher := Cipher_;
+      Result := tmp.Open;
+      DisposeObject(tmp);
+    end;
+  stream.Position := bak_pos;
+end;
+
 constructor TZDB2_Core_Space.Create(IOHnd_: PIOHnd);
 begin
   inherited Create;
@@ -1336,6 +1376,60 @@ end;
 class procedure TZDB2_Core_Space.ErrorInfo(const Text_: SystemString);
 begin
   DoStatus('ZDB2 Core failed - ' + Text_);
+end;
+
+class function TZDB2_Core_Space.Combine_Handle(hnd1, hnd2: TZDB2_BlockHandle): TZDB2_BlockHandle;
+var
+  i, j: Integer;
+begin
+  SetLength(Result, Length(hnd1) + Length(hnd2));
+  j := 0;
+  for i := low(hnd1) to high(hnd1) do
+    begin
+      Result[j] := hnd1[i];
+      inc(j);
+    end;
+  for i := low(hnd2) to high(hnd2) do
+    begin
+      Result[j] := hnd2[i];
+      inc(j);
+    end;
+end;
+
+class function TZDB2_Core_Space.Combine_Handle(L1, L2: TZDB2_ID_List): TZDB2_BlockHandle;
+var
+  i, j: Integer;
+begin
+  SetLength(Result, L1.Count + L2.Count);
+  j := 0;
+  for i := 0 to L1.Count - 1 do
+    begin
+      Result[j] := L1[i];
+      inc(j);
+    end;
+  for i := 0 to L2.Count - 1 do
+    begin
+      Result[j] := L2[i];
+      inc(j);
+    end;
+end;
+
+class function TZDB2_Core_Space.Get_Handle(Hnd: TZDB2_BlockHandle): TZDB2_BlockHandle;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(Hnd));
+  for i := low(Hnd) to high(Hnd) do
+      Result[i] := Hnd[i];
+end;
+
+class function TZDB2_Core_Space.Get_Handle(L: TZDB2_ID_List): TZDB2_BlockHandle;
+var
+  i: Integer;
+begin
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := L[i];
 end;
 
 procedure TZDB2_Core_Space.Save;

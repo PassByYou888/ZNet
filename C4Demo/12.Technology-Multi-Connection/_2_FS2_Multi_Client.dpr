@@ -91,7 +91,7 @@ begin
   PoolFrag_Num := 0;
   for i := low(arry_fs2_tunnel) to high(arry_fs2_tunnel) do
     begin
-      TC40_FS2_Client(arry_fs2_tunnel[i]).FS2_PoolFragP(0, 10000, procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array)
+      TC40_FS2_Client(arry_fs2_tunnel[i]).FS2_PoolFragP(procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array)
         var
           info: TFS2_PoolFragInfo;
         begin

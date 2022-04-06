@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.DoubleTunnelIO.ServMan;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -41,10 +41,10 @@ type
 
   TServerManager_Client = class(TZNet_DoubleTunnelClient_NoAuth)
   protected
-    procedure PostExecute_RegServer(Sender: TNPostExecute);
+    procedure PostExecute_RegServer(Sender: TN_Post_Execute);
     procedure Command_RegServer(Sender: TPeerIO; InData: TDFE);
 
-    procedure PostExecute_Offline(Sender: TNPostExecute);
+    procedure PostExecute_Offline(Sender: TN_Post_Execute);
     procedure Command_Offline(Sender: TPeerIO; InData: TDFE);
   public
     Owner: TServerManager_ClientPool;
@@ -122,12 +122,12 @@ type
   protected
     procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
     procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure PostExecute_ServerOffline(Sender: TNPostExecute);
-    procedure PostExecute_RegServer(Sender: TNPostExecute);
+    procedure PostExecute_ServerOffline(Sender: TN_Post_Execute);
+    procedure PostExecute_RegServer(Sender: TN_Post_Execute);
   protected
     { manager client }
     procedure Command_EnabledServer(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure PostExecute_Disconnect(Sender: TNPostExecute);
+    procedure PostExecute_Disconnect(Sender: TN_Post_Execute);
     procedure Command_AntiIdle(Sender: TPeerIO; InData: TDFE);
   protected
     procedure ServerConfigChange(Sender: TServerManager_Client; ConfigData: TSectionTextData);
@@ -161,7 +161,7 @@ begin
   Result := GetEnumName(TypeInfo(TServerType), Ord(t));
 end;
 
-procedure TServerManager_Client.PostExecute_RegServer(Sender: TNPostExecute);
+procedure TServerManager_Client.PostExecute_RegServer(Sender: TN_Post_Execute);
 var
   te: TSectionTextData;
 begin
@@ -187,7 +187,7 @@ begin
     end;
 end;
 
-procedure TServerManager_Client.PostExecute_Offline(Sender: TNPostExecute);
+procedure TServerManager_Client.PostExecute_Offline(Sender: TN_Post_Execute);
 var
   RegAddr: SystemString;
   ServerType: TServerType;
@@ -596,12 +596,12 @@ begin
   inherited UserOut(UserDefineIO);
 end;
 
-procedure TServerManager.PostExecute_ServerOffline(Sender: TNPostExecute);
+procedure TServerManager.PostExecute_ServerOffline(Sender: TN_Post_Execute);
 begin
   SendTunnel.BroadcastDirectStreamCmd(C_Offline, Sender.DataEng);
 end;
 
-procedure TServerManager.PostExecute_RegServer(Sender: TNPostExecute);
+procedure TServerManager.PostExecute_RegServer(Sender: TN_Post_Execute);
 var
   IO_Array: TIO_Array;
   pid: Cardinal;
@@ -708,7 +708,7 @@ begin
   Sender.Print('%s [n:%s][addr:%s][r:%d][s:%d][w:%d] registed', [serverType2Str(cli.ServerType), cli.Regname, cli.RegAddr, cli.RegRecvPort, cli.RegSendPort, cli.WorkLoad]);
 end;
 
-procedure TServerManager.PostExecute_Disconnect(Sender: TNPostExecute);
+procedure TServerManager.PostExecute_Disconnect(Sender: TN_Post_Execute);
 var
   c: TPeerIO;
 begin

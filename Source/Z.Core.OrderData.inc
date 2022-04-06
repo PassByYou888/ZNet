@@ -30,14 +30,14 @@ end;
 
 procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, tmp: POrderStruct_;
+  p, N_P: POrderStruct_;
 begin
   p := FFirst;
   while p <> nil do
     begin
-      tmp := p^.Next;
+      N_P := p^.Next;
       DoInternalFree(p);
-      p := tmp;
+      p := N_P;
     end;
   FFirst := nil;
   FLast := nil;
@@ -46,13 +46,13 @@ end;
 
 procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  tmp: POrderStruct_;
+  N_P: POrderStruct_;
 begin
   if FFirst <> nil then
     begin
-      tmp := FFirst^.Next;
+      N_P := FFirst^.Next;
       DoInternalFree(FFirst);
-      FFirst := tmp;
+      FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
       Dec(FNum);
@@ -114,14 +114,14 @@ end;
 
 procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, tmp: POrderPtrStruct_;
+  p, N_P: POrderPtrStruct_;
 begin
   p := FFirst;
   while p <> nil do
     begin
-      tmp := p^.Next;
+      N_P := p^.Next;
       DoInternalFree(p);
-      p := tmp;
+      p := N_P;
     end;
   FFirst := nil;
   FLast := nil;
@@ -130,13 +130,13 @@ end;
 
 procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  tmp: POrderPtrStruct_;
+  N_P: POrderPtrStruct_;
 begin
   if FFirst <> nil then
     begin
-      tmp := FFirst^.Next;
+      N_P := FFirst^.Next;
       DoInternalFree(FFirst);
-      FFirst := tmp;
+      FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
       Dec(FNum);
@@ -220,15 +220,15 @@ end;
 
 procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, tmp: POrderStruct_;
+  p, N_P: POrderStruct_;
 begin
   FCritical.Lock;
   p := FFirst;
   while p <> nil do
     begin
-      tmp := p^.Next;
+      N_P := p^.Next;
       DoInternalFree(p);
-      p := tmp;
+      p := N_P;
     end;
   FFirst := nil;
   FLast := nil;
@@ -245,14 +245,14 @@ end;
 
 procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  tmp: POrderStruct_;
+  N_P: POrderStruct_;
 begin
   FCritical.Lock;
   if FFirst <> nil then
     begin
-      tmp := FFirst^.Next;
+      N_P := FFirst^.Next;
       DoInternalFree(FFirst);
-      FFirst := tmp;
+      FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
       Dec(FNum);
@@ -326,15 +326,15 @@ end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, tmp: POrderPtrStruct_;
+  p, N_P: POrderPtrStruct_;
 begin
   FCritical.Lock;
   p := FFirst;
   while p <> nil do
     begin
-      tmp := p^.Next;
+      N_P := p^.Next;
       DoInternalFree(p);
-      p := tmp;
+      p := N_P;
     end;
   FFirst := nil;
   FLast := nil;
@@ -351,14 +351,14 @@ end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  tmp: POrderPtrStruct_;
+  N_P: POrderPtrStruct_;
 begin
   FCritical.Lock;
   if FFirst <> nil then
     begin
-      tmp := FFirst^.Next;
+      N_P := FFirst^.Next;
       DoInternalFree(FFirst);
-      FFirst := tmp;
+      FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
       Dec(FNum);

@@ -4,7 +4,7 @@
 
 unit Z.ZDB.Engine;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -3918,7 +3918,7 @@ begin
   dbEng.DBEngine.HandlePtr^.IOHnd.Cache.UsedWriteCache := True;
   dbEng.DBEngine.HandlePtr^.IOHnd.Cache.UsedReadCache := True;
   DoStatus('build struct...');
-  d := GetTimeTickCount;
+  d := GetTimeTick;
   DF := TDBEngineDF.Create;
 
   SetMT19937Seed(0);
@@ -3940,23 +3940,23 @@ begin
 
   dbEng.Update;
   DoStatus('build struct (%d * %d = %s of data) time:%dms',
-    [DF.Count, dbEng.Count, umlSizeToStr(DF.Count * dbEng.Count).Text, GetTimeTickCount - d]);
+    [DF.Count, dbEng.Count, umlSizeToStr(DF.Count * dbEng.Count).Text, GetTimeTick - d]);
 
   dbEng.Compress;
 
   DoStatus('query struct...');
-  d := GetTimeTickCount;
+  d := GetTimeTick;
 
   dbEng.QueryC(@test_QueryFilter, @test_QueryDone);
   dbEng.WaitQueryThread;
-  DoStatus('query struct time:%dms', [GetTimeTickCount - d]);
+  DoStatus('query struct time:%dms', [GetTimeTick - d]);
 
-  d := GetTimeTickCount;
+  d := GetTimeTick;
   dbEng.QueryC(@test_QueryFilter, @test_QueryDone);
   dbEng.QueryC(False, @test_QueryFilter, @test_QueryDone);
   dbEng.QueryC(@test_QueryFilter, @test_QueryDone);
   dbEng.WaitQueryThread;
-  DoStatus('query struct time:%dms', [GetTimeTickCount - d]);
+  DoStatus('query struct time:%dms', [GetTimeTick - d]);
 
   DisposeObject(dbEng);
 end;

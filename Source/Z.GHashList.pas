@@ -22,9 +22,7 @@ type
 {$ENDIF FPC}
   public type
     TRefClass_ = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<T_>;
-
     TGebnericHashChangeEvent = procedure(Sender: TCore_Object; Name: SystemString; OLD_, New_: T_) of object;
-
     PGebnericHashListData = ^TGebnericHashListData;
 
     TGebnericHashListData = record
@@ -205,6 +203,7 @@ begin
   FIncremental := 0;
   Default_Null_Value := Default_Null_Value_;
   OnFree := nil;
+  DoInited();
 end;
 
 destructor TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;

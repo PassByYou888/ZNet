@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB.HashItem_LIB;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

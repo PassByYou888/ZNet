@@ -19,8 +19,14 @@ const
 
 type
   TMTVector = array [0 .. MT19937N - 1] of Integer;
+  PMD19937Core = ^TMT19937Core;
+  TMT19937_Pool_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PMD19937Core>;
 
-type
+  TMT19937_Pool__ = class(TMT19937_Pool_Decl__)
+  public
+    procedure DoFree(var Data: PMD19937Core); override;
+  end;
+
   TMT19937Core = record
     MT: TMTVector; // the array for the state vector
     MTI: Integer;
@@ -28,7 +34,8 @@ type
     Thread: TCore_Thread;
     LastActivtedTime: TTimeTick;
     Busy: Boolean;
-    Instance: Integer;
+    Instance_TMT19937Random__: Integer;
+    Queue_Data_Ptr__: TMT19937_Pool__.PQueueStruct;
     procedure BuildMT(Seed_: Integer);
     function GenRand_MT19937(): Integer;
     procedure Init(Thread_: TCore_Thread; LastActivtedTime_: TTimeTick);
@@ -36,14 +43,16 @@ type
     procedure Unserialize(stream: TCore_Stream);
   end;
 
-  PMD19937Core = ^TMT19937Core;
+procedure TMT19937_Pool__.DoFree(var Data: PMD19937Core);
+begin
+  if Data <> nil then
+    begin
+      Dispose(Data);
+      Data := nil;
+    end;
+end;
 
-  TMT19937List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PMD19937Core>;
-
-  TMT19937List = class(TMT19937List_Decl)
-  end;
-
-  { Initializing the array with a seed }
+{ Initializing the array with a seed }
 procedure TMT19937Core.BuildMT(Seed_: Integer);
 var
   i: Integer;
@@ -119,7 +128,8 @@ begin
   Thread := Thread_;
   LastActivtedTime := LastActivtedTime_;
   Busy := False;
-  Instance := 0;
+  Instance_TMT19937Random__ := 0;
+  Queue_Data_Ptr__ := nil;
 end;
 
 procedure TMT19937Core.Serialize(stream: TCore_Stream);
@@ -140,81 +150,110 @@ end;
 
 var
   MT19937InternalCritical: TCritical;
-  MT19937POOL: TMT19937List;
+  MT19937_POOL__: TMT19937_Pool__;
   MT19937CoreToDelphi_: Boolean;
 
 function InternalMT19937__(): PMD19937Core;
 var
-  th: TCore_Thread;
-  i: Integer;
-  p: PMD19937Core;
-begin
-  th := TCore_Thread.CurrentThread;
+  Th: TCore_Thread;
+  R_: PMD19937Core;
+{$IFDEF FPC}
+  procedure do_fpc_progress(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean);
+  begin
+    if p^.Data^.Thread = Th then
+      begin
+        p^.Data^.LastActivtedTime := GetTimeTick;
+        R_ := p^.Data;
+      end
+    else if (not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
+      (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime) then
+      begin
+        MT19937_POOL__.Push_To_Recycle_Pool(p);
+      end;
+  end;
+{$ENDIF FPC}
 
-  if (th is TCompute) and (TCompute(th).FRndInstance <> nil) then
+
+begin
+  Th := TCore_Thread.CurrentThread;
+  if (Th is TCompute) and (TCompute(Th).FRndInstance <> nil) then
     begin
-      p := TCompute(th).FRndInstance;
-      p^.LastActivtedTime := GetTimeTick;
-      Result := p;
+      Result := TCompute(Th).FRndInstance;
+      Result^.LastActivtedTime := GetTimeTick;
       exit;
     end;
 
-  Result := nil;
-
+  R_ := nil;
   MT19937InternalCritical.Acquire;
+  try
+    MT19937_POOL__.Free_Recycle_Pool;
+{$IFDEF FPC}
+    MT19937_POOL__.Progress_P(@do_fpc_progress);
+{$ELSE FPC}
+    MT19937_POOL__.Progress_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
+      begin
+        if p^.Data^.Thread = Th then
+          begin
+            p^.Data^.LastActivtedTime := GetTimeTick;
+            R_ := p^.Data;
+          end
+        else if (not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
+          (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime) then
+          begin
+            MT19937_POOL__.Push_To_Recycle_Pool(p);
+          end;
+      end);
+{$ENDIF FPC}
+    MT19937_POOL__.Free_Recycle_Pool;
 
-  i := 0;
-  while i < MT19937POOL.Count do
-    begin
-      p := MT19937POOL[i];
-      if p^.Thread = th then
-        begin
-          if i > 0 then
-              MT19937POOL.Exchange(0, i);
-          p^.LastActivtedTime := GetTimeTick;
-          Result := p;
-          inc(i);
-        end
-      else if (not p^.Busy) and (p^.Instance <= 0) and (GetTimeTick - p^.LastActivtedTime > MT19937LifeTime) then
-        begin
-          dispose(p);
-          MT19937POOL.Delete(i);
-        end
-      else
-          inc(i);
-    end;
-
-  if Result = nil then
-    begin
-      New(p);
-      p^.Init(th, GetTimeTick);
-      MT19937POOL.Add(p);
-      Result := p;
-    end;
-
-  MT19937InternalCritical.Release;
+    if R_ = nil then
+      begin
+        New(R_);
+        R_^.Init(Th, GetTimeTick);
+        R_^.Queue_Data_Ptr__ := MT19937_POOL__.Add(R_);
+      end;
+    MT19937_POOL__.MoveToFirst(R_^.Queue_Data_Ptr__);
+  finally
+    Result := R_;
+    MT19937InternalCritical.Release;
+  end;
 end;
 
-procedure RemoveMT19937Thread(th: TCore_Thread);
-var
-  i: Integer;
-  p: PMD19937Core;
+procedure RemoveMT19937Thread(Th: TCore_Thread);
+{$IFDEF FPC}
+  procedure do_fpc_progress(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean);
+  begin
+    if (p^.Data^.Thread = Th) or
+      ((not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
+      (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime)) then
+      begin
+        MT19937_POOL__.Push_To_Recycle_Pool(p);
+      end;
+  end;
+{$ENDIF FPC}
+
+
 begin
   MT19937InternalCritical.Acquire;
-  i := 0;
-  while i < MT19937POOL.Count do
-    begin
-      p := MT19937POOL[i];
-      if (p^.Thread = th) or
-        ((not p^.Busy) and (p^.Instance <= 0) and (GetTimeTick - p^.LastActivtedTime > MT19937LifeTime)) then
-        begin
-          dispose(p);
-          MT19937POOL.Delete(i);
-        end
-      else
-          inc(i);
-    end;
-  MT19937InternalCritical.Release;
+  try
+    MT19937_POOL__.Free_Recycle_Pool;
+{$IFDEF FPC}
+    MT19937_POOL__.Progress_P(@do_fpc_progress);
+{$ELSE FPC}
+    MT19937_POOL__.Progress_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
+      begin
+        if (p^.Data^.Thread = Th) or
+          ((not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
+          (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime)) then
+          begin
+            MT19937_POOL__.Push_To_Recycle_Pool(p);
+          end;
+      end);
+{$ENDIF FPC}
+    MT19937_POOL__.Free_Recycle_Pool;
+  finally
+      MT19937InternalCritical.Release;
+  end;
 end;
 
 {$IFDEF DELPHI}
@@ -246,7 +285,7 @@ end;
 procedure InitMT19937Rand;
 begin
   MT19937InternalCritical := TCritical.Create;
-  MT19937POOL := TMT19937List.Create;
+  MT19937_POOL__ := TMT19937_Pool__.Create;
   MT19937CoreToDelphi_ := False;
 
 {$IFDEF DELPHI}
@@ -258,13 +297,9 @@ begin
 end;
 
 procedure FreeMT19937Rand;
-var
-  i: Integer;
 begin
-  for i := 0 to MT19937POOL.Count - 1 do
-      dispose(MT19937POOL[i]);
-  DisposeObject(MT19937POOL);
-  MT19937POOL := nil;
+  MT19937_POOL__.Free;
+  MT19937_POOL__ := nil;
   MT19937InternalCritical.Free;
   MT19937InternalCritical := nil;
 end;
@@ -277,7 +312,7 @@ end;
 function MT19937InstanceNum(): Integer;
 begin
   MT19937InternalCritical.Acquire;
-  Result := MT19937POOL.Count;
+  Result := MT19937_POOL__.Num;
   MT19937InternalCritical.Release;
 end;
 
@@ -313,7 +348,7 @@ begin
   Result := Integer((Int64(Cardinal(InternalMT19937__()^.GenRand_MT19937())) * L) shr 32);
 end;
 
-procedure MT19937Rand32(L: Integer; dest: PInteger; num: NativeInt);
+procedure MT19937Rand32(L: Integer; dest: PInteger; Num: NativeInt);
 begin
   { otherwise we can return values = L (JM) }
   if (L < 0) then
@@ -323,10 +358,10 @@ begin
     begin
       Busy := True;
       try
-        while num > 0 do
+        while Num > 0 do
           begin
             dest^ := Integer((Int64(Cardinal(GenRand_MT19937())) * L) shr 32);
-            dec(num);
+            dec(Num);
             inc(dest);
           end;
       finally
@@ -347,20 +382,20 @@ begin
       Result := 0;
 end;
 
-procedure MT19937Rand64(L: Int64; dest: PInt64; num: NativeInt);
+procedure MT19937Rand64(L: Int64; dest: PInt64; Num: NativeInt);
 begin
   with InternalMT19937__()^ do
     begin
       Busy := True;
       try
-        while num > 0 do
+        while Num > 0 do
           begin
             dest^ := Int64((UInt64(Cardinal(GenRand_MT19937())) or ((UInt64(Cardinal(GenRand_MT19937())) shl 32))) and $7FFFFFFFFFFFFFFF);
             if (dest^ <> 0) then
                 dest^ := dest^ mod L
             else
                 dest^ := 0;
-            dec(num);
+            dec(Num);
             inc(dest);
           end;
       finally
@@ -377,7 +412,7 @@ begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
-procedure MT19937RandE(dest: PExtended; num: NativeInt);
+procedure MT19937RandE(dest: PExtended; Num: NativeInt);
 const
   f = Extended(1.0) / (Int64(1) shl 32);
 begin
@@ -385,10 +420,10 @@ begin
     begin
       Busy := True;
       try
-        while num > 0 do
+        while Num > 0 do
           begin
             dest^ := f * Cardinal(GenRand_MT19937());
-            dec(num);
+            dec(Num);
             inc(dest);
           end;
       finally
@@ -405,7 +440,7 @@ begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
-procedure MT19937RandF(dest: PSingle; num: NativeInt);
+procedure MT19937RandF(dest: PSingle; Num: NativeInt);
 const
   f = Single(1.0) / (Int64(1) shl 32);
 begin
@@ -413,10 +448,10 @@ begin
     begin
       Busy := True;
       try
-        while num > 0 do
+        while Num > 0 do
           begin
             dest^ := f * Cardinal(GenRand_MT19937());
-            dec(num);
+            dec(Num);
             inc(dest);
           end;
       finally
@@ -433,7 +468,7 @@ begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
-procedure MT19937RandD(dest: PDouble; num: NativeInt);
+procedure MT19937RandD(dest: PDouble; Num: NativeInt);
 const
   f = Double(1.0) / (Int64(1) shl 32);
 begin
@@ -441,10 +476,10 @@ begin
     begin
       Busy := True;
       try
-        while num > 0 do
+        while Num > 0 do
           begin
             dest^ := f * Cardinal(GenRand_MT19937());
-            dec(num);
+            dec(Num);
             inc(dest);
           end;
       finally
@@ -488,13 +523,13 @@ begin
   inherited Create;
   FInternalCritical := TCritical.Create;
   FRndInstance := InternalMT19937__();
-  AtomInc(PMD19937Core(FRndInstance)^.Instance);
+  AtomInc(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
 end;
 
 destructor TMT19937Random.Destroy;
 begin
   FInternalCritical.Free;
-  AtomDec(PMD19937Core(FRndInstance)^.Instance);
+  AtomDec(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
   inherited Destroy;
 end;
 
@@ -517,7 +552,7 @@ begin
   FInternalCritical.Release;
 end;
 
-procedure TMT19937Random.Rand32(L: Integer; dest: PInteger; num: NativeInt);
+procedure TMT19937Random.Rand32(L: Integer; dest: PInteger; Num: NativeInt);
 begin
   FInternalCritical.Acquire;
   { otherwise we can return values = L (JM) }
@@ -526,10 +561,10 @@ begin
 
   with PMD19937Core(FRndInstance)^ do
     begin
-      while num > 0 do
+      while Num > 0 do
         begin
           dest^ := Integer((Int64(Cardinal(GenRand_MT19937())) * L) shr 32);
-          dec(num);
+          dec(Num);
           inc(dest);
         end;
     end;
@@ -549,19 +584,19 @@ begin
   FInternalCritical.Release;
 end;
 
-procedure TMT19937Random.Rand64(L: Int64; dest: PInt64; num: NativeInt);
+procedure TMT19937Random.Rand64(L: Int64; dest: PInt64; Num: NativeInt);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
     begin
-      while num > 0 do
+      while Num > 0 do
         begin
           dest^ := Int64((UInt64(Cardinal(GenRand_MT19937())) or ((UInt64(Cardinal(GenRand_MT19937())) shl 32))) and $7FFFFFFFFFFFFFFF);
           if (dest^ <> 0) then
               dest^ := dest^ mod L
           else
               dest^ := 0;
-          dec(num);
+          dec(Num);
           inc(dest);
         end;
     end;
@@ -578,17 +613,17 @@ begin
   FInternalCritical.Release;
 end;
 
-procedure TMT19937Random.RandE(dest: PExtended; num: NativeInt);
+procedure TMT19937Random.RandE(dest: PExtended; Num: NativeInt);
 const
   f = Extended(1.0) / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
     begin
-      while num > 0 do
+      while Num > 0 do
         begin
           dest^ := f * Cardinal(GenRand_MT19937());
-          dec(num);
+          dec(Num);
           inc(dest);
         end;
     end;
@@ -605,17 +640,17 @@ begin
   FInternalCritical.Release;
 end;
 
-procedure TMT19937Random.RandF(dest: PSingle; num: NativeInt);
+procedure TMT19937Random.RandF(dest: PSingle; Num: NativeInt);
 const
   f = Single(1.0) / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
     begin
-      while num > 0 do
+      while Num > 0 do
         begin
           dest^ := f * Cardinal(GenRand_MT19937());
-          dec(num);
+          dec(Num);
           inc(dest);
         end;
     end;
@@ -632,17 +667,17 @@ begin
   FInternalCritical.Release;
 end;
 
-procedure TMT19937Random.RandD(dest: PDouble; num: NativeInt);
+procedure TMT19937Random.RandD(dest: PDouble; Num: NativeInt);
 const
   f = Double(1.0) / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
     begin
-      while num > 0 do
+      while Num > 0 do
         begin
           dest^ := f * Cardinal(GenRand_MT19937());
-          dec(num);
+          dec(Num);
           inc(dest);
         end;
     end;
@@ -652,4 +687,89 @@ end;
 function TMT19937Random.RandBool: Boolean;
 begin
   Result := ODD(Rand32(MaxInt));
+end;
+
+class function TMT19937.CoreToDelphi: Boolean;
+begin
+  Result := MT19937CoreToDelphi();
+end;
+
+class function TMT19937.InstanceNum(): Integer;
+begin
+  Result := MT19937InstanceNum();
+end;
+
+class procedure TMT19937.SetSeed(seed: Integer);
+begin
+  SetMT19937Seed(seed);
+end;
+
+class function TMT19937.GetSeed(): Integer;
+begin
+  Result := GetMT19937Seed();
+end;
+
+class procedure TMT19937.Randomize();
+begin
+  MT19937Randomize();
+end;
+
+class function TMT19937.Rand32(L: Integer): Integer;
+begin
+  Result := MT19937Rand32(L);
+end;
+
+class procedure TMT19937.Rand32(L: Integer; dest: PInteger; Num: NativeInt);
+begin
+  MT19937Rand32(L, dest, Num);
+end;
+
+class function TMT19937.Rand64(L: Int64): Int64;
+begin
+  Result := MT19937Rand64(L);
+end;
+
+class procedure TMT19937.Rand64(L: Int64; dest: PInt64; Num: NativeInt);
+begin
+  MT19937Rand64(L, dest, Num);
+end;
+
+class function TMT19937.RandE: Extended;
+begin
+  Result := MT19937RandE();
+end;
+
+class procedure TMT19937.RandE(dest: PExtended; Num: NativeInt);
+begin
+  MT19937RandE(dest, Num);
+end;
+
+class function TMT19937.RandF: Single;
+begin
+  Result := MT19937RandF();
+end;
+
+class procedure TMT19937.RandF(dest: PSingle; Num: NativeInt);
+begin
+  MT19937RandF(dest, Num);
+end;
+
+class function TMT19937.RandD: Double;
+begin
+  Result := MT19937RandD();
+end;
+
+class procedure TMT19937.RandD(dest: PDouble; Num: NativeInt);
+begin
+  MT19937RandD(dest, Num);
+end;
+
+class procedure TMT19937.SaveToStream(stream: TCore_Stream);
+begin
+  MT19937SaveToStream(stream);
+end;
+
+class procedure TMT19937.LoadFromStream(stream: TCore_Stream);
+begin
+  MT19937LoadFromStream(stream);
 end;

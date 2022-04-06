@@ -63,6 +63,22 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2022-4-6内核革命性大更**
+
+```
+本次大更全部集中于底层，对于上层应用群：大数据，AI，图像处理，网络，提供天然优化
+重做线程池调度机制，重做Post Thread机制，重做TCompute线程触发机制，优化Z.Notify机制
+Z.Core在内部新增一个支持64位地址段的泛型链表
+重做MT19937随机数与线程实例匹配机制
+DisposeObject调用不再会遍历互斥锁池，直接Free干掉
+互斥锁池机制改为：UnlockObject(Obj)里面回收Critical句柄，释放内存
+TCompute线程机制新增原子状态机变量：IsRuning，IsExit，完整兼容系统内核机制
+synchronization机制（流程易错，效率超低），以后用状态机轻松回避它
+新增ZDB2线程支持内核库：Z.ZDB2.Thread.pas
+```
+
+**过去的更新日志**
+
 - 2022-3-24，新的并网机制：不影响之前的DP入网机制，已测试通过.
 - 2022-3-24，新增网盘支持核心，已测试通过.
 - 2022-3-16，给ZDB1.0的数据引擎增加了cache测试单元，因为减懒不写test case，所以疏忽，导致产生深度性质的cache bug.
@@ -99,8 +115,6 @@ myClient "AutoTunnel('127.0.0.1',9188,'DP|myService',False)"
 // Tunnel(地址,端口,标识符最好带有DP，这样C4才可以有自动化机制)
 myClient "Tunnel('127.0.0.1','9188','DP|myService')"
 ```
-
-**过去的更新日志**
 
 - 2022-2-13，修复了一个ZDB2重大bug：flush cache一个变量疏忽，导致写入错误的问题
 - 2022-2-13，在AdvanceDemo中新增大文件备份演示

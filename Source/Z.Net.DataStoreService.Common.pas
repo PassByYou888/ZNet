@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.DataStoreService.Common;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB2.ObjectDataManager;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

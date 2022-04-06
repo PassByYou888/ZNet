@@ -2,7 +2,7 @@
 { * cloud 4.0 console application framework                                    * }
 { ****************************************************************************** }
 unit Z.Net.C4_Console_APP;
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 

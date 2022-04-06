@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.Net.C4_PascalRewrite_Service;
 
-{$I Z.Define.inc}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -34,7 +34,7 @@ type
     procedure cmd_SetDefaultModel(Sender: TPeerIO; InData: TDFE);
     procedure cmd_UpdateModel(Sender: TPeerIO; InData: TDFE);
 
-    procedure Do_Sync_Rewrite_Status(Sender: TNPostExecute);
+    procedure Do_Sync_Rewrite_Status(Sender: TN_Post_Execute);
     procedure Do_RewritePascal_HPC(ThSender: THPC_Stream; ThInData, ThOutData: TDFE);
     procedure cmd_RewritePascal(Sender: TPeerIO; InData, OutData: TDFE);
   public
@@ -129,7 +129,7 @@ begin
   end;
 end;
 
-procedure TC40_Pascal_Rewrite_Service.Do_Sync_Rewrite_Status(Sender: TNPostExecute);
+procedure TC40_Pascal_Rewrite_Service.Do_Sync_Rewrite_Status(Sender: TN_Post_Execute);
 var
   id: Cardinal;
   info: SystemString;

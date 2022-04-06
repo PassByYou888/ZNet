@@ -117,6 +117,7 @@ type
     function ReadCurrency: Currency;
     function PrepareReadString: Boolean;
     function ReadString: TPascalString;
+    function ReadStringAsBuff: TBytes;
     procedure IgnoreReadString;
     function ReadANSI(L: Integer): TPascalString;
     function ReadMD5: TMD5;
@@ -289,6 +290,7 @@ type
     function ReadCurrency: Currency;
     function PrepareReadString: Boolean;
     function ReadString: TPascalString;
+    function ReadStringAsBuff: TBytes;
     procedure IgnoreReadString;
     function ReadANSI(L: Integer): TPascalString;
     function ReadMD5: TMD5;
@@ -376,6 +378,7 @@ function StreamReadSingle(const stream: TCore_Stream): Single;
 function StreamReadDouble(const stream: TCore_Stream): Double;
 function StreamReadCurrency(const stream: TCore_Stream): Currency;
 function StreamReadString(const stream: TCore_Stream): TPascalString;
+function StreamReadStringAsBuff(const stream: TCore_Stream): TBytes;
 procedure StreamIgnoreReadString(const stream: TCore_Stream);
 function StreamReadMD5(const stream: TCore_Stream): TMD5;
 
@@ -1147,6 +1150,24 @@ begin
       end;
   except
       Result := '';
+  end;
+end;
+
+function TMS64.ReadStringAsBuff: TBytes;
+var
+  L: Cardinal;
+begin
+  try
+    L := ReadUInt32;
+    if L > 0 then
+      begin
+        SetLength(Result, L);
+        ReadPtr(@Result[0], L);
+      end
+    else
+        SetLength(Result, 0);
+  except
+      SetLength(Result, 0);
   end;
 end;
 
@@ -2005,6 +2026,24 @@ begin
     end;
 end;
 
+function TMem64.ReadStringAsBuff: TBytes;
+var
+  L: Cardinal;
+begin
+  try
+    L := ReadUInt32;
+    if L > 0 then
+      begin
+        SetLength(Result, L);
+        ReadPtr(@Result[0], L);
+      end
+    else
+        SetLength(Result, 0);
+  except
+      SetLength(Result, 0);
+  end;
+end;
+
 procedure TMem64.IgnoreReadString;
 var
   L: Cardinal;
@@ -2763,6 +2802,24 @@ begin
       end;
   except
       Result := '';
+  end;
+end;
+
+function StreamReadStringAsBuff(const stream: TCore_Stream): TBytes;
+var
+  L: Cardinal;
+begin
+  try
+    L := StreamReadUInt32(stream);
+    if L > 0 then
+      begin
+        SetLength(Result, L);
+        stream.read(Result[0], L);
+      end
+    else
+        SetLength(Result, 0);
+  except
+      SetLength(Result, 0);
   end;
 end;
 
