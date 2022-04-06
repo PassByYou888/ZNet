@@ -3,7 +3,7 @@
 { ****************************************************************************** }
 unit Z.ZDB.LocalManager;
 
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

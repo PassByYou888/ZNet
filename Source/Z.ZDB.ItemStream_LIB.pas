@@ -4,7 +4,7 @@
 
 unit Z.ZDB.ItemStream_LIB;
 
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

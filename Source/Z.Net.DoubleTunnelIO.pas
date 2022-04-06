@@ -4,7 +4,7 @@
 
 unit Z.Net.DoubleTunnelIO;
 
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 
