@@ -195,6 +195,7 @@ type
   TAtomUInt32 = TAtomCardinal;
   TAtomDWord = TAtomCardinal;
   TAtomUInt64 = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<UInt64>;
+  TAtomTimeTick = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<TTimeTick>;
   // float
   TAtomSingle = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Single>;
   TAtomFloat = TAtomSingle;
@@ -652,10 +653,10 @@ type
 
     constructor Create;
     destructor Destroy; override;
-    class function Physics_Thread_Num(): Integer;
-    class function ActivtedTask(): Integer;
-    class function WaitTask(): Integer;
-    class function TotalTask(): Integer;
+    class function Physics_Thread_Num(): NativeInt;
+    class function ActivtedTask(): NativeInt;
+    class function WaitTask(): NativeInt;
+    class function TotalTask(): NativeInt;
     class function State(): string;
     class function GetParallelGranularity(): Integer;
     class function GetMaxActivtedParallel(): Integer;
@@ -871,8 +872,9 @@ const
 {$EndRegion 'core const'}
 {$Region 'Parallel API'}
 
-function GetParallelGranularity: Integer;
-procedure SetParallelGranularity(Thread_Num: Integer);
+function Get_Parallel_Granularity: Integer;
+procedure Set_Parallel_Granularity(Thread_Num: Integer);
+procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
 
 {$IFDEF FPC}
   // freepascal
@@ -1591,16 +1593,6 @@ end;
 {$I Z.Core.LineProcessor.inc}
 {$I Z.Core.OrderData.inc}
 {$I Z.Core.BigList.inc}
-
-function GetParallelGranularity: Integer;
-begin
-  Result := Parallel_Granularity__;
-end;
-
-procedure SetParallelGranularity(Thread_Num: Integer);
-begin
-  Parallel_Granularity__ := Thread_Num;
-end;
 
 procedure Nop;
 begin
