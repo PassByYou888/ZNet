@@ -284,6 +284,10 @@ end;
 
 procedure InitMT19937Rand;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      Writeln('Init MT19937');
+{$ENDIF DEBUG}
   MT19937InternalCritical := TCritical.Create;
   MT19937_POOL__ := TMT19937_Pool__.Create;
   MT19937CoreToDelphi_ := False;
@@ -298,6 +302,10 @@ end;
 
 procedure FreeMT19937Rand;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      Writeln('Free MT19937');
+{$ENDIF DEBUG}
   MT19937_POOL__.Free;
   MT19937_POOL__ := nil;
   MT19937InternalCritical.Free;
