@@ -438,7 +438,7 @@ end;
 constructor TMS64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := umlMin(64, customDelta);
+  FDelta := umlMax(64, customDelta);
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
@@ -1418,7 +1418,7 @@ end;
 constructor TMem64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := umlMin(64, customDelta);
+  FDelta := umlMax(64, customDelta);
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
@@ -2310,7 +2310,7 @@ var
     SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
   end;
 {$ENDIF FPC}
-{$ELSE Parallel}
+{$ENDIF Parallel}
   procedure DoFor;
   var
     pass: Integer;
@@ -2320,7 +2320,6 @@ var
         SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
       end;
   end;
-{$ENDIF Parallel}
   procedure BuildBuff;
   var
     strip_siz, strip_m: Int64;
@@ -2389,18 +2388,25 @@ begin
       StripNum := StripNum_;
   BuildBuff;
 
+  if sour.Size < 16 * 1024 then
+    begin
+      DoFor;
+    end
+  else
+    begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-  FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
+      FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
 {$ELSE FPC}
-  DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
-    begin
-      SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
-    end);
+      DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
+        begin
+          SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
+        end);
 {$ENDIF FPC}
 {$ELSE Parallel}
-  DoFor;
+      DoFor;
 {$ENDIF Parallel}
+    end;
   BuildOutput;
   FreeBuff;
 end;
@@ -2433,6 +2439,7 @@ var
   end;
 {$ENDIF FPC}
 {$ELSE Parallel}
+{$ENDIF Parallel}
   procedure DoFor;
   var
     pass: Integer;
@@ -2442,7 +2449,6 @@ var
         SelectDecompressStream(StripArry[pass].sour, StripArry[pass].dest);
       end;
   end;
-{$ENDIF Parallel}
   function BuildBuff_Stream64(stream: TMS64): Boolean;
   var
     strip_num: Integer;
@@ -2535,18 +2541,25 @@ begin
       Exit;
     end;
 
+  if Length(StripArry) < 10 then
+    begin
+      DoFor;
+    end
+  else
+    begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-  FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
+      FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
 {$ELSE FPC}
-  DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
-    begin
-      SelectDecompressStream(StripArry[pass].sour, StripArry[pass].dest);
-    end);
+      DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
+        begin
+          SelectDecompressStream(StripArry[pass].sour, StripArry[pass].dest);
+        end);
 {$ENDIF FPC}
 {$ELSE Parallel}
-  DoFor;
+      DoFor;
 {$ENDIF Parallel}
+    end;
   BuildOutput;
   FreeBuff;
 end;
