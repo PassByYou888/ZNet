@@ -43,6 +43,7 @@ var
   Parallel_Overflow__: TParallelOverflow;
   Compute_Dispatch_Queue_Pool__: TCompute_Dispatch_Queue_Pool;
   IDLE_Compute_Thread_Sum: TAtomInt;
+  IDLE_Compute_Wait_Time_Tick: TAtomTimeTick;
 
 procedure TComputeDispatch.Init;
 begin
@@ -102,6 +103,10 @@ function Pick_Or_Create_Compute_Thread(): TCompute;
 begin
   Result := TCompute.Create;
   Result.Thread_Pool_Queue_Data_Ptr := Core_Thread_Pool__.Add(Result);
+{$IFDEF DEBUG}
+  if IsConsole then
+      WriteLn(Format('start thread: %d', [Result.ThreadID]));
+{$ENDIF DEBUG}
 end;
 
 procedure PostComputeDispatchData(var Data: TComputeDispatch);
@@ -142,7 +147,7 @@ procedure TCore_Dispatch_Order_Thread.Execute;
         Compute_Dispatch_Critical__.Release;
 
         // check
-        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < 1000) do
+        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < IDLE_Compute_Wait_Time_Tick.V) do
           begin
             Compute_Dispatch_Critical__.Acquire;
             if IsPicked_ then
@@ -223,10 +228,29 @@ begin
   inherited Destroy;
 end;
 
+function Get_Parallel_Granularity: Integer;
+begin
+  Result := Parallel_Granularity__;
+end;
+
+procedure Set_Parallel_Granularity(Thread_Num: Integer);
+begin
+  Parallel_Granularity__ := Thread_Num;
+end;
+
+procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
+begin
+  IDLE_Compute_Wait_Time_Tick.V := Tick_;
+end;
+
 procedure InitCoreThreadPool(Thread_Num: Integer);
 var
   Th: TCore_Dispatch_Order_Thread;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      Write('Init Compute.');
+{$ENDIF DEBUG}
   Core_Dispatch_Order__ := TCompute_Dispatch_Order.Create;
   Core_Dispatch_Order_Activted__ := True;
   Core_Dispatch_Order_IsExit__ := False;
@@ -238,20 +262,34 @@ begin
   Parallel_Overflow__.ActivtedParallel := 0;
   Compute_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
   IDLE_Compute_Thread_Sum := TAtomInt.Create(0);
+  IDLE_Compute_Wait_Time_Tick := TAtomTimeTick.Create(1000);
 
   // create dispatch thread
   Th := TCore_Dispatch_Order_Thread.Create;
   Th.Start();
+{$IFDEF DEBUG}
+  if IsConsole then
+      WriteLn(Format('CPU_Thread=%d, Max_Thread=%d, IDLE_Thread_Time=%dms',
+        [Thread_Num, Max_Thread_Supported, IDLE_Compute_Wait_Time_Tick.V]));
+{$ENDIF DEBUG}
 end;
 
 procedure FreeCoreThreadPool;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      WriteLn('Free Compute Pool.');
+{$ENDIF DEBUG}
   Core_Dispatch_Order_Activted__ := False;
   while not Core_Dispatch_Order_IsExit__ do
+    begin
       TCompute.Sleep(1);
+    end;
 
   while TCompute.ActivtedTask() > 0 do
-      CheckThreadSynchronize(1);
+    begin
+      CheckThreadSynchronize(10);
+    end;
 
   Core_Thread_Pool__.Free;
   Core_Thread_Pool__ := nil;
@@ -269,6 +307,9 @@ begin
 
   IDLE_Compute_Thread_Sum.Free;
   IDLE_Compute_Thread_Sum := nil;
+
+  IDLE_Compute_Wait_Time_Tick.Free;
+  IDLE_Compute_Wait_Time_Tick := nil;
 end;
 
 procedure TCompute.Execute;
@@ -329,16 +370,13 @@ begin
         Compute_Dispatch_Critical__.Release;
         if NoTask then
             Sleep(1);
-      until (not NoTask) or (GetTimeTick - Tick > 5000);
+      until (not NoTask) or (GetTimeTick - Tick > IDLE_Compute_Wait_Time_Tick.V);
 
       dec(IDLE_Compute_Thread_Sum.LockP()^);
       IDLE_Compute_Thread_Sum.Unlock();
       if NoTask then
           break;
     end;
-
-  dec(Compute_Thread_Task_Running__.LockP()^);
-  Compute_Thread_Task_Running__.Unlock();
 
   Compute_Dispatch_Critical__.Acquire;
   Core_Thread_Pool__.Remove(Thread_Pool_Queue_Data_Ptr);
@@ -347,6 +385,13 @@ begin
   AtomDec(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
   FRndInstance := nil;
   RemoveMT19937Thread(Self);
+
+  dec(Compute_Thread_Task_Running__.LockP()^);
+  Compute_Thread_Task_Running__.Unlock();
+{$IFDEF DEBUG}
+  if IsConsole then
+      WriteLn(Format('exit thread: %d', [ThreadID]));
+{$ENDIF DEBUG}
 end;
 
 procedure TCompute.Done_Sync;
@@ -388,24 +433,24 @@ begin
   inherited Destroy;
 end;
 
-class function TCompute.Physics_Thread_Num(): Integer;
+class function TCompute.Physics_Thread_Num(): NativeInt;
 begin
   Result := Compute_Thread_Task_Running__.V;
 end;
 
-class function TCompute.ActivtedTask(): Integer;
+class function TCompute.ActivtedTask(): NativeInt;
 begin
   Compute_Dispatch_Critical__.Acquire;
   Result := Core_Thread_Pool__.Num + Core_Dispatch_Order__.Num;
   Compute_Dispatch_Critical__.Release;
 end;
 
-class function TCompute.WaitTask(): Integer;
+class function TCompute.WaitTask(): NativeInt;
 begin
   Result := Core_Dispatch_Order__.Num;
 end;
 
-class function TCompute.TotalTask(): Integer;
+class function TCompute.TotalTask(): NativeInt;
 begin
   Result := Compute_Thread_Task_Running__.V + Core_Dispatch_Order__.Num;
 end;
