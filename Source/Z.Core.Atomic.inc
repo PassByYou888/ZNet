@@ -241,6 +241,10 @@ end;
 
 procedure Init_Critical_System;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      Writeln('Init Critical');
+{$ENDIF DEBUG}
   Lock_Pool_Cirtical__ := TCritical.Create;
   Atom_Num_Critical__ := TCritical.Create;
   TimeTick_Critical__ := TCritical.Create;
@@ -250,12 +254,20 @@ end;
 
 procedure Free_Critical_System;
 begin
+{$IFDEF DEBUG}
+  if IsConsole then
+      Write('Free Critical');
+{$ENDIF DEBUG}
   Lock_Pool__.Free;
   Lock_Pool__ := nil;
   while Critical_Recycle_Pool.Num > 0 do
     begin
       Critical_Recycle_Pool.First^.Data.Free;
       Critical_Recycle_Pool.Next;
+{$IFDEF DEBUG}
+  if IsConsole then
+      Write('.');
+{$ENDIF DEBUG}
     end;
   Critical_Recycle_Pool.Free;
   Critical_Recycle_Pool := nil;
@@ -265,6 +277,10 @@ begin
   Atom_Num_Critical__ := nil;
   TimeTick_Critical__.Free;
   TimeTick_Critical__ := nil;
+{$IFDEF DEBUG}
+  if IsConsole then
+      WriteLn('Done');
+{$ENDIF DEBUG}
 end;
 
 procedure GetCriticalLock(const Obj: TObject; var Critical_Result: PCritical_Struct; const Optimize: Boolean);
