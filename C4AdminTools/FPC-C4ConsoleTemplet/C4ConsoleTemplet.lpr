@@ -33,7 +33,7 @@ uses
   Z.Net.C4_FS2,
   Z.Net.C4_PascalRewrite_Client,
   Z.Net.C4_PascalRewrite_Service,
-  Z.Net.C4_NetDisk_VM_Service, Z.Net.C4_NetDisk_VM_Client, Z.Net.C4_NetDisk_Directory,
+  Z.Net.C4_NetDisk_Service, Z.Net.C4_NetDisk_Client, Z.Net.C4_NetDisk_Directory,
   Z.Net.C4_TEKeyValue,
   Z.Net.C4_Console_APP;
 

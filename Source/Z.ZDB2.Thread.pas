@@ -975,9 +975,6 @@ begin
         begin
           CMD_ := CMD_Queue.First^.Data;
           CMD_.Execute();
-{$IFDEF DEBUG}
-          // DoStatus('Execute Queue Instance: "%s"', [CMD_.ClassName]);
-{$ENDIF DEBUG}
           CMD_Queue.Next();
           LTK := GetTimeTick();
         end

@@ -26,7 +26,7 @@ uses
   Z.ZDB2.Custom, Z.ZDB2, Z.ZDB2.DFE, Z.ZDB2.HS, Z.ZDB2.HV, Z.ZDB2.Json, Z.ZDB2.MS64, Z.ZDB2.NM, Z.ZDB2.TE, Z.ZDB2.FileEncoder,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT, Z.Net.C4_Alias,
   Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
-  Z.Net.C4_NetDisk_VM_Service, Z.Net.C4_NetDisk_VM_Client, Z.Net.C4_NetDisk_Directory,
+  Z.Net.C4_NetDisk_Service, Z.Net.C4_NetDisk_Client, Z.Net.C4_NetDisk_Directory, Z.Net.C4_NetDisk_Admin_Tool,
   Z.Net.C4_TEKeyValue,
   Z.Net.PhysicsIO;
 
@@ -983,7 +983,7 @@ begin
       dest.Add(Format('Workload: %d/%d', [custom_client.ClientInfo.Workload, custom_client.ClientInfo.MaxWorkload]));
       dest.Add(Format('Parameter', []));
       dest.Add(Format('{', []));
-      dest.Add(custom_client.ParamList.AsText);
+      dest.Add(#9 + umlReplace(custom_client.ParamList.AsText, #13#10, #13#10#9, False, False));
       dest.Add(Format('}', []));
     end;
   dest.Add(Format('', []));
