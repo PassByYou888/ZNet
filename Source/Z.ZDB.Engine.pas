@@ -552,10 +552,10 @@ type
     procedure BuildStoreArray(ReverseBuild: Boolean; const OutputPtr: PStoreArray);
 
     // wait query
-    procedure WaitQuery(ReverseQuery: Boolean;
+    procedure WaitQuery__(ReverseQuery: Boolean; // fixed DCC < XE8
       const OnQuery_C: TQuery_C;
       const OnQuery_P: TQuery_P;
-      const OnQuery_M: TQuery_M); overload;
+      const OnQuery_M: TQuery_M);
 
     procedure WaitQueryC(ReverseQuery: Boolean; const OnQuery_C: TQuery_C); overload;
     procedure WaitQueryM(ReverseQuery: Boolean; const OnQuery_M: TQuery_M); overload;
@@ -566,10 +566,10 @@ type
     procedure WaitQueryM(const OnQuery_M: TQuery_M); overload;
 
     // background query
-    function Query(const TaskTag: SystemString; const ReverseQuery: Boolean;
+    function Query__(const TaskTag: SystemString; const ReverseQuery: Boolean; // fixed DCC < XE8
       const OnQuery_C: TQuery_C; const OnQueryDone_C: TQueryDone_C;
       const OnQuery_P: TQuery_P; const OnQueryDone_P: TQueryDone_P;
-      const OnQuery_M: TQuery_M; const OnQueryDone_M: TQueryDone_M): TQueryTask; overload;
+      const OnQuery_M: TQuery_M; const OnQueryDone_M: TQueryDone_M): TQueryTask;
 
     function QueryC(const TaskTag: SystemString; const ReverseQuery: Boolean; const OnQuery_C: TQuery_C; const OnQueryDone_C: TQueryDone_C): TQueryTask; overload;
     function QueryM(const TaskTag: SystemString; const ReverseQuery: Boolean; const OnQuery_M: TQuery_M; const OnQueryDone_M: TQueryDone_M): TQueryTask; overload;
@@ -2933,7 +2933,7 @@ begin
   BuildStorePosArray(ReverseBuild, OutputPtr);
 end;
 
-procedure TDBStore.WaitQuery(ReverseQuery: Boolean; const OnQuery_C: TQuery_C; const OnQuery_P: TQuery_P; const OnQuery_M: TQuery_M);
+procedure TDBStore.WaitQuery__(ReverseQuery: Boolean; const OnQuery_C: TQuery_C; const OnQuery_P: TQuery_P; const OnQuery_M: TQuery_M);
 type
   TDynamicQueryMethod = function(var qState: TQueryState): Boolean of object;
 var
@@ -2984,17 +2984,17 @@ end;
 
 procedure TDBStore.WaitQueryC(ReverseQuery: Boolean; const OnQuery_C: TQuery_C);
 begin
-  WaitQuery(ReverseQuery, OnQuery_C, nil, nil);
+  WaitQuery__(ReverseQuery, OnQuery_C, nil, nil);
 end;
 
 procedure TDBStore.WaitQueryM(ReverseQuery: Boolean; const OnQuery_M: TQuery_M);
 begin
-  WaitQuery(ReverseQuery, nil, nil, OnQuery_M);
+  WaitQuery__(ReverseQuery, nil, nil, OnQuery_M);
 end;
 
 procedure TDBStore.WaitQueryP(ReverseQuery: Boolean; const OnQuery_P: TQuery_P);
 begin
-  WaitQuery(ReverseQuery, nil, OnQuery_P, nil);
+  WaitQuery__(ReverseQuery, nil, OnQuery_P, nil);
 end;
 
 procedure TDBStore.WaitQueryC(const OnQuery_C: TQuery_C);
@@ -3012,7 +3012,7 @@ begin
   WaitQueryP(False, OnQuery_P);
 end;
 
-function TDBStore.Query(const TaskTag: SystemString; const ReverseQuery: Boolean;
+function TDBStore.Query__(const TaskTag: SystemString; const ReverseQuery: Boolean;
   const OnQuery_C: TQuery_C; const OnQueryDone_C: TQueryDone_C;
   const OnQuery_P: TQuery_P; const OnQueryDone_P: TQueryDone_P;
   const OnQuery_M: TQuery_M; const OnQueryDone_M: TQueryDone_M): TQueryTask;
@@ -3035,17 +3035,17 @@ end;
 
 function TDBStore.QueryC(const TaskTag: SystemString; const ReverseQuery: Boolean; const OnQuery_C: TQuery_C; const OnQueryDone_C: TQueryDone_C): TQueryTask;
 begin
-  Result := Query(TaskTag, ReverseQuery, OnQuery_C, OnQueryDone_C, nil, nil, nil, nil);
+  Result := Query__(TaskTag, ReverseQuery, OnQuery_C, OnQueryDone_C, nil, nil, nil, nil);
 end;
 
 function TDBStore.QueryP(const TaskTag: SystemString; const ReverseQuery: Boolean; const OnQuery_P: TQuery_P; const OnQueryDone_P: TQueryDone_P): TQueryTask;
 begin
-  Result := Query(TaskTag, ReverseQuery, nil, nil, OnQuery_P, OnQueryDone_P, nil, nil);
+  Result := Query__(TaskTag, ReverseQuery, nil, nil, OnQuery_P, OnQueryDone_P, nil, nil);
 end;
 
 function TDBStore.QueryM(const TaskTag: SystemString; const ReverseQuery: Boolean; const OnQuery_M: TQuery_M; const OnQueryDone_M: TQueryDone_M): TQueryTask;
 begin
-  Result := Query(TaskTag, ReverseQuery, nil, nil, nil, nil, OnQuery_M, OnQueryDone_M);
+  Result := Query__(TaskTag, ReverseQuery, nil, nil, nil, nil, OnQuery_M, OnQueryDone_M);
 end;
 
 function TDBStore.QueryC(const TaskTag: SystemString; const OnQuery_C: TQuery_C; const OnQueryDone_C: TQueryDone_C): TQueryTask;

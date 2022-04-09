@@ -52,7 +52,8 @@ type
     FOnAsyncConnectNotify_M: TOnState_M;
     FOnAsyncConnectNotify_P: TOnState_P;
 
-    procedure AsyncConnect(addr: SystemString; Port: Word; OnResultCall: TOnState_C; OnResultMethod: TOnState_M; OnResultProc: TOnState_P); overload;
+    // fixed DCC < XE8
+    procedure AsyncConnect__(addr: SystemString; Port: Word; OnResultCall: TOnState_C; OnResultMethod: TOnState_M; OnResultProc: TOnState_P);
   protected
     procedure DoConnected(Sender: TPeerIO); override;
     procedure DoDisconnect(Sender: TPeerIO); override;
@@ -132,7 +133,7 @@ begin
   inherited Disconnect;
 end;
 
-procedure TZNet_Client_CrossSocket.AsyncConnect(addr: SystemString; Port: Word; OnResultCall: TOnState_C; OnResultMethod: TOnState_M; OnResultProc: TOnState_P);
+procedure TZNet_Client_CrossSocket.AsyncConnect__(addr: SystemString; Port: Word; OnResultCall: TOnState_C; OnResultMethod: TOnState_M; OnResultProc: TOnState_P);
 begin
   FOnAsyncConnectNotify_C := OnResultCall;
   FOnAsyncConnectNotify_M := OnResultMethod;
@@ -247,17 +248,17 @@ end;
 
 procedure TZNet_Client_CrossSocket.AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C);
 begin
-  AsyncConnect(addr, Port, OnResult, nil, nil);
+  AsyncConnect__(addr, Port, OnResult, nil, nil);
 end;
 
 procedure TZNet_Client_CrossSocket.AsyncConnectM(addr: SystemString; Port: Word; const OnResult: TOnState_M);
 begin
-  AsyncConnect(addr, Port, nil, OnResult, nil);
+  AsyncConnect__(addr, Port, nil, OnResult, nil);
 end;
 
 procedure TZNet_Client_CrossSocket.AsyncConnectP(addr: SystemString; Port: Word; const OnResult: TOnState_P);
 begin
-  AsyncConnect(addr, Port, nil, nil, OnResult);
+  AsyncConnect__(addr, Port, nil, nil, OnResult);
 end;
 
 function TZNet_Client_CrossSocket.Connect(addr: SystemString; Port: Word): Boolean;

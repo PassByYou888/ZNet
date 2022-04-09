@@ -179,9 +179,6 @@ function ParseTextExpressionAsSymbol(ExpressionText: SystemString): TSymbolExpre
 function ParseTextExpressionAsSymbol_M(Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
-{ parsing text as expression structor }
-function ParseTextExpressionAsSymbol_M(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
-  const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
 { parsing text as expression structor }
 function ParseTextExpressionAsSymbol_C(Special_ASCII_: TListPascalString;
@@ -1776,9 +1773,11 @@ function ParseTextExpressionAsSymbol(Special_ASCII_: TListPascalString;
   ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression;
 var
   ParsingTool_: TTextParsing;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
   ParsingTool_ := TTextParsing.Create(ExpressionText, tsPascal, Special_ASCII_);
-  Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', nil, RefrenceOpRT);
+  tmp := nil;
+  Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', tmp, RefrenceOpRT);
   DisposeObject(ParsingTool_);
 end;
 
@@ -1790,9 +1789,11 @@ end;
 function ParseTextExpressionAsSymbol(Special_ASCII_: TListPascalString; ExpressionText: SystemString): TSymbolExpression;
 var
   ParsingTool_: TTextParsing;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
   ParsingTool_ := TTextParsing.Create(ExpressionText, tsPascal, Special_ASCII_);
-  Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', nil, SystemOpRunTime);
+  tmp := nil;
+  Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', tmp, SystemOpRunTime);
   DisposeObject(ParsingTool_);
 end;
 
@@ -1810,12 +1811,6 @@ begin
   ParsingTool_ := TextEngClass.Create(ExpressionText, TextStyle, Special_ASCII_);
   Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', OnGetValue, RefrenceOpRT);
   DisposeObject(ParsingTool_);
-end;
-
-function ParseTextExpressionAsSymbol_M(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
-  const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression;
-begin
-  Result := ParseTextExpressionAsSymbol_M(nil, TextEngClass, TextStyle, uName, ExpressionText, OnGetValue, RefrenceOpRT);
 end;
 
 function ParseTextExpressionAsSymbol_C(Special_ASCII_: TListPascalString;
@@ -2636,8 +2631,10 @@ end;
 function BuildAsOpCode(DebugMode: Boolean; TextStyle: TTextStyle; ExpressionText: SystemString): TOpCode;
 var
   sym: TSymbolExpression;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
-  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, nil, SystemOpRunTime);
+  tmp := nil;
+  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, SystemOpRunTime);
   Result := BuildAsOpCode(DebugMode, sym, '', 0);
   DisposeObject(sym);
 end;
@@ -2645,8 +2642,10 @@ end;
 function BuildAsOpCode(TextStyle: TTextStyle; ExpressionText: SystemString): TOpCode;
 var
   sym: TSymbolExpression;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
-  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, nil, SystemOpRunTime);
+  tmp := nil;
+  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, SystemOpRunTime);
   Result := BuildAsOpCode(False, sym, '', 0);
   DisposeObject(sym);
 end;
@@ -2663,8 +2662,10 @@ end;
 function BuildAsOpCode(DebugMode: Boolean; TextStyle: TTextStyle; ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TOpCode;
 var
   sym: TSymbolExpression;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
-  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, nil, RefrenceOpRT);
+  tmp := nil;
+  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, RefrenceOpRT);
   Result := BuildAsOpCode(DebugMode, sym, '', 0);
   DisposeObject(sym);
 end;
@@ -2672,8 +2673,10 @@ end;
 function BuildAsOpCode(TextStyle: TTextStyle; ExpressionText: SystemString; RefrenceOpRT: TOpCustomRunTime): TOpCode;
 var
   sym: TSymbolExpression;
+  tmp: TOnDeclValue_M; // fixed DCC < XE8
 begin
-  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, nil, RefrenceOpRT);
+  tmp := nil;
+  sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, RefrenceOpRT);
   Result := BuildAsOpCode(False, sym, '', 0);
   DisposeObject(sym);
 end;
