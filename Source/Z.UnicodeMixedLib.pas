@@ -230,7 +230,6 @@ procedure umlFindClose(var SR: TSR);
 
 function umlGetFileList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
 function umlGetDirList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
-
 function umlGetFileList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
 function umlGetDirList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
 
@@ -1817,61 +1816,61 @@ end;
 function umlGetFileListWithFullPath(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
-  ns: TPascalStringList;
+  L: TPascalStringList;
   i: Integer;
 begin
   ph := FullPath;
-  ns := TPascalStringList.Create;
-  umlGetFileList(FullPath, ns);
-  SetLength(Result, ns.Count);
-  for i := 0 to ns.Count - 1 do
-      Result[i] := umlCombineFileName(ph, ns[i]).text;
-  DisposeObject(ns);
+  L := TPascalStringList.Create;
+  umlGetFileList(FullPath, L);
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := umlCombineFileName(ph, L[i]).text;
+  DisposeObject(L);
 end;
 
 function umlGetDirListWithFullPath(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
-  ns: TPascalStringList;
+  L: TPascalStringList;
   i: Integer;
 begin
   ph := FullPath;
-  ns := TPascalStringList.Create;
-  umlGetDirList(FullPath, ns);
-  SetLength(Result, ns.Count);
-  for i := 0 to ns.Count - 1 do
-      Result[i] := umlCombinePath(ph, ns[i]).text;
-  DisposeObject(ns);
+  L := TPascalStringList.Create;
+  umlGetDirList(FullPath, L);
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := umlCombinePath(ph, L[i]).text;
+  DisposeObject(L);
 end;
 
 function umlGetFileListPath(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
-  ns: TPascalStringList;
+  L: TPascalStringList;
   i: Integer;
 begin
   ph := FullPath;
-  ns := TPascalStringList.Create;
-  umlGetFileList(FullPath, ns);
-  SetLength(Result, ns.Count);
-  for i := 0 to ns.Count - 1 do
-      Result[i] := ns[i];
-  DisposeObject(ns);
+  L := TPascalStringList.Create;
+  umlGetFileList(FullPath, L);
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := L[i];
+  DisposeObject(L);
 end;
 
 function umlGetDirListPath(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
-  ns: TPascalStringList;
+  L: TPascalStringList;
   i: Integer;
 begin
   ph := FullPath;
-  ns := TPascalStringList.Create;
-  umlGetDirList(FullPath, ns);
-  SetLength(Result, ns.Count);
-  for i := 0 to ns.Count - 1 do
-      Result[i] := ns[i];
-  DisposeObject(ns);
+  L := TPascalStringList.Create;
+  umlGetDirList(FullPath, L);
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := L[i];
+  DisposeObject(L);
 end;
 
 function umlCombinePath(const s1, s2: TPascalString): TPascalString;

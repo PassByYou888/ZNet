@@ -41,7 +41,7 @@ begin
   while i <= n.L do
     begin
       Successed := False;
-      j := umlMin(WordPartDict.MaxSectionNameLen, n.L - i + 1);
+      j := umlMin(WordPartDict.MaxSectionNameSize, n.L - i + 1);
       while j > 1 do
         begin
           tmp := n.Copy(i, j);
@@ -149,7 +149,7 @@ begin
   n := GBKString(s);
 
   Result := 0;
-  L := List.MaxNameLen;
+  L := List.MaxNameSize;
 
   i := 1;
   while i <= n.L do
@@ -187,7 +187,7 @@ function FullQuery_Table(const List: THashTextEngine; const s: TUPascalString): 
     Successed: Boolean;
   begin
     Result := 0;
-    L := vl.HashList.MaxNameLen;
+    L := vl.HashList.MaxNameSize;
 
     i := 1;
     while i <= n.L do
@@ -272,4 +272,3 @@ begin
 end;
 
 end.
- 

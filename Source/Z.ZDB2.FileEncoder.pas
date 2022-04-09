@@ -12,6 +12,7 @@ uses Z.Core,
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Status, Z.MemoryStream, Z.ListEngine,
+  Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
   Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
 
 type
@@ -58,7 +59,7 @@ type
   private
     FCore: TZDB2_Core_Space;
     FPlace: TZDB2_Space_Planner;
-    FIOThread: TIO_Thread;
+    FIO_Thread: TIO_Thread_Base;
     FEncoderFiles: TZDB2_FIL;
     FMaxQueue: Integer;
     FProgressInfo: SystemString;
@@ -95,7 +96,7 @@ type
   TZDB2_File_Decoder = class
   private
     FCore: TZDB2_Core_Space;
-    FIOThread: TIO_Thread;
+    FIO_Thread: TIO_Thread_Base;
     FDecoderFiles: TZDB2_FIL;
     FMaxQueue: Integer;
     FFileLog: TPascalStringList;
@@ -253,9 +254,12 @@ begin
   FCore.AutoFreeIOHnd := True;
   FPlace := TZDB2_Space_Planner.Create(FCore);
 
-  FIOThread := TIO_Thread.Create(ThNum_);
+  if ThNum_ > 0 then
+      FIO_Thread := TIO_Thread.Create(ThNum_)
+  else
+      FIO_Thread := TIO_Direct.Create;
   FEncoderFiles := TZDB2_FIL.Create;
-  FMaxQueue := ThNum_ * 5;
+  FMaxQueue := umlMax(1, ThNum_) * 5;
   FProgressInfo := '';
   FOnProgress := nil;
   FAborted := False;
@@ -285,7 +289,7 @@ destructor TZDB2_File_Encoder.Destroy;
 begin
   if not FFlushed then
       Flush;
-  DisposeObject(FIOThread);
+  DisposeObject(FIO_Thread);
   FEncoderFiles.Clean;
   DisposeObject(FEncoderFiles);
   DisposeObject(FPlace);
@@ -322,12 +326,12 @@ var
           end;
         if stream.Read(thIOData_.Source.Memory^, thIOData_.Source.Size) <> thIOData_.Source.Size then
             break;
-        FIOThread.Enqueue(thIOData_);
-        while FIOThread.Count > FMaxQueue do
+        FIO_Thread.Enqueue(thIOData_);
+        while FIO_Thread.Count > FMaxQueue do
             TCompute.Sleep(1);
       end;
 
-    FIOThread.Wait();
+    FIO_Thread.Wait();
     Activted.V := False;
   end;
 {$ENDIF FPC}
@@ -384,19 +388,19 @@ begin
             end;
           if stream.Read(thIOData_.Source.Memory^, thIOData_.Source.Size) <> thIOData_.Source.Size then
               break;
-          FIOThread.Enqueue(thIOData_);
-          while FIOThread.Count > FMaxQueue do
+          FIO_Thread.Enqueue(thIOData_);
+          while FIO_Thread.Count > FMaxQueue do
               TCompute.Sleep(1);
         end;
 
-      FIOThread.Wait();
+      FIO_Thread.Wait();
       Activted.V := False;
     end);
 {$ENDIF FPC}
   CompleteSize_ := 0;
   while Activted.V do
     begin
-      ioData := TZDB2_FE_IO(FIOThread.Dequeue);
+      ioData := TZDB2_FE_IO(FIO_Thread.Dequeue);
       if ioData <> nil then
         begin
           inc(CompleteSize_, ioData.Source.Size);
@@ -634,9 +638,12 @@ begin
   FCore.AutoFreeIOHnd := True;
   FCore.Open;
 
-  FIOThread := TIO_Thread.Create(ThNum_);
-  FMaxQueue := ThNum_ * 5;
+  if ThNum_ > 0 then
+      FIO_Thread := TIO_Thread.Create(ThNum_)
+  else
+      FIO_Thread := TIO_Direct.Create;
 
+  FMaxQueue := umlMax(1, ThNum_) * 5;
   FDecoderFiles := TZDB2_FIL.Create;
 
   mem := TZDB2_Mem.Create.Create;
@@ -685,8 +692,7 @@ end;
 
 destructor TZDB2_File_Decoder.Destroy;
 begin
-  FIOThread.ThEnd;
-  DisposeObject(FIOThread);
+  DisposeObject(FIO_Thread);
   FDecoderFiles.Clean;
   DisposeObject(FDecoderFiles);
   DisposeObject(FFileLog);
@@ -718,14 +724,14 @@ var
         thIOData_ := TZDB2_FD_IO.Create;
         FCore.ReadStream(thIOData_.Source, source_.HandleArray[i]);
         thIOData_.Source.Position := 0;
-        FIOThread.Enqueue(thIOData_);
-        while FIOThread.Count > FMaxQueue do
+        FIO_Thread.Enqueue(thIOData_);
+        while FIO_Thread.Count > FMaxQueue do
             TCompute.Sleep(1);
         if FAborted then
             break;
       end;
 
-    FIOThread.Wait();
+    FIO_Thread.Wait();
     Activted.V := False;
   end;
 {$ENDIF FPC}
@@ -750,21 +756,21 @@ begin
           thIOData_ := TZDB2_FD_IO.Create;
           FCore.ReadStream(thIOData_.Source, source_.HandleArray[i]);
           thIOData_.Source.Position := 0;
-          FIOThread.Enqueue(thIOData_);
-          while FIOThread.Count > FMaxQueue do
+          FIO_Thread.Enqueue(thIOData_);
+          while FIO_Thread.Count > FMaxQueue do
               TCompute.Sleep(1);
           if FAborted then
               break;
         end;
 
-      FIOThread.Wait();
+      FIO_Thread.Wait();
       Activted.V := False;
     end);
 {$ENDIF FPC}
   compSiz_ := 0;
   while Activted.V do
     begin
-      ioData := TZDB2_FD_IO(FIOThread.Dequeue);
+      ioData := TZDB2_FD_IO(FIO_Thread.Dequeue);
       if ioData <> nil then
         begin
           inc(compSiz_, ioData.Source.Size);

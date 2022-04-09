@@ -398,7 +398,7 @@ type
     FProgress_Busy: NativeInt;
     procedure DoInternalFree(p: PQueueStruct);
   public
-    constructor Create; virtual;
+    constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
@@ -477,7 +477,7 @@ type
     procedure DoInternalFree(p: PQueueStruct);
   public
     property Critical: TCritical read FCritical;
-    constructor Create; virtual;
+    constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);

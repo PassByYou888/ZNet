@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * DIOCP Support                                                              * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   update history
@@ -99,7 +83,6 @@ type
     procedure AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C); overload; override;
     procedure AsyncConnectM(addr: SystemString; Port: Word; const OnResult: TOnState_M); overload; override;
     procedure AsyncConnectP(addr: SystemString; Port: Word; const OnResult: TOnState_P); overload; override;
-
     function Connect(addr: SystemString; Port: Word): Boolean; overload; override;
     procedure Disconnect; override;
   end;
@@ -470,6 +453,8 @@ begin
 
   while DCIntf.Active and (not DCIntf.Link.RemoteExecutedForConnectInit) and (GetTimeTick < t) do
       Progress;
+
+  Result := True;
 end;
 
 procedure TZNet_Client_DIOCP.Disconnect;

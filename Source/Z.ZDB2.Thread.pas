@@ -338,9 +338,9 @@ type
   TZDB2_Th_Engine_ABI_Data = class(TCore_InterfacedObject)
   private
     FOwner: TZDB2_Th_Engine_ABI_Data_Marshal;
-    FOwner_Data_Ptr: TZDB2_Th_Engine_ABI_Data_Marshal_BigList__.PQueueStruct;
+    FOwner_Data_Ptr: TZDB2_Th_Engine_ABI_Data_Marshal_BigList_Decl__.PQueueStruct;
     FTh_Engine: TZDB2_Th_Engine_ABI_Config;
-    FTh_Engine_Data_Ptr: TZDB2_Th_Engine_ABI_Data_BigList__.PQueueStruct;
+    FTh_Engine_Data_Ptr: TZDB2_Th_Engine_ABI_Data_BigList_Decl__.PQueueStruct;
     FID: Integer;
     FBusy_Task_Num: Integer;
     procedure Do_Save_ID_And_State_Event(var Sender: TZDB2_Th_CMD_ID_And_State);
@@ -402,7 +402,7 @@ type
 
   TZDB2_Th_Engine_ABI_Config = class(TCore_InterfacedObject)
   private
-    procedure Do_Progress(Index_: NativeInt; p: TZDB2_Th_Engine_ABI_Data_BigList__.PQueueStruct; var Aborted: Boolean);
+    procedure Do_Progress(Index_: NativeInt; p: TZDB2_Th_Engine_ABI_Data_BigList_Decl__.PQueueStruct; var Aborted: Boolean);
     procedure DoFree(var Data: TZDB2_Th_Engine_ABI_Data);
   public
     Name: U_String;
@@ -1860,7 +1860,7 @@ begin
   FAlive := GetTimeTick;
 end;
 
-procedure TZDB2_Th_Engine_ABI_Config.Do_Progress(Index_: NativeInt; p: TZDB2_Th_Engine_ABI_Data_BigList__.PQueueStruct; var Aborted: Boolean);
+procedure TZDB2_Th_Engine_ABI_Config.Do_Progress(Index_: NativeInt; p: TZDB2_Th_Engine_ABI_Data_BigList_Decl__.PQueueStruct; var Aborted: Boolean);
 begin
   if (p^.Data = nil) or (p^.Data.FBusy_Task_Num > 0) or (p^.Data.FTh_Engine = nil) then
       exit;

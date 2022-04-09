@@ -472,7 +472,9 @@ type
     property QuietMode: Boolean read GetQuietMode write SetQuietMode;
   end;
 
+  TDT_P2PVM_VirtualAuth_Client = class;
   TDT_P2PVM_VirtualAuth_ServicePool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TDT_P2PVM_VirtualAuth_Service>;
+  TOn_DT_P2PVM_VirtualAuth_Client_TunnelLink = procedure(Sender: TDT_P2PVM_VirtualAuth_Client) of object;
 
   TDT_P2PVM_VirtualAuth_Client = class(TCore_Object)
   private
@@ -495,6 +497,7 @@ type
     LastUser, LastPasswd: SystemString;
     RegisterUserAndLogin: Boolean;
     AutomatedConnection: Boolean;
+    OnTunnelLink: TOn_DT_P2PVM_VirtualAuth_Client_TunnelLink;
 
     constructor Create(ClientClass_: TDTClient_VirtualAuthClass);
     destructor Destroy; override;
@@ -4188,8 +4191,11 @@ begin
   if state then
     begin
       RegisterUserAndLogin := False;
+
       if AutomatedConnection then
           Reconnection := True;
+      if Assigned(OnTunnelLink) then
+          OnTunnelLink(Self);
     end;
 end;
 
@@ -4237,6 +4243,7 @@ begin
 
   RegisterUserAndLogin := False;
   AutomatedConnection := True;
+  OnTunnelLink := nil;
 
   RecvTunnel.PrefixName := 'VA';
   RecvTunnel.Name := 'R';

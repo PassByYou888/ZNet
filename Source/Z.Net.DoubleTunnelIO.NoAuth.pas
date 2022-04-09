@@ -416,7 +416,9 @@ type
     property QuietMode: Boolean read GetQuietMode write SetQuietMode;
   end;
 
+  TDT_P2PVM_NoAuth_Client = class;
   TDT_P2PVM_NoAuth_ServicePool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TDT_P2PVM_NoAuth_Service>;
+  TOn_DT_P2PVM_NoAuth_Client_TunnelLink = procedure(Sender: TDT_P2PVM_NoAuth_Client) of object;
 
   TDT_P2PVM_NoAuth_Client = class(TCore_Object)
   private
@@ -435,6 +437,7 @@ type
     PhysicsTunnel: TPhysicsClient;
     LastAddr, LastPort, LastAuth: SystemString;
     AutomatedConnection: Boolean;
+    OnTunnelLink: TOn_DT_P2PVM_NoAuth_Client_TunnelLink;
 
     constructor Create(ClientClass_: TDTClient_NoAuthClass);
     destructor Destroy; override;
@@ -3560,6 +3563,8 @@ begin
     begin
       if AutomatedConnection then
           Reconnection := True;
+      if Assigned(OnTunnelLink) then
+          OnTunnelLink(Self);
     end;
 end;
 
@@ -3604,6 +3609,7 @@ begin
   LastAuth := '';
 
   AutomatedConnection := True;
+  OnTunnelLink := nil;
 
   RecvTunnel.PrefixName := 'NA';
   RecvTunnel.Name := 'R';

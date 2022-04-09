@@ -43,17 +43,18 @@ type
 
   TIO_Thread_Queue = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TIO_Thread_Data>;
 
-  TIO_Thread_Interface = interface
-    function Count(): Integer;
-    procedure Enqueue(IOData: TIO_Thread_Data); overload;
-    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C);
-    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M);
-    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P);
-    function Dequeue(): TIO_Thread_Data;
-    procedure Wait;
+  TIO_Thread_Base = class
+  public
+    function Count(): Integer; virtual; abstract;
+    procedure Enqueue(IOData: TIO_Thread_Data); virtual; abstract;
+    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C); virtual; abstract;
+    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M); virtual; abstract;
+    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P); virtual; abstract;
+    function Dequeue(): TIO_Thread_Data; virtual; abstract;
+    procedure Wait; virtual; abstract;
   end;
 
-  TIO_Thread = class(TCore_InterfacedObject, TIO_Thread_Interface)
+  TIO_Thread = class(TIO_Thread_Base)
   protected
     FCritical: TCritical;
     FThRunning: TAtomBool;
@@ -69,33 +70,34 @@ type
 
     function QueueCount(): Integer;
     function DoneCount(): Integer;
-    function Count(): Integer;
-    procedure Enqueue(IOData: TIO_Thread_Data); overload;
-    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C);
-    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M);
-    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P);
-    function Dequeue(): TIO_Thread_Data;
-    procedure Wait;
+    function Count(): Integer; override;
+    procedure Enqueue(IOData: TIO_Thread_Data); override;
+    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C); override;
+    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M); override;
+    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P); override;
+    function Dequeue(): TIO_Thread_Data; override;
+    procedure Wait; override;
 
     class procedure Test();
   end;
 
-  TIO_Direct = class(TCore_InterfacedObject, TIO_Thread_Interface)
+  TIO_Direct = class(TIO_Thread_Base)
   protected
+    FCritical: TCritical;
     FQueue: TIO_Thread_Queue;
   public
     constructor Create;
     destructor Destroy; override;
     procedure Reset();
 
-    function Count(): Integer;
+    function Count(): Integer; override;
     property QueueCount: Integer read Count;
-    procedure Enqueue(IOData: TIO_Thread_Data); overload;
-    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C);
-    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M);
-    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P);
-    function Dequeue(): TIO_Thread_Data;
-    procedure Wait;
+    procedure Enqueue(IOData: TIO_Thread_Data); override;
+    procedure Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C); override;
+    procedure Enqueue_M(IOData: TIO_Thread_Data; Data: Pointer; On_M: TIO_Thread_On_M); override;
+    procedure Enqueue_P(IOData: TIO_Thread_Data; Data: Pointer; On_P: TIO_Thread_On_P); override;
+    function Dequeue(): TIO_Thread_Data; override;
+    procedure Wait; override;
 
     class procedure Test();
   end;
@@ -133,7 +135,7 @@ type
     FBindTh: TCompute;
     FPost: TThreadPost;
     FActivted: TAtomBool;
-    FPool_Data_Ptr: TThread_Pool.PQueueStruct;
+    FPool_Data_Ptr: TThread_Pool_Decl.PQueueStruct;
     procedure ThRun(ThSender: TCompute);
   public
     constructor Create(Owner_: TThread_Pool);
@@ -252,7 +254,7 @@ begin
         begin
           FCritical.UnLock;
           L := GetTimeTick() - LTK;
-          if L > 1000 then
+          if L > 100 then
               TCompute.Sleep(1);
         end;
     end;
@@ -410,24 +412,30 @@ end;
 constructor TIO_Direct.Create;
 begin
   inherited Create;
+  FCritical := TCritical.Create;
   FQueue := TIO_Thread_Queue.Create;
 end;
 
 destructor TIO_Direct.Destroy;
 begin
   Reset;
+  FCritical.Free;
   DisposeObject(FQueue);
   inherited Destroy;
 end;
 
 procedure TIO_Direct.Reset;
 begin
+  FCritical.Lock;
   FQueue.Clear;
+  FCritical.UnLock;
 end;
 
 function TIO_Direct.Count: Integer;
 begin
+  FCritical.Lock;
   Result := FQueue.Num;
+  FCritical.UnLock;
 end;
 
 procedure TIO_Direct.Enqueue(IOData: TIO_Thread_Data);
@@ -438,7 +446,9 @@ begin
   IOData.FState := idsRunning;
   IOData.Process;
   IOData.FState := idsDone;
+  FCritical.Lock;
   FQueue.Push(IOData);
+  FCritical.UnLock;
 end;
 
 procedure TIO_Direct.Enqueue_C(IOData: TIO_Thread_Data; Data: Pointer; On_C: TIO_Thread_On_C);
@@ -465,16 +475,22 @@ end;
 function TIO_Direct.Dequeue(): TIO_Thread_Data;
 begin
   Result := nil;
+  FCritical.Lock;
   if FQueue.Num > 0 then
-    if FQueue.First^.Data.FState = idsDone then
-      begin
-        Result := FQueue.First^.Data;
-        FQueue.Next;
-      end;
+    begin
+      if FQueue.First^.Data.FState = idsDone then
+        begin
+          Result := FQueue.First^.Data;
+          FQueue.Next;
+        end;
+    end;
+  FCritical.UnLock;
 end;
 
 procedure TIO_Direct.Wait;
 begin
+  while Count > 0 do
+      TCompute.Sleep(1);
 end;
 
 class procedure TIO_Direct.Test;

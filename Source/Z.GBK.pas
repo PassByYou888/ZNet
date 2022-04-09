@@ -77,7 +77,7 @@ begin
   while i <= n1.L do
     begin
       Successed := False;
-      j := umlMin(PYDict.HashList.MaxNameLen, n1.L - i + 1);
+      j := umlMin(PYDict.HashList.MaxNameSize, n1.L - i + 1);
       while j > 1 do
         begin
           n2 := n1.Copy(i, j);
@@ -185,7 +185,7 @@ begin
   while i <= n1.L do
     begin
       Successed := False;
-      j := umlMin(s2tDict.HashList.MaxNameLen, n1.L - i + 1);
+      j := umlMin(s2tDict.HashList.MaxNameSize, n1.L - i + 1);
       while j > 1 do
         begin
           n2 := n1.Copy(i, j);
@@ -235,7 +235,7 @@ begin
   while i <= n1.L do
     begin
       Successed := False;
-      j := umlMin(t2hkDict.HashList.MaxNameLen, n1.L - i + 1);
+      j := umlMin(t2hkDict.HashList.MaxNameSize, n1.L - i + 1);
       while j > 1 do
         begin
           n2 := n1.Copy(i, j);
@@ -285,7 +285,7 @@ begin
   while i <= n1.L do
     begin
       Successed := False;
-      j := umlMin(t2sDict.HashList.MaxNameLen, n1.L - i + 1);
+      j := umlMin(t2sDict.HashList.MaxNameSize, n1.L - i + 1);
       while j > 1 do
         begin
           n2 := n1.Copy(i, j);
@@ -337,7 +337,7 @@ begin
   while i <= n1.L do
     begin
       Successed := False;
-      j := umlMin(t2twDict.HashList.MaxNameLen, n1.L - i + 1);
+      j := umlMin(t2twDict.HashList.MaxNameSize, n1.L - i + 1);
       while j > 1 do
         begin
           n2 := n1.Copy(i, j);
@@ -364,4 +364,3 @@ begin
 end;
 
 end.
- 

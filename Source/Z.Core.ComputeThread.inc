@@ -43,7 +43,7 @@ var
   Parallel_Overflow__: TParallelOverflow;
   Compute_Dispatch_Queue_Pool__: TCompute_Dispatch_Queue_Pool;
   IDLE_Compute_Thread_Sum: TAtomInt;
-  IDLE_Compute_Wait_Time_Tick: TAtomTimeTick;
+  IDLE_Compute_Wait_Time_Tick: TTimeTick;
 
 procedure TComputeDispatch.Init;
 begin
@@ -103,10 +103,6 @@ function Pick_Or_Create_Compute_Thread(): TCompute;
 begin
   Result := TCompute.Create;
   Result.Thread_Pool_Queue_Data_Ptr := Core_Thread_Pool__.Add(Result);
-{$IFDEF DEBUG}
-  if IsConsole then
-      WriteLn(Format('start thread: %d', [Result.ThreadID]));
-{$ENDIF DEBUG}
 end;
 
 procedure PostComputeDispatchData(var Data: TComputeDispatch);
@@ -147,7 +143,7 @@ procedure TCore_Dispatch_Order_Thread.Execute;
         Compute_Dispatch_Critical__.Release;
 
         // check
-        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < IDLE_Compute_Wait_Time_Tick.V) do
+        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < IDLE_Compute_Wait_Time_Tick) do
           begin
             Compute_Dispatch_Critical__.Acquire;
             if IsPicked_ then
@@ -240,7 +236,7 @@ end;
 
 procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
 begin
-  IDLE_Compute_Wait_Time_Tick.V := Tick_;
+  IDLE_Compute_Wait_Time_Tick := Tick_;
 end;
 
 procedure InitCoreThreadPool(Thread_Num: Integer);
@@ -262,15 +258,14 @@ begin
   Parallel_Overflow__.ActivtedParallel := 0;
   Compute_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
   IDLE_Compute_Thread_Sum := TAtomInt.Create(0);
-  IDLE_Compute_Wait_Time_Tick := TAtomTimeTick.Create(1000);
+  IDLE_Compute_Wait_Time_Tick := 1000;
 
   // create dispatch thread
   Th := TCore_Dispatch_Order_Thread.Create;
   Th.Start();
 {$IFDEF DEBUG}
   if IsConsole then
-      WriteLn(Format('CPU_Thread=%d, Max_Thread=%d, IDLE_Thread_Time=%dms',
-        [Thread_Num, Max_Thread_Supported, IDLE_Compute_Wait_Time_Tick.V]));
+      WriteLn(Format('CPU_Thread=%d, Max_Thread=%d, IDLE_Thread_Time=%dms', [Thread_Num, Max_Thread_Supported, IDLE_Compute_Wait_Time_Tick]));
 {$ENDIF DEBUG}
 end;
 
@@ -307,9 +302,6 @@ begin
 
   IDLE_Compute_Thread_Sum.Free;
   IDLE_Compute_Thread_Sum := nil;
-
-  IDLE_Compute_Wait_Time_Tick.Free;
-  IDLE_Compute_Wait_Time_Tick := nil;
 end;
 
 procedure TCompute.Execute;
@@ -370,8 +362,7 @@ begin
         Compute_Dispatch_Critical__.Release;
         if NoTask then
             Sleep(1);
-      until (not NoTask) or (GetTimeTick - Tick > IDLE_Compute_Wait_Time_Tick.V);
-
+      until (not NoTask) or (GetTimeTick - Tick > IDLE_Compute_Wait_Time_Tick);
       dec(IDLE_Compute_Thread_Sum.LockP()^);
       IDLE_Compute_Thread_Sum.Unlock();
       if NoTask then
@@ -388,10 +379,6 @@ begin
 
   dec(Compute_Thread_Task_Running__.LockP()^);
   Compute_Thread_Task_Running__.Unlock();
-{$IFDEF DEBUG}
-  if IsConsole then
-      WriteLn(Format('exit thread: %d', [ThreadID]));
-{$ENDIF DEBUG}
 end;
 
 procedure TCompute.Done_Sync;
@@ -459,7 +446,7 @@ class function TCompute.State(): string;
 begin
   Result := Format('Compute:%d Activted: %d Suspend: %d physics: %d/%d Granularity:%d MaxParallel:%d/%d',
     [TotalTask(), ActivtedTask(), WaitTask(), Physics_Thread_Num(), Max_Thread_Supported,
-      Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
+    Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;

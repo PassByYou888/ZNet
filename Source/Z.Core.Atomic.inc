@@ -219,7 +219,7 @@ type
     Obj: TObject;
     LEnter: Integer;
     Critical: TCritical;
-    Pool_Ptr: TCritical_Struct_Pool.PQueueStruct;
+    Pool_Ptr: TCritical_Struct_Pool_Decl.PQueueStruct;
   end;
 
   TCritical_Recycle_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TCritical>;
@@ -265,8 +265,8 @@ begin
       Critical_Recycle_Pool.First^.Data.Free;
       Critical_Recycle_Pool.Next;
 {$IFDEF DEBUG}
-  if IsConsole then
-      Write('.');
+      if IsConsole then
+          Write('.');
 {$ENDIF DEBUG}
     end;
   Critical_Recycle_Pool.Free;
@@ -279,7 +279,7 @@ begin
   TimeTick_Critical__ := nil;
 {$IFDEF DEBUG}
   if IsConsole then
-      WriteLn('Done');
+      Writeln('Done');
 {$ENDIF DEBUG}
 end;
 

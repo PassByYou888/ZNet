@@ -360,7 +360,7 @@ type
     procedure SaveToDF(D: TDFE);
   end;
 {$ENDREGION 'infoDefine'}
-{$REGION 'p2pVMCustomService'}
+{$REGION 'p2p_Custom_Service_Templet'}
 
   TC40_Custom_Service = class(TCore_InterfacedObject)
   private
@@ -412,8 +412,8 @@ type
     function GetFromPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): TC40_Custom_Service_Array;
     function GetFromClass(Class_: TC40_Custom_Service_Class): TC40_Custom_Service_Array;
   end;
-{$ENDREGION 'p2pVMCustomService'}
-{$REGION 'p2pVMCustomClient'}
+{$ENDREGION 'p2p_Custom_Service_Templet'}
+{$REGION 'p2p_Custom_Client_Templet'}
 
   TOn_Client_Offline = procedure(Sender: TC40_Custom_Client) of object;
 
@@ -440,9 +440,9 @@ type
     function GetAliasOrHash: U_String;
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
-    // event
-    procedure DoNetworkOnline; virtual;  // trigger: connected
-    procedure DoNetworkOffline; virtual; // trigger: offline
+    { event }
+    procedure DoNetworkOnline; virtual;  { trigger: connected }
+    procedure DoNetworkOffline; virtual; { trigger: offline }
   end;
 
   TC40_Custom_Client_Class = class of TC40_Custom_Client;
@@ -488,7 +488,7 @@ type
     procedure WaitConnectedDoneP(dependNetwork_: U_String; OnResult: TOn_C40_Custom_Client_EventP);
   end;
 
-{$ENDREGION 'p2pVMCustomClient'}
+{$ENDREGION 'p2p_Custom_Client_Templet'}
 {$REGION 'DispatchService'}
 
   TOnRemovePhysicsNetwork = class
@@ -501,7 +501,7 @@ type
 
   TOnServiceInfoChange = procedure(Sender: TCore_Object; ServiceInfoList: TC40_InfoList) of object;
 
-  // dispatch service
+  { dispatch service }
   TC40_Dispatch_Service = class(TC40_Custom_Service)
   private
     FOnServiceInfoChange: TOnServiceInfoChange;
@@ -533,7 +533,7 @@ type
 {$ENDREGION 'DispatchService'}
 {$REGION 'DispatchClient'}
 
-  // dispatch client
+  { dispatch client }
   TC40_Dispatch_Client = class(TC40_Custom_Client)
   private
     FOnServiceInfoChange: TOnServiceInfoChange;
@@ -619,6 +619,7 @@ type
     Service: TDT_P2PVM_NoAuth_Custom_Service;
     DTNoAuthService: TDataStoreService_NoAuth;
     property DTNoAuth: TDataStoreService_NoAuth read DTNoAuthService;
+    property DT_DataStore_NoAuth: TDataStoreService_NoAuth read DTNoAuthService;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
@@ -631,6 +632,7 @@ type
     Client: TDT_P2PVM_NoAuth_Custom_Client;
     DTNoAuthClient: TDataStoreClient_NoAuth;
     property DTNoAuth: TDataStoreClient_NoAuth read DTNoAuthClient;
+    property DT_DataStore_NoAuth: TDataStoreClient_NoAuth read DTNoAuthClient;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
@@ -1373,18 +1375,18 @@ var
 begin
   L := TC40_InfoList.Create(True);
 
-  // search all service
+  { search all service }
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
       begin
         if L.FindSame(C40_ServicePool[i].ServiceInfo) = nil then
             L.Add(C40_ServicePool[i].ServiceInfo.Clone);
-        // dispatch service
+        { dispatch service }
         if C40_ServicePool[i] is TC40_Dispatch_Service then
             L.MergeAndUpdateWorkload(TC40_Dispatch_Service(C40_ServicePool[i]).ServiceInfoList);
       end;
 
-  // search all DP client
+  { search all DP client }
   for i := 0 to C40_ClientPool.Count - 1 do
     if C40_ClientPool[i] is TC40_Dispatch_Client then
         L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).ServiceInfoList);
@@ -1646,7 +1648,7 @@ var
   found_: Integer;
   tmp: TC40_Custom_Client;
 begin
-  // prepare
+  { prepare }
   found_ := 0;
   for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     if L.ExistsService(Sender.DependNetworkInfoArray[i].Typ) then
@@ -1657,7 +1659,7 @@ begin
       exit;
     end;
 
-  // build c40
+  { build c40 }
   found_ := 0;
   for i := 0 to length(Sender.DependNetworkInfoArray) - 1 do
     for j := 0 to L.Count - 1 do
@@ -2624,7 +2626,7 @@ begin
     end
   else
     begin
-      // serach minmized workload,thanks qq375960048
+      { serach minmized workload,thanks qq375960048 }
       arry := L.SearchMinWorkload(ServiceTyp);
       for i := low(arry) to high(arry) do
         if arry[i].FoundServiceTyp(ServiceTyp) then
@@ -2691,7 +2693,7 @@ constructor TC40_Info.Create;
 begin
   inherited Create;
   Ignored := False;
-  // share
+  { share }
   OnlyInstance := False;
   ServiceTyp := '';
   PhysicsAddr := '';
@@ -3610,15 +3612,6 @@ begin
   disposeObject(L);
 end;
 
-procedure TC40_Custom_Client.DoNetworkOffline;
-begin
-  try
-    if Assigned(On_Client_Offline) then
-        On_Client_Offline(Self);
-  except
-  end;
-end;
-
 constructor TC40_Custom_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 var
   tmp: TPascalStringList;
@@ -3757,6 +3750,15 @@ end;
 procedure TC40_Custom_Client.DoNetworkOnline;
 begin
   C40PhysicsTunnel.DoNetworkOnline(Self);
+end;
+
+procedure TC40_Custom_Client.DoNetworkOffline;
+begin
+  try
+    if Assigned(On_Client_Offline) then
+        On_Client_Offline(Self);
+  except
+  end;
 end;
 
 procedure TC40_Custom_ClientPool.Progress;
@@ -4508,7 +4510,7 @@ begin
         begin
           info_.Workload := Workload;
           info_.MaxWorkload := MaxWorkload;
-          // automated fixed info
+          { automated fixed info }
           for j := 0 to C40_ClientPool.Count - 1 do
             if C40_ClientPool[j].ClientInfo.Same(info_) then
                 C40_ClientPool[j].ClientInfo.Assign(info_);
@@ -4550,7 +4552,7 @@ begin
   if (info_ <> nil) then
     begin
       info_.Ignored := Ignored;
-      // automated fixed info error.
+      { automated fixed info error. }
       for j := 0 to C40_ClientPool.Count - 1 do
         if C40_ClientPool[j].ClientInfo.Same(info_) then
             C40_ClientPool[j].ClientInfo.Assign(info_);
@@ -5452,7 +5454,7 @@ end;
 
 initialization
 
-// init
+{ init }
 ProgressBackgroundProc := {$IFDEF FPC}@{$ENDIF FPC}C40Progress;
 
 C40_QuietMode := False;
@@ -5477,7 +5479,7 @@ C40_ServicePool := TC40_Custom_ServicePool.Create;
 C40_PhysicsTunnelPool := TC40_PhysicsTunnelPool.Create;
 C40_ClientPool := TC40_Custom_ClientPool.Create;
 
-// build-in registration
+{ build-in registration }
 RegisterC40('DP', TC40_Dispatch_Service, TC40_Dispatch_Client);
 RegisterC40('NA', TC40_Base_NoAuth_Service, TC40_Base_NoAuth_Client);
 RegisterC40('DNA', TC40_Base_DataStoreNoAuth_Service, TC40_Base_DataStoreNoAuth_Client);
@@ -5486,7 +5488,7 @@ RegisterC40('DVA', TC40_Base_DataStoreVirtualAuth_Service, TC40_Base_DataStoreVi
 RegisterC40('D', TC40_Base_Service, TC40_Base_Client);
 RegisterC40('DD', TC40_Base_DataStore_Service, TC40_Base_DataStore_Client);
 
-// backup
+{ backup }
 C40_DefaultConfig := THashStringList.CustomCreate(8);
 C40WriteConfig(C40_DefaultConfig);
 

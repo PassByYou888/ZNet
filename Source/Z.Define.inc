@@ -190,8 +190,8 @@
   {$ELSE}
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
-    {$R-} { range check }
-    {$I-} { Input output checking }
+    {$R+} { range check }
+    {$I+} { Input output checking }
     {$D+} { debug information }
   {$ENDIF}
 
@@ -218,8 +218,13 @@
   {$Z1} { Minimum enum size }
 {$ENDIF FPC}
 
-// Activate file system for ZNet-DoubleIO
-{$DEFINE DoubleIOFileSystem}
+{$IFDEF NO_FS}
+  // Disable file system for ZNet-DoubleIO
+  {$UNDEF DoubleIOFileSystem}
+{$ELSE NO_FS}
+  // Enabled file system for ZNet-DoubleIO
+  {$DEFINE DoubleIOFileSystem}
+{$ENDIF NO_FS}
 
 // Using fillchar replace of FillPtr
 // Maybe fillchar works on MMX / SSE2,

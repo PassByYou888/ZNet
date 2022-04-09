@@ -35,7 +35,7 @@ type
     LastActivtedTime: TTimeTick;
     Busy: Boolean;
     Instance_TMT19937Random__: Integer;
-    Queue_Data_Ptr__: TMT19937_Pool__.PQueueStruct;
+    Queue_Data_Ptr__: TMT19937_Pool_Decl__.PQueueStruct;
     procedure BuildMT(Seed_: Integer);
     function GenRand_MT19937(): Integer;
     procedure Init(Thread_: TCore_Thread; LastActivtedTime_: TTimeTick);
@@ -415,14 +415,14 @@ end;
 
 function MT19937RandE: Extended;
 const
-  f = Extended(1.0) / (Int64(1) shl 32);
+  f: Extended = 1.0 / (Int64(1) shl 32);
 begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
 procedure MT19937RandE(dest: PExtended; Num: NativeInt);
 const
-  f = Extended(1.0) / (Int64(1) shl 32);
+  f: Extended = 1.0 / (Int64(1) shl 32);
 begin
   with InternalMT19937__()^ do
     begin
@@ -443,14 +443,14 @@ end;
 
 function MT19937RandF: Single;
 const
-  f = Single(1.0) / (Int64(1) shl 32);
+  f: Single = 1.0 / (Int64(1) shl 32);
 begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
 procedure MT19937RandF(dest: PSingle; Num: NativeInt);
 const
-  f = Single(1.0) / (Int64(1) shl 32);
+  f: Single = 1.0 / (Int64(1) shl 32);
 begin
   with InternalMT19937__()^ do
     begin
@@ -471,14 +471,14 @@ end;
 
 function MT19937RandD: Double;
 const
-  f = Double(1.0) / (Int64(1) shl 32);
+  f: Double = 1.0 / (Int64(1) shl 32);
 begin
   Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
 end;
 
 procedure MT19937RandD(dest: PDouble; Num: NativeInt);
 const
-  f = Double(1.0) / (Int64(1) shl 32);
+  f: Double = 1.0 / (Int64(1) shl 32);
 begin
   with InternalMT19937__()^ do
     begin
@@ -613,7 +613,7 @@ end;
 
 function TMT19937Random.RandE: Extended;
 const
-  f = Extended(1.0) / (Int64(1) shl 32);
+  f: Extended = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
@@ -623,7 +623,7 @@ end;
 
 procedure TMT19937Random.RandE(dest: PExtended; Num: NativeInt);
 const
-  f = Extended(1.0) / (Int64(1) shl 32);
+  f: Extended = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
@@ -640,7 +640,7 @@ end;
 
 function TMT19937Random.RandF: Single;
 const
-  f = Single(1.0) / (Int64(1) shl 32);
+  f: Single = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
@@ -650,7 +650,7 @@ end;
 
 procedure TMT19937Random.RandF(dest: PSingle; Num: NativeInt);
 const
-  f = Single(1.0) / (Int64(1) shl 32);
+  f: Single = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
@@ -667,7 +667,7 @@ end;
 
 function TMT19937Random.RandD: Double;
 const
-  f = Double(1.0) / (Int64(1) shl 32);
+  f: Double = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do
@@ -677,7 +677,7 @@ end;
 
 procedure TMT19937Random.RandD(dest: PDouble; Num: NativeInt);
 const
-  f = Double(1.0) / (Int64(1) shl 32);
+  f: Double = 1.0 / (Int64(1) shl 32);
 begin
   FInternalCritical.Acquire;
   with PMD19937Core(FRndInstance)^ do

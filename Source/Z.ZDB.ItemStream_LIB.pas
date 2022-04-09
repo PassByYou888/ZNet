@@ -8,7 +8,8 @@ unit Z.ZDB.ItemStream_LIB;
 
 interface
 
-uses SysUtils, Z.Core, Classes, Z.UnicodeMixedLib, Z.ZDB.ObjectData_LIB, Z.ZDB, Z.PascalStrings, Z.UPascalStrings;
+uses SysUtils, Z.Core, Classes, Z.UnicodeMixedLib, Z.ZDB.ObjectData_LIB, Z.ZDB, Z.MemoryStream,
+  Z.PascalStrings, Z.UPascalStrings;
 
 type
   TItemStream = class(TCore_Stream)
@@ -45,9 +46,19 @@ type
     property Hnd: PItemHandle read ItemHnd_Ptr;
   end;
 
-implementation
+  TMS64_Helper__ = class helper for TMS64
+  public
+    procedure LoadFrom_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+    procedure SaveTo_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+  end;
 
-uses Z.MemoryStream;
+  TMem64_Helper__ = class helper for TMem64
+  public
+    procedure LoadFrom_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+    procedure SaveTo_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+  end;
+
+implementation
 
 function TItemStream.GetSize: Int64;
 begin
@@ -259,6 +270,61 @@ end;
 function TItemStream.CloseHandle: Boolean;
 begin
   Result := DB_Engine.ItemClose(ItemHnd_Ptr^);
+end;
+
+procedure TMS64_Helper__.LoadFrom_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+var
+  field_path_, item_name_: U_String;
+  Hnd: TItemHandle;
+begin
+  clear;
+  field_path_ := umlGetUnixFilePath(FileName);
+  item_name_ := umlGetUnixFileName(FileName);
+
+  if eng_.ItemOpen(field_path_, item_name_, Hnd) then
+    begin
+      eng_.ItemReadToStream(Hnd, Self);
+      eng_.ItemClose(Hnd);
+    end
+  else
+      RaiseInfo('no found %s', [FileName]);
+end;
+
+procedure TMS64_Helper__.SaveTo_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+var
+  field_path_, item_name_: U_String;
+begin
+  field_path_ := umlGetUnixFilePath(FileName);
+  item_name_ := umlGetUnixFileName(FileName);
+  eng_.ItemWriteFromStream(field_path_, item_name_, Self);
+end;
+
+procedure TMem64_Helper__.LoadFrom_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+var
+  field_path_, item_name_: U_String;
+  Hnd: TItemHandle;
+begin
+  field_path_ := umlGetUnixFilePath(FileName);
+  item_name_ := umlGetUnixFileName(FileName);
+
+  if eng_.ItemOpen(field_path_, item_name_, Hnd) then
+    begin
+      Size := Hnd.Item.Size;
+      eng_.ItemRead(Hnd, Size, Memory^);
+      eng_.ItemClose(Hnd);
+    end
+  else
+      RaiseInfo('no found %s', [FileName]);
+end;
+
+procedure TMem64_Helper__.SaveTo_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
+var
+  field_path_, item_name_: U_String;
+  Hnd: TItemHandle;
+begin
+  field_path_ := umlGetUnixFilePath(FileName);
+  item_name_ := umlGetUnixFileName(FileName);
+  eng_.ItemWriteFromStream(field_path_, item_name_, Self.Stream64);
 end;
 
 end.

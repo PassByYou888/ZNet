@@ -4912,11 +4912,11 @@ function TPeerIO.GetSequencePacketState: SystemString;
 begin
   Result := PFormat('History: %s (block: %d) Received Pool: %s (block: %d) Total Memory: %s',
     [umlSizeToStr(SendingSequencePacketHistoryMemory).Text,
-      SendingSequencePacketHistory.Count,
-      umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
-      SequencePacketReceivedPool.Count,
-      umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
-      ]);
+    SendingSequencePacketHistory.Count,
+    umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
+    SequencePacketReceivedPool.Count,
+    umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
+    ]);
 end;
 
 function TPeerIO.GetSequencePacketUsagePhysicsMemory: Int64;
@@ -5201,7 +5201,7 @@ begin
                   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stSequencePacketMatched]);
                 end
               else if (FSequencePacketSignal) and ((p^.SequenceNumber > SequenceNumberOnReceivedCounter) or
-                  (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
+                (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
                 begin
                   p^.data := TMS64.Create;
                   p^.data.CopyFrom(fastSwap, p^.Size);
@@ -5673,19 +5673,19 @@ begin
 
   if FOwnerFramework.FSendDataCompressed then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
       else
           d.EncodeAsZLib(Stream, True, False);
     end
   else if FOwnerFramework.FFastEncrypt then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
       else
           d.FastEncode32To(Stream, enSiz);
     end
-  else if enSiz > Stream.Delta then
+  else if enSiz > 1024 * 1024 then
       d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
       d.EncodeTo(Stream, True, False);
@@ -5718,19 +5718,19 @@ begin
 
   if FOwnerFramework.FSendDataCompressed then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
       else
           d.EncodeAsZLib(Stream, True, False);
     end
   else if FOwnerFramework.FFastEncrypt then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
       else
           d.FastEncode32To(Stream, enSiz);
     end
-  else if enSiz > Stream.Delta then
+  else if enSiz > 1024 * 1024 then
       d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
       d.EncodeTo(Stream, True, False);
@@ -5763,19 +5763,19 @@ begin
 
   if FOwnerFramework.FSendDataCompressed then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
       else
           d.EncodeAsZLib(Stream, True, False);
     end
   else if FOwnerFramework.FFastEncrypt then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
       else
           d.FastEncode32To(Stream, enSiz);
     end
-  else if enSiz > Stream.Delta then
+  else if enSiz > 1024 * 1024 then
       d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
       d.EncodeTo(Stream, True, False);
@@ -5808,19 +5808,19 @@ begin
 
   if FOwnerFramework.FSendDataCompressed then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, Stream, True)
       else
           d.EncodeAsZLib(Stream, True, False);
     end
   else if FOwnerFramework.FFastEncrypt then
     begin
-      if enSiz > Stream.Delta then
+      if enSiz > 1024 * 1024 then
           d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
       else
           d.FastEncode32To(Stream, enSiz);
     end
-  else if enSiz > Stream.Delta then
+  else if enSiz > 1024 * 1024 then
       d.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, Stream, True)
   else
       d.EncodeTo(Stream, True, False);
@@ -5955,19 +5955,19 @@ begin
 
   if FOwnerFramework.FSendDataCompressed then
     begin
-      if enSiz > m64.Delta then
+      if enSiz > 1024 * 1024 then
           FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Max, m64, True)
       else
           FOutDataFrame.EncodeAsZLib(m64, True, False);
     end
   else if FOwnerFramework.FFastEncrypt then
     begin
-      if enSiz > m64.Delta then
+      if enSiz > 1024 * 1024 then
           FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, m64, True)
       else
           FOutDataFrame.FastEncode32To(m64, enSiz);
     end
-  else if enSiz > m64.Delta then
+  else if enSiz > 1024 * 1024 then
       FOutDataFrame.EncodeAsSelectCompressor(TSelectCompressionMethod.scmZLIB_Fast, m64, True)
   else
       FOutDataFrame.EncodeTo(m64, True, False);
