@@ -27,46 +27,6 @@ uses
   Z.Net.C4;
 
 type
-  TC40_Custom_VM_Service = class;
-  TC40_Custom_VM_Client = class;
-
-  TC40_Custom_VM_Service = class(TCore_InterfacedObject)
-  private
-    FLastSafeCheckTime: TTimeTick;
-  public
-    Param: U_String;
-    ParamList: THashStringList;
-    SafeCheckTime: TTimeTick;
-    constructor Create(Param_: U_String); virtual;
-    destructor Destroy; override;
-    procedure SafeCheck; virtual;
-    procedure Progress; virtual;
-    { event }
-    procedure DoLinkSuccess(Trigger_: TCore_Object);
-    procedure DoUserOut(Trigger_: TCore_Object);
-  end;
-
-  TOn_Client_Offline = procedure(Sender: TC40_Custom_VM_Client) of object;
-
-  TC40_Custom_VM_Client = class(TCore_InterfacedObject)
-  private
-    FLastSafeCheckTime: TTimeTick;
-  public
-    Param: U_String;
-    ParamList: THashStringList;
-    SafeCheckTime: TTimeTick;
-    On_Client_Offline: TOn_Client_Offline;
-    constructor Create(Param_: U_String); virtual;
-    destructor Destroy; override;
-    procedure SafeCheck; virtual;
-    procedure Progress; virtual;
-    function Connected: Boolean; virtual;
-    procedure Disconnect; virtual;
-    { event }
-    procedure DoNetworkOnline; virtual;  { trigger: connected }
-    procedure DoNetworkOffline; virtual; { trigger: offline }
-  end;
-
   TC40_NoAuth_VM_Service = class(TC40_Custom_VM_Service)
   protected
     procedure DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); virtual;
@@ -79,8 +39,8 @@ type
     constructor Create(Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
-    procedure StartService(ListenAddr, ListenPort, Auth: SystemString);
-    procedure StopService;
+    procedure StartService(ListenAddr, ListenPort, Auth: SystemString); override;
+    procedure StopService; override;
   end;
 
   TC40_NoAuth_VM_Client = class(TC40_Custom_VM_Client, IZNet_ClientInterface)
@@ -97,6 +57,9 @@ type
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect(addr, Port, Auth: SystemString);
+    procedure Connect_C(addr, Port, Auth: SystemString; OnResult: TOnState_C);
+    procedure Connect_M(addr, Port, Auth: SystemString; OnResult: TOnState_M);
+    procedure Connect_P(addr, Port, Auth: SystemString; OnResult: TOnState_P);
     function Connected: Boolean; override;
     procedure Disconnect; override;
   end;
@@ -129,8 +92,8 @@ type
     constructor Create(Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
-    procedure StartService(ListenAddr, ListenPort, Auth: SystemString);
-    procedure StopService;
+    procedure StartService(ListenAddr, ListenPort, Auth: SystemString); override;
+    procedure StopService; override;
   end;
 
   TC40_VirtualAuth_VM_Client = class(TC40_Custom_VM_Client, IZNet_ClientInterface)
@@ -147,6 +110,9 @@ type
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect(addr, Port, Auth, User, Passwd: SystemString);
+    procedure Connect_C(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_C);
+    procedure Connect_M(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_M);
+    procedure Connect_P(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_P);
     function Connected: Boolean; override;
     procedure Disconnect; override;
   end;
@@ -177,8 +143,8 @@ type
     constructor Create(Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
-    procedure StartService(ListenAddr, ListenPort, Auth: SystemString);
-    procedure StopService;
+    procedure StartService(ListenAddr, ListenPort, Auth: SystemString); override;
+    procedure StopService; override;
   end;
 
   TC40_VM_Client = class(TC40_Custom_VM_Client, IZNet_ClientInterface)
@@ -195,6 +161,9 @@ type
     destructor Destroy; override;
     procedure Progress; override;
     procedure Connect(addr, Port, Auth, User, Passwd: SystemString);
+    procedure Connect_C(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_C);
+    procedure Connect_M(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_M);
+    procedure Connect_P(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_P);
     function Connected: Boolean; override;
     procedure Disconnect; override;
   end;
@@ -214,130 +183,6 @@ type
   end;
 
 implementation
-
-constructor TC40_Custom_VM_Service.Create(Param_: U_String);
-var
-  tmp: TPascalStringList;
-begin
-  inherited Create;
-
-  Param := Param_;
-
-  ParamList := THashStringList.Create;
-  ParamList.AutoUpdateDefaultValue := True;
-  try
-    tmp := TPascalStringList.Create;
-    umlSeparatorText(Param, tmp, ',;' + #13#10);
-    ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
-  except
-  end;
-
-  FLastSafeCheckTime := GetTimeTick;
-  SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
-end;
-
-destructor TC40_Custom_VM_Service.Destroy;
-begin
-  disposeObject(ParamList);
-  inherited Destroy;
-end;
-
-procedure TC40_Custom_VM_Service.SafeCheck;
-begin
-
-end;
-
-procedure TC40_Custom_VM_Service.Progress;
-begin
-  if GetTimeTick - FLastSafeCheckTime > SafeCheckTime then
-    begin
-      try
-          SafeCheck;
-      except
-      end;
-      FLastSafeCheckTime := GetTimeTick;
-    end;
-end;
-
-procedure TC40_Custom_VM_Service.DoLinkSuccess(Trigger_: TCore_Object);
-begin
-
-end;
-
-procedure TC40_Custom_VM_Service.DoUserOut(Trigger_: TCore_Object);
-begin
-
-end;
-
-constructor TC40_Custom_VM_Client.Create(Param_: U_String);
-var
-  tmp: TPascalStringList;
-begin
-  inherited Create;
-  Param := Param_;
-
-  ParamList := THashStringList.Create;
-  ParamList.AutoUpdateDefaultValue := True;
-  try
-    tmp := TPascalStringList.Create;
-    umlSeparatorText(Param, tmp, ',;' + #13#10);
-    ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
-  except
-  end;
-
-  FLastSafeCheckTime := GetTimeTick;
-  SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
-  On_Client_Offline := nil;
-end;
-
-destructor TC40_Custom_VM_Client.Destroy;
-begin
-  disposeObject(ParamList);
-  inherited Destroy;
-end;
-
-procedure TC40_Custom_VM_Client.SafeCheck;
-begin
-
-end;
-
-procedure TC40_Custom_VM_Client.Progress;
-begin
-  if GetTimeTick - FLastSafeCheckTime > SafeCheckTime then
-    begin
-      try
-          SafeCheck;
-      except
-      end;
-      FLastSafeCheckTime := GetTimeTick;
-    end;
-end;
-
-function TC40_Custom_VM_Client.Connected: Boolean;
-begin
-  Result := False;
-end;
-
-procedure TC40_Custom_VM_Client.Disconnect;
-begin
-
-end;
-
-procedure TC40_Custom_VM_Client.DoNetworkOnline;
-begin
-
-end;
-
-procedure TC40_Custom_VM_Client.DoNetworkOffline;
-begin
-  try
-    if Assigned(On_Client_Offline) then
-        On_Client_Offline(Self);
-  except
-  end;
-end;
 
 procedure TC40_NoAuth_VM_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
 begin
@@ -438,6 +283,21 @@ begin
   Client.Connect(addr, Port, Auth);
 end;
 
+procedure TC40_NoAuth_VM_Client.Connect_C(addr, Port, Auth: SystemString; OnResult: TOnState_C);
+begin
+  Client.Connect_C(addr, Port, Auth, OnResult);
+end;
+
+procedure TC40_NoAuth_VM_Client.Connect_M(addr, Port, Auth: SystemString; OnResult: TOnState_M);
+begin
+  Client.Connect_M(addr, Port, Auth, OnResult);
+end;
+
+procedure TC40_NoAuth_VM_Client.Connect_P(addr, Port, Auth: SystemString; OnResult: TOnState_P);
+begin
+  Client.Connect_P(addr, Port, Auth, OnResult);
+end;
+
 function TC40_NoAuth_VM_Client.Connected: Boolean;
 begin
   Result := Client.DTClient.LinkOk;
@@ -445,7 +305,6 @@ end;
 
 procedure TC40_NoAuth_VM_Client.Disconnect;
 begin
-  inherited Disconnect;
   Client.Disconnect;
 end;
 
@@ -580,6 +439,21 @@ begin
   Client.Connect(addr, Port, Auth, User, Passwd);
 end;
 
+procedure TC40_VirtualAuth_VM_Client.Connect_C(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_C);
+begin
+  Client.Connect_C(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
+procedure TC40_VirtualAuth_VM_Client.Connect_M(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_M);
+begin
+  Client.Connect_M(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
+procedure TC40_VirtualAuth_VM_Client.Connect_P(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_P);
+begin
+  Client.Connect_P(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
 function TC40_VirtualAuth_VM_Client.Connected: Boolean;
 begin
   Result := Client.DTClient.LinkOk;
@@ -587,7 +461,6 @@ end;
 
 procedure TC40_VirtualAuth_VM_Client.Disconnect;
 begin
-  inherited Disconnect;
   Client.Disconnect;
 end;
 
@@ -711,6 +584,21 @@ begin
   Client.Connect(addr, Port, Auth, User, Passwd);
 end;
 
+procedure TC40_VM_Client.Connect_C(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_C);
+begin
+  Client.Connect_C(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
+procedure TC40_VM_Client.Connect_M(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_M);
+begin
+  Client.Connect_M(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
+procedure TC40_VM_Client.Connect_P(addr, Port, Auth, User, Passwd: SystemString; OnResult: TOnState_P);
+begin
+  Client.Connect_P(addr, Port, Auth, User, Passwd, OnResult);
+end;
+
 function TC40_VM_Client.Connected: Boolean;
 begin
   Result := Client.DTClient.LinkOk;
@@ -718,7 +606,6 @@ end;
 
 procedure TC40_VM_Client.Disconnect;
 begin
-  inherited Disconnect;
   Client.Disconnect;
 end;
 

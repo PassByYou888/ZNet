@@ -778,6 +778,64 @@ type
   end;
 
 {$ENDREGION 'DTC40BuildInAuthModel'}
+{$REGION 'VM_Templet_Define'}
+
+  TC40_Custom_VM_Service = class;
+  TC40_Custom_VM_Client = class;
+
+  TC40_Custom_VM_Service = class(TCore_InterfacedObject)
+  private
+    FLastSafeCheckTime: TTimeTick;
+  public
+    Param: U_String;
+    ParamList: THashStringList;
+    SafeCheckTime: TTimeTick;
+    constructor Create(Param_: U_String); virtual;
+    destructor Destroy; override;
+    procedure SafeCheck; virtual;
+    procedure Progress; virtual;
+    procedure StartService(ListenAddr, ListenPort, Auth: SystemString); virtual;
+    procedure StopService; virtual;
+    { event }
+    procedure DoLinkSuccess(Trigger_: TCore_Object);
+    procedure DoUserOut(Trigger_: TCore_Object);
+  end;
+
+  TC40_Custom_VM_Service_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Custom_VM_Service>;
+
+  TC40_Custom_VM_Service_Pool = class(TC40_Custom_VM_Service_Pool_Decl)
+  public
+    procedure Progress;
+  end;
+
+  TOn_VM_Client_Offline = procedure(Sender: TC40_Custom_VM_Client) of object;
+
+  TC40_Custom_VM_Client = class(TCore_InterfacedObject)
+  private
+    FLastSafeCheckTime: TTimeTick;
+  public
+    Param: U_String;
+    ParamList: THashStringList;
+    SafeCheckTime: TTimeTick;
+    On_Client_Offline: TOn_VM_Client_Offline;
+    constructor Create(Param_: U_String); virtual;
+    destructor Destroy; override;
+    procedure SafeCheck; virtual;
+    procedure Progress; virtual;
+    function Connected: Boolean; virtual;
+    procedure Disconnect; virtual;
+    { event }
+    procedure DoNetworkOnline; virtual;  { trigger: connected }
+    procedure DoNetworkOffline; virtual; { trigger: offline }
+  end;
+
+  TC40_Custom_VM_Client_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Custom_VM_Client>;
+
+  TC40_Custom_VM_Client_Pool = class(TC40_Custom_VM_Client_Pool_Decl)
+  public
+    procedure Progress;
+  end;
+{$ENDREGION 'VM_Templet_Define'}
 
 
 var
@@ -813,6 +871,10 @@ var
   C40_PhysicsTunnelPool: TC40_PhysicsTunnelPool;
   { custom client pool }
   C40_ClientPool: TC40_Custom_ClientPool;
+  { custom VM Service pool }
+  C40_VM_Service_Pool: TC40_Custom_VM_Service_Pool;
+  { custom VM Client pool }
+  C40_VM_Client_Pool: TC40_Custom_VM_Client_Pool;
   { default configure }
   C40_DefaultConfig: THashStringList;
 
@@ -876,6 +938,8 @@ begin
     C40_ServicePool.Progress;
     C40_PhysicsTunnelPool.Progress;
     C40_ClientPool.Progress;
+    C40_VM_Service_Pool.Progress;
+    C40_VM_Client_Pool.Progress;
     C40CheckAndKillDeadPhysicsTunnel();
   except
   end;
@@ -1042,6 +1106,8 @@ begin
       C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
   for i := 0 to C40_PhysicsServicePool.Count - 1 do
       C40_PhysicsServicePool[i].StopService;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+      C40_VM_Service_Pool[i].StopService;
 
   while C40_ClientPool.Count > 0 do
       disposeObject(C40_ClientPool[0]);
@@ -1052,6 +1118,10 @@ begin
       disposeObject(C40_PhysicsTunnelPool[0]);
   while C40_PhysicsServicePool.Count > 0 do
       disposeObject(C40_PhysicsServicePool[0]);
+  while C40_VM_Client_Pool.Count > 0 do
+      disposeObject(C40_VM_Client_Pool[0]);
+  while C40_VM_Service_Pool.Count > 0 do
+      disposeObject(C40_VM_Service_Pool[0]);
 end;
 
 procedure C40Clean_Service;
@@ -5452,6 +5522,170 @@ begin
   Result := Client.LoginIsSuccessed;
 end;
 
+constructor TC40_Custom_VM_Service.Create(Param_: U_String);
+var
+  tmp: TPascalStringList;
+begin
+  inherited Create;
+
+  Param := Param_;
+
+  ParamList := THashStringList.Create;
+  ParamList.AutoUpdateDefaultValue := True;
+  try
+    tmp := TPascalStringList.Create;
+    umlSeparatorText(Param, tmp, ',;' + #13#10);
+    ParamList.ImportFromStrings(tmp);
+    disposeObject(tmp);
+  except
+  end;
+
+  FLastSafeCheckTime := GetTimeTick;
+  SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
+  C40_VM_Service_Pool.Add(Self);
+end;
+
+destructor TC40_Custom_VM_Service.Destroy;
+begin
+  C40_VM_Service_Pool.Remove(Self);
+  disposeObject(ParamList);
+  inherited Destroy;
+end;
+
+procedure TC40_Custom_VM_Service.SafeCheck;
+begin
+
+end;
+
+procedure TC40_Custom_VM_Service.Progress;
+begin
+  if GetTimeTick - FLastSafeCheckTime > SafeCheckTime then
+    begin
+      try
+          SafeCheck;
+      except
+      end;
+      FLastSafeCheckTime := GetTimeTick;
+    end;
+end;
+
+procedure TC40_Custom_VM_Service.StartService(ListenAddr, ListenPort, Auth: SystemString);
+begin
+
+end;
+
+procedure TC40_Custom_VM_Service.StopService;
+begin
+
+end;
+
+procedure TC40_Custom_VM_Service.DoLinkSuccess(Trigger_: TCore_Object);
+begin
+
+end;
+
+procedure TC40_Custom_VM_Service.DoUserOut(Trigger_: TCore_Object);
+begin
+
+end;
+
+constructor TC40_Custom_VM_Client.Create(Param_: U_String);
+var
+  tmp: TPascalStringList;
+begin
+  inherited Create;
+  Param := Param_;
+
+  ParamList := THashStringList.Create;
+  ParamList.AutoUpdateDefaultValue := True;
+  try
+    tmp := TPascalStringList.Create;
+    umlSeparatorText(Param, tmp, ',;' + #13#10);
+    ParamList.ImportFromStrings(tmp);
+    disposeObject(tmp);
+  except
+  end;
+
+  FLastSafeCheckTime := GetTimeTick;
+  SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
+  On_Client_Offline := nil;
+  C40_VM_Client_Pool.Add(Self);
+end;
+
+destructor TC40_Custom_VM_Client.Destroy;
+begin
+  C40_VM_Client_Pool.Remove(Self);
+  disposeObject(ParamList);
+  inherited Destroy;
+end;
+
+procedure TC40_Custom_VM_Client.SafeCheck;
+begin
+
+end;
+
+procedure TC40_Custom_VM_Client.Progress;
+begin
+  if GetTimeTick - FLastSafeCheckTime > SafeCheckTime then
+    begin
+      try
+          SafeCheck;
+      except
+      end;
+      FLastSafeCheckTime := GetTimeTick;
+    end;
+end;
+
+function TC40_Custom_VM_Client.Connected: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TC40_Custom_VM_Client.Disconnect;
+begin
+
+end;
+
+procedure TC40_Custom_VM_Client.DoNetworkOnline;
+begin
+
+end;
+
+procedure TC40_Custom_VM_Client.DoNetworkOffline;
+begin
+  try
+    if Assigned(On_Client_Offline) then
+        On_Client_Offline(Self);
+  except
+  end;
+end;
+
+procedure TC40_Custom_VM_Service_Pool.Progress;
+var
+  i: Integer;
+begin
+  for i := 0 to Count - 1 do
+    begin
+      try
+          Items[i].Progress;
+      except
+      end;
+    end;
+end;
+
+procedure TC40_Custom_VM_Client_Pool.Progress;
+var
+  i: Integer;
+begin
+  for i := 0 to Count - 1 do
+    begin
+      try
+          Items[i].Progress;
+      except
+      end;
+    end;
+end;
+
 initialization
 
 { init }
@@ -5478,6 +5712,8 @@ C40_PhysicsServicePool := TC40_PhysicsServicePool.Create;
 C40_ServicePool := TC40_Custom_ServicePool.Create;
 C40_PhysicsTunnelPool := TC40_PhysicsTunnelPool.Create;
 C40_ClientPool := TC40_Custom_ClientPool.Create;
+C40_VM_Service_Pool := TC40_Custom_VM_Service_Pool.Create;
+C40_VM_Client_Pool := TC40_Custom_VM_Client_Pool.Create;
 
 { build-in registration }
 RegisterC40('DP', TC40_Dispatch_Service, TC40_Dispatch_Client);
@@ -5500,6 +5736,8 @@ disposeObject(C40_PhysicsServicePool);
 disposeObject(C40_ServicePool);
 disposeObject(C40_PhysicsTunnelPool);
 disposeObject(C40_ClientPool);
+disposeObject(C40_VM_Service_Pool);
+disposeObject(C40_VM_Client_Pool);
 disposeObject(C40_Registed);
 disposeObject(C40_DefaultConfig);
 

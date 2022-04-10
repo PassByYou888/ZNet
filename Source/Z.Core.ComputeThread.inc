@@ -281,7 +281,7 @@ begin
       TCompute.Sleep(1);
     end;
 
-  while TCompute.ActivtedTask() > 0 do
+  while (TCompute.ActivtedTask() > 0) do
     begin
       CheckThreadSynchronize(10);
     end;
@@ -420,16 +420,14 @@ begin
   inherited Destroy;
 end;
 
-class function TCompute.Physics_Thread_Num(): NativeInt;
+class function TCompute.IDLE_Thread(): NativeInt;
 begin
-  Result := Compute_Thread_Task_Running__.V;
+  Result := IDLE_Compute_Thread_Sum.V;
 end;
 
 class function TCompute.ActivtedTask(): NativeInt;
 begin
-  Compute_Dispatch_Critical__.Acquire;
-  Result := Core_Thread_Pool__.Num + Core_Dispatch_Order__.Num;
-  Compute_Dispatch_Critical__.Release;
+  Result := Compute_Thread_Task_Running__.V;
 end;
 
 class function TCompute.WaitTask(): NativeInt;
@@ -444,9 +442,9 @@ end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted: %d Suspend: %d physics: %d/%d Granularity:%d MaxParallel:%d/%d',
-    [TotalTask(), ActivtedTask(), WaitTask(), Physics_Thread_Num(), Max_Thread_Supported,
-    Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
+  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Granularity:%d MaxParallel:%d/%d',
+    [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), IDLE_Thread(),
+      Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;

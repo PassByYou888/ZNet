@@ -526,8 +526,10 @@ procedure umlBase64EncodeBytes(var sour, dest: TBytes); overload;
 procedure umlBase64DecodeBytes(var sour, dest: TBytes); overload;
 procedure umlBase64EncodeBytes(var sour: TBytes; var dest: TPascalString); overload;
 procedure umlBase64DecodeBytes(const sour: TPascalString; var dest: TBytes); overload;
-procedure umlDecodeLineBASE64(const buffer: TPascalString; var output: TPascalString);
-procedure umlEncodeLineBASE64(const buffer: TPascalString; var output: TPascalString);
+procedure umlDecodeLineBASE64(const buffer: TPascalString; var output: TPascalString); overload;
+procedure umlEncodeLineBASE64(const buffer: TPascalString; var output: TPascalString); overload;
+function umlDecodeLineBASE64(const buffer: TPascalString): TPascalString; overload;
+function umlEncodeLineBASE64(const buffer: TPascalString): TPascalString; overload;
 procedure umlDecodeStreamBASE64(const buffer: TPascalString; output: TCore_Stream);
 procedure umlEncodeStreamBASE64(buffer: TCore_Stream; var output: TPascalString);
 function umlDivisionBase64Text(const buffer: TPascalString; width: Integer; DivisionAsPascalString: Boolean): TPascalString;
@@ -3894,9 +3896,7 @@ begin
   else if Size < 1 shl 20 then
       Result := Format('%f Kb', [Size / (1 shl 10)])
   else if Size < 1 shl 30 then
-      Result := Format('%f M', [Size / (1 shl 20)])
-  else
-      Result := Format('%f G', [Size / (1 shl 30)])
+      Result := Format('%f M', [Size / (1 shl 20)]);
 end;
 
 function umlIntToStr(Parameter: Single): TPascalString;
@@ -3931,9 +3931,7 @@ begin
   else if Size < 1 shl 20 then
       Result := Format('%f Kbps', [Size / (1 shl 10) * 10])
   else if Size < 1 shl 30 then
-      Result := Format('%f Mbps', [Size / (1 shl 20) * 10])
-  else
-      Result := Format('%f Gbps', [Size / (1 shl 30) * 10])
+      Result := Format('%f Mbps', [Size / (1 shl 20) * 10]);
 end;
 
 function umlSizeToStr(Parameter: Int64): TPascalString;
@@ -4553,7 +4551,7 @@ function umlCharIsSymbol(c: SystemChar): Boolean;
 begin
   Result := CharIn(c,
     [#13, #10, #9, #32, #46, #44, #43, #45, #42, #47, #40, #41, #59, #58, #61, #35, #64, #94,
-    #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
+      #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
 end;
 
 function umlCharIsSymbol(c: SystemChar; const CustomSymbol_: TArrayChar): Boolean;
@@ -5801,6 +5799,16 @@ begin
   B := umlBytesOf(buffer);
   umlBase64EncodeBytes(B, nb);
   output := umlStringOf(nb);
+end;
+
+function umlDecodeLineBASE64(const buffer: TPascalString): TPascalString;
+begin
+  umlDecodeLineBASE64(buffer, Result);
+end;
+
+function umlEncodeLineBASE64(const buffer: TPascalString): TPascalString;
+begin
+  umlEncodeLineBASE64(buffer, Result);
 end;
 
 procedure umlDecodeStreamBASE64(const buffer: TPascalString; output: TCore_Stream);

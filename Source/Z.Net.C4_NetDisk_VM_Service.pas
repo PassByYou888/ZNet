@@ -2342,48 +2342,48 @@ begin
   if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('Check UserDB_Client passed.');
+          DoStatus('NetDisk VM Check:UserDB_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('Check UserDB_Client error!');
+          DoStatus('NetDisk VM Check:UserDB_Client error!');
       Result := Result and False;
     end;
 
   if (Directory_Client <> nil) and (Directory_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('Check Directory_Client passed.');
+          DoStatus('NetDisk VM Check:Directory_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('Check Directory_Client error!');
+          DoStatus('NetDisk VM Check:Directory_Client error!');
       Result := Result and False;
     end;
 
   if (TEKeyValue_Client <> nil) and (TEKeyValue_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('Check TEKeyValue_Client passed.');
+          DoStatus('NetDisk VM Check:TEKeyValue_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('Check TEKeyValue_Client error!');
+          DoStatus('NetDisk VM Check:TEKeyValue_Client error!');
       Result := Result and False;
     end;
 
   if (Log_Client <> nil) and (Log_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('Check Log_Client passed.');
+          DoStatus('NetDisk VM Check:Log_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('Check Log_Client error!');
+          DoStatus('NetDisk VM Check:Log_Client error!');
       Result := Result and False;
     end;
 
@@ -2393,12 +2393,12 @@ begin
       if FS2_Client_Pool[i].Connected then
         begin
           if Status_ then
-              DoStatus('Check FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk VM Check:FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
         end
       else
         begin
           if Status_ then
-              DoStatus('Check FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk VM Check:FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
           Result := Result and False;
         end;
     end;

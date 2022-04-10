@@ -653,7 +653,7 @@ type
 
     constructor Create;
     destructor Destroy; override;
-    class function Physics_Thread_Num(): NativeInt;
+    class function IDLE_Thread(): NativeInt;
     class function ActivtedTask(): NativeInt;
     class function WaitTask(): NativeInt;
     class function TotalTask(): NativeInt;
