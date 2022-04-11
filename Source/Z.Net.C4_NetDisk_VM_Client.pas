@@ -556,6 +556,7 @@ type
     constructor Create(Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
+    procedure Disconnect; override;
 
     // User and IM
     procedure AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_Usr_AuthC);
@@ -2089,6 +2090,12 @@ end;
 procedure TC40_NetDisk_VM_Client.Progress;
 begin
   inherited Progress;
+end;
+
+procedure TC40_NetDisk_VM_Client.Disconnect;
+begin
+  Auth_Done := False;
+  inherited Disconnect;
 end;
 
 procedure TC40_NetDisk_VM_Client.AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_Usr_AuthC);
