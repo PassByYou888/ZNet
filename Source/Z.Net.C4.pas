@@ -808,7 +808,7 @@ type
     procedure Progress;
   end;
 
-  TOn_VM_Client_Offline = procedure(Sender: TC40_Custom_VM_Client) of object;
+  TOn_VM_Client_Event = procedure(Sender: TC40_Custom_VM_Client) of object;
 
   TC40_Custom_VM_Client = class(TCore_InterfacedObject)
   private
@@ -817,7 +817,8 @@ type
     Param: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
-    On_Client_Offline: TOn_VM_Client_Offline;
+    On_Client_Online: TOn_VM_Client_Event;
+    On_Client_Offline: TOn_VM_Client_Event;
     constructor Create(Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -5608,6 +5609,7 @@ begin
 
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
+  On_Client_Online := nil;
   On_Client_Offline := nil;
   C40_VM_Client_Pool.Add(Self);
 end;
@@ -5648,7 +5650,11 @@ end;
 
 procedure TC40_Custom_VM_Client.DoNetworkOnline;
 begin
-
+  try
+    if Assigned(On_Client_Online) then
+        On_Client_Online(Self);
+  except
+  end;
 end;
 
 procedure TC40_Custom_VM_Client.DoNetworkOffline;
