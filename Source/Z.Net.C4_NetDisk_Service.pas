@@ -1168,7 +1168,7 @@ begin
   if IO_Def_.AuthDone then
     begin
       OutData.WriteBool(False);
-      OutData.WriteString('already authed.');
+      OutData.WriteString('repeat auth.');
       exit;
     end;
   if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
