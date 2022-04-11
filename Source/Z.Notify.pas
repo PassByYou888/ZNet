@@ -39,6 +39,9 @@ type
     FPool_Data_Ptr: TN_Post_Execute_List_Struct.PQueueStruct;
     FDFE_Inst: TDFE;
     FNewTime: Double;
+    FIsRuning, FIsExit: PBoolean;
+    procedure SetIsExit(const Value: PBoolean);
+    procedure SetIsRuning(const Value: PBoolean);
   public
     Data1: TCore_Object;
     Data2: TCore_Object;
@@ -46,17 +49,17 @@ type
     Data4: Variant;
     Data5: Pointer;
     Delay: Double;
-
     OnExecute_C: TN_Post_Execute_C;
     OnExecute_C_NP: TN_Post_Execute_C_NP;
     OnExecute_M: TN_Post_Execute_M;
     OnExecute_M_NP: TN_Post_Execute_M_NP;
     OnExecute_P: TN_Post_Execute_P;
     OnExecute_P_NP: TN_Post_Execute_P_NP;
-
     property DataEng: TDFE read FDFE_Inst;
     property DFE_Inst: TDFE read FDFE_Inst;
     property Owner: TN_Progress_Tool read FOwner;
+    property IsRuning: PBoolean read FIsRuning write SetIsRuning;
+    property IsExit: PBoolean read FIsExit write SetIsExit;
 
     constructor Create; virtual;
     destructor Destroy; override;
@@ -187,6 +190,20 @@ begin
   DisposeObject(Sender.Data2);
 end;
 
+procedure TN_Post_Execute.SetIsExit(const Value: PBoolean);
+begin
+  FIsExit := Value;
+  if FIsExit <> nil then
+      FIsExit^ := False;
+end;
+
+procedure TN_Post_Execute.SetIsRuning(const Value: PBoolean);
+begin
+  FIsRuning := Value;
+  if FIsRuning <> nil then
+      FIsRuning^ := True;
+end;
+
 constructor TN_Post_Execute.Create;
 begin
   inherited Create;
@@ -201,6 +218,8 @@ begin
   Data4 := Null;
   Data5 := nil;
   Delay := 0;
+  FIsRuning := nil;
+  FIsExit := nil;
 
   OnExecute_C := nil;
   OnExecute_C_NP := nil;
@@ -214,8 +233,11 @@ destructor TN_Post_Execute.Destroy;
 begin
   if FOwner <> nil then
     begin
-      if FOwner.CurrentExecute = Self then
+      if FOwner.FCurrentExecute = Self then
+        begin
           FOwner.FBreakProgress := True;
+          FOwner.FCurrentExecute := nil;
+        end;
 
       if FPool_Data_Ptr <> nil then
         begin
@@ -230,6 +252,11 @@ end;
 
 procedure TN_Post_Execute.Execute;
 begin
+  if FIsRuning <> nil then
+      FIsRuning^ := True;
+  if FIsExit <> nil then
+      FIsExit^ := False;
+
   if Assigned(OnExecute_C) then
     begin
       FDFE_Inst.Reader.index := 0;
@@ -282,6 +309,11 @@ begin
       except
       end;
     end;
+
+  if FIsRuning <> nil then
+      FIsRuning^ := False;
+  if FIsExit <> nil then
+      FIsExit^ := True;
 end;
 
 constructor TN_Progress_Tool.Create;
@@ -456,7 +488,7 @@ var
 {$ENDIF FPC}
   procedure Do_Run;
   var
-    backup_BreakProgress: Boolean;
+    backup_state: Boolean;
   begin
     while tmp_Order.Num > 0 do
       begin
@@ -470,9 +502,9 @@ var
             end;
             FBusy := False;
           end;
-        backup_BreakProgress := FBreakProgress;
+        backup_state := FBreakProgress;
         DisposeObject(FCurrentExecute);
-        FBreakProgress := backup_BreakProgress;
+        FBreakProgress := backup_state;
         tmp_Order.Next;
       end;
   end;
