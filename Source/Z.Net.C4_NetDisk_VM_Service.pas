@@ -1166,6 +1166,12 @@ var
   tmp: TC40_NetDisk_VM_Service_Auth_Bridge;
 begin
   IO_Def_ := DTNoAuthService.GetUserDefineRecvTunnel(sender) as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if IO_Def_.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('already authed.');
+      exit;
+    end;
   if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
     begin
       OutData.WriteBool(False);
@@ -2045,8 +2051,8 @@ begin
 
       PostLog('%s CopyItem %s@%s -> %s@%s',
         [IO_Def.PrimaryIdentifier.Text,
-        arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
-        arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
+          arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
+          arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
 
       inc(i);
     end;
@@ -2560,4 +2566,3 @@ begin
 end;
 
 end.
-
