@@ -456,9 +456,8 @@ var
 {$ENDIF FPC}
   procedure Do_Run;
   var
-    Free_Order: TN_Post_Execute_Temp_Order_Struct;
+    backup_BreakProgress: Boolean;
   begin
-    Free_Order := TN_Post_Execute_Temp_Order_Struct.Create;
     while tmp_Order.Num > 0 do
       begin
         FCurrentExecute := tmp_Order.First^.Data;
@@ -471,15 +470,11 @@ var
             end;
             FBusy := False;
           end;
-        Free_Order.Push(FCurrentExecute);
+        backup_BreakProgress := FBreakProgress;
+        DisposeObject(FCurrentExecute);
+        FBreakProgress := backup_BreakProgress;
         tmp_Order.Next;
       end;
-    while Free_Order.Num > 0 do
-      begin
-        DisposeObject(Free_Order.First^.Data);
-        Free_Order.Next;
-      end;
-    Free_Order.Free;
   end;
 
 begin
