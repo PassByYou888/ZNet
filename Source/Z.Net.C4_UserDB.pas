@@ -415,7 +415,7 @@ end;
 constructor TC40_UserDB_Service_RecvTunnel_NoAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
-  OpenUserIdentifier := TJsonHashList.Create(False, 1024 * 1024, nil);
+  OpenUserIdentifier := TJsonHashList.Create(False, 1024, nil);
 end;
 
 destructor TC40_UserDB_Service_RecvTunnel_NoAuth.Destroy;
@@ -952,6 +952,7 @@ begin
           Send_IO_Def := Recv_IO_Def.SendTunnel as TC40_UserDB_Service_SendTunnel_NoAuth;
           if Recv_IO_Def.OpenUserIdentifier.Exists(UserName_) then
             begin
+              Recv_IO_Def.OpenUserIdentifier.Delete(UserName_);
               Recv_IO_Def.SendUser_Kick(UserName_);
             end;
         end;
@@ -975,12 +976,34 @@ procedure TC40_UserDB_Service.cmd_Usr_Disable(Sender: TPeerIO; InData: TDFE);
 var
   UserName_: U_String;
   Json: TZDB2_Json;
+  Arry_: TIO_Array;
+  ID_: Cardinal;
+  IO_: TPeerIO;
+  Recv_IO_Def: TC40_UserDB_Service_RecvTunnel_NoAuth;
+  Send_IO_Def: TC40_UserDB_Service_SendTunnel_NoAuth;
 begin
   UserName_ := InData.R.ReadString;
   if not UserIdentifierHash.Exists(UserName_) then
       exit;
   Json := UserIdentifierHash[UserName_];
   Json.Data.B['Enabled'] := False;
+
+  DTNoAuthService.RecvTunnel.GetIO_Array(Arry_);
+  for ID_ in Arry_ do
+    begin
+      IO_ := DTNoAuthService.RecvTunnel[ID_];
+      if (IO_ <> nil) and TC40_UserDB_Service_RecvTunnel_NoAuth(IO_.UserDefine).LinkOk then
+        begin
+          Recv_IO_Def := IO_.IODefine as TC40_UserDB_Service_RecvTunnel_NoAuth;
+          Send_IO_Def := Recv_IO_Def.SendTunnel as TC40_UserDB_Service_SendTunnel_NoAuth;
+          if Recv_IO_Def.OpenUserIdentifier.Exists(UserName_) then
+            begin
+              Recv_IO_Def.OpenUserIdentifier.Delete(UserName_);
+              Recv_IO_Def.SendUser_Kick(UserName_);
+            end;
+        end;
+    end;
+  SetLength(Arry_, 0);
 end;
 
 procedure TC40_UserDB_Service.cmd_Usr_Reg(Sender: TPeerIO; InData, OutData: TDFE);
