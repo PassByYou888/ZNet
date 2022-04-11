@@ -107,7 +107,7 @@ end;
 procedure TDTC40_TEKeyValue_Templet_Form.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   WriteConfig;
-  Action := caFree;
+  CloseAction := caFree;
 end;
 
 procedure TDTC40_TEKeyValue_Templet_Form.netTimerTimer(Sender: TObject);
