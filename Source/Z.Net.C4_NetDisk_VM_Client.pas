@@ -557,6 +557,7 @@ type
     destructor Destroy; override;
     procedure Progress; override;
     procedure Disconnect; override;
+    procedure Do_Auth_Done; virtual;
 
     // User and IM
     procedure AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_Usr_AuthC);
@@ -680,6 +681,7 @@ begin
       if Result_.Count >= 3 then
           Client.Last_PrimaryIdentifier := Result_.R.ReadString;
       Client.Auth_Done := True;
+      Client.Do_Auth_Done();
     end;
 
   try
@@ -2014,24 +2016,38 @@ var
   d: TDFE;
 begin
   inherited Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(sender);
-  d := TDFE.Create;
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
-  DisposeObject(d);
+  if Auth_Done then
+      AuthM(Last_UserName, Last_Passwd, {$IFDEF FPC}@{$ENDIF FPC}Do_Reconnect_Usr_Auth)
+  else
+    begin
+      d := TDFE.Create;
+      DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
+      DisposeObject(d);
+    end;
 end;
 
 procedure TC40_NetDisk_VM_Client.Do_Get_NetDisk_Config(sender: TPeerIO; Result_: TDataFrameEngine);
 begin
   FFile_Chunk_Size := Result_.R.ReadInt64;
   DoStatus('Chunk: %d', [FFile_Chunk_Size]);
-  if Auth_Done then
-      AuthM(Last_UserName, Last_Passwd, {$IFDEF FPC}@{$ENDIF FPC}Do_Reconnect_Usr_Auth);
 end;
 
 procedure TC40_NetDisk_VM_Client.Do_Reconnect_Usr_Auth(sender: TC40_NetDisk_VM_Client; State_: Boolean; info_: SystemString);
+var
+  d: TDFE;
 begin
+  Auth_Done := State_;
   DoStatus(info_);
-  if not State_ then
+  if State_ then
+    begin
+      d := TDFE.Create;
+      DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
+      DisposeObject(d);
+    end
+  else
+    begin
       Client.PhysicsTunnel.DelayCloseIO(1);
+    end;
 end;
 
 constructor TC40_NetDisk_VM_Client.Create(Param_: U_String);
@@ -2096,6 +2112,11 @@ procedure TC40_NetDisk_VM_Client.Disconnect;
 begin
   Auth_Done := False;
   inherited Disconnect;
+end;
+
+procedure TC40_NetDisk_VM_Client.Do_Auth_Done;
+begin
+
 end;
 
 procedure TC40_NetDisk_VM_Client.AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_Usr_AuthC);
