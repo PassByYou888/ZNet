@@ -283,7 +283,7 @@ begin
 {$ENDIF DEBUG}
 end;
 
-procedure GetCriticalLock(const Obj: TObject; var Critical_Result: PCritical_Struct; const Optimize: Boolean);
+procedure Get_Critical_Lock__(const Obj: TObject; var Critical_Result: PCritical_Struct; const Optimize: Boolean);
 var
   found_Ptr: TCritical_Struct_Pool__.PQueueStruct;
 {$IFDEF FPC}
@@ -342,7 +342,7 @@ var
   p: PCritical_Struct;
 begin
   Lock_Pool_Cirtical__.Acquire;
-  GetCriticalLock(Obj, p, True);
+  Get_Critical_Lock__(Obj, p, True);
   Inc(p^.LEnter);
   Lock_Pool_Cirtical__.Release;
   p^.Critical.Acquire;
@@ -353,7 +353,7 @@ var
   p: PCritical_Struct;
 begin
   Lock_Pool_Cirtical__.Acquire;
-  GetCriticalLock(Obj, p, False);
+  Get_Critical_Lock__(Obj, p, False);
   Dec(p^.LEnter);
   if p^.LEnter = 0 then
     begin

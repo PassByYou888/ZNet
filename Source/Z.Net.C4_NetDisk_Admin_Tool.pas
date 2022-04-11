@@ -114,6 +114,8 @@ type
     procedure Check_And_Recycle_Fragment_For_FS2;
   end;
 
+  TC40_NetDisk_Admin_Tool_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Admin_Tool_Client>;
+
 implementation
 
 uses DateUtils;

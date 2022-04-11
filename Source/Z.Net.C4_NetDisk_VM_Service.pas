@@ -24,8 +24,7 @@ uses
   Z.Net.C4_FS2,
   Z.Net.C4_Log_DB,
   Z.Net.C4_TEKeyValue,
-  Z.Net.C4,
-  Z.Net.C4.VM;
+  Z.Net.C4, Z.Net.C4.VM;
 
 type
 {$REGION 'define_bridge'}
@@ -53,6 +52,7 @@ type
     UserJson_MD5: TMD5;
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
+    procedure Reinit;
   end;
 
   TC40_NetDisk_VM_Service_RecvIO_Define_List = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TC40_NetDisk_VM_Service_RecvTunnel_NoAuth>;
@@ -65,6 +65,7 @@ type
     procedure Do_Usr_GetDetail(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString; Json_: TZJ);
     procedure Do_Usr_GetPrimaryIdentifier(sender: TC40_UserDB_Client; State_: Boolean; info_, PrimaryIdentifier_: SystemString);
     procedure Do_Usr_Auth(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
+    procedure Do_Usr_Exists(sender: TC40_UserDB_Client; State_: Boolean);
   end;
 
   TC40_NetDisk_VM_Service_Reg_Bridge = class(TCustomEventBridge)
@@ -223,7 +224,14 @@ type
 
 {$ENDREGION 'define_bridge'}
 
+  TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_NetDisk_VM_Service_RecvIO_Define_List>;
+
   TC40_NetDisk_VM_Service = class(TC40_NoAuth_VM_Service, I_ON_C40_UserDB_Client_Notify, I_ON_C40_NetDisk_Directory_Client_Interface)
+  protected
+    FPrimaryIdentifier_Pool: TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool;
+    procedure Add_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth);
+    procedure Remove_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth);
+    function Check_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth): Boolean;
   protected
     procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
     procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
@@ -295,6 +303,9 @@ type
     procedure cmd_Remove_Share_Disk(sender: TPeerIO; InData: TDFE);
     procedure cmd_Get_Share_Disk_File_List(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_Share_Disk_File_Frag_Info(sender: TPeerIO; InData, OutData: TDFE);
+    // admin
+    procedure cmd_Auth_Admin(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Close_Auth_Admin(sender: TPeerIO; InData: TDFE);
   public
     // deployment
     property UserDB_Client: TC40_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
@@ -362,6 +373,23 @@ begin
   DisposeObjectAndNil(NetDisk_File_Frag);
 end;
 
+procedure TC40_NetDisk_VM_Service_RecvTunnel_NoAuth.Reinit;
+begin
+  DisposeObject(UserJson);
+  DisposeObjectAndNil(NetDisk_File_Frag);
+
+  AuthDone := False;
+  UserName := '';
+  PrimaryIdentifier := '';
+  UserJson := TZJ.Create;
+  UserJson_MD5 := UserJson.MD5;
+  NetDisk_File_Name := '';
+  NetDisk_File_Field := '';
+  NetDisk_File_Item := '';
+  NetDisk_File_Frag := TDirectory_MD5_Data_Frag_Struct_List.Create;
+  NetDisk_File_Client := nil;
+end;
+
 procedure TC40_NetDisk_VM_Service_Auth_Bridge.Do_ExistsDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
 begin
   if CheckIO then
@@ -374,6 +402,7 @@ begin
           IO.ContinueResultSend;
           VM_Service.PostLog('%s auth and check directory DB successed.', [IO_Def_.PrimaryIdentifier.Text]);
           IO_Def_.AuthDone := True;
+          VM_Service.Add_PrimaryIdentifier(IO_Def_);
           if (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
               VM_Service.UserDB_Client.Usr_Open(IO_Def_.PrimaryIdentifier);
         end
@@ -450,6 +479,23 @@ begin
       IO.OutDataFrame.WriteString(info_);
       IO.ContinueResultSend;
       VM_Service.PostLog('%s auth failed.', [IO_Def_.PrimaryIdentifier.Text], info_);
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TC40_NetDisk_VM_Service_Auth_Bridge.Do_Usr_Exists(sender: TC40_UserDB_Client; State_: Boolean);
+begin
+  if CheckIO then
+    begin
+      if (State_) and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
+        begin
+          VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetPrimaryIdentifier);
+          exit;
+        end;
+      IO.OutDataFrame.WriteBool(False);
+      IO.OutDataFrame.WriteString('no exists user');
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s no exists.', [IO_Def_.PrimaryIdentifier.Text]);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -976,6 +1022,50 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
+procedure TC40_NetDisk_VM_Service.Add_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth);
+var
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+begin
+  if not RecvIO_Define_.AuthDone then
+      exit;
+  L := FPrimaryIdentifier_Pool[RecvIO_Define_.PrimaryIdentifier];
+  if L = nil then
+    begin
+      L := TC40_NetDisk_VM_Service_RecvIO_Define_List.Create;
+      FPrimaryIdentifier_Pool.FastAdd(RecvIO_Define_.PrimaryIdentifier, L);
+    end
+  else
+      L.Add(RecvIO_Define_);
+end;
+
+procedure TC40_NetDisk_VM_Service.Remove_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth);
+var
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+begin
+  if not RecvIO_Define_.AuthDone then
+      exit;
+  L := FPrimaryIdentifier_Pool[RecvIO_Define_.PrimaryIdentifier];
+  if L <> nil then
+    begin
+      L.Remove(RecvIO_Define_);
+      if L.count <= 0 then
+          FPrimaryIdentifier_Pool.Delete(RecvIO_Define_.PrimaryIdentifier);
+    end;
+end;
+
+function TC40_NetDisk_VM_Service.Check_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth): Boolean;
+var
+  L: TC40_NetDisk_VM_Service_RecvIO_Define_List;
+begin
+  Result := False;
+  if not RecvIO_Define_.AuthDone then
+      exit;
+  L := FPrimaryIdentifier_Pool[RecvIO_Define_.PrimaryIdentifier];
+  if L = nil then
+      exit;
+  Result := L.IndexOf(RecvIO_Define_) >= 0;
+end;
+
 procedure TC40_NetDisk_VM_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
@@ -993,11 +1083,14 @@ begin
   IO_Def := UserDefineIO as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
   if (IO_Def.AuthDone) then
     begin
-      if (UserDB_Client <> nil) then
+      Remove_PrimaryIdentifier(IO_Def);
+      if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
         begin
           if not umlCompareMD5(IO_Def.UserJson_MD5, IO_Def.UserJson.MD5) then
               UserDB_Client.Usr_Set(IO_Def.PrimaryIdentifier, 'Detail', IO_Def.UserJson);
-          UserDB_Client.Usr_Close(IO_Def.PrimaryIdentifier);
+
+          if not Check_PrimaryIdentifier(IO_Def) then
+              UserDB_Client.Usr_Close(IO_Def.PrimaryIdentifier);
         end;
       PostLog('%s UserOut_Event.', [IO_Def.PrimaryIdentifier.Text]);
     end;
@@ -2051,8 +2144,8 @@ begin
 
       PostLog('%s CopyItem %s@%s -> %s@%s',
         [IO_Def.PrimaryIdentifier.Text,
-          arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
-          arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
+        arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
+        arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
 
       inc(i);
     end;
@@ -2314,6 +2407,74 @@ begin
   sender.PauseResultSend;
 end;
 
+procedure TC40_NetDisk_VM_Service.cmd_Auth_Admin(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  userName_: U_String;
+  tmp: TC40_NetDisk_VM_Service_Auth_Bridge;
+begin
+  IO_Def_ := DTNoAuthService.GetUserDefineRecvTunnel(sender) as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if IO_Def_.AuthDone then
+    begin
+      Remove_PrimaryIdentifier(IO_Def_);
+      if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
+        begin
+          if not umlCompareMD5(IO_Def_.UserJson_MD5, IO_Def_.UserJson.MD5) then
+              UserDB_Client.Usr_Set(IO_Def_.PrimaryIdentifier, 'Detail', IO_Def_.UserJson);
+
+          if not Check_PrimaryIdentifier(IO_Def_) then
+              UserDB_Client.Usr_Close(IO_Def_.PrimaryIdentifier);
+        end;
+      IO_Def_.Reinit;
+      PostLog('%s UserOut_Event.', [IO_Def_.PrimaryIdentifier.Text]);
+    end;
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('UserDB service is offline');
+      exit;
+    end;
+  if (Directory_Client = nil) or (not Directory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('directory service is offline');
+      exit;
+    end;
+
+  userName_ := InData.R.ReadString;
+  IO_Def_.UserName := userName_;
+
+  tmp := TC40_NetDisk_VM_Service_Auth_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  tmp.IO_Def_ := IO_Def_;
+  UserDB_Client.Usr_ExistsM(userName_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Exists);
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_VM_Service.cmd_Close_Auth_Admin(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  userName_: U_String;
+begin
+  userName_ := InData.R.ReadString;
+  IO_Def_ := DTNoAuthService.GetUserDefineRecvTunnel(sender) as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+
+  if (IO_Def_.AuthDone) then
+    begin
+      Remove_PrimaryIdentifier(IO_Def_);
+      if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
+        begin
+          if not umlCompareMD5(IO_Def_.UserJson_MD5, IO_Def_.UserJson.MD5) then
+              UserDB_Client.Usr_Set(IO_Def_.PrimaryIdentifier, 'Detail', IO_Def_.UserJson);
+
+          if not Check_PrimaryIdentifier(IO_Def_) then
+              UserDB_Client.Usr_Close(IO_Def_.PrimaryIdentifier);
+        end;
+      IO_Def_.Reinit;
+      PostLog('%s UserOut_Event.', [IO_Def_.PrimaryIdentifier.Text]);
+    end;
+end;
+
 procedure TC40_NetDisk_VM_Service.Automated_Config_NetDisk_Service_Relevance;
 var
   i: Integer;
@@ -2348,48 +2509,48 @@ begin
   if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:UserDB_Client passed.');
+          DoStatus('NetDisk Check:UserDB_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:UserDB_Client error!');
+          DoStatus('NetDisk Check:UserDB_Client error!');
       Result := Result and False;
     end;
 
   if (Directory_Client <> nil) and (Directory_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:Directory_Client passed.');
+          DoStatus('NetDisk Check:Directory_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:Directory_Client error!');
+          DoStatus('NetDisk Check:Directory_Client error!');
       Result := Result and False;
     end;
 
   if (TEKeyValue_Client <> nil) and (TEKeyValue_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:TEKeyValue_Client passed.');
+          DoStatus('NetDisk Check:TEKeyValue_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:TEKeyValue_Client error!');
+          DoStatus('NetDisk Check:TEKeyValue_Client error!');
       Result := Result and False;
     end;
 
   if (Log_Client <> nil) and (Log_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:Log_Client passed.');
+          DoStatus('NetDisk Check:Log_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk VM Check:Log_Client error!');
+          DoStatus('NetDisk Check:Log_Client error!');
       Result := Result and False;
     end;
 
@@ -2399,12 +2560,12 @@ begin
       if FS2_Client_Pool[i].Connected then
         begin
           if Status_ then
-              DoStatus('NetDisk VM Check:FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk Check:FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
         end
       else
         begin
           if Status_ then
-              DoStatus('NetDisk VM Check:FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk Check:FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
           Result := Result and False;
         end;
     end;
@@ -2420,6 +2581,9 @@ var
   fs: TCore_Stream;
 begin
   inherited Create(Param_);
+
+  FPrimaryIdentifier_Pool := TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool.Create(True, $FFFF, nil);
+
   // max complete buffer 10M
   DTNoAuthService.RecvTunnel.MaxCompleteBufferSize := EStrToInt64(ParamList.GetDefaultValue('MaxBuffer', '10*1024*1024'), 10 * 1024 * 1024);
   DTNoAuthService.RecvTunnel.CompleteBufferCompressed := False;
@@ -2469,6 +2633,10 @@ begin
   DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_List;
   DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_Frag_Info').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_Frag_Info;
 
+  // admin
+  DTNoAuth.RecvTunnel.RegisterStream('Auth_Admin').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Auth_Admin;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Close_Auth_Admin').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Close_Auth_Admin;
+
   FUserDB_Client := nil;
   FDirectory_Client := nil;
   FTEKeyValue_Client := nil;
@@ -2478,6 +2646,7 @@ end;
 
 destructor TC40_NetDisk_VM_Service.Destroy;
 begin
+  DisposeObject(FPrimaryIdentifier_Pool);
   DisposeObject(FFS2_Client_Pool);
   inherited Destroy;
 end;
@@ -2566,3 +2735,4 @@ begin
 end;
 
 end.
+

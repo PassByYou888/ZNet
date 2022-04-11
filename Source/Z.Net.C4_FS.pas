@@ -268,6 +268,8 @@ type
     procedure FS_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS_Temp_SearchP);
   end;
 
+  TC40_FS_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS_Client>;
+
 implementation
 
 constructor TFS_Service_File_Data.Create(Owner_: TC40_FS_Service; Stream_: TZDB2_MS64);

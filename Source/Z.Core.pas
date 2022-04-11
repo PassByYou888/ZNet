@@ -146,17 +146,18 @@ type
   end;
 
 {$IFDEF SoftCritical}
-  TCritical_ = TSoftCritical;
+  TSystem_Critical = TSoftCritical;
 {$ELSE SoftCritical}
-  TCritical_ = TCriticalSection;
+  TSystem_Critical = TCriticalSection;
 {$ENDIF SoftCritical}
+  TCritical = class;
 
 {$IFDEF FPC}generic{$ENDIF FPC}TAtomVar<T_> = class
   public type
     PT_ = ^T_;
   private
     FValue__: T_;
-    Critical: TCritical_;
+    Critical: TCritical;
     function GetValue: T_;
     procedure SetValue(const Value_: T_);
     function GetValueP: PT_;
@@ -204,7 +205,7 @@ type
   // string
   TAtomString = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<string>;
 
-  TCritical = class(TCritical_)
+  TCritical = class(TSystem_Critical)
   private
     LNum: Integer;
   public

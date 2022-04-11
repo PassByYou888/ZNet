@@ -74,6 +74,8 @@ type
     function Build_CodePool: TPascal_Rewrite_Tool_CodePool;
   end;
 
+  TC40_Pascal_Rewrite_Tool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Pascal_Rewrite_Tool>;
+
 implementation
 
 constructor TPascal_Source_.Create;

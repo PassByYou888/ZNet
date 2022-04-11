@@ -179,6 +179,8 @@ type
     procedure Enabled_LogMonitor(Sync_Log: Boolean);
   end;
 
+  TC40_Log_DB_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Log_DB_Client>;
+
 function MakeNowDateStr(): SystemString;
 
 implementation

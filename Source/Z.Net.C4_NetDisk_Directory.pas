@@ -501,6 +501,8 @@ type
     procedure SearchSameItem_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_SearchSameItem_P);
   end;
 
+  TC40_NetDisk_Directory_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Directory_Client>;
+
 implementation
 
 constructor TDirectory_MD5_Data_Frag_Struct_List.Create;

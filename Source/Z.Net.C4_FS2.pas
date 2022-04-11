@@ -86,7 +86,6 @@ type
   end;
 
   TC40_FS2_Client = class;
-  TC40_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS2_Client>;
 
   TFS2_Client_CacheData = class
     Owner: TC40_FS2_Client;
@@ -416,6 +415,8 @@ type
     procedure FS2_PoolFragM(OnResult: TFS2_Temp_PoolFragM);
     procedure FS2_PoolFragP(OnResult: TFS2_Temp_PoolFragP);
   end;
+
+  TC40_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS2_Client>;
 
 implementation
 

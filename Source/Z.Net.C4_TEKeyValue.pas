@@ -324,6 +324,8 @@ type
     procedure SearchTE_P(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_P);
   end;
 
+  TC40_TEKeyValue_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_TEKeyValue_Client>;
+
 implementation
 
 const

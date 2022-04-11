@@ -400,6 +400,8 @@ type
     procedure Usr_Remove(L_: TPascalStringList); overload;
   end;
 
+  TC40_UserDB_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_UserDB_Client>;
+
 implementation
 
 constructor TC40_UserDB_Service_SendTunnel_NoAuth.Create(Owner_: TPeerIO);

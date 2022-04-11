@@ -124,6 +124,8 @@ type
     procedure Build_Physics_ServiceP(Mapping: U_String; MaxWorkload: Cardinal; OnResult: TON_Build_Physics_ServiceP);
   end;
 
+  TC40_XNAT_Client_Tool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_XNAT_Client_Tool>;
+
 implementation
 
 constructor TC40_XNAT_Mapping_Info.Create;

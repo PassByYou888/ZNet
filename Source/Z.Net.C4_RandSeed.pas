@@ -63,6 +63,8 @@ type
     procedure RemoveSeed(Group_: U_String; Seed_: UInt32);
   end;
 
+  TC40_RandSeed_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_RandSeed_Client>;
+
 implementation
 
 

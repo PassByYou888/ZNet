@@ -243,6 +243,8 @@ type
     procedure NM_SearchAndRunScript(filter: U_String; ExpressionTexts_: U_StringArray);
   end;
 
+  TC40_Var_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Var_Client>;
+
 implementation
 
 constructor TC40_VarService_NM_Pool.Create;

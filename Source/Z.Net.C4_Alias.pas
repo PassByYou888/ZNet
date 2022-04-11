@@ -80,6 +80,8 @@ type
     procedure SearchAlias_P(Filter_: U_String; OnResult: TON_GetAliasP);
   end;
 
+  TC40_Alias_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Alias_Client>;
+
 implementation
 
 procedure TC40_Alias_Service.cmd_SetAlias(Sender: TPeerIO; InData: TDFE);
