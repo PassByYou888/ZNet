@@ -442,9 +442,10 @@ end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Granularity:%d MaxParallel:%d/%d',
+  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d',
     [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), IDLE_Thread(),
-      Parallel_Granularity__, Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
+      Get_System_Critical_Recycle_Pool_Num(), Get_MT19937_POOL_Num(), Get_Object_Lock_Pool_Num(),
+      Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;
