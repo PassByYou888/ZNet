@@ -204,6 +204,7 @@ var
   arry: TC40_Info_Array;
   i: Integer;
 begin
+  ValidService.Clear;
   arry := L.SearchService(ExtractDependInfo(DependEdit.Text));
   for i := low(arry) to high(arry) do
       ValidService.Add(arry[i].Clone);
