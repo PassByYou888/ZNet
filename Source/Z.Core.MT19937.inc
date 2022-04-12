@@ -153,6 +153,13 @@ var
   MT19937_POOL__: TMT19937_Pool__;
   MT19937CoreToDelphi_: Boolean;
 
+function Get_MT19937_POOL_Num: NativeInt;
+begin
+  MT19937InternalCritical.Acquire;
+  Result := MT19937_POOL__.Num;
+  MT19937InternalCritical.Release;
+end;
+
 function InternalMT19937__(): PMD19937Core;
 var
   Th: TCore_Thread;
