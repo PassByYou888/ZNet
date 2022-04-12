@@ -31,7 +31,7 @@ uses
 type
   TTemp_Search = class;
 
-  TDTC40_Log_AdminToolForm = class(TForm, IC40_PhysicsTunnel_Event)
+  TDTC40_Log_AdminToolForm = class(TForm, IC40_PhysicsTunnel_Event, I_ON_C40_Log_DB_Client_Interface)
     logMemo: TMemo;
     botSplitter: TSplitter;
     TopBarPanel: TPanel;
@@ -99,6 +99,8 @@ type
     procedure C40_PhysicsTunnel_Disconnect(Sender: TC40_PhysicsTunnel);
     procedure C40_PhysicsTunnel_Build_Network(Sender: TC40_PhysicsTunnel; Custom_Client_: TC40_Custom_Client);
     procedure C40_PhysicsTunnel_Client_Connected(Sender: TC40_PhysicsTunnel; Custom_Client_: TC40_Custom_Client);
+    // I_ON_C40_Log_DB_Client_Interface Event
+    procedure Do_Sync_Log(LogDB, Log1_, Log2_: SystemString);
   public
     ValidService: TC40_InfoList;
     CurrentClient: TC40_Log_DB_Client;
@@ -243,7 +245,7 @@ begin
   for i := 0 to LogDBListView.Items.Count - 1 do
     begin
       itm := LogDBListView.Items[i] as TLog_Item;
-      if itm.Checked then
+      if itm.Selected then
           CurrentClient.RemoveDB(itm.LogDB);
     end;
 end;
@@ -263,32 +265,32 @@ end;
 procedure TDTC40_Log_AdminToolForm.ReadConfig;
 var
   fn: U_String;
-  te: THashTextEngine;
+  TE: THashTextEngine;
 begin
   fn := umlChangeFileExt(Application.ExeName, '.conf');
   if not umlFileExists(fn) then
       exit;
-  te := THashTextEngine.Create;
-  te.LoadFromFile(fn);
-  JoinHostEdit.Text := te.GetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
-  JoinPortEdit.Text := te.GetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
-  DisposeObject(te);
+  TE := THashTextEngine.Create;
+  TE.LoadFromFile(fn);
+  JoinHostEdit.Text := TE.GetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
+  JoinPortEdit.Text := TE.GetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
+  DisposeObject(TE);
 end;
 
 procedure TDTC40_Log_AdminToolForm.WriteConfig;
 var
   fn: U_String;
-  te: THashTextEngine;
+  TE: THashTextEngine;
 begin
   fn := umlChangeFileExt(Application.ExeName, '.conf');
 
-  te := THashTextEngine.Create;
+  TE := THashTextEngine.Create;
 
-  te.SetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
-  te.SetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
+  TE.SetDefaultValue('Main', JoinHostEdit.Name, JoinHostEdit.Text);
+  TE.SetDefaultValue('Main', JoinPortEdit.Name, JoinPortEdit.Text);
 
-  te.SaveToFile(fn);
-  DisposeObject(te);
+  TE.SaveToFile(fn);
+  DisposeObject(TE);
 end;
 
 procedure TDTC40_Log_AdminToolForm.Do_QueryResult(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
@@ -296,6 +298,7 @@ var
   arry: TC40_Info_Array;
   i: Integer;
 begin
+  ValidService.Clear;
   arry := L.SearchService(ExtractDependInfo(DependEdit.Text));
   for i := low(arry) to high(arry) do
       ValidService.Add(arry[i].Clone);
@@ -308,8 +311,18 @@ begin
       serviceComboBox.ItemIndex := 0;
 end;
 
+procedure TDTC40_Log_AdminToolForm.Do_Sync_Log(LogDB, Log1_, Log2_: SystemString);
+begin
+  DoStatus('sync log %s log1:%s log2:%s', [LogDB, Log1_, Log2_]);
+end;
+
 procedure TDTC40_Log_AdminToolForm.DoConnected;
 begin
+  if CurrentClient <> nil then
+    begin
+      CurrentClient.ON_C40_Log_DB_Client_Interface := self;
+      CurrentClient.Enabled_LogMonitor(True);
+    end;
   RefreshLogDB;
 end;
 
