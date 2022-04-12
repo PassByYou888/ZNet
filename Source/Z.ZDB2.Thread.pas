@@ -2489,7 +2489,7 @@ begin
 
   DM.Th_Engine_List.Get_Minimize_Size_Engine;
 
-  for i := 0 to 1000 do
+  for i := 0 to 500 do
     begin
       Eng_ := DM.Th_Engine_List.Get_Minimize_Workload_Engine;
       tmp := TZDB2_Th_Engine_ABI_Data_Mem64(Eng_.Add(TZDB2_Th_Engine_ABI_Data_Mem64));
