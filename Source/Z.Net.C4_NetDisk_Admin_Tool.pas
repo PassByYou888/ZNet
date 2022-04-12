@@ -167,10 +167,15 @@ begin
   if (Admin_Service.FDirectory_Client <> nil) and (Admin_Service.FDirectory_Client.Connected) then
     begin
       L := TPascalStringList.Create;
-      time_ := IncDay(umlNow, -7);
+      time_ := IncDay(umlNow, -1);
       for i := low(arry) to high(arry) do
-        if CompareDateTime(arry[i].FileTime, time_) <= 0 then
-            L.Add(arry[i].FileName);
+        begin
+          try
+            if CompareDateTime(arry[i].FileTime, time_) <= 0 then
+                L.Add(arry[i].FileName);
+          except
+          end;
+        end;
 
       if L.Count > 0 then
         begin
@@ -362,6 +367,7 @@ end;
 constructor TC40_NetDisk_Admin_Tool_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
+
   // is only instance
   ServiceInfo.OnlyInstance := False;
   UpdateToGlobalDispatch;
