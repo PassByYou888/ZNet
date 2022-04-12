@@ -57,7 +57,7 @@ type
   TExecutePlatform = (epWin32, epWin64, epOSX32, epOSX64, epIOS, epIOSSIM, epANDROID32, epANDROID64, epLinux64, epLinux32, epUnknow);
 
   {$IFDEF FPC}
-  // freepascal
+  // fpc
   PUInt64 = ^UInt64;
 
   TCore_InterfacedObject = class(TInterfacedObject)
@@ -134,7 +134,7 @@ type
   end;
 {$EndRegion 'core defines + class'}
 {$Region 'Critical'}
-  TSoftCritical = class(TCore_Object)
+  TSoftCritical = class
   private
     L: Boolean;
   public
@@ -205,18 +205,19 @@ type
   // string
   TAtomString = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<string>;
 
-  TCritical = class(TSystem_Critical)
+  TCritical = class
   private
+    Instance__: TSystem_Critical;
     LNum: Integer;
   public
     constructor Create;
     destructor Destroy; override;
-    procedure Acquire;
-    procedure Release;
-    procedure Enter;
-    procedure Leave;
-    procedure Lock;
-    procedure UnLock;
+    procedure Acquire; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+    procedure Release; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+    procedure Enter; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+    procedure Leave; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+    procedure Lock; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+    procedure UnLock; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
     function IsBusy: Boolean;
     property Busy: Boolean read IsBusy;
     // atom
@@ -229,13 +230,13 @@ type
     procedure Dec_(var x: UInt64); overload;
     procedure Dec_(var x: UInt64; const v: UInt64); overload;
     procedure Inc_(var x: Integer); overload;
-    procedure Inc_(var x: Integer; const v:Integer); overload;
+    procedure Inc_(var x: Integer; const v: Integer); overload;
     procedure Dec_(var x: Integer); overload;
-    procedure Dec_(var x: Integer; const v:Integer); overload;
+    procedure Dec_(var x: Integer; const v: Integer); overload;
     procedure Inc_(var x: Cardinal); overload;
-    procedure Inc_(var x: Cardinal; const v:Cardinal); overload;
+    procedure Inc_(var x: Cardinal; const v: Cardinal); overload;
     procedure Dec_(var x: Cardinal); overload;
-    procedure Dec_(var x: Cardinal; const v:Cardinal); overload;
+    procedure Dec_(var x: Cardinal; const v: Cardinal); overload;
   end;
 {$EndRegion 'Critical'}
 {$Region 'OrderStruct'}
@@ -407,7 +408,7 @@ type
     procedure Clear;
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
-    procedure Next;
+    procedure Next; // queue support
     function Add(Data: T_): PQueueStruct;
     function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove(p: PQueueStruct);
@@ -486,7 +487,7 @@ type
     procedure Clear;
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
-    procedure Next;
+    procedure Next; // queue support
     function Add(Data: T_): PQueueStruct;
     function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove(p: PQueueStruct);
@@ -843,7 +844,7 @@ const
   CurrentPlatform: TExecutePlatform = epUnknow;
   {$IFEND}
 
-  CPU64 = {$IFDEF CPU64}True{$ELSE CPU64}False{$IFEND CPU64};
+  CPU64 = {$IFDEF CPU64}True{$ELSE CPU64}False{$ENDIF CPU64};
   X64 = CPU64;
 
   IsDebug = {$IFDEF DEBUG}True{$ELSE DEBUG}False{$ENDIF DEBUG};
@@ -873,6 +874,9 @@ const
 {$EndRegion 'core const'}
 {$Region 'Parallel API'}
 
+function Get_System_Critical_Recycle_Pool_Num: NativeInt;
+function Get_MT19937_POOL_Num: NativeInt;
+function Get_Object_Lock_Pool_Num: NativeInt;
 function Get_Parallel_Granularity: Integer;
 procedure Set_Parallel_Granularity(Thread_Num: Integer);
 procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
@@ -1136,6 +1140,7 @@ var
 
 implementation
 
+{$I Z.Core.Cirtical.inc}
 {$I Z.Core.Atomic.inc}
 {$I Z.Core.MT19937.inc}
 
@@ -1662,6 +1667,7 @@ end;
 
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+  Init_System_Critical_Recycle_Pool();
   OnCheckThreadSynchronize := nil;
   WorkInParallelCore := TAtomBool.Create(True);
   ParallelCore := WorkInParallelCore;
@@ -1685,4 +1691,5 @@ finalization
   WorkInParallelCore := nil;
   GlobalMemoryHook.Free;
   GlobalMemoryHook := nil;
+  Free_System_Critical_Recycle_Pool();
 end.
