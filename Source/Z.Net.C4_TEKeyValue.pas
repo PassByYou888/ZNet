@@ -68,207 +68,207 @@ type
 
   TC40_TEKeyValue_Client = class;
 
-  TON_GetTE_C = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine);
-  TON_GetTE_M = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine) of object;
+  TC40_TEKeyValue_Client_GetTE_C = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine);
+  TC40_TEKeyValue_Client_GetTE_M = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine) of object;
 {$IFDEF FPC}
-  TON_GetTE_P = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine) is nested;
+  TC40_TEKeyValue_Client_GetTE_P = procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine) is nested;
 {$ELSE FPC}
-  TON_GetTE_P = reference to procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine);
+  TC40_TEKeyValue_Client_GetTE_P = reference to procedure(sender: TC40_TEKeyValue_Client; TE: THashTextEngine);
 {$ENDIF FPC}
 
-  TON_Temp_GetTE = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetTE = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetTE_C;
-    OnResultM: TON_GetTE_M;
-    OnResultP: TON_GetTE_P;
+    OnResultC: TC40_TEKeyValue_Client_GetTE_C;
+    OnResultM: TC40_TEKeyValue_Client_GetTE_M;
+    OnResultP: TC40_TEKeyValue_Client_GetTE_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetSection_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
-  TON_GetSection_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
+  TC40_TEKeyValue_Client_GetSection_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetSection_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
 {$IFDEF FPC}
-  TON_GetSection_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
+  TC40_TEKeyValue_Client_GetSection_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
 {$ELSE FPC}
-  TON_GetSection_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetSection_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
 {$ENDIF FPC}
 
-  TON_Temp_GetSection = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetSection = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetSection_C;
-    OnResultM: TON_GetSection_M;
-    OnResultP: TON_GetSection_P;
+    OnResultC: TC40_TEKeyValue_Client_GetSection_C;
+    OnResultM: TC40_TEKeyValue_Client_GetSection_M;
+    OnResultP: TC40_TEKeyValue_Client_GetSection_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetKey_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
-  TON_GetKey_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
+  TC40_TEKeyValue_Client_GetKey_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetKey_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
 {$IFDEF FPC}
-  TON_GetKey_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
+  TC40_TEKeyValue_Client_GetKey_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
 {$ELSE FPC}
-  TON_GetKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
 {$ENDIF FPC}
 
-  TON_Temp_GetKey = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetKey = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetKey_C;
-    OnResultM: TON_GetKey_M;
-    OnResultP: TON_GetKey_P;
+    OnResultC: TC40_TEKeyValue_Client_GetKey_C;
+    OnResultM: TC40_TEKeyValue_Client_GetKey_M;
+    OnResultP: TC40_TEKeyValue_Client_GetKey_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetTextKey_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
-  TON_GetTextKey_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
+  TC40_TEKeyValue_Client_GetTextKey_C = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetTextKey_M = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) of object;
 {$IFDEF FPC}
-  TON_GetTextKey_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
+  TC40_TEKeyValue_Client_GetTextKey_P = procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray) is nested;
 {$ELSE FPC}
-  TON_GetTextKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
+  TC40_TEKeyValue_Client_GetTextKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
 {$ENDIF FPC}
 
-  TON_Temp_GetTextKey = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetTextKey = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetTextKey_C;
-    OnResultM: TON_GetTextKey_M;
-    OnResultP: TON_GetTextKey_P;
+    OnResultC: TC40_TEKeyValue_Client_GetTextKey_C;
+    OnResultM: TC40_TEKeyValue_Client_GetTextKey_M;
+    OnResultP: TC40_TEKeyValue_Client_GetTextKey_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
-  TON_GetKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) of object;
+  TC40_TEKeyValue_Client_GetKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
+  TC40_TEKeyValue_Client_GetKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) of object;
 {$IFDEF FPC}
-  TON_GetKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) is nested;
+  TC40_TEKeyValue_Client_GetKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList) is nested;
 {$ELSE FPC}
-  TON_GetKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
+  TC40_TEKeyValue_Client_GetKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashVariantList);
 {$ENDIF FPC}
 
-  TON_Temp_GetKeyValue = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetKeyValue = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetKeyValue_C;
-    OnResultM: TON_GetKeyValue_M;
-    OnResultP: TON_GetKeyValue_P;
+    OnResultC: TC40_TEKeyValue_Client_GetKeyValue_C;
+    OnResultM: TC40_TEKeyValue_Client_GetKeyValue_M;
+    OnResultP: TC40_TEKeyValue_Client_GetKeyValue_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetTextKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
-  TON_GetTextKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) of object;
+  TC40_TEKeyValue_Client_GetTextKeyValue_C = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
+  TC40_TEKeyValue_Client_GetTextKeyValue_M = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) of object;
 {$IFDEF FPC}
-  TON_GetTextKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) is nested;
+  TC40_TEKeyValue_Client_GetTextKeyValue_P = procedure(sender: TC40_TEKeyValue_Client; L: THashStringList) is nested;
 {$ELSE FPC}
-  TON_GetTextKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
+  TC40_TEKeyValue_Client_GetTextKeyValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; L: THashStringList);
 {$ENDIF FPC}
 
-  TON_Temp_GetTextKeyValue = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetTextKeyValue = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetTextKeyValue_C;
-    OnResultM: TON_GetTextKeyValue_M;
-    OnResultP: TON_GetTextKeyValue_P;
+    OnResultC: TC40_TEKeyValue_Client_GetTextKeyValue_C;
+    OnResultM: TC40_TEKeyValue_Client_GetTextKeyValue_M;
+    OnResultP: TC40_TEKeyValue_Client_GetTextKeyValue_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_ExistsSection_C = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
-  TON_ExistsSection_M = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) of object;
+  TC40_TEKeyValue_Client_ExistsSection_C = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
+  TC40_TEKeyValue_Client_ExistsSection_M = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) of object;
 {$IFDEF FPC}
-  TON_ExistsSection_P = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) is nested;
+  TC40_TEKeyValue_Client_ExistsSection_P = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) is nested;
 {$ELSE FPC}
-  TON_ExistsSection_P = reference to procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
+  TC40_TEKeyValue_Client_ExistsSection_P = reference to procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
 {$ENDIF FPC}
 
-  TON_Temp_ExistsSection = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_ExistsSection = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_ExistsSection_C;
-    OnResultM: TON_ExistsSection_M;
-    OnResultP: TON_ExistsSection_P;
+    OnResultC: TC40_TEKeyValue_Client_ExistsSection_C;
+    OnResultM: TC40_TEKeyValue_Client_ExistsSection_M;
+    OnResultP: TC40_TEKeyValue_Client_ExistsSection_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_ExistsKey_C = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
-  TON_ExistsKey_M = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) of object;
+  TC40_TEKeyValue_Client_ExistsKey_C = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
+  TC40_TEKeyValue_Client_ExistsKey_M = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) of object;
 {$IFDEF FPC}
-  TON_ExistsKey_P = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) is nested;
+  TC40_TEKeyValue_Client_ExistsKey_P = procedure(sender: TC40_TEKeyValue_Client; state_: Boolean) is nested;
 {$ELSE FPC}
-  TON_ExistsKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
+  TC40_TEKeyValue_Client_ExistsKey_P = reference to procedure(sender: TC40_TEKeyValue_Client; state_: Boolean);
 {$ENDIF FPC}
 
-  TON_Temp_ExistsKey = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_ExistsKey = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_ExistsKey_C;
-    OnResultM: TON_ExistsKey_M;
-    OnResultP: TON_ExistsKey_P;
+    OnResultC: TC40_TEKeyValue_Client_ExistsKey_C;
+    OnResultM: TC40_TEKeyValue_Client_ExistsKey_M;
+    OnResultP: TC40_TEKeyValue_Client_ExistsKey_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetValue_C = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant);
-  TON_GetValue_M = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant) of object;
+  TC40_TEKeyValue_Client_GetValue_C = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant);
+  TC40_TEKeyValue_Client_GetValue_M = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant) of object;
 {$IFDEF FPC}
-  TON_GetValue_P = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant) is nested;
+  TC40_TEKeyValue_Client_GetValue_P = procedure(sender: TC40_TEKeyValue_Client; Value_: Variant) is nested;
 {$ELSE FPC}
-  TON_GetValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; Value_: Variant);
+  TC40_TEKeyValue_Client_GetValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; Value_: Variant);
 {$ENDIF FPC}
 
-  TON_Temp_GetValue = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetValue = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetValue_C;
-    OnResultM: TON_GetValue_M;
-    OnResultP: TON_GetValue_P;
+    OnResultC: TC40_TEKeyValue_Client_GetValue_C;
+    OnResultM: TC40_TEKeyValue_Client_GetValue_M;
+    OnResultP: TC40_TEKeyValue_Client_GetValue_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_GetTextValue_C = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String);
-  TON_GetTextValue_M = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String) of object;
+  TC40_TEKeyValue_Client_GetTextValue_C = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String);
+  TC40_TEKeyValue_Client_GetTextValue_M = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String) of object;
 {$IFDEF FPC}
-  TON_GetTextValue_P = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String) is nested;
+  TC40_TEKeyValue_Client_GetTextValue_P = procedure(sender: TC40_TEKeyValue_Client; Value_: U_String) is nested;
 {$ELSE FPC}
-  TON_GetTextValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; Value_: U_String);
+  TC40_TEKeyValue_Client_GetTextValue_P = reference to procedure(sender: TC40_TEKeyValue_Client; Value_: U_String);
 {$ENDIF FPC}
 
-  TON_Temp_GetTextValue = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_GetTextValue = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_GetTextValue_C;
-    OnResultM: TON_GetTextValue_M;
-    OnResultP: TON_GetTextValue_P;
+    OnResultC: TC40_TEKeyValue_Client_GetTextValue_C;
+    OnResultM: TC40_TEKeyValue_Client_GetTextValue_M;
+    OnResultP: TC40_TEKeyValue_Client_GetTextValue_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
 
-  TON_SearchTE_Result = record
+  TC40_TEKeyValue_Client_SearchTE_Result = record
     name: SystemString;
     Instance_: THashTextEngine;
   end;
 
-  TON_SearchTE_Result_Array = array of TON_SearchTE_Result;
+  TC40_TEKeyValue_Client_SearchTE_Result_Array = array of TC40_TEKeyValue_Client_SearchTE_Result;
 
-  TON_SearchTE_C = procedure(sender: TC40_TEKeyValue_Client; arry: TON_SearchTE_Result_Array);
-  TON_SearchTE_M = procedure(sender: TC40_TEKeyValue_Client; arry: TON_SearchTE_Result_Array) of object;
+  TC40_TEKeyValue_Client_SearchTE_C = procedure(sender: TC40_TEKeyValue_Client; arry: TC40_TEKeyValue_Client_SearchTE_Result_Array);
+  TC40_TEKeyValue_Client_SearchTE_M = procedure(sender: TC40_TEKeyValue_Client; arry: TC40_TEKeyValue_Client_SearchTE_Result_Array) of object;
 {$IFDEF FPC}
-  TON_SearchTE_P = procedure(sender: TC40_TEKeyValue_Client; arry: TON_SearchTE_Result_Array) is nested;
+  TC40_TEKeyValue_Client_SearchTE_P = procedure(sender: TC40_TEKeyValue_Client; arry: TC40_TEKeyValue_Client_SearchTE_Result_Array) is nested;
 {$ELSE FPC}
-  TON_SearchTE_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: TON_SearchTE_Result_Array);
+  TC40_TEKeyValue_Client_SearchTE_P = reference to procedure(sender: TC40_TEKeyValue_Client; arry: TC40_TEKeyValue_Client_SearchTE_Result_Array);
 {$ENDIF FPC}
 
-  TON_Temp_SearchTE = class(TOnResultBridge)
+  TC40_TEKeyValue_Client_SearchTE = class(TOnResultBridge)
   public
     Client: TC40_TEKeyValue_Client;
-    OnResultC: TON_SearchTE_C;
-    OnResultM: TON_SearchTE_M;
-    OnResultP: TON_SearchTE_P;
+    OnResultC: TC40_TEKeyValue_Client_SearchTE_C;
+    OnResultM: TC40_TEKeyValue_Client_SearchTE_M;
+    OnResultP: TC40_TEKeyValue_Client_SearchTE_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -281,47 +281,47 @@ type
     procedure Progress; override;
 
     procedure Rebuild(TEName_: U_String);
-    procedure GetTE_C(TEName_: U_String; OnResult: TON_GetTE_C);
-    procedure GetTE_M(TEName_: U_String; OnResult: TON_GetTE_M);
-    procedure GetTE_P(TEName_: U_String; OnResult: TON_GetTE_P);
+    procedure GetTE_C(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_C);
+    procedure GetTE_M(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_M);
+    procedure GetTE_P(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_P);
     procedure SetTE(TEName_: U_String; TE: THashTextEngine);
     procedure MergeTE(TEName_: U_String; TE: THashTextEngine);
     procedure RemoveTE(TEName_: U_String);
-    procedure GetSection_C(TEName_: U_String; OnResult: TON_GetSection_C);
-    procedure GetSection_M(TEName_: U_String; OnResult: TON_GetSection_M);
-    procedure GetSection_P(TEName_: U_String; OnResult: TON_GetSection_P);
-    procedure GetKey_C(TEName_, Section_: U_String; OnResult: TON_GetKey_C);
-    procedure GetKey_M(TEName_, Section_: U_String; OnResult: TON_GetKey_M);
-    procedure GetKey_P(TEName_, Section_: U_String; OnResult: TON_GetKey_P);
-    procedure GetTextKey_C(TEName_, Section_: U_String; OnResult: TON_GetTextKey_C);
-    procedure GetTextKey_M(TEName_, Section_: U_String; OnResult: TON_GetTextKey_M);
-    procedure GetTextKey_P(TEName_, Section_: U_String; OnResult: TON_GetTextKey_P);
-    procedure GetKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_C);
-    procedure GetKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_M);
-    procedure GetKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_P);
-    procedure GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_C);
-    procedure GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_M);
-    procedure GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_P);
-    procedure ExistsSection_C(TEName_, Section_: U_String; OnResult: TON_ExistsSection_C);
-    procedure ExistsSection_M(TEName_, Section_: U_String; OnResult: TON_ExistsSection_M);
-    procedure ExistsSection_P(TEName_, Section_: U_String; OnResult: TON_ExistsSection_P);
-    procedure ExistsKey_C(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_C);
-    procedure ExistsKey_M(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_M);
-    procedure ExistsKey_P(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_P);
+    procedure GetSection_C(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_C);
+    procedure GetSection_M(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_M);
+    procedure GetSection_P(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_P);
+    procedure GetKey_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_C);
+    procedure GetKey_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_M);
+    procedure GetKey_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_P);
+    procedure GetTextKey_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_C);
+    procedure GetTextKey_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_M);
+    procedure GetTextKey_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_P);
+    procedure GetKeyValue_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_C);
+    procedure GetKeyValue_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_M);
+    procedure GetKeyValue_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_P);
+    procedure GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_C);
+    procedure GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_M);
+    procedure GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_P);
+    procedure ExistsSection_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_C);
+    procedure ExistsSection_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_M);
+    procedure ExistsSection_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_P);
+    procedure ExistsKey_C(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_C);
+    procedure ExistsKey_M(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_M);
+    procedure ExistsKey_P(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_P);
     procedure RemoveSection(TEName_, Section_: U_String);
     procedure RemoveKey(TEName_, Section_, Key_: U_String);
-    procedure GetValue_C(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_C);
-    procedure GetValue_M(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_M);
-    procedure GetValue_P(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_P);
-    procedure GetTextValue_C(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_C);
-    procedure GetTextValue_M(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_M);
-    procedure GetTextValue_P(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_P);
+    procedure GetValue_C(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_C);
+    procedure GetValue_M(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_M);
+    procedure GetValue_P(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_P);
+    procedure GetTextValue_C(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_C);
+    procedure GetTextValue_M(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_M);
+    procedure GetTextValue_P(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_P);
     procedure SetValue(TEName_, Section_, Key_: U_String; V_: Variant);
     procedure SetTextValue(TEName_, Section_, Key_, V_: U_String);
     // admin
-    procedure SearchTE_C(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_C);
-    procedure SearchTE_M(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_M);
-    procedure SearchTE_P(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_P);
+    procedure SearchTE_C(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_C);
+    procedure SearchTE_M(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_M);
+    procedure SearchTE_P(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_P);
   end;
 
   TC40_TEKeyValue_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_TEKeyValue_Client>;
@@ -730,7 +730,7 @@ begin
   Result := TE.Data.GetDefaultText(C_Main, C_Name, '');
 end;
 
-constructor TON_Temp_GetTE.Create;
+constructor TC40_TEKeyValue_Client_GetTE.Create;
 begin
   inherited Create;
   Client := nil;
@@ -739,7 +739,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetTE.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetTE.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   TE: THashTextEngine;
 begin
@@ -758,7 +758,7 @@ begin
   DelayFreeObject(1.0, self, TE);
 end;
 
-constructor TON_Temp_GetSection.Create;
+constructor TC40_TEKeyValue_Client_GetSection.Create;
 begin
   inherited Create;
   Client := nil;
@@ -767,7 +767,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetSection.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetSection.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   arry: U_StringArray;
   i: Integer;
@@ -793,7 +793,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_GetKey.Create;
+constructor TC40_TEKeyValue_Client_GetKey.Create;
 begin
   inherited Create;
   Client := nil;
@@ -802,7 +802,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   arry: U_StringArray;
   i: Integer;
@@ -828,7 +828,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_GetTextKey.Create;
+constructor TC40_TEKeyValue_Client_GetTextKey.Create;
 begin
   inherited Create;
   Client := nil;
@@ -837,7 +837,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetTextKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetTextKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   arry: U_StringArray;
   i: Integer;
@@ -863,7 +863,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_GetKeyValue.Create;
+constructor TC40_TEKeyValue_Client_GetKeyValue.Create;
 begin
   inherited Create;
   Client := nil;
@@ -872,7 +872,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   L: THashVariantList;
 begin
@@ -891,7 +891,7 @@ begin
   DelayFreeObject(1.0, self, L);
 end;
 
-constructor TON_Temp_GetTextKeyValue.Create;
+constructor TC40_TEKeyValue_Client_GetTextKeyValue.Create;
 begin
   inherited Create;
   Client := nil;
@@ -900,7 +900,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetTextKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetTextKeyValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   L: THashStringList;
 begin
@@ -919,7 +919,7 @@ begin
   DelayFreeObject(1.0, self, L);
 end;
 
-constructor TON_Temp_ExistsSection.Create;
+constructor TC40_TEKeyValue_Client_ExistsSection.Create;
 begin
   inherited Create;
   Client := nil;
@@ -928,7 +928,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_ExistsSection.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_ExistsSection.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   state_: Boolean;
 begin
@@ -946,7 +946,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_ExistsKey.Create;
+constructor TC40_TEKeyValue_Client_ExistsKey.Create;
 begin
   inherited Create;
   Client := nil;
@@ -955,7 +955,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_ExistsKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_ExistsKey.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   state_: Boolean;
 begin
@@ -973,7 +973,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_GetValue.Create;
+constructor TC40_TEKeyValue_Client_GetValue.Create;
 begin
   inherited Create;
   Client := nil;
@@ -982,7 +982,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   Value_: Variant;
   i: Integer;
@@ -1002,7 +1002,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_GetTextValue.Create;
+constructor TC40_TEKeyValue_Client_GetTextValue.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1011,7 +1011,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetTextValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_GetTextValue.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   Value_: U_String;
   i: Integer;
@@ -1031,7 +1031,7 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
-constructor TON_Temp_SearchTE.Create;
+constructor TC40_TEKeyValue_Client_SearchTE.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1040,9 +1040,9 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_SearchTE.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_TEKeyValue_Client_SearchTE.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
-  arry: TON_SearchTE_Result_Array;
+  arry: TC40_TEKeyValue_Client_SearchTE_Result_Array;
   i: Integer;
 begin
   SetLength(arry, Result_.Count shr 1);
@@ -1098,12 +1098,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTE_C(TEName_: U_String; OnResult: TON_GetTE_C);
+procedure TC40_TEKeyValue_Client.GetTE_C(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_C);
 var
-  tmp: TON_Temp_GetTE;
+  tmp: TC40_TEKeyValue_Client_GetTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTE.Create;
+  tmp := TC40_TEKeyValue_Client_GetTE.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1113,12 +1113,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTE_M(TEName_: U_String; OnResult: TON_GetTE_M);
+procedure TC40_TEKeyValue_Client.GetTE_M(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_M);
 var
-  tmp: TON_Temp_GetTE;
+  tmp: TC40_TEKeyValue_Client_GetTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTE.Create;
+  tmp := TC40_TEKeyValue_Client_GetTE.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1128,12 +1128,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTE_P(TEName_: U_String; OnResult: TON_GetTE_P);
+procedure TC40_TEKeyValue_Client.GetTE_P(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetTE_P);
 var
-  tmp: TON_Temp_GetTE;
+  tmp: TC40_TEKeyValue_Client_GetTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTE.Create;
+  tmp := TC40_TEKeyValue_Client_GetTE.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1175,12 +1175,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetSection_C(TEName_: U_String; OnResult: TON_GetSection_C);
+procedure TC40_TEKeyValue_Client.GetSection_C(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_C);
 var
-  tmp: TON_Temp_GetSection;
+  tmp: TC40_TEKeyValue_Client_GetSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetSection.Create;
+  tmp := TC40_TEKeyValue_Client_GetSection.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1190,12 +1190,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetSection_M(TEName_: U_String; OnResult: TON_GetSection_M);
+procedure TC40_TEKeyValue_Client.GetSection_M(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_M);
 var
-  tmp: TON_Temp_GetSection;
+  tmp: TC40_TEKeyValue_Client_GetSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetSection.Create;
+  tmp := TC40_TEKeyValue_Client_GetSection.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1205,12 +1205,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetSection_P(TEName_: U_String; OnResult: TON_GetSection_P);
+procedure TC40_TEKeyValue_Client.GetSection_P(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_P);
 var
-  tmp: TON_Temp_GetSection;
+  tmp: TC40_TEKeyValue_Client_GetSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetSection.Create;
+  tmp := TC40_TEKeyValue_Client_GetSection.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1220,12 +1220,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKey_C(TEName_, Section_: U_String; OnResult: TON_GetKey_C);
+procedure TC40_TEKeyValue_Client.GetKey_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_C);
 var
-  tmp: TON_Temp_GetKey;
+  tmp: TC40_TEKeyValue_Client_GetKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetKey.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1236,12 +1236,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKey_M(TEName_, Section_: U_String; OnResult: TON_GetKey_M);
+procedure TC40_TEKeyValue_Client.GetKey_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_M);
 var
-  tmp: TON_Temp_GetKey;
+  tmp: TC40_TEKeyValue_Client_GetKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetKey.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1252,12 +1252,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKey_P(TEName_, Section_: U_String; OnResult: TON_GetKey_P);
+procedure TC40_TEKeyValue_Client.GetKey_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKey_P);
 var
-  tmp: TON_Temp_GetKey;
+  tmp: TC40_TEKeyValue_Client_GetKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetKey.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1268,12 +1268,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKey_C(TEName_, Section_: U_String; OnResult: TON_GetTextKey_C);
+procedure TC40_TEKeyValue_Client.GetTextKey_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_C);
 var
-  tmp: TON_Temp_GetTextKey;
+  tmp: TC40_TEKeyValue_Client_GetTextKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKey.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1284,12 +1284,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKey_M(TEName_, Section_: U_String; OnResult: TON_GetTextKey_M);
+procedure TC40_TEKeyValue_Client.GetTextKey_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_M);
 var
-  tmp: TON_Temp_GetTextKey;
+  tmp: TC40_TEKeyValue_Client_GetTextKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKey.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1300,12 +1300,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKey_P(TEName_, Section_: U_String; OnResult: TON_GetTextKey_P);
+procedure TC40_TEKeyValue_Client.GetTextKey_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKey_P);
 var
-  tmp: TON_Temp_GetTextKey;
+  tmp: TC40_TEKeyValue_Client_GetTextKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKey.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKey.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1316,12 +1316,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_C);
+procedure TC40_TEKeyValue_Client.GetKeyValue_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_C);
 var
-  tmp: TON_Temp_GetKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1332,12 +1332,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_M);
+procedure TC40_TEKeyValue_Client.GetKeyValue_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_M);
 var
-  tmp: TON_Temp_GetKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1348,12 +1348,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetKeyValue_P);
+procedure TC40_TEKeyValue_Client.GetKeyValue_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetKeyValue_P);
 var
-  tmp: TON_Temp_GetKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1364,12 +1364,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_C);
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_C);
 var
-  tmp: TON_Temp_GetTextKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetTextKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1380,12 +1380,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_M);
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_M);
 var
-  tmp: TON_Temp_GetTextKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetTextKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1396,12 +1396,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TON_GetTextKeyValue_P);
+procedure TC40_TEKeyValue_Client.GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextKeyValue_P);
 var
-  tmp: TON_Temp_GetTextKeyValue;
+  tmp: TC40_TEKeyValue_Client_GetTextKeyValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextKeyValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextKeyValue.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1412,12 +1412,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsSection_C(TEName_, Section_: U_String; OnResult: TON_ExistsSection_C);
+procedure TC40_TEKeyValue_Client.ExistsSection_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_C);
 var
-  tmp: TON_Temp_ExistsSection;
+  tmp: TC40_TEKeyValue_Client_ExistsSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsSection.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsSection.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1428,12 +1428,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsSection_M(TEName_, Section_: U_String; OnResult: TON_ExistsSection_M);
+procedure TC40_TEKeyValue_Client.ExistsSection_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_M);
 var
-  tmp: TON_Temp_ExistsSection;
+  tmp: TC40_TEKeyValue_Client_ExistsSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsSection.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsSection.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1444,12 +1444,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsSection_P(TEName_, Section_: U_String; OnResult: TON_ExistsSection_P);
+procedure TC40_TEKeyValue_Client.ExistsSection_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsSection_P);
 var
-  tmp: TON_Temp_ExistsSection;
+  tmp: TC40_TEKeyValue_Client_ExistsSection;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsSection.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsSection.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1460,12 +1460,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsKey_C(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_C);
+procedure TC40_TEKeyValue_Client.ExistsKey_C(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_C);
 var
-  tmp: TON_Temp_ExistsKey;
+  tmp: TC40_TEKeyValue_Client_ExistsKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsKey.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsKey.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1477,12 +1477,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsKey_M(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_M);
+procedure TC40_TEKeyValue_Client.ExistsKey_M(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_M);
 var
-  tmp: TON_Temp_ExistsKey;
+  tmp: TC40_TEKeyValue_Client_ExistsKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsKey.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsKey.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1494,12 +1494,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.ExistsKey_P(TEName_, Section_, Key_: U_String; OnResult: TON_ExistsKey_P);
+procedure TC40_TEKeyValue_Client.ExistsKey_P(TEName_, Section_, Key_: U_String; OnResult: TC40_TEKeyValue_Client_ExistsKey_P);
 var
-  tmp: TON_Temp_ExistsKey;
+  tmp: TC40_TEKeyValue_Client_ExistsKey;
   D: TDFE;
 begin
-  tmp := TON_Temp_ExistsKey.Create;
+  tmp := TC40_TEKeyValue_Client_ExistsKey.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1534,12 +1534,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetValue_C(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_C);
+procedure TC40_TEKeyValue_Client.GetValue_C(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_C);
 var
-  tmp: TON_Temp_GetValue;
+  tmp: TC40_TEKeyValue_Client_GetValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetValue.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1552,12 +1552,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetValue_M(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_M);
+procedure TC40_TEKeyValue_Client.GetValue_M(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_M);
 var
-  tmp: TON_Temp_GetValue;
+  tmp: TC40_TEKeyValue_Client_GetValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetValue.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1570,12 +1570,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetValue_P(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TON_GetValue_P);
+procedure TC40_TEKeyValue_Client.GetValue_P(TEName_, Section_, Key_: U_String; Default_: Variant; OnResult: TC40_TEKeyValue_Client_GetValue_P);
 var
-  tmp: TON_Temp_GetValue;
+  tmp: TC40_TEKeyValue_Client_GetValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetValue.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1588,12 +1588,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextValue_C(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_C);
+procedure TC40_TEKeyValue_Client.GetTextValue_C(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_C);
 var
-  tmp: TON_Temp_GetTextValue;
+  tmp: TC40_TEKeyValue_Client_GetTextValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextValue.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1606,12 +1606,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextValue_M(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_M);
+procedure TC40_TEKeyValue_Client.GetTextValue_M(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_M);
 var
-  tmp: TON_Temp_GetTextValue;
+  tmp: TC40_TEKeyValue_Client_GetTextValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextValue.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1624,12 +1624,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.GetTextValue_P(TEName_, Section_, Key_, Default_: U_String; OnResult: TON_GetTextValue_P);
+procedure TC40_TEKeyValue_Client.GetTextValue_P(TEName_, Section_, Key_, Default_: U_String; OnResult: TC40_TEKeyValue_Client_GetTextValue_P);
 var
-  tmp: TON_Temp_GetTextValue;
+  tmp: TC40_TEKeyValue_Client_GetTextValue;
   D: TDFE;
 begin
-  tmp := TON_Temp_GetTextValue.Create;
+  tmp := TC40_TEKeyValue_Client_GetTextValue.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
@@ -1668,12 +1668,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.SearchTE_C(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_C);
+procedure TC40_TEKeyValue_Client.SearchTE_C(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_C);
 var
-  tmp: TON_Temp_SearchTE;
+  tmp: TC40_TEKeyValue_Client_SearchTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_SearchTE.Create;
+  tmp := TC40_TEKeyValue_Client_SearchTE.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -1684,12 +1684,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.SearchTE_M(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_M);
+procedure TC40_TEKeyValue_Client.SearchTE_M(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_M);
 var
-  tmp: TON_Temp_SearchTE;
+  tmp: TC40_TEKeyValue_Client_SearchTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_SearchTE.Create;
+  tmp := TC40_TEKeyValue_Client_SearchTE.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -1700,12 +1700,12 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_Client.SearchTE_P(filter_: U_String; MaxNum_: Integer; OnResult: TON_SearchTE_P);
+procedure TC40_TEKeyValue_Client.SearchTE_P(filter_: U_String; MaxNum_: Integer; OnResult: TC40_TEKeyValue_Client_SearchTE_P);
 var
-  tmp: TON_Temp_SearchTE;
+  tmp: TC40_TEKeyValue_Client_SearchTE;
   D: TDFE;
 begin
-  tmp := TON_Temp_SearchTE.Create;
+  tmp := TC40_TEKeyValue_Client_SearchTE.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
