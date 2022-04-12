@@ -4551,7 +4551,7 @@ function umlCharIsSymbol(c: SystemChar): Boolean;
 begin
   Result := CharIn(c,
     [#13, #10, #9, #32, #46, #44, #43, #45, #42, #47, #40, #41, #59, #58, #61, #35, #64, #94,
-      #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
+    #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
 end;
 
 function umlCharIsSymbol(c: SystemChar; const CustomSymbol_: TArrayChar): Boolean;
@@ -5086,14 +5086,12 @@ end;
 
 function umlCharReplace(const s: TPascalString; OldPattern, NewPattern: U_Char): TPascalString;
 begin
-  Result := s;
-  Result.ReplaceChar(OldPattern, NewPattern);
+  Result := s.ReplaceChar(OldPattern, NewPattern);
 end;
 
 function umlReplaceChar(const s: TPascalString; OldPattern, NewPattern: U_Char): TPascalString;
 begin
-  Result := s;
-  Result.ReplaceChar(OldPattern, NewPattern);
+  Result := s.ReplaceChar(OldPattern, NewPattern);
 end;
 
 function umlEncodeText2HTML(const psSrc: TPascalString): TPascalString;
