@@ -1,211 +1,3 @@
-// used Critical Simulate Atomic with TMonitor.Enter(obj) and TMonitor.Exit(obj)
-// CriticalSimulateAtomic defined so performance to be reduced
-
-// used soft Simulate Critical(ring)
-// SoftCritical defined so performance to be reduced
-
-{ ****************************************************************************** }
-{ * object lock                                                                * }
-{ ****************************************************************************** }
-constructor TSoftCritical.Create;
-begin
-  inherited Create;
-  L := False;
-end;
-
-procedure TSoftCritical.Acquire;
-{$IFDEF ANTI_DEAD_ATOMIC_LOCK}
-var
-  d: TTimeTick;
-{$ENDIF ANTI_DEAD_ATOMIC_LOCK}
-begin
-{$IFDEF ANTI_DEAD_ATOMIC_LOCK}
-  d := GetTimeTick;
-  while L do
-    if GetTimeTick - d >= 5000 then
-        RaiseInfo('dead lock');
-{$ELSE ANTI_DEAD_ATOMIC_LOCK}
-  while L do
-      NOP;
-{$ENDIF ANTI_DEAD_ATOMIC_LOCK}
-  L := True;
-end;
-
-procedure TSoftCritical.Release;
-begin
-  L := False;
-end;
-
-procedure TSoftCritical.Enter;
-begin
-  Acquire;
-end;
-
-procedure TSoftCritical.Leave;
-begin
-  Release;
-end;
-
-constructor TCritical.Create;
-begin
-  inherited Create;
-  LNum := 0;
-end;
-
-destructor TCritical.Destroy;
-begin
-  inherited Destroy;
-end;
-
-procedure TCritical.Acquire;
-begin
-  inherited Acquire;
-  Inc(LNum);
-end;
-
-procedure TCritical.Release;
-begin
-  Dec(LNum);
-  inherited Release;
-end;
-
-procedure TCritical.Enter;
-begin
-  Acquire();
-end;
-
-procedure TCritical.Leave;
-begin
-  Release();
-end;
-
-procedure TCritical.Lock;
-begin
-  Acquire();
-end;
-
-procedure TCritical.UnLock;
-begin
-  Release();
-end;
-
-function TCritical.IsBusy: Boolean;
-begin
-  Result := LNum > 0;
-end;
-
-procedure TCritical.Inc_(var x: Int64);
-begin
-  Lock;
-  Inc(x);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: Int64; const v: Int64);
-begin
-  Lock;
-  Inc(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Int64);
-begin
-  Lock;
-  Dec(x);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Int64; const v: Int64);
-begin
-  Lock;
-  Dec(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: UInt64);
-begin
-  Lock;
-  Inc(x);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: UInt64; const v: UInt64);
-begin
-  Lock;
-  Inc(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: UInt64);
-begin
-  Lock;
-  Dec(x);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: UInt64; const v: UInt64);
-begin
-  Lock;
-  Dec(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: Integer);
-begin
-  Lock;
-  Inc(x);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: Integer; const v: Integer);
-begin
-  Lock;
-  Inc(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Integer);
-begin
-  Lock;
-  Dec(x);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Integer; const v: Integer);
-begin
-  Lock;
-  Dec(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: Cardinal);
-begin
-  Lock;
-  Inc(x);
-  UnLock;
-end;
-
-procedure TCritical.Inc_(var x: Cardinal; const v: Cardinal);
-begin
-  Lock;
-  Inc(x, v);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Cardinal);
-begin
-  Lock;
-  Dec(x);
-  UnLock;
-end;
-
-procedure TCritical.Dec_(var x: Cardinal; const v: Cardinal);
-begin
-  Lock;
-  Dec(x, v);
-  UnLock;
-end;
-
 type
   PCritical_Struct = ^TCritical_Struct;
   TCritical_Struct_Pool_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PCritical_Struct>;
@@ -222,20 +14,17 @@ type
     Pool_Ptr: TCritical_Struct_Pool_Decl__.PQueueStruct;
   end;
 
-  TCritical_Recycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TCritical>;
-
 var
   Lock_Pool_Cirtical__: TCritical;
   Atom_Num_Critical__: TCritical;
   TimeTick_Critical__: TCritical;
   Lock_Pool__: TCritical_Struct_Pool__;
-  Critical_Recycle_Pool__: TCritical_Recycle_Pool__;
 
 procedure TCritical_Struct_Pool__.DoFree(var Data: PCritical_Struct);
 begin
   if Data = nil then
       exit;
-  Critical_Recycle_Pool__.Push(Data^.Critical);
+  DisposeObject(Data^.Critical);
   Dispose(Data);
 end;
 
@@ -249,7 +38,6 @@ begin
   Atom_Num_Critical__ := TCritical.Create;
   TimeTick_Critical__ := TCritical.Create;
   Lock_Pool__ := TCritical_Struct_Pool__.Create;
-  Critical_Recycle_Pool__ := TCritical_Recycle_Pool__.Create;
 end;
 
 procedure Free_Critical_System;
@@ -260,17 +48,6 @@ begin
 {$ENDIF DEBUG}
   Lock_Pool__.Free;
   Lock_Pool__ := nil;
-  while Critical_Recycle_Pool__.Num > 0 do
-    begin
-      Critical_Recycle_Pool__.First^.Data.Free;
-      Critical_Recycle_Pool__.Next;
-{$IFDEF DEBUG}
-      if IsConsole then
-          Write('.');
-{$ENDIF DEBUG}
-    end;
-  Critical_Recycle_Pool__.Free;
-  Critical_Recycle_Pool__ := nil;
   Lock_Pool_Cirtical__.Free;
   Lock_Pool_Cirtical__ := nil;
   Atom_Num_Critical__.Free;
@@ -281,6 +58,13 @@ begin
   if IsConsole then
       Writeln('Done');
 {$ENDIF DEBUG}
+end;
+
+function Get_Object_Lock_Pool_Num: NativeInt;
+begin
+  Lock_Pool_Cirtical__.Acquire;
+  Result := Lock_Pool__.Num;
+  Lock_Pool_Cirtical__.Release;
 end;
 
 procedure Get_Critical_Lock__(const Obj: TObject; var Critical_Result: PCritical_Struct; const Optimize: Boolean);
@@ -320,16 +104,7 @@ begin
   new(Critical_Result);
   Critical_Result^.Obj := Obj;
   Critical_Result^.LEnter := 0;
-  if Critical_Recycle_Pool__.Num > 0 then
-    begin
-      Critical_Result^.Critical := Critical_Recycle_Pool__.First^.Data;
-      Critical_Recycle_Pool__.Next;
-    end
-  else
-    begin
-      Critical_Result^.Critical := TCritical.Create;
-      Critical_Recycle_Pool__.Push(Critical_Result^.Critical);
-    end;
+  Critical_Result^.Critical := TCritical.Create;
 
   if Lock_Pool__.Num > 0 then
       Critical_Result^.Pool_Ptr := Lock_Pool__.Insert(Critical_Result, Lock_Pool__.First)
@@ -361,9 +136,7 @@ begin
       Lock_Pool__.Remove(p^.Pool_Ptr);
       Lock_Pool_Cirtical__.Release;
       p^.Critical.Release;
-      Lock_Pool_Cirtical__.Acquire;
-      Critical_Recycle_Pool__.Push(p^.Critical);
-      Lock_Pool_Cirtical__.Release;
+      p^.Critical.Free;
       Dispose(p);
     end
   else if p^.LEnter > 0 then
