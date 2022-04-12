@@ -21,18 +21,18 @@ uses
 
 type
   TC40_FS2_Service = class;
-  TFS2_Service_File_Data = class;
+  TC40_FS2_Service_File_Data = class;
 
-  TFS2_Service_ZDB2_MS64 = class(TZDB2_MS64)
+  TC40_FS2_Service_ZDB2_MS64 = class(TZDB2_MS64)
   public
-    Service_File_Data: TFS2_Service_File_Data;
+    Service_File_Data: TC40_FS2_Service_File_Data;
     constructor Create(CoreSpace_: TZDB2_Core_Space; ID_: Integer); override;
   end;
 
-  TFS2_Service_File_Data = class
+  TC40_FS2_Service_File_Data = class
   public
     Owner: TC40_FS2_Service;
-    Stream: TFS2_Service_ZDB2_MS64;
+    Stream: TC40_FS2_Service_ZDB2_MS64;
     FileName: U_String;
     FileTime: TDateTime;
     FileRef: Integer;
@@ -42,8 +42,8 @@ type
     destructor Destroy; override;
   end;
 
-  TFS2_Service_File_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TFS2_Service_File_Data>;
-  TFS2_Service_MD5_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TPascalStringList>;
+  TC40_FS2_Service_File_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_FS2_Service_File_Data>;
+  TC40_FS2_Service_MD5_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TPascalStringList>;
 
   TC40_FS2_Service = class(TC40_Base_NoAuth_Service)
   protected
@@ -75,8 +75,8 @@ type
     ZDB2Password: U_String;
     ZDB2Cipher: TZDB2_Cipher;
     C40_FS2_FileName: U_String;
-    FileHashPool: TFS2_Service_File_Data_Pool;
-    MD5Pool: TFS2_Service_MD5_Data_Pool;
+    FileHashPool: TC40_FS2_Service_File_Data_Pool;
+    MD5Pool: TC40_FS2_Service_MD5_Data_Pool;
     FileDatabase: TZDB2_List_MS64;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
@@ -98,42 +98,42 @@ type
   TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TFS2_Client_CacheData>;
 
 {$REGION 'bridge_define'}
-  TFS2_Temp_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);
-  TFS2_Temp_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_Client; State_: Boolean) of object;
+  TC40_FS2_Client_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);
+  TC40_FS2_Client_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_Client; State_: Boolean) of object;
 {$IFDEF FPC}
-  TFS2_Temp_CheckMD5AndFastCopyP = procedure(Sender: TC40_FS2_Client; State_: Boolean) is nested;
+  TC40_FS2_Client_CheckMD5AndFastCopyP = procedure(Sender: TC40_FS2_Client; State_: Boolean) is nested;
 {$ELSE FPC}
-  TFS2_Temp_CheckMD5AndFastCopyP = reference to procedure(Sender: TC40_FS2_Client; State_: Boolean);
+  TC40_FS2_Client_CheckMD5AndFastCopyP = reference to procedure(Sender: TC40_FS2_Client; State_: Boolean);
 {$ENDIF FPC}
 
-  TFS2_Temp_CheckMD5AndFastCopy = class(TOnResultBridge)
+  TC40_FS2_Client_CheckMD5AndFastCopy = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_CheckMD5AndFastCopyC;
-    OnResultM: TFS2_Temp_CheckMD5AndFastCopyM;
-    OnResultP: TFS2_Temp_CheckMD5AndFastCopyP;
+    OnResultC: TC40_FS2_Client_CheckMD5AndFastCopyC;
+    OnResultM: TC40_FS2_Client_CheckMD5AndFastCopyM;
+    OnResultP: TC40_FS2_Client_CheckMD5AndFastCopyP;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
 
-  TON_FS2_PostFile_DoneC = procedure(Sender: TC40_FS2_Client; info_: U_String);
-  TON_FS2_PostFile_DoneM = procedure(Sender: TC40_FS2_Client; info_: U_String) of object;
+  TC40_FS2_Client_PostFile_DoneC = procedure(Sender: TC40_FS2_Client; info_: U_String);
+  TC40_FS2_Client_PostFile_DoneM = procedure(Sender: TC40_FS2_Client; info_: U_String) of object;
 {$IFDEF FPC}
-  TON_FS2_PostFile_DoneP = procedure(Sender: TC40_FS2_Client; info_: U_String) is nested;
+  TC40_FS2_Client_PostFile_DoneP = procedure(Sender: TC40_FS2_Client; info_: U_String) is nested;
 {$ELSE FPC}
-  TON_FS2_PostFile_DoneP = reference to procedure(Sender: TC40_FS2_Client; info_: U_String);
+  TC40_FS2_Client_PostFile_DoneP = reference to procedure(Sender: TC40_FS2_Client; info_: U_String);
 {$ENDIF FPC}
 
-  TFS2_Temp_Post_File_Tunnel = class
+  TC40_FS2_Client_Post_File_Tunnel = class
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS2_Client;
     File_Name: U_String;
     Stream: TMS64;
-    OnResultC: TON_FS2_PostFile_DoneC;
-    OnResultM: TON_FS2_PostFile_DoneM;
-    OnResultP: TON_FS2_PostFile_DoneP;
+    OnResultC: TC40_FS2_Client_PostFile_DoneC;
+    OnResultM: TC40_FS2_Client_PostFile_DoneM;
+    OnResultP: TC40_FS2_Client_PostFile_DoneP;
 
     constructor Create;
     destructor Destroy; override;
@@ -141,35 +141,35 @@ type
     procedure cmd_PostDone(Sender: TPeerIO; InData: SystemString);
   end;
 
-  TFS2_Temp_Post_File_Cache = class
+  TC40_FS2_Client_Post_File_Cache = class
   public
     Client: TC40_FS2_Client;
     File_Name: U_String;
     Stream: TCore_Stream;
     doneFree: Boolean;
-    OnResultC: TON_FS2_PostFile_DoneC;
-    OnResultM: TON_FS2_PostFile_DoneM;
-    OnResultP: TON_FS2_PostFile_DoneP;
+    OnResultC: TC40_FS2_Client_PostFile_DoneC;
+    OnResultM: TC40_FS2_Client_PostFile_DoneM;
+    OnResultP: TC40_FS2_Client_PostFile_DoneP;
     constructor Create;
     procedure Do_CheckMD5AndFastCopy(Sender: TC40_FS2_Client; State_: Boolean);
   end;
 
-  TON_FS2_GetFile_DoneC = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
-  TON_FS2_GetFile_DoneM = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean) of object;
+  TC40_FS2_Client_GetFile_DoneC = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
+  TC40_FS2_Client_GetFile_DoneM = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean) of object;
 {$IFDEF FPC}
-  TON_FS2_GetFile_DoneP = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean) is nested;
+  TC40_FS2_Client_GetFile_DoneP = procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean) is nested;
 {$ELSE FPC}
-  TON_FS2_GetFile_DoneP = reference to procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
+  TC40_FS2_Client_GetFile_DoneP = reference to procedure(Sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
 {$ENDIF FPC}
 
-  TFS2_Temp_Get_File_Tunnel = class
+  TC40_FS2_Client_Get_File_Tunnel = class
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS2_Client;
     File_Name: U_String;
-    OnResultC: TON_FS2_GetFile_DoneC;
-    OnResultM: TON_FS2_GetFile_DoneM;
-    OnResultP: TON_FS2_GetFile_DoneP;
+    OnResultC: TC40_FS2_Client_GetFile_DoneC;
+    OnResultM: TC40_FS2_Client_GetFile_DoneM;
+    OnResultP: TC40_FS2_Client_GetFile_DoneP;
 
     constructor Create;
     destructor Destroy; override;
@@ -178,20 +178,20 @@ type
     procedure DoP2PVM_CloneConnectAndGetFile(Sender: TZNet_WithP2PVM_Client);
   end;
 
-  TFS2_Temp_GetFileMD5C = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
-  TFS2_Temp_GetFileMD5M = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5) of object;
+  TC40_FS2_Client_GetFileMD5C = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
+  TC40_FS2_Client_GetFileMD5M = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5) of object;
 {$IFDEF FPC}
-  TFS2_Temp_GetFileMD5P = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5) is nested;
+  TC40_FS2_Client_GetFileMD5P = procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5) is nested;
 {$ELSE FPC}
-  TFS2_Temp_GetFileMD5P = reference to procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
+  TC40_FS2_Client_GetFileMD5P = reference to procedure(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
 {$ENDIF FPC}
 
-  TFS2_Temp_GetFileMD5 = class(TOnResultBridge)
+  TC40_FS2_Client_GetFileMD5 = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_GetFileMD5C;
-    OnResultM: TFS2_Temp_GetFileMD5M;
-    OnResultP: TFS2_Temp_GetFileMD5P;
+    OnResultC: TC40_FS2_Client_GetFileMD5C;
+    OnResultM: TC40_FS2_Client_GetFileMD5M;
+    OnResultP: TC40_FS2_Client_GetFileMD5P;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
@@ -204,51 +204,51 @@ type
 
   TFS2_SearchMultiMD5_State_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TFS2_SearchMultiMD5_State>;
 
-  TFS2_Temp_SearchMultiMD5C = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
-  TFS2_Temp_SearchMultiMD5M = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) of object;
+  TC40_FS2_Client_SearchMultiMD5C = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
+  TC40_FS2_Client_SearchMultiMD5M = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) of object;
 {$IFDEF FPC}
-  TFS2_Temp_SearchMultiMD5P = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) is nested;
+  TC40_FS2_Client_SearchMultiMD5P = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) is nested;
 {$ELSE FPC}
-  TFS2_Temp_SearchMultiMD5P = reference to procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
+  TC40_FS2_Client_SearchMultiMD5P = reference to procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
 {$ENDIF FPC}
 
-  TFS2_Temp_SearchMultiMD5 = class(TOnResultBridge)
+  TC40_FS2_Client_SearchMultiMD5 = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_SearchMultiMD5C;
-    OnResultM: TFS2_Temp_SearchMultiMD5M;
-    OnResultP: TFS2_Temp_SearchMultiMD5P;
+    OnResultC: TC40_FS2_Client_SearchMultiMD5C;
+    OnResultM: TC40_FS2_Client_SearchMultiMD5M;
+    OnResultP: TC40_FS2_Client_SearchMultiMD5P;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
 
-  TFS2_Temp_GetMD5FilesC = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray);
-  TFS2_Temp_GetMD5FilesM = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray) of object;
+  TC40_FS2_Client_GetMD5FilesC = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray);
+  TC40_FS2_Client_GetMD5FilesM = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray) of object;
 {$IFDEF FPC}
-  TFS2_Temp_GetMD5FilesP = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray) is nested;
+  TC40_FS2_Client_GetMD5FilesP = procedure(Sender: TC40_FS2_Client; Files_: U_StringArray) is nested;
 {$ELSE FPC}
-  TFS2_Temp_GetMD5FilesP = reference to procedure(Sender: TC40_FS2_Client; Files_: U_StringArray);
+  TC40_FS2_Client_GetMD5FilesP = reference to procedure(Sender: TC40_FS2_Client; Files_: U_StringArray);
 {$ENDIF FPC}
 
-  TFS2_Temp_GetMD5Files = class(TOnResultBridge)
+  TC40_FS2_Client_GetMD5Files = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_GetMD5FilesC;
-    OnResultM: TFS2_Temp_GetMD5FilesM;
-    OnResultP: TFS2_Temp_GetMD5FilesP;
+    OnResultC: TC40_FS2_Client_GetMD5FilesC;
+    OnResultM: TC40_FS2_Client_GetMD5FilesM;
+    OnResultP: TC40_FS2_Client_GetMD5FilesP;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
 
-  TFS2_Temp_GetFileMD5_Cache = class
+  TC40_FS2_Client_GetFileMD5_Cache = class
   public
     Client: TC40_FS2_Client;
     File_Name: U_String;
-    OnResultC: TON_FS2_GetFile_DoneC;
-    OnResultM: TON_FS2_GetFile_DoneM;
-    OnResultP: TON_FS2_GetFile_DoneP;
+    OnResultC: TC40_FS2_Client_GetFile_DoneC;
+    OnResultM: TC40_FS2_Client_GetFile_DoneM;
+    OnResultP: TC40_FS2_Client_GetFile_DoneP;
 
     constructor Create;
     destructor Destroy; override;
@@ -262,20 +262,20 @@ type
 
   TFS2_FileSizeInfo_Array = array of TFS2_FileSizeInfo;
 
-  TFS2_Temp_SizeC = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array);
-  TFS2_Temp_SizeM = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array) of object;
+  TC40_FS2_Client_SizeC = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array);
+  TC40_FS2_Client_SizeM = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array) of object;
 {$IFDEF FPC}
-  TFS2_Temp_SizeP = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array) is nested;
+  TC40_FS2_Client_SizeP = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array) is nested;
 {$ELSE FPC}
-  TFS2_Temp_SizeP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array);
+  TC40_FS2_Client_SizeP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_FileSizeInfo_Array);
 {$ENDIF FPC}
 
-  TFS2_Temp_Size = class(TOnResultBridge)
+  TC40_FS2_Client_Size = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_SizeC;
-    OnResultM: TFS2_Temp_SizeM;
-    OnResultP: TFS2_Temp_SizeP;
+    OnResultC: TC40_FS2_Client_SizeC;
+    OnResultM: TC40_FS2_Client_SizeM;
+    OnResultP: TC40_FS2_Client_SizeP;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
@@ -291,20 +291,20 @@ type
 
   TFS2_FileInfo_Array = array of TFS2_FileInfo;
 
-  TFS2_Temp_SearchC = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array);
-  TFS2_Temp_SearchM = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array) of object;
+  TC40_FS2_Client_SearchC = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array);
+  TC40_FS2_Client_SearchM = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array) of object;
 {$IFDEF FPC}
-  TFS2_Temp_SearchP = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array) is nested;
+  TC40_FS2_Client_SearchP = procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array) is nested;
 {$ELSE FPC}
-  TFS2_Temp_SearchP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array);
+  TC40_FS2_Client_SearchP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_FileInfo_Array);
 {$ENDIF FPC}
 
-  TFS2_Temp_Search = class(TOnResultBridge)
+  TC40_FS2_Client_Search = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_SearchC;
-    OnResultM: TFS2_Temp_SearchM;
-    OnResultP: TFS2_Temp_SearchP;
+    OnResultC: TC40_FS2_Client_SearchC;
+    OnResultM: TC40_FS2_Client_SearchM;
+    OnResultP: TC40_FS2_Client_SearchP;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
@@ -318,20 +318,20 @@ type
 
   TFS2_PoolFragInfo_Array = array of TFS2_PoolFragInfo;
 
-  TFS2_Temp_PoolFragC = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array);
-  TFS2_Temp_PoolFragM = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array) of object;
+  TC40_FS2_Client_PoolFragC = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array);
+  TC40_FS2_Client_PoolFragM = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array) of object;
 {$IFDEF FPC}
-  TFS2_Temp_PoolFragP = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array) is nested;
+  TC40_FS2_Client_PoolFragP = procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array) is nested;
 {$ELSE FPC}
-  TFS2_Temp_PoolFragP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array);
+  TC40_FS2_Client_PoolFragP = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_PoolFragInfo_Array);
 {$ENDIF FPC}
 
-  TFS2_Temp_PoolFrag = class(TOnResultBridge)
+  TC40_FS2_Client_PoolFrag = class(TOnResultBridge)
   public
     Client: TC40_FS2_Client;
-    OnResultC: TFS2_Temp_PoolFragC;
-    OnResultM: TFS2_Temp_PoolFragM;
-    OnResultP: TFS2_Temp_PoolFragP;
+    OnResultC: TC40_FS2_Client_PoolFragC;
+    OnResultM: TC40_FS2_Client_PoolFragM;
+    OnResultP: TC40_FS2_Client_PoolFragP;
     constructor Create;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); override;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
@@ -371,33 +371,33 @@ type
     procedure RemoveCache(arry: U_StringArray); overload;
 
     // fast copy
-    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC); overload;
-    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyM); overload;
-    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyP); overload;
-    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC); overload;
-    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM); overload;
-    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP); overload;
+    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyC); overload;
+    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyM); overload;
+    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyP); overload;
+    procedure FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyC); overload;
+    procedure FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyM); overload;
+    procedure FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyP); overload;
     // upload
     procedure FS2_PostFile(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
-    procedure FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
-    procedure FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
-    procedure FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
+    procedure FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneC);
+    procedure FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneM);
+    procedure FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneP);
     // download
-    procedure FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneC);
-    procedure FS2_GetFile_M(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneM);
-    procedure FS2_GetFile_P(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneP);
+    procedure FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneC);
+    procedure FS2_GetFile_M(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneM);
+    procedure FS2_GetFile_P(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneP);
     // md5
-    procedure FS2_GetFileMD5C(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5C);
-    procedure FS2_GetFileMD5M(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5M);
-    procedure FS2_GetFileMD5P(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5P);
+    procedure FS2_GetFileMD5C(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5C);
+    procedure FS2_GetFileMD5M(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5M);
+    procedure FS2_GetFileMD5P(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5P);
     // multi md5
-    procedure FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5C);
-    procedure FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5M);
-    procedure FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5P);
+    procedure FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5C);
+    procedure FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5M);
+    procedure FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5P);
     // query md5 as files
-    procedure FS2_GetMD5FilesC(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesC);
-    procedure FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesM);
-    procedure FS2_GetMD5FilesP(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesP);
+    procedure FS2_GetMD5FilesC(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesC);
+    procedure FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesM);
+    procedure FS2_GetMD5FilesP(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesP);
     // remove
     procedure FS2_RemoveFile(File_Name: U_String); overload;
     procedure FS2_RemoveFile(arry: U_StringArray); overload;
@@ -405,33 +405,33 @@ type
     procedure FS2_UpdateFileRef(File_Name: U_String; ref_: Integer);
     procedure FS2_IncFileRef(File_Name: U_String; inc_ref_: Integer);
     // admin
-    procedure FS2_SizeC(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeC);
-    procedure FS2_SizeM(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeM);
-    procedure FS2_SizeP(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeP);
-    procedure FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchC);
-    procedure FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchM);
-    procedure FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchP);
-    procedure FS2_PoolFragC(OnResult: TFS2_Temp_PoolFragC);
-    procedure FS2_PoolFragM(OnResult: TFS2_Temp_PoolFragM);
-    procedure FS2_PoolFragP(OnResult: TFS2_Temp_PoolFragP);
+    procedure FS2_SizeC(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeC);
+    procedure FS2_SizeM(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeM);
+    procedure FS2_SizeP(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeP);
+    procedure FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchC);
+    procedure FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchM);
+    procedure FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchP);
+    procedure FS2_PoolFragC(OnResult: TC40_FS2_Client_PoolFragC);
+    procedure FS2_PoolFragM(OnResult: TC40_FS2_Client_PoolFragM);
+    procedure FS2_PoolFragP(OnResult: TC40_FS2_Client_PoolFragP);
   end;
 
   TC40_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS2_Client>;
 
 implementation
 
-constructor TFS2_Service_ZDB2_MS64.Create(CoreSpace_: TZDB2_Core_Space; ID_: Integer);
+constructor TC40_FS2_Service_ZDB2_MS64.Create(CoreSpace_: TZDB2_Core_Space; ID_: Integer);
 begin
   inherited Create(CoreSpace_, ID_);
   Service_File_Data := nil;
 end;
 
-constructor TFS2_Service_File_Data.Create(Owner_: TC40_FS2_Service; Stream_: TZDB2_MS64);
+constructor TC40_FS2_Service_File_Data.Create(Owner_: TC40_FS2_Service; Stream_: TZDB2_MS64);
 begin
   inherited Create;
   Owner := Owner_;
-  if Stream_ is TFS2_Service_ZDB2_MS64 then
-      Stream := Stream_ as TFS2_Service_ZDB2_MS64
+  if Stream_ is TC40_FS2_Service_ZDB2_MS64 then
+      Stream := Stream_ as TC40_FS2_Service_ZDB2_MS64
   else
       RaiseInfo('error.');
   Stream.Service_File_Data := Self;
@@ -442,7 +442,7 @@ begin
   FileSize := 0;
 end;
 
-destructor TFS2_Service_File_Data.Destroy;
+destructor TC40_FS2_Service_File_Data.Destroy;
 begin
   FileName := '';
   if (Owner.FileDatabase <> nil) and (Stream <> nil) then
@@ -470,9 +470,9 @@ var
   FileMD5_: TMD5;
   fileSize_: Int64;
   FL_: TPascalStringList;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   i: Integer;
-  newFD: TFS2_Service_File_Data;
+  newFD: TC40_FS2_Service_File_Data;
 begin
   fileName_ := InData.R.ReadString;
   fileTime_ := InData.R.ReadDouble;
@@ -502,7 +502,7 @@ begin
               fd.Stream.Data.ReadDouble;
               fd.Stream.Data.ReadInt32;
 
-              newFD := TFS2_Service_File_Data.Create(Self, FileDatabase.NewData);
+              newFD := TC40_FS2_Service_File_Data.Create(Self, FileDatabase.NewData);
               newFD.FileName := fileName_;
               newFD.FileTime := fileTime_;
               newFD.FileRef := fileRef_;
@@ -525,10 +525,10 @@ end;
 
 procedure TC40_FS2_Service.cmd_FS2_PostFile(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   FL_: TPascalStringList;
 begin
-  fd := TFS2_Service_File_Data.Create(Self, FileDatabase.NewData);
+  fd := TC40_FS2_Service_File_Data.Create(Self, FileDatabase.NewData);
   fd.Stream.Data.WritePtr(InData, DataSize);
   fd.Stream.Data.Position := 0;
   fd.FileName := fd.Stream.Data.ReadString;
@@ -561,7 +561,7 @@ var
   File_Name: U_String;
   IO_ID: Cardinal;
   IO_: TPeerIO;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
 begin
   File_Name := InData.R.ReadString;
   IO_ID := InData.R.ReadCardinal;
@@ -581,7 +581,7 @@ end;
 procedure TC40_FS2_Service.cmd_FS2_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
 var
   File_Name: U_String;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
 begin
   File_Name := InData.R.ReadString;
   fd := FileHashPool[File_Name];
@@ -616,7 +616,7 @@ end;
 procedure TC40_FS2_Service.cmd_FS2_RemoveFile(Sender: TPeerIO; InData: TDFE);
 var
   fn: U_String;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   FL_: TPascalStringList;
 begin
   while InData.R.NotEnd do
@@ -646,7 +646,7 @@ procedure TC40_FS2_Service.cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
 var
   fn: U_String;
   ref_: Integer;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   buff: array of byte;
   tmp1: Word;
   tmp2: NativeUInt;
@@ -691,7 +691,7 @@ procedure TC40_FS2_Service.cmd_FS2_IncFileRef(Sender: TPeerIO; InData: TDFE);
 var
   fn: U_String;
   inc_ref_: Integer;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   buff: array of byte;
   tmp1: Word;
   tmp2: NativeUInt;
@@ -747,7 +747,7 @@ end;
 
 procedure TC40_FS2_Service.cmd_FS2_Size(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
 begin
   while InData.R.NotEnd do
     begin
@@ -764,7 +764,7 @@ var
   filter_: U_String;
   MaxNum: Integer;
 {$IFDEF FPC}
-  procedure fpc_progress_(const Name_: PSystemString; Obj_: TFS2_Service_File_Data);
+  procedure fpc_progress_(const Name_: PSystemString; Obj_: TC40_FS2_Service_File_Data);
   begin
     if (OutData.Count div 5) > MaxNum then
         exit;
@@ -787,7 +787,7 @@ begin
 {$IFDEF FPC}
   FileHashPool.ProgressP(@fpc_progress_);
 {$ELSE FPC}
-  FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TFS2_Service_File_Data)
+  FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TC40_FS2_Service_File_Data)
     begin
       if (OutData.Count div 5) > MaxNum then
           exit;
@@ -807,11 +807,11 @@ end;
 procedure TC40_FS2_Service.cmd_FS2_PoolFrag(Sender: TPeerIO; InData, OutData: TDFE);
 var
   i: Integer;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
 begin
   for i := 0 to FileDatabase.Count - 1 do
     begin
-      fd := TFS2_Service_ZDB2_MS64(FileDatabase[i]).Service_File_Data;
+      fd := TC40_FS2_Service_ZDB2_MS64(FileDatabase[i]).Service_File_Data;
       if fd <> nil then
         begin
           OutData.WriteString(fd.FileName);
@@ -824,7 +824,7 @@ end;
 constructor TC40_FS2_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
   fs: TCore_Stream;
-  fd: TFS2_Service_File_Data;
+  fd: TC40_FS2_Service_File_Data;
   i: Integer;
   FL_: TPascalStringList;
 begin
@@ -863,12 +863,12 @@ begin
       ZDB2Cipher := nil;
   C40_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space2', [ServiceInfo.ServiceTyp.Text]));
 
-  FileHashPool := TFS2_Service_File_Data_Pool.Create(True,
+  FileHashPool := TC40_FS2_Service_File_Data_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
   FileHashPool.IgnoreCase := True;
 
-  MD5Pool := TFS2_Service_MD5_Data_Pool.Create(True,
+  MD5Pool := TC40_FS2_Service_MD5_Data_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
@@ -878,7 +878,7 @@ begin
       fs := TCore_FileStream.Create(C40_FS2_FileName, fmCreate);
 
   FileDatabase := TZDB2_List_MS64.Create(
-    TFS2_Service_ZDB2_MS64,
+    TC40_FS2_Service_ZDB2_MS64,
     nil,
     ZDB2RecycleMemoryTimeOut,
     fs,
@@ -891,7 +891,7 @@ begin
   i := 0;
   while i < FileDatabase.Count do
     begin
-      fd := TFS2_Service_File_Data.Create(Self, FileDatabase[i]);
+      fd := TC40_FS2_Service_File_Data.Create(Self, FileDatabase[i]);
       inc(i);
       fd.Stream.Data.Position := 0;
       fd.FileName := fd.Stream.Data.ReadString;
@@ -922,7 +922,7 @@ end;
 
 destructor TC40_FS2_Service.Destroy;
 {$IFDEF FPC}
-  procedure fpc_progress_(const Name_: PSystemString; Obj_: TFS2_Service_File_Data);
+  procedure fpc_progress_(const Name_: PSystemString; Obj_: TC40_FS2_Service_File_Data);
   begin
     Obj_.Stream := nil;
   end;
@@ -933,7 +933,7 @@ begin
 {$IFDEF FPC}
   FileHashPool.ProgressP(@fpc_progress_);
 {$ELSE FPC}
-  FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TFS2_Service_File_Data)
+  FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TC40_FS2_Service_File_Data)
     begin
       Obj_.Stream := nil;
     end);
@@ -1006,7 +1006,7 @@ begin
   inherited Destroy;
 end;
 
-constructor TFS2_Temp_CheckMD5AndFastCopy.Create;
+constructor TC40_FS2_Client_CheckMD5AndFastCopy.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1015,7 +1015,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_CheckMD5AndFastCopy.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_CheckMD5AndFastCopy.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   State_: Boolean;
 begin
@@ -1033,7 +1033,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_CheckMD5AndFastCopy.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_CheckMD5AndFastCopy.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   State_: Boolean;
 begin
@@ -1051,7 +1051,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_Post_File_Tunnel.Create;
+constructor TC40_FS2_Client_Post_File_Tunnel.Create;
 begin
   inherited Create;
   p2pClient := nil;
@@ -1063,13 +1063,13 @@ begin
   OnResultP := nil;
 end;
 
-destructor TFS2_Temp_Post_File_Tunnel.Destroy;
+destructor TC40_FS2_Client_Post_File_Tunnel.Destroy;
 begin
   disposeObject(Stream);
   inherited Destroy;
 end;
 
-procedure TFS2_Temp_Post_File_Tunnel.DoP2PVM_CloneConnectAndPostFile(Sender: TZNet_WithP2PVM_Client);
+procedure TC40_FS2_Client_Post_File_Tunnel.DoP2PVM_CloneConnectAndPostFile(Sender: TZNet_WithP2PVM_Client);
 var
   tmp_File_Name_: U_String;
   tmp_Time_: TDateTime;
@@ -1094,7 +1094,7 @@ begin
   Stream.DiscardMemory;
 end;
 
-procedure TFS2_Temp_Post_File_Tunnel.cmd_PostDone(Sender: TPeerIO; InData: SystemString);
+procedure TC40_FS2_Client_Post_File_Tunnel.cmd_PostDone(Sender: TPeerIO; InData: SystemString);
 begin
   try
     if Assigned(OnResultC) then
@@ -1108,7 +1108,7 @@ begin
   p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
 end;
 
-constructor TFS2_Temp_Post_File_Cache.Create;
+constructor TC40_FS2_Client_Post_File_Cache.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1120,9 +1120,9 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_Post_File_Cache.Do_CheckMD5AndFastCopy(Sender: TC40_FS2_Client; State_: Boolean);
+procedure TC40_FS2_Client_Post_File_Cache.Do_CheckMD5AndFastCopy(Sender: TC40_FS2_Client; State_: Boolean);
 var
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  tmp: TC40_FS2_Client_Post_File_Tunnel;
 begin
   if State_ then
     begin
@@ -1140,7 +1140,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Post_File_Tunnel.Create;
       tmp.Client := Client;
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResultC;
@@ -1159,7 +1159,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_Get_File_Tunnel.Create;
+constructor TC40_FS2_Client_Get_File_Tunnel.Create;
 begin
   inherited Create;
   p2pClient := nil;
@@ -1170,12 +1170,12 @@ begin
   OnResultP := nil;
 end;
 
-destructor TFS2_Temp_Get_File_Tunnel.Destroy;
+destructor TC40_FS2_Client_Get_File_Tunnel.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TFS2_Temp_Get_File_Tunnel.cmd_Save(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
+procedure TC40_FS2_Client_Get_File_Tunnel.cmd_Save(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
   tmp1, tmp2: TMS64;
   tmp_File_Name_: U_String;
@@ -1215,7 +1215,7 @@ begin
   p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
 end;
 
-procedure TFS2_Temp_Get_File_Tunnel.cmd_Error(Sender: TPeerIO; InData: SystemString);
+procedure TC40_FS2_Client_Get_File_Tunnel.cmd_Error(Sender: TPeerIO; InData: SystemString);
 begin
   try
     if Assigned(OnResultC) then
@@ -1230,7 +1230,7 @@ begin
   p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
 end;
 
-procedure TFS2_Temp_Get_File_Tunnel.DoP2PVM_CloneConnectAndGetFile(Sender: TZNet_WithP2PVM_Client);
+procedure TC40_FS2_Client_Get_File_Tunnel.DoP2PVM_CloneConnectAndGetFile(Sender: TZNet_WithP2PVM_Client);
 var
   d: TDFE;
 begin
@@ -1246,7 +1246,7 @@ begin
   disposeObject(d);
 end;
 
-constructor TFS2_Temp_GetFileMD5.Create;
+constructor TC40_FS2_Client_GetFileMD5.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1255,7 +1255,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_GetFileMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_GetFileMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   State_: Boolean;
   info_: SystemString;
@@ -1283,7 +1283,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_GetFileMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_GetFileMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   State_: Boolean;
   info_: SystemString;
@@ -1305,7 +1305,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_SearchMultiMD5.Create;
+constructor TC40_FS2_Client_SearchMultiMD5.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1314,7 +1314,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_SearchMultiMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_SearchMultiMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   L: TFS2_SearchMultiMD5_State_List;
   State_: TFS2_SearchMultiMD5_State;
@@ -1339,7 +1339,7 @@ begin
   DelayFreeObject(1.0, Self, L);
 end;
 
-procedure TFS2_Temp_SearchMultiMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_SearchMultiMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   L: TFS2_SearchMultiMD5_State_List;
 begin
@@ -1357,7 +1357,7 @@ begin
   DelayFreeObject(1.0, Self, L);
 end;
 
-constructor TFS2_Temp_GetMD5Files.Create;
+constructor TC40_FS2_Client_GetMD5Files.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1366,7 +1366,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_GetMD5Files.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_GetMD5Files.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   i: Integer;
   Files_: U_StringArray;
@@ -1388,7 +1388,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_GetMD5Files.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_GetMD5Files.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   Files_: U_StringArray;
 begin
@@ -1407,7 +1407,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_GetFileMD5_Cache.Create;
+constructor TC40_FS2_Client_GetFileMD5_Cache.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1417,16 +1417,16 @@ begin
   OnResultP := nil;
 end;
 
-destructor TFS2_Temp_GetFileMD5_Cache.Destroy;
+destructor TC40_FS2_Client_GetFileMD5_Cache.Destroy;
 begin
   File_Name := '';
   inherited Destroy;
 end;
 
-procedure TFS2_Temp_GetFileMD5_Cache.Do_FS2_GetFileMD5(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
+procedure TC40_FS2_Client_GetFileMD5_Cache.Do_FS2_GetFileMD5(Sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
 var
   Cache: TFS2_Client_CacheData;
-  tmp: TFS2_Temp_Get_File_Tunnel;
+  tmp: TC40_FS2_Client_Get_File_Tunnel;
 begin
   if not State_ then
     begin
@@ -1466,7 +1466,7 @@ begin
         end;
     end;
 
-  tmp := TFS2_Temp_Get_File_Tunnel.Create;
+  tmp := TC40_FS2_Client_Get_File_Tunnel.Create;
   tmp.Client := Client;
   tmp.File_Name := File_Name;
   tmp.OnResultC := OnResultC;
@@ -1476,7 +1476,7 @@ begin
   Client.DTNoAuth.ProgressEngine.PostDelayFreeObject(1.0, Self, nil);
 end;
 
-constructor TFS2_Temp_Size.Create;
+constructor TC40_FS2_Client_Size.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1485,7 +1485,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_Size.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_Size.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   arry: TFS2_FileSizeInfo_Array;
   i: Integer;
@@ -1512,7 +1512,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_Size.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_Size.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   arry: TFS2_FileSizeInfo_Array;
 begin
@@ -1530,7 +1530,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_Search.Create;
+constructor TC40_FS2_Client_Search.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1539,7 +1539,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_Search.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_Search.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   arry: TFS2_FileInfo_Array;
   i: Integer;
@@ -1568,7 +1568,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_Search.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_Search.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   arry: TFS2_FileInfo_Array;
 begin
@@ -1586,7 +1586,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-constructor TFS2_Temp_PoolFrag.Create;
+constructor TC40_FS2_Client_PoolFrag.Create;
 begin
   inherited Create;
   Client := nil;
@@ -1595,7 +1595,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TFS2_Temp_PoolFrag.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TC40_FS2_Client_PoolFrag.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   arry: TFS2_PoolFragInfo_Array;
   i: Integer;
@@ -1622,7 +1622,7 @@ begin
   DelayFreeObject(1.0, Self);
 end;
 
-procedure TFS2_Temp_PoolFrag.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TC40_FS2_Client_PoolFrag.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   arry: TFS2_PoolFragInfo_Array;
 begin
@@ -1754,12 +1754,12 @@ begin
       FileCacheHashPool.Delete(arry[i]);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyC);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -1773,12 +1773,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyM);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -1792,12 +1792,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream_MD5_: TMD5; Stream_Size_: Int64; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyP);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -1811,14 +1811,14 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyC);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyC(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyC);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
   if Stream.Size = 0 then
       exit;
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -1832,14 +1832,14 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyM);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyM(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyM);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
   if Stream.Size = 0 then
       exit;
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -1853,14 +1853,14 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TFS2_Temp_CheckMD5AndFastCopyP);
+procedure TC40_FS2_Client.FS2_CheckMD5AndFastCopyP(File_Name: U_String; Stream: TCore_Stream; OnResult: TC40_FS2_Client_CheckMD5AndFastCopyP);
 var
-  tmp: TFS2_Temp_CheckMD5AndFastCopy;
+  tmp: TC40_FS2_Client_CheckMD5AndFastCopy;
   d: TDFE;
 begin
   if Stream.Size = 0 then
       exit;
-  tmp := TFS2_Temp_CheckMD5AndFastCopy.Create;
+  tmp := TC40_FS2_Client_CheckMD5AndFastCopy.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -1876,8 +1876,8 @@ end;
 
 procedure TC40_FS2_Client.FS2_PostFile(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean);
 var
-  cache_: TFS2_Temp_Post_File_Cache;
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  cache_: TC40_FS2_Client_Post_File_Cache;
+  tmp: TC40_FS2_Client_Post_File_Tunnel;
 begin
   if Stream.Size = 0 then
     begin
@@ -1887,7 +1887,7 @@ begin
     end;
   if UsedCache_ then
     begin
-      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_ := TC40_FS2_Client_Post_File_Cache.Create;
       cache_.Client := Self;
       cache_.File_Name := File_Name;
       cache_.Stream := Stream;
@@ -1896,7 +1896,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Post_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.Stream.WriteString(File_Name); // name
@@ -1910,10 +1910,10 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneC);
+procedure TC40_FS2_Client.FS2_PostFile_C(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneC);
 var
-  cache_: TFS2_Temp_Post_File_Cache;
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  cache_: TC40_FS2_Client_Post_File_Cache;
+  tmp: TC40_FS2_Client_Post_File_Tunnel;
 begin
   if Stream.Size = 0 then
     begin
@@ -1923,7 +1923,7 @@ begin
     end;
   if UsedCache_ then
     begin
-      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_ := TC40_FS2_Client_Post_File_Cache.Create;
       cache_.Client := Self;
       cache_.File_Name := File_Name;
       cache_.Stream := Stream;
@@ -1933,7 +1933,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Post_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResult;
@@ -1948,10 +1948,10 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneM);
+procedure TC40_FS2_Client.FS2_PostFile_M(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneM);
 var
-  cache_: TFS2_Temp_Post_File_Cache;
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  cache_: TC40_FS2_Client_Post_File_Cache;
+  tmp: TC40_FS2_Client_Post_File_Tunnel;
 begin
   if Stream.Size = 0 then
     begin
@@ -1961,7 +1961,7 @@ begin
     end;
   if UsedCache_ then
     begin
-      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_ := TC40_FS2_Client_Post_File_Cache.Create;
       cache_.Client := Self;
       cache_.File_Name := File_Name;
       cache_.Stream := Stream;
@@ -1971,7 +1971,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Post_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultM := OnResult;
@@ -1986,10 +1986,10 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TON_FS2_PostFile_DoneP);
+procedure TC40_FS2_Client.FS2_PostFile_P(UsedCache_: Boolean; File_Name: U_String; Stream: TCore_Stream; doneFree: Boolean; OnResult: TC40_FS2_Client_PostFile_DoneP);
 var
-  cache_: TFS2_Temp_Post_File_Cache;
-  tmp: TFS2_Temp_Post_File_Tunnel;
+  cache_: TC40_FS2_Client_Post_File_Cache;
+  tmp: TC40_FS2_Client_Post_File_Tunnel;
 begin
   if Stream.Size = 0 then
     begin
@@ -1999,7 +1999,7 @@ begin
     end;
   if UsedCache_ then
     begin
-      cache_ := TFS2_Temp_Post_File_Cache.Create;
+      cache_ := TC40_FS2_Client_Post_File_Cache.Create;
       cache_.Client := Self;
       cache_.File_Name := File_Name;
       cache_.Stream := Stream;
@@ -2009,7 +2009,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Post_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Post_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultP := OnResult;
@@ -2024,14 +2024,14 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneC);
+procedure TC40_FS2_Client.FS2_GetFile_C(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneC);
 var
-  tmp_cache_: TFS2_Temp_GetFileMD5_Cache;
-  tmp: TFS2_Temp_Get_File_Tunnel;
+  tmp_cache_: TC40_FS2_Client_GetFileMD5_Cache;
+  tmp: TC40_FS2_Client_Get_File_Tunnel;
 begin
   if UsedCache_ and FileCacheHashPool.Exists(File_Name) then
     begin
-      tmp_cache_ := TFS2_Temp_GetFileMD5_Cache.Create;
+      tmp_cache_ := TC40_FS2_Client_GetFileMD5_Cache.Create;
       tmp_cache_.Client := Self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultC := OnResult;
@@ -2039,7 +2039,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Get_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Get_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResult;
@@ -2047,14 +2047,14 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_GetFile_M(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneM);
+procedure TC40_FS2_Client.FS2_GetFile_M(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneM);
 var
-  tmp_cache_: TFS2_Temp_GetFileMD5_Cache;
-  tmp: TFS2_Temp_Get_File_Tunnel;
+  tmp_cache_: TC40_FS2_Client_GetFileMD5_Cache;
+  tmp: TC40_FS2_Client_Get_File_Tunnel;
 begin
   if UsedCache_ and FileCacheHashPool.Exists(File_Name) then
     begin
-      tmp_cache_ := TFS2_Temp_GetFileMD5_Cache.Create;
+      tmp_cache_ := TC40_FS2_Client_GetFileMD5_Cache.Create;
       tmp_cache_.Client := Self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultM := OnResult;
@@ -2062,7 +2062,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Get_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Get_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultM := OnResult;
@@ -2070,14 +2070,14 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_GetFile_P(UsedCache_: Boolean; File_Name: U_String; OnResult: TON_FS2_GetFile_DoneP);
+procedure TC40_FS2_Client.FS2_GetFile_P(UsedCache_: Boolean; File_Name: U_String; OnResult: TC40_FS2_Client_GetFile_DoneP);
 var
-  tmp_cache_: TFS2_Temp_GetFileMD5_Cache;
-  tmp: TFS2_Temp_Get_File_Tunnel;
+  tmp_cache_: TC40_FS2_Client_GetFileMD5_Cache;
+  tmp: TC40_FS2_Client_Get_File_Tunnel;
 begin
   if UsedCache_ and FileCacheHashPool.Exists(File_Name) then
     begin
-      tmp_cache_ := TFS2_Temp_GetFileMD5_Cache.Create;
+      tmp_cache_ := TC40_FS2_Client_GetFileMD5_Cache.Create;
       tmp_cache_.Client := Self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultP := OnResult;
@@ -2085,7 +2085,7 @@ begin
     end
   else
     begin
-      tmp := TFS2_Temp_Get_File_Tunnel.Create;
+      tmp := TC40_FS2_Client_Get_File_Tunnel.Create;
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultP := OnResult;
@@ -2093,12 +2093,12 @@ begin
     end;
 end;
 
-procedure TC40_FS2_Client.FS2_GetFileMD5C(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5C);
+procedure TC40_FS2_Client.FS2_GetFileMD5C(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5C);
 var
-  tmp: TFS2_Temp_GetFileMD5;
+  tmp: TC40_FS2_Client_GetFileMD5;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetFileMD5.Create;
+  tmp := TC40_FS2_Client_GetFileMD5.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2108,12 +2108,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_GetFileMD5M(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5M);
+procedure TC40_FS2_Client.FS2_GetFileMD5M(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5M);
 var
-  tmp: TFS2_Temp_GetFileMD5;
+  tmp: TC40_FS2_Client_GetFileMD5;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetFileMD5.Create;
+  tmp := TC40_FS2_Client_GetFileMD5.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2123,12 +2123,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_GetFileMD5P(File_Name: U_String; OnResult: TFS2_Temp_GetFileMD5P);
+procedure TC40_FS2_Client.FS2_GetFileMD5P(File_Name: U_String; OnResult: TC40_FS2_Client_GetFileMD5P);
 var
-  tmp: TFS2_Temp_GetFileMD5;
+  tmp: TC40_FS2_Client_GetFileMD5;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetFileMD5.Create;
+  tmp := TC40_FS2_Client_GetFileMD5.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2138,13 +2138,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5C);
+procedure TC40_FS2_Client.FS2_SearchMultiMD5C(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5C);
 var
-  tmp: TFS2_Temp_SearchMultiMD5;
+  tmp: TC40_FS2_Client_SearchMultiMD5;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp := TC40_FS2_Client_SearchMultiMD5.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2155,13 +2155,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5M);
+procedure TC40_FS2_Client.FS2_SearchMultiMD5M(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5M);
 var
-  tmp: TFS2_Temp_SearchMultiMD5;
+  tmp: TC40_FS2_Client_SearchMultiMD5;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp := TC40_FS2_Client_SearchMultiMD5.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2172,13 +2172,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TFS2_Temp_SearchMultiMD5P);
+procedure TC40_FS2_Client.FS2_SearchMultiMD5P(arry: TArrayMD5; OnResult: TC40_FS2_Client_SearchMultiMD5P);
 var
-  tmp: TFS2_Temp_SearchMultiMD5;
+  tmp: TC40_FS2_Client_SearchMultiMD5;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_SearchMultiMD5.Create;
+  tmp := TC40_FS2_Client_SearchMultiMD5.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2189,12 +2189,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_GetMD5FilesC(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesC);
+procedure TC40_FS2_Client.FS2_GetMD5FilesC(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesC);
 var
-  tmp: TFS2_Temp_GetMD5Files;
+  tmp: TC40_FS2_Client_GetMD5Files;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetMD5Files.Create;
+  tmp := TC40_FS2_Client_GetMD5Files.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2204,12 +2204,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesM);
+procedure TC40_FS2_Client.FS2_GetMD5FilesM(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesM);
 var
-  tmp: TFS2_Temp_GetMD5Files;
+  tmp: TC40_FS2_Client_GetMD5Files;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetMD5Files.Create;
+  tmp := TC40_FS2_Client_GetMD5Files.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2219,12 +2219,12 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_GetMD5FilesP(MD5_: TMD5; OnResult: TFS2_Temp_GetMD5FilesP);
+procedure TC40_FS2_Client.FS2_GetMD5FilesP(MD5_: TMD5; OnResult: TC40_FS2_Client_GetMD5FilesP);
 var
-  tmp: TFS2_Temp_GetMD5Files;
+  tmp: TC40_FS2_Client_GetMD5Files;
   d: TDFE;
 begin
-  tmp := TFS2_Temp_GetMD5Files.Create;
+  tmp := TC40_FS2_Client_GetMD5Files.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2282,13 +2282,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SizeC(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeC);
+procedure TC40_FS2_Client.FS2_SizeC(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeC);
 var
-  tmp: TFS2_Temp_Size;
+  tmp: TC40_FS2_Client_Size;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Size.Create;
+  tmp := TC40_FS2_Client_Size.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2299,13 +2299,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SizeM(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeM);
+procedure TC40_FS2_Client.FS2_SizeM(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeM);
 var
-  tmp: TFS2_Temp_Size;
+  tmp: TC40_FS2_Client_Size;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Size.Create;
+  tmp := TC40_FS2_Client_Size.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2316,13 +2316,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SizeP(FileNames: U_StringArray; OnResult: TFS2_Temp_SizeP);
+procedure TC40_FS2_Client.FS2_SizeP(FileNames: U_StringArray; OnResult: TC40_FS2_Client_SizeP);
 var
-  tmp: TFS2_Temp_Size;
+  tmp: TC40_FS2_Client_Size;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Size.Create;
+  tmp := TC40_FS2_Client_Size.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2333,13 +2333,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchC);
+procedure TC40_FS2_Client.FS2_SearchC(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchC);
 var
-  tmp: TFS2_Temp_Search;
+  tmp: TC40_FS2_Client_Search;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Search.Create;
+  tmp := TC40_FS2_Client_Search.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2350,13 +2350,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchM);
+procedure TC40_FS2_Client.FS2_SearchM(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchM);
 var
-  tmp: TFS2_Temp_Search;
+  tmp: TC40_FS2_Client_Search;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Search.Create;
+  tmp := TC40_FS2_Client_Search.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2367,13 +2367,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS2_Temp_SearchP);
+procedure TC40_FS2_Client.FS2_SearchP(filter: U_String; MaxNum: Integer; OnResult: TC40_FS2_Client_SearchP);
 var
-  tmp: TFS2_Temp_Search;
+  tmp: TC40_FS2_Client_Search;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_Search.Create;
+  tmp := TC40_FS2_Client_Search.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2384,13 +2384,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragC(OnResult: TFS2_Temp_PoolFragC);
+procedure TC40_FS2_Client.FS2_PoolFragC(OnResult: TC40_FS2_Client_PoolFragC);
 var
-  tmp: TFS2_Temp_PoolFrag;
+  tmp: TC40_FS2_Client_PoolFrag;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_PoolFrag.Create;
+  tmp := TC40_FS2_Client_PoolFrag.Create;
   tmp.Client := Self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -2399,13 +2399,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragM(OnResult: TFS2_Temp_PoolFragM);
+procedure TC40_FS2_Client.FS2_PoolFragM(OnResult: TC40_FS2_Client_PoolFragM);
 var
-  tmp: TFS2_Temp_PoolFrag;
+  tmp: TC40_FS2_Client_PoolFrag;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_PoolFrag.Create;
+  tmp := TC40_FS2_Client_PoolFrag.Create;
   tmp.Client := Self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -2414,13 +2414,13 @@ begin
   disposeObject(d);
 end;
 
-procedure TC40_FS2_Client.FS2_PoolFragP(OnResult: TFS2_Temp_PoolFragP);
+procedure TC40_FS2_Client.FS2_PoolFragP(OnResult: TC40_FS2_Client_PoolFragP);
 var
-  tmp: TFS2_Temp_PoolFrag;
+  tmp: TC40_FS2_Client_PoolFrag;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TFS2_Temp_PoolFrag.Create;
+  tmp := TC40_FS2_Client_PoolFrag.Create;
   tmp.Client := Self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -2434,3 +2434,4 @@ initialization
 RegisterC40('FS2', TC40_FS2_Service, TC40_FS2_Client);
 
 end.
+
