@@ -15,7 +15,9 @@ uses
   Z.MemoryStream, Z.Cipher, Z.Notify, Z.IOThread,
   Z.Net,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT,
-  Z.Net.C4_PascalRewrite_Client,
+  Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
+  Z.Net.C4_NetDisk_VM_Service, Z.Net.C4_NetDisk_VM_Client, Z.Net.C4_NetDisk_Directory,
+  Z.Net.C4_TEKeyValue,
   Z.Net.PhysicsIO;
 
 type
