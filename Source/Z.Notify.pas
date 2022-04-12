@@ -102,7 +102,8 @@ type
     function PostExecuteP(Delay: Double; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP_NP(Delay: Double; OnExecute_P: TN_Post_Execute_P_NP): TN_Post_Execute; overload;
     // state and dispatch
-    procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_: TCore_Object);
+    procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_: TCore_Object); overload;
+    procedure PostDelayFreeObject(Delay: Double; Obj1_: TCore_Object); overload;
     procedure Remove(Inst_: TN_Post_Execute); overload; virtual;
     procedure Progress(deltaTime: Double);
     property Paused: Boolean read FPaused write FPaused;
@@ -316,6 +317,15 @@ begin
       FIsExit^ := True;
 end;
 
+procedure TN_Progress_Tool.Do_Free(var Inst_: TN_Post_Execute);
+begin
+  if Inst_ <> nil then
+    begin
+      Inst_.FPool_Data_Ptr := nil;
+      DisposeObjectAndNil(Inst_);
+    end;
+end;
+
 constructor TN_Progress_Tool.Create;
 begin
   inherited Create;
@@ -334,15 +344,6 @@ begin
   ResetPost;
   DisposeObject(FPostExecuteList);
   inherited Destroy;
-end;
-
-procedure TN_Progress_Tool.Do_Free(var Inst_: TN_Post_Execute);
-begin
-  if Inst_ <> nil then
-    begin
-      Inst_.FPool_Data_Ptr := nil;
-      DisposeObjectAndNil(Inst_);
-    end;
 end;
 
 procedure TN_Progress_Tool.ResetPost;
@@ -467,6 +468,16 @@ begin
   tmp := PostExecute(Delay);
   tmp.Data1 := Obj1_;
   tmp.Data2 := Obj2_;
+  tmp.OnExecute_C := {$IFDEF FPC}@{$ENDIF FPC}DoDelayFreeObject;
+end;
+
+procedure TN_Progress_Tool.PostDelayFreeObject(Delay: Double; Obj1_: TCore_Object);
+var
+  tmp: TN_Post_Execute;
+begin
+  tmp := PostExecute(Delay);
+  tmp.Data1 := Obj1_;
+  tmp.Data2 := nil;
   tmp.OnExecute_C := {$IFDEF FPC}@{$ENDIF FPC}DoDelayFreeObject;
 end;
 
