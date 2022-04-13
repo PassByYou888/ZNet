@@ -184,6 +184,8 @@ object DTC40_UserDB_AdminToolForm: TDTC40_UserDB_AdminToolForm
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 0
+        ExplicitLeft = 2
+        ExplicitTop = -6
         DesignSize = (
           425
           33)

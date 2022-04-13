@@ -50,39 +50,39 @@ const
   PathDelim = ':\/';
 
 var
-  _LibManCloneAutoFreeList: TCore_ListForObj = nil;
+  LibManCloneAutoFreeList__: TCore_ListForObj = nil;
 
 function LibManCloneAutoFreeList: TCore_ListForObj;
 begin
-  if _LibManCloneAutoFreeList = nil then
-      _LibManCloneAutoFreeList := TCore_ListForObj.Create;
-  Result := _LibManCloneAutoFreeList;
+  if LibManCloneAutoFreeList__ = nil then
+      LibManCloneAutoFreeList__ := TCore_ListForObj.Create;
+  Result := LibManCloneAutoFreeList__;
 end;
 
 procedure FreeLibManCloneAutoFreeList;
 var
   i: Integer;
 begin
-  if _LibManCloneAutoFreeList = nil then
+  if LibManCloneAutoFreeList__ = nil then
       Exit;
   i := 0;
-  while i < _LibManCloneAutoFreeList.Count do
-      DisposeObject(TObjectDataHashField(_LibManCloneAutoFreeList[i]));
-  DisposeObject(_LibManCloneAutoFreeList);
-  _LibManCloneAutoFreeList := nil;
+  while i < LibManCloneAutoFreeList__.Count do
+      DisposeObject(TObjectDataHashField(LibManCloneAutoFreeList__[i]));
+  DisposeObject(LibManCloneAutoFreeList__);
+  LibManCloneAutoFreeList__ := nil;
 end;
 
 procedure DeleteLibManCloneFromAutoFreeList(p: TObjectDataHashField);
 var
   i: Integer;
 begin
-  if _LibManCloneAutoFreeList = nil then
+  if LibManCloneAutoFreeList__ = nil then
       Exit;
   i := 0;
-  while i < _LibManCloneAutoFreeList.Count do
+  while i < LibManCloneAutoFreeList__.Count do
     begin
-      if _LibManCloneAutoFreeList[i] = p then
-          _LibManCloneAutoFreeList.Delete(i)
+      if LibManCloneAutoFreeList__[i] = p then
+          LibManCloneAutoFreeList__.Delete(i)
       else
           inc(i);
     end;
@@ -309,6 +309,8 @@ begin
 end;
 
 initialization
+
+LibManCloneAutoFreeList__ := nil;
 
 finalization
 

@@ -9,9 +9,11 @@ uses
 
 
 begin
+  // System.ReportMemoryLeaksOnShutdown:=True;
   InitC40AppParamFromSystemCmdLine;
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TC40AppTempletForm, C40AppTempletForm);
   Application.Run;
+
 end.

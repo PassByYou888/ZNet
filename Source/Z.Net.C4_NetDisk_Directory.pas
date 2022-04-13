@@ -132,6 +132,8 @@ type
     procedure cmd_SearchItem(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_CopyItem(Sender: TPeerIO; InData: TDFE);
     procedure cmd_CopyField(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_RenameField(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_RenameItem(Sender: TPeerIO; InData: TDFE);
     procedure cmd_SearchInvalidFrag(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_SearchSameItem(Sender: TPeerIO; InData, OutData: TDFE);
   protected
@@ -332,7 +334,8 @@ type
   end;
 
   TON_SearchItem_Data = record
-    DB_Field, DB_Item: SystemString;
+    Current_Field, FieldOrItem: SystemString;
+    Num: Int64;
     ModificationTime: TDateTime;
   end;
 
@@ -491,6 +494,9 @@ type
     // copy
     procedure CopyItem(arry: TCopyItem_Info_Array);
     procedure CopyField(arry: TCopyField_Info_Array);
+    // rename
+    procedure RenameField(DB_Name, DB_Field, New_Field_Name: U_String);
+    procedure RenameItem(DB_Name, DB_Field, Old_Item_Name, New_Item_Name: U_String);
     // SearchInvalidFrag
     procedure SearchInvalidFrag_C(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_C);
     procedure SearchInvalidFrag_M(frag_arry: U_StringArray; OnResult: TON_SearchInvalidFrag_M);
@@ -1188,6 +1194,11 @@ var
   DB_Name, DB_Field, DB_Search: U_String;
   fd: TDirectory_Service_User_File_DB;
   ir: TItemRecursionSearch;
+  field_pos: Int64;
+  field_data: TField;
+  itm_stream: TItemStream;
+  md5_name_: U_String;
+  Size_: Int64;
 begin
   DB_Name := InData.R.ReadString;
   DB_Field := InData.R.ReadString;
@@ -1195,16 +1206,33 @@ begin
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
       exit;
+  if not fd.Stream.Data.GetPathField(DB_Field, field_pos) then
+      exit;
 
   if fd.Stream.Data.RecursionSearchFirst(DB_Field, DB_Search, ir) then
     begin
       repeat
-        if ir.ReturnHeader.ID = DB_Header_Item_ID then
-          begin
-            OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader));
-            OutData.WriteString(ir.ReturnHeader.Name);
-            OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
-          end;
+        case ir.ReturnHeader.ID of
+          DB_Header_Field_ID:
+            begin
+              fd.Stream.Data.GetFieldData(ir.ReturnHeader.CurrentHeader, field_data);
+              OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader, field_pos));
+              OutData.WriteString('f:' + ir.ReturnHeader.Name);
+              OutData.WriteInt64(field_data.HeaderCount);
+              OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
+            end;
+          DB_Header_Item_ID:
+            begin
+              itm_stream := TItemStream.Create(fd.Stream.Data, ir.ReturnHeader.CurrentHeader);
+              md5_name_ := StreamReadString(itm_stream);
+              Size_ := StreamReadInt64(itm_stream);
+              OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader, field_pos));
+              OutData.WriteString('i:' + ir.ReturnHeader.Name);
+              OutData.WriteInt64(Size_);
+              OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
+              DisposeObject(itm_stream);
+            end;
+        end;
       until not fd.Stream.Data.RecursionSearchNext(ir);
     end;
 end;
@@ -1260,6 +1288,53 @@ begin
               Sour_FD.Stream.Data.CopyFieldToPath(Sour_DB_Field, Dest_FD.Stream.Data, Dest_DB_Field);
         end;
     end;
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_RenameField(Sender: TPeerIO; InData: TDFE);
+var
+  DB_Name: U_String;
+  DB_Field: U_String;
+  New_Field_Name: U_String;
+  fd: TDirectory_Service_User_File_DB;
+  field_data: TFieldHandle;
+begin
+  DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  New_Field_Name := InData.R.ReadString;
+  fd := Directory_HashPool[DB_Name];
+  if fd = nil then
+      exit;
+  if not fd.Stream.Data.GetPathField(DB_Field, field_data) then
+      exit;
+  fd.Stream.Data.FieldRename(field_data.RHeader.CurrentHeader, New_Field_Name, field_data.Description);
+  fd.IsChanged := True;
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_RenameItem(Sender: TPeerIO; InData: TDFE);
+var
+  DB_Name: U_String;
+  DB_Field: U_String;
+  Old_Item_Name: U_String;
+  New_Item_Name: U_String;
+  fd: TDirectory_Service_User_File_DB;
+  field_data: TFieldHandle;
+  item_hnd: TItemHandle;
+begin
+  DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  Old_Item_Name := InData.R.ReadString;
+  New_Item_Name := InData.R.ReadString;
+  fd := Directory_HashPool[DB_Name];
+  if fd = nil then
+      exit;
+  if not fd.Stream.Data.GetPathField(DB_Field, field_data) then
+      exit;
+  if fd.Stream.Data.ItemOpen(DB_Field, Old_Item_Name, item_hnd) then
+    begin
+      fd.Stream.Data.ItemRename(field_data.RHeader.CurrentHeader, item_hnd, New_Item_Name, item_hnd.Description);
+      fd.Stream.Data.ItemClose(item_hnd);
+    end;
+  fd.IsChanged := True;
 end;
 
 procedure TC40_NetDisk_Directory_Service.cmd_SearchInvalidFrag(Sender: TPeerIO; InData, OutData: TDFE);
@@ -1524,6 +1599,8 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameItem;
   DTNoAuthService.RecvTunnel.RegisterStream('SearchInvalidFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchInvalidFrag;
   DTNoAuthService.RecvTunnel.RegisterStream('SearchSameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchSameItem;
 
@@ -1760,8 +1837,8 @@ var
   arry: TItemList_Data_Array;
   i: Integer;
 begin
-  SetLength(arry, Result_.count div 3);
   i := 0;
+  SetLength(arry, Result_.count div 3);
   while Result_.R.NotEnd do
     begin
       arry[i].Name := Result_.R.ReadString;
@@ -1951,11 +2028,13 @@ var
   SearchResult: TON_SearchItem_Data_array;
   i: Integer;
 begin
-  SetLength(SearchResult, Result_.count div 3);
+  i := 0;
+  SetLength(SearchResult, Result_.count shr 2);
   while Result_.R.NotEnd do
     begin
-      SearchResult[i].DB_Field := Result_.R.ReadString;
-      SearchResult[i].DB_Item := Result_.R.ReadString;
+      SearchResult[i].Current_Field := Result_.R.ReadString;
+      SearchResult[i].FieldOrItem := Result_.R.ReadString;
+      SearchResult[i].Num := Result_.R.ReadInt64;
       SearchResult[i].ModificationTime := Result_.R.ReadDouble;
       inc(i);
     end;
@@ -2712,6 +2791,31 @@ begin
       d.WriteString(arry[i].Dest_DB_Field);
     end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CopyField', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.RenameField(DB_Name, DB_Field, New_Field_Name: U_String);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(New_Field_Name);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RenameField', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.RenameItem(DB_Name, DB_Field, Old_Item_Name, New_Item_Name: U_String);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(Old_Item_Name);
+  d.WriteString(New_Item_Name);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RenameItem', d);
   DisposeObject(d);
 end;
 

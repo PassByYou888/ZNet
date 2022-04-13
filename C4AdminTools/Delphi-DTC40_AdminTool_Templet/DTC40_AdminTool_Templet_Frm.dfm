@@ -1,7 +1,7 @@
 object DTC40_AdminTool_Templet_Form: TDTC40_AdminTool_Templet_Form
   Left = 0
   Top = 0
-  Caption = 'UnitRewrite Tool and Freature model.'
+  Caption = 'C40 Admin Tools templet.'
   ClientHeight = 497
   ClientWidth = 1069
   Color = clBtnFace

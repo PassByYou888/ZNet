@@ -163,7 +163,7 @@ const
 
 type
   THeader = record
-    CurrentHeader: Int64; // nowrite
+    CurrentHeader: Int64; // dynamic runtime
     //
     NextHeader, PrevHeader, DataPosition: Int64; // store position
     ID: Byte;                                    // DB_Header_Field_ID, DB_Header_Item_ID
@@ -172,7 +172,7 @@ type
     UserProperty: Cardinal;                      // external define
     Name: U_String;                              // header name
     //
-    State: Integer; // nowrite
+    State: Integer; // dynamic runtime
   end;
 
   PHeader = ^THeader;
@@ -182,7 +182,7 @@ type
     CurrentBlockPOS, NextBlockPOS, PrevBlockPOS, DataPosition: Int64; // data pos
     Size: Int64;                                                      // block size
     //
-    State: Integer; // nowrite
+    State: Integer; // dynamic runtime
   end;
 
   PItemBlock = ^TItemBlock;
@@ -195,11 +195,11 @@ type
     Size: Int64;                        // size
     BlockCount: Int64;                  // block count
     //
-    CurrentBlockSeekPOS: Int64;   // nowrite
-    CurrentFileSeekPOS: Int64;    // nowrite
-    CurrentItemBlock: TItemBlock; // nowrite
-    DataModification: Boolean;    // nowrite
-    State: Integer;               // nowrite
+    CurrentBlockSeekPOS: Int64;   // dynamic runtime
+    CurrentFileSeekPOS: Int64;    // dynamic runtime
+    CurrentItemBlock: TItemBlock; // dynamic runtime
+    DataModification: Boolean;    // dynamic runtime
+    State: Integer;               // dynamic runtime
   end;
 
   PItem = ^TItem;
@@ -211,7 +211,7 @@ type
     HeaderCount: Int64;                   // children
     FirstHeaderPOS, LastHeaderPOS: Int64; // header pos
     //
-    State: Integer;                       // nowrite
+    State: Integer; // dynamic runtime
   end;
 
   PField = ^TField;
@@ -356,20 +356,20 @@ function String_To_Reserved(S: U_String): TObjectDataHandle_Reserved_Data;
 function Reserved_To_String(Reserved: TObjectDataHandle_Reserved_Data): U_String;
 
 // internal: init store struct
-procedure Init_THeader(var Header_: THeader);
-procedure Init_TItemBlock(var Block_: TItemBlock);
-procedure Init_TItem(var Item_: TItem);
-procedure Init_TField(var Field_: TField);
-procedure Init_TTMDB(var DB_: TObjectDataHandle); overload;
-procedure Init_TTMDB(var DB_: TObjectDataHandle; const FixedStringL: Byte); overload;
+procedure Init_THeader(var Header_: THeader); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TItemBlock(var Block_: TItemBlock); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TItem(var Item_: TItem); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TField(var Field_: TField); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDB(var DB_: TObjectDataHandle); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}overload;
+procedure Init_TTMDB(var DB_: TObjectDataHandle; const FixedStringL: Byte); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}overload;
 
 // internal: init runtime struct
-procedure Init_TFieldSearch(var FieldS_: TFieldSearch);
-procedure Init_TTMDBItemHandle(var ItemHnd_: TItemHandle_);
-procedure Init_TTMDBSearchHeader(var SearchHeader_: TSearchHeader_);
-procedure Init_TTMDBSearchItem(var SearchItem_: TSearchItem_);
-procedure Init_TTMDBSearchField(var SearchField_: TSearchField_);
-procedure Init_TTMDBRecursionSearch(var RecursionSearch_: TRecursionSearch_);
+procedure Init_TFieldSearch(var FieldS_: TFieldSearch); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDBItemHandle(var ItemHnd_: TItemHandle_); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDBSearchHeader(var SearchHeader_: TSearchHeader_); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDBSearchItem(var SearchItem_: TSearchItem_); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDBSearchField(var SearchField_: TSearchField_); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+procedure Init_TTMDBRecursionSearch(var RecursionSearch_: TRecursionSearch_); {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
 // internal: header data struct
 function dbHeader_WriteRec(const fPos: Int64; var IOHnd: TIOHnd; var Header_: THeader): Boolean;
@@ -452,57 +452,56 @@ function dbField_CopyItem(var Item_: TItem; var IOHnd: TIOHnd; const DestFieldPo
 function dbField_CopyItemBuffer(var Item_: TItem; var IOHnd: TIOHnd; var DestItem_: TItem; var DestIOHnd: TIOHnd): Boolean;
 function dbField_CopyAllTo(const FilterName: U_String; const FieldPos: Int64; var IOHnd: TIOHnd; const DestFieldPos: Int64; var DestIOHnd: TIOHnd): Boolean;
 
-// API
+// API: init
 function db_CreateNew(const FileName: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_Open(const FileName: U_String; var DB_: TObjectDataHandle; _OnlyRead: Boolean): Boolean;
 function db_CreateAsStream(stream: U_Stream; const Name, Description: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_OpenAsStream(stream: U_Stream; const Name: U_String; var DB_: TObjectDataHandle; _OnlyRead: Boolean): Boolean;
 function db_ClosePack(var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: copy
 function db_CopyFieldTo(const FilterName: U_String; var DB_: TObjectDataHandle; const SourceFieldPos: Int64; var DestTMDB: TObjectDataHandle; const DestFieldPos: Int64): Boolean;
 function db_CopyAllTo(var DB_: TObjectDataHandle; var DestTMDB: TObjectDataHandle): Boolean;
 function db_CopyAllToDestPath(var DB_: TObjectDataHandle; var DestTMDB: TObjectDataHandle; destPath: U_String): Boolean;
 
-// API
+// API: update
 function db_Update(var DB_: TObjectDataHandle): Boolean;
 
-// API
-function db_TestName(const Name: U_String): Boolean;
+// API: test
+function db_TestName(const Name: U_String): Boolean; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
-// API
+// API: field
 function db_CheckRootField(const Name: U_String; var Field_: TField; var DB_: TObjectDataHandle): Boolean;
 function db_CreateRootHeader(const Name: U_String; const ID: Byte; var DB_: TObjectDataHandle; var Header_: THeader): Boolean;
 function db_CreateRootField(const Name, Description: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_CreateAndSetRootField(const Name, Description: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_CreateField(const pathName, Description: U_String; var DB_: TObjectDataHandle): Boolean;
-
-// API
 function db_SetFieldName(const pathName, OriginFieldName, NewFieldName, FieldDescription: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_SetItemName(const pathName, OriginItemName, NewItemName, ItemDescription: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_DeleteField(const pathName, FilterName: U_String; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: item header
 function db_DeleteHeader(const pathName, FilterName: U_String; const ID: Byte; var DB_: TObjectDataHandle): Boolean;
 function db_MoveItem(const SourcerPathName, FilterName: U_String; const TargetPathName: U_String; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 function db_MoveField(const SourcerPathName, FilterName: U_String; const TargetPathName: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_MoveHeader(const SourcerPathName, FilterName: U_String; const TargetPathName: U_String; const HeaderID: Byte; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: set current field
 function db_SetCurrentRootField(const Name: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_SetCurrentField(const pathName: U_String; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: get field
 function db_GetRootField(const Name: U_String; var Field_: TField; var DB_: TObjectDataHandle): Boolean;
 function db_GetField(const pathName: U_String; var Field_: TField; var DB_: TObjectDataHandle): Boolean;
 function db_GetPath(const FieldPos, RootFieldPos: Int64; var DB_: TObjectDataHandle; var RetPath: U_String): Boolean;
 
-// API
+// API: easy item create and delete
 function db_NewItem(const pathName, ItemName, ItemDescription: U_String; const ItemExtID: Byte; var Item_: TItem; var DB_: TObjectDataHandle): Boolean;
 function db_DeleteItem(const pathName, FilterName: U_String; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
+function db_DeleteItem2(const FieldPos: Int64; const Item_Name: U_String; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 function db_GetItem(const pathName, ItemName: U_String; const ItemExtID: Byte; var Item_: TItem; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: item operation
 function db_ItemCreate(const pathName, ItemName, ItemDescription: U_String; const ItemExtID: Byte; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemFastCreate(const ItemName, ItemDescription: U_String; const fPos: Int64; const ItemExtID: Byte; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemFastInsertNew(const ItemName, ItemDescription: U_String; const FieldPos, InsertHeaderPos: Int64; const ItemExtID: Byte; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
@@ -513,11 +512,11 @@ function db_ItemUpdate(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): 
 function db_ItemBodyReset(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemReName(const FieldPos: Int64; const NewItemName, NewItemDescription: U_String; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: item IO
 function db_ItemRead(const Size: Int64; var Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemWrite(const Size: Int64; const Buff_; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: item data pos
 function db_ItemSeekPos(const fPos: Int64; var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemSeekStartPos(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
 function db_ItemSeekLastPos(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Boolean;
@@ -525,45 +524,45 @@ function db_ItemGetPos(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): 
 function db_ItemGetSize(var ItemHnd_: TItemHandle_; var DB_: TObjectDataHandle): Int64;
 function db_AppendItemSize(var ItemHnd_: TItemHandle_; const Size: Int64; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: find header
 function db_ExistsRootField(const Name: U_String; var DB_: TObjectDataHandle): Boolean;
 function db_FindFirstHeader(const pathName, FilterName: U_String; const ID: Byte; var SenderSearch: TSearchHeader_; var DB_: TObjectDataHandle): Boolean;
 function db_FindNextHeader(var SenderSearch: TSearchHeader_; var DB_: TObjectDataHandle): Boolean;
 function db_FindLastHeader(const pathName, FilterName: U_String; const ID: Byte; var SenderSearch: TSearchHeader_; var DB_: TObjectDataHandle): Boolean;
 function db_FindPrevHeader(var SenderSearch: TSearchHeader_; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: find item
 function db_FindFirstItem(const pathName, FilterName: U_String; const ItemExtID: Byte; var SenderSearch: TSearchItem_; var DB_: TObjectDataHandle): Boolean;
 function db_FindNextItem(var SenderSearch: TSearchItem_; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 function db_FindLastItem(const pathName, FilterName: U_String; const ItemExtID: Byte; var SenderSearch: TSearchItem_; var DB_: TObjectDataHandle): Boolean;
 function db_FindPrevItem(var SenderSearch: TSearchItem_; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: fast find item
 function db_FastFindFirstItem(const FieldPos: Int64; const FilterName: U_String; const ItemExtID: Byte; var SenderSearch: TSearchItem_; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindNextItem(var SenderSearch: TSearchItem_; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindLastItem(const FieldPos: Int64; const FilterName: U_String; const ItemExtID: Byte; var SenderSearch: TSearchItem_; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindPrevItem(var SenderSearch: TSearchItem_; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: find field
 function db_FindFirstField(const pathName, FilterName: U_String; var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FindNextField(var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FindLastField(const pathName, FilterName: U_String; var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FindPrevField(var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: fast find field
 function db_FastFindFirstField(const FieldPos: Int64; const FilterName: U_String; var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindNextField(var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindLastField(const FieldPos: Int64; const FilterName: U_String; var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 function db_FastFindPrevField(var SenderSearch: TSearchField_; var DB_: TObjectDataHandle): Boolean;
 
-// API
+// API: recursion search
 function db_RecursionSearchFirst(const InitPath, FilterName: U_String; var SenderRecursionSearch: TRecursionSearch_; var DB_: TObjectDataHandle): Boolean;
 function db_RecursionSearchNext(var SenderRecursionSearch: TRecursionSearch_; var DB_: TObjectDataHandle): Boolean;
 
 var
-  TreeMDBHeaderNameMultipleCharacter: U_SystemString = '?';
-  TreeMDBHeaderNameMultipleString: U_SystemString = '*';
-  db_FieldPathLimitChar: U_SystemString = '/\';
+  ZDB_Header_Multiple_Char__: U_String;
+  ZDB_Header_Multiple_String__: U_String;
+  ZDB_Field_Separator__: U_String;
 
 implementation
 
@@ -739,27 +738,27 @@ end;
 
 function db_GetPathCount(const StrName: U_String): Integer;
 begin
-  Result := umlGetIndexStrCount(StrName, db_FieldPathLimitChar);
+  Result := umlGetIndexStrCount(StrName, ZDB_Field_Separator__);
 end;
 
 function db_DeleteFirstPath(const pathName: U_String): U_String;
 begin
-  Result := umlDeleteFirstStr(pathName, db_FieldPathLimitChar);
+  Result := umlDeleteFirstStr(pathName, ZDB_Field_Separator__);
 end;
 
 function db_DeleteLastPath(const pathName: U_String): U_String;
 begin
-  Result := umlDeleteLastStr(pathName, db_FieldPathLimitChar);
+  Result := umlDeleteLastStr(pathName, ZDB_Field_Separator__);
 end;
 
 function db_GetFirstPath(const pathName: U_String): U_String;
 begin
-  Result := umlGetFirstStr(pathName, db_FieldPathLimitChar);
+  Result := umlGetFirstStr(pathName, ZDB_Field_Separator__);
 end;
 
 function db_GetLastPath(const pathName: U_String): U_String;
 begin
-  Result := umlGetLastStr(pathName, db_FieldPathLimitChar);
+  Result := umlGetLastStr(pathName, ZDB_Field_Separator__);
 end;
 
 function Test_Reserved_String(S: U_String): Boolean;
@@ -2187,7 +2186,7 @@ begin
   else if DestStr.Len = 0 then
       Result := False
   else
-      Result := umlMultipleMatch(True, SourStr, DestStr, TreeMDBHeaderNameMultipleString, TreeMDBHeaderNameMultipleCharacter);
+      Result := umlMultipleMatch(True, SourStr, DestStr, ZDB_Header_Multiple_String__, ZDB_Header_Multiple_Char__);
 end;
 
 function dbHeader_FindNext(const Name: U_String; const FirstHeaderPOS, LastHeaderPOS: Int64; var IOHnd: TIOHnd; var Header_: THeader): Boolean;
@@ -4939,7 +4938,7 @@ end;
 
 function db_TestName(const Name: U_String): Boolean;
 begin
-  Result := umlDeleteChar(Name, db_FieldPathLimitChar + #9#32#13#10).Len > 0;
+  Result := Name.DeleteChar(ZDB_Field_Separator__ + #9#32#13#10).L > 0;
 end;
 
 function db_CheckRootField(const Name: U_String; var Field_: TField; var DB_: TObjectDataHandle): Boolean;
@@ -6004,6 +6003,41 @@ begin
   Result := True;
 end;
 
+function db_DeleteItem2(const FieldPos: Int64; const Item_Name: U_String; const ItemExtID: Byte; var DB_: TObjectDataHandle): Boolean;
+var
+  TempSR: TFieldSearch;
+  f: TField;
+begin
+  if dbField_ReadRec(FieldPos, DB_.IOHnd, f) = False then
+    begin
+      Result := False;
+      exit;
+    end;
+  if dbField_FindFirstItem(Item_Name, ItemExtID, f.RHeader.CurrentHeader, DB_.IOHnd, TempSR) = False then
+    begin
+      DB_.State := TempSR.State;
+      Result := False;
+      exit;
+    end;
+  if dbField_DeleteHeader(TempSR.RHeader.CurrentHeader, f.RHeader.CurrentHeader, DB_.IOHnd, f) = False then
+    begin
+      DB_.State := f.State;
+      Result := False;
+      exit;
+    end;
+  while dbField_FindFirstItem(Item_Name, ItemExtID, f.RHeader.CurrentHeader, DB_.IOHnd, TempSR) do
+    begin
+      if dbField_DeleteHeader(TempSR.RHeader.CurrentHeader, f.RHeader.CurrentHeader, DB_.IOHnd, f) = False then
+        begin
+          DB_.State := f.State;
+          Result := False;
+          exit;
+        end;
+    end;
+  DB_.State := DB_ok;
+  Result := True;
+end;
+
 function db_GetItem(const pathName, ItemName: U_String; const ItemExtID: Byte; var Item_: TItem; var DB_: TObjectDataHandle): Boolean;
 var
   f: TField;
@@ -6286,13 +6320,19 @@ begin
       Result := False;
       exit;
     end;
-  if db_FastFindFirstItem(FieldPos, NewItemName, ItemHnd_.ItemExtID, SenderSearchHnd, DB_) then
-    if (ItemHnd_.Name = NewItemName) then
-      begin
-        DB_.State := DB_ItemNameError;
-        Result := False;
-        exit;
-      end;
+
+  if NewItemName.Same(@ItemHnd_.Name) then
+    begin
+      DB_.State := DB_ItemNameError;
+      Result := False;
+      exit;
+    end;
+
+  if DB_.OverWriteItem then
+    begin
+      // easy remove
+      db_DeleteItem2(FieldPos, NewItemName, ItemHnd_.ItemExtID, DB_);
+    end;
 
   // fixed by qq600585,2018-12
   // Header has a certain chance of being changed by other item operation during the opening of item
@@ -7174,6 +7214,8 @@ end;
 
 initialization
 
-Reserved_To_String(String_To_Reserved('ÖÐÎÄ123'));
+ZDB_Header_Multiple_Char__ := '?';
+ZDB_Header_Multiple_String__ := '*';
+ZDB_Field_Separator__ := '/\';
 
 end.

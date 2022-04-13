@@ -3895,7 +3895,7 @@ begin
       Result := Format('%d', [Size])
   else if Size < 1 shl 20 then
       Result := Format('%f Kb', [Size / (1 shl 10)])
-  else if Size < 1 shl 30 then
+  else
       Result := Format('%f M', [Size / (1 shl 20)]);
 end;
 
@@ -3930,7 +3930,7 @@ begin
       Result := Format('%d bps', [Size * 10])
   else if Size < 1 shl 20 then
       Result := Format('%f Kbps', [Size / (1 shl 10) * 10])
-  else if Size < 1 shl 30 then
+  else
       Result := Format('%f Mbps', [Size / (1 shl 20) * 10]);
 end;
 

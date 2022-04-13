@@ -61,11 +61,11 @@ type
 
   TObjectDataManager = class;
 {$IFDEF FPC}
-  TDBImpNotifyProc = procedure(Sender: TObjectDataManager; sourFile: SystemString; fieldPos, ItemPos: Int64) is nested;
-  TDBExpNotifyProc = procedure(Sender: TObjectDataManager; fieldPos, ItemPos: Int64; destFile: SystemString) is nested;
+  TDBImpNotifyProc = procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64) is nested;
+  TDBExpNotifyProc = procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString) is nested;
 {$ELSE FPC}
-  TDBImpNotifyProc = reference to procedure(Sender: TObjectDataManager; sourFile: SystemString; fieldPos, ItemPos: Int64);
-  TDBExpNotifyProc = reference to procedure(Sender: TObjectDataManager; fieldPos, ItemPos: Int64; destFile: SystemString);
+  TDBImpNotifyProc = reference to procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64);
+  TDBExpNotifyProc = reference to procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString);
 {$ENDIF FPC}
 
   TObjectDataManager = class(TCore_Object)
@@ -111,7 +111,7 @@ type
 
     function CopyTo(DestDB: TObjectDataManager): Boolean;
     function CopyToPath(DestDB: TObjectDataManager; destPath: SystemString): Boolean;
-    function CopyFieldToPath(fieldPos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
+    function CopyFieldToPath(Field_Pos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
     function CopyFieldToPath(Path_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
     function CopyItemToPath(Path_, DB_Item_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
 
@@ -171,18 +171,18 @@ type
     function CreateField(const FieldName_, Field_Desc: SystemString): Boolean;
     function CreateRootField(const RootName: SystemString): Boolean;
     function DirectoryExists(const FieldName_: SystemString): Boolean;
-    function FastDelete(const fieldPos: Int64; const fPos: Int64): Boolean;
-    function FastFieldExists(const fieldPos: Int64; const FieldName: SystemString): Boolean;
-    function FastFieldCreate(const fieldPos: Int64; const FieldName, FieldDescription: SystemString; var NewFieldPos: Int64): Boolean;
+    function FastDelete(const Field_Pos: Int64; const fPos: Int64): Boolean;
+    function FastFieldExists(const Field_Pos: Int64; const FieldName: SystemString): Boolean;
+    function FastFieldCreate(const Field_Pos: Int64; const FieldName, FieldDescription: SystemString; var NewFieldPos: Int64): Boolean;
     function RootField: Int64;
     function SetRootField(const RootName: SystemString): Boolean;
     function GetRootFieldPos(const RootName: SystemString): Int64;
-    function FieldRename(const fieldPos: Int64; const NewFieldName, NewFieldDescription: SystemString): Boolean;
+    function FieldRename(const Field_Pos: Int64; const NewFieldName, NewFieldDescription: SystemString): Boolean;
     function FieldDelete(const Path_: SystemString; const FieldName: SystemString): Boolean;
     function FieldExists(const Path_: SystemString; const FieldName: SystemString): Boolean; overload;
     function FieldExists(const Path_: SystemString): Boolean; overload;
-    function FieldFastFindFirst(const fieldPos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
-    function FieldFastFindLast(const fieldPos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
+    function FieldFastFindFirst(const Field_Pos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
+    function FieldFastFindLast(const Field_Pos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
     function FieldFastFindNext(var FieldSearchHandle: TFieldSearch): Boolean;
     function FieldFastFindPrev(var FieldSearchHandle: TFieldSearch): Boolean;
     function FieldFindFirst(const Path_, Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
@@ -190,13 +190,15 @@ type
     function FieldFindNext(var FieldSearchHandle: TFieldSearch): Boolean;
     function FieldFindPrev(var FieldSearchHandle: TFieldSearch): Boolean;
     function FieldMove(const Path_, FieldName, destPath: SystemString): Boolean;
-    function GetFieldData(const fieldPos: Int64; var dest: TFieldHandle): Boolean;
-    function GetFieldPath(const fieldPos: Int64): SystemString; overload;
-    function GetFieldPath(const fieldPos, RootFieldPos: Int64): SystemString; overload;
-    function GetPathField(const Path_: SystemString; var dest: Int64): Boolean;
+    function GetFieldData(const Field_Pos: Int64; var dest: TFieldHandle): Boolean;
+    function GetFieldPath(const Field_Pos: Int64): SystemString; overload;
+    function GetFieldPath(const Field_Pos, RootFieldPos: Int64): SystemString; overload;
+    function GetPathField(const Path_: SystemString; var dest: TFieldHandle): Boolean; overload;
+    function GetPathField(const Path_: SystemString; var dest: Int64): Boolean; overload;
     function GetPathFieldPos(const Path_: SystemString): Int64;
     function GetPathFieldHeaderCount(const Path_: SystemString): Int64;
     function GetPathFieldHeaderNames(const Path_: SystemString; var output: U_StringArray): Boolean;
+    function ComputeFieldPath(const Field_Pos, RootFieldPos: Int64; var output: U_String): Boolean;
     function GetItemList(const Field_: TPascalString; AsLst: TPascalStringList): Integer;
     function GetFieldList(const Field_: TPascalString; AsLst: TPascalStringList): Integer;
     function GetItemListWithFullPath(const Field_: TPascalString): U_StringArray;
@@ -204,8 +206,8 @@ type
 
     // header api
     function GetHeaderModificationTime(const hPos: Int64): TDateTime;
-    function GetFirstHeaderFromField(fieldPos: Int64; var h: THeader): Boolean;
-    function GetLastHeaderFromField(fieldPos: Int64; var h: THeader): Boolean;
+    function GetFirstHeaderFromField(Field_Pos: Int64; var h: THeader): Boolean;
+    function GetLastHeaderFromField(Field_Pos: Int64; var h: THeader): Boolean;
     function GetHeader(hPos: Int64; var h: THeader): Boolean;
 
     // item api
@@ -226,14 +228,14 @@ type
     function ItemClose(var ItemHnd: TItemHandle): Boolean;
     function ItemCopyTo(var ItemHnd: TItemHandle; DestDB: TObjectDataManager; var DestItemHandle: TItemHandle; const CopySize: Int64): Boolean;
     function ItemMove(const Path_, ItemName, destPath: SystemString): Boolean;
-    function ItemRename(const fieldPos: Int64; var ItemHnd: TItemHandle; const NewName, NewDescription: SystemString): Boolean;
-    function ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+    function ItemRename(const Field_Pos: Int64; var ItemHnd: TItemHandle; const NewName, NewDescription: SystemString): Boolean;
+    function ItemFastInsertNew(const Field_Pos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
     function ItemFastCreate(const fPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
     function ItemFastOpen(const hPos: Int64; var ItemHnd: TItemHandle): Boolean;
     function ItemFastResetBody(const fPos: Int64): Boolean;
-    function ItemFastExists(const fieldPos: Int64; const DB_Item_: SystemString): Boolean;
-    function ItemFastFindFirst(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
-    function ItemFastFindLast(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFastExists(const Field_Pos: Int64; const DB_Item_: SystemString): Boolean;
+    function ItemFastFindFirst(const Field_Pos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+    function ItemFastFindLast(const Field_Pos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFastFindNext(var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFastFindPrev(var ItemSearchHandle: TItemSearch): Boolean;
     function ItemFindFirst(const Path_, DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
@@ -754,23 +756,23 @@ begin
   Result := db_CopyAllToDestPath(FDB_HND, DestDB.FDB_HND, destPath);
 end;
 
-function TObjectDataManager.CopyFieldToPath(fieldPos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean;
+function TObjectDataManager.CopyFieldToPath(Field_Pos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean;
 var
   DestFieldPos: Int64;
 begin
   Result := False;
   DestDB.CreateField(destPath, '');
   if DestDB.GetPathField(destPath, DestFieldPos) then
-      Result := db_CopyFieldTo('*', FDB_HND, fieldPos, DestDB.FDB_HND, DestFieldPos);
+      Result := db_CopyFieldTo('*', FDB_HND, Field_Pos, DestDB.FDB_HND, DestFieldPos);
 end;
 
 function TObjectDataManager.CopyFieldToPath(Path_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Boolean;
 var
-  fieldPos: Int64;
+  Field_Pos: Int64;
 begin
   Result := False;
-  if GetPathField(Path_, fieldPos) then
-      Result := CopyFieldToPath(fieldPos, DestDB, destPath);
+  if GetPathField(Path_, Field_Pos) then
+      Result := CopyFieldToPath(Field_Pos, DestDB, destPath);
 end;
 
 function TObjectDataManager.CopyItemToPath(Path_, DB_Item_: SystemString; DestDB: TObjectDataManager; destPath: SystemString): Integer;
@@ -1304,30 +1306,30 @@ begin
   Result := db_GetField(FieldName_, Field, FDB_HND);
 end;
 
-function TObjectDataManager.FastDelete(const fieldPos: Int64; const fPos: Int64): Boolean;
+function TObjectDataManager.FastDelete(const Field_Pos: Int64; const fPos: Int64): Boolean;
 var
   FieldHnd: TFieldHandle;
 begin
   Init_TField(FieldHnd);
   Result := False;
-  if dbField_ReadRec(fieldPos, FDB_HND.IOHnd, FieldHnd) then
-      Result := dbField_DeleteHeader(fPos, fieldPos, FDB_HND.IOHnd, FieldHnd);
+  if dbField_ReadRec(Field_Pos, FDB_HND.IOHnd, FieldHnd) then
+      Result := dbField_DeleteHeader(fPos, Field_Pos, FDB_HND.IOHnd, FieldHnd);
 end;
 
-function TObjectDataManager.FastFieldExists(const fieldPos: Int64; const FieldName: SystemString): Boolean;
+function TObjectDataManager.FastFieldExists(const Field_Pos: Int64; const FieldName: SystemString): Boolean;
 var
   FieldSearch: TFieldSearch;
 begin
-  Result := FieldFastFindFirst(fieldPos, FieldName, FieldSearch);
+  Result := FieldFastFindFirst(Field_Pos, FieldName, FieldSearch);
 end;
 
-function TObjectDataManager.FastFieldCreate(const fieldPos: Int64; const FieldName, FieldDescription: SystemString; var NewFieldPos: Int64): Boolean;
+function TObjectDataManager.FastFieldCreate(const Field_Pos: Int64; const FieldName, FieldDescription: SystemString; var NewFieldPos: Int64): Boolean;
 var
   NewField: TField;
 begin
   Init_TField(NewField);
   NewField.Description := FieldDescription;
-  Result := dbField_CreateField(FieldName, fieldPos, FDB_HND.IOHnd, NewField);
+  Result := dbField_CreateField(FieldName, Field_Pos, FDB_HND.IOHnd, NewField);
   NewFieldPos := NewField.RHeader.CurrentHeader;
 end;
 
@@ -1352,7 +1354,7 @@ begin
       Result := -1;
 end;
 
-function TObjectDataManager.FieldRename(const fieldPos: Int64; const NewFieldName, NewFieldDescription: SystemString): Boolean;
+function TObjectDataManager.FieldRename(const Field_Pos: Int64; const NewFieldName, NewFieldDescription: SystemString): Boolean;
 var
   FieldHnd: TFieldHandle;
 begin
@@ -1360,13 +1362,13 @@ begin
   if not umlExistsChar(NewFieldName, '\/') then
     begin
       Init_TField(FieldHnd);
-      if dbField_ReadRec(fieldPos, FDB_HND.IOHnd, FieldHnd) then
+      if dbField_ReadRec(Field_Pos, FDB_HND.IOHnd, FieldHnd) then
         begin
           if (not FastFieldExists(FieldHnd.UpFieldPOS, NewFieldName)) and (FieldHnd.RHeader.CurrentHeader <> FDB_HND.DefaultFieldPOS) then
             begin
               FieldHnd.RHeader.Name := NewFieldName;
               FieldHnd.Description := NewFieldDescription;
-              Result := dbField_WriteRec(fieldPos, FDB_HND.IOHnd, FieldHnd);
+              Result := dbField_WriteRec(Field_Pos, FDB_HND.IOHnd, FieldHnd);
             end;
         end;
     end;
@@ -1386,21 +1388,21 @@ end;
 
 function TObjectDataManager.FieldExists(const Path_: SystemString): Boolean;
 var
-  fieldPos: Int64;
+  Field_Pos: Int64;
 begin
-  Result := GetPathField(Path_, fieldPos);
+  Result := GetPathField(Path_, Field_Pos);
 end;
 
-function TObjectDataManager.FieldFastFindFirst(const fieldPos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
+function TObjectDataManager.FieldFastFindFirst(const Field_Pos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
 begin
   Init_TTMDBSearchField(FieldSearchHandle);
-  Result := db_FastFindFirstField(fieldPos, Filter, FieldSearchHandle, FDB_HND);
+  Result := db_FastFindFirstField(Field_Pos, Filter, FieldSearchHandle, FDB_HND);
 end;
 
-function TObjectDataManager.FieldFastFindLast(const fieldPos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
+function TObjectDataManager.FieldFastFindLast(const Field_Pos: Int64; const Filter: SystemString; var FieldSearchHandle: TFieldSearch): Boolean;
 begin
   Init_TTMDBSearchField(FieldSearchHandle);
-  Result := db_FastFindLastField(fieldPos, Filter, FieldSearchHandle, FDB_HND);
+  Result := db_FastFindLastField(Field_Pos, Filter, FieldSearchHandle, FDB_HND);
 end;
 
 function TObjectDataManager.FieldFastFindNext(var FieldSearchHandle: TFieldSearch): Boolean;
@@ -1440,30 +1442,35 @@ begin
   Result := db_MoveField(Path_, FieldName, destPath, FDB_HND);
 end;
 
-function TObjectDataManager.GetFieldData(const fieldPos: Int64; var dest: TFieldHandle): Boolean;
+function TObjectDataManager.GetFieldData(const Field_Pos: Int64; var dest: TFieldHandle): Boolean;
 begin
   Init_TField(dest);
-  Result := dbField_ReadRec(fieldPos, FDB_HND.IOHnd, dest);
+  Result := dbField_ReadRec(Field_Pos, FDB_HND.IOHnd, dest);
 end;
 
-function TObjectDataManager.GetFieldPath(const fieldPos: Int64): SystemString;
+function TObjectDataManager.GetFieldPath(const Field_Pos: Int64): SystemString;
 var
   ReturnPath: U_String;
 begin
-  if db_GetPath(fieldPos, FDB_HND.DefaultFieldPOS, FDB_HND, ReturnPath) then
+  if db_GetPath(Field_Pos, FDB_HND.DefaultFieldPOS, FDB_HND, ReturnPath) then
       Result := ReturnPath
   else
       Result := '';
 end;
 
-function TObjectDataManager.GetFieldPath(const fieldPos, RootFieldPos: Int64): SystemString;
+function TObjectDataManager.GetFieldPath(const Field_Pos, RootFieldPos: Int64): SystemString;
 var
   ReturnPath: U_String;
 begin
-  if db_GetPath(fieldPos, RootFieldPos, FDB_HND, ReturnPath) then
+  if db_GetPath(Field_Pos, RootFieldPos, FDB_HND, ReturnPath) then
       Result := ReturnPath
   else
       Result := '';
+end;
+
+function TObjectDataManager.GetPathField(const Path_: SystemString; var dest: TFieldHandle): Boolean;
+begin
+  Result := db_GetField(Path_, dest, FDB_HND);
 end;
 
 function TObjectDataManager.GetPathField(const Path_: SystemString; var dest: Int64): Boolean;
@@ -1515,6 +1522,11 @@ begin
         until False;
       end;
   Result := True;
+end;
+
+function TObjectDataManager.ComputeFieldPath(const Field_Pos, RootFieldPos: Int64; var output: U_String): Boolean;
+begin
+  Result := db_GetPath(Field_Pos, RootFieldPos, FDB_HND, output);
 end;
 
 function TObjectDataManager.GetItemList(const Field_: TPascalString; AsLst: TPascalStringList): Integer;
@@ -1581,22 +1593,22 @@ begin
       Result := umlDefaultTime;
 end;
 
-function TObjectDataManager.GetFirstHeaderFromField(fieldPos: Int64; var h: THeader): Boolean;
+function TObjectDataManager.GetFirstHeaderFromField(Field_Pos: Int64; var h: THeader): Boolean;
 var
   f: TField;
 begin
-  Result := (dbField_ReadRec(fieldPos, FDB_HND.IOHnd, f)) and (f.HeaderCount > 0);
+  Result := (dbField_ReadRec(Field_Pos, FDB_HND.IOHnd, f)) and (f.HeaderCount > 0);
   if Result then
     begin
       Result := GetHeader(f.FirstHeaderPOS, h);
     end;
 end;
 
-function TObjectDataManager.GetLastHeaderFromField(fieldPos: Int64; var h: THeader): Boolean;
+function TObjectDataManager.GetLastHeaderFromField(Field_Pos: Int64; var h: THeader): Boolean;
 var
   f: TField;
 begin
-  Result := (dbField_ReadRec(fieldPos, FDB_HND.IOHnd, f)) and (f.HeaderCount > 0);
+  Result := (dbField_ReadRec(Field_Pos, FDB_HND.IOHnd, f)) and (f.HeaderCount > 0);
   if Result then
       Result := GetHeader(f.LastHeaderPOS, h);
 end;
@@ -1776,15 +1788,15 @@ begin
   Result := db_MoveItem(Path_, ItemName, destPath, FDefaultItemID, FDB_HND);
 end;
 
-function TObjectDataManager.ItemRename(const fieldPos: Int64; var ItemHnd: TItemHandle; const NewName, NewDescription: SystemString): Boolean;
+function TObjectDataManager.ItemRename(const Field_Pos: Int64; var ItemHnd: TItemHandle; const NewName, NewDescription: SystemString): Boolean;
 begin
-  Result := db_ItemReName(fieldPos, NewName, NewDescription, ItemHnd, FDB_HND);
+  Result := db_ItemReName(Field_Pos, NewName, NewDescription, ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastInsertNew(const fieldPos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
+function TObjectDataManager.ItemFastInsertNew(const Field_Pos, InsertHeaderPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
 begin
   Init_TTMDBItemHandle(ItemHnd);
-  Result := db_ItemFastInsertNew(DB_Item_, DBItemDescription, fieldPos, InsertHeaderPos, FDefaultItemID, ItemHnd, FDB_HND);
+  Result := db_ItemFastInsertNew(DB_Item_, DBItemDescription, Field_Pos, InsertHeaderPos, FDefaultItemID, ItemHnd, FDB_HND);
 end;
 
 function TObjectDataManager.ItemFastCreate(const fPos: Int64; const DB_Item_, DBItemDescription: SystemString; var ItemHnd: TItemHandle): Boolean;
@@ -1807,24 +1819,24 @@ begin
     and db_ItemBodyReset(ItemHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastExists(const fieldPos: Int64; const DB_Item_: SystemString): Boolean;
+function TObjectDataManager.ItemFastExists(const Field_Pos: Int64; const DB_Item_: SystemString): Boolean;
 var
   ItemSearchHnd: TItemSearch;
 begin
   Init_TTMDBSearchItem(ItemSearchHnd);
-  Result := db_FastFindFirstItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHnd, FDB_HND);
+  Result := db_FastFindFirstItem(Field_Pos, DB_Item_, FDefaultItemID, ItemSearchHnd, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastFindFirst(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFastFindFirst(const Field_Pos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FastFindFirstItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FastFindFirstItem(Field_Pos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
-function TObjectDataManager.ItemFastFindLast(const fieldPos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
+function TObjectDataManager.ItemFastFindLast(const Field_Pos: Int64; const DB_Item_: SystemString; var ItemSearchHandle: TItemSearch): Boolean;
 begin
   Init_TTMDBSearchItem(ItemSearchHandle);
-  Result := db_FastFindLastItem(fieldPos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
+  Result := db_FastFindLastItem(Field_Pos, DB_Item_, FDefaultItemID, ItemSearchHandle, FDB_HND);
 end;
 
 function TObjectDataManager.ItemFastFindNext(var ItemSearchHandle: TItemSearch): Boolean;

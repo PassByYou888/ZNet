@@ -364,7 +364,7 @@ object DTC40_Log_AdminToolForm: TDTC40_Log_AdminToolForm
     Left = 309
     Top = 138
     object Action_RemoveLogDB: TAction
-      Caption = 'Remove of Log DB'
+      Caption = 'Remove of Log DB from selected.'
       OnExecute = Action_RemoveLogDBExecute
     end
   end

@@ -1513,8 +1513,6 @@ end;
 
 initialization
 
-// TZDB2.Test;
-
 finalization
 
 end.

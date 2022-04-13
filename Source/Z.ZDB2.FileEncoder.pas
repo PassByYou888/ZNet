@@ -886,9 +886,6 @@ end;
 
 initialization
 
-// TZDB2_File_Encoder.Test;
-// TZDB2_File_Decoder.Test;
-
 finalization
 
 end.

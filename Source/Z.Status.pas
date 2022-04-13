@@ -494,7 +494,13 @@ begin
     end;
 {$ENDIF DELPHI}
   if (Status_Active__) and ((ConsoleOutput) or (ID = 2)) and (IsConsole) then
+    begin
+{$IFDEF FPC}
+      Writeln(UTF8Decode(Text_.Text));
+{$ELSE FPC}
       Writeln(Text_.Text);
+{$ENDIF FPC}
+    end;
 end;
 
 procedure CheckDoStatus(Th: TCore_Thread);
