@@ -177,13 +177,10 @@ function TextIs(t: TPascalString; const SomeCharsets: TOrdChars; const SomeChars
 
 function FastHashPSystemString(const s: PSystemString): THash; overload;
 function FastHash64PSystemString(const s: PSystemString): THash64; overload;
-
 function FastHashSystemString(const s: SystemString): THash; overload;
 function FastHash64SystemString(const s: SystemString): THash64; overload;
-
 function FastHashPPascalString(const s: PPascalString): THash;
 function FastHash64PPascalString(const s: PPascalString): THash64;
-
 function PFormat(const Fmt: SystemString; const Args: array of const): SystemString;
 
 {$IFDEF FPC}
@@ -248,17 +245,17 @@ const
 var
 {$IFDEF CPU64}
   MaxSmithWatermanMatrix: NativeInt = 10000 * 10;
-{$ELSE}
+{$ELSE CPU64}
   MaxSmithWatermanMatrix: NativeInt = 8192;
-{$ENDIF}
+{$ENDIF CPU64}
 
 
 const
 {$IFDEF FirstCharInZero}
   FirstCharPos = 0;
-{$ELSE}
+{$ELSE FirstCharInZero}
   FirstCharPos = 1;
-{$ENDIF}
+{$ENDIF FirstCharInZero}
 
 implementation
 
@@ -452,9 +449,9 @@ begin
 
 {$IFDEF FirstCharInZero}
   for i := 0 to length(s^) - 1 do
-{$ELSE}
+{$ELSE FirstCharInZero}
   for i := 1 to length(s^) do
-{$ENDIF}
+{$ENDIF FirstCharInZero}
     begin
       c := s^[i];
       if CharIn(c, cHiAtoZ) then
@@ -472,9 +469,9 @@ begin
 
 {$IFDEF FirstCharInZero}
   for i := 0 to length(s^) - 1 do
-{$ELSE}
+{$ELSE FirstCharInZero}
   for i := 1 to length(s^) do
-{$ENDIF}
+{$ENDIF FirstCharInZero}
     begin
       c := s^[i];
       if CharIn(c, cHiAtoZ) then
