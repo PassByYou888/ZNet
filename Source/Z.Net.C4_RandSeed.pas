@@ -19,7 +19,7 @@ uses
 
 type
   TC40_RandSeed_Client = class;
-  TBigSeedPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TUInt32HashPointerList>;
+  TBigSeedPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TUInt32HashPointerList>;
 
   TC40_RandSeed_Service = class(TC40_Base_NoAuth_Service)
   protected

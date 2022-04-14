@@ -19,8 +19,6 @@ type
 {$ENDIF FPC}
   PSystemChar = ^SystemChar;
   TArrayChar = array of SystemChar;
-  THash = Cardinal;
-  THash64 = UInt64;
   PSystemString = ^SystemString;
   PPascalString = ^TPascalString;
   TOrdChar = (c0to9, c1to9, c0to32, c0to32no10, cLoAtoF, cHiAtoF, cLoAtoZ, cHiAtoZ, cHex, cAtoF, cAtoZ, cVisibled);

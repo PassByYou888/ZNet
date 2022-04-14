@@ -11,17 +11,17 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Status,
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine;
+  Z.Core,
+  Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine;
 
 type
 {$IFDEF FPC}
-  generic TGenericHashList<T_: TCore_Object> = class(TCore_Object)
+  generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
-  TGenericHashList<T_: class> = class(TCore_Object)
+  TGeneric_String_Object_Hash<T_: class> = class(TCore_Object)
 {$ENDIF FPC}
   public type
-    TRefClass_ = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<T_>;
+    TRefClass_ = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<T_>;
     TGebnericHashChangeEvent = procedure(Sender: TCore_Object; Name: SystemString; OLD_, New_: T_) of object;
     PGebnericHashListData = ^TGebnericHashListData;
 
@@ -104,27 +104,26 @@ type
     property HashList: THashList read FHashList;
   end;
 
-procedure Test_GListEngine;
+procedure Test_Generic_String_Object_Hash;
 
 implementation
 
-
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCount: NativeInt;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCount: NativeInt;
 begin
   Result := FHashList.Count;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetIgnoreCase: Boolean;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetIgnoreCase: Boolean;
 begin
   Result := FHashList.IgnoreCase;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetIgnoreCase(const Value: Boolean);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetIgnoreCase(const Value: Boolean);
 begin
   FHashList.IgnoreCase := Value;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetKeyValue(const Name: SystemString): T_;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetKeyValue(const Name: SystemString): T_;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -135,12 +134,12 @@ begin
       Result := Default_Null_Value;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetKeyValue(const Name: SystemString; const Value: T_);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetKeyValue(const Name: SystemString; const Value: T_);
 begin
   Add(Name, Value);
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetOnChange(const Name: SystemString): TGebnericHashChangeEvent;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetOnChange(const Name: SystemString): TGebnericHashChangeEvent;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -151,7 +150,7 @@ begin
       Result := nil;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetOnChange(const Name: SystemString; const AValue: TGebnericHashChangeEvent);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetOnChange(const Name: SystemString; const AValue: TGebnericHashChangeEvent);
 var
   pObjData: PGebnericHashListData;
 begin
@@ -167,33 +166,33 @@ begin
       pObjData^.OnChnage := AValue;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetAccessOptimization: Boolean;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetAccessOptimization: Boolean;
 begin
   Result := FHashList.AccessOptimization;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetAccessOptimization(const Value: Boolean);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetAccessOptimization(const Value: Boolean);
 begin
   FHashList.AccessOptimization := Value;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Do_HashList_DataFree(p: Pointer);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Do_HashList_DataFree(p: Pointer);
 begin
   Dispose(PGebnericHashListData(p));
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Do_Free_Obj(var Obj_: T_);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Do_Free_Obj(var Obj_: T_);
 begin
   if Assigned(OnFree) then
       OnFree(Obj_);
   DisposeObject(Obj_);
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInited;
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInited;
 begin
 end;
 
-constructor TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_Null_Value_: T_);
+constructor TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_Null_Value_: T_);
 begin
   inherited Create;
   FHashList := THashList.CustomCreate(HashPoolSize_);
@@ -206,14 +205,14 @@ begin
   DoInited();
 end;
 
-destructor TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
   DisposeObject(FHashList);
   inherited Destroy;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Assign(sour: TRefClass_);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Assign(sour: TRefClass_);
 var
   i: Integer;
   p: PHashListData;
@@ -232,7 +231,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressC(const OnProgress: TGebnericHashListLoop_C);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressC(const OnProgress: TGebnericHashListLoop_C);
 var
   i: Integer;
   p: PHashListData;
@@ -253,7 +252,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressM(const OnProgress: TGebnericHashListLoop_M);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressM(const OnProgress: TGebnericHashListLoop_M);
 var
   i: Integer;
   p: PHashListData;
@@ -274,7 +273,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressP(const OnProgress: TGebnericHashListLoop_P);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressP(const OnProgress: TGebnericHashListLoop_P);
 var
   i: Integer;
   p: PHashListData;
@@ -295,7 +294,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
@@ -325,7 +324,7 @@ begin
   FIncremental := 0;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TCore_Strings);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TCore_Strings);
 var
   i: Integer;
   p: PHashListData;
@@ -344,7 +343,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListString);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListString);
 var
   i: Integer;
   p: PHashListData;
@@ -363,7 +362,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListPascalString);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListPascalString);
 var
   i: Integer;
   p: PHashListData;
@@ -382,7 +381,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TCore_Strings);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TCore_Strings);
 var
   i: Integer;
   p: PHashListData;
@@ -401,7 +400,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListString);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListString);
 var
   i: Integer;
   p: PHashListData;
@@ -420,7 +419,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListPascalString);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListPascalString);
 var
   i: Integer;
   p: PHashListData;
@@ -439,7 +438,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetAsList(OutputList: TCore_ListForObj);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetAsList(OutputList: TCore_ListForObj);
 var
   i: Integer;
   p: PHashListData;
@@ -459,7 +458,7 @@ begin
     end;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetObjAsName(Obj: T_): SystemString;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetObjAsName(Obj: T_): SystemString;
 var
   i: Integer;
   p: PHashListData;
@@ -482,7 +481,7 @@ begin
     end;
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Delete(const Name: SystemString);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Delete(const Name: SystemString);
 var
   pObjData: PGebnericHashListData;
 begin
@@ -504,7 +503,7 @@ begin
   FHashList.Delete(Name);
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(const Name: SystemString; Obj_: T_): T_;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(const Name: SystemString; Obj_: T_): T_;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -537,7 +536,7 @@ begin
   Result := Obj_;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.FastAdd(const Name: SystemString; Obj_: T_): T_;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.FastAdd(const Name: SystemString; Obj_: T_): T_;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -549,7 +548,7 @@ begin
   Result := Obj_;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find(const Name: SystemString): T_;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find(const Name: SystemString): T_;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -560,12 +559,12 @@ begin
       Result := Default_Null_Value;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Exists(const Name: SystemString): Boolean;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Exists(const Name: SystemString): Boolean;
 begin
   Result := FHashList.Exists(Name);
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.ExistsObject(Obj: T_): Boolean;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ExistsObject(Obj: T_): Boolean;
 var
   lst: TCore_List;
   i: Integer;
@@ -588,7 +587,7 @@ begin
   DisposeObject(lst);
 end;
 
-procedure TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CopyFrom(const Source: TRefClass_);
+procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.CopyFrom(const Source: TRefClass_);
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
@@ -609,7 +608,7 @@ begin
   DisposeObject(lst);
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.ReName(OLD_, New_: SystemString): Boolean;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ReName(OLD_, New_: SystemString): Boolean;
 var
   pObjData: PGebnericHashListData;
 begin
@@ -622,7 +621,7 @@ begin
     end;
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.MakeName: SystemString;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.MakeName: SystemString;
 begin
   repeat
     inc(FIncremental);
@@ -630,7 +629,7 @@ begin
   until not Exists(Result);
 end;
 
-function TGenericHashList{$IFNDEF FPC}<T_>{$ENDIF FPC}.MakeRefName(RefrenceName: SystemString): SystemString;
+function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.MakeRefName(RefrenceName: SystemString): SystemString;
 begin
   Result := RefrenceName;
   if not Exists(Result) then
@@ -642,9 +641,9 @@ begin
   until not Exists(Result);
 end;
 
-procedure Test_GListEngine;
+procedure Test_Generic_String_Object_Hash;
 type
-  TSL = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TCore_StringList>;
+  TSL = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TCore_StringList>;
 var
   L: TSL;
 begin

@@ -151,7 +151,7 @@ type
     property DirectOriginValue: Variant read FOriginValue write FOriginValue;
   end;
 
-  TNumberModulePool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TNumberModule>;
+  TNumberModulePool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TNumberModule>;
   TOnNMChange = procedure(Sender: TNumberModulePool; NM_: TNumberModule; OLD_, New_: Variant) of object;
   TOnNMCreateOpRunTime = procedure(Sender: TNumberModulePool; OP_: TOpCustomRunTime) of object;
 

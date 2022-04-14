@@ -19,7 +19,7 @@ uses Variants,
   Z.ZDB2.TE, Z.ZDB2, Z.GHashList;
 
 type
-  TTEKeyValue_HashList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TZDB2_HashTextEngine>;
+  TTEKeyValue_HashList = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TZDB2_HashTextEngine>;
 
   TC40_VM_TEKeyValue_Service = class(TC40_NoAuth_VM_Service)
   protected

@@ -92,7 +92,7 @@ type
   end;
 
   TXClientMappingList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TXClientMapping>;
-  TXClientHashMapping = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericHashList<TXClientMapping>;
+  TXClientHashMapping = {$IFDEF FPC}specialize {$ENDIF FPC} TGeneric_String_Object_Hash<TXClientMapping>;
 
   TXNATClient = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
   private

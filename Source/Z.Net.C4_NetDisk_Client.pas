@@ -547,13 +547,18 @@ type
   end;
 
   TC40_NetDisk_Client_Task = class;
+  TC40_NetDisk_Client_Task_Pool = class;
   TC40_NetDisk_Client_Task_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TC40_NetDisk_Client_Task>;
+
+  TC40_NetDisk_Client_Task_Pool_All_Done = procedure(sender: TC40_NetDisk_Client_Task_Pool) of object;
 
   TC40_NetDisk_Client_Task_Pool = class(TC40_NetDisk_Client_Task_Pool_Decl)
   public
     All_Done_Do_Auto_Free: Boolean;
+    On_All_Done: TC40_NetDisk_Client_Task_Pool_All_Done;
     constructor Create;
     procedure DoFree(var Data: TC40_NetDisk_Client_Task); override;
+    procedure All_Done; virtual;
     procedure Add_Task_Post_File(Client: TC40_NetDisk_Client; Local_File, DB_Field, DB_Item: U_String);
     procedure Add_Task_Get_File(Client: TC40_NetDisk_Client; Local_File, DB_Field, DB_Item: U_String);
     procedure Add_Task_Get_Share_File(Client: TC40_NetDisk_Client; Local_File, Share_Directory_DB_Name, DB_Field, DB_Item: U_String);
@@ -700,6 +705,8 @@ type
     // copy from netdisk
     procedure Copy_Item(arry: TCopyItem_Info_Array);
     procedure Copy_Field(arry: TCopyField_Info_Array);
+    // create field
+    procedure CreateField(DB_Field: U_String);
     // rename
     procedure RenameField(DB_Field, New_Field_Name: U_String);
     procedure RenameItem(DB_Field, Old_Item_Name, New_Item_Name: U_String);
@@ -1328,8 +1335,8 @@ begin
   SetLength(arry, 0);
   if Successed then
     begin
-      info := 'successed.';
-      SetLength(arry, (Result_.Count - 1) div 3);
+      info := Result_.R.ReadString;
+      SetLength(arry, (Result_.Count - 2) div 3);
       i := 0;
       while Result_.R.NotEnd do
         begin
@@ -1495,8 +1502,8 @@ begin
   SetLength(arry, 0);
   if Successed then
     begin
-      info := 'successed.';
-      SetLength(arry, (Result_.Count - 1) div 3);
+      info := Result_.R.ReadString;
+      SetLength(arry, (Result_.Count - 2) div 3);
       i := 0;
       while Result_.R.NotEnd do
         begin
@@ -2097,6 +2104,7 @@ constructor TC40_NetDisk_Client_Task_Pool.Create;
 begin
   inherited Create;
   All_Done_Do_Auto_Free := True;
+  On_All_Done := nil;
 end;
 
 procedure TC40_NetDisk_Client_Task_Pool.DoFree(var Data: TC40_NetDisk_Client_Task);
@@ -2107,6 +2115,12 @@ begin
       Data.Pool_Ptr := nil;
       DisposeObjectAndNil(Data);
     end;
+end;
+
+procedure TC40_NetDisk_Client_Task_Pool.All_Done;
+begin
+  if Assigned(On_All_Done) then
+      On_All_Done(self);
 end;
 
 procedure TC40_NetDisk_Client_Task_Pool.Add_Task_Post_File(Client: TC40_NetDisk_Client; Local_File, DB_Field, DB_Item: U_String);
@@ -2165,8 +2179,13 @@ begin
     begin
       Pool_Ptr^.Data := nil;
       OwnerPool.Remove(Pool_Ptr);
-      if OwnerPool.All_Done_Do_Auto_Free and (OwnerPool.Num = 0) then
-          OwnerPool.Free;
+      if (OwnerPool.Num = 0) then
+        begin
+          OwnerPool.All_Done();
+
+          if OwnerPool.All_Done_Do_Auto_Free then
+              OwnerPool.Free;
+        end;
     end;
   inherited Destroy;
 end;
@@ -3432,6 +3451,16 @@ begin
     end;
 
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Copy_Field', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.CreateField(DB_Field: U_String);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(DB_Field);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CreateField', d);
   DisposeObject(d);
 end;
 

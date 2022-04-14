@@ -135,6 +135,43 @@ begin
   Result := p;
 end;
 
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
+var
+  p: PQueueStruct;
+begin
+  new(p);
+  FillPtr(@p^.Data, SizeOf(T_), 0);
+  if (FFirst = nil) or (FLast = nil) then
+    begin
+      FFirst := p;
+      FLast := p;
+      p^.Prev := p;
+      p^.Next := p;
+    end
+  else if FFirst = FLast then
+    begin
+      FLast := p;
+      FFirst^.Prev := FLast;
+      FFirst^.Next := FLast;
+      FLast^.Next := FFirst;
+      FLast^.Prev := FFirst;
+    end
+  else
+    begin
+      FFirst^.Prev := p;
+      FLast^.Next := p;
+      p^.Next := FFirst;
+      p^.Prev := FLast;
+      FLast := p;
+    end;
+{$IFDEF DEBUG}
+  p^.Instance_ := Self;
+{$ENDIF DEBUG}
+  Inc(FNum);
+  FChanged := True;
+  Result := p;
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
 var
   p: PQueueStruct;
@@ -802,6 +839,46 @@ begin
 
   new(p);
   p^.Data := Data;
+  if (FFirst = nil) or (FLast = nil) then
+    begin
+      FFirst := p;
+      FLast := p;
+      p^.Prev := p;
+      p^.Next := p;
+    end
+  else if FFirst = FLast then
+    begin
+      FLast := p;
+      FFirst^.Prev := FLast;
+      FFirst^.Next := FLast;
+      FLast^.Next := FFirst;
+      FLast^.Prev := FFirst;
+    end
+  else
+    begin
+      FFirst^.Prev := p;
+      FLast^.Next := p;
+      p^.Next := FFirst;
+      p^.Prev := FLast;
+      FLast := p;
+    end;
+{$IFDEF DEBUG}
+  p^.Instance_ := Self;
+{$ENDIF DEBUG}
+  Inc(FNum);
+  FChanged := True;
+  FCritical.UnLock;
+  Result := p;
+end;
+
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
+var
+  p: PQueueStruct;
+begin
+  FCritical.Lock;
+
+  new(p);
+  FillPtr(@p^.Data, SizeOf(T_), 0);
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;

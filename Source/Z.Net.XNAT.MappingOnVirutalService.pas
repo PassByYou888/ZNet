@@ -98,7 +98,7 @@ type
   end;
 
   TXVirutalServiceMappingList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TXNAT_MappingOnVirutalService>;
-  TXVirutalServiceHashMapping = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericHashList<TXNAT_MappingOnVirutalService>;
+  TXVirutalServiceHashMapping = {$IFDEF FPC}specialize {$ENDIF FPC} TGeneric_String_Object_Hash<TXNAT_MappingOnVirutalService>;
   TXNAT_VS_Mapping_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TXNAT_VS_Mapping>;
 
   TXNAT_VS_Mapping = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)

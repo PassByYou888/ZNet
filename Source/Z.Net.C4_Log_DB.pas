@@ -28,7 +28,7 @@ type
     FileName: U_String;
   end;
 
-  TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_ZDB2_List_HashString>;
+  TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_ZDB2_List_HashString>;
   TLog_DB_List = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TC40_ZDB2_List_HashString>;
 
   TC40_Log_DB_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)

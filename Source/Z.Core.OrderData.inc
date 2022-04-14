@@ -1,4 +1,4 @@
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct_);
+procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -30,7 +30,7 @@ end;
 
 procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, N_P: POrderStruct_;
+  p, N_P: POrderStruct;
 begin
   p := FFirst;
   while p <> nil do
@@ -46,7 +46,7 @@ end;
 
 procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  N_P: POrderStruct_;
+  N_P: POrderStruct;
 begin
   if FFirst <> nil then
     begin
@@ -59,9 +59,9 @@ begin
     end;
 end;
 
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_);
+function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderStruct;
 var
-  p: POrderStruct_;
+  p: POrderStruct;
 begin
   new(p);
   p^.Data := Data;
@@ -78,9 +78,10 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
+  Result := p;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct_);
+procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);
@@ -114,7 +115,7 @@ end;
 
 procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, N_P: POrderPtrStruct_;
+  p, N_P: POrderPtrStruct;
 begin
   p := FFirst;
   while p <> nil do
@@ -130,7 +131,7 @@ end;
 
 procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  N_P: POrderPtrStruct_;
+  N_P: POrderPtrStruct;
 begin
   if FFirst <> nil then
     begin
@@ -143,9 +144,9 @@ begin
     end;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_);
+function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderPtrStruct;
 var
-  p: POrderPtrStruct_;
+  p: POrderPtrStruct;
 begin
   new(p);
   new(p^.Data);
@@ -163,11 +164,12 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
+  Result := p;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_);
+function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_): POrderPtrStruct;
 var
-  p: POrderPtrStruct_;
+  p: POrderPtrStruct;
 begin
   new(p);
   p^.Data := Data;
@@ -184,9 +186,10 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
+  Result := p;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct_);
+procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -220,7 +223,7 @@ end;
 
 procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, N_P: POrderStruct_;
+  p, N_P: POrderStruct;
 begin
   FCritical.Lock;
   p := FFirst;
@@ -236,7 +239,7 @@ begin
   FCritical.UnLock;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderStruct_;
+function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderStruct;
 begin
   FCritical.Lock;
   Result := FFirst;
@@ -245,7 +248,7 @@ end;
 
 procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  N_P: POrderStruct_;
+  N_P: POrderStruct;
 begin
   FCritical.Lock;
   if FFirst <> nil then
@@ -260,9 +263,9 @@ begin
   FCritical.UnLock;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_);
+function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderStruct;
 var
-  p: POrderStruct_;
+  p: POrderStruct;
 begin
   new(p);
   p^.Data := Data;
@@ -281,6 +284,7 @@ begin
       FLast := p;
     end;
   FCritical.UnLock;
+  Result := p;
 end;
 
 function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;
@@ -290,7 +294,7 @@ begin
   FCritical.UnLock;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct_);
+procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);
@@ -326,7 +330,7 @@ end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
-  p, N_P: POrderPtrStruct_;
+  p, N_P: POrderPtrStruct;
 begin
   FCritical.Lock;
   p := FFirst;
@@ -342,7 +346,7 @@ begin
   FCritical.UnLock;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderPtrStruct_;
+function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderPtrStruct;
 begin
   FCritical.Lock;
   Result := FFirst;
@@ -351,7 +355,7 @@ end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
-  N_P: POrderPtrStruct_;
+  N_P: POrderPtrStruct;
 begin
   FCritical.Lock;
   if FFirst <> nil then
@@ -366,9 +370,9 @@ begin
   FCritical.UnLock;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_);
+function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderPtrStruct;
 var
-  p: POrderPtrStruct_;
+  p: POrderPtrStruct;
 begin
   new(p);
   new(p^.Data);
@@ -388,11 +392,12 @@ begin
       FLast := p;
     end;
   FCritical.UnLock;
+  Result := p;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_);
+function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_): POrderPtrStruct;
 var
-  p: POrderPtrStruct_;
+  p: POrderPtrStruct;
 begin
   new(p);
   p^.Data := Data;
@@ -411,6 +416,7 @@ begin
       FLast := p;
     end;
   FCritical.UnLock;
+  Result := p;
 end;
 
 function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;

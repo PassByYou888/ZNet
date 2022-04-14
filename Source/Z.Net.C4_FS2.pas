@@ -42,8 +42,8 @@ type
     destructor Destroy; override;
   end;
 
-  TC40_FS2_Service_File_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_FS2_Service_File_Data>;
-  TC40_FS2_Service_MD5_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TPascalStringList>;
+  TC40_FS2_Service_File_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_FS2_Service_File_Data>;
+  TC40_FS2_Service_MD5_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TPascalStringList>;
 
   TC40_FS2_Service = class(TC40_Base_NoAuth_Service)
   protected
@@ -95,7 +95,7 @@ type
     destructor Destroy; override;
   end;
 
-  TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TFS2_Client_CacheData>;
+  TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TFS2_Client_CacheData>;
 
 {$REGION 'bridge_define'}
   TC40_FS2_Client_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);

@@ -41,7 +41,7 @@ type
   TOn_C40_Var_Service_NM_Change = procedure(Sender: TC40_Var_Service; NMPool_: TC40_VarService_NM_Pool; NM: TNumberModule) of object;
   TOn_C40_Var_Service_NMPool_Event = procedure(Sender: TC40_Var_Service; NMPool_: TC40_VarService_NM_Pool) of object;
 
-  TVAR_Service_NMBigPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_VarService_NM_Pool>;
+  TVAR_Service_NMBigPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_VarService_NM_Pool>;
   TC40_Var_NumberModulePool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_VarService_NM_Pool>;
 
   TC40_Var_Service_IO_Define = class(TPeerClientUserDefineForRecvTunnel_NoAuth)

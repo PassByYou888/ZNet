@@ -974,10 +974,11 @@ type
   end;
 
   PListPascalStringData = ^TListPascalStringData;
+  TListPascalStringData_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PListPascalStringData>;
 
   TListPascalString = class(TCore_Object)
   private
-    FList: TCore_List;
+    FList: TListPascalStringData_List;
   protected
     function GetText: SystemString;
     procedure SetText(const Value: SystemString);
@@ -1029,7 +1030,7 @@ type
     property Items_PPascalString[idx: Integer]: PPascalString read GetItems_PPascalString;
     property Objects[idx: Integer]: TCore_Object read GetObjects write SetObjects;
 
-    property List: TCore_List read FList;
+    property List: TListPascalStringData_List read FList;
   end;
 {$ENDREGION 'TListPascalString'}
 {$REGION 'TBackcall_Pool'}
@@ -8330,12 +8331,12 @@ end;
 
 function TListPascalString.GetItems(idx: Integer): TPascalString;
 begin
-  Result := PListPascalStringData(FList[idx])^.Data;
+  Result := FList[idx]^.Data;
 end;
 
 procedure TListPascalString.SetItems(idx: Integer; Value: TPascalString);
 begin
-  with PListPascalStringData(FList[idx])^ do
+  with FList[idx]^ do
     begin
       Data := Value;
       hash := MakeHashPas(@Value);
@@ -8344,23 +8345,23 @@ end;
 
 function TListPascalString.GetItems_PPascalString(idx: Integer): PPascalString;
 begin
-  Result := @(PListPascalStringData(FList[idx])^.Data);
+  Result := @FList[idx]^.Data;
 end;
 
 function TListPascalString.GetObjects(idx: Integer): TCore_Object;
 begin
-  Result := PListPascalStringData(FList[idx])^.Obj;
+  Result := FList[idx]^.Obj;
 end;
 
 procedure TListPascalString.SetObjects(idx: Integer; Value: TCore_Object);
 begin
-  PListPascalStringData(FList[idx])^.Obj := Value;
+  FList[idx]^.Obj := Value;
 end;
 
 constructor TListPascalString.Create;
 begin
   inherited Create;
-  FList := TCore_List.Create;
+  FList := TListPascalStringData_List.Create;
 end;
 
 destructor TListPascalString.Destroy;
@@ -8461,7 +8462,7 @@ begin
   h := MakeHashPas(@Value);
   while i < FList.Count do
     begin
-      if (PListPascalStringData(FList[i])^.hash = h) and (PListPascalStringData(FList[i])^.Data.Same(Value)) then
+      if (FList[i]^.hash = h) and (FList[i]^.Data.Same(@Value)) then
           Delete(i)
       else
           inc(i);
@@ -8476,7 +8477,7 @@ var
 begin
   for i := 0 to FList.Count - 1 do
     begin
-      p := PListPascalStringData(FList[i]);
+      p := FList[i];
       p^.Data := '';
       Dispose(p);
     end;
@@ -8497,7 +8498,7 @@ begin
   Result := -1;
 
   for i := 0 to FList.Count - 1 do
-    if (PListPascalStringData(FList[i])^.hash = h) and (PListPascalStringData(FList[i])^.Data.Same(@Value)) then
+    if (FList[i]^.hash = h) and (FList[i]^.Data.Same(@Value)) then
       begin
         Result := i;
         Break;
@@ -8521,7 +8522,7 @@ begin
   Clear;
   for i := 0 to SameObj.Count - 1 do
     begin
-      P2 := PListPascalStringData(SameObj.FList[i]);
+      P2 := SameObj.FList[i];
       new(P1);
       P1^ := P2^;
       FList.Add(P1);
@@ -8621,7 +8622,7 @@ var
 begin
   for i := 0 to FList.Count - 1 do
     begin
-      n := PListPascalStringData(FList[i])^.Data.Text + #13#10;
+      n := FList[i]^.Data.Text + #13#10;
       b := n.Bytes;
       stream.write(b[0], Length(b));
       n := '';

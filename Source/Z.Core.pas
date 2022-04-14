@@ -25,6 +25,8 @@ uses SysUtils, Classes, Types, Variants,
 
 {$Region 'core defines + class'}
 type
+  THash = Cardinal;
+  THash64 = UInt64;
   TBytes = SysUtils.TBytes;
   TPoint = Types.TPoint;
   TTimeTick = UInt64;
@@ -242,28 +244,28 @@ type
 {$Region 'OrderStruct'}
   {$IFDEF FPC}generic{$ENDIF FPC}TOrderStruct<T_> = class(TCore_Object)
   public type
-    POrderStruct_ = ^TOrderStruct_;
+    POrderStruct = ^TOrderStruct_;
     TOrderStruct_ = record
       Data: T_;
-      Next: POrderStruct_;
+      Next: POrderStruct;
     end;
     TOnFreeOrderStruct = procedure(var p: T_) of object;
   private
-    FFirst: POrderStruct_;
-    FLast: POrderStruct_;
+    FFirst: POrderStruct;
+    FLast: POrderStruct;
     FNum: NativeInt;
     FOnFreeOrderStruct: TOnFreeOrderStruct;
-    procedure DoInternalFree(p: POrderStruct_);
+    procedure DoInternalFree(p: POrderStruct);
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
     procedure Clear;
-    property Current: POrderStruct_ read FFirst;
-    property First: POrderStruct_ read FFirst;
-    property Last: POrderStruct_ read FLast;
+    property Current: POrderStruct read FFirst;
+    property First: POrderStruct read FFirst;
+    property Last: POrderStruct read FLast;
     procedure Next;
-    procedure Push(Data: T_);
+    function Push(Data: T_): POrderStruct;
     property Num: NativeInt read FNum;
     property OnFree: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
@@ -271,59 +273,59 @@ type
   {$IFDEF FPC}generic{$ENDIF FPC}TOrderPtrStruct<T_> = class(TCore_Object)
   public type
     PT_ = ^T_;
-    POrderPtrStruct_ = ^TOrderPtrStruct_;
+    POrderPtrStruct = ^TOrderPtrStruct_;
     TOrderPtrStruct_ = record
       Data: PT_;
-      Next: POrderPtrStruct_;
+      Next: POrderPtrStruct;
     end;
     TOnFreeOrderPtrStruct = procedure(p: PT_) of object;
   private
-    FFirst: POrderPtrStruct_;
-    FLast: POrderPtrStruct_;
+    FFirst: POrderPtrStruct;
+    FLast: POrderPtrStruct;
     FNum: NativeInt;
     FOnFreeOrderStruct: TOnFreeOrderPtrStruct;
-    procedure DoInternalFree(p: POrderPtrStruct_);
+    procedure DoInternalFree(p: POrderPtrStruct);
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(Data: PT_); virtual;
     procedure Clear;
-    property Current: POrderPtrStruct_ read FFirst;
-    property First: POrderPtrStruct_ read FFirst;
-    property Last: POrderPtrStruct_ read FLast;
+    property Current: POrderPtrStruct read FFirst;
+    property First: POrderPtrStruct read FFirst;
+    property Last: POrderPtrStruct read FLast;
     procedure Next;
-    procedure Push(Data: T_);
-    procedure PushPtr(Data: PT_);
+    function Push(Data: T_): POrderPtrStruct;
+    function PushPtr(Data: PT_): POrderPtrStruct;
     property Num: NativeInt read FNum;
     property OnFree: TOnFreeOrderPtrStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}TCriticalOrderStruct<T_> = class(TCore_Object)
   public type
-    POrderStruct_ = ^TOrderStruct_;
+    POrderStruct = ^TOrderStruct_;
     TOrderStruct_ = record
       Data: T_;
-      Next: POrderStruct_;
+      Next: POrderStruct;
     end;
     TOnFreeCriticalOrderStruct = procedure(var p: T_) of object;
   private
     FCritical: TCritical;
-    FFirst: POrderStruct_;
-    FLast: POrderStruct_;
+    FFirst: POrderStruct;
+    FLast: POrderStruct;
     FNum: NativeInt;
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderStruct;
-    procedure DoInternalFree(p: POrderStruct_);
+    procedure DoInternalFree(p: POrderStruct);
   public
     property Critical: TCritical read FCritical;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
     procedure Clear;
-    function GetCurrent: POrderStruct_;
-    property Current: POrderStruct_ read GetCurrent;
-    property First: POrderStruct_ read GetCurrent;
+    function GetCurrent: POrderStruct;
+    property Current: POrderStruct read GetCurrent;
+    property First: POrderStruct read GetCurrent;
     procedure Next;
-    procedure Push(Data: T_);
+    function Push(Data: T_): POrderStruct;
     function GetNum: NativeInt;
     property Num: NativeInt read GetNum;
     property OnFree: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
@@ -332,31 +334,31 @@ type
   {$IFDEF FPC}generic{$ENDIF FPC}TCriticalOrderPtrStruct<T_> = class(TCore_Object)
   public type
     PT_ = ^T_;
-    POrderPtrStruct_ = ^TOrderPtrStruct_;
+    POrderPtrStruct = ^TOrderPtrStruct_;
     TOrderPtrStruct_ = record
       Data: PT_;
-      Next: POrderPtrStruct_;
+      Next: POrderPtrStruct;
     end;
     TOnFreeCriticalOrderPtrStruct = procedure(p: PT_) of object;
   private
     FCritical: TCritical;
-    FFirst: POrderPtrStruct_;
-    FLast: POrderPtrStruct_;
+    FFirst: POrderPtrStruct;
+    FLast: POrderPtrStruct;
     FNum: NativeInt;
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderPtrStruct;
-    procedure DoInternalFree(p: POrderPtrStruct_);
+    procedure DoInternalFree(p: POrderPtrStruct);
   public
     property Critical: TCritical read FCritical;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(Data: PT_); virtual;
     procedure Clear;
-    function GetCurrent: POrderPtrStruct_;
-    property Current: POrderPtrStruct_ read GetCurrent;
-    property First: POrderPtrStruct_ read GetCurrent;
+    function GetCurrent: POrderPtrStruct;
+    property Current: POrderPtrStruct read GetCurrent;
+    property First: POrderPtrStruct read GetCurrent;
     procedure Next;
-    procedure Push(Data: T_);
-    procedure PushPtr(Data: PT_);
+    function Push(Data: T_): POrderPtrStruct;
+    function PushPtr(Data: PT_): POrderPtrStruct;
     function GetNum: NativeInt;
     property Num: NativeInt read GetNum;
     property OnFree: TOnFreeCriticalOrderPtrStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
@@ -410,6 +412,7 @@ type
     property Last: PQueueStruct read FLast;
     procedure Next; // queue support
     function Add(Data: T_): PQueueStruct;
+    function Add_Null(): PQueueStruct;
     function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove(p: PQueueStruct);
     procedure Move_Before(p, To_: PQueueStruct);
@@ -489,6 +492,7 @@ type
     property Last: PQueueStruct read FLast;
     procedure Next; // queue support
     function Add(Data: T_): PQueueStruct;
+    function Add_Null(): PQueueStruct;
     function Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove(p: PQueueStruct);
     procedure Move_Before(p, To_: PQueueStruct);
@@ -519,6 +523,144 @@ type
     class procedure Test;
   end;
 {$EndRegion 'BigList'}
+{$Region 'HashPair'}
+  {$IFDEF FPC}generic{$ENDIF FPC} TPair_Pool<T1_, T2_> = class(TCore_Object)
+  public type
+    TPair = record
+      Primary: T1_;
+      Second: T2_;
+      Data: Pointer;
+    end;
+
+    PPair = ^TPair;
+    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    PPair__ = TPair_BigList__.PQueueStruct;
+    TOnFree_Pair = procedure(var Data: TPair) of object;
+  public
+    List: TPair_BigList__;
+    OnFree: TOnFree_Pair;
+    constructor Create;
+    destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    function Add(Primary: T1_; Second: T2_): PPair__;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC} TCritical_Pair_Pool<T1_, T2_> = class(TCore_Object)
+  public type
+    TPair = record
+      Primary: T1_;
+      Second: T2_;
+      Data: Pointer;
+    end;
+
+    PPair = ^TPair;
+    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TPair>;
+    PPair__ = TPair_BigList__.PQueueStruct;
+    TOnFree_Pair = procedure(var Data: TPair) of object;
+  public
+    List: TPair_BigList__;
+    OnFree: TOnFree_Pair;
+    constructor Create;
+    destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    function Add(Primary: T1_; Second: T2_): PPair__;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC} TBig_Hash_Pool<TKey_, TValue_> = class(TCore_Object)
+  public type
+    PKey_ = ^TKey_;
+    PValue = ^Tvalue_;
+    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Pool<TKey_, TValue_>;
+    PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
+    TKey_Hash_Buffer = array of TValue_Pair_Pool__;
+    TPool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TOnFree_Value = procedure(var Data: TValue_) of object;
+    TBig_Hash_Pool_Progress_C = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
+    TBig_Hash_Pool_Progress_M = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) of object;
+{$IFDEF FPC}
+    TBig_Hash_Pool_Progress_P = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) is nested;
+{$ELSE FPC}
+    TBig_Hash_Pool_Progress_P = reference to procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
+{$ENDIF FPC}
+  private
+    function Get_Value_List(Key_P: PKey_): TValue_Pair_Pool__;
+    procedure Free_Value_List(Key_P: PKey_);
+  public
+    Null_Value: TValue_;
+    HashBuffer: TKey_Hash_Buffer;
+    OnFree: TOnFree_Value;
+    constructor Create(HashSize_: integer; Null_Value_: TValue_);
+    destructor Destroy; override;
+    function Get_Key_Hash(Key_P: PKey_): THash; virtual;
+    function Compare_Key(Key_P1, Key_P2: PKey_): Boolean; virtual;
+    procedure DoFree(var Data: TValue_Pair_Pool__.TPair); virtual;
+    procedure Get_Key_Data_Ptr(Key_P: PKey_; var p: PByte; var Size: NativeInt);
+    procedure SwapInstance(source: T__);
+    procedure Clear;
+    procedure Resize_Hash_Pool(HashSize_: integer);
+    function Exists(Key: TKey_): Boolean;
+    function Get_Key_Value(Key: TKey_): TValue_;
+    procedure Set_Key_Value(Key: TKey_; Value: TValue_);
+    property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
+    procedure Delete(Key: TKey_);
+    function Num: NativeInt;
+    function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
+    procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
+    procedure Progress_C(OnProgress: TBig_Hash_Pool_Progress_C); overload;
+    procedure Progress_M(OnProgress: TBig_Hash_Pool_Progress_M); overload;
+    procedure Progress_P(OnProgress: TBig_Hash_Pool_Progress_P); overload;
+    function Get_Pool(): TPool;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC} TCritical_Big_Hash_Pool<TKey_, TValue_> = class(TCore_Object)
+  public type
+    PKey_ = ^TKey_;
+    PValue = ^Tvalue_;
+    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Pair_Pool<TKey_, TValue_>;
+    PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
+    TKey_Hash_Buffer = array of TValue_Pair_Pool__;
+    TPool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TOnFree_Value = procedure(var Data: TValue_) of object;
+    TBig_Hash_Pool_Progress_C = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
+    TBig_Hash_Pool_Progress_M = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) of object;
+{$IFDEF FPC}
+    TBig_Hash_Pool_Progress_P = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) is nested;
+{$ELSE FPC}
+    TBig_Hash_Pool_Progress_P = reference to procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
+{$ENDIF FPC}
+  private
+    function Get_Value_List(Key_P: PKey_): TValue_Pair_Pool__;
+    procedure Free_Value_List(Key_P: PKey_);
+  public
+    Null_Value: TValue_;
+    HashBuffer: TKey_Hash_Buffer;
+    OnFree: TOnFree_Value;
+    constructor Create(HashSize_: integer; Null_Value_: TValue_);
+    destructor Destroy; override;
+    function Get_Key_Hash(Key_P: PKey_): THash; virtual;
+    function Compare_Key(Key_P1, Key_P2: PKey_): Boolean; virtual;
+    procedure DoFree(var Data: TValue_Pair_Pool__.TPair); virtual;
+    procedure Get_Key_Data_Ptr(Key_P: PKey_; var p: PByte; var Size: NativeInt);
+    procedure SwapInstance(source: T__);
+    procedure Clear;
+    procedure Resize_Hash_Pool(HashSize_: integer);
+    function Exists(Key: TKey_): Boolean;
+    function Get_Key_Value(Key: TKey_): TValue_;
+    procedure Set_Key_Value(Key: TKey_; Value: TValue_);
+    property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
+    procedure Delete(Key: TKey_);
+    function Num: NativeInt;
+    function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
+    procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
+    procedure Progress_C(OnProgress: TBig_Hash_Pool_Progress_C); overload;
+    procedure Progress_M(OnProgress: TBig_Hash_Pool_Progress_M); overload;
+    procedure Progress_P(OnProgress: TBig_Hash_Pool_Progress_P); overload;
+    function Get_Pool(): TPool;
+  end;
+
+{$EndRegion 'HashPair'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -968,6 +1110,8 @@ procedure FreeObjAndNil(var Obj);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 procedure LockObject(Obj: TObject);
 procedure UnLockObject(Obj: TObject);
 
+function Get_CRC32(Data: PByte; Size: NativeInt): THash;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function Hash_Key_Mod(const hash: THash; const Num: integer): integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function DeltaStep(const value_, Delta_: NativeInt): NativeInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 procedure AtomInc(var x: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure AtomInc(var x: Int64; const v: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
@@ -1599,6 +1743,7 @@ end;
 {$I Z.Core.LineProcessor.inc}
 {$I Z.Core.OrderData.inc}
 {$I Z.Core.BigList.inc}
+{$I Z.Core.HashPair.inc}
 
 procedure Nop;
 begin

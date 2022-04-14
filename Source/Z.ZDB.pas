@@ -60,12 +60,25 @@ type
   end;
 
   TObjectDataManager = class;
+
+  TItem_Pos_Info = record
+    Field_Pos, Item_Pos: Int64;
+  end;
+
+  TItem_Pos_Info_List = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TItem_Pos_Info>;
+
+  TPair_Item_Pos_Info = record
+    info1, info2: TItem_Pos_Info;
+  end;
+
+  TPair_Item_Pos_Info_List = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair_Item_Pos_Info>;
+
 {$IFDEF FPC}
-  TDBImpNotifyProc = procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64) is nested;
-  TDBExpNotifyProc = procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString) is nested;
+  TZDB_Import_Proc = procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64) is nested;
+  TZDB_Export_Proc = procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString) is nested;
 {$ELSE FPC}
-  TDBImpNotifyProc = reference to procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64);
-  TDBExpNotifyProc = reference to procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString);
+  TZDB_Import_Proc = reference to procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64);
+  TZDB_Export_Proc = reference to procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString);
 {$ENDIF FPC}
 
   TObjectDataManager = class(TCore_Object)
@@ -128,11 +141,11 @@ type
     procedure Save_To_ZDB2_Stream(stream: TCore_Stream);
 
     // Import recursively
-    procedure ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TDBImpNotifyProc); overload;
+    procedure ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TZDB_Import_Proc); overload;
     procedure ImpFromPath(ImpPath, Path_: SystemString; IncludeSub: Boolean); overload;
 
     // Import batch
-    procedure ImpFromFilesP(ImpFiles: TCore_Strings; Path_: SystemString; Notify: TDBImpNotifyProc); overload;
+    procedure ImpFromFilesP(ImpFiles: TCore_Strings; Path_: SystemString; Notify: TZDB_Import_Proc); overload;
     procedure ImpFromFiles(ImpFiles: TCore_Strings; Path_: SystemString); overload;
 
     // split direct
@@ -146,7 +159,7 @@ type
 
     // export to disk
     procedure ExpPathToDisk(Path_, ExpPath_: SystemString; IncludeSub: Boolean); overload;
-    procedure ExpPathToDiskP(Path_, ExpPath_: SystemString; IncludeSub: Boolean; Notify: TDBExpNotifyProc); overload;
+    procedure ExpPathToDiskP(Path_, ExpPath_: SystemString; IncludeSub: Boolean; Notify: TZDB_Export_Proc); overload;
     procedure ExpItemToDisk(Path_, DBItem, ExpFilename_: SystemString);
 
     // state
@@ -213,6 +226,7 @@ type
     // item api
     function GetItemSize(const Path_, DB_Item_: SystemString): Int64; overload;
     function ItemDelete(const Path_, DB_Item_: SystemString): Boolean; overload;
+    function ItemDelete2(const Field_Pos, Item_HPos: Int64): Boolean;
     function ItemExists(const Path_, DB_Item_: SystemString): Boolean; overload;
     function ItemTime(const Path_, DB_Item_: SystemString): TDateTime; overload;
     function SetItemTime(const Path_, DB_Item_: SystemString; time_: TDateTime): Boolean; overload;
@@ -877,7 +891,7 @@ begin
   DisposeObject(enc);
 end;
 
-procedure TObjectDataManager.ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TDBImpNotifyProc);
+procedure TObjectDataManager.ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TZDB_Import_Proc);
 var
   fAry: U_StringArray;
   n: SystemString;
@@ -923,7 +937,7 @@ begin
   ImpFromPathP(ImpPath, Path_, IncludeSub, nil);
 end;
 
-procedure TObjectDataManager.ImpFromFilesP(ImpFiles: TCore_Strings; Path_: SystemString; Notify: TDBImpNotifyProc);
+procedure TObjectDataManager.ImpFromFilesP(ImpFiles: TCore_Strings; Path_: SystemString; Notify: TZDB_Import_Proc);
 var
   i: Integer;
   n: SystemString;
@@ -1130,7 +1144,7 @@ begin
   ExpPathToDiskP(Path_, ExpPath_, IncludeSub, nil);
 end;
 
-procedure TObjectDataManager.ExpPathToDiskP(Path_, ExpPath_: SystemString; IncludeSub: Boolean; Notify: TDBExpNotifyProc);
+procedure TObjectDataManager.ExpPathToDiskP(Path_, ExpPath_: SystemString; IncludeSub: Boolean; Notify: TZDB_Export_Proc);
 var
   rFieldPos: Int64;
   rs: TItemRecursionSearch;
@@ -1632,6 +1646,14 @@ end;
 function TObjectDataManager.ItemDelete(const Path_, DB_Item_: SystemString): Boolean;
 begin
   Result := db_DeleteItem(Path_, DB_Item_, FDefaultItemID, FDB_HND);
+end;
+
+function TObjectDataManager.ItemDelete2(const Field_Pos, Item_HPos: Int64): Boolean;
+var
+  Field_: TField;
+begin
+  Result := GetFieldData(Field_Pos, Field_) and
+    dbField_DeleteHeader(Item_HPos, Field_.RHeader.CurrentHeader, FDB_HND.IOHnd, Field_);
 end;
 
 function TObjectDataManager.ItemExists(const Path_, DB_Item_: SystemString): Boolean;

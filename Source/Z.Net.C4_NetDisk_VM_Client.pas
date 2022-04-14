@@ -701,6 +701,8 @@ type
     // copy from netdisk
     procedure Copy_Item(arry: TCopyItem_Info_Array);
     procedure Copy_Field(arry: TCopyField_Info_Array);
+    // create field
+    procedure CreateField(DB_Field: U_String);
     // rename
     procedure RenameField(DB_Field, New_Field_Name: U_String);
     procedure RenameItem(DB_Field, Old_Item_Name, New_Item_Name: U_String);
@@ -1329,8 +1331,8 @@ begin
   SetLength(arry, 0);
   if Successed then
     begin
-      info := 'successed.';
-      SetLength(arry, (Result_.Count - 1) div 3);
+      info := Result_.R.ReadString;
+      SetLength(arry, (Result_.Count - 2) div 3);
       i := 0;
       while Result_.R.NotEnd do
         begin
@@ -1496,8 +1498,8 @@ begin
   SetLength(arry, 0);
   if Successed then
     begin
-      info := 'successed.';
-      SetLength(arry, (Result_.Count - 1) div 3);
+      info := Result_.R.ReadString;
+      SetLength(arry, (Result_.Count - 2) div 3);
       i := 0;
       while Result_.R.NotEnd do
         begin
@@ -3439,6 +3441,16 @@ begin
     end;
 
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Copy_Field', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.CreateField(DB_Field: U_String);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(DB_Field);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('CreateField', d);
   DisposeObject(d);
 end;
 

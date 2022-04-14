@@ -186,7 +186,7 @@ type
   public
     VM_Service: TC40_NetDisk_VM_Service;
     DB_Field: U_String;
-    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
   TC40_NetDisk_VM_Service_Get_NetDisk_SpaceInfo_Bridge = class(TCustomEventBridge)
@@ -213,7 +213,7 @@ type
     VM_Service: TC40_NetDisk_VM_Service;
     Share_Directory_DB_Name: U_String;
     DB_Field: U_String;
-    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
   TC40_NetDisk_VM_Service_Get_Share_Disk_File_Frag_Info_Bridge = class(TCustomEventBridge)
@@ -239,7 +239,7 @@ type
 
 {$ENDREGION 'define_bridge'}
 
-  TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TC40_NetDisk_VM_Service_RecvIO_Define_List>;
+  TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_NetDisk_VM_Service_RecvIO_Define_List>;
 
   TC40_NetDisk_VM_Service = class(TC40_NoAuth_VM_Service, I_ON_C40_UserDB_Client_Notify, I_ON_C40_NetDisk_Directory_Client_Interface)
   protected
@@ -313,6 +313,7 @@ type
     procedure cmd_Remove_Field(sender: TPeerIO; InData: TDFE);
     procedure cmd_Copy_Item(sender: TPeerIO; InData: TDFE);
     procedure cmd_Copy_Field(sender: TPeerIO; InData: TDFE);
+    procedure cmd_CreateField(sender: TPeerIO; InData: TDFE);
     procedure cmd_RenameField(sender: TPeerIO; InData: TDFE);
     procedure cmd_RenameItem(sender: TPeerIO; InData: TDFE);
     procedure cmd_Build_Share_Disk(sender: TPeerIO; InData, OutData: TDFE);
@@ -884,7 +885,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_VM_Service_Get_NetDisk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+procedure TC40_NetDisk_VM_Service_Get_NetDisk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -893,6 +894,7 @@ begin
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       IO.OutDataFrame.WriteBool(True);
+      IO.OutDataFrame.WriteString(Field_Path);
       for i := Low(arry) to high(arry) do
         begin
           IO.OutDataFrame.WriteString(arry[i].Name);
@@ -983,7 +985,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_VM_Service_Get_Share_Disk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; arry: TItemList_Data_Array);
+procedure TC40_NetDisk_VM_Service_Get_Share_Disk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -992,6 +994,7 @@ begin
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
       IO.OutDataFrame.WriteBool(True);
+      IO.OutDataFrame.WriteString(Field_Path);
       for i := Low(arry) to high(arry) do
         begin
           IO.OutDataFrame.WriteString(arry[i].Name);
@@ -2253,6 +2256,23 @@ begin
   FDirectory_Client.CopyField(arry);
 end;
 
+procedure TC40_NetDisk_VM_Service.cmd_CreateField(sender: TPeerIO; InData: TDFE);
+var
+  IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  DB_Field: U_String;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+      exit;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+      exit;
+  IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+      exit;
+
+  DB_Field := InData.R.ReadString;
+  FDirectory_Client.NewField(IO_Def.PrimaryIdentifier, DB_Field);
+end;
+
 procedure TC40_NetDisk_VM_Service.cmd_RenameField(sender: TPeerIO; InData: TDFE);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
@@ -2824,6 +2844,7 @@ begin
   DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Field;
   DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Item;
   DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Field;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('CreateField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CreateField;
   DTNoAuth.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameField;
   DTNoAuth.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameItem;
   DTNoAuth.RecvTunnel.RegisterStream('Build_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Build_Share_Disk;

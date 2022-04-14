@@ -20,7 +20,7 @@ uses
 type
   TC40_UserDB_Service = class;
 
-  TJsonHashList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericHashList<TZDB2_Json>;
+  TJsonHashList = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TZDB2_Json>;
 
   TC40_UserDB_Service_SendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
   public
