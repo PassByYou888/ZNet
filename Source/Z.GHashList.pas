@@ -12,12 +12,97 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core,
-  Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine;
+  Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine, Z.Geometry2D;
 
 type
 {$IFDEF FPC}
+  generic TString_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<SystemString, T_>)
+{$ELSE FPC}
+  TString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<SystemString, T_>)
+{$ENDIF FPC}
+  public
+    function Get_Key_Hash(Key_: SystemString): THash; override;
+    function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
+  end;
+
+{$IFDEF FPC}
+  generic TSingle_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Single, T_>)
+{$ELSE FPC}
+
+  TSingle_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Single, T_>)
+{$ENDIF FPC}
+  public
+    Epsilon: Single;
+    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+    function Get_Key_Hash(Key_: Single): THash; override;
+    function Compare_Key(Key_1, Key_2: Single): Boolean; override;
+  end;
+
+{$IFDEF FPC}
+  generic TDouble_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Double, T_>)
+{$ELSE FPC}
+
+  TDouble_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Double, T_>)
+{$ENDIF FPC}
+  public
+    Epsilon: Double;
+    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+    function Get_Key_Hash(Key_: Double): THash; override;
+    function Compare_Key(Key_1, Key_2: Double): Boolean; override;
+  end;
+
+{$IFDEF FPC}
+  generic TMD5_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TMD5, T_>)
+{$ELSE FPC}
+
+  TMD5_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TMD5, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TPointer_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Pointer, T_>)
+{$ELSE FPC}
+
+  TPointer_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Pointer, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TInt32_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Integer, T_>)
+{$ELSE FPC}
+
+  TInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<integer, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TInt64_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Int64, T_>)
+{$ELSE FPC}
+
+  TInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Int64, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TUInt32_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Cardinal, T_>)
+{$ELSE FPC}
+
+  TUInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Cardinal, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TUInt64_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<UInt64, T_>)
+{$ELSE FPC}
+
+  TUInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<UInt64, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
+
   TGeneric_String_Object_Hash<T_: class> = class(TCore_Object)
 {$ENDIF FPC}
   public type
@@ -64,7 +149,7 @@ type
   public
     OnFree: TOnFree;
     procedure DoInited; virtual;
-    constructor Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_Null_Value_: T_);
+    constructor Create(AutoFreeData_: Boolean; HashPoolSize_: integer; Default_Null_Value_: T_);
     destructor Destroy; override;
 
     procedure Assign(sour: TRefClass_);
@@ -105,8 +190,59 @@ type
   end;
 
 procedure Test_Generic_String_Object_Hash;
+procedure Test_Single_Big_Hash_Pair_Pool();
 
 implementation
+
+uses SysUtils;
+
+function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: SystemString): THash;
+begin
+  Result := FastHashPSystemString(@Key_);
+end;
+
+function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: SystemString): Boolean;
+begin
+  Result := SameText(Key_1, Key_2);
+end;
+
+constructor TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+begin
+  inherited Create(HashSize_, Null_Value_);
+  Epsilon := Epsilon_;
+end;
+
+function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Single): THash;
+var
+  tmp: Int64;
+begin
+  tmp := Round(Key_ * (1.0 / Epsilon));
+  Result := Get_CRC32(@tmp, 8);
+end;
+
+function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Single): Boolean;
+begin
+  Result := IsEqual(Key_1, Key_2, Epsilon);
+end;
+
+constructor TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+begin
+  inherited Create(HashSize_, Null_Value_);
+  Epsilon := Epsilon_;
+end;
+
+function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Double): THash;
+var
+  tmp: Int64;
+begin
+  tmp := Round(Key_ * (1.0 / Epsilon));
+  Result := Get_CRC32(@tmp, 8);
+end;
+
+function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Double): Boolean;
+begin
+  Result := IsEqual(Key_1, Key_2, Epsilon);
+end;
 
 function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCount: NativeInt;
 begin
@@ -192,7 +328,7 @@ procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInited;
 begin
 end;
 
-constructor TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_Null_Value_: T_);
+constructor TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(AutoFreeData_: Boolean; HashPoolSize_: integer; Default_Null_Value_: T_);
 begin
   inherited Create;
   FHashList := THashList.CustomCreate(HashPoolSize_);
@@ -214,7 +350,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Assign(sour: TRefClass_);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   Clear;
@@ -233,7 +369,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressC(const OnProgress: TGebnericHashListLoop_C);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -254,7 +390,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressM(const OnProgress: TGebnericHashListLoop_M);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -275,7 +411,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ProgressP(const OnProgress: TGebnericHashListLoop_P);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -298,7 +434,7 @@ procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
-  i: Integer;
+  i: integer;
 begin
   if FAutoFreeObject then
     begin
@@ -326,7 +462,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TCore_Strings);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -345,7 +481,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListString);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -364,7 +500,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNameList(OutputList: TListPascalString);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -383,7 +519,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TCore_Strings);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -402,7 +538,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListString);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -421,7 +557,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetListData(OutputList: TListPascalString);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -440,7 +576,7 @@ end;
 
 procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetAsList(OutputList: TCore_ListForObj);
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -460,7 +596,7 @@ end;
 
 function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetObjAsName(Obj: T_): SystemString;
 var
-  i: Integer;
+  i: integer;
   p: PHashListData;
 begin
   Result := '';
@@ -567,7 +703,7 @@ end;
 function TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.ExistsObject(Obj: T_): Boolean;
 var
   lst: TCore_List;
-  i: Integer;
+  i: integer;
 begin
   Result := False;
   lst := TCore_List.Create;
@@ -591,7 +727,7 @@ procedure TGeneric_String_Object_Hash{$IFNDEF FPC}<T_>{$ENDIF FPC}.CopyFrom(cons
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
-  i: Integer;
+  i: integer;
 begin
   lst := TCore_List.Create;
   Source.HashList.GetListData(lst);
@@ -664,6 +800,22 @@ begin
       raiseInfo('error');
     end;
   DisposeObject(L);
+end;
+
+procedure Test_Single_Big_Hash_Pair_Pool();
+type
+  T_Test = {$IFDEF FPC}specialize {$ENDIF FPC} TSingle_Big_Hash_Pair_Pool<integer>;
+var
+  tmp: T_Test;
+  i: integer;
+begin
+  tmp := T_Test.Create(1000, 0, 0.01);
+  for i := 1 to 10000 do
+      tmp[i * 0.01] := i;
+  for i := 1 to 10000 do
+    if tmp[i * 0.01] <> i then
+        raiseInfo('error');
+  tmp.Free;
 end;
 
 end.
