@@ -111,12 +111,12 @@ type
   end;
 
   TOpti_Directory_File_Hash = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TOpti_Directory_File_Hash_Item_Data_List>;
-  TDirectory_Service_Num_Hash_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TBig_Hash_Pool<U_String, Integer>;
+  TDirectory_Service_Num_Hash_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TBig_Hash_Pair_Pool<U_String, Integer>;
 
   TDirectory_Service_Num_Hash = class(TDirectory_Service_Num_Hash_Decl)
   public
-    function Get_Key_Hash(Key_P: TDirectory_Service_Num_Hash_Decl.PKey_): THash; override;
-    function Compare_Key(Key_P1, Key_P2: TDirectory_Service_Num_Hash_Decl.PKey_): Boolean; override;
+    function Get_Key_Hash(Key_: U_String): THash; override;
+    function Compare_Key(Key_1, Key_2: U_String): Boolean; override;
   end;
 {$ENDREGION 'service struct define'}
 
@@ -824,14 +824,14 @@ begin
   Add(p);
 end;
 
-function TDirectory_Service_Num_Hash.Get_Key_Hash(Key_P: TDirectory_Service_Num_Hash_Decl.PKey_): THash;
+function TDirectory_Service_Num_Hash.Get_Key_Hash(Key_: U_String): THash;
 begin
-  Result := Key_P^.hash;
+  Result := Key_.hash;
 end;
 
-function TDirectory_Service_Num_Hash.Compare_Key(Key_P1, Key_P2: TDirectory_Service_Num_Hash_Decl.PKey_): Boolean;
+function TDirectory_Service_Num_Hash.Compare_Key(Key_1, Key_2: U_String): Boolean;
 begin
-  Result := Key_P1^.Same(@Key_P2^);
+  Result := Key_1.Same(@Key_2);
 end;
 
 procedure TC40_NetDisk_Directory_Service.cmd_ExistsDB(Sender: TPeerIO; InData, OutData: TDFE);
