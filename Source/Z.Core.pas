@@ -566,11 +566,11 @@ type
     function Add(Primary: T1_; Second: T2_): PPair__;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC} TBig_Hash_Pool<TKey_, TValue_> = class(TCore_Object)
+  {$IFDEF FPC}generic{$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
   public type
     PKey_ = ^TKey_;
-    PValue = ^Tvalue_;
-    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pool<TKey_, TValue_>;
+    PValue = ^TValue_;
+    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_>;
     TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Pool<TKey_, TValue_>;
     PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
     TKey_Hash_Buffer = array of TValue_Pair_Pool__;
@@ -584,74 +584,29 @@ type
     TBig_Hash_Pool_Progress_P = reference to procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
 {$ENDIF FPC}
   private
-    function Get_Value_List(Key_P: PKey_): TValue_Pair_Pool__;
-    procedure Free_Value_List(Key_P: PKey_);
+    function Get_Value_List(Key_: TKey_): TValue_Pair_Pool__;
+    procedure Free_Value_List(Key_: TKey_);
   public
     Null_Value: TValue_;
-    HashBuffer: TKey_Hash_Buffer;
+    Hash_Buffer: TKey_Hash_Buffer;
     OnFree: TOnFree_Value;
     constructor Create(HashSize_: integer; Null_Value_: TValue_);
     destructor Destroy; override;
-    function Get_Key_Hash(Key_P: PKey_): THash; virtual;
-    function Compare_Key(Key_P1, Key_P2: PKey_): Boolean; virtual;
     procedure DoFree(var Data: TValue_Pair_Pool__.TPair); virtual;
-    procedure Get_Key_Data_Ptr(Key_P: PKey_; var p: PByte; var Size: NativeInt);
+    function Get_Key_Hash(Key_: TKey_): THash; virtual;
+    function Compare_Key(Key_1, Key_2: TKey_): Boolean; virtual;
+    procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt); virtual;
     procedure SwapInstance(source: T__);
     procedure Clear;
     procedure Resize_Hash_Pool(HashSize_: integer);
     function Exists(Key: TKey_): Boolean;
+    function Add(Key: TKey_; Value: TValue_): PPair_Pool_Value__;
     function Get_Key_Value(Key: TKey_): TValue_;
     procedure Set_Key_Value(Key: TKey_; Value: TValue_);
     property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
     procedure Delete(Key: TKey_);
     function Num: NativeInt;
-    function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
-    procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
-    procedure Progress_C(OnProgress: TBig_Hash_Pool_Progress_C); overload;
-    procedure Progress_M(OnProgress: TBig_Hash_Pool_Progress_M); overload;
-    procedure Progress_P(OnProgress: TBig_Hash_Pool_Progress_P); overload;
-    function Get_Pool(): TPool;
-  end;
-
-  {$IFDEF FPC}generic{$ENDIF FPC} TCritical_Big_Hash_Pool<TKey_, TValue_> = class(TCore_Object)
-  public type
-    PKey_ = ^TKey_;
-    PValue = ^Tvalue_;
-    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pool<TKey_, TValue_>;
-    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Pair_Pool<TKey_, TValue_>;
-    PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
-    TKey_Hash_Buffer = array of TValue_Pair_Pool__;
-    TPool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
-    TOnFree_Value = procedure(var Data: TValue_) of object;
-    TBig_Hash_Pool_Progress_C = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
-    TBig_Hash_Pool_Progress_M = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) of object;
-{$IFDEF FPC}
-    TBig_Hash_Pool_Progress_P = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) is nested;
-{$ELSE FPC}
-    TBig_Hash_Pool_Progress_P = reference to procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
-{$ENDIF FPC}
-  private
-    function Get_Value_List(Key_P: PKey_): TValue_Pair_Pool__;
-    procedure Free_Value_List(Key_P: PKey_);
-  public
-    Null_Value: TValue_;
-    HashBuffer: TKey_Hash_Buffer;
-    OnFree: TOnFree_Value;
-    constructor Create(HashSize_: integer; Null_Value_: TValue_);
-    destructor Destroy; override;
-    function Get_Key_Hash(Key_P: PKey_): THash; virtual;
-    function Compare_Key(Key_P1, Key_P2: PKey_): Boolean; virtual;
-    procedure DoFree(var Data: TValue_Pair_Pool__.TPair); virtual;
-    procedure Get_Key_Data_Ptr(Key_P: PKey_; var p: PByte; var Size: NativeInt);
-    procedure SwapInstance(source: T__);
-    procedure Clear;
-    procedure Resize_Hash_Pool(HashSize_: integer);
-    function Exists(Key: TKey_): Boolean;
-    function Get_Key_Value(Key: TKey_): TValue_;
-    procedure Set_Key_Value(Key: TKey_; Value: TValue_);
-    property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
-    procedure Delete(Key: TKey_);
-    function Num: NativeInt;
+    property Count: NativeInt read Num;
     function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
     procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
     procedure Progress_C(OnProgress: TBig_Hash_Pool_Progress_C); overload;
@@ -1768,7 +1723,7 @@ begin
   else
     begin
       if MainThSynchronizeRunning then
-        Exit;
+        Exit(False);
       MainThSynchronizeRunning := True;
       MainThreadProgress.Progress(MainThreadID);
       try
