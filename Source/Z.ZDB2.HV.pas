@@ -16,9 +16,12 @@ uses Z.Core,
 
 type
   TZDB2_List_HashVariant = class;
+  TZDB2_HashVariant = class;
+  TZDB2_Big_List_HashVariant_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_HashVariant>;
 
   TZDB2_HashVariant = class
   private
+    FPool_Ptr: TZDB2_Big_List_HashVariant_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
     FAlive: TTimeTick;
     FID: Integer;
@@ -43,23 +46,16 @@ type
 
   TZDB2_HashVariant_Class = class of TZDB2_HashVariant;
 
-  TZDB2_List_HashVariant_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZDB2_HashVariant>;
-
   TOnCreate_ZDB2_HashVariant = procedure(Sender: TZDB2_List_HashVariant; Obj: TZDB2_HashVariant) of object;
 
-  TZDB2_List_HashVariant = class(TZDB2_List_HashVariant_Decl)
-  private type
-    THead_ = packed record
-      Identifier: Word;
-      ID: Integer;
-    end;
-
-    PHead_ = ^THead_;
+  TZDB2_List_HashVariant = class
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;
     procedure SetAutoFreeStream(const Value: Boolean);
+    procedure Do_Free(var obj_: TZDB2_HashVariant);
   public
+    List: TZDB2_Big_List_HashVariant_Decl__;
     HashVariant_Class: TZDB2_HashVariant_Class;
     TimeOut: TTimeTick;
     DeltaSpace: Int64;
@@ -73,19 +69,25 @@ type
     property AutoFreeStream: Boolean read GetAutoFreeStream write SetAutoFreeStream;
     property IsOnlyRead: Boolean read IOHnd.IsOnlyRead;
     procedure Remove(Obj: TZDB2_HashVariant; RemoveData_: Boolean);
-    procedure Delete(Index: Integer; RemoveData_: Boolean);
-    procedure Clear(RemoveData_: Boolean);
+    procedure Clear;
     function NewDataFrom(ID_: Integer): TZDB2_HashVariant; overload;
     function NewData: TZDB2_HashVariant; overload;
     procedure Flush(flush_core_space: Boolean); overload;
     procedure Flush; overload;
     procedure ExtractTo(Stream_: TCore_Stream);
     procedure Progress;
+    procedure Push_To_Recycle_Pool(obj_: TZDB2_HashVariant; RemoveData_: Boolean); // remove from repeat
+    procedure Free_Recycle_Pool;                                                   // remove from repeat
+    function Count: NativeInt;
+    function Repeat_: TZDB2_Big_List_HashVariant_Decl__.TRepeat___;               // flow simulate
+    function Invert_Repeat_: TZDB2_Big_List_HashVariant_Decl__.TInvert_Repeat___; // flow simulate
 
     class procedure Test;
   end;
 
 implementation
+
+uses Z.ZDB2.Thread.Queue;
 
 procedure TZDB2_HashVariant.DoHashVariantChange(Sender: THashVariantList; Name_: SystemString; OLD_, New_: Variant);
 begin
@@ -95,6 +97,7 @@ end;
 constructor TZDB2_HashVariant.Create(CoreSpace_: TZDB2_Core_Space; ID_: Integer);
 begin
   inherited Create;
+  FPool_Ptr := nil;
   FTimeOut := 5 * 1000;
   FAlive := GetTimeTick;
   Keep := 0;
@@ -214,6 +217,11 @@ begin
   IOHnd.AutoFree := Value;
 end;
 
+procedure TZDB2_List_HashVariant.Do_Free(var obj_: TZDB2_HashVariant);
+begin
+  DisposeObjectAndNil(obj_);
+end;
+
 constructor TZDB2_List_HashVariant.Create(HashVariant_Class_: TZDB2_HashVariant_Class; OnCreateClass_: TOnCreate_ZDB2_HashVariant; TimeOut_: TTimeTick;
   Stream_: TCore_Stream; OnlyRead_: Boolean; DeltaSpace_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
 var
@@ -222,6 +230,9 @@ var
   m64: TMem64;
 begin
   inherited Create;
+  List := TZDB2_Big_List_HashVariant_Decl__.Create;
+  List.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free;
+
   HashVariant_Class := HashVariant_Class_;
   TimeOut := TimeOut_;
   DeltaSpace := DeltaSpace_;
@@ -242,17 +253,17 @@ begin
   if CoreSpace.BlockCount = 0 then
       exit;
 
-  if (PHead_(@CoreSpace.UserCustomHeader^[0])^.Identifier = $FFFF) and
-    CoreSpace.Check(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID) then
+  if (PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.Identifier = $FFFF) and
+    CoreSpace.Check(PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID) then
     begin
       m64 := TMem64.Create;
-      CoreSpace.ReadData(m64, PHead_(@CoreSpace.UserCustomHeader^[0])^.ID);
+      CoreSpace.ReadData(m64, PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID);
       SetLength(buff, m64.Size shr 2);
       if length(buff) > 0 then
           CopyPtr(m64.Memory, @buff[0], length(buff) shl 2);
       DisposeObject(m64);
-      CoreSpace.RemoveData(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID, False);
-      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
+      CoreSpace.RemoveData(PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID, False);
+      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(TSequence_Table_Head), 0);
     end
   else
       buff := CoreSpace.BuildTableID;
@@ -265,52 +276,29 @@ end;
 destructor TZDB2_List_HashVariant.Destroy;
 begin
   Flush;
-  Clear(False);
+  Clear;
   DisposeObjectAndNil(CoreSpace);
+  List.Free;
   inherited Destroy;
 end;
 
 procedure TZDB2_List_HashVariant.Remove(Obj: TZDB2_HashVariant; RemoveData_: Boolean);
 begin
-  if IOHnd.IsOnlyRead then
-      exit;
   if RemoveData_ then
       Obj.Remove;
-  DisposeObject(Obj);
-  inherited Remove(Obj);
+  List.Remove(Obj.FPool_Ptr);
 end;
 
-procedure TZDB2_List_HashVariant.Delete(Index: Integer; RemoveData_: Boolean);
+procedure TZDB2_List_HashVariant.Clear;
 begin
-  if IOHnd.IsOnlyRead then
-      exit;
-  if (index >= 0) and (index < Count) then
-    begin
-      if RemoveData_ then
-          Items[index].Remove;
-      DisposeObject(Items[index]);
-      inherited Delete(index);
-    end;
-end;
-
-procedure TZDB2_List_HashVariant.Clear(RemoveData_: Boolean);
-var
-  i: Integer;
-begin
-  for i := 0 to Count - 1 do
-    begin
-      if RemoveData_ then
-          Items[i].Remove;
-      DisposeObject(Items[i]);
-    end;
-  inherited Clear;
+  List.Clear;
 end;
 
 function TZDB2_List_HashVariant.NewDataFrom(ID_: Integer): TZDB2_HashVariant;
 begin
   Result := HashVariant_Class.Create(CoreSpace, ID_);
   Result.FTimeOut := TimeOut;
-  Add(Result);
+  Result.FPool_Ptr := List.Add(Result);
   if Assigned(OnCreateClass) then
       OnCreateClass(self, Result);
 end;
@@ -325,65 +313,59 @@ end;
 
 procedure TZDB2_List_HashVariant.Flush(flush_core_space: Boolean);
 var
-  sum_: Integer;
+  __For__: TZDB2_Big_List_HashVariant_Decl__.TRepeat___;
   buff: TZDB2_BlockHandle;
   m64: TMem64;
-  i, j: Integer;
 begin
   if IOHnd.IsOnlyRead then
       exit;
 
-  if (PHead_(@CoreSpace.UserCustomHeader^[0])^.Identifier = $FFFF) and
-    CoreSpace.Check(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID) then
+  if (PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.Identifier = $FFFF) and
+    CoreSpace.Check(PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID) then
     begin
-      CoreSpace.RemoveData(PHead_(@CoreSpace.UserCustomHeader^[0])^.ID, False);
-      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
+      CoreSpace.RemoveData(PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID, False);
+      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(TSequence_Table_Head), 0);
     end;
 
-  sum_ := 0;
-  if Count > 0 then
-    for i := 0 to Count - 1 do
-      with Items[i] do
-        if (FID >= 0) or (FData <> nil) then
-            inc(sum_);
+  if List.num > 0 then
+    begin
+      __For__ := List.Repeat_;
+      repeat
+        if (__For__.Queue^.Data.FID < 0) and (__For__.Queue^.Data.FData = nil) then
+          begin
+            List.Push_To_Recycle_Pool(__For__.Queue);
+            DisposeObjectAndNil(__For__.Queue^.Data);
+          end
+        else
+            __For__.Queue^.Data.Save;
+      until not __For__.Next;
+      List.Free_Recycle_Pool;
+    end;
 
-  if sum_ > 0 then
+  if List.num > 0 then
     begin
       // remove invalid
-      SetLength(buff, sum_);
-      j := 0;
-      for i := 0 to Count - 1 do
-        with Items[i] do
-          if (FID >= 0) or (FData <> nil) then
-            begin
-              Save;
-              buff[j] := FID;
-              inc(j);
-            end;
+      SetLength(buff, List.num);
 
-      // rebuild
-      if sum_ < Count then
-        begin
-          Clear(False);
-          for i in buff do
-              NewDataFrom(i);
-        end;
+      __For__ := List.Repeat_;
+      repeat
+          buff[__For__.I__] := __For__.Queue^.Data.FID;
+      until not __For__.Next;
 
       // store
       if flush_core_space then
         begin
           m64 := TMem64.Create;
           m64.Mapping(@buff[0], length(buff) shl 2);
-          PHead_(@CoreSpace.UserCustomHeader^[0])^.Identifier := $FFFF;
-          CoreSpace.WriteData(m64, PHead_(@CoreSpace.UserCustomHeader^[0])^.ID, False);
+          PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.Identifier := $FFFF;
+          CoreSpace.WriteData(m64, PSequence_Table_Head(@CoreSpace.UserCustomHeader^[0])^.ID, False);
           DisposeObject(m64);
           SetLength(buff, 0);
         end;
     end
   else
     begin
-      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
-      Clear(False);
+      FillPtr(@CoreSpace.UserCustomHeader^[0], SizeOf(TSequence_Table_Head), 0);
     end;
 
   if flush_core_space then
@@ -399,8 +381,8 @@ procedure TZDB2_List_HashVariant.ExtractTo(Stream_: TCore_Stream);
 var
   TmpIOHnd: TIOHnd;
   TmpSpace: TZDB2_Core_Space;
+  __For__: TZDB2_Big_List_HashVariant_Decl__.TRepeat___;
   buff: TZDB2_BlockHandle;
-  i: Integer;
   m64: TMem64;
 begin
   Flush(False);
@@ -412,28 +394,28 @@ begin
   TmpSpace.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
   TmpSpace.BuildSpace(CoreSpace.State^.Physics, BlockSize);
 
-  if Count > 0 then
+  if List.num > 0 then
     begin
-      SetLength(buff, Count);
-      for i := 0 to Count - 1 do
-        begin
-          m64 := TMem64.Create;
-          if CoreSpace.ReadData(m64, Items[i].FID) then
-            if not TmpSpace.WriteData(m64, buff[i], False) then
-                RaiseInfo('error');
-          DisposeObject(m64);
-          CoreSpace.DoProgress(Count - 1, i);
-        end;
+      SetLength(buff, List.num);
+      __For__ := List.Repeat_();
+      repeat
+        m64 := TMem64.Create;
+        if CoreSpace.ReadData(m64, __For__.Queue^.Data.FID) then
+          if not TmpSpace.WriteData(m64, buff[__For__.I__], False) then
+              RaiseInfo('error');
+        DisposeObject(m64);
+        CoreSpace.DoProgress(List.num - 1, __For__.I__);
+      until not __For__.Next;
 
       m64 := TMem64.Create;
       m64.Mapping(@buff[0], length(buff) shl 2);
-      PHead_(@TmpSpace.UserCustomHeader^[0])^.Identifier := $FFFF;
-      TmpSpace.WriteData(m64, PHead_(@TmpSpace.UserCustomHeader^[0])^.ID, False);
+      PSequence_Table_Head(@TmpSpace.UserCustomHeader^[0])^.Identifier := $FFFF;
+      TmpSpace.WriteData(m64, PSequence_Table_Head(@TmpSpace.UserCustomHeader^[0])^.ID, False);
       DisposeObject(m64);
       SetLength(buff, 0);
     end
   else
-      FillPtr(@TmpSpace.UserCustomHeader^[0], SizeOf(THead_), 0);
+      FillPtr(@TmpSpace.UserCustomHeader^[0], SizeOf(TSequence_Table_Head), 0);
 
   TmpSpace.Save;
   DisposeObject(TmpSpace);
@@ -441,10 +423,42 @@ end;
 
 procedure TZDB2_List_HashVariant.Progress;
 var
-  i: Integer;
+  __For__: TZDB2_Big_List_HashVariant_Decl__.TRepeat___;
 begin
-  for i := 0 to Count - 1 do
-      Items[i].Progress;
+  if List.num > 0 then
+    begin
+      __For__ := List.Repeat_();
+      repeat
+          __For__.Queue^.Data.Progress;
+      until not __For__.Next;
+    end;
+end;
+
+procedure TZDB2_List_HashVariant.Push_To_Recycle_Pool(obj_: TZDB2_HashVariant; RemoveData_: Boolean);
+begin
+  List.Push_To_Recycle_Pool(obj_.FPool_Ptr);
+  if RemoveData_ then
+      obj_.Remove;
+end;
+
+procedure TZDB2_List_HashVariant.Free_Recycle_Pool;
+begin
+  List.Free_Recycle_Pool;
+end;
+
+function TZDB2_List_HashVariant.Count: NativeInt;
+begin
+  Result := List.num;
+end;
+
+function TZDB2_List_HashVariant.Repeat_: TZDB2_Big_List_HashVariant_Decl__.TRepeat___;
+begin
+  Result := List.Repeat_;
+end;
+
+function TZDB2_List_HashVariant.Invert_Repeat_: TZDB2_Big_List_HashVariant_Decl__.TInvert_Repeat___;
+begin
+  Result := List.Invert_Repeat_;
 end;
 
 class procedure TZDB2_List_HashVariant.Test;
@@ -452,7 +466,7 @@ var
   Cipher_: TZDB2_Cipher;
   M64_1, M64_2: TMS64;
   i: Integer;
-  tmp: TZDB2_HashVariant;
+  tmp_HashVariant: TZDB2_HashVariant;
   L: TZDB2_List_HashVariant;
   tk: TTimeTick;
 begin
@@ -465,35 +479,41 @@ begin
   with TZDB2_List_HashVariant.Create(TZDB2_HashVariant, nil, 5000, M64_1, False, 64 * 1048576, 200, Cipher_) do
     begin
       AutoFreeStream := False;
-      for i := 1 to 20000 do
+      for i := 0 to 20000 - 1 do
         begin
-          tmp := NewData();
-          tmp.Data['a'] := 'abcdefg';
-          tmp.Save;
+          tmp_HashVariant := NewData();
+          tmp_HashVariant.Data['a' + umlIntToStr(i).Text] := i;
+          tmp_HashVariant.Save;
         end;
-      DoStatus('build %d of HashVariant,time:%dms', [Count, GetTimeTick - tk]);
+      DoStatus('build %d of HashVariant,time:%dms', [List.num, GetTimeTick - tk]);
       Free;
     end;
 
   tk := GetTimeTick;
   L := TZDB2_List_HashVariant.Create(TZDB2_HashVariant, nil, 5000, M64_1, False, 64 * 1048576, 200, Cipher_);
-  for i := 0 to L.Count - 1 do
-    begin
-      if L[i].Data['a'] <> 'abcdefg' then
+  with L.Repeat_ do
+    repeat
+      if Queue^.Data.Data['a' + umlIntToStr(I__).Text] <> I__ then
           DoStatus('%s - test error.', [L.ClassName]);
-    end;
-  DoStatus('load %d of HashVariant,time:%dms', [L.Count, GetTimeTick - tk]);
+      Queue^.Data.Data['b' + umlIntToStr(I__).Text] := I__;
+    until not Next;
+  DoStatus('load %d of HashVariant,time:%dms', [L.List.num, GetTimeTick - tk]);
   L.ExtractTo(M64_2);
   L.Free;
 
   tk := GetTimeTick;
   L := TZDB2_List_HashVariant.Create(TZDB2_HashVariant, nil, 5000, M64_2, False, 64 * 1048576, 200, Cipher_);
-  for i := 0 to L.Count - 1 do
-    begin
-      if L[i].Data['a'] <> 'abcdefg' then
+  with L.Invert_Repeat_ do
+    repeat
+      if Queue^.Data.Data['a' + umlIntToStr(I__).Text] <> I__ then
           DoStatus('%s - test error.', [L.ClassName]);
-    end;
-  DoStatus('load %d extract stream of HashVariant,time:%dms', [L.Count, GetTimeTick - tk]);
+      if Queue^.Data.Data['b' + umlIntToStr(I__).Text] <> I__ then
+          DoStatus('%s - test error.', [L.ClassName]);
+      if I__ mod 2 = 0 then
+          L.Push_To_Recycle_Pool(Queue^.Data, True);
+    until not Prev;
+  L.Free_Recycle_Pool;
+  DoStatus('extract and remove done num=%d, stream of HashVariant,time:%dms', [L.List.num, GetTimeTick - tk]);
   L.Free;
 
   DisposeObject(M64_1);

@@ -672,19 +672,20 @@ begin
   TEKeyValue_Hash.IgnoreCase := True;
 
   DoStatus('extract Text Engine Database.');
-  for i := 0 to TEKeyValue_DB.Count - 1 do
-    begin
-      TE := TEKeyValue_DB[i];
-      TEName_ := GetTEName(TE);
-      if TEKeyValue_Hash.Exists(TEName_) then
-        begin
-          DoStatus('repeat Text engine %s', [TEName_]);
-          TEKeyValue_Hash.Add(TEName_, TE);
-        end
-      else
-          TEKeyValue_Hash.FastAdd(TEName_, TE);
-      TE.RecycleMemory;
-    end;
+  if TEKeyValue_DB.Count > 0 then
+    with TEKeyValue_DB.Repeat_ do
+      repeat
+        TE := Queue^.Data;
+        TEName_ := GetTEName(TE);
+        if TEKeyValue_Hash.Exists(TEName_) then
+          begin
+            DoStatus('repeat Text engine %s', [TEName_]);
+            TEKeyValue_Hash.Add(TEName_, TE);
+          end
+        else
+            TEKeyValue_Hash.FastAdd(TEName_, TE);
+        TE.RecycleMemory;
+      until not Next;
   TEKeyValue_DB.Flush;
   DoStatus('extract Text Engine Database done.');
 end;

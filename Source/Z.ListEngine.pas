@@ -1132,28 +1132,28 @@ end;
 function MakeHashS(const S: PSystemString): THash;
 begin
   Result := FastHashPSystemString(S);
-  Result := umlCRC32(@Result, SizeOf(THash));
+  Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
 function MakeHashPas(const S: PPascalString): THash;
 begin
   Result := FastHashPPascalString(S);
-  Result := umlCRC32(@Result, SizeOf(THash));
+  Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
 function MakeHashI64(const i64: Int64): THash;
 begin
-  Result := umlCRC32(@i64, C_Int64_Size);
+  Result := Get_CRC32(@i64, C_Int64_Size);
 end;
 
 function MakeHashU32(const c32: Cardinal): THash;
 begin
-  Result := umlCRC32(@c32, C_Cardinal_Size);
+  Result := Get_CRC32(@c32, C_Cardinal_Size);
 end;
 
 function MakeHashP(const p: Pointer): THash;
 begin
-  Result := umlCRC32(@p, C_Pointer_Size);
+  Result := Get_CRC32(@p, C_Pointer_Size);
 end;
 
 procedure DoStatusL(const V: TListPascalString);

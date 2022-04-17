@@ -1599,7 +1599,6 @@ begin
       fs := TCore_FileStream.Create(fullfn, fmOpenRead or fmShareDenyNone);
   except
     OutData.WriteBool(False);
-    DisposeObject(fs);
     exit;
   end;
 

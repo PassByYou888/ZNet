@@ -489,14 +489,7 @@ end;
 procedure TN_Progress_Tool.Progress(deltaTime: Double);
 var
   tmp_Order: TN_Post_Execute_Temp_Order_Struct;
-{$IFDEF FPC}
-  procedure do_fpc_Progress(Index_: NativeInt; p: TN_Post_Execute_List_Struct.PQueueStruct; var Aborted: Boolean);
-  begin
-    p^.Data.FNewTime := p^.Data.FNewTime + deltaTime;
-    if p^.Data.FNewTime >= p^.Data.Delay then
-        tmp_Order.Push(p^.Data);
-  end;
-{$ENDIF FPC}
+
   procedure Do_Run;
   var
     backup_state: Boolean;
@@ -520,6 +513,8 @@ var
       end;
   end;
 
+var
+  __Repeat__: TN_Post_Execute_List_Struct.TRepeat___;
 begin
   if FPaused then
       Exit;
@@ -533,16 +528,12 @@ begin
 
   tmp_Order := TN_Post_Execute_Temp_Order_Struct.Create;
   try
-{$IFDEF FPC}
-    FPostExecuteList.Progress_P(@do_fpc_Progress);
-{$ELSE FPC}
-    FPostExecuteList.Progress_P(procedure(Index_: NativeInt; p: TN_Post_Execute_List_Struct.PQueueStruct; var Aborted: Boolean)
-      begin
-        p^.Data.FNewTime := p^.Data.FNewTime + deltaTime;
-        if p^.Data.FNewTime >= p^.Data.Delay then
-            tmp_Order.Push(p^.Data);
-      end);
-{$ENDIF FPC}
+    __Repeat__ := FPostExecuteList.Repeat_;
+    repeat
+      __Repeat__.Queue^.Data.FNewTime := __Repeat__.Queue^.Data.FNewTime + deltaTime;
+      if __Repeat__.Queue^.Data.FNewTime >= __Repeat__.Queue^.Data.Delay then
+          tmp_Order.Push(__Repeat__.Queue^.Data);
+    until not __Repeat__.Next;
     Do_Run;
     tmp_Order.Free;
   finally

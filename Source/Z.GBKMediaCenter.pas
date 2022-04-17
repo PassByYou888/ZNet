@@ -185,7 +185,6 @@ function LoadDBPath(const dbEng: TObjectDataManager;
   const Path_, fileFilter: TPascalString; const mergeTo_: THashList): NativeInt;
 var
   j: Integer;
-  ori: NativeInt;
   rs: TItemRecursionSearch;
   itmHnd: TItemHandle;
   m64: TMS64;
@@ -212,7 +211,7 @@ begin
               for j := 0 to lst.Count - 1 do
                   mergeTo_.Add(lst[j], nil, True);
               disposeObject(lst);
-              inc(Result, mergeTo_.Count - ori);
+              inc(Result, mergeTo_.Count);
 
               disposeObject(m64);
               dbEng.ItemClose(itmHnd)
@@ -224,7 +223,6 @@ end;
 function LoadDBPath(const dbEng: TObjectDataManager;
   const Path_, fileFilter: TPascalString; const mergeTo_: THashTextEngine): NativeInt;
 var
-  ori: NativeInt;
   rs: TItemRecursionSearch;
   itmHnd: TItemHandle;
   m64: TMS64;
@@ -250,7 +248,7 @@ begin
               te.LoadFromStream(m64);
               mergeTo_.Merge(te);
               disposeObject(te);
-              inc(Result, mergeTo_.TotalCount - ori);
+              inc(Result, mergeTo_.TotalCount);
 
               disposeObject(m64);
               dbEng.ItemClose(itmHnd)

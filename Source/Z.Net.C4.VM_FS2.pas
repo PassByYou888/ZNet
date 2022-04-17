@@ -74,7 +74,7 @@ type
     ZDB2CipherName: U_String;
     ZDB2Password: U_String;
     ZDB2Cipher: TZDB2_Cipher;
-    C40_FS2_FileName: U_String;
+    C40_VM_FS2_FileName: U_String;
     FileHashPool: TC40_VM_FS2_Service_File_Data_Pool;
     MD5Pool: TC40_VM_FS2_Service_MD5_Data_Pool;
     FileDatabase: TZDB2_List_MS64;
@@ -348,7 +348,7 @@ type
     procedure Do_Progress_FileCachePool(const Name_: PSystemString; Obj_: TFS2_Client_CacheData);
     procedure cmd_FS_State(Sender: TPeerIO; InData: TDFE);
   public
-    C40_FS2_Cache_FileName: U_String;
+    C40_VM_FS2_Cache_FileName: U_String;
     ZDB2RecycleMemoryTimeOut: TTimeTick;
     ZDB2DeltaSpace: Int64;
     ZDB2BlockSize: Word;
@@ -358,7 +358,7 @@ type
     ZDB2Cipher: TZDB2_Cipher;
     Cache_File_Life: Int64;
     FileCacheHashPool: TFS2_Client_CacheHashPool;
-    Cache: TZDB2_List_MS64;
+    Cache_Database: TZDB2_List_MS64;
     property MaxFileSize: Cardinal read FMaxFileSize;
     property Remote_FS_DB_Size: Int64 read FRemote_FS_DB_Size;
     property Remote_FS_Num: Int64 read FRemote_FS_Num;
@@ -639,7 +639,6 @@ begin
           FileDatabaseIsUpdate := True;
         end;
     end;
-  FileDatabase.Flush(False);
 end;
 
 procedure TC40_VM_FS2_Service.cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
@@ -806,26 +805,25 @@ end;
 
 procedure TC40_VM_FS2_Service.cmd_FS2_PoolFrag(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  i: Integer;
   fd: TC40_VM_FS2_Service_File_Data;
 begin
-  for i := 0 to FileDatabase.Count - 1 do
-    begin
-      fd := TC40_VM_FS2_Service_ZDB2_MS64(FileDatabase[i]).Service_File_Data;
-      if fd <> nil then
-        begin
-          OutData.WriteString(fd.FileName);
-          OutData.WriteMD5(fd.FileMD5);
-          OutData.WriteDouble(fd.FileTime);
-        end;
-    end;
+  if FileDatabase.Count > 0 then
+    with FileDatabase.Invert_Repeat_ do
+      repeat
+        fd := TC40_VM_FS2_Service_ZDB2_MS64(Queue^.Data).Service_File_Data;
+        if fd <> nil then
+          begin
+            OutData.WriteString(fd.FileName);
+            OutData.WriteMD5(fd.FileMD5);
+            OutData.WriteDouble(fd.FileTime);
+          end;
+      until not Prev;
 end;
 
 constructor TC40_VM_FS2_Service.Create(Param_: U_String);
 var
   fs: TCore_Stream;
   fd: TC40_VM_FS2_Service_File_Data;
-  i: Integer;
   FL_: TPascalStringList;
 begin
   inherited Create(Param_);
@@ -857,7 +855,7 @@ begin
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
   else
       ZDB2Cipher := nil;
-  C40_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space2', ['VM_FS2']));
+  C40_VM_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space2', ['VM_FS2']));
 
   FileHashPool := TC40_VM_FS2_Service_File_Data_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -868,10 +866,10 @@ begin
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
-  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_FS2_FileName) then
-      fs := TCore_FileStream.Create(C40_FS2_FileName, fmOpenReadWrite)
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_VM_FS2_FileName) then
+      fs := TCore_FileStream.Create(C40_VM_FS2_FileName, fmOpenReadWrite)
   else
-      fs := TCore_FileStream.Create(C40_FS2_FileName, fmCreate);
+      fs := TCore_FileStream.Create(C40_VM_FS2_FileName, fmCreate);
 
   FileDatabase := TZDB2_List_MS64.Create(
     TC40_VM_FS2_Service_ZDB2_MS64,
@@ -884,33 +882,32 @@ begin
     ZDB2Cipher);
   FileDatabase.AutoFreeStream := True;
 
-  i := 0;
-  while i < FileDatabase.Count do
-    begin
-      fd := TC40_VM_FS2_Service_File_Data.Create(Self, FileDatabase[i]);
-      inc(i);
-      fd.Stream.Data.Position := 0;
-      fd.FileName := fd.Stream.Data.ReadString;
-      fd.FileTime := fd.Stream.Data.ReadDouble;
-      fd.FileRef := fd.Stream.Data.ReadInt32;
-      fd.FileMD5 := umlMD5(fd.Stream.Data.PosAsPtr, fd.Stream.Data.Size - fd.Stream.Data.Position);
-      fd.FileSize := fd.Stream.Data.Size - fd.Stream.Data.Position;
-      fd.Stream.RecycleMemory;
-      FileHashPool.Add(fd.FileName, fd);
+  if FileDatabase.Count > 0 then
+    with FileDatabase.Repeat_ do
+      repeat
+        fd := TC40_VM_FS2_Service_File_Data.Create(Self, Queue^.Data);
+        fd.Stream.Data.Position := 0;
+        fd.FileName := fd.Stream.Data.ReadString;
+        fd.FileTime := fd.Stream.Data.ReadDouble;
+        fd.FileRef := fd.Stream.Data.ReadInt32;
+        fd.FileMD5 := umlMD5(fd.Stream.Data.PosAsPtr, fd.Stream.Data.Size - fd.Stream.Data.Position);
+        fd.FileSize := fd.Stream.Data.Size - fd.Stream.Data.Position;
+        fd.Stream.RecycleMemory;
+        FileHashPool.Add(fd.FileName, fd);
 
-      FL_ := MD5Pool[umlMD5ToStr(fd.FileMD5)];
-      if FL_ <> nil then
-        begin
-          if FL_.ExistsValue(fd.FileName) < 0 then
-              FL_.Add(fd.FileName);
-        end
-      else
-        begin
-          FL_ := TPascalStringList.Create;
-          FL_.Add(fd.FileName);
-          MD5Pool.Add(umlMD5ToStr(fd.FileMD5), FL_);
-        end;
-    end;
+        FL_ := MD5Pool[umlMD5ToStr(fd.FileMD5)];
+        if FL_ <> nil then
+          begin
+            if FL_.ExistsValue(fd.FileName) < 0 then
+                FL_.Add(fd.FileName);
+          end
+        else
+          begin
+            FL_ := TPascalStringList.Create;
+            FL_.Add(fd.FileName);
+            MD5Pool.Add(umlMD5ToStr(fd.FileMD5), FL_);
+          end;
+      until not Next;
 
   FLast_FS_Update_TimeTick := GetTimeTick();
   FileDatabaseIsUpdate := False;
@@ -992,13 +989,13 @@ constructor TFS2_Client_CacheData.Create(Owner_: TC40_VM_FS2_Client);
 begin
   inherited Create;
   Owner := Owner_;
-  Stream := Owner.Cache.NewData;
+  Stream := Owner.Cache_Database.NewData;
   LastAccess := GetTimeTick();
 end;
 
 destructor TFS2_Client_CacheData.Destroy;
 begin
-  Owner.Cache.Remove(Stream, True);
+  Owner.Cache_Database.Remove(Stream, True);
   inherited Destroy;
 end;
 
@@ -1662,12 +1659,12 @@ begin
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('FS_State').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_State;
   FRemote_FS_DB_Size := 0;
   FRemote_FS_Num := 0;
-  C40_FS2_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
+  C40_VM_FS2_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
     PFormat('DTC40_VM_FS2_Cache.tmp', []));
   i := 1;
-  while umlFileExists(C40_FS2_Cache_FileName) do
+  while umlFileExists(C40_VM_FS2_Cache_FileName) do
     begin
-      C40_FS2_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
+      C40_VM_FS2_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
         PFormat('DTC40_VM_FS2_Cache(%d).tmp', [i]));
       inc(i);
     end;
@@ -1689,17 +1686,17 @@ begin
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
-  Cache := TZDB2_List_MS64.Create(
+  Cache_Database := TZDB2_List_MS64.Create(
     TZDB2_MS64,
     nil,
     ZDB2RecycleMemoryTimeOut,
-    TCore_FileStream.Create(C40_FS2_Cache_FileName, fmCreate),
+    TCore_FileStream.Create(C40_VM_FS2_Cache_FileName, fmCreate),
     False,
     ZDB2DeltaSpace,
     ZDB2BlockSize,
     ZDB2Cipher);
-  Cache.CoreSpace.Mode := smBigData;
-  Cache.AutoFreeStream := True;
+  Cache_Database.CoreSpace.Mode := smBigData;
+  Cache_Database.AutoFreeStream := True;
 
   FMaxFileSize := 0;
   FRemoveCacheList := TPascalStringList.Create;
@@ -1708,8 +1705,8 @@ end;
 destructor TC40_VM_FS2_Client.Destroy;
 begin
   disposeObject(FileCacheHashPool);
-  disposeObject(Cache);
-  umlDeleteFile(C40_FS2_Cache_FileName);
+  disposeObject(Cache_Database);
+  umlDeleteFile(C40_VM_FS2_Cache_FileName);
   disposeObject(FRemoveCacheList);
   DisposeObjectAndNil(ZDB2Cipher);
   inherited Destroy;
@@ -1728,13 +1725,13 @@ begin
           FileCacheHashPool.Delete(FRemoveCacheList[i]);
       FRemoveCacheList.Clear;
     end;
-  Cache.Flush;
+  Cache_Database.Flush;
 end;
 
 procedure TC40_VM_FS2_Client.Progress;
 begin
   inherited Progress;
-  Cache.Progress;
+  Cache_Database.Progress;
 end;
 
 procedure TC40_VM_FS2_Client.RemoveCache(File_Name: U_String);

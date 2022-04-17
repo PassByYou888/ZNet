@@ -991,7 +991,6 @@ begin
       fs := TCore_FileStream.Create(fullfn, fmOpenRead or fmShareDenyNone);
   except
     ThOutData.WriteBool(False);
-    DisposeObject(fs);
     Exit;
   end;
 
@@ -1257,7 +1256,6 @@ begin
       fs := TCore_FileStream.Create(fullfn, fmOpenRead or fmShareDenyNone);
   except
     OutData.WriteBool(False);
-    DisposeObject(fs);
     Exit;
   end;
 

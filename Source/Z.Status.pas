@@ -306,42 +306,23 @@ function GetOrCreateStatusNoLnData_(Th_: TCore_Thread): PNo_Ln_Text;
 var
   R_: PNo_Ln_Text;
   Tick: TTimeTick;
-{$IFDEF FPC}
-  procedure do_fpc_progress_(Index_: NativeInt; p: TNo_Ln_Text_Pool__.PQueueStruct; var Aborted: Boolean);
-  begin
-    if p^.Data^.Th = Th_ then
-      begin
-        R_ := p^.Data;
-        R_^.TriggerTime := Tick;
-      end
-    else if Tick - p^.Data^.TriggerTime > C_Tick_Minute then
-      begin
-        No_Ln_Text_Pool__.Push_To_Recycle_Pool(p);
-      end;
-  end;
-{$ENDIF FPC}
-
-
 begin
   R_ := nil;
   Tick := GetTimeTick();
 
-{$IFDEF FPC}
-  No_Ln_Text_Pool__.Progress_P(@do_fpc_progress_);
-{$ELSE FPC}
-  No_Ln_Text_Pool__.Progress_P(procedure(Index_: NativeInt; p: TNo_Ln_Text_Pool__.PQueueStruct; var Aborted: Boolean)
-    begin
-      if p^.Data^.Th = Th_ then
-        begin
-          R_ := p^.Data;
-          R_^.TriggerTime := Tick;
-        end
-      else if Tick - p^.Data^.TriggerTime > C_Tick_Minute then
-        begin
-          No_Ln_Text_Pool__.Push_To_Recycle_Pool(p);
-        end;
-    end);
-{$ENDIF FPC}
+  if No_Ln_Text_Pool__.Num > 0 then
+    with No_Ln_Text_Pool__.Repeat_ do
+      repeat
+        if Queue^.Data^.Th = Th_ then
+          begin
+            R_ := Queue^.Data;
+            R_^.TriggerTime := Tick;
+          end
+        else if Tick - Queue^.Data^.TriggerTime > C_Tick_Minute then
+          begin
+            No_Ln_Text_Pool__.Push_To_Recycle_Pool(Queue);
+          end;
+      until not Next;
   No_Ln_Text_Pool__.Free_Recycle_Pool;
 
   if R_ = nil then
@@ -435,22 +416,6 @@ begin
 end;
 
 procedure _InternalOutput(const Text_: U_String; const ID: Integer);
-{$IFDEF FPC}
-  procedure do_fpc_progress_(Index_: NativeInt; p: TEvent_Pool__.PQueueStruct; var Aborted: Boolean);
-  begin
-    try
-      if Assigned(p^.Data^.OnStatusM) then
-          p^.Data^.OnStatusM(Text_, ID);
-      if Assigned(p^.Data^.OnStatusC) then
-          p^.Data^.OnStatusC(Text_, ID);
-      if Assigned(p^.Data^.OnStatusP) then
-          p^.Data^.OnStatusP(Text_, ID);
-    except
-    end;
-  end;
-{$ENDIF FPC}
-
-
 var
   tmp: U_String;
 begin
@@ -465,22 +430,18 @@ begin
   if (Status_Active__) and (Event_Pool__.Num > 0) then
     begin
       LastDoStatus := Text_;
-{$IFDEF FPC}
-      Event_Pool__.Progress_P(@do_fpc_progress_);
-{$ELSE FPC}
-      Event_Pool__.Progress_P(procedure(Index_: NativeInt; p: TEvent_Pool__.PQueueStruct; var Aborted: Boolean)
-        begin
+      with Event_Pool__.Repeat_ do
+        repeat
           try
-            if Assigned(p^.Data^.OnStatusM) then
-                p^.Data^.OnStatusM(Text_, ID);
-            if Assigned(p^.Data^.OnStatusC) then
-                p^.Data^.OnStatusC(Text_, ID);
-            if Assigned(p^.Data^.OnStatusP) then
-                p^.Data^.OnStatusP(Text_, ID);
+            if Assigned(Queue^.Data^.OnStatusM) then
+                Queue^.Data^.OnStatusM(Text_, ID);
+            if Assigned(Queue^.Data^.OnStatusC) then
+                Queue^.Data^.OnStatusC(Text_, ID);
+            if Assigned(Queue^.Data^.OnStatusP) then
+                Queue^.Data^.OnStatusP(Text_, ID);
           except
           end;
-        end);
-{$ENDIF FPC}
+        until not Next;
     end;
 
 {$IFDEF DELPHI}
@@ -594,26 +555,14 @@ begin
 end;
 
 procedure DeleteDoStatusHook(TokenObj: TCore_Object);
-{$IFDEF FPC}
-  procedure do_fpc_progress_(Index_: NativeInt; p: TEvent_Pool__.PQueueStruct; var Aborted: Boolean);
-  begin
-    if p^.Data^.TokenObj = TokenObj then
-        Event_Pool__.Push_To_Recycle_Pool(p);
-  end;
-{$ENDIF FPC}
-
-
 begin
   Event_Pool__.Free_Recycle_Pool;
-{$IFDEF FPC}
-  Event_Pool__.Progress_P(@do_fpc_progress_);
-{$ELSE FPC}
-  Event_Pool__.Progress_P(procedure(Index_: NativeInt; p: TEvent_Pool__.PQueueStruct; var Aborted: Boolean)
-    begin
-      if p^.Data^.TokenObj = TokenObj then
-          Event_Pool__.Push_To_Recycle_Pool(p);
-    end);
-{$ENDIF FPC}
+  if Event_Pool__.Num > 0 then
+    with Event_Pool__.Repeat_ do
+      repeat
+        if Queue^.Data^.TokenObj = TokenObj then
+            Event_Pool__.Push_To_Recycle_Pool(Queue);
+      until not Next;
   Event_Pool__.Free_Recycle_Pool;
 end;
 

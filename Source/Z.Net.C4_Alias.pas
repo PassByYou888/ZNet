@@ -87,41 +87,38 @@ implementation
 procedure TC40_Alias_Service.cmd_SetAlias(Sender: TPeerIO; InData: TDFE);
 var
   alias_, Name_: U_String;
-  i: Integer;
   HS: TZDB2_HashString;
 begin
   alias_ := InData.R.ReadString;
   Name_ := InData.R.ReadString;
 
-  for i := 0 to Alias_DB.Count - 1 do
-    begin
-      HS := Alias_DB[i];
-      if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
-          HS.Remove;
-    end;
+  if Alias_DB.Count > 0 then
+    with Alias_DB.Repeat_ do
+      repeat
+        HS := Queue^.Data;
+        if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
+            Alias_DB.Push_To_Recycle_Pool(HS, true);
+      until not Next;
+  Alias_DB.Free_Recycle_Pool;
 
   HS := Alias_DB.NewData();
   HS.Data['Alias'] := alias_;
   HS.Data['Name'] := Name_;
-  Alias_DB.Flush(False);
 end;
 
 procedure TC40_Alias_Service.cmd_GetAlias(Sender: TPeerIO; InData, OutData: TDFE);
   function Do_found(alias_: U_String): TZDB2_HashString;
   var
-    i: Integer;
     HS: TZDB2_HashString;
   begin
+    if Alias_DB.Count > 0 then
+      with Alias_DB.Repeat_ do
+        repeat
+          HS := Queue^.Data;
+          if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
+              Exit(HS);
+        until not Next;
     Result := nil;
-    for i := 0 to Alias_DB.Count - 1 do
-      begin
-        HS := Alias_DB[i];
-        if alias_.Same(HS.Data.GetDefaultValue('Alias', '')) then
-          begin
-            Result := HS;
-            exit;
-          end;
-      end;
   end;
 
 var
@@ -140,36 +137,38 @@ end;
 
 procedure TC40_Alias_Service.cmd_RemoveAlias(Sender: TPeerIO; InData: TDFE);
 var
-  i: Integer;
   alias_: U_String;
   HS: TZDB2_HashString;
 begin
   alias_ := InData.R.ReadString;
-  for i := 0 to Alias_DB.Count - 1 do
-    begin
-      HS := Alias_DB[i];
-      if umlMultipleMatch(alias_, HS.Data.GetDefaultValue('Alias', '')) then
-          HS.Remove;
-    end;
-  Alias_DB.Flush(False);
+
+  if Alias_DB.Count > 0 then
+    with Alias_DB.Repeat_ do
+      repeat
+        HS := Queue^.Data;
+        if umlMultipleMatch(alias_, HS.Data.GetDefaultValue('Alias', '')) then
+            Alias_DB.Push_To_Recycle_Pool(HS, true);
+      until not Next;
+  Alias_DB.Free_Recycle_Pool;
 end;
 
 procedure TC40_Alias_Service.cmd_SearchAlias(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  i: Integer;
   Filter_: U_String;
   HS: TZDB2_HashString;
 begin
   Filter_ := InData.R.ReadString;
-  for i := 0 to Alias_DB.Count - 1 do
-    begin
-      HS := Alias_DB[i];
-      if umlSearchMatch(Filter_, HS.Data.GetDefaultValue('Alias', '')) then
-        begin
-          OutData.WriteString(HS.Data.GetDefaultValue('Alias', ''));
-          OutData.WriteString(HS.Data.GetDefaultValue('Name', ''));
-        end;
-    end;
+
+  if Alias_DB.Count > 0 then
+    with Alias_DB.Repeat_ do
+      repeat
+        HS := Queue^.Data;
+        if umlSearchMatch(Filter_, HS.Data.GetDefaultValue('Alias', '')) then
+          begin
+            OutData.WriteString(HS.Data.GetDefaultValue('Alias', ''));
+            OutData.WriteString(HS.Data.GetDefaultValue('Name', ''));
+          end;
+      until not Next;
 end;
 
 constructor TC40_Alias_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
@@ -188,17 +187,17 @@ begin
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '1*1024*1024'), 1 * 1024 * 1024);
   ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '200'), 200);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), true);
   ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
 
   if ZDB2EnabledCipher then
-      ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
+      ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, true, true)
   else
       ZDB2Cipher := nil;
   C40_Alias_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
 
-  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_Alias_DB_FileName) then
+  if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), true) and umlFileExists(C40_Alias_DB_FileName) then
       fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite)
   else
       fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
@@ -212,10 +211,10 @@ begin
     ZDB2DeltaSpace,
     ZDB2BlockSize,
     ZDB2Cipher);
-  Alias_DB.AutoFreeStream := True;
+  Alias_DB.AutoFreeStream := true;
 
   // only instance
-  ServiceInfo.OnlyInstance := True;
+  ServiceInfo.OnlyInstance := true;
   UpdateToGlobalDispatch;
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 end;

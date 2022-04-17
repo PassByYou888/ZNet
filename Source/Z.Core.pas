@@ -97,15 +97,17 @@ type
   TGenericsList<t> = class(System.Generics.Collections.TList<t>)
   private type
     TGArry = array of t;
-  public var Arry:TGArry;
-    function ListData: Pointer;
+    PGArry = ^TGArry;
+  public var Arry: TGArry;
+    function ListData: PGArry;
   end;
 
   TGenericsObjectList<t: class> = class(System.Generics.Collections.TList<t>)
   private type
     TGArry = array of t;
-  public var Arry:TGArry;
-    function ListData: Pointer;
+    PGArry = ^TGArry;
+  public var Arry: TGArry;
+    function ListData: PGArry;
   end;
 
   TCore_PointerList = array of Pointer;
@@ -367,44 +369,92 @@ type
 {$Region 'BigList'}
   {$IFDEF FPC}generic{$ENDIF FPC} TBigList<T_> = class(TCore_Object)
   public type
+
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
+    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<T_>;
 
     TQueueStruct = record
       Data: T_;
       Next: PQueueStruct;
       Prev: PQueueStruct;
-{$IFDEF DEBUG}
-      Instance_: TCore_Object;
-{$ENDIF DEBUG}
+      Instance___: T___;
+    end;
+
+    TRepeat___ = record
+    private
+      // Begin Index
+      BI___: NativeInt;
+      // End Index
+      EI___: NativeInt;
+      // Current index
+      I___: NativeInt;
+      Instance___: T___;
+      p___: PQueueStruct;
+      procedure Init_(Instance_: T___); overload;
+      procedure Init_(Instance_: T___; BI_, EI_: NativeInt); overload;
+    public
+      property Work: T___ read Instance___;
+      property BI: NativeInt read BI___;
+      property EI: NativeInt read EI___;
+      property I__: NativeInt read I___;
+      property Queue: PQueueStruct read p___;
+      function Next: Boolean;
+      property Right: Boolean read Next;
+    end;
+
+    TInvert_Repeat___ = record
+    private
+      // Begin Index
+      BI___: NativeInt;
+      // End Index
+      EI___: NativeInt;
+      // Current index
+      I___: NativeInt;
+      Instance___: T___;
+      p___: PQueueStruct;
+      procedure Init_(Instance_: T___); overload;
+      procedure Init_(Instance_: T___; BI_, EI_: NativeInt); overload;
+    public
+      property Work: T___ read Instance___;
+      property BI: NativeInt read BI___;
+      property EI: NativeInt read EI___;
+      property I__: NativeInt read I___;
+      property Queue: PQueueStruct read p___;
+      function Prev: Boolean;
+      property Left: Boolean read Prev;
     end;
 
     TArray_T_ = array of T_;
+    TOrder_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<T_>;
     TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
-    TOnFreeQueueStruct = procedure(var p: T_) of object;
-    TQueneStructProgress_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TQueneStructProgress_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
+    TOnStruct_Event = procedure(var p: T_) of object;
+    TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
-    TQueneStructProgress_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+    TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
 {$ELSE FPC}
-    TQueneStructProgress_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
 {$ENDIF FPC}
   private
     FRecycle_Pool__: TRecycle_Pool__;
     FFirst: PQueueStruct;
     FLast: PQueueStruct;
     FNum: NativeInt;
-    FOnFreeQueueStruct: TOnFreeQueueStruct;
+    FOnAdd: TOnStruct_Event;
+    FOnFree: TOnStruct_Event;
     FChanged: Boolean;
     FList: Pointer;
-    FProgress_Busy: NativeInt;
     procedure DoInternalFree(p: PQueueStruct);
   public
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
+    procedure DoAdd(var Data: T_); virtual;
+    function CompareData(Data_1, Data_2: T_): Boolean; virtual;
+    property Recycle_Pool: TRecycle_Pool__ read FRecycle_Pool__;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
     procedure Free_Recycle_Pool;
     procedure Clear;
@@ -420,14 +470,19 @@ type
     procedure MoveToLast(p: PQueueStruct);
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): Boolean;
-    property Progress_Busy: NativeInt read FProgress_Busy;
-    procedure Progress_C(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_C); overload;
-    procedure Progress_M(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_M); overload;
-    procedure Progress_P(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_P); overload;
-    procedure Progress_C(OnProgress: TQueneStructProgress_C); overload;
-    procedure Progress_M(OnProgress: TQueneStructProgress_M); overload;
-    procedure Progress_P(OnProgress: TQueneStructProgress_P); overload;
+    function Find_Data(Data: T_): PQueueStruct;
+    function Repeat_(): TRepeat___; overload;
+    function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    function Invert_Repeat_(): TInvert_Repeat___; overload;
+    function Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___; overload;
+    procedure For_C(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_C); overload;
+    procedure For_M(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_M); overload;
+    procedure For_P(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_P); overload;
+    procedure For_C(OnFor: TQueneStructFor_C); overload;
+    procedure For_M(OnFor: TQueneStructFor_M); overload;
+    procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
+    function ToOrder(): TOrder_Data_Pool;
     function BuildArrayMemory: PQueueArrayStruct;
     function CheckList: PQueueArrayStruct;
     function GetList(const Index: NativeInt): PQueueStruct;
@@ -438,36 +493,83 @@ type
     property Items[const Index: NativeInt]: T_ read GetItems write SetItems; default;
     property Num: NativeInt read FNum;
     property Count: NativeInt read FNum;
-    property OnFree: TOnFreeQueueStruct read FOnFreeQueueStruct write FOnFreeQueueStruct;
-    function Check: Boolean;
+    property OnFree: TOnStruct_Event read FOnFree write FOnFree;
+    property OnAdd: TOnStruct_Event read FOnAdd write FOnAdd;
+{$IFDEF DEBUG}
+    function Test_Check__: Boolean;
     class procedure Test;
+{$ENDIF DEBUG}
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC} TCriticalBigList<T_> = class(TCore_Object)
   public type
+
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
+    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<T_>;
 
     TQueueStruct = record
       Data: T_;
       Next: PQueueStruct;
       Prev: PQueueStruct;
-{$IFDEF DEBUG}
-      Instance_: TCore_Object;
-{$ENDIF DEBUG}
+      Instance___: T___;
+    end;
+
+    TRepeat___ = record
+    private
+      // Begin Index
+      BI___: NativeInt;
+      // End Index
+      EI___: NativeInt;
+      // Current index
+      I___: NativeInt;
+      Instance___: T___;
+      p___: PQueueStruct;
+      procedure Init_(Instance_: T___); overload;
+      procedure Init_(Instance_: T___; BI_, EI_: NativeInt); overload;
+    public
+      property Work: T___ read Instance___;
+      property BI: NativeInt read BI___;
+      property EI: NativeInt read EI___;
+      property I__: NativeInt read I___;
+      property Queue: PQueueStruct read p___;
+      function Next: Boolean;
+    end;
+
+    TInvert_Repeat___ = record
+    private
+      // Begin Index
+      BI___: NativeInt;
+      // End Index
+      EI___: NativeInt;
+      // Current index
+      I___: NativeInt;
+      Instance___: T___;
+      p___: PQueueStruct;
+      procedure Init_(Instance_: T___); overload;
+      procedure Init_(Instance_: T___; BI_, EI_: NativeInt); overload;
+    public
+      property Work: T___ read Instance___;
+      property BI: NativeInt read BI___;
+      property EI: NativeInt read EI___;
+      property I__: NativeInt read I___;
+      property Queue: PQueueStruct read p___;
+      function Prev: Boolean;
+      property Left: Boolean read Prev;
     end;
 
     TArray_T_ = array of T_;
+    TOrder_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<T_>;
     TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
-    TOnFreeQueueStruct = procedure(var p: T_) of object;
-    TQueneStructProgress_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TQueneStructProgress_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
+    TOnStruct_Event = procedure(var p: T_) of object;
+    TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
-    TQueneStructProgress_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+    TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
 {$ELSE FPC}
-    TQueneStructProgress_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
 {$ENDIF FPC}
   private
     FCritical: TCritical;
@@ -475,16 +577,21 @@ type
     FFirst: PQueueStruct;
     FLast: PQueueStruct;
     FNum: NativeInt;
-    FOnFreeQueueStruct: TOnFreeQueueStruct;
+    FOnAdd: TOnStruct_Event;
+    FOnFree: TOnStruct_Event;
     FChanged: Boolean;
     FList: Pointer;
-    FProgress_Busy: NativeInt;
     procedure DoInternalFree(p: PQueueStruct);
   public
     property Critical: TCritical read FCritical;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
+    procedure DoAdd(var Data: T_); virtual;
+    function CompareData(Data_1, Data_2: T_): Boolean; virtual;
+    procedure Lock;
+    procedure UnLock;
+    property Recycle_Pool: TRecycle_Pool__ read FRecycle_Pool__;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
     procedure Free_Recycle_Pool;
     procedure Clear;
@@ -500,14 +607,19 @@ type
     procedure MoveToLast(p: PQueueStruct);
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): Boolean;
-    property Progress_Busy: NativeInt read FProgress_Busy;
-    procedure Progress_C(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_C); overload;
-    procedure Progress_M(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_M); overload;
-    procedure Progress_P(BP_, EP_:PQueueStruct; OnProgress: TQueneStructProgress_P); overload;
-    procedure Progress_C(OnProgress: TQueneStructProgress_C); overload;
-    procedure Progress_M(OnProgress: TQueneStructProgress_M); overload;
-    procedure Progress_P(OnProgress: TQueneStructProgress_P); overload;
+    function Find_Data(Data: T_): PQueueStruct;
+    function Repeat_(): TRepeat___; overload;
+    function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    function Invert_Repeat_(): TInvert_Repeat___; overload;
+    function Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___; overload;
+    procedure For_C(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_C); overload;
+    procedure For_M(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_M); overload;
+    procedure For_P(BP_, EP_:PQueueStruct; OnFor: TQueneStructFor_P); overload;
+    procedure For_C(OnFor: TQueneStructFor_C); overload;
+    procedure For_M(OnFor: TQueneStructFor_M); overload;
+    procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
+    function ToOrder(): TOrder_Data_Pool;
     function BuildArrayMemory: PQueueArrayStruct;
     function CheckList: PQueueArrayStruct;
     function GetList(const Index: NativeInt): PQueueStruct;
@@ -518,104 +630,244 @@ type
     property Items[const Index: NativeInt]: T_ read GetItems write SetItems; default;
     property Num: NativeInt read FNum;
     property Count: NativeInt read FNum;
-    property OnFree: TOnFreeQueueStruct read FOnFreeQueueStruct write FOnFreeQueueStruct;
-    function Check: Boolean;
+    property OnFree: TOnStruct_Event read FOnFree write FOnFree;
+    property OnAdd: TOnStruct_Event read FOnAdd write FOnAdd;
+{$IFDEF DEBUG}
+    function Test_Check__: Boolean;
     class procedure Test;
+{$ENDIF DEBUG}
   end;
+
+{$IFDEF FPC}
+  generic TBig_Object_List<T_: TCore_Object> = class(specialize TBigList<T_>)
+{$ELSE FPC}
+  TBig_Object_List<T_: class> = class(TBigList<T_>)
+{$ENDIF FPC}
+  public
+    AutoFreeObject: Boolean;
+    constructor Create(AutoFreeObject_: Boolean);
+    procedure DoFree(var Data: T_); override;
+  end;
+
+{$IFDEF FPC}
+  generic TCritical_Big_Object_List<T_: TCore_Object> = class(specialize TCriticalBigList<T_>)
+{$ELSE FPC}
+  TCritical_Big_Object_List<T_: class> = class(TCriticalBigList<T_>)
+{$ENDIF FPC}
+  public
+    AutoFreeObject: Boolean;
+    constructor Create(AutoFreeObject_: Boolean);
+    procedure DoFree(var Data: T_); override;
+  end;
+
 {$EndRegion 'BigList'}
-{$Region 'HashPair'}
+{$Region 'Hash_Pair'}
   {$IFDEF FPC}generic{$ENDIF FPC} TPair_Pool<T1_, T2_> = class(TCore_Object)
   public type
+
     TPair = record
       Primary: T1_;
       Second: T2_;
-      Data: Pointer;
     end;
 
     PPair = ^TPair;
     TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
-    TOnFree_Pair = procedure(var Data: TPair) of object;
   public
     List: TPair_BigList__;
-    OnFree: TOnFree_Pair;
+    property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
-    procedure DoFree(var Data: TPair); virtual;
-    function Add(Primary: T1_; Second: T2_): PPair__;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC} TCritical_Pair_Pool<T1_, T2_> = class(TCore_Object)
+  {$IFDEF FPC}generic{$ENDIF FPC} TPair_Third_Pool<T1_, T2_, T3_> = class(TCore_Object)
   public type
+
     TPair = record
       Primary: T1_;
       Second: T2_;
-      Data: Pointer;
+      Third: T3_;
     end;
 
     PPair = ^TPair;
-    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TPair>;
+    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
-    TOnFree_Pair = procedure(var Data: TPair) of object;
   public
     List: TPair_BigList__;
-    OnFree: TOnFree_Pair;
+    property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
-    procedure DoFree(var Data: TPair); virtual;
-    function Add(Primary: T1_; Second: T2_): PPair__;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC} TPair_Fourth_Pool<T1_, T2_, T3_, T4_> = class(TCore_Object)
+  public type
+
+    TPair = record
+      Primary: T1_;
+      Second: T2_;
+      Third: T3_;
+      Fourth: T4_;
+    end;
+
+    PPair = ^TPair;
+    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    PPair__ = TPair_BigList__.PQueueStruct;
+  public
+    List: TPair_BigList__;
+    property L: TPair_BigList__ read List;
+    constructor Create;
+    destructor Destroy; override;
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
   public type
     PKey_ = ^TKey_;
     PValue = ^TValue_;
-    T__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_>;
-    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Pool<TKey_, TValue_>;
+    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Fourth_Pool<TKey_, TValue_, Pointer, THash>;
     PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
+    TPair = TValue_Pair_Pool__.TPair;
     TKey_Hash_Buffer = array of TValue_Pair_Pool__;
-    TPool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
-    TOnFree_Value = procedure(var Data: TValue_) of object;
-    TBig_Hash_Pool_Progress_C = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
-    TBig_Hash_Pool_Progress_M = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) of object;
+    TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TPool_Queue_Ptr___ = TPool___.PQueueStruct;
+    TRepeat___ = TPool___.TRepeat___;
+    TArray_Key = array of TKey_;
+    TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
+    TArray_Value = array of TValue_;
+    TOrder_Value = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TValue_>;
+    TOn_Event = procedure(var Key: TKey_; var Value: TValue_) of object;
+    TBig_Hash_Pool_For_C = procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
+    TBig_Hash_Pool_For_M = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) of object;
 {$IFDEF FPC}
-    TBig_Hash_Pool_Progress_P = procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean) is nested;
+    TBig_Hash_Pool_For_P = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) is nested;
 {$ELSE FPC}
-    TBig_Hash_Pool_Progress_P = reference to procedure(var Data: TValue_Pair_Pool__.TPair; var Aborted: Boolean);
+    TBig_Hash_Pool_For_P = reference to procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
 {$ENDIF FPC}
   private
-    function Get_Value_List(Key_: TKey_): TValue_Pair_Pool__;
-    procedure Free_Value_List(Key_: TKey_);
+    function Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
+    procedure Free_Value_List(Key_Hash_: THash);
+    procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
+    procedure Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
   public
-    Null_Value: TValue_;
+    Queue_Pool: TPool___;
     Hash_Buffer: TKey_Hash_Buffer;
-    OnFree: TOnFree_Value;
+    Null_Value: TValue_;
+    OnAdd: TOn_Event;
+    OnFree: TOn_Event;
     constructor Create(HashSize_: integer; Null_Value_: TValue_);
     destructor Destroy; override;
-    procedure DoFree(var Data: TValue_Pair_Pool__.TPair); virtual;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
     function Get_Key_Hash(Key_: TKey_): THash; virtual;
     function Compare_Key(Key_1, Key_2: TKey_): Boolean; virtual;
-    procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt); virtual;
-    procedure SwapInstance(source: T__);
+    function Compare_Value(Value_1, Value_2: TValue_): Boolean; virtual;
+    procedure SwapInstance(source: T___);
     procedure Clear;
-    procedure Resize_Hash_Pool(HashSize_: integer);
-    function Exists(Key: TKey_): Boolean;
-    function Add(Key: TKey_; Value: TValue_): PPair_Pool_Value__;
+    function Exists_Key(Key: TKey_): Boolean;
+    function Exists_Value(Data: TValue_): Boolean;
+    function Add(Key: TKey_; Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
     function Get_Key_Value(Key: TKey_): TValue_;
     procedure Set_Key_Value(Key: TKey_; Value: TValue_);
     property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
     procedure Delete(Key: TKey_);
     function Num: NativeInt;
     property Count: NativeInt read Num;
+    function GetSum: NativeInt;
+    property Sum: NativeInt read GetSum;
+    function Get_Value_Ptr(Key: TKey_): PValue; overload;
+    function Get_Value_Ptr(Key: TKey_; Default_:TValue_): PValue; overload;
     function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
     procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
-    procedure Progress_C(OnProgress: TBig_Hash_Pool_Progress_C); overload;
-    procedure Progress_M(OnProgress: TBig_Hash_Pool_Progress_M); overload;
-    procedure Progress_P(OnProgress: TBig_Hash_Pool_Progress_P); overload;
-    function Get_Pool(): TPool;
+    function Repeat_(): TRepeat___; overload;
+    function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    procedure For_C(OnFor: TBig_Hash_Pool_For_C); overload;
+    procedure For_M(OnFor: TBig_Hash_Pool_For_M); overload;
+    procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
+    procedure Push_To_Recycle_Pool(p: PPair_Pool_Value__);
+    procedure Free_Recycle_Pool;
+    function ToPool(): TPool___;
+    function ToArray_Key(): TArray_Key;
+    function ToOrder_Key(): TOrder_Key;
+    function ToArray_Value(): TArray_Value;
+    function ToOrder_Value(): TOrder_Value;
   end;
 
-{$EndRegion 'HashPair'}
+  {$IFDEF FPC}generic{$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
+  public type
+    PKey_ = ^TKey_;
+    PValue = ^TValue_;
+    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Fourth_Pool<TKey_, TValue_, Pointer, THash>;
+    PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
+    TPair = TValue_Pair_Pool__.TPair;
+    TKey_Hash_Buffer = array of TValue_Pair_Pool__;
+    TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TPool_Queue_Ptr___ = TPool___.PQueueStruct;
+    TRepeat___ = TPool___.TRepeat___;
+    TArray_Key = array of TKey_;
+    TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
+    TArray_Value = array of TValue_;
+    TOrder_Value = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TValue_>;
+    TOn_Event = procedure(var Key: TKey_; var Value: TValue_) of object;
+    TBig_Hash_Pool_For_C = procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
+    TBig_Hash_Pool_For_M = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) of object;
+{$IFDEF FPC}
+    TBig_Hash_Pool_For_P = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) is nested;
+{$ELSE FPC}
+    TBig_Hash_Pool_For_P = reference to procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
+{$ENDIF FPC}
+  private
+    function Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
+    procedure Free_Value_List(Key_Hash_: THash);
+    procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
+    procedure Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+  public
+    Critical: TCritical;
+    Queue_Pool: TPool___;
+    Hash_Buffer: TKey_Hash_Buffer;
+    Null_Value: TValue_;
+    OnAdd: TOn_Event;
+    OnFree: TOn_Event;
+    constructor Create(HashSize_: integer; Null_Value_: TValue_);
+    destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
+    function Get_Key_Hash(Key_: TKey_): THash; virtual;
+    function Compare_Key(Key_1, Key_2: TKey_): Boolean; virtual;
+    function Compare_Value(Value_1, Value_2: TValue_): Boolean; virtual;
+    procedure SwapInstance(source: T___);
+    procedure Clear;
+    function Exists_Key(Key: TKey_): Boolean;
+    function Exists_Value(Data: TValue_): Boolean;
+    function Add(Key: TKey_; Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
+    function Get_Key_Value(Key: TKey_): TValue_;
+    procedure Set_Key_Value(Key: TKey_; Value: TValue_);
+    property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
+    procedure Delete(Key: TKey_);
+    function Num: NativeInt;
+    property Count: NativeInt read Num;
+    function GetSum: NativeInt;
+    property Sum: NativeInt read GetSum;
+    function Get_Value_Ptr(Key: TKey_): PValue; overload;
+    function Get_Value_Ptr(Key: TKey_; Default_:TValue_): PValue; overload;
+    function Get_Default_Value(Key: TKey_; Default_:TValue_): TValue_;
+    procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
+    function Repeat_(): TRepeat___; overload;
+    function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    procedure For_C(OnFor: TBig_Hash_Pool_For_C); overload;
+    procedure For_M(OnFor: TBig_Hash_Pool_For_M); overload;
+    procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
+    procedure Push_To_Recycle_Pool(p: PPair_Pool_Value__);
+    procedure Free_Recycle_Pool;
+    function ToPool(): TPool___;
+    function ToArray_Key(): TArray_Key;
+    function ToOrder_Key(): TOrder_Key;
+    function ToArray_Value(): TArray_Value;
+    function ToOrder_Value(): TOrder_Value;
+  end;
+
+
+{$EndRegion 'Hash_Pair'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -971,6 +1223,7 @@ const
 {$EndRegion 'core const'}
 {$Region 'Parallel API'}
 
+function Max_Thread_Supported: Integer;
 function Get_System_Critical_Recycle_Pool_Num: NativeInt;
 function Get_MT19937_POOL_Num: NativeInt;
 function Get_Object_Lock_Pool_Num: NativeInt;
@@ -1054,36 +1307,77 @@ function CheckThread(Timeout: Integer): Boolean; overload;
 // core thread pool
 procedure FreeCoreThreadPool;
 
-procedure DisposeObject(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function DisposeObject(const Obj: TObject): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure DisposeObject(const objs: array of TObject); overload;
-procedure FreeObj(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-procedure FreeObject(const Obj: TObject);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function FreeObj(const Obj: TObject): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function FreeObject(const Obj: TObject): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure FreeObject(const objs: array of TObject); overload;
-procedure DisposeObjectAndNil(var Obj);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-procedure FreeObjAndNil(var Obj);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function DisposeObjectAndNil(var Obj): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function FreeObjAndNil(var Obj): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 procedure LockObject(Obj: TObject);
 procedure UnLockObject(Obj: TObject);
 
-function Get_CRC32(Data: PByte; Size: NativeInt): THash;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function Hash_Key_Mod(const hash: THash; const Num: integer): integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function DeltaStep(const value_, Delta_: NativeInt): NativeInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-procedure AtomInc(var x: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: Int64; const v: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Int64; const v: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: UInt64; const v: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: UInt64; const v: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: Integer; const v:Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Integer; const v:Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomInc(var x: Cardinal; const v:Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure AtomDec(var x: Cardinal; const v:Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+const
+  C_CRC32Table: array [0 .. 255] of Cardinal = (
+    $00000000, $77073096, $EE0E612C, $990951BA, $076DC419, $706AF48F, $E963A535,
+    $9E6495A3, $0EDB8832, $79DCB8A4, $E0D5E91E, $97D2D988, $09B64C2B, $7EB17CBD,
+    $E7B82D07, $90BF1D91, $1DB71064, $6AB020F2, $F3B97148, $84BE41DE, $1ADAD47D,
+    $6DDDE4EB, $F4D4B551, $83D385C7, $136C9856, $646BA8C0, $FD62F97A, $8A65C9EC,
+    $14015C4F, $63066CD9, $FA0F3D63, $8D080DF5, $3B6E20C8, $4C69105E, $D56041E4,
+    $A2677172, $3C03E4D1, $4B04D447, $D20D85FD, $A50AB56B, $35B5A8FA, $42B2986C,
+    $DBBBC9D6, $ACBCF940, $32D86CE3, $45DF5C75, $DCD60DCF, $ABD13D59, $26D930AC,
+    $51DE003A, $C8D75180, $BFD06116, $21B4F4B5, $56B3C423, $CFBA9599, $B8BDA50F,
+    $2802B89E, $5F058808, $C60CD9B2, $B10BE924, $2F6F7C87, $58684C11, $C1611DAB,
+    $B6662D3D, $76DC4190, $01DB7106, $98D220BC, $EFD5102A, $71B18589, $06B6B51F,
+    $9FBFE4A5, $E8B8D433, $7807C9A2, $0F00F934, $9609A88E, $E10E9818, $7F6A0DBB,
+    $086D3D2D, $91646C97, $E6635C01, $6B6B51F4, $1C6C6162, $856530D8, $F262004E,
+    $6C0695ED, $1B01A57B, $8208F4C1, $F50FC457, $65B0D9C6, $12B7E950, $8BBEB8EA,
+    $FCB9887C, $62DD1DDF, $15DA2D49, $8CD37CF3, $FBD44C65, $4DB26158, $3AB551CE,
+    $A3BC0074, $D4BB30E2, $4ADFA541, $3DD895D7, $A4D1C46D, $D3D6F4FB, $4369E96A,
+    $346ED9FC, $AD678846, $DA60B8D0, $44042D73, $33031DE5, $AA0A4C5F, $DD0D7CC9,
+    $5005713C, $270241AA, $BE0B1010, $C90C2086, $5768B525, $206F85B3, $B966D409,
+    $CE61E49F, $5EDEF90E, $29D9C998, $B0D09822, $C7D7A8B4, $59B33D17, $2EB40D81,
+    $B7BD5C3B, $C0BA6CAD, $EDB88320, $9ABFB3B6, $03B6E20C, $74B1D29A, $EAD54739,
+    $9DD277AF, $04DB2615, $73DC1683, $E3630B12, $94643B84, $0D6D6A3E, $7A6A5AA8,
+    $E40ECF0B, $9309FF9D, $0A00AE27, $7D079EB1, $F00F9344, $8708A3D2, $1E01F268,
+    $6906C2FE, $F762575D, $806567CB, $196C3671, $6E6B06E7, $FED41B76, $89D32BE0,
+    $10DA7A5A, $67DD4ACC, $F9B9DF6F, $8EBEEFF9, $17B7BE43, $60B08ED5, $D6D6A3E8,
+    $A1D1937E, $38D8C2C4, $4FDFF252, $D1BB67F1, $A6BC5767, $3FB506DD, $48B2364B,
+    $D80D2BDA, $AF0A1B4C, $36034AF6, $41047A60, $DF60EFC3, $A867DF55, $316E8EEF,
+    $4669BE79, $CB61B38C, $BC66831A, $256FD2A0, $5268E236, $CC0C7795, $BB0B4703,
+    $220216B9, $5505262F, $C5BA3BBE, $B2BD0B28, $2BB45A92, $5CB36A04, $C2D7FFA7,
+    $B5D0CF31, $2CD99E8B, $5BDEAE1D, $9B64C2B0, $EC63F226, $756AA39C, $026D930A,
+    $9C0906A9, $EB0E363F, $72076785, $05005713, $95BF4A82, $E2B87A14, $7BB12BAE,
+    $0CB61B38, $92D28E9B, $E5D5BE0D, $7CDCEFB7, $0BDBDF21, $86D3D2D4, $F1D4E242,
+    $68DDB3F8, $1FDA836E, $81BE16CD, $F6B9265B, $6FB077E1, $18B74777, $88085AE6,
+    $FF0F6A70, $66063BCA, $11010B5C, $8F659EFF, $F862AE69, $616BFFD3, $166CCF45,
+    $A00AE278, $D70DD2EE, $4E048354, $3903B3C2, $A7672661, $D06016F7, $4969474D,
+    $3E6E77DB, $AED16A4A, $D9D65ADC, $40DF0B66, $37D83BF0, $A9BCAE53, $DEBB9EC5,
+    $47B2CF7F, $30B5FFE9, $BDBDF21C, $CABAC28A, $53B39330, $24B4A3A6, $BAD03605,
+    $CDD70693, $54DE5729, $23D967BF, $B3667A2E, $C4614AB8, $5D681B02, $2A6F2B94,
+    $B40BBE37, $C30C8EA1, $5A05DF1B, $2D02EF8D
+    );
+
+function Get_CRC32(Data: PByte; Size: NativeInt): THash; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function Hash_Key_Mod(const hash: THash; const Num: integer): integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function DeltaStep(const value_, Delta_: NativeInt): NativeInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure AtomInc(var x: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Int64; const v: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Int64; const v: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: UInt64; const v: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: UInt64; const v: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Integer; const v:Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Integer; const v:Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomInc(var x: Cardinal; const v:Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure AtomDec(var x: Cardinal; const v:Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
 procedure FillPtrByte(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 procedure FillPtr(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
@@ -1099,8 +1393,8 @@ function IsMobile: Boolean;
 function GetTimeTick(): TTimeTick;
 function GetTimeTickCount(): TTimeTick;
 function GetCrashTimeTick(): TTimeTick;
-function SameF(const A, B: Double; Epsilon: Double = 0): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function SameF(const A, B: Single; Epsilon: Single = 0): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function SameF(const A, B: Double; Epsilon: Double = 0): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function SameF(const A, B: Single; Epsilon: Single = 0): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
 // MT19937 random num
 function MT19937CoreToDelphi: Boolean;
@@ -1121,88 +1415,88 @@ procedure MT19937RandD(dest: PDouble; num: NativeInt); overload;
 procedure MT19937SaveToStream(stream: TCore_Stream);
 procedure MT19937LoadFromStream(stream: TCore_Stream);
 
-function ROL8(const Value: Byte; Shift: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROL16(const Value: Word; Shift: Byte): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROL32(const Value: Cardinal; Shift: Byte): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROL64(const Value: UInt64; Shift: Byte): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROR8(const Value: Byte; Shift: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROR16(const Value: Word; Shift: Byte): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROR32(const Value: Cardinal; Shift: Byte): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function ROR64(const Value: UInt64; Shift: Byte): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL8(const Value: Byte; Shift: Byte): Byte; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL16(const Value: Word; Shift: Byte): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL32(const Value: Cardinal; Shift: Byte): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROL64(const Value: UInt64; Shift: Byte): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR8(const Value: Byte; Shift: Byte): Byte; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR16(const Value: Word; Shift: Byte): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR32(const Value: Cardinal; Shift: Byte): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function ROR64(const Value: UInt64; Shift: Byte): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function Endian(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Endian(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Endian(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Endian(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Endian(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Endian(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Endian(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function BE2N(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function BE2N(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function BE2N(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function BE2N(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function BE2N(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function BE2N(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function BE2N(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function LE2N(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function LE2N(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function LE2N(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function LE2N(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function LE2N(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function LE2N(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function LE2N(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function N2BE(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2BE(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2BE(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2BE(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2BE(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2BE(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2BE(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function N2LE(const Value: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2LE(const Value: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2LE(const Value: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2LE(const Value: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2LE(const Value: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function N2LE(const Value: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function N2LE(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-procedure Swap(var v1, v2: Byte);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Word);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Integer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Cardinal);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Int64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: UInt64);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Word); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 {$IFDEF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: NativeInt);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: NativeUInt);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: NativeInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: NativeUInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 {$ENDIF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: string);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Single);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Double);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Pointer);{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: string); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Single); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Double); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: Pointer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure SwapVariant(var v1, v2: Variant);
-function Swap(const v: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Swap(const v: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Swap(const v: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Swap(const v: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Swap(const v: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function Swap(const v: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-function SAR16(const Value: SmallInt; const Shift: Byte): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function SAR32(const Value: Integer; Shift: Byte): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-function SAR64(const Value: Int64; Shift: Byte): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function SAR16(const Value: SmallInt; const Shift: Byte): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function SAR32(const Value: Integer; Shift: Byte): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function SAR64(const Value: Int64; Shift: Byte): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function MemoryAlign(addr: Pointer; alignment_: NativeUInt): Pointer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function MemoryAlign(addr: Pointer; alignment_: NativeUInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
-function if_(const bool_: Boolean; const True_, False_: Boolean): Boolean;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: ShortInt): ShortInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: SmallInt): SmallInt;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Integer): Integer;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Int64): Int64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Byte): Byte;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Word): Word;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Cardinal): Cardinal;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: UInt64): UInt64;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Single): Single;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: Double): Double;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function if_(const bool_: Boolean; const True_, False_: string): string;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function ifv_(const bool_: Boolean; const True_, False_: Variant): Variant;{$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+function if_(const bool_: Boolean; const True_, False_: Boolean): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Integer): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Byte): Byte; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Single): Single; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: Double): Double; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function if_(const bool_: Boolean; const True_, False_: string): string; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+function ifv_(const bool_: Boolean; const True_, False_: Variant): Variant; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function GetOffset(p_: Pointer; offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function GetPtr(p_: Pointer; offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
@@ -1243,8 +1537,9 @@ implementation
 {$I Z.Core.Atomic.inc}
 {$I Z.Core.MT19937.inc}
 
-procedure DisposeObject(const Obj: TObject);
+function DisposeObject(const Obj: TObject): Boolean;
 begin
+  Result := False;
   if Obj = nil then
     exit;
   try
@@ -1253,6 +1548,7 @@ begin
     {$ELSE AUTOREFCOUNT}
     Obj.Free;
     {$ENDIF AUTOREFCOUNT}
+    Result := True;
   except
   end;
 end;
@@ -1265,14 +1561,14 @@ begin
       DisposeObject(Obj);
 end;
 
-procedure FreeObj(const Obj: TObject);
+function FreeObj(const Obj: TObject): Boolean;
 begin
-  DisposeObject(Obj);
+  Result := DisposeObject(Obj);
 end;
 
-procedure FreeObject(const Obj: TObject);
+function FreeObject(const Obj: TObject): Boolean;
 begin
-  DisposeObject(Obj);
+  Result := DisposeObject(Obj);
 end;
 
 procedure FreeObject(const objs: array of TObject);
@@ -1283,18 +1579,19 @@ begin
       DisposeObject(Obj);
 end;
 
-procedure DisposeObjectAndNil(var Obj);
+function DisposeObjectAndNil(var Obj): Boolean;
 begin
+  Result := False;
   if TObject(Obj) <> nil then
     begin
-      DisposeObject(TObject(Obj));
+      Result := DisposeObject(TObject(Obj));
       TObject(Obj) := nil;
     end;
 end;
 
-procedure FreeObjAndNil(var Obj);
+function FreeObjAndNil(var Obj): Boolean;
 begin
-  DisposeObjectAndNil(Obj);
+  Result := DisposeObjectAndNil(Obj);
 end;
 
 procedure LockObject(Obj: TObject);
@@ -1613,7 +1910,7 @@ procedure TCore_InterfacedObject.BeforeDestruction;
 begin
 end;
 
-function TGenericsList<t>.ListData: Pointer;
+function TGenericsList<t>.ListData: PGArry;
 begin
   // set array pointer
   Arry := TGArry(Pointer(inherited List));
@@ -1621,7 +1918,7 @@ begin
   Result := @Arry;
 end;
 
-function TGenericsObjectList<t>.ListData: Pointer;
+function TGenericsObjectList<t>.ListData: PGArry;
 begin
   // set array pointer
   Arry := TGArry(Pointer(inherited List));
@@ -1793,3 +2090,4 @@ finalization
   GlobalMemoryHook := nil;
   Free_System_Critical_Recycle_Pool();
 end.
+

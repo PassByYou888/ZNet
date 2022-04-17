@@ -195,9 +195,9 @@ begin
   try
     MT19937_POOL__.Free_Recycle_Pool;
 {$IFDEF FPC}
-    MT19937_POOL__.Progress_P(@do_fpc_progress);
+    MT19937_POOL__.For_P(@do_fpc_progress);
 {$ELSE FPC}
-    MT19937_POOL__.Progress_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
+    MT19937_POOL__.For_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
       begin
         if p^.Data^.Thread = Th then
           begin
@@ -227,36 +227,18 @@ begin
 end;
 
 procedure RemoveMT19937Thread(Th: TCore_Thread);
-{$IFDEF FPC}
-  procedure do_fpc_progress(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean);
-  begin
-    if (p^.Data^.Thread = Th) or
-      ((not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
-      (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime)) then
-      begin
-        MT19937_POOL__.Push_To_Recycle_Pool(p);
-      end;
-  end;
-{$ENDIF FPC}
-
-
 begin
   MT19937InternalCritical.Acquire;
   try
     MT19937_POOL__.Free_Recycle_Pool;
-{$IFDEF FPC}
-    MT19937_POOL__.Progress_P(@do_fpc_progress);
-{$ELSE FPC}
-    MT19937_POOL__.Progress_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
-      begin
-        if (p^.Data^.Thread = Th) or
-          ((not p^.Data^.Busy) and (p^.Data^.Instance_TMT19937Random__ <= 0) and
-          (GetTimeTick - p^.Data^.LastActivtedTime > MT19937LifeTime)) then
-          begin
-            MT19937_POOL__.Push_To_Recycle_Pool(p);
-          end;
-      end);
-{$ENDIF FPC}
+    if MT19937_POOL__.Num > 0 then
+      with MT19937_POOL__.Repeat_ do
+        repeat
+          if (Queue^.Data^.Thread = Th) or
+            ((not Queue^.Data^.Busy) and (Queue^.Data^.Instance_TMT19937Random__ <= 0) and
+            (GetTimeTick - Queue^.Data^.LastActivtedTime > MT19937LifeTime)) then
+              MT19937_POOL__.Push_To_Recycle_Pool(Queue);
+        until not Next;
     MT19937_POOL__.Free_Recycle_Pool;
   finally
       MT19937InternalCritical.Release;

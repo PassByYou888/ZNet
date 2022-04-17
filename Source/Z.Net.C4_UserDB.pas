@@ -42,15 +42,6 @@ type
 
   TC40_UserDB_Service_RecvTunnel_NoAuth_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_UserDB_Service_RecvTunnel_NoAuth>;
 
-  TC40_UserDB_Search_Bridge = class(TCustomEventBridge)
-  public
-    Service: TC40_UserDB_Service;
-    SearchText: U_String;
-    MaxNum: Integer;
-    Index: Integer;
-    procedure Progress(Sender: TZNet_Progress); override;
-  end;
-
   TC40_UserDB_Service = class(TC40_Base_NoAuth_Service)
   protected
     // IM
@@ -1247,51 +1238,35 @@ begin
   InData.R.ReadJson(Json.Data.O[ObjName_]);
 end;
 
-procedure TC40_UserDB_Search_Bridge.Progress(Sender: TZNet_Progress);
-var
-  tk: TTimeTick;
-  Json: TZDB2_Json;
-  n: U_String;
-  IO_: TPeerIO;
-begin
-  IO_ := IO;
-  if IO_ <> nil then
-    begin
-      tk := GetTimeTick;
-      if index > Service.JsonDatabase.Count - 1 then
-          index := Service.JsonDatabase.Count - 1;
-      while index >= 0 do
-        begin
-          Json := Service.JsonDatabase[index];
-          n := Json.Data.ToJSONString(False);
-          if (SearchText.L = 0) or (n.GetPos(@SearchText) > 0) then
-            begin
-              IO_.OutDFE.WriteString(n);
-              if (MaxNum > 0) and (IO_.OutDFE.Count > MaxNum) then
-                  break;
-            end;
-          dec(index);
-          if GetTimeTick - tk > 10 then
-              exit;
-        end;
-    end;
-  if IO_ <> nil then
-      IO_.ContinueResultSend;
-
-  Sender.NextProgressDoFree := True;
-  DelayFreeObj(1.0, self);
-end;
-
 procedure TC40_UserDB_Service.cmd_Usr_Search(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  tmp: TC40_UserDB_Search_Bridge;
+  SearchText: U_String;
+  MaxNum: Integer;
+  Json: TZDB2_Json;
+  n: U_String;
 begin
-  tmp := TC40_UserDB_Search_Bridge.Create(Sender);
-  tmp.Service := self;
-  tmp.SearchText := InData.R.ReadString;
-  tmp.MaxNum := InData.R.ReadInteger;
-  tmp.Index := JsonDatabase.Count - 1;
-  Sender.PauseResultSend;
+  SearchText := InData.R.ReadString;
+  MaxNum := InData.R.ReadInteger;
+  if JsonDatabase.Count > 0 then
+    with JsonDatabase.Invert_Repeat_ do
+      repeat
+        Json := Queue^.Data;
+        if Json.Data_Direct = nil then
+          begin
+            n := Json.Data.ToJSONString(False);
+            Json.RecycleMemory;
+          end
+        else
+          begin
+            n := Json.Data.ToJSONString(False);
+          end;
+        if (SearchText.L = 0) or (n.GetPos(@SearchText) > 0) then
+          begin
+            OutData.WriteString(n);
+            if (MaxNum > 0) and (OutData.Count > MaxNum) then
+                break;
+          end;
+      until not Prev;
 end;
 
 procedure TC40_UserDB_Service.cmd_Usr_Upload(Sender: TPeerIO; InData: TDFE);
@@ -1447,22 +1422,23 @@ begin
   JsonDatabase.AutoFreeStream := True;
 
   DoStatus('extract user Database.');
-  for j := 0 to JsonDatabase.Count - 1 do
-    begin
-      Json := JsonDatabase[j];
-      identifier_arry := Json.Data.A['Identifier'];
-      for i := 0 to identifier_arry.Count - 1 do
-        begin
-          if UserIdentifierHash.Exists(identifier_arry.S[i]) then
-            begin
-              DoStatus('repeat user %s', [identifier_arry.S[i]]);
-              UserIdentifierHash.Add(identifier_arry.S[i], Json);
-            end
-          else
-              UserIdentifierHash.FastAdd(identifier_arry.S[i], Json);
-        end;
-      Json.RecycleMemory;
-    end;
+  if JsonDatabase.Count > 0 then
+    with JsonDatabase.Repeat_ do
+      repeat
+        Json := Queue^.Data;
+        identifier_arry := Json.Data.A['Identifier'];
+        for i := 0 to identifier_arry.Count - 1 do
+          begin
+            if UserIdentifierHash.Exists(identifier_arry.S[i]) then
+              begin
+                DoStatus('repeat user %s', [identifier_arry.S[i]]);
+                UserIdentifierHash.Add(identifier_arry.S[i], Json);
+              end
+            else
+                UserIdentifierHash.FastAdd(identifier_arry.S[i], Json);
+          end;
+        Json.RecycleMemory;
+      until not Next;
   JsonDatabase.Flush;
   DoStatus('extract user Database done.');
 end;

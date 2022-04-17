@@ -111,13 +111,8 @@ type
   end;
 
   TOpti_Directory_File_Hash = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TOpti_Directory_File_Hash_Item_Data_List>;
-  TDirectory_Service_Num_Hash_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TBig_Hash_Pair_Pool<U_String, Integer>;
+  TDirectory_Service_Num_Hash = {$IFDEF FPC}specialize {$ENDIF FPC}TString_Big_Hash_Pair_Pool<Integer>;
 
-  TDirectory_Service_Num_Hash = class(TDirectory_Service_Num_Hash_Decl)
-  public
-    function Get_Key_Hash(Key_: U_String): THash; override;
-    function Compare_Key(Key_1, Key_2: U_String): Boolean; override;
-  end;
 {$ENDREGION 'service struct define'}
 
   TC40_NetDisk_Directory_Service = class(TC40_Base_NoAuth_Service)
@@ -824,16 +819,6 @@ begin
   Add(p);
 end;
 
-function TDirectory_Service_Num_Hash.Get_Key_Hash(Key_: U_String): THash;
-begin
-  Result := Key_.hash;
-end;
-
-function TDirectory_Service_Num_Hash.Compare_Key(Key_1, Key_2: U_String): Boolean;
-begin
-  Result := Key_1.Same(@Key_2);
-end;
-
 procedure TC40_NetDisk_Directory_Service.cmd_ExistsDB(Sender: TPeerIO; InData, OutData: TDFE);
 var
   DB_Name: U_String;
@@ -1370,7 +1355,7 @@ begin
     while InData.R.NotEnd do
       begin
         frag_ := InData.R.ReadString;
-        if not Opti_Directory_Frag_Hash.Exists(frag_) then
+        if not Opti_Directory_Frag_Hash.Exists_Key(frag_) then
             OutData.WriteString(frag_);
       end;
 end;
@@ -1486,15 +1471,13 @@ var
             begin
               d.WriteString(Temp_Invalid_MD5_List[i]);
               for j := 0 to Obj_.Frag_Pool.count - 1 do
-                if not Opti_Directory_Frag_Hash.Exists(Obj_.Frag_Pool[j]^.FS_File) then
+                if not Opti_Directory_Frag_Hash.Exists_Key(Obj_.Frag_Pool[j]^.FS_File) then
                   begin
                     invalid_Frag.Add(Obj_.Frag_Pool[j]^.FS_File, nil);
                     DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j]^.FS_File.Text, Obj_.Frag_Pool[j]^.Size_]);
                   end;
               DoStatus('%s recycle data space "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Temp_Invalid_MD5_List[i].Text, Obj_.Frag_Pool.Size]);
 
-              Obj_.Stream.Remove;
-              Obj_.Stream := nil;
               MD5_Pool.Delete(Temp_Invalid_MD5_List[i]);
             end
           else
@@ -1505,7 +1488,6 @@ var
         except
         end;
       end;
-    MD5_Database.Flush(False);
 
     Service.SendTunnel.BroadcastDirectStreamCmd('Remove_Directory_MD5', d);
     DisposeObject(d);
@@ -1708,7 +1690,6 @@ constructor TC40_NetDisk_Directory_Service.Create(PhysicsService_: TC40_PhysicsS
 var
   Directory_FS: TCore_Stream;
   fd: TDirectory_Service_User_File_DB;
-  i: Integer;
   MD5_FS: TCore_Stream;
   md5_frag: TDirectory_Service_MD5_Data_Frag;
 begin
@@ -1774,11 +1755,9 @@ begin
     Directory_ZDB2_Cipher);
   Directory_Database.AutoFreeStream := True;
 
-  i := 0;
-  while i < Directory_Database.count do
-    begin
-      fd := TDirectory_Service_User_File_DB.Create(self, Directory_Database[i]);
-      inc(i);
+  with Directory_Database.Repeat_ do
+    repeat
+      fd := TDirectory_Service_User_File_DB.Create(self, Queue^.Data);
       fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
       if fd.DB_Name <> '' then
         begin
@@ -1789,7 +1768,7 @@ begin
         end
       else
           DisposeObject(fd);
-    end;
+    until not Next;
 
   // md5 frag database
   MD5_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('MD5_RecycleMemory', '1*1000'), 1 * 1000);
@@ -1825,15 +1804,14 @@ begin
     MD5_ZDB2_Cipher);
   MD5_Database.AutoFreeStream := True;
 
-  i := 0;
-  while i < MD5_Database.count do
-    begin
-      md5_frag := TDirectory_Service_MD5_Data_Frag.Create(self, MD5_Database[i]);
-      inc(i);
-      md5_frag.ReadInfo;
-      md5_frag.Stream.RecycleMemory;
-      MD5_Pool.Add(umlMD5ToStr(md5_frag.Frag_Pool.MD5), md5_frag);
-    end;
+  if MD5_Database.List.Num > 0 then
+    with MD5_Database.List.Repeat_ do
+      repeat
+        md5_frag := TDirectory_Service_MD5_Data_Frag.Create(self, Queue^.Data);
+        md5_frag.ReadInfo;
+        md5_frag.Stream.RecycleMemory;
+        MD5_Pool.Add(umlMD5ToStr(md5_frag.Frag_Pool.MD5), md5_frag);
+      until not Next;
 
   Init_Opti();
 end;

@@ -51,6 +51,7 @@ type
     function ToMD5: TMD5;
 
     property Delta: NativeInt read FDelta write FDelta;
+    property ProtectedMode: Boolean read FProtectedMode;
     procedure SetPointerWithProtectedMode(buffPtr: Pointer; const BuffSize: Int64);
     procedure Mapping(buffPtr: Pointer; const BuffSize: Int64); overload;
     procedure Mapping(m64: TMS64); overload;
@@ -233,6 +234,7 @@ type
     property Position: Int64 read GetPosition write SetPosition;
     property Size: Int64 read GetSize write SetSize;
 
+    property ProtectedMode: Boolean read FProtectedMode;
     procedure SetPointerWithProtectedMode(buffPtr: Pointer; const BuffSize: Int64);
     procedure Mapping(buffPtr: Pointer; const BuffSize: Int64); overload;
     procedure Mapping(m64: TMS64); overload;

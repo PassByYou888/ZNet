@@ -175,8 +175,6 @@ procedure Test_IOData__C(Sender: TIO_Thread_Data);
 
 implementation
 
-uses Z.Status;
-
 procedure Test_IOData__C(Sender: TIO_Thread_Data);
 begin
 end;
@@ -401,7 +399,7 @@ begin
               if Integer(d.Data) = j then
                   inc(j)
               else
-                  DoStatus('IO Thread test error.');
+                  RaiseInfo('IO Thread test error.');
               d.Free;
             end;
         end;
@@ -528,25 +526,18 @@ begin
 end;
 
 destructor TThread_Pool.Destroy;
-{$IFDEF FPC}
-  procedure fpc_progress_(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-  begin
-    p^.Data.FActivted.V := False;
-  end;
-{$ENDIF FPC}
-
-
+var
+  __Repeat__: TThread_Pool_Decl.TRepeat___;
 begin
-  FCritical.Lock;
-{$IFDEF FPC}
-  Progress_P(@fpc_progress_);
-{$ELSE FPC}
-  Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+  if Num > 0 then
     begin
-      p^.Data.FActivted.V := False;
-    end);
-{$ENDIF FPC}
-  FCritical.UnLock;
+      FCritical.Lock;
+      __Repeat__ := Repeat_;
+      repeat
+          __Repeat__.Queue^.Data.FActivted.V := False;
+      until not __Repeat__.Next;
+      FCritical.UnLock;
+    end;
 
   while ThNum > 0 do
       TCompute.Sleep(1);
@@ -576,9 +567,9 @@ var
 begin
   R_ := 0;
 {$IFDEF FPC}
-  Progress_P(@fpc_progress_);
+  For_P(@fpc_progress_);
 {$ELSE FPC}
-  Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+  For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
     begin
       inc(R_, p^.Data.FPost.Count);
     end);
@@ -634,9 +625,9 @@ begin
   Eng_ := nil;
   try
 {$IFDEF FPC}
-    Progress_P(@do_fpc_Progress);
+    For_P(@do_fpc_Progress);
 {$ELSE FPC}
-    Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+    For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
       begin
         if Eng_ = nil then
             Eng_ := p
@@ -678,9 +669,9 @@ begin
   Eng_ := nil;
   try
 {$IFDEF FPC}
-    Progress_P(@do_fpc_Progress);
+    For_P(@do_fpc_Progress);
 {$ELSE FPC}
-    Progress_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
+    For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
       begin
         if not p^.Data.FPost.Busy then
           begin
@@ -702,7 +693,6 @@ end;
 
 procedure TThread_Pool.DoTest_C;
 begin
-  DoStatus('current post thread: %d', [TCompute.CurrentThread.ThreadID]);
 end;
 
 class procedure TThread_Pool.Test;

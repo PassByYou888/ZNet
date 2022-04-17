@@ -2196,34 +2196,18 @@ begin
 end;
 
 procedure TC40_NetDisk_Client_Task.Go_Next_Task;
-{$IFDEF FPC}
-  procedure do_fpc_progress(Index_: NativeInt; p: TC40_NetDisk_Client_Task_Pool_Decl.PQueueStruct; var Aborted: Boolean);
-  begin
-    if not p^.Data.Run_Task_Busy then
-      begin
-        p^.Data.Run_Task;
-        Aborted := True;
-      end;
-  end;
-{$ENDIF FPC}
-
-
 begin
   if (OwnerPool <> nil) and (Pool_Ptr <> nil) and (Pool_Ptr <> OwnerPool.Last) then
     begin
-{$IFDEF FPC}
-      OwnerPool.Progress_P(Pool_Ptr^.Next, OwnerPool.Last, @do_fpc_progress);
-{$ELSE FPC}
-      OwnerPool.Progress_P(Pool_Ptr^.Next, OwnerPool.Last,
-        procedure(Index_: NativeInt; p: TC40_NetDisk_Client_Task_Pool_Decl.PQueueStruct; var Aborted: Boolean)
-        begin
-          if not p^.Data.Run_Task_Busy then
-            begin
-              p^.Data.Run_Task;
-              Aborted := True;
-            end;
-        end);
-{$ENDIF FPC}
+      if OwnerPool.Num > 0 then
+        with OwnerPool.Repeat_ do
+          repeat
+            if not Queue^.Data.Run_Task_Busy then
+              begin
+                Queue^.Data.Run_Task;
+                break;
+              end;
+          until not Next;
     end;
   Client.DTNoAuth.ProgressEngine.PostDelayFreeObject(1.0, self);
 end;

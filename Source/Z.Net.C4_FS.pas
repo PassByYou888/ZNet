@@ -234,7 +234,7 @@ type
     ZDB2Cipher: TZDB2_Cipher;
     Cache_File_Life: Int64;
     FileCacheHashPool: TFS_Client_CacheHashPool;
-    Cache: TZDB2_List_MS64;
+    Cache_Database: TZDB2_List_MS64;
     property MaxFileSize: Cardinal read FMaxFileSize;
 
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
@@ -366,7 +366,6 @@ begin
           FileHashPool.Delete(fn);
         end;
     end;
-  FileDatabase.Flush(False);
 end;
 
 procedure TC40_FS_Service.cmd_FS_Size(Sender: TPeerIO; InData, OutData: TDFE);
@@ -430,7 +429,6 @@ constructor TC40_FS_Service.Create(PhysicsService_: TC40_PhysicsService; Service
 var
   fs: TCore_Stream;
   fd: TFS_Service_File_Data;
-  i: Integer;
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
   // max complete buffer 2M
@@ -481,19 +479,18 @@ begin
     ZDB2Cipher);
   FileDatabase.AutoFreeStream := True;
 
-  i := 0;
-  while i < FileDatabase.Count do
-    begin
-      fd := TFS_Service_File_Data.Create(self, FileDatabase[i]);
-      inc(i);
-      fd.Stream.Data.Position := 0;
-      fd.FileName := fd.Stream.Data.ReadString;
-      fd.FileTime := fd.Stream.Data.ReadDouble;
-      fd.FileMD5 := umlMD5(fd.Stream.Data.PosAsPtr, fd.Stream.Data.Size - fd.Stream.Data.Position);
-      fd.FileSize := fd.Stream.Data.Size - fd.Stream.Data.Position;
-      fd.Stream.RecycleMemory;
-      FileHashPool.Add(fd.FileName, fd);
-    end;
+  if FileDatabase.Count > 0 then
+    with FileDatabase.Repeat_ do
+      repeat
+        fd := TFS_Service_File_Data.Create(self, Queue^.Data);
+        fd.Stream.Data.Position := 0;
+        fd.FileName := fd.Stream.Data.ReadString;
+        fd.FileTime := fd.Stream.Data.ReadDouble;
+        fd.FileMD5 := umlMD5(fd.Stream.Data.PosAsPtr, fd.Stream.Data.Size - fd.Stream.Data.Position);
+        fd.FileSize := fd.Stream.Data.Size - fd.Stream.Data.Position;
+        fd.Stream.RecycleMemory;
+        FileHashPool.Add(fd.FileName, fd);
+      until not Next;
 end;
 
 destructor TC40_FS_Service.Destroy;
@@ -536,13 +533,13 @@ constructor TFS_Client_CacheData.Create(Owner_: TC40_FS_Client);
 begin
   inherited Create;
   Owner := Owner_;
-  Stream := Owner.Cache.NewData;
+  Stream := Owner.Cache_Database.NewData;
   LastAccess := GetTimeTick();
 end;
 
 destructor TFS_Client_CacheData.Destroy;
 begin
-  Owner.Cache.Remove(Stream, True);
+  Owner.Cache_Database.Remove(Stream, True);
   inherited Destroy;
 end;
 
@@ -965,7 +962,7 @@ begin
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
-  Cache := TZDB2_List_MS64.Create(
+  Cache_Database := TZDB2_List_MS64.Create(
     TZDB2_MS64,
     nil,
     ZDB2RecycleMemoryTimeOut,
@@ -974,8 +971,8 @@ begin
     ZDB2DeltaSpace,
     ZDB2BlockSize,
     ZDB2Cipher);
-  Cache.CoreSpace.Mode := smBigData;
-  Cache.AutoFreeStream := True;
+  Cache_Database.CoreSpace.Mode := smBigData;
+  Cache_Database.AutoFreeStream := True;
 
   FMaxFileSize := 0;
   FRemoveCacheList := TPascalStringList.Create;
@@ -984,7 +981,7 @@ end;
 destructor TC40_FS_Client.Destroy;
 begin
   DisposeObject(FileCacheHashPool);
-  DisposeObject(Cache);
+  DisposeObject(Cache_Database);
   umlDeleteFile(C40_FS_Cache_FileName);
   DisposeObject(FRemoveCacheList);
   DisposeObjectAndNil(ZDB2Cipher);
@@ -1004,13 +1001,13 @@ begin
           FileCacheHashPool.Delete(FRemoveCacheList[i]);
       FRemoveCacheList.Clear;
     end;
-  Cache.Flush;
+  Cache_Database.Flush;
 end;
 
 procedure TC40_FS_Client.Progress;
 begin
   inherited Progress;
-  Cache.Progress;
+  Cache_Database.Progress;
 end;
 
 procedure TC40_FS_Client.RemoveCache(File_Name: U_String);

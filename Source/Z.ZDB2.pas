@@ -43,6 +43,7 @@ type
     FlushThisCacheToFile: Boolean;
   end;
 
+  TZDB2_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Integer>;
   TZDB2_ID_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;
   TZDB2_BlockPtrList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PZDB2_Block>;
 
@@ -1667,6 +1668,7 @@ var
   SwapBuff_: Pointer;
 begin
   Result := False;
+  dest_StoreData := nil;
   FlushCache;
   headSize := C_ZDB2_HeaderSize + TZDB2_BlockStoreData.ComputeSize(FBlockCount);
   headPos_ := C_ZDB2_HeaderSize;
@@ -1960,6 +1962,8 @@ var
 begin
   Result := False;
   BlockPos_ := 0;
+  if SpaceHnd.Count <= 0 then
+      exit;
   for i := 0 to SpaceHnd.Count - 1 do
     begin
       p := SpaceHnd[i];

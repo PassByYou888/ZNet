@@ -627,6 +627,7 @@ var
 begin
   if CheckIO then
     begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
       for i := low(arry) to high(arry) do
           IO.OutDFE.WriteString(arry[i]);
       VM_Service.PostLog('%s Get Online List.', [IO_Def.PrimaryIdentifier.Text]);
