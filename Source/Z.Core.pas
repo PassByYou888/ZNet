@@ -661,7 +661,7 @@ type
   end;
 
 {$EndRegion 'BigList'}
-{$Region 'Hash_Pair'}
+{$Region 'Hash-Pair'}
   {$IFDEF FPC}generic{$ENDIF FPC} TPair_Pool<T1_, T2_> = class(TCore_Object)
   public type
 
@@ -747,7 +747,8 @@ type
     function Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
     procedure Free_Value_List(Key_Hash_: THash);
     procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
-    procedure Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+    procedure Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+    procedure Internal_Do_Free(var Data: TPair);
   public
     Queue_Pool: TPool___;
     Hash_Buffer: TKey_Hash_Buffer;
@@ -756,8 +757,8 @@ type
     OnFree: TOn_Event;
     constructor Create(HashSize_: integer; Null_Value_: TValue_);
     destructor Destroy; override;
-    procedure DoFree(var Data: TPair); virtual;
-    procedure DoAdd(var Data: TPair); virtual;
+    procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
+    procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;
     function Get_Key_Hash(Key_: TKey_): THash; virtual;
     function Compare_Key(Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(Value_1, Value_2: TValue_): Boolean; virtual;
@@ -820,7 +821,8 @@ type
     function Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
     procedure Free_Value_List(Key_Hash_: THash);
     procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
-    procedure Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+    procedure Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+    procedure Internal_Do_Free(var Data: TPair);
   public
     Critical: TCritical;
     Queue_Pool: TPool___;
@@ -830,8 +832,8 @@ type
     OnFree: TOn_Event;
     constructor Create(HashSize_: integer; Null_Value_: TValue_);
     destructor Destroy; override;
-    procedure DoFree(var Data: TPair); virtual;
-    procedure DoAdd(var Data: TPair); virtual;
+    procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
+    procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;
     function Get_Key_Hash(Key_: TKey_): THash; virtual;
     function Compare_Key(Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(Value_1, Value_2: TValue_): Boolean; virtual;
@@ -867,7 +869,7 @@ type
   end;
 
 
-{$EndRegion 'Hash_Pair'}
+{$EndRegion 'Hash-Pair'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -1159,7 +1161,7 @@ type
     property Value: T_ read FValue;
   end;
 {$EndRegion 'LineProcessor'}
-{$Region 'core const'}
+{$Region 'core-const'}
 const
   {$IF Defined(WIN32)}
   CurrentPlatform: TExecutePlatform = epWin32;
@@ -1220,8 +1222,8 @@ const
   fmShareExclusive = SysUtils.fmShareExclusive;
   fmShareDenyWrite = SysUtils.fmShareDenyWrite;
   fmShareDenyNone  = SysUtils.fmShareDenyNone;
-{$EndRegion 'core const'}
-{$Region 'Parallel API'}
+{$EndRegion 'core-const'}
+{$Region 'Parallel-API'}
 
 function Max_Thread_Supported: Integer;
 function Get_System_Critical_Recycle_Pool_Num: NativeInt;
@@ -1289,7 +1291,7 @@ procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integ
 procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64); overload;
 {$ENDIF FPC}
 
-{$EndRegion 'Parallel API'}
+{$EndRegion 'Parallel-API'}
 {$Region 'core api'}
 
 // NoP = No Operation. It's the empty function, whose purpose is only for the
@@ -1995,7 +1997,7 @@ end;
 {$I Z.Core.LineProcessor.inc}
 {$I Z.Core.OrderData.inc}
 {$I Z.Core.BigList.inc}
-{$I Z.Core.HashPair.inc}
+{$I Z.Core.Hash_Pair.inc}
 
 procedure Nop;
 begin

@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * Status IO                                                                  * }
+{ * Status Output                                                              * }
 { ****************************************************************************** }
 unit Z.Status;
 
@@ -19,8 +19,6 @@ uses
   SysUtils, Classes, SyncObjs,
 {$IFDEF FPC}
   Z.FPC.GenericList, fgl,
-{$ELSE FPC}
-  System.Generics.Collections,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Core;
 
@@ -52,7 +50,6 @@ procedure DoStatus(const v: Single); overload;
 procedure DoStatus(const v: Double); overload;
 procedure DoStatus(const v: Pointer); overload;
 procedure DoStatus(const v: SystemString; const Args: array of const); overload;
-procedure DoError(v: SystemString; const Args: array of const); overload;
 procedure DoStatus(const v: SystemString); overload;
 procedure DoStatus(const v: TPascalString); overload;
 procedure DoStatus(const v: TUPascalString); overload;
@@ -63,10 +60,6 @@ procedure DoStatus; overload;
 procedure DoStatusNoLn(const v: TPascalString); overload;
 procedure DoStatusNoLn(const v: SystemString; const Args: array of const); overload;
 procedure DoStatusNoLn; overload;
-
-function StrInfo(S: TPascalString): string; overload;
-function StrInfo(S: TUPascalString): string; overload;
-function BytesInfo(S: TBytes): string; overload;
 
 var
   LastDoStatus: SystemString;
@@ -194,11 +187,6 @@ end;
 procedure DoStatus(const v: SystemString; const Args: array of const);
 begin
   DoStatus(Format(v, Args));
-end;
-
-procedure DoError(v: SystemString; const Args: array of const);
-begin
-  DoStatus(Format(v, Args), 2);
 end;
 
 procedure DoStatus(const v: SystemString);
@@ -400,21 +388,6 @@ begin
       DoStatus(S);
 end;
 
-function StrInfo(S: TPascalString): string;
-begin
-  Result := BytesInfo(S.Bytes);
-end;
-
-function StrInfo(S: TUPascalString): string;
-begin
-  Result := BytesInfo(S.Bytes);
-end;
-
-function BytesInfo(S: TBytes): string;
-begin
-  Result := umlStringOf(S);
-end;
-
 procedure _InternalOutput(const Text_: U_String; const ID: Integer);
 var
   tmp: U_String;
@@ -445,7 +418,7 @@ begin
     end;
 
 {$IFDEF DELPHI}
-  if (Status_Active__) and ((IDEOutput) or (ID = 2)) and (DebugHook <> 0) then
+  if Status_Active__ and IDEOutput and (DebugHook <> 0) then
     begin
 {$IF Defined(WIN32) or Defined(WIN64)}
       OutputDebugString(PWideChar('"' + Text_.Text + '"'));
@@ -454,7 +427,7 @@ begin
 {$ENDIF}
     end;
 {$ENDIF DELPHI}
-  if (Status_Active__) and ((ConsoleOutput) or (ID = 2)) and (IsConsole) then
+  if Status_Active__ and ConsoleOutput and IsConsole then
     begin
 {$IFDEF FPC}
       Writeln(UTF8Decode(Text_.Text));
@@ -597,7 +570,7 @@ begin
 
   Status_Active__ := True;
   LastDoStatus := '';
-  IDEOutput := {$IFDEF FPC}False{$ELSE FPC}DebugHook > 0{$ENDIF FPC};
+  IDEOutput := False;
   ConsoleOutput := True;
   OnDoStatusHook := {$IFDEF FPC}@{$ENDIF FPC}InternalDoStatus;
   StatusThreadID := True;

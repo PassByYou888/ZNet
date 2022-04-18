@@ -97,7 +97,7 @@ begin
   for i := 0 to ExpParsingMemo.Lines.Count - 1 do
     begin
       // 底层符号解析api，不支持向量表达式：1+1,2+2,3+3
-      E := ParseTextExpressionAsSymbol_M(TTextParsing, tsPascal, '', ExpParsingMemo.Lines[i], nil, nil);
+      E := ParseTextExpressionAsSymbol_M(nil, TTextParsing, tsPascal, '', ExpParsingMemo.Lines[i], nil, nil);
       if E <> nil then
         begin
           e2 := RebuildAllSymbol(E);

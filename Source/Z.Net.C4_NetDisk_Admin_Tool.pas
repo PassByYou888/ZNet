@@ -167,7 +167,7 @@ begin
   if (Admin_Service.FDirectory_Client <> nil) and (Admin_Service.FDirectory_Client.Connected) then
     begin
       L := TPascalStringList.Create;
-      time_ := IncDay(umlNow, -1);
+      time_ := IncMinute(umlNow, -60);
       for i := low(arry) to high(arry) do
         begin
           try

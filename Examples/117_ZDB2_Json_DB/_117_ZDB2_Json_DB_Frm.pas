@@ -125,7 +125,7 @@ end;
 
 procedure TTZDB2_Json_DB_Frm.newbieQueryButtonClick(Sender: TObject);
 var
-  i, j: Integer;
+  j: Integer;
   arry: TZJArry;
   n: U_String;
   tk: TTimeTick;
@@ -134,35 +134,38 @@ begin
       exit;
   ProgressBar.Max := JDB.Count - 1;
   tk := GetTimeTick;
-  for i := 0 to JDB.Count - 1 do
-    begin
-      arry := JDB[i].Data.A['exp_math_arry'];
-      for j := 0 to arry.Count - 1 do
-        begin
-          n := arry.S[j];
-          // umlReplaceSum是计算统计，相当于find字符串，以word方式搜索99，至少出现4次
-          if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 3 then
-            begin
-              DoStatus('found "%s" from index: %d expression evaluate: %s', [n.Text, i, VarToStr(EvaluateExpressionValue(False, n))]);
-            end;
-        end;
-      JDB[i].RecycleMemory;
-      if GetTimeTick - tk > 1000 then
-        begin
-          Application.ProcessMessages;
-          tk := GetTimeTick;
-        end;
-      ProgressBar.Position := i;
-    end;
+
+  if JDB.Count > 0 then
+    with JDB.Repeat_ do
+      repeat
+        arry := Queue^.Data.Data.A['exp_math_arry'];
+        for j := 0 to arry.Count - 1 do
+          begin
+            n := arry.S[j];
+            // umlReplaceSum是计算统计，相当于find字符串，以word方式搜索99，至少出现4次
+            if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 3 then
+              begin
+                DoStatus('found "%s" from index: %d expression evaluate: %s', [n.Text, I__, VarToStr(EvaluateExpressionValue(False, n))]);
+              end;
+          end;
+        Queue^.Data.RecycleMemory;
+        if GetTimeTick - tk > 1000 then
+          begin
+            Application.ProcessMessages;
+            tk := GetTimeTick;
+          end;
+        ProgressBar.Position := I__;
+
+      until not Next;
+
   DoStatus('query done.');
 end;
 
 procedure TTZDB2_Json_DB_Frm.expertQueryButtonClick(Sender: TObject);
 var
-  queue: TIO_Thread;
+  Queue__: TIO_Thread;
   query_data: TExpert_Query_IO_Data;
   running: Boolean;
-  i: Integer;
   tk: TTimeTick;
 begin
   if JDB.Count <= 0 then
@@ -171,7 +174,7 @@ begin
   JDB.Flush(False);
 
   // 创建IO线程池，线程数并不是越多越快，计算量大才能给大
-  queue := TIO_Thread.Create(8);
+  Queue__ := TIO_Thread.Create(8);
 
   ProgressBar.Max := JDB.Count - 1;
 
@@ -181,10 +184,10 @@ begin
     var
       io_data: TExpert_Query_IO_Data;
     begin
-      while running or (queue.Count > 0) do
+      while running or (Queue__.Count > 0) do
         begin
           // IOThread核心机制：enqueue是123，dequeue也会是123
-          io_data := TExpert_Query_IO_Data(queue.Dequeue);
+          io_data := TExpert_Query_IO_Data(Queue__.Dequeue);
           if io_data <> nil then
             begin
               ProgressBar.Position := io_data.js_index;
@@ -194,35 +197,38 @@ begin
           else
               TCompute.Sleep(1);
         end;
-      DisposeObject(queue);
+      DisposeObject(Queue__);
       DoStatus('expert query done.');
     end);
 
   tk := GetTimeTick;
-  for i := 0 to JDB.Count - 1 do
-    begin
-      query_data := TExpert_Query_IO_Data.Create;
-      query_data.js_index := i;
-      query_data.jsData := TMem64.Create;
-      JDB.CoreSpace.ReadData(query_data.jsData, JDB[i].ID); // 从物理空间读出实体数据，这一步不会解码json
-      // 把query_data编入处理队列
-      // TExpert_Query_IO_Data会在处理完以后，恢复keep
-      // enqueue线程安全
-      queue.Enqueue(query_data);
 
-      // 限制输入队列，防止过分膨胀
-      while (queue.Count > 1000) or (GetTimeTick - tk > 100) do
-        begin
-          Application.ProcessMessages;
-          tk := GetTimeTick;
-        end;
-    end;
+  if JDB.Count > 0 then
+    with JDB.Repeat_ do
+      repeat
+        query_data := TExpert_Query_IO_Data.Create;
+        query_data.js_index := I__;
+        query_data.jsData := TMem64.Create;
+        JDB.CoreSpace.ReadData(query_data.jsData, Queue^.Data.ID); // 从物理空间读出实体数据，这一步不会解码json
+        // 把query_data编入处理队列
+        // TExpert_Query_IO_Data会在处理完以后，恢复keep
+        // enqueue线程安全
+        Queue__.Enqueue(query_data);
+
+        // 限制输入队列，防止过分膨胀
+        while (Queue__.Count > 1000) or (GetTimeTick - tk > 100) do
+          begin
+            Application.ProcessMessages;
+            tk := GetTimeTick;
+          end;
+      until not Next;
+
   running := False;
 end;
 
 procedure TTZDB2_Json_DB_Frm.removeButtonClick(Sender: TObject);
 var
-  i, j: Integer;
+  j: Integer;
   arry: TZJArry;
   n: U_String;
   tk: TTimeTick;
@@ -230,41 +236,41 @@ var
 begin
   if JDB.Count <= 0 then
       exit;
-  // 高效率批量删除就是remove+flush，这种方法在大数据处理时优于jdb.Remove
 
   ProgressBar.Max := JDB.Count - 1;
   tk := GetTimeTick;
-  for i := 0 to JDB.Count - 1 do
-    begin
-      arry := JDB[i].Data.A['exp_math_arry'];
-      found_ := 0;
-      for j := 0 to arry.Count - 1 do
-        begin
-          n := arry.S[j];
-          // umlReplaceSum是计算统计，相当于find字符串，以word方式搜索99，至少出现4次
-          if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 3 then
-              inc(found_);
-        end;
 
-      if found_ > 0 then
-          JDB[i].Remove; // ZDB2的优化删除方法，直接从存储空间移除
+  if JDB.Count > 0 then
+    with JDB.Repeat_ do
+      repeat
+        arry := Queue^.Data.Data.A['exp_math_arry'];
+        found_ := 0;
+        for j := 0 to arry.Count - 1 do
+          begin
+            n := arry.S[j];
+            // umlReplaceSum是计算统计，相当于find字符串，以word方式搜索99，至少出现4次
+            if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 3 then
+                inc(found_);
+          end;
 
-      if GetTimeTick - tk > 1000 then
-        begin
-          Application.ProcessMessages;
-          tk := GetTimeTick;
-        end;
-      ProgressBar.Position := i;
-    end;
+        if found_ > 0 then
+            JDB.Push_To_Recycle_Pool(Queue^.Data, true);
 
-  DoStatus('flush.');
-  JDB.Flush(False); // flush会确保修改的内容被写入物理空间
+        if GetTimeTick - tk > 1000 then
+          begin
+            Application.ProcessMessages;
+            tk := GetTimeTick;
+          end;
+        ProgressBar.Position := I__;
+      until not Next;
+
+  JDB.Free_Recycle_Pool;
   DoStatus('remove done.');
 end;
 
 procedure TTZDB2_Json_DB_Frm.modifyButtonClick(Sender: TObject);
 var
-  i, j: Integer;
+  j: Integer;
   arry: TZJArry;
   n: U_String;
   tk: TTimeTick;
@@ -275,26 +281,27 @@ begin
   ProgressBar.Max := JDB.Count - 1;
   tk := GetTimeTick;
 
-  for i := 0 to JDB.Count - 1 do
-    begin
-      arry := JDB[i].Data.A['exp_math_arry'];
-      j := 0;
-      while j < arry.Count do
-        begin
-          n := arry.S[j];
-          if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 0 then
-              arry.Delete(j) // 修改Json内容时，会自动按时间撮存储到物理空间
-          else
-              inc(j);
-        end;
+  if JDB.Count > 0 then
+    with JDB.Repeat_ do
+      repeat
+        arry := Queue^.Data.Data.A['exp_math_arry'];
+        j := 0;
+        while j < arry.Count do
+          begin
+            n := arry.S[j];
+            if umlReplaceSum(@n, '99', true, true, 0, 0, nil) > 0 then
+                arry.Delete(j) // 修改Json内容时，会自动按时间撮存储到物理空间
+            else
+                inc(j);
+          end;
 
-      if GetTimeTick - tk > 1000 then
-        begin
-          Application.ProcessMessages;
-          tk := GetTimeTick;
-        end;
-      ProgressBar.Position := i;
-    end;
+        if GetTimeTick - tk > 1000 then
+          begin
+            Application.ProcessMessages;
+            tk := GetTimeTick;
+          end;
+        ProgressBar.Position := I__;
+      until not Next;
 
   DoStatus('flush.');
   JDB.Flush(False); // flush会确保修改的内容被写入物理空间

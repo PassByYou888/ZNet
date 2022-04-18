@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * cloud 4.0 network disk VM Service                                          * }
+{ * cloud 4.0 network disk Service                                             * }
 { ****************************************************************************** }
 unit Z.Net.C4_NetDisk_Service;
 
@@ -186,7 +186,7 @@ type
   public
     VM_Service: TC40_NetDisk_Service;
     DB_Field: U_String;
-    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
+    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
   TC40_NetDisk_Service_Get_NetDisk_SpaceInfo_Bridge = class(TCustomEventBridge)
@@ -213,7 +213,7 @@ type
     VM_Service: TC40_NetDisk_Service;
     Share_Directory_DB_Name: U_String;
     DB_Field: U_String;
-    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
+    procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
   TC40_NetDisk_Service_Get_Share_Disk_File_Frag_Info_Bridge = class(TCustomEventBridge)
@@ -226,7 +226,7 @@ type
   public
     VM_Service: TC40_NetDisk_Service;
     DB_Field, DB_Search: U_String;
-    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
   end;
 
   TC40_NetDisk_Service_Search_Share_NetDisk_File_Bridge = class(TCustomEventBridge)
@@ -234,9 +234,23 @@ type
     VM_Service: TC40_NetDisk_Service;
     Share_Directory_DB_Name: U_String;
     DB_Field, DB_Search: U_String;
-    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
   end;
 
+  TC40_NetDisk_Service_Search_NetDisk_Field_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_Service;
+    DB_Field: U_String;
+    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+  end;
+
+  TC40_NetDisk_Service_Search_Share_NetDisk_Field_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_Service;
+    Share_Directory_DB_Name: U_String;
+    DB_Field: U_String;
+    procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+  end;
 {$ENDREGION 'define_bridge'}
 
   TC40_NetDisk_Service_PrimaryIdentifier_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_NetDisk_Service_RecvIO_Define_List>;
@@ -323,6 +337,8 @@ type
     procedure cmd_Get_Share_Disk_File_Frag_Info(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Search_NetDisk_File(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Search_Share_NetDisk_File(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Search_NetDisk_Field(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Search_Share_NetDisk_Field(sender: TPeerIO; InData, OutData: TDFE);
     // admin
     procedure cmd_Auth_Admin(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Close_Auth_Admin(sender: TPeerIO; InData: TDFE);
@@ -886,7 +902,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_Service_Get_NetDisk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
+procedure TC40_NetDisk_Service_Get_NetDisk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
 var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -894,7 +910,7 @@ begin
   if CheckIO then
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
-      IO.OutDataFrame.WriteBool(True);
+      IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(Field_Path);
       for i := Low(arry) to high(arry) do
         begin
@@ -986,7 +1002,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_Service_Get_Share_Disk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
+procedure TC40_NetDisk_Service_Get_Share_Disk_File_List_Bridge.Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
 var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -994,7 +1010,7 @@ begin
   if CheckIO then
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
-      IO.OutDataFrame.WriteBool(True);
+      IO.OutDataFrame.WriteBool(Successed);
       IO.OutDataFrame.WriteString(Field_Path);
       for i := Low(arry) to high(arry) do
         begin
@@ -1045,7 +1061,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_Service_Search_NetDisk_File_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+procedure TC40_NetDisk_Service_Search_NetDisk_File_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
 var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -1067,7 +1083,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-procedure TC40_NetDisk_Service_Search_Share_NetDisk_File_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+procedure TC40_NetDisk_Service_Search_Share_NetDisk_File_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
 var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
   i: Integer;
@@ -1085,6 +1101,44 @@ begin
         end;
       IO.ContinueResultSend;
       VM_Service.PostLog('%s Search_Share_NetDisk_File.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TC40_NetDisk_Service_Search_NetDisk_Field_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  i: Integer;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(True);
+      for i := Low(SearchResult) to high(SearchResult) do
+        begin
+          IO.OutDataFrame.WriteString(SearchResult[i]);
+        end;
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s Search_NetDisk_Field.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TC40_NetDisk_Service_Search_Share_NetDisk_Field_Bridge.Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  i: Integer;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(True);
+      for i := Low(SearchResult) to high(SearchResult) do
+        begin
+          IO.OutDataFrame.WriteString(SearchResult[i]);
+        end;
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s Search_Share_NetDisk_Field.', [IO_Def.PrimaryIdentifier.Text], DB_Field);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -2625,6 +2679,94 @@ begin
   sender.PauseResultSend;
 end;
 
+procedure TC40_NetDisk_Service.cmd_Search_NetDisk_Field(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  tmp: TC40_NetDisk_Service_Search_NetDisk_Field_Bridge;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+
+  IO_Def := sender.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TC40_NetDisk_Service_Search_NetDisk_Field_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  tmp.DB_Field := InData.R.ReadString;
+  FDirectory_Client.SearchField_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+  sender.PauseResultSend;
+end;
+
+procedure TC40_NetDisk_Service.cmd_Search_Share_NetDisk_Field(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  tmp: TC40_NetDisk_Service_Search_Share_NetDisk_Field_Bridge;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+
+  IO_Def := sender.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TC40_NetDisk_Service_Search_Share_NetDisk_Field_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  tmp.Share_Directory_DB_Name := InData.R.ReadString;
+  tmp.DB_Field := InData.R.ReadString;
+
+  if not IsShareDirectory(tmp.Share_Directory_DB_Name) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('%s not is share.', [tmp.Share_Directory_DB_Name.Text]);
+      tmp.Free;
+      exit;
+    end;
+
+  FDirectory_Client.SearchField_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+  sender.PauseResultSend;
+end;
+
 procedure TC40_NetDisk_Service.cmd_Auth_Admin(sender: TPeerIO; InData, OutData: TDFE);
 var
   IO_Def_: TC40_NetDisk_Service_RecvTunnel_NoAuth;
@@ -2860,6 +3002,8 @@ begin
   DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_Frag_Info').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_Frag_Info;
   DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_NetDisk_File;
   DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_Share_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_NetDisk_Field;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_Share_NetDisk_Field;
 
   // admin
   DTNoAuth.RecvTunnel.RegisterStream('Auth_Admin').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Auth_Admin;

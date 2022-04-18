@@ -131,6 +131,7 @@ type
     procedure cmd_NewField(Sender: TPeerIO; InData: TDFE);
     procedure cmd_SpaceInfo(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_SearchItem(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_SearchField(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_CopyItem(Sender: TPeerIO; InData: TDFE);
     procedure cmd_CopyField(Sender: TPeerIO; InData: TDFE);
     procedure cmd_RenameField(Sender: TPeerIO; InData: TDFE);
@@ -224,12 +225,12 @@ type
 
   TItemList_Data_Array = array of TItemList_Data;
 
-  TON_GetItemList_C = procedure(Sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
-  TON_GetItemList_M = procedure(Sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array) of object;
+  TON_GetItemList_C = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
+  TON_GetItemList_M = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array) of object;
 {$IFDEF FPC}
-  TON_GetItemList_P = procedure(Sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array) is nested;
+  TON_GetItemList_P = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array) is nested;
 {$ELSE FPC}
-  TON_GetItemList_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Field_Path: U_String; arry: TItemList_Data_Array);
+  TON_GetItemList_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
 {$ENDIF FPC}
 
   TON_Temp_GetItemList = class(TOnResultBridge)
@@ -338,14 +339,14 @@ type
     ModificationTime: TDateTime;
   end;
 
-  TON_SearchItem_Data_array = array of TON_SearchItem_Data;
+  TSearchItem_Data_array = array of TON_SearchItem_Data;
 
-  TON_SearchItem_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
-  TON_SearchItem_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array) of object;
+  TON_SearchItem_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
+  TON_SearchItem_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array) of object;
 {$IFDEF FPC}
-  TON_SearchItem_P = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array) is nested;
+  TON_SearchItem_P = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array) is nested;
 {$ELSE FPC}
-  TON_SearchItem_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TON_SearchItem_Data_array);
+  TON_SearchItem_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
 {$ENDIF FPC}
 
   TON_Temp_SearchItem = class(TOnResultBridge)
@@ -354,6 +355,24 @@ type
     OnResultC: TON_SearchItem_C;
     OnResultM: TON_SearchItem_M;
     OnResultP: TON_SearchItem_P;
+    constructor Create;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TON_SearchField_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+  TON_SearchField_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray) of object;
+{$IFDEF FPC}
+  TON_SearchField_P = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray) is nested;
+{$ELSE FPC}
+  TON_SearchField_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
+{$ENDIF FPC}
+
+  TON_Temp_SearchField = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Directory_Client;
+    OnResultC: TON_SearchField_C;
+    OnResultM: TON_SearchField_M;
+    OnResultP: TON_SearchField_P;
     constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -486,10 +505,14 @@ type
     procedure SpaceInfo_C(DB_Name: U_String; OnResult: TON_SpaceInfo_C);
     procedure SpaceInfo_M(DB_Name: U_String; OnResult: TON_SpaceInfo_M);
     procedure SpaceInfo_P(DB_Name: U_String; OnResult: TON_SpaceInfo_P);
-    // search
+    // search item
     procedure SearchItem_C(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_C);
     procedure SearchItem_M(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_M);
     procedure SearchItem_P(DB_Name, DB_Field, DB_Search: U_String; OnResult: TON_SearchItem_P);
+    // search all field
+    procedure SearchField_C(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_C);
+    procedure SearchField_M(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_M);
+    procedure SearchField_P(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_P);
     // copy
     procedure CopyItem(arry: TCopyItem_Info_Array);
     procedure CopyField(arry: TCopyField_Info_Array);
@@ -915,15 +938,19 @@ begin
   DB_Field := InData.R.ReadString;
   fd := Directory_HashPool[DB_Name];
   if fd = nil then
+    begin
+      OutData.WriteBool(False);
       exit;
+    end;
 
   if not fd.Stream.Data.GetPathField(DB_Field, Field_Pos) then
     begin
-      OutData.WriteString(DB_Field);
+      OutData.WriteBool(False);
       exit;
     end;
 
   DB_Field := fd.Stream.Data.GetFieldPath(Field_Pos);
+  OutData.WriteBool(True);
   OutData.WriteString(DB_Field);
 
   if fd.Stream.Data.FieldFindFirst(DB_Field, '*', fr) then
@@ -1039,7 +1066,7 @@ begin
 
   fd.Stream.Data.CreateField(DB_Field, '');
   // check
-  if fd.Stream.Data.ItemCreate(DB_Field, DB_Item, '', itmHnd) then
+  if fd.Stream.Data.ItemCreate(DB_Field, DB_Item, frag_md5_name, itmHnd) then
     begin
       // frag data
       md5_frag := TDirectory_Service_MD5_Data_Frag.Create(self, MD5_Database.NewData);
@@ -1097,7 +1124,7 @@ begin
 
   fd.Stream.Data.CreateField(DB_Field, '');
   // check
-  if fd.Stream.Data.ItemCreate(DB_Field, DB_Item, '', itmHnd) then
+  if fd.Stream.Data.ItemCreate(DB_Field, DB_Item, frag_md5_name, itmHnd) then
     begin
       // write item
       itm_stream := TItemStream.Create(fd.Stream.Data, itmHnd);
@@ -1226,7 +1253,7 @@ begin
           DB_Header_Field_ID:
             begin
               fd.Stream.Data.GetFieldData(ir.ReturnHeader.CurrentHeader, field_data);
-              OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader, Field_Pos));
+              OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.ReturnHeader.CurrentHeader, Field_Pos));
               OutData.WriteString('f:' + ir.ReturnHeader.Name);
               OutData.WriteInt64(field_data.HeaderCount);
               OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
@@ -1242,6 +1269,31 @@ begin
               OutData.WriteDouble(ir.ReturnHeader.ModificationTime);
               DisposeObject(itm_stream);
             end;
+        end;
+      until not fd.Stream.Data.RecursionSearchNext(ir);
+    end;
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_SearchField(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  DB_Name, DB_Field: U_String;
+  fd: TDirectory_Service_User_File_DB;
+  ir: TItemRecursionSearch;
+  Field_Pos: Int64;
+begin
+  DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  fd := Directory_HashPool[DB_Name];
+  if fd = nil then
+      exit;
+  if not fd.Stream.Data.GetPathField(DB_Field, Field_Pos) then
+      exit;
+
+  if fd.Stream.Data.RecursionSearchFirst(DB_Field, '*', ir) then
+    begin
+      repeat
+        case ir.ReturnHeader.ID of
+          DB_Header_Field_ID: OutData.WriteString(fd.Stream.Data.GetFieldPath(ir.ReturnHeader.CurrentHeader, Field_Pos));
         end;
       until not fd.Stream.Data.RecursionSearchNext(ir);
     end;
@@ -1708,6 +1760,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('NewField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewField;
   DTNoAuthService.RecvTunnel.RegisterStream('SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SpaceInfo;
   DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchItem;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchField;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyItem;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyField;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameField;
@@ -1936,28 +1989,38 @@ end;
 
 procedure TON_Temp_GetItemList.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
 var
+  Successed: Boolean;
   Field_Path: U_String;
   arry: TItemList_Data_Array;
   i: Integer;
 begin
-  Field_Path := Result_.R.ReadString;
-  i := 0;
-  SetLength(arry, (Result_.count - 1) div 3);
-  while Result_.R.NotEnd do
+  Successed := Result_.R.ReadBool;
+  if Successed then
     begin
-      arry[i].Name := Result_.R.ReadString;
-      arry[i].Num := Result_.R.ReadInt64;
-      arry[i].Time_ := Result_.R.ReadDouble;
-      inc(i);
+      Field_Path := Result_.R.ReadString;
+      i := 0;
+      SetLength(arry, (Result_.count - 2) div 3);
+      while Result_.R.NotEnd do
+        begin
+          arry[i].Name := Result_.R.ReadString;
+          arry[i].Num := Result_.R.ReadInt64;
+          arry[i].Time_ := Result_.R.ReadDouble;
+          inc(i);
+        end;
+    end
+  else
+    begin
+      Field_Path := '';
+      SetLength(arry, 0);
     end;
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Field_Path, arry);
+        OnResultC(Client, Successed, Field_Path, arry);
     if Assigned(OnResultM) then
-        OnResultM(Client, Field_Path, arry);
+        OnResultM(Client, Successed, Field_Path, arry);
     if Assigned(OnResultP) then
-        OnResultP(Client, Field_Path, arry);
+        OnResultP(Client, Successed, Field_Path, arry);
   except
   end;
 
@@ -2130,7 +2193,7 @@ end;
 
 procedure TON_Temp_SearchItem.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
 var
-  SearchResult: TON_SearchItem_Data_array;
+  SearchResult: TSearchItem_Data_array;
   i: Integer;
 begin
   i := 0;
@@ -2141,6 +2204,41 @@ begin
       SearchResult[i].FieldOrItem := Result_.R.ReadString;
       SearchResult[i].Num := Result_.R.ReadInt64;
       SearchResult[i].ModificationTime := Result_.R.ReadDouble;
+      inc(i);
+    end;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, SearchResult);
+    if Assigned(OnResultM) then
+        OnResultM(Client, SearchResult);
+    if Assigned(OnResultP) then
+        OnResultP(Client, SearchResult);
+  except
+  end;
+  SetLength(SearchResult, 0);
+  DelayFreeObject(1.0, self);
+end;
+
+constructor TON_Temp_SearchField.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_SearchField.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+var
+  SearchResult: U_StringArray;
+  i: Integer;
+begin
+  i := 0;
+  SetLength(SearchResult, Result_.count);
+  while Result_.R.NotEnd do
+    begin
+      SearchResult[i] := Result_.R.ReadString;
       inc(i);
     end;
 
@@ -2861,6 +2959,54 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchField_C(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_C);
+var
+  tmp: TON_Temp_SearchField;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchField.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchField_M(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_M);
+var
+  tmp: TON_Temp_SearchField;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchField.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.SearchField_P(DB_Name, DB_Field: U_String; OnResult: TON_SearchField_P);
+var
+  tmp: TON_Temp_SearchField;
+  d: TDFE;
+begin
+  tmp := TON_Temp_SearchField.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 

@@ -105,7 +105,7 @@ begin
   ServTunnel.StartService('0.0.0.0', 9988);
   ServTunnel.QuietMode := True;
 
-  ServWithVM := TZNet_WithP2PVM_Server.CustomCreate(10240, 88);
+  ServWithVM := TZNet_WithP2PVM_Server.CustomCreate($FFFF, 88);
   ServWithVM.SwitchMaxPerformance;
   ServWithVM.QuietMode := False;
   ServWithVMTest := TCommunicationTestIntf.Create;
@@ -156,14 +156,15 @@ procedure TVMServForm.PrintStateTimerTimer(Sender: TObject);
 
   procedure PrintServerCMDStatistics(const arry: array of TZNet);
   var
-    RecvLst, SendLst, ExecuteConsumeLst: THashVariantList;
+    RecvLst, SendLst: TCommand_Num_Hash_Pool;
+    ExecuteConsumeLst: TCommand_Tick_Hash_Pool;
     comm: TZNet;
     i: Integer;
-    lst: TListString;
+    lst: TPascalStringList;
   begin
-    RecvLst := THashVariantList.Create;
-    SendLst := THashVariantList.Create;
-    ExecuteConsumeLst := THashVariantList.Create;
+    RecvLst := TCommand_Num_Hash_Pool.Create($FFFF, 0);
+    SendLst := TCommand_Num_Hash_Pool.Create($FFFF, 0);
+    ExecuteConsumeLst := TCommand_Tick_Hash_Pool.Create($FFFF, 0);
     for comm in arry do
       begin
         RecvLst.IncValue(comm.CmdRecvStatistics);
@@ -171,40 +172,34 @@ procedure TVMServForm.PrintStateTimerTimer(Sender: TObject);
         ExecuteConsumeLst.SetMax(comm.CmdMaxExecuteConsumeStatistics);
       end;
 
-    lst := TListString.Create;
-    RecvLst.GetNameList(lst);
-
+    lst := TPascalStringList.Create;
+    RecvLst.GetKeyList(lst);
     ReceiveMemo.Lines.BeginUpdate;
     ReceiveMemo.Lines.Clear;
     ReceiveMemo.Lines.Add('Received commands...');
     for i := 0 to lst.Count - 1 do
-        ReceiveMemo.Lines.Add(lst[i] + ' : ' + VarToStr(RecvLst[lst[i]]));
+        ReceiveMemo.Lines.Add(lst[i] + ' : ' + IntToStr(RecvLst[lst[i]]));
     ReceiveMemo.Lines.EndUpdate;
-
     DisposeObject(lst);
 
-    lst := TListString.Create;
-    SendLst.GetNameList(lst);
-
+    lst := TPascalStringList.Create;
+    SendLst.GetKeyList(lst);
     SendMemo.Lines.BeginUpdate;
     SendMemo.Lines.Clear;
     SendMemo.Lines.Add('Send commands...');
     for i := 0 to lst.Count - 1 do
-        SendMemo.Lines.Add(lst[i] + ' : ' + VarToStr(SendLst[lst[i]]));
+        SendMemo.Lines.Add(lst[i] + ' : ' + IntToStr(SendLst[lst[i]]));
     SendMemo.Lines.EndUpdate;
-
     DisposeObject(lst);
 
-    lst := TListString.Create;
-    ExecuteConsumeLst.GetNameList(lst);
-
+    lst := TPascalStringList.Create;
+    ExecuteConsumeLst.GetKeyList(lst);
     CpuMemo.Lines.BeginUpdate;
     CpuMemo.Lines.Clear;
     CpuMemo.Lines.Add('usage cpu...');
     for i := 0 to lst.Count - 1 do
-        CpuMemo.Lines.Add(lst[i] + ' : ' + VarToStr(ExecuteConsumeLst[lst[i]]) + 'ms');
+        CpuMemo.Lines.Add(lst[i] + ' : ' + IntToStr(ExecuteConsumeLst[lst[i]]) + 'ms');
     CpuMemo.Lines.EndUpdate;
-
     DisposeObject(lst);
 
     DisposeObject([RecvLst, SendLst, ExecuteConsumeLst]);

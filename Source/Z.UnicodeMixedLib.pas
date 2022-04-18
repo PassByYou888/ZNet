@@ -546,8 +546,8 @@ type
   public
     IsChanged: Boolean;
     constructor Create(HashSize_: Integer);
-    procedure DoFree(var Data: TMD5_Pair_Pool_Decl.TPair); override;
-    procedure DoAdd(var Data: TMD5_Pair_Pool_Decl.TPair); override;
+    procedure DoFree(var Key: TMD5; var Value: TMD5); override;
+    procedure DoAdd(var Key: TMD5; var Value: TMD5); override;
     procedure LoadFromStream(stream: TCore_Stream);
     procedure SaveToStream(stream: TCore_Stream);
   end;
@@ -3120,65 +3120,71 @@ end;
 
 function umlGetFirstStr(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlGetFirstName_PrevPos, umlGetFirstName_Pos: Integer;
+  Next_Pos_, First_Pos_: Integer;
 begin
   Result := sVal;
   if Result.L <= 0 then
     begin
       exit;
     end;
-  umlGetFirstName_Pos := 1;
-  while umlMatchChar(Result[umlGetFirstName_Pos], @trim_s) do
+  First_Pos_ := 1;
+  while umlMatchChar(Result[First_Pos_], @trim_s) do
     begin
-      if umlGetFirstName_Pos = Result.L then
-          exit;
-      inc(umlGetFirstName_Pos);
-    end;
-  umlGetFirstName_PrevPos := umlGetFirstName_Pos;
-  while not umlMatchChar(Result[umlGetFirstName_Pos], @trim_s) do
-    begin
-      if umlGetFirstName_Pos = Result.L then
+      if First_Pos_ = Result.L then
         begin
-          Result := umlCopyStr(Result, umlGetFirstName_PrevPos, umlGetFirstName_Pos + 1);
+          Result := '';
           exit;
         end;
-      inc(umlGetFirstName_Pos);
+      inc(First_Pos_);
     end;
-  Result := umlCopyStr(Result, umlGetFirstName_PrevPos, umlGetFirstName_Pos);
+  Next_Pos_ := First_Pos_;
+  while not umlMatchChar(Result[First_Pos_], @trim_s) do
+    begin
+      if First_Pos_ = Result.L then
+        begin
+          Result := umlCopyStr(Result, Next_Pos_, First_Pos_ + 1);
+          exit;
+        end;
+      inc(First_Pos_);
+    end;
+  Result := umlCopyStr(Result, Next_Pos_, First_Pos_);
 end;
 
 function umlGetLastStr(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlGetLastName_PrevPos, umlGetLastName_Pos: Integer;
+  Prev_Pos_, Last_Pos_: Integer;
 begin
   Result := sVal;
-  umlGetLastName_Pos := Result.L;
-  if umlGetLastName_Pos <= 0 then
+  Last_Pos_ := Result.L;
+  if Last_Pos_ <= 0 then
     begin
       exit;
     end;
-  while umlMatchChar(Result[umlGetLastName_Pos], @trim_s) do
+  while umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlGetLastName_Pos = 1 then
-          exit;
-      dec(umlGetLastName_Pos);
-    end;
-  umlGetLastName_PrevPos := umlGetLastName_Pos;
-  while not umlMatchChar(Result[umlGetLastName_Pos], @trim_s) do
-    begin
-      if umlGetLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
-          Result := umlCopyStr(Result, umlGetLastName_Pos, umlGetLastName_PrevPos + 1);
+          Result := '';
           exit;
         end;
-      dec(umlGetLastName_Pos);
+      dec(Last_Pos_);
     end;
-  Result := umlCopyStr(Result, umlGetLastName_Pos + 1, umlGetLastName_PrevPos + 1);
+  Prev_Pos_ := Last_Pos_;
+  while not umlMatchChar(Result[Last_Pos_], @trim_s) do
+    begin
+      if Last_Pos_ = 1 then
+        begin
+          Result := umlCopyStr(Result, Last_Pos_, Prev_Pos_ + 1);
+          exit;
+        end;
+      dec(Last_Pos_);
+    end;
+  Result := umlCopyStr(Result, Last_Pos_ + 1, Prev_Pos_ + 1);
 end;
 
 function umlDeleteFirstStr(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlMaskFirstName_Pos: Integer;
+  First_Pos_: Integer;
 begin
   Result := sVal;
   if Result.L <= 0 then
@@ -3186,76 +3192,76 @@ begin
       Result := '';
       exit;
     end;
-  umlMaskFirstName_Pos := 1;
-  while umlMatchChar(Result[umlMaskFirstName_Pos], @trim_s) do
+  First_Pos_ := 1;
+  while umlMatchChar(Result[First_Pos_], @trim_s) do
     begin
-      if umlMaskFirstName_Pos = Result.L then
+      if First_Pos_ = Result.L then
         begin
           Result := '';
           exit;
         end;
-      inc(umlMaskFirstName_Pos);
+      inc(First_Pos_);
     end;
-  while not umlMatchChar(Result[umlMaskFirstName_Pos], @trim_s) do
+  while not umlMatchChar(Result[First_Pos_], @trim_s) do
     begin
-      if umlMaskFirstName_Pos = Result.L then
+      if First_Pos_ = Result.L then
         begin
           Result := '';
           exit;
         end;
-      inc(umlMaskFirstName_Pos);
+      inc(First_Pos_);
     end;
-  while umlMatchChar(Result[umlMaskFirstName_Pos], @trim_s) do
+  while umlMatchChar(Result[First_Pos_], @trim_s) do
     begin
-      if umlMaskFirstName_Pos = Result.L then
+      if First_Pos_ = Result.L then
         begin
           Result := '';
           exit;
         end;
-      inc(umlMaskFirstName_Pos);
+      inc(First_Pos_);
     end;
-  Result := umlCopyStr(Result, umlMaskFirstName_Pos, Result.L + 1);
+  Result := umlCopyStr(Result, First_Pos_, Result.L + 1);
 end;
 
 function umlDeleteLastStr(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlMaskLastName_Pos: Integer;
+  Last_Pos_: Integer;
 begin
   Result := sVal;
-  umlMaskLastName_Pos := Result.L;
-  if umlMaskLastName_Pos <= 0 then
+  Last_Pos_ := Result.L;
+  if Last_Pos_ <= 0 then
     begin
       Result := '';
       exit;
     end;
-  while umlMatchChar(Result[umlMaskLastName_Pos], @trim_s) do
+  while umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlMaskLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
           Result := '';
           exit;
         end;
-      dec(umlMaskLastName_Pos);
+      dec(Last_Pos_);
     end;
-  while not umlMatchChar(Result[umlMaskLastName_Pos], @trim_s) do
+  while not umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlMaskLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
           Result := '';
           exit;
         end;
-      dec(umlMaskLastName_Pos);
+      dec(Last_Pos_);
     end;
-  while umlMatchChar(Result[umlMaskLastName_Pos], @trim_s) do
+  while umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlMaskLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
           Result := '';
           exit;
         end;
-      dec(umlMaskLastName_Pos);
+      dec(Last_Pos_);
     end;
-  umlSetLength(Result, umlMaskLastName_Pos);
+  umlSetLength(Result, Last_Pos_);
 end;
 
 function umlGetIndexStrCount(const sVal, trim_s: TPascalString): Integer;
@@ -3403,36 +3409,36 @@ end;
 
 function umlGetFirstStr_Discontinuity(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlGetFirstName_PrevPos, umlGetFirstName_Pos: Integer;
+  Next_Pos_, First_Pos_: Integer;
 begin
   Result := sVal;
   if Result.L <= 0 then
       exit;
-  umlGetFirstName_Pos := 1;
-  if umlMatchChar(Result[umlGetFirstName_Pos], @trim_s) then
+  First_Pos_ := 1;
+  if umlMatchChar(Result[First_Pos_], @trim_s) then
     begin
-      inc(umlGetFirstName_Pos);
-      umlGetFirstName_PrevPos := umlGetFirstName_Pos;
+      inc(First_Pos_);
+      Next_Pos_ := First_Pos_;
     end
   else
     begin
-      umlGetFirstName_PrevPos := umlGetFirstName_Pos;
-      while not umlMatchChar(Result[umlGetFirstName_Pos], @trim_s) do
+      Next_Pos_ := First_Pos_;
+      while not umlMatchChar(Result[First_Pos_], @trim_s) do
         begin
-          if umlGetFirstName_Pos = Result.L then
+          if First_Pos_ = Result.L then
             begin
-              Result := umlCopyStr(Result, umlGetFirstName_PrevPos, umlGetFirstName_Pos + 1);
+              Result := umlCopyStr(Result, Next_Pos_, First_Pos_ + 1);
               exit;
             end;
-          inc(umlGetFirstName_Pos);
+          inc(First_Pos_);
         end;
     end;
-  Result := umlCopyStr(Result, umlGetFirstName_PrevPos, umlGetFirstName_Pos);
+  Result := umlCopyStr(Result, Next_Pos_, First_Pos_);
 end;
 
 function umlDeleteFirstStr_Discontinuity(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlMaskFirstName_Pos: Integer;
+  First_Pos_: Integer;
 begin
   Result := sVal;
   if Result.L <= 0 then
@@ -3440,67 +3446,67 @@ begin
       Result := '';
       exit;
     end;
-  umlMaskFirstName_Pos := 1;
-  while not umlMatchChar(Result[umlMaskFirstName_Pos], @trim_s) do
+  First_Pos_ := 1;
+  while not umlMatchChar(Result[First_Pos_], @trim_s) do
     begin
-      if umlMaskFirstName_Pos = Result.L then
+      if First_Pos_ = Result.L then
         begin
           Result := '';
           exit;
         end;
-      inc(umlMaskFirstName_Pos);
+      inc(First_Pos_);
     end;
-  if umlMatchChar(Result[umlMaskFirstName_Pos], @trim_s) then
-      inc(umlMaskFirstName_Pos);
-  Result := umlCopyStr(Result, umlMaskFirstName_Pos, Result.L + 1);
+  if umlMatchChar(Result[First_Pos_], @trim_s) then
+      inc(First_Pos_);
+  Result := umlCopyStr(Result, First_Pos_, Result.L + 1);
 end;
 
 function umlGetLastStr_Discontinuity(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlGetLastName_PrevPos, umlGetLastName_Pos: Integer;
+  Prev_Pos_, Last_Pos_: Integer;
 begin
   Result := sVal;
-  umlGetLastName_Pos := Result.L;
-  if umlGetLastName_Pos <= 0 then
+  Last_Pos_ := Result.L;
+  if Last_Pos_ <= 0 then
       exit;
-  if Result[umlGetLastName_Pos] = trim_s then
-      dec(umlGetLastName_Pos);
-  umlGetLastName_PrevPos := umlGetLastName_Pos;
-  while not umlMatchChar(Result[umlGetLastName_Pos], @trim_s) do
+  if Result[Last_Pos_] = trim_s then
+      dec(Last_Pos_);
+  Prev_Pos_ := Last_Pos_;
+  while not umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlGetLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
-          Result := umlCopyStr(Result, umlGetLastName_Pos, umlGetLastName_PrevPos + 1);
+          Result := umlCopyStr(Result, Last_Pos_, Prev_Pos_ + 1);
           exit;
         end;
-      dec(umlGetLastName_Pos);
+      dec(Last_Pos_);
     end;
-  Result := umlCopyStr(Result, umlGetLastName_Pos + 1, umlGetLastName_PrevPos + 1);
+  Result := umlCopyStr(Result, Last_Pos_ + 1, Prev_Pos_ + 1);
 end;
 
 function umlDeleteLastStr_Discontinuity(const sVal, trim_s: TPascalString): TPascalString;
 var
-  umlMaskLastName_Pos: Integer;
+  Last_Pos_: Integer;
 begin
   Result := sVal;
-  umlMaskLastName_Pos := Result.L;
-  if umlMaskLastName_Pos <= 0 then
+  Last_Pos_ := Result.L;
+  if Last_Pos_ <= 0 then
     begin
       Result := '';
       exit;
     end;
-  if umlMatchChar(Result[umlMaskLastName_Pos], @trim_s) then
-      dec(umlMaskLastName_Pos);
-  while not umlMatchChar(Result[umlMaskLastName_Pos], @trim_s) do
+  if umlMatchChar(Result[Last_Pos_], @trim_s) then
+      dec(Last_Pos_);
+  while not umlMatchChar(Result[Last_Pos_], @trim_s) do
     begin
-      if umlMaskLastName_Pos = 1 then
+      if Last_Pos_ = 1 then
         begin
           Result := '';
           exit;
         end;
-      dec(umlMaskLastName_Pos);
+      dec(Last_Pos_);
     end;
-  umlSetLength(Result, umlMaskLastName_Pos);
+  umlSetLength(Result, Last_Pos_);
 end;
 
 function umlGetIndexStrCount_Discontinuity(const sVal, trim_s: TPascalString): Integer;
@@ -5851,13 +5857,13 @@ begin
   IsChanged := False;
 end;
 
-procedure TMD5_Pair_Pool.DoFree(var Data: TMD5_Pair_Pool_Decl.TPair);
+procedure TMD5_Pair_Pool.DoFree(var Key: TMD5; var Value: TMD5);
 begin
   inherited;
   IsChanged := True;
 end;
 
-procedure TMD5_Pair_Pool.DoAdd(var Data: TMD5_Pair_Pool_Decl.TPair);
+procedure TMD5_Pair_Pool.DoAdd(var Key: TMD5; var Value: TMD5);
 begin
   inherited;
   IsChanged := True;

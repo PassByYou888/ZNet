@@ -100,7 +100,9 @@ begin
 {$ENDIF DEBUG}
   DoFree(p^.Data);
 {$IFDEF DEBUG}
+{$IFNDEF Fill_0_On_Generic}
   FillPtr(p, SizeOf(TQueueStruct), 0);
+{$ENDIF Fill_0_On_Generic}
 {$ENDIF DEBUG}
   Dispose(p);
 end;
@@ -244,7 +246,10 @@ var
   p: PQueueStruct;
 begin
   new(p);
+
+{$IFNDEF Fill_0_On_Generic}
   FillPtr(@p^.Data, SizeOf(T_), 0);
+{$ENDIF Fill_0_On_Generic}
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;
@@ -1002,7 +1007,9 @@ begin
 {$ENDIF DEBUG}
   DoFree(p^.Data);
 {$IFDEF DEBUG}
+{$IFNDEF Fill_0_On_Generic}
   FillPtr(p, SizeOf(TQueueStruct), 0);
+{$ENDIF Fill_0_On_Generic}
 {$ENDIF DEBUG}
   Dispose(p);
 end;
@@ -1165,7 +1172,10 @@ begin
   FCritical.Lock;
 
   new(p);
+
+{$IFNDEF Fill_0_On_Generic}
   FillPtr(@p^.Data, SizeOf(T_), 0);
+{$ENDIF Fill_0_On_Generic}
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;

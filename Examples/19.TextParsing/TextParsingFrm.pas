@@ -183,7 +183,7 @@ begin
     end);
 
   // 使用ParseTextExpressionAsSymbol函数，将表达式翻译成词法树
-  tmpSym := ParseTextExpressionAsSymbol_M(TTextParsing, tsPascal, '', '1000+myAddFunction(1+1/2*3/3.14*9999, 599+2+2*100 shl 3)', nil, rt);
+  tmpSym := ParseTextExpressionAsSymbol_M(nil, TTextParsing, tsPascal, '', '1000+myAddFunction(1+1/2*3/3.14*9999, 599+2+2*100 shl 3)', nil, rt);
   // BuildAsOpCode会将词法树再次翻译成语法树，然后再基于语法树生成op代码
   op := BuildAsOpCode(tmpSym);
   DisposeObject(tmpSym);

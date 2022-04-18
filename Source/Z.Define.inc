@@ -170,6 +170,7 @@
   // used Critical Simulate Atomic with TMonitor.Enter(obj) and TMonitor.Exit(obj)
   // CriticalSimulateAtomic defined so performance to be reduced
   // {$DEFINE CriticalSimulateAtomic}
+  {$UNDEF CriticalSimulateAtomic}
 
   // used soft Simulate Critical(ring)
   // SoftCritical defined so performance to be reduced
@@ -242,6 +243,9 @@
 // building a network CS system, the symmetry of compiler(FPC/Delphi) "UsedSequencePacketOnP2PVM"
 // Sequence packets default are closed in P2PVM-IO
 {$UNDEF UsedSequencePacketOnP2PVM}
+
+// in Generic null data fill as 0
+{$UNDEF Fill_0_On_Generic}
 
 // CommunicationFramework used QuietMode
 {$UNDEF Communication_QuietMode}

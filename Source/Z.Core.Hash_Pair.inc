@@ -51,7 +51,7 @@ begin
   if Hash_Buffer[i] = nil then
     begin
       Hash_Buffer[i] := TValue_Pair_Pool__.Create;
-      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
     end;
   Result := Hash_Buffer[i];
 end;
@@ -67,7 +67,7 @@ begin
   Size := SizeOf(TKey_);
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
 begin
   if Data <> nil then
     begin
@@ -76,11 +76,21 @@ begin
     end;
 end;
 
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Internal_Do_Free(var Data: TPair);
+begin
+  if Data.Third <> nil then
+    begin
+      TPool_Queue_Ptr___(Data.Third)^.Data := nil;
+      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
+    end;
+  DoFree(Data.Primary, Data.Second);
+end;
+
 constructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: TValue_);
 begin
   inherited Create;
   Queue_Pool := TPool___.Create;
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Queue_Pool_Free;
+  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
   SetLength(Hash_Buffer, HashSize_);
   Null_Value := Null_Value_;
   OnAdd := nil;
@@ -95,21 +105,16 @@ begin
   inherited Destroy;
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Data: TPair);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Key: TKey_; var Value: TValue_);
 begin
-  if Data.Third <> nil then
-    begin
-      TPool_Queue_Ptr___(Data.Third)^.Data := nil;
-      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
-    end;
   if Assigned(OnFree) then
-      OnFree(Data.Primary, Data.Second);
+      OnFree(Key, Value);
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Key: TKey_; var Value: TValue_);
 begin
   if Assigned(OnAdd) then
-      OnAdd(Data.Primary, Data.Second);
+      OnAdd(Key, Value);
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(Key_: TKey_): THash;
@@ -156,18 +161,18 @@ begin
     begin
       L := Hash_Buffer[i];
       if L <> nil then
-          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
     end;
 
   for i := Low(source.Hash_Buffer) to high(source.Hash_Buffer) do
     begin
       L := source.Hash_Buffer[i];
       if L <> nil then
-          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.DoFree;
+          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Free;
     end;
 
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Queue_Pool_Free;
-  source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Do_Queue_Pool_Free;
+  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
+  source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Queue_Pool_Free;
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Clear;
@@ -260,7 +265,7 @@ begin
   p^.Data.Fourth := Key_Hash_;
   L.L.MoveToFirst(p);
   Result := p;
-  DoAdd(p^.Data);
+  DoAdd(p^.Data.Primary, p^.Data.Second);
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Value(Key: TKey_): TValue_;
@@ -665,7 +670,7 @@ begin
   if Hash_Buffer[i] = nil then
     begin
       Hash_Buffer[i] := TValue_Pair_Pool__.Create;
-      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
     end;
   Result := Hash_Buffer[i];
 end;
@@ -681,7 +686,7 @@ begin
   Size := SizeOf(TKey_);
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
 begin
   if Data <> nil then
     begin
@@ -690,12 +695,22 @@ begin
     end;
 end;
 
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Internal_Do_Free(var Data: TPair);
+begin
+  if Data.Third <> nil then
+    begin
+      TPool_Queue_Ptr___(Data.Third)^.Data := nil;
+      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
+    end;
+  DoFree(Data.Primary, Data.Second);
+end;
+
 constructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: TValue_);
 begin
   inherited Create;
   Critical := TCritical.Create;
   Queue_Pool := TPool___.Create;
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Queue_Pool_Free;
+  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
   SetLength(Hash_Buffer, HashSize_);
   Null_Value := Null_Value_;
   OnAdd := nil;
@@ -711,21 +726,16 @@ begin
   inherited Destroy;
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Data: TPair);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Key: TKey_; var Value: TValue_);
 begin
-  if Data.Third <> nil then
-    begin
-      TPool_Queue_Ptr___(Data.Third)^.Data := nil;
-      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
-    end;
   if Assigned(OnFree) then
-      OnFree(Data.Primary, Data.Second);
+      OnFree(Key, Value);
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Key: TKey_; var Value: TValue_);
 begin
   if Assigned(OnAdd) then
-      OnAdd(Data.Primary, Data.Second);
+      OnAdd(Key, Value);
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(Key_: TKey_): THash;
@@ -774,18 +784,18 @@ begin
       begin
         L := Hash_Buffer[i];
         if L <> nil then
-            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
       end;
 
     for i := Low(source.Hash_Buffer) to high(source.Hash_Buffer) do
       begin
         L := source.Hash_Buffer[i];
         if L <> nil then
-            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.DoFree;
+            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Free;
       end;
 
-    Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Queue_Pool_Free;
-    source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Do_Queue_Pool_Free;
+    Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
+    source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Queue_Pool_Free;
   finally
       Critical.UnLock;
   end;
@@ -898,7 +908,7 @@ begin
     p^.Data.Fourth := Key_Hash_;
     L.L.MoveToFirst(p);
     Result := p;
-    DoAdd(p^.Data);
+    DoAdd(p^.Data.Primary, p^.Data.Second);
   finally
       Critical.UnLock;
   end;

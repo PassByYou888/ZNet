@@ -26,6 +26,7 @@ type
   public
     function Get_Key_Hash(Key_: SystemString): THash; override;
     function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
+    procedure DoFree(var Key: SystemString; var Value: T_); override;
   end;
 
 {$IFDEF FPC}
@@ -104,6 +105,7 @@ type
   public
     function Get_Key_Hash(Key_: SystemString): THash; override;
     function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
+    procedure DoFree(var Key: SystemString; var Value: T_); override;
   end;
 
 {$IFDEF FPC}
@@ -297,6 +299,12 @@ begin
   Result := SameText(Key_1, Key_2);
 end;
 
+procedure TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: SystemString; var Value: T_);
+begin
+  Key := '';
+  inherited DoFree(Key, Value);
+end;
+
 constructor TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
 begin
   inherited Create(HashSize_, Null_Value_);
@@ -346,6 +354,12 @@ end;
 function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: SystemString): Boolean;
 begin
   Result := SameText(Key_1, Key_2);
+end;
+
+procedure TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: SystemString; var Value: T_);
+begin
+  Key := '';
+  inherited DoFree(Key, Value);
 end;
 
 constructor TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
