@@ -67,7 +67,7 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 **2022-4-18针对ZDB2的革命性优化**
 
 ```
-内核大更新
+内核大更新，细节自行diff
 优化Z.Net.pas库95%的链表数据结构，大规模负载时，内存消耗更小，而IO性能提升15%左右
 ZDB2和C4相关服务，优化内核数据结构，针对大数据的增删插性能大约提升300倍
 新增Hash泛型库
@@ -77,6 +77,8 @@ C4新增网盘VM框架
 新增FS2 VM框架
 新增TEKeyValue VM框架
 新增Var VM框架
+兼容Delphi XE7及以后版本，兼容FPC 3.x版本，支持FPC+ARM构建多平台
+Tools, Adnvace demo, C4 Demo, Examples, 全部测试通过
 ```
 
 **2022-4-8 兼容性更新**
