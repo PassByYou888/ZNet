@@ -42,7 +42,6 @@ object FilePackageWithZDBMainForm: TFilePackageWithZDBMainForm
     Align = alTop
     BorderWidth = 5
     TabOrder = 0
-    ExplicitWidth = 1257
     object Bevel3: TBevel
       Left = 333
       Top = 6
@@ -116,7 +115,6 @@ object FilePackageWithZDBMainForm: TFilePackageWithZDBMainForm
       Caption = 'Open'
       TabOrder = 2
       OnClick = OpenButtonClick
-      ExplicitLeft = 143
     end
     object SaveButton: TButton
       Left = 213
@@ -127,7 +125,6 @@ object FilePackageWithZDBMainForm: TFilePackageWithZDBMainForm
       Caption = 'Save'
       TabOrder = 3
       OnClick = SaveButtonClick
-      ExplicitLeft = 203
     end
     object SaveAsButton: TButton
       Left = 263
@@ -155,8 +152,6 @@ object FilePackageWithZDBMainForm: TFilePackageWithZDBMainForm
       Height = 29
       Align = alClient
       TabOrder = 7
-      ExplicitLeft = 885
-      ExplicitWidth = 366
     end
     object CompressAsButton: TButton
       Left = 343
@@ -220,8 +215,6 @@ object FilePackageWithZDBMainForm: TFilePackageWithZDBMainForm
     ScrollBars = ssVertical
     TabOrder = 1
     WordWrap = False
-    ExplicitTop = 330
-    ExplicitWidth = 1257
   end
   object OpenDialog: TOpenDialog
     Filter = 
