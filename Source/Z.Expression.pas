@@ -179,6 +179,8 @@ function ParseTextExpressionAsSymbol(ExpressionText: SystemString): TSymbolExpre
 function ParseTextExpressionAsSymbol_M(Special_ASCII_: TListPascalString;
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
   const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
+function ParseTextExpressionAsSymbol_M(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
+  const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression; overload;
 
 { parsing text as expression structor }
 function ParseTextExpressionAsSymbol_C(Special_ASCII_: TListPascalString;
@@ -1809,6 +1811,16 @@ var
   ParsingTool_: TTextParsing;
 begin
   ParsingTool_ := TextEngClass.Create(ExpressionText, TextStyle, Special_ASCII_);
+  Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', OnGetValue, RefrenceOpRT);
+  DisposeObject(ParsingTool_);
+end;
+
+function ParseTextExpressionAsSymbol_M(TextEngClass: TTextParsingClass; TextStyle: TTextStyle; const uName, ExpressionText: SystemString;
+  const OnGetValue: TOnDeclValue_M; RefrenceOpRT: TOpCustomRunTime): TSymbolExpression;
+var
+  ParsingTool_: TTextParsing;
+begin
+  ParsingTool_ := TextEngClass.Create(ExpressionText, TextStyle, nil);
   Result := ParseTextExpressionAsSymbol_M(ParsingTool_, '', OnGetValue, RefrenceOpRT);
   DisposeObject(ParsingTool_);
 end;
