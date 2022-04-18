@@ -383,7 +383,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveToFile_Th, nil);
+  TCompute.RunM(p, nil, SaveToFile_Th, TRunWithThread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXC_File_Th(thSender: TCompute);
@@ -419,7 +419,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_OXC_File_Th, nil);
+  TCompute.RunM(p, nil, SaveTo_OXC_File_Th, TRunWithThread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXP_File_Th(thSender: TCompute);
@@ -456,7 +456,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_OXP_File_Th, nil);
+  TCompute.RunM(p, nil, SaveTo_OXP_File_Th, TRunWithThread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_ZDB2_File_Th(thSender: TCompute);
@@ -484,7 +484,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_ZDB2_File_Th, nil);
+  TCompute.RunM(p, nil, SaveTo_ZDB2_File_Th, TRunWithThread_M(nil));
 end;
 
 end.
