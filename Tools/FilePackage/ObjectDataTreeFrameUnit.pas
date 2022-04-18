@@ -5,11 +5,12 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ImgList, ComCtrls,
+  Z.PascalStrings,
   Z.UnicodeMixedLib,
   Z.ZDB;
 
 type
-  TOpenObjectDataPath = procedure(_Path: string) of object;
+  TOpenObjectDataPath = procedure(Path__: string) of object;
 
   TObjectDataTreeFrame = class(TFrame)
     TreeView: TTreeView;
@@ -18,21 +19,21 @@ type
     procedure TreeViewKeyUp(Sender: TObject; var key: Word; Shift: TShiftState);
   private
     DefaultFolderImageIndex: Integer;
-    FCurrentObjectDataPath : string;
-    FObjectDataEngine      : TObjectDataManager;
-    FOnOpenObjectDataPath  : TOpenObjectDataPath;
+    FCurrentObjectDataPath: string;
+    FObjectDataEngine: TObjectDataManager;
+    FOnOpenObjectDataPath: TOpenObjectDataPath;
 
     function GetObjectDataEngine: TObjectDataManager;
     procedure SetObjectDataEngine(const Value: TObjectDataManager);
     procedure SetCurrentObjectDataPath(const Value: string);
 
-    function GetPathTreeNode(_Value, _Split: string; _TreeView: TTreeView; _RN: TTreeNode): TTreeNode;
-    function GetNodeObjDataPath(_DestNode: TTreeNode; _Split: string): string;
+    class function GetPathTreeNode(Text_, Path_Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+    function GetNodeObjDataPath(DestNode_: TTreeNode; Split_: string): string;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure UpdateFieldList(_OwnerNode: TTreeNode; _Path: string);
+    procedure UpdateFieldList(Owner_Node_: TTreeNode; Path__: string);
     procedure RefreshList;
     property CurrentObjectDataPath: string read FCurrentObjectDataPath write SetCurrentObjectDataPath;
 
@@ -71,7 +72,7 @@ end;
 
 procedure TObjectDataTreeFrame.SetObjectDataEngine(const Value: TObjectDataManager);
 var
-  _RootNode: TTreeNode;
+  RootNode_: TTreeNode;
 begin
   if FObjectDataEngine <> Value then
     begin
@@ -81,8 +82,8 @@ begin
   TreeView.Items.Clear;
   if FObjectDataEngine <> nil then
     begin
-      _RootNode := TreeView.Items.AddFirst(nil, 'Root');
-      with _RootNode do
+      RootNode_ := TreeView.Items.AddFirst(nil, 'Root');
+      with RootNode_ do
         begin
           ImageIndex := DefaultFolderImageIndex;
           selectedIndex := DefaultFolderImageIndex;
@@ -90,7 +91,7 @@ begin
           selected := True;
           Data := nil;
         end;
-      UpdateFieldList(_RootNode, '/');
+      UpdateFieldList(RootNode_, '/');
     end;
   TreeView.Items.EndUpdate;
 end;
@@ -106,68 +107,81 @@ begin
     end;
 end;
 
-function TObjectDataTreeFrame.GetPathTreeNode(_Value, _Split: string; _TreeView: TTreeView; _RN: TTreeNode): TTreeNode;
+class function TObjectDataTreeFrame.GetPathTreeNode(Text_, Path_Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+const
+  Key_Value_Split: SystemChar = #0;
 var
-  Rep_Int : Integer;
-  _Postfix: string;
+  i: Integer;
+  prefix_, match_, value_: U_String;
 begin
-  _Postfix := umlGetFirstStr(_Value, _Split);
-  if _Value = '' then
-      Result := _RN
-  else if _RN = nil then
+  prefix_ := umlGetFirstStr(Text_, Path_Split_);
+  if prefix_.Exists(Key_Value_Split) then
     begin
-      if _TreeView.Items.Count > 0 then
-        begin
-          for Rep_Int := 0 to _TreeView.Items.Count - 1 do
-            begin
-              if (_TreeView.Items[Rep_Int].Parent = _RN) and (umlMultipleMatch(True, _Postfix, _TreeView.Items[Rep_Int].Text)) then
-                begin
-                  Result := GetPathTreeNode(umlDeleteFirstStr(_Value, _Split), _Split, _TreeView, _TreeView.Items[Rep_Int]);
-                  Result.Expand(False);
-                  Exit;
-                end;
-            end;
-        end;
-      Result := _TreeView.Items.AddChild(_RN, _Postfix);
-      with Result do
-        begin
-          ImageIndex := DefaultFolderImageIndex;
-          StateIndex := -1;
-          selectedIndex := DefaultFolderImageIndex;
-          Data := nil;
-        end;
-      Result := GetPathTreeNode(umlDeleteFirstStr(_Value, _Split), _Split, _TreeView, Result);
+      match_ := umlGetFirstStr(prefix_, Key_Value_Split);
+      value_ := umlDeleteFirstStr(prefix_, Key_Value_Split);
     end
   else
     begin
-      if (_RN.Count > 0) then
+      match_ := prefix_;
+      value_ := prefix_;
+    end;
+
+  if prefix_ = '' then
+      Result := RootNode_
+  else if RootNode_ = nil then
+    begin
+      if TreeView_.Items.Count > 0 then
         begin
-          for Rep_Int := 0 to _RN.Count - 1 do
+          for i := 0 to TreeView_.Items.Count - 1 do
             begin
-              if (_RN.Item[Rep_Int].Parent = _RN) and (umlMultipleMatch(True, _Postfix, _RN.Item[Rep_Int].Text)) then
+              if (TreeView_.Items[i].Parent = RootNode_) and umlMultipleMatch(True, match_, TreeView_.Items[i].Text) then
                 begin
-                  Result := GetPathTreeNode(umlDeleteFirstStr(_Value, _Split), _Split, _TreeView, _RN.Item[Rep_Int]);
-                  Result.Expand(False);
-                  Exit;
+                  TreeView_.Items[i].Text := value_;
+                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, TreeView_.Items[i]);
+                  exit;
                 end;
             end;
         end;
-      Result := _TreeView.Items.AddChild(_RN, _Postfix);
+      Result := TreeView_.Items.AddChild(RootNode_, value_);
       with Result do
         begin
-          ImageIndex := DefaultFolderImageIndex;
+          ImageIndex := -1;
           StateIndex := -1;
-          selectedIndex := DefaultFolderImageIndex;
+          SelectedIndex := -1;
           Data := nil;
         end;
-      Result := GetPathTreeNode(umlDeleteFirstStr(_Value, _Split), _Split, _TreeView, Result);
+      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, Result);
+    end
+  else
+    begin
+      if (RootNode_.Count > 0) then
+        begin
+          for i := 0 to RootNode_.Count - 1 do
+            begin
+              if (RootNode_.Item[i].Parent = RootNode_) and umlMultipleMatch(True, match_, RootNode_.Item[i].Text) then
+                begin
+                  RootNode_.Item[i].Text := value_;
+                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, RootNode_.Item[i]);
+                  exit;
+                end;
+            end;
+        end;
+      Result := TreeView_.Items.AddChild(RootNode_, value_);
+      with Result do
+        begin
+          ImageIndex := -1;
+          StateIndex := -1;
+          SelectedIndex := -1;
+          Data := nil;
+        end;
+      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, Result);
     end;
 end;
 
-function TObjectDataTreeFrame.GetNodeObjDataPath(_DestNode: TTreeNode; _Split: string): string;
+function TObjectDataTreeFrame.GetNodeObjDataPath(DestNode_: TTreeNode; Split_: string): string;
 begin
-  if _DestNode.level > 0 then
-      Result := GetNodeObjDataPath(_DestNode.Parent, _Split) + _Split + _DestNode.Text
+  if DestNode_.level > 0 then
+      Result := GetNodeObjDataPath(DestNode_.Parent, Split_) + Split_ + DestNode_.Text
   else
       Result := '';
 end;
@@ -184,39 +198,39 @@ begin
   inherited Destroy;
 end;
 
-procedure TObjectDataTreeFrame.UpdateFieldList(_OwnerNode: TTreeNode; _Path: string);
+procedure TObjectDataTreeFrame.UpdateFieldList(Owner_Node_: TTreeNode; Path__: string);
 var
-  _FieldSR: TFieldSearch;
-  nd      : TTreeNode;
+  FieldSR_: TFieldSearch;
+  nd: TTreeNode;
 begin
   if ObjectDataEngine <> nil then
     begin
-      if ObjectDataEngine.FieldFindFirst(_Path, '*', _FieldSR) then
+      if ObjectDataEngine.FieldFindFirst(Path__, '*', FieldSR_) then
         begin
           repeat
-            nd := TreeView.Items.AddChild(_OwnerNode, _FieldSR.Name);
+            nd := TreeView.Items.AddChild(Owner_Node_, FieldSR_.Name);
             with nd do
               begin
-                HasChildren := ObjectDataEngine.FastFieldExists(_FieldSR.HeaderPOS, '*');
+                HasChildren := ObjectDataEngine.FastFieldExists(FieldSR_.HeaderPOS, '*');
                 ImageIndex := DefaultFolderImageIndex;
                 selectedIndex := DefaultFolderImageIndex;
                 StateIndex := DefaultFolderImageIndex;
                 Data := nil;
               end;
             if nd.HasChildren then
-                UpdateFieldList(nd, ObjectDataEngine.GetFieldPath(_FieldSR.HeaderPOS));
-          until not ObjectDataEngine.FieldFindNext(_FieldSR);
+                UpdateFieldList(nd, ObjectDataEngine.GetFieldPath(FieldSR_.HeaderPOS));
+          until not ObjectDataEngine.FieldFindNext(FieldSR_);
         end;
     end;
 end;
 
 procedure TObjectDataTreeFrame.RefreshList;
 var
-  _N: string;
+  N_: string;
 begin
-  _N := CurrentObjectDataPath;
+  N_ := CurrentObjectDataPath;
   SetObjectDataEngine(ObjectDataEngine);
-  SetCurrentObjectDataPath(_N);
+  SetCurrentObjectDataPath(N_);
 end;
 
 procedure TObjectDataTreeFrame.TreeViewKeyUp(Sender: TObject; var key: Word; Shift: TShiftState);
@@ -227,5 +241,4 @@ begin
   end;
 end;
 
-end. 
- 
+end.

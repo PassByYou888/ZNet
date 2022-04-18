@@ -9,7 +9,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
   Constraints.MinWidth = 1400
   ParentFont = True
   Menu = MainMenu_
-  OldCreateOrder = False
+  OldCreateOrder = True
   Position = poDesktopCenter
   PixelsPerInch = 96
   TextHeight = 13
@@ -65,7 +65,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             object AddUnitSourceButton: TButton
               Left = 6
               Top = 4
-              Width = 103
+              Width = 115
               Height = 25
               Caption = 'Add Pascal Source'
               TabOrder = 0
@@ -73,8 +73,8 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
               OnClick = AddUnitSourceButtonClick
             end
             object UnitFilterEdit: TLabeledEdit
-              Left = 293
-              Top = 7
+              Left = 340
+              Top = 6
               Width = 79
               Height = 21
               EditLabel.Width = 28
@@ -86,9 +86,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
               OnChange = UnitFilterEditChange
             end
             object AddUnitFromDirectoryButton: TButton
-              Left = 115
+              Left = 127
               Top = 4
-              Width = 141
+              Width = 170
               Height = 25
               Caption = 'Add Source from Directory'
               TabOrder = 1
@@ -208,9 +208,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
           BorderWidth = 2
           TabOrder = 0
           object paste_and_fill_fromtext_Button: TButton
-            Left = 120
+            Left = 129
             Top = 3
-            Width = 115
+            Width = 125
             Height = 24
             Align = alLeft
             Caption = 'Paste and Fill Feature'
@@ -228,7 +228,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             OnClick = reset_symbol_rewrite_define_ButtonClick
           end
           object Paste_Replace_Sour_Edit: TLabeledEdit
-            Left = 281
+            Left = 305
             Top = 4
             Width = 104
             Height = 21
@@ -239,7 +239,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             TabOrder = 2
           end
           object Paste_Replace_Dest_Edit: TLabeledEdit
-            Left = 455
+            Left = 479
             Top = 4
             Width = 104
             Height = 21
@@ -250,9 +250,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             TabOrder = 3
           end
           object update_sym_Button: TButton
-            Left = 78
+            Left = 82
             Top = 3
-            Width = 42
+            Width = 47
             Height = 24
             Align = alLeft
             Caption = 'update'
@@ -262,7 +262,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
           object addSymbolButton: TButton
             Left = 3
             Top = 3
-            Width = 75
+            Width = 79
             Height = 24
             Align = alLeft
             Caption = 'New symbol'
@@ -270,9 +270,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             OnClick = addSymbolButtonClick
           end
           object rep_sym_old_Button: TButton
-            Left = 670
+            Left = 644
             Top = 3
-            Width = 110
+            Width = 123
             Height = 24
             Align = alRight
             Caption = 'Replace OLD Symbol'
@@ -280,9 +280,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             OnClick = rep_sym_old_ButtonClick
           end
           object rep_sym_new_Button: TButton
-            Left = 780
+            Left = 767
             Top = 3
-            Width = 110
+            Width = 123
             Height = 24
             Align = alRight
             Caption = 'Replace New Symbol'
@@ -347,23 +347,33 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
           object ScanFeatureButton: TButton
             Left = 58
             Top = 3
-            Width = 38
+            Width = 63
             Height = 24
             Align = alLeft
-            Caption = 'Scan'
+            Caption = 'Scan File'
             TabOrder = 1
             OnClick = ScanFeatureButtonClick
           end
           object CodeFeatureEdit: TLabeledEdit
-            Left = 145
+            Left = 259
             Top = 3
-            Width = 138
+            Width = 76
             Height = 21
             EditLabel.Width = 42
             EditLabel.Height = 13
             EditLabel.Caption = 'Feature:'
             LabelPosition = lpLeft
+            TabOrder = 3
+          end
+          object ScanFeatureFromClipboardButton: TButton
+            Left = 121
+            Top = 3
+            Width = 88
+            Height = 24
+            Align = alLeft
+            Caption = 'Scan Clipboard'
             TabOrder = 2
+            OnClick = ScanFeatureFromClipboardButtonClick
           end
         end
         object symbol_rewrite_file_features_LB: TListBox

@@ -275,7 +275,7 @@ var
     Result := CompareValue(Integer(nHash[p2^.Data.Text]), Integer(nHash[p1^.Data.Text]));
   end;
 
-  procedure QuickSortList(var SortList: TCore_PointerList; L, R: Integer); inline;
+  procedure QuickSortList(var SortList: array of PListPascalStringData; L, R: Integer);
   var
     i, J: Integer;
     p, T: Pointer;

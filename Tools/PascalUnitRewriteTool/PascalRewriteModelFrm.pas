@@ -15,7 +15,7 @@ uses
   Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Parsing, Z.MemoryStream,
   Z.ListEngine, Z.Pascal_Code_Tool, Z.Json,
   Z.MediaCenter,
-  Z.ZDB2, Z.ZDB2.FileEncoder, Z.Cipher;
+  Z.ZDB2, Z.ZDB2.FileEncoder, Z.Cipher, Vcl.Mask;
 
 type
   TPascalRewriteModelForm = class(TForm)
@@ -98,6 +98,7 @@ type
     NewworkspacefromPassByYou888Model_MI: TMenuItem;
     N1: TMenuItem;
     N2: TMenuItem;
+    ScanFeatureFromClipboardButton: TButton;
     procedure fpsTimerTimer(Sender: TObject);
     procedure PageCChange(Sender: TObject);
     procedure NewworkspacefromPassByYou888Model_MIClick(Sender: TObject);
@@ -124,6 +125,7 @@ type
     procedure symbol_rewrite_file_features_LBKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AddCodeFeatureFileButtonClick(Sender: TObject);
     procedure ScanFeatureButtonClick(Sender: TObject);
+    procedure ScanFeatureFromClipboardButtonClick(Sender: TObject);
     procedure DoCreateModel_BtnClick(Sender: TObject);
     procedure Browse_ModelOuytput_BtnClick(Sender: TObject);
     procedure check_model_ButtonClick(Sender: TObject);
@@ -148,7 +150,7 @@ type
     procedure SaveProj(fn: U_String);
 
     procedure DoAddUnitFromDirectory(dir: U_String);
-    procedure UpdateUnitDeineListView;
+    procedure UpdateUnitDefineListView;
     procedure UpdateUnitProcessorList(rebuild_: Boolean);
     procedure UpdateSymbolReplaceList(rebuild_: Boolean);
   public
@@ -264,7 +266,7 @@ var
   m64: TMS64;
 begin
   if PageC.ActivePage = TS_define then
-      UpdateUnitDeineListView
+      UpdateUnitDefineListView
   else if PageC.ActivePage = TS_SymbolRewriteDefine then
     begin
       m64 := TMS64.Create;
@@ -281,8 +283,12 @@ begin
 end;
 
 procedure TPascalRewriteModelForm.NewworkspacefromPassByYou888Model_MIClick(Sender: TObject);
+var
+  stream: TCore_Stream;
 begin
-  NewProj_Stream(FileIOOpen('Default.OX2'));
+  stream := FileIOOpen('PassByYou888UpLevelModel.OX2');
+  NewProj_Stream(stream);
+  stream.Free;
 end;
 
 procedure TPascalRewriteModelForm.Newworkspace_MIClick(Sender: TObject);
@@ -334,7 +340,7 @@ begin
       Exit;
   for i := 0 to OpenUnitDialog.Files.Count - 1 do
       UnitDefineList.AddFile(OpenUnitDialog.Files[i]);
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.AddUnitFromDirectoryButtonClick(Sender: TObject);
@@ -344,13 +350,13 @@ begin
   if SelectDirectory('select unit directory', '', s, [sdNewFolder, sdShowEdit, sdShowShares, sdNewUI]) then
     begin
       DoAddUnitFromDirectory(s);
-      UpdateUnitDeineListView;
+      UpdateUnitDefineListView;
     end;
 end;
 
 procedure TPascalRewriteModelForm.UnitFilterEditChange(Sender: TObject);
 begin
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.Unit_Define_Click(Sender: TObject);
@@ -412,7 +418,7 @@ end;
 
 procedure TPascalRewriteModelForm.RefreshUnitList_Click(Sender: TObject);
 begin
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.RemoveUnit_Define_Click(Sender: TObject);
@@ -463,7 +469,7 @@ begin
   if (unitDefList.SelCount > 0) and (Key = VK_DELETE) then
       RemoveUnit_Define_Click(nil)
   else if Key = VK_F5 then
-      UpdateUnitDeineListView;
+      UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.Unit_Processor_LBKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -489,7 +495,7 @@ begin
   m64.Position := 0;
   UnitDefineList.LoadFromStream(m64);
   disposeObject(m64);
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.SymbolJsonSourceMemoExit(Sender: TObject);
@@ -651,7 +657,61 @@ begin
           FeatureOutputMemo.Clear;
           featureHash.ProgressP(procedure(Name_: PSystemString; hData: PHashListData)
             begin
-              FeatureOutputMemo.Lines.Add(Name_^);
+              FeatureOutputMemo.Lines.Add(PFormat('%s=%s', [Name_^, Name_^]));
+            end);
+          PageC.Enabled := True;
+          FeatureOutputMemo.CopyToClipboard;
+        end);
+      disposeObject(featureHash);
+    end);
+end;
+
+procedure TPascalRewriteModelForm.ScanFeatureFromClipboardButtonClick(Sender: TObject);
+begin
+  if umlTrimSpace(CodeFeatureEdit.Text) = '' then
+      Exit;
+  PageC.Enabled := False;
+  TCompute.RunP_NP(procedure
+    var
+      featureHash: THashList;
+      n: U_String;
+      i: Integer;
+      TP: TTextParsing;
+      Code: TPascalStringList;
+      Info: TBatchInfoList;
+      j: Integer;
+      p: PTokenData;
+      k: TPascal_Keyword;
+    begin
+      featureHash := THashList.CustomCreate($FFFF);
+      DoStatus('Scan...');
+      n.Text := Clipboard.AsText;
+      TP := TTextParsing.Create(n, tsPascal, nil, TPascalString(SpacerSymbol.V + '.'));
+      Info := TBatchInfoList.Create;
+      umlReplaceSum(n, CodeFeatureEdit.Text, False, False, 0, 0, Info);
+      for j := 0 to Info.Count - 1 do
+        begin
+          try
+              p := TP.CharToken[Info[j].sour_bPos];
+          except
+              p := nil;
+          end;
+          if (p <> nil) and (p^.tokenType = ttASCII) then
+              featureHash.Add(p^.Text, nil, True);
+        end;
+      disposeObject(Info);
+      disposeObject(TP);
+      DoStatus('Scan done.');
+
+      for k := low(TPascal_Keyword) to high(TPascal_Keyword) do
+          featureHash.Delete(Pascal_Keyword_DICT[k].Decl);
+
+      TCompute.Sync(procedure
+        begin
+          FeatureOutputMemo.Clear;
+          featureHash.ProgressP(procedure(Name_: PSystemString; hData: PHashListData)
+            begin
+              FeatureOutputMemo.Lines.Add(PFormat('%s=%s', [Name_^, Name_^]));
             end);
           PageC.Enabled := True;
           FeatureOutputMemo.CopyToClipboard;
@@ -709,7 +769,7 @@ begin
       Exit;
   UnitDefineList.ReplaceNewName(TextRepToolForm.OLDEdit.Text, TextRepToolForm.NewEdit.Text,
     TextRepToolForm.Word_CheckBox.Checked, TextRepToolForm.IgnoreCase_CheckBox.Checked);
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
 end;
 
 procedure TPascalRewriteModelForm.rep_sym_old_ButtonClick(Sender: TObject);
@@ -802,7 +862,7 @@ begin
           Code.Assign(testMemo.Lines);
         end);
 
-      if RewritePascal_Process_Code(Code, uHash, PatternDefine, procedure(const Fmt: SystemString; const Args: array of const)
+      if RewritePascal_Process_Code(Code, uHash, PatternDefine, 'TestCode', procedure(const Fmt: SystemString; const Args: array of const)
         begin
           DoStatus(Fmt, Args);
         end) then
@@ -849,7 +909,7 @@ begin
   except
   end;
 
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
   UpdateUnitProcessorList(True);
   UpdateSymbolReplaceList(True);
   DoStatus('New Workspace.');
@@ -912,7 +972,7 @@ begin
   except
   end;
 
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
   UpdateUnitProcessorList(True);
   UpdateSymbolReplaceList(True);
 end;
@@ -974,7 +1034,7 @@ begin
   except
   end;
 
-  UpdateUnitDeineListView;
+  UpdateUnitDefineListView;
   UpdateUnitProcessorList(True);
   UpdateSymbolReplaceList(True);
 
@@ -1050,7 +1110,7 @@ begin
       DoAddUnitFromDirectory(n);
 end;
 
-procedure TPascalRewriteModelForm.UpdateUnitDeineListView;
+procedure TPascalRewriteModelForm.UpdateUnitDefineListView;
 var
   i: Integer;
   p: PSourceDefine;
@@ -1180,7 +1240,7 @@ begin
       TCompute.Sleep(500);
       TCompute.Sync(procedure
         begin
-          UpdateUnitDeineListView();
+          UpdateUnitDefineListView();
         end);
     end);
 end;

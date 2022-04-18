@@ -7,6 +7,7 @@ uses
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, ActnList, Menus,
   ShellAPI, Actions, FileCtrl, Types, IOUtils,
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ZDB.ObjectData_LIB, Z.ZDB,
+  Z.Notify,
   ObjectDataTreeFrameUnit, Z.ZDB.ItemStream_LIB;
 
 type
@@ -33,6 +34,8 @@ type
     ActionImportDirectory: TAction;
     ImportDirectory1: TMenuItem;
     OpenDialog: TFileOpenDialog;
+    Action_Search_Item: TAction;
+    SearchItem1: TMenuItem;
     procedure ActionCreateDirExecute(Sender: TObject);
     procedure ActionExportExecute(Sender: TObject);
     procedure ActionImportFileExecute(Sender: TObject);
@@ -40,12 +43,13 @@ type
     procedure ActionRemoveExecute(Sender: TObject);
     procedure ActionRenameExecute(Sender: TObject);
     procedure Action_OpenExecute(Sender: TObject);
+    procedure Action_Search_ItemExecute(Sender: TObject);
+    procedure ListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);
     procedure ListViewEdited(Sender: TObject; Item: TListItem; var s: string);
     procedure ListViewEditing(Sender: TObject; Item: TListItem; var AllowEdit: Boolean);
     procedure ListViewKeyUp(Sender: TObject; var key: Word; Shift: TShiftState);
   private
     { Private declarations }
-    FDefaultFolderImageIndex: Integer;
     FResourceData: TObjectDataManager;
     FResourceTreeFrame: TObjectDataTreeFrame;
     FIsModify: Boolean;
@@ -65,6 +69,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure UpdateItemList(Path_: string);
+    procedure Refresh_All;
 
     procedure ExportDBPathToPath(DBPath_, destDir_: string);
     procedure ExportToFile(DBPath_, DBItem_, destDir_, destFileName_: string; var showMsg: Boolean);
@@ -78,7 +83,13 @@ type
 
     property fileFilter: string read FFileFilter write SetFileFilter;
     property MultiSelect: Boolean read GetMultiSelect write SetMultiSelect;
-    property DefaultFolderImageIndex: Integer read FDefaultFolderImageIndex;
+  end;
+
+  TZDB_List_Item = class(TListItem)
+  public
+    isField, isItem: Boolean;
+    constructor Create(AOwner: TListItems); override;
+    destructor Destroy; override;
   end;
 
 implementation
@@ -88,18 +99,31 @@ uses Z.Status, Z.ZDB.HashField_LIB, Z.ZDB.HashItem_LIB;
 {$R *.dfm}
 
 
+constructor TZDB_List_Item.Create(AOwner: TListItems);
+begin
+  inherited Create(AOwner);
+  isField := False;
+  isItem := False;
+end;
+
+destructor TZDB_List_Item.Destroy;
+begin
+  inherited Destroy;
+end;
+
 procedure TObjectDataManagerFrame.ActionCreateDirExecute(Sender: TObject);
+var
+  itm: TZDB_List_Item;
 begin
   if FResourceData = nil then
       Exit;
-  with ListView.Items.Add do
-    begin
-      Caption := '';
-      ImageIndex := FDefaultFolderImageIndex;
-      StateIndex := -1;
-      Data := nil;
-      EditCaption;
-    end;
+
+  itm := ListView.Items.Add as TZDB_List_Item;
+  itm.isField := True;
+  itm.Caption := '';
+  itm.SubItems.Add('Wait Edition...');
+  itm.SubItems.Add('Wait Edition...');
+  itm.EditCaption;
   IsModify := True;
 end;
 
@@ -115,13 +139,13 @@ begin
       Exit;
   if ListView.SelCount = 1 then
     begin
-      if ListView.Selected.ImageIndex = FDefaultFolderImageIndex then
+      if TZDB_List_Item(ListView.Selected).isField then
         begin
           if not SelectDirectory('export to', '', destDir, [sdNewFolder, sdShowEdit, sdShowShares, sdNewUI]) then
               Exit;
           ExportDBPathToPath(umlCombineUnixPath(CurrentObjectDataPath, ListView.Selected.Caption), umlCombinePath(destDir, ListView.Selected.Caption));
         end
-      else
+      else if TZDB_List_Item(ListView.Selected).isItem then
         begin
           SaveDialog.FileName := ListView.Selected.Caption;
           if not SaveDialog.Execute() then
@@ -138,13 +162,13 @@ begin
       showMsg := True;
       for i := 0 to ListView.Items.Count - 1 do
         begin
-          with ListView.Items[i] do
+          with ListView.Items[i] as TZDB_List_Item do
             begin
               if (Selected) or (ListView.SelCount = 0) then
                 begin
-                  if ImageIndex = FDefaultFolderImageIndex then
+                  if isField then
                       ExportDBPathToPath(umlCombineUnixPath(CurrentObjectDataPath, Caption), umlCombinePath(destDir, Caption))
-                  else
+                  else if isItem then
                       ExportToFile(CurrentObjectDataPath, Caption, destDir, Caption, showMsg);
                 end;
             end;
@@ -198,8 +222,8 @@ procedure TObjectDataManagerFrame.ActionImportDirectoryExecute(Sender: TObject);
             MessageDlg(Format('File name %s is too long, which causes character loss!', [umlGetFileName(n).Text]), mtWarning, [mbOk], 0);
 
         FResourceData.ItemFastCreate(fPos, umlGetFileName(n), '', itmHnd);
-        itmHnd.Item.RHeader.CreateTime := umlGetFileTime(n);
-        itmHnd.Item.RHeader.ModificationTime := itmHnd.Item.RHeader.CreateTime;
+        itmHnd.CreateTime := umlGetFileTime(n);
+        itmHnd.ModificationTime := itmHnd.CreateTime;
         fs := TCore_FileStream.Create(n, fmOpenRead);
         itmStream := TItemStream.Create(FResourceData, itmHnd);
         DoStatus('import %s', [umlCombineFileName(DBPath, itmHnd.Name).Text]);
@@ -222,7 +246,7 @@ var
 begin
   if FResourceData = nil then
       Exit;
-  if not SelectDirectory('Import directory', '', d, [sdNewFolder, sdNewUI]) then
+  if not SelectDirectory('Import directory', '', d, [sdNewFolder, sdShowEdit, sdNewUI]) then
       Exit;
 
   ImpFromPath(d, CurrentObjectDataPath);
@@ -246,16 +270,16 @@ begin
     begin
       for i := 0 to ListView.Items.Count - 1 do
         begin
-          with ListView.Items[i] do
+          with ListView.Items[i] as TZDB_List_Item do
             begin
               if Selected then
                 begin
-                  if ImageIndex = FDefaultFolderImageIndex then
+                  if isField then
                     begin
                       if FResourceData.FieldDelete(CurrentObjectDataPath, Caption) then
                           DoStatus(Format('delete Field "%s" success', [Caption]));
                     end
-                  else if FResourceData.ItemDelete(CurrentObjectDataPath, Caption) then
+                  else if isItem and FResourceData.ItemDelete(CurrentObjectDataPath, Caption) then
                       DoStatus(Format('delete item "%s" success', [Caption]));
                 end;
             end;
@@ -279,8 +303,6 @@ end;
 procedure TObjectDataManagerFrame.Action_OpenExecute(Sender: TObject);
 var
   showMsg: Boolean;
-  i: Integer;
-  destDir: string;
 begin
   if FResourceData = nil then
       Exit;
@@ -288,44 +310,88 @@ begin
       Exit;
   if ListView.SelCount = 1 then
     begin
-      showMsg := False;
-      ExportToFile(CurrentObjectDataPath, ListView.Selected.Caption, TPath.GetTempPath, ListView.Selected.Caption, showMsg);
-
-      ShellExecute(0, 'open', PWideChar(umlCombineFileName(TPath.GetTempPath, ListView.Selected.Caption).Text), '', PWideChar(TPath.GetTempPath), SW_SHOW);
+      if TZDB_List_Item(ListView.Selected).isField then
+        begin
+          CurrentObjectDataPath := umlCombineUnixPath(CurrentObjectDataPath, ListView.Selected.Caption);
+        end
+      else if TZDB_List_Item(ListView.Selected).isItem then
+        begin
+          showMsg := False;
+          ExportToFile(CurrentObjectDataPath, ListView.Selected.Caption, TPath.GetTempPath, ListView.Selected.Caption, showMsg);
+          ShellExecute(0, 'open', PWideChar(umlCombineFileName(TPath.GetTempPath, ListView.Selected.Caption).Text), '', PWideChar(TPath.GetTempPath), SW_SHOW);
+        end;
     end;
+end;
+
+procedure TObjectDataManagerFrame.Action_Search_ItemExecute(Sender: TObject);
+var
+  field_pos: Int64;
+  s: string;
+  ir: TItemRecursionSearch;
+  tmp: U_String;
+begin
+  if FResourceData = nil then
+      Exit;
+
+  if not InputQuery('search item', 'search item:', s) then
+      Exit;
+
+  field_pos := FResourceData.GetPathFieldPos(CurrentObjectDataPath);
+  if field_pos <= 0 then
+      Exit;
+  if FResourceData.RecursionSearchFirst(CurrentObjectDataPath, s, ir) then
+    begin
+      repeat
+        tmp := FResourceData.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader, field_pos);
+        case ir.ReturnHeader.ID of
+          DB_Header_Field_ID:
+            begin
+              // DoStatus('current: "%s" search result field:"%s"', [CurrentObjectDataPath, umlCombineUnixPath(tmp, ir.ReturnHeader.Name).Text]);
+            end;
+          DB_Header_Item_ID:
+            begin
+              DoStatus('current: "%s" search result item:"%s"', [CurrentObjectDataPath, umlCombineUnixFileName(tmp, ir.ReturnHeader.Name).Text]);
+            end;
+        end;
+      until not FResourceData.RecursionSearchNext(ir);
+    end;
+end;
+
+procedure TObjectDataManagerFrame.ListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);
+begin
+  ItemClass := TZDB_List_Item;
 end;
 
 procedure TObjectDataManagerFrame.ListViewEdited(Sender: TObject; Item: TListItem; var s: string);
 var
-  aFieldPos: Int64;
+  Field_Pos_: Int64;
   ItemHnd: TItemHandle;
 begin
   if FResourceData = nil then
       Exit;
-  if (Item.ImageIndex = FDefaultFolderImageIndex) and (Item.Caption = '') then
+  if TZDB_List_Item(Item).isField and (Item.Caption = '') then
     begin
       if not FResourceData.CreateField(CurrentObjectDataPath + '/' + s, '') then
           Item.Free;
       DoStatus(Format('create new directory "%s"', [CurrentObjectDataPath + '/' + s]));
     end
-  else if (Item.ImageIndex = FDefaultFolderImageIndex) and (FResourceData.GetPathField(CurrentObjectDataPath + '/' + Item.Caption, aFieldPos)) then
+  else if TZDB_List_Item(Item).isField and (FResourceData.GetPathField(CurrentObjectDataPath + '/' + Item.Caption, Field_Pos_)) then
     begin
-      DoStatus(Format('ReName directory "%s" to "%s" .', [Item.Caption, s]));
-      if not FResourceData.FieldReName(aFieldPos, s, '') then
+      DoStatus(Format('Rename directory "%s" to "%s" .', [Item.Caption, s]));
+      if not FResourceData.FieldReName(Field_Pos_, s, '') then
           Item.Free;
     end
-  else if (FResourceData.GetPathField(CurrentObjectDataPath, aFieldPos)) then
+  else if TZDB_List_Item(Item).isItem and (FResourceData.GetPathField(CurrentObjectDataPath, Field_Pos_)) then
     begin
       if FResourceData.ItemOpen(CurrentObjectDataPath, Item.Caption, ItemHnd) then
         begin
-          DoStatus(Format('ReName Item "%s" to "%s" .', [Item.Caption, s]));
-          if not FResourceData.ItemReName(aFieldPos, ItemHnd, s, '') then
+          DoStatus(Format('Rename Item "%s" to "%s" .', [Item.Caption, s]));
+          if not FResourceData.ItemReName(Field_Pos_, ItemHnd, s, '') then
               Item.Free;
         end;
     end;
-  FResourceTreeFrame.RefreshList;
-  UpdateItemList(CurrentObjectDataPath);
   IsModify := True;
+  SysProgress.PostM1(Refresh_All);
 end;
 
 procedure TObjectDataManagerFrame.ListViewEditing(Sender: TObject; Item: TListItem; var AllowEdit: Boolean);
@@ -401,7 +467,6 @@ begin
   FResourceTreeFrame.CurrentObjectDataPath := '/';
   FResourceTreeFrame.ObjectDataEngine := nil;
 
-  FDefaultFolderImageIndex := 100;
   FIsModify := False;
 
   FFileFilter := '*';
@@ -419,6 +484,7 @@ var
   ItmSR: TItemSearch;
   FieldSR: TFieldSearch;
   Filter: TArrayPascalString;
+  itm: TZDB_List_Item;
 begin
   umlGetSplitArray(FFileFilter, Filter, '|;');
   ListView.Items.BeginUpdate;
@@ -429,15 +495,11 @@ begin
       if FResourceData.FieldFindFirst(Path_, '*', FieldSR) then
         begin
           repeat
-            with ListView.Items.Add do
-              begin
-                Caption := FieldSR.Name;
-                SubItems.Add('Field');
-                SubItems.Add('Files : ' + umlIntToStr(FieldSR.HeaderCount));
-                ImageIndex := FDefaultFolderImageIndex;
-                StateIndex := -1;
-                Data := nil;
-              end;
+            itm := ListView.Items.Add as TZDB_List_Item;
+            itm.isField := True;
+            itm.Caption := FieldSR.Name;
+            itm.SubItems.Add('Field');
+            itm.SubItems.Add('Files : ' + umlIntToStr(FieldSR.HeaderCount));
           until not FResourceData.FieldFindNext(FieldSR);
         end;
 
@@ -446,22 +508,24 @@ begin
           repeat
             if umlMultipleMatch(Filter, ItmSR.Name) then
               begin
-                with ListView.Items.Add do
-                  begin
-                    Caption := ItmSR.Name;
-                    SubItems.Add(IntToHex(ItmSR.FieldSearch.RHeader.UserProperty, 8));
-                    SubItems.Add(umlSizeToStr(ItmSR.Size));
-                    SubItems.Add(DateTimeToStr(ItmSR.FieldSearch.RHeader.CreateTime));
-                    SubItems.Add(DateTimeToStr(ItmSR.FieldSearch.RHeader.ModificationTime));
-                    ImageIndex := -1;
-                    StateIndex := -1;
-                    Data := nil;
-                  end;
+                itm := ListView.Items.Add as TZDB_List_Item;
+                itm.isItem := True;
+                itm.Caption := ItmSR.Name;
+                itm.SubItems.Add(IntToHex(ItmSR.FieldSearch.RHeader.UserProperty, 8));
+                itm.SubItems.Add(umlSizeToStr(ItmSR.Size));
+                itm.SubItems.Add(DateTimeToStr(ItmSR.FieldSearch.RHeader.CreateTime));
+                itm.SubItems.Add(DateTimeToStr(ItmSR.FieldSearch.RHeader.ModificationTime));
               end;
           until not FResourceData.ItemFindNext(ItmSR);
         end;
     end;
   ListView.Items.EndUpdate;
+end;
+
+procedure TObjectDataManagerFrame.Refresh_All;
+begin
+  FResourceTreeFrame.RefreshList;
+  UpdateItemList(CurrentObjectDataPath);
 end;
 
 procedure TObjectDataManagerFrame.ExportDBPathToPath(DBPath_, destDir_: string);
@@ -528,14 +592,14 @@ begin
 
       fs := TFileStream.Create(FileName_, fmOpenRead);
       FResourceData.ItemCreate(CurrentObjectDataPath, ExtractFilename(FileName_), '', ItemHnd);
+      ItemHnd.CreateTime := umlGetFileTime(FileName_);
+      ItemHnd.ModificationTime := ItemHnd.CreateTime;
       try
         if FResourceData.ItemWriteFromStream(ItemHnd, fs) then
             DoStatus('import file:%s', [ExtractFilename(FileName_)]);
       finally
           fs.Free;
       end;
-      ItemHnd.Item.RHeader.CreateTime := umlGetFileTime(FileName_);
-      ItemHnd.Item.RHeader.ModificationTime := ItemHnd.Item.RHeader.CreateTime;
       FResourceData.ItemClose(ItemHnd);
     end;
 end;

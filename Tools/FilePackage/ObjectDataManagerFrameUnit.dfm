@@ -1,22 +1,23 @@
 object ObjectDataManagerFrame: TObjectDataManagerFrame
   Left = 0
   Top = 0
-  Width = 821
-  Height = 416
+  Width = 781
+  Height = 386
   TabOrder = 0
   object Splitter: TSplitter
     Left = 185
     Top = 0
     Width = 5
-    Height = 416
+    Height = 386
     AutoSnap = False
     ResizeStyle = rsUpdate
+    ExplicitHeight = 416
   end
   object ListView: TListView
     Left = 190
     Top = 0
-    Width = 631
-    Height = 416
+    Width = 591
+    Height = 386
     Align = alClient
     BorderStyle = bsNone
     Columns = <
@@ -34,12 +35,12 @@ object ObjectDataManagerFrame: TObjectDataManagerFrame
       end
       item
         Alignment = taRightJustify
-        Caption = 'Time'
-        Width = 120
+        Caption = 'Create Time'
+        Width = 140
       end
       item
         Caption = 'Modification Time'
-        Width = 120
+        Width = 140
       end>
     ColumnClick = False
     DoubleBuffered = True
@@ -51,6 +52,7 @@ object ObjectDataManagerFrame: TObjectDataManagerFrame
     PopupMenu = PopupMenu
     TabOrder = 0
     ViewStyle = vsReport
+    OnCreateItemClass = ListViewCreateItemClass
     OnDblClick = Action_OpenExecute
     OnEdited = ListViewEdited
     OnEditing = ListViewEditing
@@ -60,7 +62,7 @@ object ObjectDataManagerFrame: TObjectDataManagerFrame
     Left = 0
     Top = 0
     Width = 185
-    Height = 416
+    Height = 386
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
@@ -96,12 +98,19 @@ object ObjectDataManagerFrame: TObjectDataManagerFrame
       Caption = 'Import Directory..'
       OnExecute = ActionImportDirectoryExecute
     end
+    object Action_Search_Item: TAction
+      Caption = 'Search Item'
+      OnExecute = Action_Search_ItemExecute
+    end
   end
   object PopupMenu: TPopupMenu
     Left = 224
     Top = 224
     object Open1: TMenuItem
       Action = Action_Open
+    end
+    object SearchItem1: TMenuItem
+      Action = Action_Search_Item
     end
     object ExportTo1: TMenuItem
       Action = ActionExport
