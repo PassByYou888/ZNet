@@ -5938,6 +5938,13 @@ begin
   BeginSend;
   buff := TPascalString(FOutText).Bytes;
 
+  // safe check. fixed by qq600585,2022-4-19
+  if Length(buff) = 0 then
+    begin
+      SetLength(buff, 1);
+      buff[0] := 0;
+    end;
+
   SendCardinal(FHeadToken);
   SendInteger(Length(buff));
 
@@ -6382,15 +6389,23 @@ begin
     Assigned(FCurrentQueueData^.OnConsoleProc) or
     Assigned(FCurrentQueueData^.OnConsoleParamProc) then
     begin
-      try
-        ResultText := umlStringOf(buff).Text;
-        SetLength(buff, 0);
-        ResultDataFrame.Clear;
-      except
-        PrintError('WaitOnResultBuffer console data error!');
-        DelayClose();
-        exit;
-      end;
+      // safe check. fixed by qq600585,2022-4-19
+      if (Length(buff) = 1) and (buff[0] = 0) then
+        begin
+          ResultText := '';
+        end
+      else
+        begin
+          try
+            ResultText := umlStringOf(buff).Text;
+            SetLength(buff, 0);
+            ResultDataFrame.Clear;
+          except
+            PrintError('WaitOnResultBuffer console data error!');
+            DelayClose();
+            exit;
+          end;
+        end;
 
       IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteResult);
 
@@ -7776,7 +7791,7 @@ end;
 procedure TPeerIO.ContinueResultSend;
 var
   headBuff: array [0 .. 2] of Byte;
-  b: TBytes;
+  console_buff: TBytes;
   buff: TMS64;
   enSiz: Int64;
   dHead, dTail: Cardinal;
@@ -7797,8 +7812,14 @@ begin
 
       if FCurrentPauseResultSend_CommDataType = FConsoleToken then
         begin
-          b := TPascalString(FOutText).Bytes;
-          buff.WritePtr(@b[0], Length(b));
+          console_buff := TPascalString(FOutText).Bytes;
+          // safe check. fixed by qq600585,2022-4-19
+          if Length(console_buff) = 0 then
+            begin
+              SetLength(console_buff, 1);
+              console_buff[0] := 0;
+            end;
+          buff.WritePtr(@console_buff[0], Length(console_buff));
         end
       else if FOwnerFramework.FSendDataCompressed then
         begin
