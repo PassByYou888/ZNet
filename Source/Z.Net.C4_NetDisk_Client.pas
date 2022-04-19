@@ -609,9 +609,9 @@ type
     procedure AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);
     procedure AuthM(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthM);
     procedure AuthP(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthP);
-    procedure RegC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegC);
-    procedure RegM(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegM);
-    procedure RegP(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegP);
+    procedure RegC(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegC);
+    procedure RegM(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegM);
+    procedure RegP(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegP);
     procedure NewLoginName_C(NewLogin_Name_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_NewLoginNameC);
     procedure NewLoginName_M(NewLogin_Name_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_NewLoginNameM);
     procedure NewLoginName_P(NewLogin_Name_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_NewLoginNameP);
@@ -713,26 +713,30 @@ type
     procedure Search_Share_NetDisk_Field_C(Share_Directory_DB_Name, DB_Field: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Search_NetDisk_FieldC);
     procedure Search_Share_NetDisk_Field_M(Share_Directory_DB_Name, DB_Field: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Search_NetDisk_FieldM);
     procedure Search_Share_NetDisk_Field_P(Share_Directory_DB_Name, DB_Field: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Search_NetDisk_FieldP);
-
-    // *****************************************************************************************************************
-    // Automated upload
-    procedure Auto_Post_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileC);
-    procedure Auto_Post_File_M(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileM);
-    procedure Auto_Post_File_P(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileP);
-    // Automated download from my netdisk
-    procedure Auto_Get_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileC);
-    procedure Auto_Get_File_M(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileM);
-    procedure Auto_Get_File_P(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileP);
-    // Automated download from share netdisk
-    procedure Auto_Get_File_From_Share_Disk_C(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileC);
-    procedure Auto_Get_File_From_Share_Disk_M(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileM);
-    procedure Auto_Get_File_From_Share_Disk_P(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileP);
     // admin auth
     procedure Auth_AdminC(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);
     procedure Auth_AdminM(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthM);
     procedure Auth_AdminP(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthP);
     // close admin auth
     procedure Close_Auth_Admin(userName_: U_String);
+    // *****************************************************************************************************************
+    // Automated upload
+    // *****************************************************************************************************************
+    procedure Auto_Post_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileC);
+    procedure Auto_Post_File_M(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileM);
+    procedure Auto_Post_File_P(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileP);
+    // *****************************************************************************************************************
+    // Automated download from my netdisk
+    // *****************************************************************************************************************
+    procedure Auto_Get_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileC);
+    procedure Auto_Get_File_M(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileM);
+    procedure Auto_Get_File_P(stream: TCore_Stream; Done_Free_Stream: Boolean; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileP);
+    // *****************************************************************************************************************
+    // Automated download from share netdisk
+    // *****************************************************************************************************************
+    procedure Auto_Get_File_From_Share_Disk_C(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileC);
+    procedure Auto_Get_File_From_Share_Disk_M(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileM);
+    procedure Auto_Get_File_From_Share_Disk_P(stream: TCore_Stream; Done_Free_Stream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Get_FileP);
   end;
 
   TC40_NetDisk_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Client>;
@@ -770,7 +774,7 @@ begin
       if Result_.Count >= 3 then
           Client.Last_PrimaryIdentifier := Result_.R.ReadString;
       Client.Auth_Done := True;
-      Client.Do_Auth_Done();
+      Client.DTNoAuthClient.ProgressEngine.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Client.Do_Auth_Done);
     end;
 
   try
@@ -2394,7 +2398,7 @@ begin
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_Client.RegC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegC);
+procedure TC40_NetDisk_Client.RegC(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegC);
 var
   tmp: TC40_NetDisk_Client_On_Usr_Reg;
   d: TDFE;
@@ -2405,12 +2409,14 @@ begin
   d := TDFE.Create;
   d.WriteString(userName_);
   d.WriteString(Passwd_);
+  if Key_Value_Data_ <> nil then
+      d.WriteHashStringList(Key_Value_Data_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Reg', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_Client.RegM(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegM);
+procedure TC40_NetDisk_Client.RegM(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegM);
 var
   tmp: TC40_NetDisk_Client_On_Usr_Reg;
   d: TDFE;
@@ -2421,12 +2427,14 @@ begin
   d := TDFE.Create;
   d.WriteString(userName_);
   d.WriteString(Passwd_);
+  if Key_Value_Data_ <> nil then
+      d.WriteHashStringList(Key_Value_Data_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Reg', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_Client.RegP(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_RegP);
+procedure TC40_NetDisk_Client.RegP(userName_, Passwd_: U_String; Key_Value_Data_: THashStringList; OnResult: TC40_NetDisk_Client_On_Usr_RegP);
 var
   tmp: TC40_NetDisk_Client_On_Usr_Reg;
   d: TDFE;
@@ -2437,6 +2445,8 @@ begin
   d := TDFE.Create;
   d.WriteString(userName_);
   d.WriteString(Passwd_);
+  if Key_Value_Data_ <> nil then
+      d.WriteHashStringList(Key_Value_Data_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Reg', d, nil, nil,
 {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
   DisposeObject(d);
@@ -3701,6 +3711,61 @@ begin
   DisposeObject(d);
 end;
 
+procedure TC40_NetDisk_Client.Auth_AdminC(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Auth;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Auth_AdminM(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthM);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Auth;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Auth_AdminP(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthP);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Auth;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Close_Auth_Admin(userName_: U_String);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(userName_);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Close_Auth_Admin', d);
+  DisposeObject(d);
+end;
+
 procedure TC40_NetDisk_Client.Auto_Post_File_C(stream: TCore_Stream; Done_Free_Stream: Boolean; FileTime_: TDateTime; DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Auto_Post_FileC);
 var
   tmp: TC40_NetDisk_Client_On_Usr_Auto_Post_File;
@@ -3821,63 +3886,8 @@ begin
   Get_Share_Disk_File_Frag_Info_M(Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Get_NetDisk_File_Frag_Info);
 end;
 
-procedure TC40_NetDisk_Client.Auth_AdminC(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);
-var
-  tmp: TC40_NetDisk_Client_On_Usr_Auth;
-  d: TDFE;
-begin
-  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
-  tmp.Client := self;
-  tmp.OnResultC := OnResult;
-  d := TDFE.Create;
-  d.WriteString(userName_);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_Client.Auth_AdminM(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthM);
-var
-  tmp: TC40_NetDisk_Client_On_Usr_Auth;
-  d: TDFE;
-begin
-  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
-  tmp.Client := self;
-  tmp.OnResultM := OnResult;
-  d := TDFE.Create;
-  d.WriteString(userName_);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_Client.Auth_AdminP(userName_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthP);
-var
-  tmp: TC40_NetDisk_Client_On_Usr_Auth;
-  d: TDFE;
-begin
-  tmp := TC40_NetDisk_Client_On_Usr_Auth.Create;
-  tmp.Client := self;
-  tmp.OnResultP := OnResult;
-  d := TDFE.Create;
-  d.WriteString(userName_);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('Auth_Admin', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
-  DisposeObject(d);
-end;
-
-procedure TC40_NetDisk_Client.Close_Auth_Admin(userName_: U_String);
-var
-  d: TDFE;
-begin
-  d := TDFE.Create;
-  d.WriteString(userName_);
-  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Close_Auth_Admin', d);
-  DisposeObject(d);
-end;
-
 initialization
 
-RegisterC40('NetDisk_C4', nil, TC40_NetDisk_Client);
+RegisterC40('NetDisk_Center', nil, TC40_NetDisk_Client);
 
 end.
