@@ -27,7 +27,36 @@ uses
   Z.Net.C4;
 
 type
+{$REGION 'deploy_define'}
+  TC40_NetDisk_UserDB_Service = class(TC40_UserDB_Service)
+  end;
+
+  TC40_NetDisk_UserDB_Client = class(TC40_UserDB_Client)
+  end;
+
+  TC40_NetDisk_FS2_Service = class(TC40_FS2_Service)
+  end;
+
+  TC40_NetDisk_FS2_Client = class(TC40_FS2_Client)
+  end;
+
+  TC40_NetDisk_FS2_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_FS2_Client>;
+
+  TC40_NetDisk_Log_DB_Service = class(TC40_Log_DB_Service)
+  end;
+
+  TC40_NetDisk_Log_DB_Client = class(TC40_Log_DB_Client)
+  end;
+
+  TC40_NetDisk_TEKeyValue_Service = class(TC40_TEKeyValue_Service)
+  end;
+
+  TC40_NetDisk_TEKeyValue_Client = class(TC40_TEKeyValue_Client)
+  end;
+
+{$ENDREGION 'deploy_define'}
 {$REGION 'define_bridge'}
+
   TC40_NetDisk_Service = class;
 
   TC40_NetDisk_Service_SendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
@@ -72,6 +101,9 @@ type
   public
     VM_Service: TC40_NetDisk_Service;
     userName_, Passwd_: U_String;
+    key_value_data_: THashStringList;
+    constructor Create(IO_: TPeerIO); override;
+    destructor Destroy; override;
     procedure Do_NewDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
     procedure Do_Usr_Reg(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
   end;
@@ -266,9 +298,9 @@ type
     procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
   protected
     // user db interface
-    FUserDB_Client: TC40_UserDB_Client;
-    function Get_UserDB_Client: TC40_UserDB_Client;
-    procedure Set_UserDB_Client(const Value: TC40_UserDB_Client);
+    FUserDB_Client: TC40_NetDisk_UserDB_Client;
+    function Get_UserDB_Client: TC40_NetDisk_UserDB_Client;
+    procedure Set_UserDB_Client(const Value: TC40_NetDisk_UserDB_Client);
     // user db event
     procedure Do_User_Msg(sender: TC40_UserDB_Client; FromUserName_, ToUserName_, Msg_: U_String);
     procedure Do_User_Open(sender: TC40_UserDB_Client; userName_, ToUserName_: U_String);
@@ -284,17 +316,17 @@ type
     procedure Do_Remove_Directory_Invalid_Frag(arry: U_StringArray);
   protected
     // log interface
-    FLog_Client: TC40_Log_DB_Client;
-    function Get_Log_Client: TC40_Log_DB_Client;
-    procedure Set_Log_Client(const Value: TC40_Log_DB_Client);
+    FLog_Client: TC40_NetDisk_Log_DB_Client;
+    function Get_Log_Client: TC40_NetDisk_Log_DB_Client;
+    procedure Set_Log_Client(const Value: TC40_NetDisk_Log_DB_Client);
   protected
     // TEKeyValue Interface
-    FTEKeyValue_Client: TC40_TEKeyValue_Client;
-    function Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
-    procedure Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+    FTEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
+    function Get_TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
+    procedure Set_TEKeyValue_Client(const Value: TC40_NetDisk_TEKeyValue_Client);
   protected
     // FS2.0 interface
-    FFS2_Client_Pool: TC40_FS2_Client_List;
+    FFS2_Client_Pool: TC40_NetDisk_FS2_Client_List;
   protected
     // user
     procedure cmd_Auth(sender: TPeerIO; InData, OutData: TDFE);
@@ -344,11 +376,11 @@ type
     procedure cmd_Close_Auth_Admin(sender: TPeerIO; InData: TDFE);
   public
     // deployment
-    property UserDB_Client: TC40_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
+    property UserDB_Client: TC40_NetDisk_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
     property Directory_Client: TC40_NetDisk_Directory_Client read Get_Directory_Client write Set_Directory_Client;
-    property TEKeyValue_Client: TC40_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
-    property FS2_Client_Pool: TC40_FS2_Client_List read FFS2_Client_Pool;
-    property Log_Client: TC40_Log_DB_Client read Get_Log_Client write Set_Log_Client;
+    property TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
+    property FS2_Client_Pool: TC40_NetDisk_FS2_Client_List read FFS2_Client_Pool;
+    property Log_Client: TC40_NetDisk_Log_DB_Client read Get_Log_Client write Set_Log_Client;
     // automated config.
     procedure Automated_Config_NetDisk_Service_Relevance;
     function Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean; overload;
@@ -536,6 +568,21 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
+constructor TC40_NetDisk_Service_Reg_Bridge.Create(IO_: TPeerIO);
+begin
+  inherited Create(IO_);
+  VM_Service := nil;
+  userName_ := '';
+  Passwd_ := '';
+  key_value_data_ := THashStringList.Create;
+end;
+
+destructor TC40_NetDisk_Service_Reg_Bridge.Destroy;
+begin
+  DisposeObjectAndNil(key_value_data_);
+  inherited Destroy;
+end;
+
 procedure TC40_NetDisk_Service_Reg_Bridge.Do_NewDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
 begin
   IO.OutDataFrame.WriteBool(Successed);
@@ -551,6 +598,8 @@ end;
 procedure TC40_NetDisk_Service_Reg_Bridge.Do_Usr_Reg(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
 var
   j_: TZJ;
+  L: TPascalStringList;
+  i: Integer;
 begin
   if CheckIO then
     begin
@@ -559,6 +608,19 @@ begin
           // user alias
           j_ := TZJ.Create;
           j_.S['Alias'] := userName_;
+
+          if key_value_data_.Count > 0 then
+            begin
+              try
+                L := TPascalStringList.Create;
+                key_value_data_.GetNameList(L);
+                for i := 0 to L.Count - 1 do
+                    j_.S[L[i]] := key_value_data_[L[i]];
+                DisposeObject(L);
+              except
+              end;
+            end;
+
           TC40_NetDisk_Service.Get_User_Reg_Detail(j_);
           VM_Service.UserDB_Client.Usr_Set(userName_, 'Detail', j_);
           DisposeObject(j_);
@@ -688,8 +750,8 @@ procedure TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge.Sort_FS_Pair;
   end;
 
 begin
-  if FS_Pair.count > 1 then
-      fastSort_(0, FS_Pair.count - 1);
+  if FS_Pair.Count > 1 then
+      fastSort_(0, FS_Pair.Count - 1);
 end;
 
 procedure TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge.Do_FS2_SearchMultiMD5(sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
@@ -699,18 +761,18 @@ var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
 begin
   num := 0;
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
     if L[i].IsFound then
         inc(num);
 
-  for i := 0 to FS_Pair.count - 1 do
+  for i := 0 to FS_Pair.Count - 1 do
     if FS_Pair[i].FS2 = sender then
       begin
         FS_Pair[i].FoundNum := num;
         FS_Pair[i].IsDone := True;
       end;
 
-  for i := 0 to FS_Pair.count - 1 do
+  for i := 0 to FS_Pair.Count - 1 do
     if not FS_Pair[i].IsDone then
         exit;
 
@@ -724,7 +786,7 @@ begin
       VM_Service.PostLog('%s SearchMultiMD5.', [IO_Def.PrimaryIdentifier.Text], FS_Pair.First.FS2.AliasOrHash);
     end;
 
-  for i := 0 to FS_Pair.count - 1 do
+  for i := 0 to FS_Pair.Count - 1 do
       DisposeObject(FS_Pair[i]);
   DisposeObject(FS_Pair);
 
@@ -829,11 +891,11 @@ begin
       IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
 
       test_passed := 0;
-      for i := 0 to L.count - 1 do
+      for i := 0 to L.Count - 1 do
         if Z.Net.C4.C40_ClientPool.FindAliasOrHash(L[i]^.FS_AliasOrHash, True) <> nil then
             inc(test_passed);
 
-      if test_passed >= L.count then
+      if test_passed >= L.Count then
         begin
           IO.OutDataFrame.WriteBool(Successed);
           d := TDFE.Create;
@@ -1037,11 +1099,11 @@ begin
       IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
 
       test_passed := 0;
-      for i := 0 to L.count - 1 do
+      for i := 0 to L.Count - 1 do
         if Z.Net.C4.C40_ClientPool.FindAliasOrHash(L[i]^.FS_AliasOrHash, True) <> nil then
             inc(test_passed);
 
-      if test_passed >= L.count then
+      if test_passed >= L.Count then
         begin
           IO.OutDataFrame.WriteBool(Successed);
           d := TDFE.Create;
@@ -1169,7 +1231,7 @@ begin
   if L <> nil then
     begin
       L.Remove(RecvIO_Define_);
-      if L.count <= 0 then
+      if L.Count <= 0 then
           FPrimaryIdentifier_Pool.Delete(RecvIO_Define_.PrimaryIdentifier);
     end;
 end;
@@ -1218,12 +1280,12 @@ begin
   inherited DoUserOut_Event(sender, UserDefineIO);
 end;
 
-function TC40_NetDisk_Service.Get_UserDB_Client: TC40_UserDB_Client;
+function TC40_NetDisk_Service.Get_UserDB_Client: TC40_NetDisk_UserDB_Client;
 begin
   Result := FUserDB_Client;
 end;
 
-procedure TC40_NetDisk_Service.Set_UserDB_Client(const Value: TC40_UserDB_Client);
+procedure TC40_NetDisk_Service.Set_UserDB_Client(const Value: TC40_NetDisk_UserDB_Client);
 begin
   if FUserDB_Client <> nil then
       FUserDB_Client.ON_C40_UserDB_Client_Notify := nil;
@@ -1243,7 +1305,7 @@ begin
   d.WriteString(ToUserName_);
   d.WriteString(Msg_);
   L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
       L[i].SendTunnel.Owner.SendDirectStreamCmd('userMsg', d);
   L.Free;
   DisposeObject(d);
@@ -1261,7 +1323,7 @@ begin
   d.WriteString(userName_);
   d.WriteString(ToUserName_);
   L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
       L[i].SendTunnel.Owner.SendDirectStreamCmd('userOnline', d);
   L.Free;
   DisposeObject(d);
@@ -1279,7 +1341,7 @@ begin
   d.WriteString(userName_);
   d.WriteString(ToUserName_);
   L := Search_IO_Def_From_UserPrimaryIdentifier(ToUserName_);
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
       L[i].SendTunnel.Owner.SendDirectStreamCmd('userOffline', d);
   L.Free;
   DisposeObject(d);
@@ -1298,7 +1360,7 @@ begin
   d.WriteString(DestFriendUserName_);
   d.WriteString(Msg_);
   L := Search_IO_Def_From_UserPrimaryIdentifier(DestFriendUserName_);
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
       L[i].SendTunnel.Owner.SendDirectStreamCmd('userRequestFriend', d);
   L.Free;
   DisposeObject(d);
@@ -1313,7 +1375,7 @@ var
   p2p_IO: TP2PVM_PeerIO;
 begin
   L := Search_IO_Def_From_UserPrimaryIdentifier(userName_);
-  for i := 0 to L.count - 1 do
+  for i := 0 to L.Count - 1 do
     if L[i].Owner is TP2PVM_PeerIO then
       begin
         p2p_IO := L[i].Owner as TP2PVM_PeerIO;
@@ -1349,26 +1411,26 @@ procedure TC40_NetDisk_Service.Do_Remove_Directory_Invalid_Frag(arry: U_StringAr
 var
   i: Integer;
 begin
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
       FFS2_Client_Pool[i].RemoveCache(arry);
 end;
 
-function TC40_NetDisk_Service.Get_Log_Client: TC40_Log_DB_Client;
+function TC40_NetDisk_Service.Get_Log_Client: TC40_NetDisk_Log_DB_Client;
 begin
   Result := FLog_Client;
 end;
 
-procedure TC40_NetDisk_Service.Set_Log_Client(const Value: TC40_Log_DB_Client);
+procedure TC40_NetDisk_Service.Set_Log_Client(const Value: TC40_NetDisk_Log_DB_Client);
 begin
   FLog_Client := Value;
 end;
 
-function TC40_NetDisk_Service.Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
+function TC40_NetDisk_Service.Get_TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
 begin
   Result := FTEKeyValue_Client;
 end;
 
-procedure TC40_NetDisk_Service.Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+procedure TC40_NetDisk_Service.Set_TEKeyValue_Client(const Value: TC40_NetDisk_TEKeyValue_Client);
 begin
   FTEKeyValue_Client := Value;
 end;
@@ -1412,7 +1474,6 @@ end;
 
 procedure TC40_NetDisk_Service.cmd_Reg(sender: TPeerIO; InData, OutData: TDFE);
 var
-  userName_, Passwd_: U_String;
   tmp: TC40_NetDisk_Service_Reg_Bridge;
 begin
   if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
@@ -1427,13 +1488,13 @@ begin
       OutData.WriteString('directory service is offline');
       exit;
     end;
-  userName_ := InData.R.ReadString;
-  Passwd_ := InData.R.ReadString;
   tmp := TC40_NetDisk_Service_Reg_Bridge.Create(sender);
   tmp.VM_Service := self;
-  tmp.userName_ := userName_;
-  tmp.Passwd_ := Passwd_;
-  UserDB_Client.Usr_RegM(userName_, Passwd_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Reg);
+  tmp.userName_ := InData.R.ReadString;
+  tmp.Passwd_ := InData.R.ReadString;
+  if not InData.R.IsEnd then
+      InData.R.ReadHashStringList(tmp.key_value_data_);
+  UserDB_Client.Usr_RegM(tmp.userName_, tmp.Passwd_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Reg);
   sender.PauseResultSend;
 end;
 
@@ -1623,7 +1684,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1644,7 +1705,7 @@ begin
     end;
 
   OutData.WriteBool(True);
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if FFS2_Client_Pool[i].Connected then
       begin
         OutData.WriteString(FFS2_Client_Pool[i].AliasOrHash);
@@ -1668,7 +1729,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1692,7 +1753,7 @@ begin
   tmp := TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.FS_Pair := TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge.TPair_List.Create;
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if FFS2_Client_Pool[i].Connected then
       begin
         tmp_Pair := TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge.TPair.Create;
@@ -1703,12 +1764,12 @@ begin
       end;
 
   // prepare md5
-  SetLength(md5_arry, InData.count);
-  for i := 0 to InData.count - 1 do
+  SetLength(md5_arry, InData.Count);
+  for i := 0 to InData.Count - 1 do
       md5_arry[i] := InData.ReadMD5(i);
 
   // search all FS
-  for i := 0 to tmp.FS_Pair.count - 1 do
+  for i := 0 to tmp.FS_Pair.Count - 1 do
       tmp.FS_Pair[i].FS2.FS2_SearchMultiMD5M(md5_arry, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_SearchMultiMD5);
 
   // pause result
@@ -1726,7 +1787,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1773,7 +1834,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1797,7 +1858,7 @@ begin
   // search service
   alias_or_hash_ := InData.R.ReadString; // 1, service alias or hash
   IO_Def.NetDisk_File_Client := nil;
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if alias_or_hash_.Same(FFS2_Client_Pool[i].AliasOrHash) then
         IO_Def.NetDisk_File_Client := FFS2_Client_Pool[i];
   if IO_Def.NetDisk_File_Client = nil then
@@ -1840,7 +1901,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1864,7 +1925,7 @@ begin
   // search service
   alias_or_hash_ := InData.R.ReadString; // 1, service alias or hash
   IO_Def.NetDisk_File_Client := nil;
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if alias_or_hash_.Same(FFS2_Client_Pool[i].AliasOrHash) then
         IO_Def.NetDisk_File_Client := FFS2_Client_Pool[i];
   if IO_Def.NetDisk_File_Client = nil then
@@ -1945,7 +2006,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -1989,7 +2050,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2032,7 +2093,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2060,7 +2121,7 @@ begin
 
   // search service
   fs_ := nil;
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if tmp.alias_or_hash_.Same(FFS2_Client_Pool[i].AliasOrHash) then
         fs_ := FFS2_Client_Pool[i];
   if (fs_ = nil) or (not fs_.Connected) then
@@ -2095,7 +2156,7 @@ begin
 
   // search service
   fs_ := nil;
-  for i := 0 to FFS2_Client_Pool.count - 1 do
+  for i := 0 to FFS2_Client_Pool.Count - 1 do
     if tmp.alias_or_hash_.Same(FFS2_Client_Pool[i].AliasOrHash) then
         fs_ := FFS2_Client_Pool[i];
   if (fs_ = nil) or (not fs_.Connected) then
@@ -2123,7 +2184,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2163,7 +2224,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2249,7 +2310,7 @@ begin
       exit;
 
   i := 0;
-  SetLength(arry, InData.count div 5);
+  SetLength(arry, InData.Count div 5);
   while InData.R.NotEnd do
     begin
       arry[i].Sour_DB_Name := InData.R.ReadString;
@@ -2289,7 +2350,7 @@ begin
       exit;
 
   i := 0;
-  SetLength(arry, InData.count div 4);
+  SetLength(arry, InData.Count div 4);
   while InData.R.NotEnd do
     begin
       arry[i].Sour_DB_Name := InData.R.ReadString;
@@ -2382,7 +2443,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2429,7 +2490,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2499,7 +2560,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2548,7 +2609,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2598,7 +2659,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2639,7 +2700,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2690,7 +2751,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2729,7 +2790,7 @@ begin
       OutData.WriteString('user db is offline.');
       exit;
     end;
-  if FFS2_Client_Pool.count = 0 then
+  if FFS2_Client_Pool.Count = 0 then
     begin
       OutData.WriteBool(False);
       OutData.WriteString('FS is offline.');
@@ -2845,19 +2906,19 @@ begin
   TEKeyValue_Client := nil;
   Log_Client := nil;
   FS2_Client_Pool.Clear;
-  for i := 0 to Z.Net.C4.C40_ClientPool.count - 1 do
+  for i := 0 to Z.Net.C4.C40_ClientPool.Count - 1 do
     begin
       cc := Z.Net.C4.C40_ClientPool[i];
-      if cc is TC40_UserDB_Client then
-          UserDB_Client := cc as TC40_UserDB_Client
+      if cc is TC40_NetDisk_UserDB_Client then
+          UserDB_Client := cc as TC40_NetDisk_UserDB_Client
       else if cc is TC40_NetDisk_Directory_Client then
           Directory_Client := cc as TC40_NetDisk_Directory_Client
-      else if cc is TC40_TEKeyValue_Client then
-          TEKeyValue_Client := cc as TC40_TEKeyValue_Client
-      else if cc is TC40_Log_DB_Client then
-          Log_Client := cc as TC40_Log_DB_Client
-      else if cc is TC40_FS2_Client then
-          FS2_Client_Pool.Add(cc as TC40_FS2_Client);
+      else if cc is TC40_NetDisk_TEKeyValue_Client then
+          TEKeyValue_Client := cc as TC40_NetDisk_TEKeyValue_Client
+      else if cc is TC40_NetDisk_Log_DB_Client then
+          Log_Client := cc as TC40_NetDisk_Log_DB_Client
+      else if cc is TC40_NetDisk_FS2_Client then
+          FS2_Client_Pool.Add(cc as TC40_NetDisk_FS2_Client);
     end;
 end;
 
@@ -2914,8 +2975,8 @@ begin
       Result := Result and False;
     end;
 
-  Result := Result and (FS2_Client_Pool.count > 0);
-  for i := 0 to FS2_Client_Pool.count - 1 do
+  Result := Result and (FS2_Client_Pool.Count > 0);
+  for i := 0 to FS2_Client_Pool.Count - 1 do
     begin
       if FS2_Client_Pool[i].Connected then
         begin
@@ -3013,7 +3074,7 @@ begin
   FDirectory_Client := nil;
   FTEKeyValue_Client := nil;
   FLog_Client := nil;
-  FFS2_Client_Pool := TC40_FS2_Client_List.Create;
+  FFS2_Client_Pool := TC40_NetDisk_FS2_Client_List.Create;
 end;
 
 destructor TC40_NetDisk_Service.Destroy;
@@ -3108,6 +3169,10 @@ end;
 
 initialization
 
-RegisterC40('NetDisk_C4', TC40_NetDisk_Service, nil);
+RegisterC40('NetDisk_UserDB', TC40_NetDisk_UserDB_Service, TC40_NetDisk_UserDB_Client);
+RegisterC40('NetDisk_FS2', TC40_NetDisk_FS2_Service, TC40_NetDisk_FS2_Client);
+RegisterC40('NetDisk_TEKeyValue', TC40_NetDisk_TEKeyValue_Service, TC40_NetDisk_TEKeyValue_Client);
+RegisterC40('NetDisk_Log', TC40_NetDisk_Log_DB_Service, TC40_NetDisk_Log_DB_Client);
+RegisterC40('NetDisk_Center', TC40_NetDisk_Service, nil);
 
 end.
