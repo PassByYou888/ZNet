@@ -2121,7 +2121,6 @@ type
     { p2p VM logic Z.Net support }
     procedure InstallLogicFramework(c: TZNet);
     procedure UninstallLogicFramework(c: TZNet);
-    function CreateLogicClient: TZNet_WithP2PVM_Client;
 
     { p2p VM Peformance support }
     { MaxVMFragmentSize see also MTU }
@@ -14330,8 +14329,8 @@ begin
   FFrameworkListenPool := TCore_List.Create;
   FMaxVMFragmentSize := C_P2PVM_MaxVMFragmentSize;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
-  FReceiveStream := TMS64.CustomCreate(8192);
-  FSendStream := TMS64.CustomCreate(8192);
+  FReceiveStream := TMS64.CustomCreate(16384);
+  FSendStream := TMS64.CustomCreate(16384);
   FWaitEchoList := TCore_List.Create;
   FVMID := 0;
   OnAuthSuccessOnesNotify := nil;
@@ -14690,20 +14689,6 @@ begin
     end
   else
       RaiseInfo('illegal p2pVM.');
-end;
-
-function TZNet_WithP2PVM.CreateLogicClient: TZNet_WithP2PVM_Client;
-var
-  FrameworkID: Cardinal;
-begin
-  if FFrameworkPool.Count > 0 then
-      FrameworkID := FFrameworkPool.LastPtr^.u32 + 1
-  else
-      FrameworkID := 1;
-  while FFrameworkPool.Exists(FrameworkID) do
-      inc(FrameworkID);
-  Result := TZNet_WithP2PVM_Client.CustomCreate(FrameworkID);
-  InstallLogicFramework(Result);
 end;
 
 procedure TZNet_WithP2PVM.AuthWaiting;

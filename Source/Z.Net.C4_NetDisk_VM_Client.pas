@@ -604,7 +604,7 @@ type
     destructor Destroy; override;
     procedure Progress; override;
     procedure Do_Auth_Done; virtual;
-    procedure Disconnect; virtual;
+    procedure Disconnect; override;
 
     // User and IM
     procedure AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_AuthC);

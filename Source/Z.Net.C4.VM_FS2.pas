@@ -1423,7 +1423,6 @@ var
 begin
   if not State_ then
     begin
-      DoStatus(info_);
       try
         if Assigned(OnResultC) then
             OnResultC(Client, nil, File_Name, False);

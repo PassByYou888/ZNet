@@ -220,7 +220,7 @@ type
     // data
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
-    function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle;
+    function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle; inline;
     function GetSpaceHndAsText(ID_: Integer): U_String;
     function GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;
     function CheckWriteSpace(Siz_: Int64): Boolean; overload;
@@ -1746,6 +1746,7 @@ begin
   if (ID < 0) or (ID >= FBlockCount) then
       exit;
 
+  // safe check
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev
@@ -1779,7 +1780,7 @@ begin
   if (ID < 0) or (ID >= FBlockCount) then
       exit;
 
-  // reseek
+  // safe check
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev
@@ -1808,10 +1809,10 @@ begin
   SetLength(Result, 0);
 
   ID := ID_;
-  if ID < 0 then
+  if (ID < 0) or (ID >= BlockCount) then
       exit;
 
-  // reseek
+  // safe check
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev
@@ -1871,10 +1872,10 @@ begin
   Result := nil;
 
   ID := ID_;
-  if ID < 0 then
+  if (ID < 0) or (ID >= BlockCount) then
       exit;
 
-  // reseek
+  // safe check
   while FBlockBuffer[ID].Prev >= 0 do
     if (ID >= 0) and (ID < FBlockCount) and (FBlockBuffer[ID].UsedSpace > 0) then
         ID := FBlockBuffer[ID].Prev

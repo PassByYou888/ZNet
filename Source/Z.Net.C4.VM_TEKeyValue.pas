@@ -671,7 +671,8 @@ begin
   TEKeyValue_Hash.AccessOptimization := True;
   TEKeyValue_Hash.IgnoreCase := True;
 
-  DoStatus('extract Text Engine Database.');
+  if not C40_QuietMode then
+      DoStatus('extract Text Engine Database.');
   if TEKeyValue_DB.Count > 0 then
     with TEKeyValue_DB.Repeat_ do
       repeat
@@ -679,7 +680,8 @@ begin
         TEName_ := GetTEName(TE);
         if TEKeyValue_Hash.Exists(TEName_) then
           begin
-            DoStatus('repeat Text engine %s', [TEName_]);
+            if not C40_QuietMode then
+                DoStatus('repeat Text engine %s', [TEName_]);
             TEKeyValue_Hash.Add(TEName_, TE);
           end
         else
@@ -687,7 +689,8 @@ begin
         TE.RecycleMemory;
       until not Next;
   TEKeyValue_DB.Flush;
-  DoStatus('extract Text Engine Database done.');
+  if not C40_QuietMode then
+      DoStatus('extract Text Engine Database done.');
 end;
 
 destructor TC40_VM_TEKeyValue_Service.Destroy;
@@ -1713,4 +1716,3 @@ begin
 end;
 
 end.
-

@@ -127,12 +127,17 @@ begin
   if FID < 0 then
       exit;
   FData.Clear;
-  if CoreSpace.ReadStream(FData, FID) then
-    begin
-      FData_MD5 := umlStreamMD5(FData);
-    end
-  else
-      FData.Clear;
+  try
+    if CoreSpace.ReadStream(FData, FID) then
+      begin
+        FData_MD5 := umlStreamMD5(FData);
+      end
+    else
+        FData.Clear;
+  except
+    FID := -1;
+    FData.Clear;
+  end;
 end;
 
 procedure TZDB2_MS64.Save;
@@ -254,7 +259,8 @@ begin
       buff := CoreSpace.BuildTableID;
 
   for ID_ in buff do
-      NewDataFrom(ID_);
+    if CoreSpace.Check(ID_) then
+        NewDataFrom(ID_);
   SetLength(buff, 0);
 end;
 

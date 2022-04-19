@@ -24,6 +24,7 @@ type
   TC40_Var_Client = class;
 
 {$REGION 'Service Define'}
+
   TC40_VarService_NM_Pool = class(TNumberModulePool)
   public
     Name: U_String;
@@ -333,7 +334,8 @@ begin
           end;
         DisposeObject(tmp);
       end;
-    DoStatus('extract variant Database done.');
+    if not C40_QuietMode then
+        DoStatus('extract variant Database done.');
   except
   end;
 
@@ -1057,7 +1059,8 @@ begin
           IODef_.NM_List.Remove(NM);
         end;
     end;
-  DoStatus('remove NM "%s"', [NM.Name.Text]);
+  if not C40_QuietMode then
+      DoStatus('remove NM "%s"', [NM.Name.Text]);
 end;
 
 procedure TC40_Var_Service.PrintError(v: SystemString);

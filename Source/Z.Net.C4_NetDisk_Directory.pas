@@ -1526,16 +1526,19 @@ var
                 if not Opti_Directory_Frag_Hash.Exists_Key(Obj_.Frag_Pool[j]^.FS_File) then
                   begin
                     invalid_Frag.Add(Obj_.Frag_Pool[j]^.FS_File, nil);
-                    DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j]^.FS_File.Text, Obj_.Frag_Pool[j]^.Size_]);
+                    if not C40_QuietMode then
+                        DoStatus('%s recycle fragment "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Obj_.Frag_Pool[j]^.FS_File.Text, Obj_.Frag_Pool[j]^.Size_]);
                   end;
-              DoStatus('%s recycle data space "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Temp_Invalid_MD5_List[i].Text, Obj_.Frag_Pool.Size]);
+              if not C40_QuietMode then
+                  DoStatus('%s recycle data space "%s" size:%d', [ServiceInfo.ServiceTyp.Text, Temp_Invalid_MD5_List[i].Text, Obj_.Frag_Pool.Size]);
 
               MD5_Pool.Delete(Temp_Invalid_MD5_List[i]);
             end
           else
             begin
               // error
-              DoStatus('no found Temp_Invalid_MD5: %s', [Temp_Invalid_MD5_List[i].Text]);
+              if not C40_QuietMode then
+                  DoStatus('no found Temp_Invalid_MD5: %s', [Temp_Invalid_MD5_List[i].Text]);
             end;
         except
         end;
@@ -1625,11 +1628,12 @@ procedure TC40_NetDisk_Directory_Service.Opti_Progress();
                 else
                   begin
                     // error
-                    DoStatus('error: DB "%s" field "%s" Item "%s" Loss "%s"',
-                      [Obj_.DB_Name.Text,
-                      Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
-                      ir.ReturnHeader.Name.Text,
-                      hash_Name]);
+                    if not C40_QuietMode then
+                        DoStatus('error: DB "%s" field "%s" Item "%s" Loss "%s"',
+                        [Obj_.DB_Name.Text,
+                        Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
+                        ir.ReturnHeader.Name.Text,
+                        hash_Name]);
                     Loss_Ptr := Loss_List.Add_Null;
                     Loss_Ptr^.Data.Field_Pos := ir.CurrentField.RHeader.CurrentHeader;
                     Loss_Ptr^.Data.Item_Pos := ir.ReturnHeader.CurrentHeader;
@@ -1704,11 +1708,12 @@ begin
                   else
                     begin
                       // error
-                      DoStatus('error: DB "%s" field "%s" Item "%s" Loss "%s"',
-                        [Obj_.DB_Name.Text,
-                        Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
-                        ir.ReturnHeader.Name.Text,
-                        hash_Name]);
+                      if not C40_QuietMode then
+                          DoStatus('error: DB "%s" field "%s" Item "%s" Loss "%s"',
+                          [Obj_.DB_Name.Text,
+                          Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
+                          ir.ReturnHeader.Name.Text,
+                          hash_Name]);
                       Loss_Ptr := Loss_List.Add_Null;
                       Loss_Ptr^.Data.Field_Pos := ir.CurrentField.RHeader.CurrentHeader;
                       Loss_Ptr^.Data.Item_Pos := ir.ReturnHeader.CurrentHeader;
@@ -2056,6 +2061,7 @@ begin
       DisposeObject(tmp);
     end
   else
+    if not C40_QuietMode then
       DoStatus(Result_.R.ReadString);
 
   try

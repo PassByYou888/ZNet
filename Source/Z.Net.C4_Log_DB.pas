@@ -295,6 +295,7 @@ var
   d_: TDateTime;
   dt: SystemString;
   n1, n2: SystemString;
+  Data_is_Null_: Boolean;
 begin
   LogDB := InData.R.ReadString;
   bTime := InData.R.ReadDouble;
@@ -312,6 +313,7 @@ begin
     with db_.Repeat_ do
       repeat
         try
+          Data_is_Null_ := Queue^.Data.Data_Direct = nil;
           d_ := umlStrToDateTime(Queue^.Data.Data.GetDefaultValue('Time', dt));
           if DateTimeInRange(d_, bTime, eTime) then
             begin
@@ -324,7 +326,9 @@ begin
                   OutData.WriteString(n2);
                   OutData.WriteInteger(I__);
                 end;
-            end
+            end;
+          if Data_is_Null_ then
+              Queue^.Data.RecycleMemory;
         except
         end;
       until not Next;
@@ -340,6 +344,7 @@ var
   d_: TDateTime;
   dt: SystemString;
   n1, n2: SystemString;
+  Data_is_Null_: Boolean;
 begin
   LogDB := InData.R.ReadString;
   bTime := InData.R.ReadDouble;
@@ -357,6 +362,7 @@ begin
     with db_.Repeat_ do
       repeat
         try
+          Data_is_Null_ := Queue^.Data.Data_Direct = nil;
           d_ := umlStrToDateTime(Queue^.Data.Data.GetDefaultValue('Time', dt));
           if DateTimeInRange(d_, bTime, eTime) then
             begin
@@ -365,6 +371,8 @@ begin
               if umlSearchMatch(filter1, n1) and umlSearchMatch(filter2, n2) then
                   db_.Push_To_Recycle_Pool(Queue^.Data, True);
             end;
+          if Data_is_Null_ then
+              Queue^.Data.RecycleMemory;
         except
         end;
       until not Next;
@@ -520,7 +528,8 @@ begin
   if WaitFreeList.Count > 0 then
     with WaitFreeList.Repeat_ do
       repeat
-        DoStatus('recycle Memory, Log Database: %s', [Queue^.Data.Name.Text]);
+        if not C40_QuietMode then
+            DoStatus('recycle Memory, Log Database: %s', [Queue^.Data.Name.Text]);
         DB_Pool.Delete(Queue^.Data.Name);
       until not Next;
   WaitFreeList.Clear;
@@ -795,10 +804,11 @@ begin
   d.WriteString(Log2_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('PostLog', d);
   disposeObject(d);
-  if Log2_ <> '' then
-      DoStatus('Log1:%s Log2:%s -> %s', [Log1_, Log2_, LogDB])
-  else
-      DoStatus('Log:%s -> %s', [Log1_, LogDB]);
+  if not C40_QuietMode then
+    if Log2_ <> '' then
+        DoStatus('Log1:%s Log2:%s -> %s', [Log1_, Log2_, LogDB])
+    else
+        DoStatus('Log:%s -> %s', [Log1_, LogDB]);
 end;
 
 procedure TC40_Log_DB_Client.PostLog(LogDB, Log_: SystemString);

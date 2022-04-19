@@ -2869,48 +2869,48 @@ begin
   if (UserDB_Client <> nil) and (UserDB_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk Check:UserDB_Client passed.');
+          DoStatus('NetDisk VM Service Check:UserDB_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk Check:UserDB_Client error!');
+          DoStatus('NetDisk VM Service Check:UserDB_Client error!');
       Result := Result and False;
     end;
 
   if (Directory_Client <> nil) and (Directory_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk Check:Directory_Client passed.');
+          DoStatus('NetDisk VM Service Check:Directory_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk Check:Directory_Client error!');
+          DoStatus('NetDisk VM Service Check:Directory_Client error!');
       Result := Result and False;
     end;
 
   if (TEKeyValue_Client <> nil) and (TEKeyValue_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk Check:TEKeyValue_Client passed.');
+          DoStatus('NetDisk VM Service Check:TEKeyValue_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk Check:TEKeyValue_Client error!');
+          DoStatus('NetDisk VM Service Check:TEKeyValue_Client error!');
       Result := Result and False;
     end;
 
   if (Log_Client <> nil) and (Log_Client.Connected) then
     begin
       if Status_ then
-          DoStatus('NetDisk Check:Log_Client passed.');
+          DoStatus('NetDisk VM Service Check:Log_Client passed.');
     end
   else
     begin
       if Status_ then
-          DoStatus('NetDisk Check:Log_Client error!');
+          DoStatus('NetDisk VM Service Check:Log_Client error!');
       Result := Result and False;
     end;
 
@@ -2920,12 +2920,12 @@ begin
       if FS2_Client_Pool[i].Connected then
         begin
           if Status_ then
-              DoStatus('NetDisk Check:FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk VM Service Check:FS2_Client: %s passed.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
         end
       else
         begin
           if Status_ then
-              DoStatus('NetDisk Check:FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
+              DoStatus('NetDisk VM Service Check:FS2_Client: %s error.', [FS2_Client_Pool[i].ClientInfo.ServiceTyp.Text]);
           Result := Result and False;
         end;
     end;
@@ -2933,7 +2933,7 @@ end;
 
 function TC40_NetDisk_VM_Service.Check_NetDisk_Service_Relevance: Boolean;
 begin
-  Result := Check_NetDisk_Service_Relevance(True);
+  Result := Check_NetDisk_Service_Relevance(not C40_QuietMode);
 end;
 
 constructor TC40_NetDisk_VM_Service.Create(Param_: U_String);
@@ -3080,17 +3080,17 @@ end;
 
 class function TC40_NetDisk_VM_Service.ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
 begin
-  Result := 'S:' + PrimaryIdentifier_ + '_' + umlMD5ToStr(MD5_);
+  Result := '@' + PrimaryIdentifier_ + '|' + umlMD5ToStr(MD5_) + '|';
 end;
 
 class function TC40_NetDisk_VM_Service.IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('S:' + PrimaryIdentifier_ + '_*', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@' + PrimaryIdentifier_ + '|*|', Share_Directory_DB_Name);
 end;
 
 class function TC40_NetDisk_VM_Service.IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('S:*', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@*|*|', Share_Directory_DB_Name);
 end;
 
 class procedure TC40_NetDisk_VM_Service.Get_User_Reg_Detail(Json_: TZJ);

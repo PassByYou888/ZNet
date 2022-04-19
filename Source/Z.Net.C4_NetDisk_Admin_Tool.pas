@@ -351,7 +351,7 @@ end;
 
 function TC40_NetDisk_Admin_Tool_Service.Check_NetDisk_Admin_Relevance: Boolean;
 begin
-  Result := Check_NetDisk_Admin_Relevance(True);
+  Result := Check_NetDisk_Admin_Relevance(not C40_QuietMode);
 end;
 
 procedure TC40_NetDisk_Admin_Tool_Service.cmd_Enabled_Automated_Admin_Program(Sender: TPeerIO; InData: TDFE);

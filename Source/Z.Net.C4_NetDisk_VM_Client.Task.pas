@@ -44,9 +44,9 @@ type
     procedure Add_Task_Post_File(Client: TC40_NetDisk_VM_Client; Local_File, DB_Field, DB_Item: U_String);
     procedure Add_Task_Post_Directory(Client: TC40_NetDisk_VM_Client; Local_Directory, DB_Field: U_String);
     procedure Add_Task_Get_File(Client: TC40_NetDisk_VM_Client; Local_File, DB_Field, DB_Item: U_String);
-    procedure Add_Task_Get_Share_File(Client: TC40_NetDisk_VM_Client; Local_File, Share_Directory_DB_Name, DB_Field, DB_Item: U_String);
+    procedure Add_Task_Get_Share_File(Client: TC40_NetDisk_VM_Client; Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String);
     procedure Add_Task_Get_Directory(Client: TC40_NetDisk_VM_Client; Local_Directory, DB_Field: U_String);
-    procedure Add_Task_Get_Share_Directory(Client: TC40_NetDisk_VM_Client; Local_Directory, Share_Directory_DB_Name, DB_Field: U_String);
+    procedure Add_Task_Get_Share_Directory(Client: TC40_NetDisk_VM_Client; Share_Directory_DB_Name, Local_Directory, DB_Field: U_String);
   end;
 
   TC40_NetDisk_VM_Client_Task = class
@@ -74,7 +74,7 @@ type
 
   TC40_NetDisk_VM_Client_Task_Auto_Get_File = class(TC40_NetDisk_VM_Client_Task)
   public
-    Local_File, Share_Directory_DB_Name, DB_Field, DB_Item: U_String;
+    Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
     destructor Destroy;
     procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; stream: TCore_Stream; Successed: Boolean; info: U_String);
@@ -83,7 +83,7 @@ type
 
   TC40_NetDisk_VM_Client_Task_Auto_Get_Directory = class(TC40_NetDisk_VM_Client_Task)
   public
-    Local_Directory, Share_Directory_DB_Name, DB_Field: U_String;
+    Share_Directory_DB_Name, Local_Directory, DB_Field: U_String;
     Get_Directory_Task_Pool: TC40_NetDisk_VM_Client_Task_Tool;
     procedure Do_Done_Get_Directory_Task_Pool(sender: TC40_NetDisk_VM_Client_Task_Tool);
     procedure Do_Search_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String;
@@ -200,7 +200,7 @@ begin
   task_.OwnerPool := self;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Share_File(Client: TC40_NetDisk_VM_Client; Local_File, Share_Directory_DB_Name, DB_Field, DB_Item: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Share_File(Client: TC40_NetDisk_VM_Client; Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String);
 var
   task_: TC40_NetDisk_VM_Client_Task_Auto_Get_File;
 begin
@@ -227,7 +227,7 @@ begin
   task_.OwnerPool := self;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Share_Directory(Client: TC40_NetDisk_VM_Client; Local_Directory, Share_Directory_DB_Name, DB_Field: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Share_Directory(Client: TC40_NetDisk_VM_Client; Share_Directory_DB_Name, Local_Directory, DB_Field: U_String);
 var
   task_: TC40_NetDisk_VM_Client_Task_Auto_Get_Directory;
 begin
@@ -328,8 +328,8 @@ end;
 constructor TC40_NetDisk_VM_Client_Task_Auto_Get_File.Create;
 begin
   inherited Create;
-  Local_File := '';
   Share_Directory_DB_Name := '';
+  Local_File := '';
   DB_Field := '';
   DB_Item := '';
 end;
@@ -388,7 +388,8 @@ begin
 
           if Share_Directory_DB_Name <> '' then
               Get_Directory_Task_Pool.Add_Task_Get_Share_File(Client,
-              umlCombineFileName(L_Dir, L_Name), Share_Directory_DB_Name,
+              Share_Directory_DB_Name,
+              umlCombineFileName(L_Dir, L_Name),
               umlCombineUnixPath(DB_Field, arry[i].Current_Field),
               L_Name)
           else
@@ -409,8 +410,8 @@ end;
 constructor TC40_NetDisk_VM_Client_Task_Auto_Get_Directory.Create;
 begin
   inherited Create;
-  Local_Directory := '';
   Share_Directory_DB_Name := '';
+  Local_Directory := '';
   DB_Field := '';
   Get_Directory_Task_Pool := TC40_NetDisk_VM_Client_Task_Tool.Create;
   Get_Directory_Task_Pool.All_Done_Do_Auto_Free := False;

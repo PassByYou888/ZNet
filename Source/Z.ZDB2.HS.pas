@@ -140,6 +140,8 @@ begin
         FData.LoadFromStream(m64.Stream64);
         FIsChanged := False;
       except
+        FID := -1;
+        FData.Clear;
       end;
     end
   else
@@ -269,7 +271,8 @@ begin
       buff := CoreSpace.BuildTableID;
 
   for ID_ in buff do
-      NewDataFrom(ID_);
+    if CoreSpace.Check(ID_) then
+        NewDataFrom(ID_);
   SetLength(buff, 0);
 end;
 

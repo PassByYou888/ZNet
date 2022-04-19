@@ -1305,7 +1305,8 @@ begin
                 UserIdentifierHash.Add(arry.S[i], Json);
                 if Json.Data.IndexOf('PrimaryIdentifier') < 0 then
                     Json.Data.S['PrimaryIdentifier'] := arry.S[i];
-                DoStatus('user "%s" import done.', [arry.S[i]]);
+                if not C40_QuietMode then
+                    DoStatus('user "%s" import done.', [arry.S[i]]);
               end;
           end;
       except
@@ -1421,7 +1422,8 @@ begin
   JsonDatabase := TZDB2_List_Json.Create(TZDB2_Json, nil, ZDB2RecycleMemoryTimeOut, fs, False, ZDB2DeltaSpace, ZDB2BlockSize, ZDB2Cipher);
   JsonDatabase.AutoFreeStream := True;
 
-  DoStatus('extract user Database.');
+  if not C40_QuietMode then
+      DoStatus('extract user Database.');
   if JsonDatabase.Count > 0 then
     with JsonDatabase.Repeat_ do
       repeat
@@ -1431,7 +1433,8 @@ begin
           begin
             if UserIdentifierHash.Exists(identifier_arry.S[i]) then
               begin
-                DoStatus('repeat user %s', [identifier_arry.S[i]]);
+                if not C40_QuietMode then
+                    DoStatus('repeat user %s', [identifier_arry.S[i]]);
                 UserIdentifierHash.Add(identifier_arry.S[i], Json);
               end
             else
@@ -1440,7 +1443,8 @@ begin
         Json.RecycleMemory;
       until not Next;
   JsonDatabase.Flush;
-  DoStatus('extract user Database done.');
+  if not C40_QuietMode then
+      DoStatus('extract user Database done.');
 end;
 
 destructor TC40_UserDB_Service.Destroy;
@@ -1472,19 +1476,22 @@ begin
   Result := nil;
   if (length(UserName_.Bytes) < 4) then
     begin
-      DoStatus('User name "%s" is too short', [UserName_.Text]);
+      if not C40_QuietMode then
+          DoStatus('User name "%s" is too short', [UserName_.Text]);
       exit;
     end;
 
   if (length(passwd_.Bytes) < 6) then
     begin
-      DoStatus('password is too short');
+      if not C40_QuietMode then
+          DoStatus('password is too short');
       exit;
     end;
 
   if UserIdentifierHash.Exists(UserName_) then
     begin
-      DoStatus('repeat user "%s"', [UserName_.Text]);
+      if not C40_QuietMode then
+          DoStatus('repeat user "%s"', [UserName_.Text]);
       exit;
     end;
 
@@ -1498,7 +1505,8 @@ begin
   Json.Data.B['Enabled'] := True;
   for i := 0 to arry.Count - 1 do
       UserIdentifierHash.Add(arry.S[i], Json);
-  DoStatus('user "%s" registration done.', [UserName_.Text]);
+  if not C40_QuietMode then
+      DoStatus('user "%s" registration done.', [UserName_.Text]);
   Result := Json;
 end;
 

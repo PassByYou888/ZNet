@@ -2933,7 +2933,7 @@ end;
 
 function TC40_NetDisk_Service.Check_NetDisk_Service_Relevance: Boolean;
 begin
-  Result := Check_NetDisk_Service_Relevance(True);
+  Result := Check_NetDisk_Service_Relevance(not C40_QuietMode);
 end;
 
 constructor TC40_NetDisk_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
@@ -3085,17 +3085,17 @@ end;
 
 class function TC40_NetDisk_Service.ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
 begin
-  Result := 'S:' + PrimaryIdentifier_ + '_' + umlMD5ToStr(MD5_);
+  Result := '@' + PrimaryIdentifier_ + '|' + umlMD5ToStr(MD5_) + '|';
 end;
 
 class function TC40_NetDisk_Service.IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('S:' + PrimaryIdentifier_ + '_*', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@' + PrimaryIdentifier_ + '|*|', Share_Directory_DB_Name);
 end;
 
 class function TC40_NetDisk_Service.IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('S:*', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@*|*|', Share_Directory_DB_Name);
 end;
 
 class procedure TC40_NetDisk_Service.Get_User_Reg_Detail(Json_: TZJ);

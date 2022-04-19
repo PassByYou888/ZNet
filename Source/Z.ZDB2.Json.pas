@@ -136,6 +136,8 @@ begin
       try
           FData.LoadFromStream(m64.Stream64);
       except
+        FID := -1;
+        FData.Clear;
         DoStatus('failed load Json');
         DoStatus(m64.Memory, m64.Size, 80);
         DoStatus('');
@@ -270,6 +272,7 @@ begin
       buff := CoreSpace.BuildTableID;
 
   for ID_ in buff do
+    if CoreSpace.Check(ID_) then
       NewDataFrom(ID_);
   SetLength(buff, 0);
 end;
