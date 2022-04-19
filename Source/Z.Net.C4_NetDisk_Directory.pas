@@ -1813,20 +1813,21 @@ begin
     Directory_ZDB2_Cipher);
   Directory_Database.AutoFreeStream := True;
 
-  with Directory_Database.Repeat_ do
-    repeat
-      fd := TDirectory_Service_User_File_DB.Create(self, Queue^.Data);
-      fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
-      if fd.DB_Name <> '' then
-        begin
-          fd.IsChanged := True;
-          fd.ComputeFragSpace;
-          fd.Stream.RecycleMemory;
-          Directory_HashPool.Add(fd.DB_Name, fd);
-        end
-      else
-          DisposeObject(fd);
-    until not Next;
+  if Directory_Database.Count > 0 then
+    with Directory_Database.Repeat_ do
+      repeat
+        fd := TDirectory_Service_User_File_DB.Create(self, Queue^.Data);
+        fd.DB_Name := Reserved_To_String(fd.Stream.Data.Reserved);
+        if fd.DB_Name <> '' then
+          begin
+            fd.IsChanged := True;
+            fd.ComputeFragSpace;
+            fd.Stream.RecycleMemory;
+            Directory_HashPool.Add(fd.DB_Name, fd);
+          end
+        else
+            DisposeObject(fd);
+      until not Next;
 
   // md5 frag database
   MD5_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('MD5_RecycleMemory', '1*1000'), 1 * 1000);
