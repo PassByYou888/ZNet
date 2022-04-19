@@ -4660,7 +4660,7 @@ begin
 
   Result := -1;
 
-  StoreStream := TMS64.Create;
+  StoreStream := TMS64.CustomCreate(16 * 1024);
 
   source.Read(editionToken, C_Byte_Size);
   if (editionToken in [$FF, $FA]) then
