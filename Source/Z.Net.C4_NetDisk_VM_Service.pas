@@ -580,6 +580,7 @@ begin
           // user alias
           j_ := TZJ.Create;
           j_.S['Alias'] := userName_;
+          TC40_NetDisk_VM_Service.Get_User_Reg_Detail(j_);
 
           if key_value_data_.Count > 0 then
             begin
@@ -593,7 +594,6 @@ begin
               end;
             end;
 
-          TC40_NetDisk_VM_Service.Get_User_Reg_Detail(j_);
           VM_Service.UserDB_Client.Usr_Set(userName_, 'Detail', j_);
           DisposeObject(j_);
           // create directory db
@@ -3113,17 +3113,17 @@ end;
 
 class function TC40_NetDisk_VM_Service.ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
 begin
-  Result := '@' + PrimaryIdentifier_ + '|' + umlMD5ToStr(MD5_) + '|';
+  Result := '@' + PrimaryIdentifier_ + '&' + umlMD5ToStr(MD5_) + '&';
 end;
 
 class function TC40_NetDisk_VM_Service.IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('@' + PrimaryIdentifier_ + '|*|', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@' + PrimaryIdentifier_ + '&*&', Share_Directory_DB_Name);
 end;
 
 class function TC40_NetDisk_VM_Service.IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('@*|*|', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('@*&*&', Share_Directory_DB_Name);
 end;
 
 class procedure TC40_NetDisk_VM_Service.Get_User_Reg_Detail(Json_: TZJ);
