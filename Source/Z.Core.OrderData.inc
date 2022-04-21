@@ -81,6 +81,27 @@ begin
   Result := p;
 end;
 
+function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_Null: POrderStruct;
+var
+  p: POrderStruct;
+begin
+  new(p);
+  p^.Next := nil;
+
+  Inc(FNum);
+  if (FFirst = nil) and (FLast = nil) then
+    begin
+      FFirst := p;
+      FLast := p;
+    end
+  else if FLast <> nil then
+    begin
+      FLast^.Next := p;
+      FLast := p;
+    end;
+  Result := p;
+end;
+
 procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
 begin
   try
@@ -269,6 +290,29 @@ var
 begin
   new(p);
   p^.Data := Data;
+  p^.Next := nil;
+
+  FCritical.Lock;
+  Inc(FNum);
+  if (FFirst = nil) and (FLast = nil) then
+    begin
+      FFirst := p;
+      FLast := p;
+    end
+  else if FLast <> nil then
+    begin
+      FLast^.Next := p;
+      FLast := p;
+    end;
+  FCritical.UnLock;
+  Result := p;
+end;
+
+function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_Null: POrderStruct;
+var
+  p: POrderStruct;
+begin
+  new(p);
   p^.Next := nil;
 
   FCritical.Lock;
