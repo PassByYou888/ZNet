@@ -20,7 +20,7 @@ uses
 type
   TC40_Log_DB_Service = class;
 
-  TC40_ZDB2_List_HashString = class(TZDB2_List_HashString)
+  TC40_Log_DB_ZDB2_HashString = class(TZDB2_List_HashString)
   protected
     Name: U_String;
     LastActivtTime: TTimeTick;
@@ -28,8 +28,8 @@ type
     FileName: U_String;
   end;
 
-  TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_ZDB2_List_HashString>;
-  TLog_DB_List = {$IFDEF FPC}specialize {$ENDIF FPC}TBigList<TC40_ZDB2_List_HashString>;
+  TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_Log_DB_ZDB2_HashString>;
+  TLog_DB_List = {$IFDEF FPC}specialize {$ENDIF FPC}TBigList<TC40_Log_DB_ZDB2_HashString>;
 
   TC40_Log_DB_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
   public
@@ -55,8 +55,8 @@ type
   private
     WaitFreeList: TLog_DB_List;
     procedure Do_Create_ZDB2_HashString(sender: TZDB2_List_HashString; Obj: TZDB2_HashString);
-    procedure Do_DB_Pool_SafeCheck(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
-    procedure Do_DB_Pool_Progress(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
+    procedure Do_DB_Pool_SafeCheck(const Name_: PSystemString; Obj_: TC40_Log_DB_ZDB2_HashString);
+    procedure Do_DB_Pool_Progress(const Name_: PSystemString; Obj_: TC40_Log_DB_ZDB2_HashString);
   public
     C40_DB_Directory: U_String;
     DB_Pool: TLog_DB_Pool;
@@ -74,7 +74,7 @@ type
     procedure SafeCheck; override;
     procedure Progress; override;
 
-    function GetDB(const LogDB: SystemString): TC40_ZDB2_List_HashString;
+    function GetDB(const LogDB: SystemString): TC40_Log_DB_ZDB2_HashString;
     procedure PostLog(const LogDB, Log1_, Log2_: SystemString);
   end;
 
@@ -160,22 +160,34 @@ type
     ON_C40_Log_DB_Client_Interface: I_ON_C40_Log_DB_Client_Interface;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
+    // post log
     procedure PostLog(LogDB, Log1_, Log2_: SystemString); overload;
     procedure PostLog(LogDB, Log_: SystemString); overload;
+    // query from time+filter
+    procedure QueryLog_Bridge(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; Bridge_IO_: TPeerIO); overload;
     procedure QueryLogC(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; OnResult: TON_QueryLogC); overload;
     procedure QueryLogM(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; OnResult: TON_QueryLogM); overload;
     procedure QueryLogP(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; OnResult: TON_QueryLogP); overload;
+    // query from time
+    procedure QueryLog_Bridge(LogDB: SystemString; bTime, eTime: TDateTime; Bridge_IO_: TPeerIO); overload;
     procedure QueryLogC(LogDB: SystemString; bTime, eTime: TDateTime; OnResult: TON_QueryLogC); overload;
     procedure QueryLogM(LogDB: SystemString; bTime, eTime: TDateTime; OnResult: TON_QueryLogM); overload;
     procedure QueryLogP(LogDB: SystemString; bTime, eTime: TDateTime; OnResult: TON_QueryLogP); overload;
+    // query and remove
     procedure QueryAndRemoveLog(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String); overload;
     procedure QueryAndRemoveLog(LogDB: SystemString; bTime, eTime: TDateTime); overload;
+    // remove
     procedure RemoveLog(LogDB: SystemString; arry_index: array of Integer);
+    // get db list
+    procedure GetLogDB_Bridge(Bridge_IO_: TPeerIO);
     procedure GetLogDBC(OnResult: TON_GetLogDBC);
     procedure GetLogDBM(OnResult: TON_GetLogDBM);
     procedure GetLogDBP(OnResult: TON_GetLogDBP);
+    // close log db
     procedure CloseDB(LogDB: SystemString);
+    // remove log db
     procedure RemoveDB(LogDB: SystemString);
+    // log monitor
     procedure Enabled_LogMonitor(Sync_Log: Boolean);
   end;
 
@@ -291,7 +303,7 @@ var
   LogDB: SystemString;
   bTime, eTime: TDateTime;
   filter1, filter2: U_String;
-  db_: TC40_ZDB2_List_HashString;
+  db_: TC40_Log_DB_ZDB2_HashString;
   d_: TDateTime;
   dt: SystemString;
   n1, n2: SystemString;
@@ -339,7 +351,7 @@ var
   LogDB: SystemString;
   bTime, eTime: TDateTime;
   filter1, filter2: U_String;
-  db_: TC40_ZDB2_List_HashString;
+  db_: TC40_Log_DB_ZDB2_HashString;
   i: Integer;
   d_: TDateTime;
   dt: SystemString;
@@ -383,7 +395,7 @@ procedure TC40_Log_DB_Service.cmd_RemoveLog(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
   arry: TDFArrayInteger;
-  db_: TC40_ZDB2_List_HashString;
+  db_: TC40_Log_DB_ZDB2_HashString;
   i: Integer;
 begin
   LogDB := InData.R.ReadString;
@@ -450,12 +462,12 @@ begin
 
 end;
 
-procedure TC40_Log_DB_Service.Do_DB_Pool_SafeCheck(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
+procedure TC40_Log_DB_Service.Do_DB_Pool_SafeCheck(const Name_: PSystemString; Obj_: TC40_Log_DB_ZDB2_HashString);
 begin
   Obj_.Flush;
 end;
 
-procedure TC40_Log_DB_Service.Do_DB_Pool_Progress(const Name_: PSystemString; Obj_: TC40_ZDB2_List_HashString);
+procedure TC40_Log_DB_Service.Do_DB_Pool_Progress(const Name_: PSystemString; Obj_: TC40_Log_DB_ZDB2_HashString);
 begin
   Obj_.Progress;
   if GetTimeTick - Obj_.LastActivtTime > LogDBRecycleMemoryTimeOut then
@@ -535,7 +547,7 @@ begin
   WaitFreeList.Clear;
 end;
 
-function TC40_Log_DB_Service.GetDB(const LogDB: SystemString): TC40_ZDB2_List_HashString;
+function TC40_Log_DB_Service.GetDB(const LogDB: SystemString): TC40_Log_DB_ZDB2_HashString;
 var
   fn: U_String;
   fs: TCore_FileStream;
@@ -552,7 +564,7 @@ begin
             fs := TCore_FileStream.Create(fn, fmOpenReadWrite)
         else
             fs := TCore_FileStream.Create(fn, fmCreate);
-        Result := TC40_ZDB2_List_HashString.Create(
+        Result := TC40_Log_DB_ZDB2_HashString.Create(
           TZDB2_HashString,
 {$IFDEF FPC}@{$ENDIF FPC}Do_Create_ZDB2_HashString,
           ZDB2RecycleMemoryTimeOut,
@@ -578,7 +590,7 @@ end;
 
 procedure TC40_Log_DB_Service.PostLog(const LogDB, Log1_, Log2_: SystemString);
 var
-  db_: TC40_ZDB2_List_HashString;
+  db_: TC40_Log_DB_ZDB2_HashString;
   hs_: TZDB2_HashString;
   t_: TDateTime;
 begin
@@ -816,6 +828,20 @@ begin
   PostLog(LogDB, Log_, '');
 end;
 
+procedure TC40_Log_DB_Client.QueryLog_Bridge(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; Bridge_IO_: TPeerIO);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(LogDB);
+  d.WriteDouble(bTime);
+  d.WriteDouble(eTime);
+  d.WriteString(filter1);
+  d.WriteString(filter2);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('QueryLog', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  disposeObject(d);
+end;
+
 procedure TC40_Log_DB_Client.QueryLogC(LogDB: SystemString; bTime, eTime: TDateTime; filter1, filter2: U_String; OnResult: TON_QueryLogC);
 var
   tmp: TON_QueryLog;
@@ -876,6 +902,11 @@ begin
   disposeObject(d);
 end;
 
+procedure TC40_Log_DB_Client.QueryLog_Bridge(LogDB: SystemString; bTime, eTime: TDateTime; Bridge_IO_: TPeerIO);
+begin
+  QueryLog_Bridge(LogDB, bTime, eTime, '', '', Bridge_IO_);
+end;
+
 procedure TC40_Log_DB_Client.QueryLogC(LogDB: SystemString; bTime, eTime: TDateTime; OnResult: TON_QueryLogC);
 begin
   QueryLogC(LogDB, bTime, eTime, '', '', OnResult);
@@ -918,6 +949,15 @@ begin
   d.WriteString(LogDB);
   d.WriteArrayInteger.WriteArray(arry_index);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveLog', d);
+  disposeObject(d);
+end;
+
+procedure TC40_Log_DB_Client.GetLogDB_Bridge(Bridge_IO_: TPeerIO);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetLogDB', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
   disposeObject(d);
 end;
 
