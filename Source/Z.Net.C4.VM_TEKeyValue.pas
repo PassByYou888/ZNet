@@ -613,7 +613,7 @@ var
     tmp: TListPascalString;
     R: Integer;
   begin
-    if (OutData.Count div 3 < MaxNum_) and umlSearchMatch(filter_, Name_^) then
+    if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, Name_^) then
       begin
         Data_is_Null_ := Obj_.Data_Direct = nil;
         tmp := TListPascalString.Create;
@@ -651,7 +651,7 @@ begin
       tmp: TListPascalString;
       R: Integer;
     begin
-      if (OutData.Count div 3 < MaxNum_) and umlSearchMatch(filter_, Name_^) then
+      if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, Name_^) then
         begin
           Data_is_Null_ := Obj_.Data_Direct = nil;
           tmp := TListPascalString.Create;
