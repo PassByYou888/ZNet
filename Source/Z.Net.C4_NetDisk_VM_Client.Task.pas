@@ -41,6 +41,11 @@ type
     function Task_Num: NativeInt;
     function Repeat_: TC40_NetDisk_VM_Client_Task_List.TRepeat___;
     function First: TC40_NetDisk_VM_Client_Task;
+    // stream
+    procedure Add_Task_Post_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String);
+    procedure Add_Task_Get_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String);
+    procedure Add_Task_Get_Share_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String);
+    // file
     procedure Add_Task_Post_File(Client: TC40_NetDisk_VM_Client; Local_File, DB_Field, DB_Item: U_String);
     procedure Add_Task_Post_Directory(Client: TC40_NetDisk_VM_Client; Local_Directory, DB_Field: U_String);
     procedure Add_Task_Get_File(Client: TC40_NetDisk_VM_Client; Local_File, DB_Field, DB_Item: U_String);
@@ -63,12 +68,32 @@ type
     procedure Go_Next_Task;
   end;
 
+  TC40_NetDisk_VM_Client_Task_Auto_Post_Stream = class(TC40_NetDisk_VM_Client_Task)
+  public
+    Stream: TCore_Stream;
+    AutoFreeStream: Boolean;
+    DB_Field, DB_Item: U_String;
+    constructor Create;
+    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Run_Task; override;
+  end;
+
+  TC40_NetDisk_VM_Client_Task_Auto_Get_Stream = class(TC40_NetDisk_VM_Client_Task)
+  public
+    Stream: TCore_Stream;
+    AutoFreeStream: Boolean;
+    Share_Directory_DB_Name, DB_Field, DB_Item: U_String;
+    constructor Create;
+    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Run_Task; override;
+  end;
+
   TC40_NetDisk_VM_Client_Task_Auto_Post_File = class(TC40_NetDisk_VM_Client_Task)
   public
     Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
     destructor Destroy; override;
-    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
     procedure Run_Task; override;
   end;
 
@@ -77,7 +102,7 @@ type
     Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
     destructor Destroy;
-    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
     procedure Run_Task; override;
   end;
 
@@ -149,6 +174,11 @@ begin
   Result := FList.Num;
 end;
 
+function TC40_NetDisk_VM_Client_Task_Tool.Repeat_: TC40_NetDisk_VM_Client_Task_List.TRepeat___;
+begin
+  Result := FList.Repeat_;
+end;
+
 function TC40_NetDisk_VM_Client_Task_Tool.First: TC40_NetDisk_VM_Client_Task;
 begin
   Result := nil;
@@ -156,9 +186,48 @@ begin
       Result := FList.First^.Data;
 end;
 
-function TC40_NetDisk_VM_Client_Task_Tool.Repeat_: TC40_NetDisk_VM_Client_Task_List.TRepeat___;
+procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Post_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String);
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Post_Stream;
 begin
-  Result := FList.Repeat_;
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.Client := Client;
+  task_.OwnerPool := self;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String);
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Get_Stream;
+begin
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.Share_Directory_DB_Name := '';
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.Client := Client;
+  task_.OwnerPool := self;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Share_Stream(Client: TC40_NetDisk_VM_Client; Stream: TCore_Stream; AutoFreeStream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String);
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Get_Stream;
+begin
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.Share_Directory_DB_Name := Share_Directory_DB_Name;
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.Client := Client;
+  task_.OwnerPool := self;
 end;
 
 procedure TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Post_File(Client: TC40_NetDisk_VM_Client; Local_File, DB_Field, DB_Item: U_String);
@@ -294,6 +363,48 @@ begin
   Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Go_Next_Task);
 end;
 
+constructor TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Create;
+begin
+  inherited Create;
+  Stream := nil;
+  AutoFreeStream := False;
+  DB_Field := '';
+  DB_Item := '';
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+begin
+  Go_Next_Task;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Run_Task;
+begin
+  Client.Auto_Post_File_M(Stream, AutoFreeStream, umlNow(), DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Post_File);
+end;
+
+constructor TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Create;
+begin
+  inherited Create;
+  Stream := nil;
+  AutoFreeStream := False;
+  Share_Directory_DB_Name := '';
+  DB_Field := '';
+  DB_Item := '';
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+begin
+  Go_Next_Task;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Run_Task;
+begin
+  if Share_Directory_DB_Name <> '' then
+      Client.Auto_Get_File_From_Share_Disk_M(Stream, AutoFreeStream, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
+  else
+      Client.Auto_Get_File_M(Stream, AutoFreeStream, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
+end;
+
 constructor TC40_NetDisk_VM_Client_Task_Auto_Post_File.Create;
 begin
   inherited Create;
@@ -307,7 +418,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Post_File.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; stream: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_File.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
 begin
   Go_Next_Task;
 end;
@@ -339,7 +450,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Get_File.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; stream: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_File.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; Stream: TCore_Stream; Successed: Boolean; info: U_String);
 begin
   Go_Next_Task;
 end;
