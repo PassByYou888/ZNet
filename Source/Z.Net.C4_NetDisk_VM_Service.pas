@@ -354,8 +354,8 @@ type
     property FS2_Client_Pool: TC40_NetDisk_FS2_Client_List read FFS2_Client_Pool;
     property Log_Client: TC40_NetDisk_Log_DB_Client read Get_Log_Client write Set_Log_Client;
     // automated config.
-    procedure Automated_Config_NetDisk_Service_Relevance;
-    function Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean; overload;
+    procedure Automated_Config_NetDisk_Service_Relevance; virtual;
+    function Check_NetDisk_Service_Relevance(Status_: Boolean): Boolean; overload; virtual;
     function Check_NetDisk_Service_Relevance(): Boolean; overload;
   public
     File_Chunk_Size: Int64;
@@ -3113,17 +3113,17 @@ end;
 
 class function TC40_NetDisk_VM_Service.ShareToDirectory(PrimaryIdentifier_: U_String; MD5_: TMD5): U_String;
 begin
-  Result := '@' + PrimaryIdentifier_ + '&' + umlMD5ToStr(MD5_) + '&';
+  Result := PrimaryIdentifier_ + '&' + umlMD5ToStr(MD5_) + '&';
 end;
 
 class function TC40_NetDisk_VM_Service.IsMyShareDirectory(PrimaryIdentifier_, Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('@' + PrimaryIdentifier_ + '&*&', Share_Directory_DB_Name);
+  Result := umlMultipleMatch(PrimaryIdentifier_ + '&*&', Share_Directory_DB_Name);
 end;
 
 class function TC40_NetDisk_VM_Service.IsShareDirectory(Share_Directory_DB_Name: U_String): Boolean;
 begin
-  Result := umlMultipleMatch('@*&*&', Share_Directory_DB_Name);
+  Result := umlMultipleMatch('*&*&', Share_Directory_DB_Name);
 end;
 
 class procedure TC40_NetDisk_VM_Service.Get_User_Reg_Detail(Json_: TZJ);
