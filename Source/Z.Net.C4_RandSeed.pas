@@ -19,7 +19,7 @@ uses
 
 type
   TC40_RandSeed_Client = class;
-  TBigSeedPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TUInt32HashPointerList>;
+  TC40_RandSeed_Seed_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TUInt32HashPointerList>;
 
   TC40_RandSeed_Service = class(TC40_Base_NoAuth_Service)
   protected
@@ -27,27 +27,27 @@ type
     procedure cmd_MakeSeed(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_RemoveSeed(sender: TPeerIO; InData: TDFE);
   public
-    BigSeedPool: TBigSeedPool;
+    BigSeedPool: TC40_RandSeed_Seed_Pool;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
     procedure SafeCheck; override;
     function GetSeedGroup(Name_: U_String): TUInt32HashPointerList;
   end;
 
-  TON_MakeSeedC = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32);
-  TON_MakeSeedM = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32) of object;
+  TC40_RandSeed_Client_On_MakeSeedC = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32);
+  TC40_RandSeed_Client_On_MakeSeedM = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32) of object;
 {$IFDEF FPC}
-  TON_MakeSeedP = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32) is nested;
+  TC40_RandSeed_Client_On_MakeSeedP = procedure(sender: TC40_RandSeed_Client; Seed_: UInt32) is nested;
 {$ELSE FPC}
-  TON_MakeSeedP = reference to procedure(sender: TC40_RandSeed_Client; Seed_: UInt32);
+  TC40_RandSeed_Client_On_MakeSeedP = reference to procedure(sender: TC40_RandSeed_Client; Seed_: UInt32);
 {$ENDIF FPC}
 
-  TON_MakeSeed = class(TOnResultBridge)
+  TC40_RandSeed_Client_On_MakeSeed = class(TOnResultBridge)
   public
     Client: TC40_RandSeed_Client;
-    OnResultC: TON_MakeSeedC;
-    OnResultM: TON_MakeSeedM;
-    OnResultP: TON_MakeSeedP;
+    OnResultC: TC40_RandSeed_Client_On_MakeSeedC;
+    OnResultM: TC40_RandSeed_Client_On_MakeSeedM;
+    OnResultP: TC40_RandSeed_Client_On_MakeSeedP;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -57,9 +57,10 @@ type
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
 
-    procedure MakeSeed_C(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedC);
-    procedure MakeSeed_M(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedM);
-    procedure MakeSeed_P(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedP);
+    procedure MakeSeed_Bridge(Group_: U_String; Min_, Max_: UInt32; Bridge_IO_: TPeerIO);
+    procedure MakeSeed_C(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedC);
+    procedure MakeSeed_M(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedM);
+    procedure MakeSeed_P(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedP);
     procedure RemoveSeed(Group_: U_String; Seed_: UInt32);
   end;
 
@@ -114,7 +115,7 @@ begin
   UpdateToGlobalDispatch;
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
-  BigSeedPool := TBigSeedPool.Create(True,
+  BigSeedPool := TC40_RandSeed_Seed_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('Seed_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 end;
@@ -142,7 +143,7 @@ begin
     end;
 end;
 
-constructor TON_MakeSeed.Create;
+constructor TC40_RandSeed_Client_On_MakeSeed.Create;
 begin
   inherited Create;
   Client := nil;
@@ -151,7 +152,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_MakeSeed.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+procedure TC40_RandSeed_Client_On_MakeSeed.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
 var
   Seed_: UInt32;
 begin
@@ -179,12 +180,24 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_RandSeed_Client.MakeSeed_C(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedC);
+procedure TC40_RandSeed_Client.MakeSeed_Bridge(Group_: U_String; Min_, Max_: UInt32; Bridge_IO_: TPeerIO);
 var
-  tmp: TON_MakeSeed;
   D: TDFE;
 begin
-  tmp := TON_MakeSeed.Create;
+  D := TDFE.Create;
+  D.WriteString(Group_);
+  D.WriteCardinal(Min_);
+  D.WriteCardinal(Max_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('MakeSeed', D, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DisposeObject(D);
+end;
+
+procedure TC40_RandSeed_Client.MakeSeed_C(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedC);
+var
+  tmp: TC40_RandSeed_Client_On_MakeSeed;
+  D: TDFE;
+begin
+  tmp := TC40_RandSeed_Client_On_MakeSeed.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
 
@@ -196,12 +209,12 @@ begin
   DisposeObject(D);
 end;
 
-procedure TC40_RandSeed_Client.MakeSeed_M(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedM);
+procedure TC40_RandSeed_Client.MakeSeed_M(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedM);
 var
-  tmp: TON_MakeSeed;
+  tmp: TC40_RandSeed_Client_On_MakeSeed;
   D: TDFE;
 begin
-  tmp := TON_MakeSeed.Create;
+  tmp := TC40_RandSeed_Client_On_MakeSeed.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
 
@@ -213,12 +226,12 @@ begin
   DisposeObject(D);
 end;
 
-procedure TC40_RandSeed_Client.MakeSeed_P(Group_: U_String; Min_, Max_: UInt32; OnResult: TON_MakeSeedP);
+procedure TC40_RandSeed_Client.MakeSeed_P(Group_: U_String; Min_, Max_: UInt32; OnResult: TC40_RandSeed_Client_On_MakeSeedP);
 var
-  tmp: TON_MakeSeed;
+  tmp: TC40_RandSeed_Client_On_MakeSeed;
   D: TDFE;
 begin
-  tmp := TON_MakeSeed.Create;
+  tmp := TC40_RandSeed_Client_On_MakeSeed.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
 
