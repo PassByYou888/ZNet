@@ -268,6 +268,7 @@ type
     property Last: POrderStruct read FLast;
     procedure Next;
     function Push(Data: T_): POrderStruct;
+    function Push_Null: POrderStruct;
     property Num: NativeInt read FNum;
     property OnFree: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
@@ -328,6 +329,7 @@ type
     property First: POrderStruct read GetCurrent;
     procedure Next;
     function Push(Data: T_): POrderStruct;
+    function Push_Null: POrderStruct;
     function GetNum: NativeInt;
     property Num: NativeInt read GetNum;
     property OnFree: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
