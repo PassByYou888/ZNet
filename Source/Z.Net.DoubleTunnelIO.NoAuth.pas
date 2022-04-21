@@ -264,6 +264,8 @@ type
 
     function Connected: Boolean; virtual;
 
+    function IOBusy: Boolean;
+
     procedure SwitchAsMaxPerformance;
     procedure SwitchAsMaxSecurity;
     procedure SwitchAsDefaultPerformance;
@@ -2213,6 +2215,15 @@ begin
       Result := FSendTunnel.Connected and FRecvTunnel.Connected;
   except
       Result := False;
+  end;
+end;
+
+function TDTClient_NoAuth.IOBusy: Boolean;
+begin
+  try
+      Result := FSendTunnel.IOBusy and FRecvTunnel.IOBusy;
+  except
+      Result := True;
   end;
 end;
 
