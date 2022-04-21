@@ -1007,6 +1007,7 @@ type
     function Count: Integer;
     function ExistsValue(Value: TPascalString): Integer;
     procedure Exchange(const idx1, idx2: Integer);
+    function ReplaceSum(Pattern: TPascalString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): Integer;
 
     procedure Assign(SameObj: TListPascalString); overload;
     procedure Assign(sour: TCore_Strings); overload;
@@ -8512,6 +8513,19 @@ begin
   tmp := FList[idx1];
   FList[idx1] := FList[idx2];
   FList[idx2] := tmp;
+end;
+
+function TListPascalString.ReplaceSum(Pattern: TPascalString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): Integer;
+var
+  i: Integer;
+  p: PListPascalStringData;
+begin
+  Result := 0;
+  for i := 0 to Count - 1 do
+    begin
+      p := FList[i];
+      inc(Result, umlReplaceSum(@p^.Data, Pattern, OnlyWord, IgnoreCase, bPos, ePos, nil));
+    end;
 end;
 
 procedure TListPascalString.Assign(SameObj: TListPascalString);
