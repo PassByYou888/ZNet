@@ -3407,7 +3407,7 @@ begin
                   OnDone_P(Self, P_IO, InData, OutData);
             except
             end;
-            P_IO.OutDataFrame.Assign(OutData);
+            P_IO.OutDataFrame.Append(OutData);
             P_IO.ContinueResultSend;
           end;
       end;
@@ -3686,7 +3686,7 @@ begin
             except
             end;
 
-            P_IO.OutText := OutData;
+            P_IO.OutText := P_IO.OutText + OutData;
             P_IO.ContinueResultSend;
           end;
       end;
@@ -4134,7 +4134,7 @@ begin
   if Framework_.ExistsID(ID_) then
     begin
       IO_ := TPeerIO(Framework_.PeerIO_HashPool[ID_]);
-      IO_.OutDataFrame.Assign(ResultData_);
+      IO_.OutDataFrame.Append(ResultData_);
       IO_.ContinueResultSend;
     end;
   if AutoFree then
@@ -4161,7 +4161,7 @@ begin
           OnResultP(Self, IO_, Sender_, ResultData_);
       if AutoPause then
         begin
-          IO_.OutDataFrame.Assign(ResultData_);
+          IO_.OutDataFrame.Append(ResultData_);
           IO_.ContinueResultSend;
         end;
       if not IO_.OwnerFramework.QuietMode then
@@ -4246,7 +4246,7 @@ begin
   if Framework_.ExistsID(ID_) then
     begin
       IO_ := TPeerIO(Framework_.PeerIO_HashPool[ID_]);
-      IO_.OutText := ResultData_;
+      IO_.OutText := IO_.OutText + ResultData_;
       IO_.ContinueResultSend;
     end;
   if AutoFree then
@@ -4273,7 +4273,7 @@ begin
           OnResultP(Self, IO_, Sender_, ResultData_);
       if AutoPause then
         begin
-          IO_.OutText := ResultData_;
+          IO_.OutText := IO_.OutText + ResultData_;
           IO_.ContinueResultSend;
         end;
       if not IO_.OwnerFramework.QuietMode then
