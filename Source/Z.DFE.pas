@@ -489,6 +489,7 @@ type
     function DeleteLast: Boolean; overload;
     function DeleteLastCount(num_: Integer): Boolean; overload;
     function DeleteCount(index_, Count_: Integer): Boolean;
+    procedure Append(source: TDFE);
     procedure Assign(source: TDFE);
     function Clone: TDFE;
 
@@ -2425,6 +2426,26 @@ begin
   Result := True;
   for i := 0 to Count_ - 1 do
       Result := Result and Delete(index_);
+end;
+
+procedure TDFE.Append(source: TDFE);
+var
+  m64: TMS64;
+  i: Integer;
+  DataFrame_: TDFBase;
+begin
+  if self = source then
+      exit;
+  m64 := TMS64.CustomCreate(8192);
+  for i := 0 to source.Count - 1 do
+    begin
+      DataFrame_ := AddData(ByteToDataType(source[i].FID));
+      source[i].SaveToStream(m64);
+      m64.Position := 0;
+      DataFrame_.LoadFromStream(m64);
+      m64.Clear;
+    end;
+  DisposeObject(m64);
 end;
 
 procedure TDFE.Assign(source: TDFE);
