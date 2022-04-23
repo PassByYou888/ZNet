@@ -346,10 +346,10 @@ type
     //
     procedure SetTextValue(TEName_, Section_, Key_, V_: U_String);
     // admin
-    procedure SearchTE_Bridge(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; Bridge_IO_: TPeerIO);
-    procedure SearchTE_C(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_C);
-    procedure SearchTE_M(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_M);
-    procedure SearchTE_P(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_P);
+    procedure SearchTE_Bridge(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; Bridge_IO_: TPeerIO);
+    procedure SearchTE_C(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_C);
+    procedure SearchTE_M(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_M);
+    procedure SearchTE_P(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_P);
   end;
 
   TC40_TEKeyValue_VM_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_TEKeyValue_VM_Client>;
@@ -603,7 +603,7 @@ end;
 
 procedure TC40_TEKeyValue_VM_Service.cmd_SearchTE(sender: TPeerIO; InData, OutData: TDFE);
 var
-  filter_, search_: U_String;
+  filter_, exclude_, search_: U_String;
   search_word_: Boolean;
   MaxNum_: Integer;
 {$IFDEF FPC}
@@ -613,7 +613,7 @@ var
     tmp: TListPascalString;
     R: Integer;
   begin
-    if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, Name_^) then
+    if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, exclude_, Name_^) then
       begin
         Data_is_Null_ := Obj_.Data_Direct = nil;
         tmp := TListPascalString.Create;
@@ -639,6 +639,7 @@ var
 
 begin
   filter_ := InData.R.ReadString;
+  exclude_ := InData.R.ReadString;
   search_ := InData.R.ReadString;
   search_word_ := InData.R.ReadBool;
   MaxNum_ := InData.R.ReadInteger;
@@ -651,7 +652,7 @@ begin
       tmp: TListPascalString;
       R: Integer;
     begin
-      if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, Name_^) then
+      if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, exclude_, Name_^) then
         begin
           Data_is_Null_ := Obj_.Data_Direct = nil;
           tmp := TListPascalString.Create;
@@ -716,7 +717,7 @@ begin
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
   else
       ZDB2Cipher := nil;
-  C40_TEKeyValue_VM_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', ['TEkeyValue_VM']));
+  C40_TEKeyValue_VM_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', ['KeyValue_VM']));
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_TEKeyValue_VM_DB_FileName) then
       fs := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite)
@@ -1879,7 +1880,7 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_VM_Client.SearchTE_Bridge(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; Bridge_IO_: TPeerIO);
+procedure TC40_TEKeyValue_VM_Client.SearchTE_Bridge(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; Bridge_IO_: TPeerIO);
 var
   tmp: TStreamEventBridge;
   D: TDFE;
@@ -1888,6 +1889,7 @@ begin
 
   D := TDFE.Create;
   D.WriteString(filter_);
+  D.WriteString(exclude_);
   D.WriteString(search_);
   D.WriteBool(search_word_);
   D.WriteInteger(MaxNum_);
@@ -1895,7 +1897,7 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_VM_Client.SearchTE_C(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_C);
+procedure TC40_TEKeyValue_VM_Client.SearchTE_C(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_C);
 var
   tmp: TC40_TEKeyValue_VM_Client_SearchTE;
   D: TDFE;
@@ -1906,6 +1908,7 @@ begin
 
   D := TDFE.Create;
   D.WriteString(filter_);
+  D.WriteString(exclude_);
   D.WriteString(search_);
   D.WriteBool(search_word_);
   D.WriteInteger(MaxNum_);
@@ -1913,7 +1916,7 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_VM_Client.SearchTE_M(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_M);
+procedure TC40_TEKeyValue_VM_Client.SearchTE_M(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_M);
 var
   tmp: TC40_TEKeyValue_VM_Client_SearchTE;
   D: TDFE;
@@ -1924,6 +1927,7 @@ begin
 
   D := TDFE.Create;
   D.WriteString(filter_);
+  D.WriteString(exclude_);
   D.WriteString(search_);
   D.WriteBool(search_word_);
   D.WriteInteger(MaxNum_);
@@ -1931,7 +1935,7 @@ begin
   disposeObject(D);
 end;
 
-procedure TC40_TEKeyValue_VM_Client.SearchTE_P(filter_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_P);
+procedure TC40_TEKeyValue_VM_Client.SearchTE_P(filter_, exclude_, search_: U_String; search_word_: Boolean; MaxNum_: Integer; OnResult: TC40_TEKeyValue_VM_Client_SearchTE_P);
 var
   tmp: TC40_TEKeyValue_VM_Client_SearchTE;
   D: TDFE;
@@ -1942,6 +1946,7 @@ begin
 
   D := TDFE.Create;
   D.WriteString(filter_);
+  D.WriteString(exclude_);
   D.WriteString(search_);
   D.WriteBool(search_word_);
   D.WriteInteger(MaxNum_);
