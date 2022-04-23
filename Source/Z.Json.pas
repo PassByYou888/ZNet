@@ -164,6 +164,9 @@ type
     function Get_Default_S(const Name, Value: string): string;
     procedure Set_Default_S(const Name, Value: string);
 
+    function GetDefault_S(const Name, Value: string): string;
+    procedure SetDefault_S(const Name, Value: string);
+
     procedure SaveToStream(stream: TCore_Stream; Formated_: Boolean); overload;
     procedure SaveToStream(stream: TCore_Stream); overload;
     procedure LoadFromStream(stream: TCore_Stream);
@@ -317,6 +320,19 @@ begin
 end;
 
 procedure TZ_JsonObject.Set_Default_S(const Name, Value: string);
+begin
+  S[name] := Value;
+end;
+
+function TZ_JsonObject.GetDefault_S(const Name, Value: string): string;
+begin
+  if Exists(name) then
+      Result := S[name]
+  else
+      Result := Value;
+end;
+
+procedure TZ_JsonObject.SetDefault_S(const Name, Value: string);
 begin
   S[name] := Value;
 end;
