@@ -850,8 +850,6 @@ begin
           end;
       if not found_ then
           friend_arry.Add(FromUserName_);
-
-      SendMsg(FromUserName_, DestFriendUserName_, PFormat('"%s" Accept Friend Request: %s', [FromUserName_.Text, Msg_.Text]));
     end
   else
     begin
@@ -872,8 +870,6 @@ begin
             friend_arry.Delete(i)
         else
             inc(i);
-
-      SendMsg(FromUserName_, DestFriendUserName_, PFormat('"%s" Reject Friend Request: %s', [FromUserName_.Text, Msg_.Text]));
     end;
 end;
 
