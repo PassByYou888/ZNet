@@ -392,7 +392,9 @@ function umlMultipleMatch(IgnoreCase: Boolean; const source, target: TPascalStri
 function umlMultipleMatch(const source, target: TPascalString): Boolean; overload;
 function umlMultipleMatch(const source: array of TPascalString; const target: TPascalString): Boolean; overload;
 function umlSearchMatch(const source, target: TPascalString): Boolean; overload;
+function umlSearchMatch(const source, exclude, target: TPascalString): Boolean; overload;
 function umlSearchMatch(const source: TArrayPascalString; target: TPascalString): Boolean; overload;
+function umlSearchMatch(const source, exclude: TArrayPascalString; target: TPascalString): Boolean; overload;
 
 // <prefix>.<postfix> formula, match sour -> dest
 // example: <prefix>.*
@@ -4316,15 +4318,34 @@ end;
 
 function umlSearchMatch(const source, target: TPascalString): Boolean;
 var
-  fi: TArrayPascalString;
+  sArry: TArrayPascalString;
 begin
   if (source.L > 0) and (source.text <> '*') then
     begin
-      umlGetSplitArray(source, fi, ';,');
-      Result := umlSearchMatch(fi, target);
+      umlGetSplitArray(source, sArry, ';,');
+      Result := umlSearchMatch(sArry, target);
     end
   else
       Result := True;
+end;
+
+function umlSearchMatch(const source, exclude, target: TPascalString): Boolean;
+var
+  sArry, eArry: TArrayPascalString;
+begin
+  if (source.L > 0) and (source.text <> '*') then
+      umlGetSplitArray(source, sArry, ';,')
+  else
+      SetLength(sArry, 0);
+
+  if (exclude.L > 0) and (exclude.text <> '*') then
+      umlGetSplitArray(exclude, eArry, ';,')
+  else
+      SetLength(eArry, 0);
+
+  Result := umlSearchMatch(sArry, eArry, target);
+  SetLength(sArry, 0);
+  SetLength(eArry, 0);
 end;
 
 function umlSearchMatch(const source: TArrayPascalString; target: TPascalString): Boolean;
@@ -4334,15 +4355,37 @@ begin
   Result := False;
   if target.L > 0 then
     begin
-      if high(source) >= 0 then
+      if length(source) > 0 then
         begin
-          Result := False;
           for i := low(source) to high(source) do
             begin
               Result := (target.GetPos(source[i]) > 0) or (umlMultipleMatch(True, source[i], target));
               if Result then
                   exit;
             end;
+        end
+      else
+          Result := True;
+    end;
+end;
+
+function umlSearchMatch(const source, exclude: TArrayPascalString; target: TPascalString): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if target.L > 0 then
+    begin
+      if length(exclude) > 0 then
+        for i := low(exclude) to high(exclude) do
+          if (target.GetPos(exclude[i]) > 0) or (umlMultipleMatch(True, exclude[i], target)) then
+              exit;
+
+      if length(source) > 0 then
+        begin
+          for i := low(source) to high(source) do
+            if (target.GetPos(source[i]) > 0) or (umlMultipleMatch(True, source[i], target)) then
+                exit(True);
         end
       else
           Result := True;
