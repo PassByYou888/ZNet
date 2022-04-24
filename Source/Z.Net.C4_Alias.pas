@@ -187,15 +187,15 @@ begin
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '1*1024*1024'), 1 * 1024 * 1024);
   ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '200'), 200);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), true);
-  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'False'), False);
+  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
 
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, true, true)
   else
       ZDB2Cipher := nil;
-  C40_Alias_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text]));
+  C40_Alias_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text])));
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), true) and umlFileExists(C40_Alias_DB_FileName) then
       fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite)

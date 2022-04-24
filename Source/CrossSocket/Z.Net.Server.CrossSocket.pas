@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * CrossSocket support                                                        * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   CrossSocket Server的最大连接被限制到20000
@@ -35,11 +19,13 @@ uses SysUtils, Classes,
   Z.DFE;
 
 type
+  TCrossSocketServer_Mem_Order = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TMem64>;
+
   TCrossSocketServer_PeerIO = class(TPeerIO)
   public
     LastPeerIP: SystemString;
     Sending: Boolean;
-    SendBuffQueue: TCore_ListForObj;
+    SendBuffQueue: TCrossSocketServer_Mem_Order;
     CurrentBuff: TMem64;
     LastSendingBuff: TMem64;
     OnSendBackcall: TProc<ICrossConnection, Boolean>;
@@ -105,7 +91,7 @@ begin
   inherited CreateAfter;
   LastPeerIP := '';
   Sending := False;
-  SendBuffQueue := TCore_ListForObj.Create;
+  SendBuffQueue := TCrossSocketServer_Mem_Order.Create;
   CurrentBuff := TMem64.Create;
   LastSendingBuff := nil;
   OnSendBackcall := nil;
@@ -115,7 +101,6 @@ end;
 destructor TCrossSocketServer_PeerIO.Destroy;
 var
   c: TCrossConnection;
-  i: Integer;
 begin
   if IOInterface <> nil then
     begin
@@ -128,8 +113,11 @@ begin
       end;
     end;
 
-  for i := 0 to SendBuffQueue.Count - 1 do
-      DisposeObject(SendBuffQueue[i]);
+  while SendBuffQueue.Num > 0 do
+    begin
+      DisposeObject(SendBuffQueue.First^.Data);
+      SendBuffQueue.Next;
+    end;
 
   if LastSendingBuff <> nil then
     begin
@@ -175,7 +163,7 @@ procedure TCrossSocketServer_PeerIO.SendBuffResult(Success_: Boolean);
 begin
   TCompute.SyncP(procedure
     var
-      num: Integer;
+      Num: Integer;
     begin
       FSendCritical.Lock;
       DisposeObjectAndNil(LastSendingBuff);
@@ -193,16 +181,16 @@ begin
           try
             UpdateLastCommunicationTime;
             FSendCritical.Lock;
-            num := SendBuffQueue.Count;
+            Num := SendBuffQueue.Num;
             FSendCritical.UnLock;
 
-            if num > 0 then
+            if Num > 0 then
               begin
                 FSendCritical.Lock;
                 // 将发送队列拾取出来
-                LastSendingBuff := TMem64(SendBuffQueue[0]);
+                LastSendingBuff := SendBuffQueue.First^.Data;
                 // 删除队列，下次回调时后置式释放
-                SendBuffQueue.Delete(0);
+                SendBuffQueue.Next;
 
                 if Context <> nil then
                   begin
@@ -260,18 +248,18 @@ begin
   FSendCritical.Lock;
   if Sending then
     begin
-      SendBuffQueue.Add(CurrentBuff);
+      SendBuffQueue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;
     end
   else
     begin
-      if SendBuffQueue.Count = 0 then
+      if SendBuffQueue.Num = 0 then
           DisposeObjectAndNil(LastSendingBuff);
 
-      SendBuffQueue.Add(CurrentBuff);
+      SendBuffQueue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;
-      LastSendingBuff := TMem64(SendBuffQueue[0]);
-      SendBuffQueue.Delete(0);
+      LastSendingBuff := SendBuffQueue.First^.Data;
+      SendBuffQueue.Next;
       Context.SendBuf(LastSendingBuff.Memory, LastSendingBuff.Size, OnSendBackcall);
     end;
   FSendCritical.UnLock;
@@ -296,7 +284,7 @@ end;
 function TCrossSocketServer_PeerIO.WriteBufferEmpty: Boolean;
 begin
   FSendCritical.Lock;
-  Result := (not Sending) and (SendBuffQueue.Count = 0);
+  Result := (not Sending) and (SendBuffQueue.Num = 0);
   FSendCritical.UnLock;
 end;
 

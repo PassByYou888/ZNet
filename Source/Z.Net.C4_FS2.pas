@@ -55,6 +55,7 @@ type
     procedure cmd_FS2_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_SearchMultiMD5(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_RemoveFile(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_FS2_UpdateFileTime(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_IncFileRef(Sender: TPeerIO; InData: TDFE);
     procedure cmd_FS2_GetMD5Files(Sender: TPeerIO; InData, OutData: TDFE);
@@ -401,6 +402,8 @@ type
     // remove
     procedure FS2_RemoveFile(File_Name: U_String); overload;
     procedure FS2_RemoveFile(arry: U_StringArray); overload;
+    // update time
+    procedure FS2_UpdateFileTime(File_Name: U_String; nTime: TDateTime);
     // ref
     procedure FS2_UpdateFileRef(File_Name: U_String; ref_: Integer);
     procedure FS2_IncFileRef(File_Name: U_String; inc_ref_: Integer);
@@ -641,13 +644,58 @@ begin
     end;
 end;
 
+procedure TC40_FS2_Service.cmd_FS2_UpdateFileTime(Sender: TPeerIO; InData: TDFE);
+var
+  fn: U_String;
+  nTime: Double;
+  fd: TC40_FS2_Service_File_Data;
+  buff: array of byte;
+  read_size: Word;
+  tmp2: NativeUInt;
+begin
+  fn := InData.R.ReadString;
+  nTime := InData.R.ReadDouble;
+  fd := FileHashPool[fn];
+  if fd = nil then
+      exit;
+
+  fd.FileTime := nTime;
+
+  if fd.Stream.Data_Direct <> nil then
+    begin
+      // modify cache
+      PDouble(GetPtr(fd.Stream.Data_Direct.Memory, PCardinal(fd.Stream.Data_Direct.Memory)^ + 4))^ := fd.FileTime;
+    end
+  else
+    begin
+      SetLength(buff, $FFFF);
+      read_size := fd.Stream.CoreSpace.Block_IO_Read(@buff[0], fd.Stream.ID);
+      if read_size > 0 then
+        begin
+          tmp2 := PCardinal(@buff[0])^ + 4;
+          if tmp2 + 8 <= read_size then
+            begin
+              // io optimized overwrite
+              PDouble(GetPtr(@buff[0], tmp2))^ := fd.FileTime;
+              fd.Stream.CoreSpace.Block_IO_Write(@buff[0], fd.Stream.ID);
+            end
+          else
+            begin
+              // overwrite
+              PDouble(GetPtr(fd.Stream.Data.Memory, PCardinal(fd.Stream.Data.Memory)^ + 4))^ := fd.FileTime;
+            end;
+        end;
+      SetLength(buff, 0);
+    end;
+end;
+
 procedure TC40_FS2_Service.cmd_FS2_UpdateFileRef(Sender: TPeerIO; InData: TDFE);
 var
   fn: U_String;
   ref_: Integer;
   fd: TC40_FS2_Service_File_Data;
   buff: array of byte;
-  tmp1: Word;
+  read_size: Word;
   tmp2: NativeUInt;
 begin
   fn := InData.R.ReadString;
@@ -666,11 +714,11 @@ begin
   else
     begin
       SetLength(buff, $FFFF);
-      tmp1 := fd.Stream.CoreSpace.Block_IO_Read(@buff[0], fd.Stream.ID);
-      if tmp1 > 0 then
+      read_size := fd.Stream.CoreSpace.Block_IO_Read(@buff[0], fd.Stream.ID);
+      if read_size > 0 then
         begin
           tmp2 := PCardinal(@buff[0])^ + 4 + 8;
-          if tmp2 + 4 <= tmp1 then
+          if tmp2 + 4 <= read_size then
             begin
               // io optimized overwrite
               PInteger(GetPtr(@buff[0], tmp2))^ := fd.FileRef;
@@ -692,7 +740,7 @@ var
   inc_ref_: Integer;
   fd: TC40_FS2_Service_File_Data;
   buff: array of byte;
-  tmp1: Word;
+  read_size: Word;
   tmp2: NativeUInt;
 begin
   fn := InData.R.ReadString;
@@ -711,11 +759,11 @@ begin
   else
     begin
       SetLength(buff, $FFFF);
-      tmp1 := fd.Stream.CoreSpace.Block_IO_Read(@buff[0], fd.Stream.ID);
-      if tmp1 > 0 then
+      read_size := fd.Stream.CoreSpace.Block_IO_Read(@buff[0], fd.Stream.ID);
+      if read_size > 0 then
         begin
           tmp2 := PCardinal(@buff[0])^ + 4 + 8;
-          if tmp2 + 4 <= tmp1 then
+          if tmp2 + 4 <= read_size then
             begin
               // io optimized overwrite
               PInteger(GetPtr(@buff[0], tmp2))^ := fd.FileRef;
@@ -837,6 +885,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('FS2_GetFileMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetFileMD5;
   DTNoAuthService.RecvTunnel.RegisterStream('FS2_SearchMultiMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_SearchMultiMD5;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_RemoveFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_RemoveFile;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_UpdateFileTime').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_UpdateFileTime;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_UpdateFileRef').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_UpdateFileRef;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('FS2_IncFileRef').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_IncFileRef;
   DTNoAuthService.RecvTunnel.RegisterStream('FS2_GetMD5Files').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS2_GetMD5Files;
@@ -849,17 +898,17 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
-  ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '128*1024*1024'), 128 * 1024 * 1024);
-  ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '1536'), 1536);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
-  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '500*1024*1024'), 500 * 1024 * 1024);
+  ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '16384'), 16384);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'False'), False);
+  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
 
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
   else
       ZDB2Cipher := nil;
-  C40_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space2', [ServiceInfo.ServiceTyp.Text]));
+  C40_FS2_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space2', [ServiceInfo.ServiceTyp.Text])));
 
   FileHashPool := TC40_FS2_Service_File_Data_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -1675,10 +1724,10 @@ begin
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '128*1024*1024'), 128 * 1024 * 1024);
   ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '1536'), 1536);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
-  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'False'), False);
+  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
-  Cache_File_Life := EStrToInt64(ParamList.GetDefaultValue('CacheLife', '10*60*1000'), 10 * 60 * 1000);
+  Cache_File_Life := EStrToInt64(ParamList.GetDefaultValue('CacheLife', '60*60*1000'), 60 * 60 * 1000);
 
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
@@ -2253,6 +2302,17 @@ begin
       d.WriteString(arry[i]);
     end;
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS2_RemoveFile', d);
+  disposeObject(d);
+end;
+
+procedure TC40_FS2_Client.FS2_UpdateFileTime(File_Name: U_String; nTime: TDateTime);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(File_Name);
+  d.WriteDouble(nTime);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('FS2_UpdateFileTime', d);
   disposeObject(d);
 end;
 

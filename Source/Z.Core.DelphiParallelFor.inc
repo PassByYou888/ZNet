@@ -376,7 +376,7 @@ begin
       Critical.Acquire;
       Completed := True;
       i := 0;
-      while i < Length(states) do
+      while Completed and (i < Length(states)) do
         begin
           Completed := Completed and states[i].Completed;
           inc(i);
@@ -469,7 +469,7 @@ begin
       Critical.Acquire;
       Completed := True;
       i := 0;
-      while i < Length(states) do
+      while Completed and (i < Length(states)) do
         begin
           Completed := Completed and states[i].Completed;
           inc(i);

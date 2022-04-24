@@ -19,6 +19,7 @@ uses
   Z.LinearAction,
   Z.Net, Z.Net.PhysicsIO,
   Z.Net.DoubleTunnelIO.NoAuth,
+  Z.Net.C4_NetDisk_Service,
   Z.Net.C4_NetDisk_Directory,
   Z.Net.C4_UserDB,
   Z.Net.C4_FS2,
@@ -49,9 +50,9 @@ type
   TC40_NetDisk_Admin_Tool_Service = class(TC40_Base_NoAuth_Service, I_ON_C40_NetDisk_Directory_Client_Interface)
   protected
     // user db interface
-    FUserDB_Client: TC40_UserDB_Client;
-    function Get_UserDB_Client: TC40_UserDB_Client;
-    procedure Set_UserDB_Client(const Value: TC40_UserDB_Client);
+    FUserDB_Client: TC40_NetDisk_UserDB_Client;
+    function Get_UserDB_Client: TC40_NetDisk_UserDB_Client;
+    procedure Set_UserDB_Client(const Value: TC40_NetDisk_UserDB_Client);
   protected
     // directory interface
     FDirectory_Client: TC40_NetDisk_Directory_Client;
@@ -59,26 +60,26 @@ type
     procedure Set_Directory_Client(const Value: TC40_NetDisk_Directory_Client);
   protected
     // log interface
-    FLog_Client: TC40_Log_DB_Client;
-    function Get_Log_Client: TC40_Log_DB_Client;
-    procedure Set_Log_Client(const Value: TC40_Log_DB_Client);
+    FLog_Client: TC40_NetDisk_Log_DB_Client;
+    function Get_Log_Client: TC40_NetDisk_Log_DB_Client;
+    procedure Set_Log_Client(const Value: TC40_NetDisk_Log_DB_Client);
   protected
     // TEKeyValue Interface
-    FTEKeyValue_Client: TC40_TEKeyValue_Client;
-    function Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
-    procedure Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+    FTEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
+    function Get_TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
+    procedure Set_TEKeyValue_Client(const Value: TC40_NetDisk_TEKeyValue_Client);
     procedure Do_Remove_Directory_MD5(arry: U_StringArray);
     procedure Do_Remove_Directory_Invalid_Frag(arry: U_StringArray);
   protected
     // FS2.0 interface
-    FFS2_Client_Pool: TC40_FS2_Client_List;
+    FFS2_Client_Pool: TC40_NetDisk_FS2_Client_List;
   public
     // deployment
-    property UserDB_Client: TC40_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
+    property UserDB_Client: TC40_NetDisk_UserDB_Client read Get_UserDB_Client write Set_UserDB_Client;
     property Directory_Client: TC40_NetDisk_Directory_Client read Get_Directory_Client write Set_Directory_Client;
-    property Log_Client: TC40_Log_DB_Client read Get_Log_Client write Set_Log_Client;
-    property TEKeyValue_Client: TC40_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
-    property FS2_Client_Pool: TC40_FS2_Client_List read FFS2_Client_Pool;
+    property Log_Client: TC40_NetDisk_Log_DB_Client read Get_Log_Client write Set_Log_Client;
+    property TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client read Get_TEKeyValue_Client write Set_TEKeyValue_Client;
+    property FS2_Client_Pool: TC40_NetDisk_FS2_Client_List read FFS2_Client_Pool;
     // automated config.
     procedure Automated_Config_NetDisk_Admin_Relevance;
     function Check_NetDisk_Admin_Relevance(Status_: Boolean): Boolean; overload;
@@ -191,12 +192,12 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-function TC40_NetDisk_Admin_Tool_Service.Get_UserDB_Client: TC40_UserDB_Client;
+function TC40_NetDisk_Admin_Tool_Service.Get_UserDB_Client: TC40_NetDisk_UserDB_Client;
 begin
   Result := FUserDB_Client;
 end;
 
-procedure TC40_NetDisk_Admin_Tool_Service.Set_UserDB_Client(const Value: TC40_UserDB_Client);
+procedure TC40_NetDisk_Admin_Tool_Service.Set_UserDB_Client(const Value: TC40_NetDisk_UserDB_Client);
 begin
   FUserDB_Client := Value;
 end;
@@ -215,22 +216,22 @@ begin
       FDirectory_Client.ON_C40_NetDisk_Directory_Client_Interface := self;
 end;
 
-function TC40_NetDisk_Admin_Tool_Service.Get_Log_Client: TC40_Log_DB_Client;
+function TC40_NetDisk_Admin_Tool_Service.Get_Log_Client: TC40_NetDisk_Log_DB_Client;
 begin
   Result := FLog_Client;
 end;
 
-procedure TC40_NetDisk_Admin_Tool_Service.Set_Log_Client(const Value: TC40_Log_DB_Client);
+procedure TC40_NetDisk_Admin_Tool_Service.Set_Log_Client(const Value: TC40_NetDisk_Log_DB_Client);
 begin
   FLog_Client := Value;
 end;
 
-function TC40_NetDisk_Admin_Tool_Service.Get_TEKeyValue_Client: TC40_TEKeyValue_Client;
+function TC40_NetDisk_Admin_Tool_Service.Get_TEKeyValue_Client: TC40_NetDisk_TEKeyValue_Client;
 begin
   Result := FTEKeyValue_Client;
 end;
 
-procedure TC40_NetDisk_Admin_Tool_Service.Set_TEKeyValue_Client(const Value: TC40_TEKeyValue_Client);
+procedure TC40_NetDisk_Admin_Tool_Service.Set_TEKeyValue_Client(const Value: TC40_NetDisk_TEKeyValue_Client);
 begin
   FTEKeyValue_Client := Value;
 end;
@@ -266,16 +267,16 @@ begin
   for i := 0 to Z.Net.C4.C40_ClientPool.Count - 1 do
     begin
       cc := Z.Net.C4.C40_ClientPool[i];
-      if cc is TC40_UserDB_Client then
-          UserDB_Client := cc as TC40_UserDB_Client
+      if cc is TC40_NetDisk_UserDB_Client then
+          UserDB_Client := cc as TC40_NetDisk_UserDB_Client
       else if cc is TC40_NetDisk_Directory_Client then
           Directory_Client := cc as TC40_NetDisk_Directory_Client
-      else if cc is TC40_Log_DB_Client then
-          Log_Client := cc as TC40_Log_DB_Client
-      else if cc is TC40_TEKeyValue_Client then
-          TEKeyValue_Client := cc as TC40_TEKeyValue_Client
-      else if cc is TC40_FS2_Client then
-          FS2_Client_Pool.Add(cc as TC40_FS2_Client);
+      else if cc is TC40_NetDisk_Log_DB_Client then
+          Log_Client := cc as TC40_NetDisk_Log_DB_Client
+      else if cc is TC40_NetDisk_TEKeyValue_Client then
+          TEKeyValue_Client := cc as TC40_NetDisk_TEKeyValue_Client
+      else if cc is TC40_NetDisk_FS2_Client then
+          FS2_Client_Pool.Add(cc as TC40_NetDisk_FS2_Client);
     end;
 end;
 
@@ -382,7 +383,7 @@ begin
   FDirectory_Client := nil;
   FTEKeyValue_Client := nil;
   FLog_Client := nil;
-  FFS2_Client_Pool := TC40_FS2_Client_List.Create;
+  FFS2_Client_Pool := TC40_NetDisk_FS2_Client_List.Create;
 end;
 
 destructor TC40_NetDisk_Admin_Tool_Service.Destroy;

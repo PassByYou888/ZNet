@@ -496,7 +496,7 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   WaitFreeList := TLog_DB_List.Create;
-  C40_DB_Directory := umlCombinePath(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s', [ServiceInfo.ServiceTyp.Text]));
+  C40_DB_Directory := umlCombinePath(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s', [ServiceInfo.ServiceTyp.Text])));
   umlCreateDirectory(C40_DB_Directory);
 
   DB_Pool := TLog_DB_Pool.Create(True,
@@ -507,8 +507,8 @@ begin
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '1*1024*1024'), 1 * 1024 * 1024);
   ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '100'), 100);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
-  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'False'), False);
+  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)

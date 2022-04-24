@@ -204,6 +204,11 @@ begin
   inherited Create(Param_);
   { custom p2pVM service }
   Service := TDT_P2PVM_NoAuth_Service.Create(Get_Service_Class);
+  Service.SendTunnel.SyncOnResult := True;
+  Service.SendTunnel.SyncOnCompleteBuffer := True;
+  Service.RecvTunnel.SyncOnResult := True;
+  Service.RecvTunnel.SyncOnCompleteBuffer := True;
+  Service.QuietMode := C40_QuietMode;
 
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
@@ -261,6 +266,12 @@ begin
   inherited Create(Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_NoAuth_Client.Create(Get_Client_Class);
+  Client.SendTunnel.SyncOnResult := True;
+  Client.SendTunnel.SyncOnCompleteBuffer := True;
+  Client.RecvTunnel.SyncOnResult := True;
+  Client.RecvTunnel.SyncOnCompleteBuffer := True;
+  Client.QuietMode := C40_QuietMode;
+
   Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink;
   DTNoAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;
@@ -359,6 +370,11 @@ begin
   inherited Create(Param_);
   { custom p2pVM service }
   Service := TDT_P2PVM_VirtualAuth_Service.Create(Get_Service_Class);
+  Service.SendTunnel.SyncOnResult := True;
+  Service.SendTunnel.SyncOnCompleteBuffer := True;
+  Service.RecvTunnel.SyncOnResult := True;
+  Service.RecvTunnel.SyncOnCompleteBuffer := True;
+  Service.QuietMode := C40_QuietMode;
 
   Service.DTService.OnUserAuth := {$IFDEF FPC}@{$ENDIF FPC}DoUserAuth_Event;
   Service.DTService.OnUserReg := {$IFDEF FPC}@{$ENDIF FPC}DoUserReg_Event;
@@ -418,6 +434,12 @@ begin
   inherited Create(Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_VirtualAuth_Client.Create(Get_Client_Class);
+  Client.SendTunnel.SyncOnResult := True;
+  Client.SendTunnel.SyncOnCompleteBuffer := True;
+  Client.RecvTunnel.SyncOnResult := True;
+  Client.RecvTunnel.SyncOnCompleteBuffer := True;
+  Client.QuietMode := C40_QuietMode;
+
   Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_VirtualAuth_Custom_Client_TunnelLink;
   DTVirtualAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;
@@ -506,6 +528,11 @@ begin
   inherited Create(Param_);
   { custom p2pVM service }
   Service := TDT_P2PVM_Service.Create(Get_Service_Class);
+  Service.SendTunnel.SyncOnResult := True;
+  Service.SendTunnel.SyncOnCompleteBuffer := True;
+  Service.RecvTunnel.SyncOnResult := True;
+  Service.RecvTunnel.SyncOnCompleteBuffer := True;
+  Service.QuietMode := C40_QuietMode;
 
   Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
   Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
@@ -564,6 +591,12 @@ begin
   inherited Create(Param_);
   { custom p2pVM client }
   Client := TDT_P2PVM_Client.Create(Get_Client_Class);
+  Client.SendTunnel.SyncOnResult := True;
+  Client.SendTunnel.SyncOnCompleteBuffer := True;
+  Client.RecvTunnel.SyncOnResult := True;
+  Client.RecvTunnel.SyncOnCompleteBuffer := True;
+  Client.QuietMode := C40_QuietMode;
+
   Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_Custom_Client_TunnelLink;
   DTVirtualAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;

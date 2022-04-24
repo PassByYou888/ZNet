@@ -1301,6 +1301,8 @@ procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64
 procedure Nop;
 
 // process Synchronize
+var
+  Enabled_Check_Thread_Synchronize_System: Boolean;
 procedure CheckThreadSynchronize; overload;
 function CheckThreadSynchronize(Timeout: Integer): Boolean; overload;
 procedure CheckThreadSync; overload;
@@ -2015,6 +2017,8 @@ var
 
 function CheckThreadSynchronize(Timeout: Integer): Boolean;
 begin
+  if not Enabled_Check_Thread_Synchronize_System then
+    exit(False);
   if TCore_Thread.CurrentThread.ThreadID <> MainThreadID then
     begin
       if Timeout > 0 then
@@ -2067,6 +2071,7 @@ begin
 end;
 
 initialization
+  Enabled_Check_Thread_Synchronize_System := True;
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   Init_System_Critical_Recycle_Pool();
   OnCheckThreadSynchronize := nil;

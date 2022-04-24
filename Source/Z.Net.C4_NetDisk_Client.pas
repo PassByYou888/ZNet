@@ -21,6 +21,7 @@ uses
 
 type
   TC40_NetDisk_Client = class;
+  TC40_NetDisk_Client_Class = class of TC40_NetDisk_Client;
 
 {$REGION 'event'}
   TC40_NetDisk_Client_On_Usr_AuthC = procedure(sender: TC40_NetDisk_Client; State_: Boolean; info_: SystemString);
@@ -566,6 +567,33 @@ type
     procedure Do_Download_Frag_Error();
   end;
 
+  TC40_NetDisk_Client_OnEvent = procedure(sender: TC40_NetDisk_Client) of object;
+
+  TC40_NetDisk_Client_Clone_Bridge_Event_C = procedure(sender: TC40_NetDisk_Client; New_Instance: TC40_NetDisk_Client);
+  TC40_NetDisk_Client_Clone_Bridge_Event_M = procedure(sender: TC40_NetDisk_Client; New_Instance: TC40_NetDisk_Client) of object;
+{$IFDEF FPC}
+  TC40_NetDisk_Client_Clone_Bridge_Event_P = procedure(sender: TC40_NetDisk_Client; New_Instance: TC40_NetDisk_Client) is nested;
+{$ELSE FPC}
+  TC40_NetDisk_Client_Clone_Bridge_Event_P = reference to procedure(sender: TC40_NetDisk_Client; New_Instance: TC40_NetDisk_Client);
+{$ENDIF FPC}
+
+  TC40_NetDisk_Client_Clone_Bridge = class
+  private
+    procedure Do_BuildDependNetwork_Done(const state: Boolean);
+    procedure Do_WaitConnectedDone(States: TC40_Custom_ClientPool_Wait_States);
+    procedure Do_AuthDone(sender: TC40_NetDisk_Client);
+  public
+    Source: TC40_NetDisk_Client;
+    Physics_Tunnel: TC40_PhysicsTunnel;
+    OnEvent_C: TC40_NetDisk_Client_Clone_Bridge_Event_C;
+    OnEvent_M: TC40_NetDisk_Client_Clone_Bridge_Event_M;
+    OnEvent_P: TC40_NetDisk_Client_Clone_Bridge_Event_P;
+    New_Instance: TC40_NetDisk_Client;
+    constructor Create;
+    destructor Destroy; override;
+    procedure Do_Event(Source_, New_Intance_: TC40_NetDisk_Client);
+  end;
+
 {$ENDREGION 'event'}
 
   I_C40_NetDisk_Client_Event = interface
@@ -604,10 +632,15 @@ type
     OnEvent: I_C40_NetDisk_Client_Event;
     Last_UserName, Last_Passwd, Last_PrimaryIdentifier: U_String;
     Auth_Done: Boolean;
-    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
+    On_Auth_Done: TC40_NetDisk_Client_OnEvent;
+    All_Ready_Is_Done: Boolean;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; Source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
     procedure Do_Auth_Done; virtual;
+    procedure Clone_C(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_C);
+    procedure Clone_M(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_M);
+    procedure Clone_P(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_P);
 
     // User auth
     procedure AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);
@@ -2166,6 +2199,55 @@ begin
   Do_Done_And_DelayFree(False, 'frag error.');
 end;
 
+procedure TC40_NetDisk_Client_Clone_Bridge.Do_BuildDependNetwork_Done(const state: Boolean);
+begin
+  if not state then
+      Do_Event(nil, nil);
+end;
+
+procedure TC40_NetDisk_Client_Clone_Bridge.Do_WaitConnectedDone(States: TC40_Custom_ClientPool_Wait_States);
+begin
+  if length(States) > 0 then
+    begin
+      New_Instance := States[0].Client_ as TC40_NetDisk_Client;
+      New_Instance.On_Auth_Done := {$IFDEF FPC}@{$ENDIF FPC}Do_AuthDone;
+      New_Instance.AuthC(Source.Last_UserName, Source.Last_Passwd, nil);
+    end;
+end;
+
+procedure TC40_NetDisk_Client_Clone_Bridge.Do_AuthDone(sender: TC40_NetDisk_Client);
+begin
+  Do_Event(Source, sender);
+  New_Instance.On_Auth_Done := nil;
+end;
+
+constructor TC40_NetDisk_Client_Clone_Bridge.Create;
+begin
+  inherited Create;
+  Source := nil;
+  Physics_Tunnel := nil;
+  OnEvent_C := nil;
+  OnEvent_M := nil;
+  OnEvent_P := nil;
+  New_Instance := nil;
+end;
+
+destructor TC40_NetDisk_Client_Clone_Bridge.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TC40_NetDisk_Client_Clone_Bridge.Do_Event(Source_, New_Intance_: TC40_NetDisk_Client);
+begin
+  if Assigned(OnEvent_C) then
+      OnEvent_C(Source_, New_Intance_);
+  if Assigned(OnEvent_M) then
+      OnEvent_M(Source_, New_Intance_);
+  if Assigned(OnEvent_P) then
+      OnEvent_P(Source_, New_Intance_);
+  DelayFreeObj(1.0, self);
+end;
+
 procedure TC40_NetDisk_Client.cmd_userMsg(sender: TPeerIO; InData: TDFE);
 var
   FromUserName_, ToUserName_, msg_: U_String;
@@ -2278,6 +2360,7 @@ begin
       DisposeObject(FAuto_Get_File_Pool[i]);
     end;
   FAuto_Get_File_Pool.Clear;
+  All_Ready_Is_Done := False;
 end;
 
 procedure TC40_NetDisk_Client.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(sender: TDT_P2PVM_NoAuth_Custom_Client);
@@ -2285,15 +2368,12 @@ var
   d: TDFE;
 begin
   inherited Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(sender);
+  d := TDFE.Create;
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
+  DisposeObject(d);
   if Auth_Done then
     begin
       AuthM(Last_UserName, Last_Passwd, {$IFDEF FPC}@{$ENDIF FPC}Do_Reconnect_Usr_Auth);
-    end
-  else
-    begin
-      d := TDFE.Create;
-      DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
-      DisposeObject(d);
     end;
 end;
 
@@ -2305,27 +2385,19 @@ begin
 end;
 
 procedure TC40_NetDisk_Client.Do_Reconnect_Usr_Auth(sender: TC40_NetDisk_Client; State_: Boolean; info_: SystemString);
-var
-  d: TDFE;
 begin
   Auth_Done := State_;
   if not Client.QuietMode then
       DoStatus(info_);
-  if State_ then
-    begin
-      d := TDFE.Create;
-      DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Config', d, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Config);
-      DisposeObject(d);
-    end
-  else
+  if not State_ then
     begin
       C40PhysicsTunnel.PhysicsTunnel.DelayCloseIO(1);
     end;
 end;
 
-constructor TC40_NetDisk_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
+constructor TC40_NetDisk_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; Source_: TC40_Info; Param_: U_String);
 begin
-  inherited Create(PhysicsTunnel_, source_, Param_);
+  inherited Create(PhysicsTunnel_, Source_, Param_);
   // IM
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('userMsg').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_userMsg;
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('userOnline').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_userOnline;
@@ -2344,6 +2416,8 @@ begin
   Last_Passwd := '';
   Last_PrimaryIdentifier := '';
   Auth_Done := False;
+  On_Auth_Done := nil;
+  All_Ready_Is_Done := False;
 end;
 
 destructor TC40_NetDisk_Client.Destroy;
@@ -2383,7 +2457,66 @@ end;
 
 procedure TC40_NetDisk_Client.Do_Auth_Done;
 begin
+  All_Ready_Is_Done := True;
+  if Assigned(On_Auth_Done) then
+      On_Auth_Done(self);
+end;
 
+procedure TC40_NetDisk_Client.Clone_C(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_C);
+var
+  tmp: TC40_NetDisk_Client_Clone_Bridge;
+begin
+  tmp := TC40_NetDisk_Client_Clone_Bridge.Create;
+  tmp.Source := self;
+  tmp.OnEvent_C := OnResult;
+  if not Auth_Done then
+    begin
+      tmp.Do_Event(nil, nil);
+      exit;
+    end;
+
+  tmp.Physics_Tunnel := TC40_PhysicsTunnel.Create(C40PhysicsTunnel.PhysicsAddr, C40PhysicsTunnel.PhysicsPort);
+  tmp.Physics_Tunnel.ResetDepend(ClientInfo.ServiceTyp);
+  tmp.Physics_Tunnel.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_BuildDependNetwork_Done);
+  tmp.Physics_Tunnel.DependNetworkClientPool.WaitConnectedDoneM(ClientInfo.ServiceTyp, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_WaitConnectedDone);
+end;
+
+procedure TC40_NetDisk_Client.Clone_M(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_M);
+var
+  tmp: TC40_NetDisk_Client_Clone_Bridge;
+begin
+  tmp := TC40_NetDisk_Client_Clone_Bridge.Create;
+  tmp.Source := self;
+  tmp.OnEvent_M := OnResult;
+  if not Auth_Done then
+    begin
+      tmp.Do_Event(nil, nil);
+      exit;
+    end;
+
+  tmp.Physics_Tunnel := TC40_PhysicsTunnel.Create(C40PhysicsTunnel.PhysicsAddr, C40PhysicsTunnel.PhysicsPort);
+  tmp.Physics_Tunnel.ResetDepend(ClientInfo.ServiceTyp);
+  tmp.Physics_Tunnel.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_BuildDependNetwork_Done);
+  tmp.Physics_Tunnel.DependNetworkClientPool.WaitConnectedDoneM(ClientInfo.ServiceTyp, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_WaitConnectedDone);
+end;
+
+procedure TC40_NetDisk_Client.Clone_P(OnResult: TC40_NetDisk_Client_Clone_Bridge_Event_P);
+var
+  tmp: TC40_NetDisk_Client_Clone_Bridge;
+begin
+  tmp := TC40_NetDisk_Client_Clone_Bridge.Create;
+  tmp.Source := self;
+  tmp.OnEvent_P := OnResult;
+  if not Auth_Done then
+    begin
+      tmp.Do_Event(nil, nil);
+      exit;
+    end;
+
+  tmp.Physics_Tunnel := TC40_PhysicsTunnel.Create(C40PhysicsTunnel.PhysicsAddr, C40PhysicsTunnel.PhysicsPort);
+  tmp.Physics_Tunnel.ResetDepend(ClientInfo.ServiceTyp);
+  tmp.Physics_Tunnel.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_BuildDependNetwork_Done);
+  tmp.Physics_Tunnel.DependNetworkClientPool.WaitConnectedDoneM(ClientInfo.ServiceTyp, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_WaitConnectedDone);
 end;
 
 procedure TC40_NetDisk_Client.AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_Client_On_Usr_AuthC);

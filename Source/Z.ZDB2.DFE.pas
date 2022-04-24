@@ -155,7 +155,7 @@ begin
       try
         if FData.IsChanged or (FID < 0) then
           begin
-            FData.SaveToStream(m64);
+            FData.FastEncodeTo(m64);
             old_ID := FID;
             CoreSpace.WriteData(m64.Mem64, FID, False);
             if old_ID >= 0 then

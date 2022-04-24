@@ -967,7 +967,7 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   ProgressTempNMList := TC40_Var_NumberModulePool_List.Create;
-  C40_Var_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.OX', [ServiceInfo.ServiceTyp.Text]));
+  C40_Var_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.OX', [ServiceInfo.ServiceTyp.Text])));
 
   NMBigPool := TVAR_Service_NMBigPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('NM_HashPool', '1024*1024'), 1024 * 1024),

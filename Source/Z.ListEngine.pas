@@ -8317,17 +8317,18 @@ end;
 procedure TListPascalString.SetText(const Value: SystemString);
 var
   n: TPascalString;
-  b: TBytes;
+  buff_: TBytes;
   m64: TMS64;
 begin
   n.Text := Value;
-  b := n.Bytes;
+  buff_ := n.Bytes;
   n := '';
   m64 := TMS64.Create;
-  m64.SetPointerWithProtectedMode(@b[0], Length(b));
+  if Length(buff_) > 0 then
+      m64.SetPointerWithProtectedMode(@buff_[0], Length(buff_));
   LoadFromStream(m64);
   DisposeObject(m64);
-  SetLength(b, 0);
+  SetLength(buff_, 0);
 end;
 
 function TListPascalString.GetItems(idx: Integer): TPascalString;

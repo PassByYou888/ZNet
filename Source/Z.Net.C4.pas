@@ -383,6 +383,7 @@ type
     function GetAliasOrHash: U_String;
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
+    function Get_DB_FileName_Config(source_: U_String): U_String;
     { event }
     procedure DoLinkSuccess(Trigger_: TCore_Object);
     procedure DoUserOut(Trigger_: TCore_Object);
@@ -440,6 +441,7 @@ type
     function GetAliasOrHash: U_String;
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
+    function Get_DB_FileName_Config(source_: U_String): U_String;
     { event }
     procedure DoNetworkOnline; virtual;  { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
@@ -796,6 +798,7 @@ type
     procedure Progress; virtual;
     procedure StartService(ListenAddr, ListenPort, Auth: SystemString); virtual;
     procedure StopService; virtual;
+    function Get_DB_FileName_Config(source_: U_String): U_String;
     { event }
     procedure DoLinkSuccess(Trigger_: TCore_Object);
     procedure DoUserOut(Trigger_: TCore_Object);
@@ -825,6 +828,7 @@ type
     procedure Progress; virtual;
     function Connected: Boolean; virtual;
     procedure Disconnect; virtual;
+    function Get_DB_FileName_Config(source_: U_String): U_String;
     { event }
     procedure DoNetworkOnline; virtual;  { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
@@ -928,11 +932,15 @@ var
   C40Progress_Working: Boolean = False;
 
 procedure C40Progress;
+var
+  state_: Boolean;
 begin
   if C40Progress_Working then
       exit;
   TCompute.Sleep(1);
   CheckThread;
+  state_ := Enabled_Check_Thread_Synchronize_System;
+  Enabled_Check_Thread_Synchronize_System := False;
   C40Progress_Working := True;
   try
     C40_PhysicsServicePool.Progress;
@@ -944,6 +952,7 @@ begin
     C40CheckAndKillDeadPhysicsTunnel();
   except
   end;
+  Enabled_Check_Thread_Synchronize_System := state_;
   C40Progress_Working := False;
 end;
 
@@ -1925,6 +1934,8 @@ begin
 end;
 
 destructor TC40_PhysicsTunnel.Destroy;
+var
+  i: Integer;
 begin
   PhysicsTunnel.OnInterface := nil;
   try
@@ -1936,6 +1947,17 @@ begin
   except
   end;
   OnEvent := nil;
+
+  // remove children
+  i := 0;
+  while i < C40_ClientPool.Count do
+    begin
+      if C40_ClientPool[i].C40PhysicsTunnel = Self then
+          disposeObject(C40_ClientPool[i])
+      else
+          inc(i);
+    end;
+
   C40_PhysicsTunnelPool.Remove(Self);
   PhysicsAddr := '';
   SetLength(DependNetworkInfoArray, 0);
@@ -3506,6 +3528,11 @@ begin
     end;
 end;
 
+function TC40_Custom_Service.Get_DB_FileName_Config(source_: U_String): U_String;
+begin
+  Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
 procedure TC40_Custom_Service.DoLinkSuccess(Trigger_: TCore_Object);
 begin
   C40PhysicsService.DoLinkSuccess(Self, Trigger_);
@@ -3816,6 +3843,11 @@ begin
       send_ := TC40_Base_DataStore_Client(Self).Client.SendTunnel;
       Result := True;
     end;
+end;
+
+function TC40_Custom_Client.Get_DB_FileName_Config(source_: U_String): U_String;
+begin
+  Result := ParamList.GetDefaultValue(source_, source_);
 end;
 
 procedure TC40_Custom_Client.DoNetworkOnline;
@@ -5580,6 +5612,11 @@ begin
 
 end;
 
+function TC40_Custom_VM_Service.Get_DB_FileName_Config(source_: U_String): U_String;
+begin
+  Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
 procedure TC40_Custom_VM_Service.DoLinkSuccess(Trigger_: TCore_Object);
 begin
 
@@ -5646,6 +5683,11 @@ end;
 procedure TC40_Custom_VM_Client.Disconnect;
 begin
 
+end;
+
+function TC40_Custom_VM_Client.Get_DB_FileName_Config(source_: U_String): U_String;
+begin
+  Result := ParamList.GetDefaultValue(source_, source_);
 end;
 
 procedure TC40_Custom_VM_Client.DoNetworkOnline;

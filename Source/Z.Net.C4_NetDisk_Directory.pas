@@ -1782,15 +1782,15 @@ begin
   Directory_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('Directory_RecycleMemory', '30*1000'), 30 * 1000);
   Directory_ZDB2_DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('Directory_DeltaSpace', '128*1024*1024'), 128 * 1024 * 1024);
   Directory_ZDB2_BlockSize := EStrToInt(ParamList.GetDefaultValue('Directory_BlockSize', '8192'), 8192);
-  Directory_ZDB2_EnabledCipher := EStrToBool(ParamList.GetDefaultValue('Directory_EnabledCipher', 'True'), True);
-  Directory_ZDB2_CipherName := ParamList.GetDefaultValue('Directory_Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  Directory_ZDB2_EnabledCipher := EStrToBool(ParamList.GetDefaultValue('Directory_EnabledCipher', 'False'), False);
+  Directory_ZDB2_CipherName := ParamList.GetDefaultValue('Directory_Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   Directory_ZDB2_Password := ParamList.GetDefaultValue('Directory_Password', Z.Net.C4.C40_Password);
 
   if Directory_ZDB2_EnabledCipher then
       Directory_ZDB2_Cipher := TZDB2_Cipher.Create(Directory_ZDB2_CipherName, Directory_ZDB2_Password, 1, True, True)
   else
       Directory_ZDB2_Cipher := nil;
-  C40_Directory_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Directory', [ServiceInfo.ServiceTyp.Text]));
+  C40_Directory_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Directory', [ServiceInfo.ServiceTyp.Text])));
 
   Directory_HashPool := TDirectory_Service_User_File_DB_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('Directory_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -1833,15 +1833,15 @@ begin
   MD5_ZDB2_RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('MD5_RecycleMemory', '1*1000'), 1 * 1000);
   MD5_ZDB2_DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('MD5_DeltaSpace', '16*1024*1024'), 16 * 1024 * 1024);
   MD5_ZDB2_BlockSize := EStrToInt(ParamList.GetDefaultValue('MD5_BlockSize', '100'), 100);
-  MD5_ZDB2_EnabledCipher := EStrToBool(ParamList.GetDefaultValue('MD5_EnabledCipher', 'True'), True);
-  MD5_ZDB2_CipherName := ParamList.GetDefaultValue('MD5_Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  MD5_ZDB2_EnabledCipher := EStrToBool(ParamList.GetDefaultValue('MD5_EnabledCipher', 'False'), False);
+  MD5_ZDB2_CipherName := ParamList.GetDefaultValue('MD5_Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   MD5_ZDB2_Password := ParamList.GetDefaultValue('MD5_Password', Z.Net.C4.C40_Password);
 
   if MD5_ZDB2_EnabledCipher then
       MD5_ZDB2_Cipher := TZDB2_Cipher.Create(MD5_ZDB2_CipherName, MD5_ZDB2_Password, 1, True, True)
   else
       MD5_ZDB2_Cipher := nil;
-  C40_MD5_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.MD5_Frag', [ServiceInfo.ServiceTyp.Text]));
+  C40_MD5_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.MD5_Frag', [ServiceInfo.ServiceTyp.Text])));
 
   MD5_Pool := TDirectory_Service_MD5_DataPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '16*1024*1024'), 16 * 1024 * 1024),

@@ -34,6 +34,7 @@ type
     procedure cmd_GetTextKey(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetKeyValue(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetTextKeyValue(sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_ExistsTE(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_ExistsSection(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_ExistsKey(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_RemoveSection(sender: TPeerIO; InData: TDFE);
@@ -59,6 +60,7 @@ type
     destructor Destroy; override;
     procedure SafeCheck; override;
     procedure Progress; override;
+    function Exists_TE(TEName_: SystemString): Boolean;
     function GetOrCreateTE(TEName_: SystemString): TZDB2_HashTextEngine;
     function GetTEName(TE: TZDB2_HashTextEngine): SystemString;
   end;
@@ -171,6 +173,24 @@ type
     OnResultC: TC40_TEKeyValue_VM_Client_GetTextKeyValue_C;
     OnResultM: TC40_TEKeyValue_VM_Client_GetTextKeyValue_M;
     OnResultP: TC40_TEKeyValue_VM_Client_GetTextKeyValue_P;
+    constructor Create;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TC40_TEKeyValue_VM_Client_ExistsTE_C = procedure(sender: TC40_TEKeyValue_VM_Client; state_: Boolean);
+  TC40_TEKeyValue_VM_Client_ExistsTE_M = procedure(sender: TC40_TEKeyValue_VM_Client; state_: Boolean) of object;
+{$IFDEF FPC}
+  TC40_TEKeyValue_VM_Client_ExistsTE_P = procedure(sender: TC40_TEKeyValue_VM_Client; state_: Boolean) is nested;
+{$ELSE FPC}
+  TC40_TEKeyValue_VM_Client_ExistsTE_P = reference to procedure(sender: TC40_TEKeyValue_VM_Client; state_: Boolean);
+{$ENDIF FPC}
+
+  TC40_TEKeyValue_VM_Client_ExistsTE = class(TOnResultBridge)
+  public
+    Client: TC40_TEKeyValue_VM_Client;
+    OnResultC: TC40_TEKeyValue_VM_Client_ExistsTE_C;
+    OnResultM: TC40_TEKeyValue_VM_Client_ExistsTE_M;
+    OnResultP: TC40_TEKeyValue_VM_Client_ExistsTE_P;
     constructor Create;
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -317,6 +337,11 @@ type
     procedure GetTextKeyValue_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_VM_Client_GetTextKeyValue_C);
     procedure GetTextKeyValue_M(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_VM_Client_GetTextKeyValue_M);
     procedure GetTextKeyValue_P(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_VM_Client_GetTextKeyValue_P);
+    //
+    procedure ExistsTE_Bridge(TEName_: U_String; Bridge_IO_: TPeerIO);
+    procedure ExistsTE_C(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_C);
+    procedure ExistsTE_M(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_M);
+    procedure ExistsTE_P(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_P);
     //
     procedure ExistsSection_Bridge(TEName_, Section_: U_String; Bridge_IO_: TPeerIO);
     procedure ExistsSection_C(TEName_, Section_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsSection_C);
@@ -497,6 +522,14 @@ begin
   TE := GetOrCreateTE(TEName_);
   HS := TE.Data.HStringList[Section_];
   OutData.WriteHashStringList(HS);
+end;
+
+procedure TC40_TEKeyValue_VM_Service.cmd_ExistsTE(sender: TPeerIO; InData, OutData: TDFE);
+var
+  TEName_: U_String;
+begin
+  TEName_ := InData.R.ReadString;
+  OutData.WriteBool(Exists_TE(TEName_));
 end;
 
 procedure TC40_TEKeyValue_VM_Service.cmd_ExistsSection(sender: TPeerIO; InData, OutData: TDFE);
@@ -695,6 +728,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('GetTextKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetTextKey;
   DTNoAuthService.RecvTunnel.RegisterStream('GetKeyValue').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetKeyValue;
   DTNoAuthService.RecvTunnel.RegisterStream('GetTextKeyValue').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetTextKeyValue;
+  DTNoAuthService.RecvTunnel.RegisterStream('ExistsTE').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsTE;
   DTNoAuthService.RecvTunnel.RegisterStream('ExistsSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsSection;
   DTNoAuthService.RecvTunnel.RegisterStream('ExistsKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsKey;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveSection;
@@ -709,15 +743,15 @@ begin
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '30*1000'), 30 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '64*1024*1024'), 64 * 1024 * 1024);
   ZDB2BlockSize := EStrToInt(ParamList.GetDefaultValue('BlockSize', '1024'), 1024);
-  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'True'), True);
-  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csRijndael]);
+  ZDB2EnabledCipher := EStrToBool(ParamList.GetDefaultValue('EnabledCipher', 'False'), False);
+  ZDB2CipherName := ParamList.GetDefaultValue('Cipher', TCipher.CCipherSecurityName[TCipherSecurity.csNone]);
   ZDB2Password := ParamList.GetDefaultValue('Password', Z.Net.C4.C40_Password);
 
   if ZDB2EnabledCipher then
       ZDB2Cipher := TZDB2_Cipher.Create(ZDB2CipherName, ZDB2Password, 1, True, True)
   else
       ZDB2Cipher := nil;
-  C40_TEKeyValue_VM_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.Space', ['KeyValue_VM']));
+  C40_TEKeyValue_VM_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space', ['TEKeyValue_VM'])));
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_TEKeyValue_VM_DB_FileName) then
       fs := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite)
@@ -780,6 +814,11 @@ procedure TC40_TEKeyValue_VM_Service.Progress;
 begin
   inherited Progress;
   TEKeyValue_DB.Progress;
+end;
+
+function TC40_TEKeyValue_VM_Service.Exists_TE(TEName_: SystemString): Boolean;
+begin
+  Result := TEKeyValue_Hash.Exists(TEName_);
 end;
 
 function TC40_TEKeyValue_VM_Service.GetOrCreateTE(TEName_: SystemString): TZDB2_HashTextEngine;
@@ -985,6 +1024,33 @@ begin
   except
   end;
   DelayFreeObject(1.0, self, L);
+end;
+
+constructor TC40_TEKeyValue_VM_Client_ExistsTE.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TC40_TEKeyValue_VM_Client_ExistsTE.DoStreamEvent(sender: TPeerIO; Result_: TDFE);
+var
+  state_: Boolean;
+begin
+  state_ := Result_.R.ReadBool;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, state_);
+    if Assigned(OnResultM) then
+        OnResultM(Client, state_);
+    if Assigned(OnResultP) then
+        OnResultP(Client, state_);
+  except
+  end;
+  DelayFreeObject(1.0, self);
 end;
 
 constructor TC40_TEKeyValue_VM_Client_ExistsSection.Create;
@@ -1560,6 +1626,64 @@ begin
   D.WriteString(TEName_);
   D.WriteString(Section_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetTextKeyValue', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_VM_Client.ExistsTE_Bridge(TEName_: U_String; Bridge_IO_: TPeerIO);
+var
+  tmp: TStreamEventBridge;
+  D: TDFE;
+begin
+  tmp := TStreamEventBridge.Create(Bridge_IO_);
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsTE', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_VM_Client.ExistsTE_C(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_C);
+var
+  tmp: TC40_TEKeyValue_VM_Client_ExistsTE;
+  D: TDFE;
+begin
+  tmp := TC40_TEKeyValue_VM_Client_ExistsTE.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsTE', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_VM_Client.ExistsTE_M(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_M);
+var
+  tmp: TC40_TEKeyValue_VM_Client_ExistsTE;
+  D: TDFE;
+begin
+  tmp := TC40_TEKeyValue_VM_Client_ExistsTE.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsTE', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_VM_Client.ExistsTE_P(TEName_: U_String; OnResult: TC40_TEKeyValue_VM_Client_ExistsTE_P);
+var
+  tmp: TC40_TEKeyValue_VM_Client_ExistsTE;
+  D: TDFE;
+begin
+  tmp := TC40_TEKeyValue_VM_Client_ExistsTE.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsTE', D, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   disposeObject(D);
 end;
 

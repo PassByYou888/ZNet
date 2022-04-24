@@ -647,7 +647,7 @@ begin
       IO.OutDFE.WriteBool(State_);
       IO.OutDFE.WriteString(info_);
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s new Identifier: %s', [IO_Def.PrimaryIdentifier.Text], info_);
+      VM_Service.PostLog('%s new Identifier: %s', [IO_Def.PrimaryIdentifier.Text, info_], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -659,10 +659,9 @@ begin
   if CheckIO then
     begin
       IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
-      if Json_.IndexOf('Alias') >= 0 then
-          IO.OutDFE.WriteString(Json_.S['Alias']);
+      IO.OutDFE.WriteString(Json_.GetDefault_S('Alias', ''));
       IO.ContinueResultSend;
-      VM_Service.PostLog('%s GetAlias: %s', [IO_Def.PrimaryIdentifier.Text], info_);
+      VM_Service.PostLog('%s GetAlias: %s', [IO_Def.PrimaryIdentifier.Text, Json_.GetDefault_S('Alias', '')], info_);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -828,6 +827,7 @@ begin
           IO_Def.NetDisk_File_Frag.Add(p);
           IO.OutDataFrame.WriteString('copy frag "%s" successed.', [p^.FS_File.Text]);
           VM_Service.PostLog('%s CheckAndCopy_NetDisk_File_Frag successed.', [IO_Def.PrimaryIdentifier.Text], PFormat('alias:%s file:%s', [sender.AliasOrHash.Text, umlMD5ToStr(frag_md5_).Text]));
+          sender.FS2_UpdateFileTime(p^.FS_File, umlNow);
         end
       else
         begin
@@ -927,6 +927,8 @@ begin
       IO.OutDataFrame.WriteMD5(MD5_);
       IO.ContinueResultSend;
       VM_Service.PostLog('%s Get_NetDisk_File_Frag_MD5.', [IO_Def.PrimaryIdentifier.Text], info_);
+      if State_ then
+          sender.FS2_UpdateFileTime(FS_File, umlNow);
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -950,6 +952,7 @@ begin
           m64.WritePtr(Stream.Memory, Stream.Size);
           IO_Def.SendTunnel.Owner.SendCompleteBuffer('Done_Get_File_Frag', m64, True);
           VM_Service.PostLog('%s Get_NetDisk_File_Frag.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
+          sender.FS2_UpdateFileTime(FS_File, umlNow);
         end
       else
         begin
@@ -1216,9 +1219,8 @@ begin
     begin
       L := TC40_NetDisk_Service_RecvIO_Define_List.Create;
       FPrimaryIdentifier_Pool.FastAdd(RecvIO_Define_.PrimaryIdentifier, L);
-    end
-  else
-      L.Add(RecvIO_Define_);
+    end;
+  L.Add(RecvIO_Define_);
 end;
 
 procedure TC40_NetDisk_Service.Remove_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_Service_RecvTunnel_NoAuth);
@@ -1246,7 +1248,7 @@ begin
   L := FPrimaryIdentifier_Pool[RecvIO_Define_.PrimaryIdentifier];
   if L = nil then
       exit;
-  Result := L.IndexOf(RecvIO_Define_) >= 0;
+  Result := L.Count > 0;
 end;
 
 procedure TC40_NetDisk_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
@@ -3005,8 +3007,8 @@ begin
 
   FPrimaryIdentifier_Pool := TC40_NetDisk_Service_PrimaryIdentifier_Pool.Create(True, $FFFF, nil);
 
-  // max complete buffer 10M
-  DTNoAuthService.RecvTunnel.MaxCompleteBufferSize := EStrToInt64(ParamList.GetDefaultValue('MaxBuffer', '10*1024*1024'), 10 * 1024 * 1024);
+  // max complete buffer 100M
+  DTNoAuthService.RecvTunnel.MaxCompleteBufferSize := EStrToInt64(ParamList.GetDefaultValue('MaxBuffer', '100*1024*1024'), 100 * 1024 * 1024);
   DTNoAuthService.RecvTunnel.CompleteBufferCompressed := False;
 
   // is only instance
@@ -3019,7 +3021,7 @@ begin
   DTNoAuth.RecvTunnel.PeerClientUserDefineClass := TC40_NetDisk_Service_RecvTunnel_NoAuth;
 
   // define
-  File_Chunk_Size := EStrToInt(ParamList.GetDefaultValue('File_Chunk_Size', '500*1024'), 500 * 1024);
+  File_Chunk_Size := EStrToInt(ParamList.GetDefaultValue('File_Chunk_Size', '1*1024*1024'), 1 * 1024 * 1024);
 
   // IM
   DTNoAuth.RecvTunnel.RegisterStream('Auth').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Auth;

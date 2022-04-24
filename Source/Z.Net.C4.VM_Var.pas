@@ -963,7 +963,7 @@ begin
   DTNoAuthService.RecvTunnel.PeerIOUserDefineClass := TC40_Var_VM_Service_IO_Define;
 
   ProgressTempNMList := TC40_Var_VM_NumberModulePool_List.Create;
-  C40_Var_VM_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, PFormat('DTC40_%s.OX', ['Var_VM']));
+  C40_Var_VM_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.OX', ['Var_VM'])));
 
   NMBigPool := TVAR_Service_NMBigPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('NM_HashPool', '1024*1024'), 1024 * 1024),
