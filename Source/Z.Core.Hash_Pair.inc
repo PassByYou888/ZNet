@@ -327,6 +327,16 @@ begin
       Free_Value_List(Key_Hash_);
 end;
 
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Remove(p: PPair_Pool_Value__);
+var
+  inst_: TValue_Pair_Pool__.TPair_BigList__;
+begin
+  inst_ := p^.Instance___;
+  inst_.Remove(p);
+  if inst_.Num <= 0 then
+      Free_Recycle_Pool();
+end;
+
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Num: NativeInt;
 begin
   Result := Queue_Pool.Num;
@@ -981,6 +991,21 @@ begin
   finally
       Critical.UnLock;
   end;
+end;
+
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Remove(p: PPair_Pool_Value__);
+var
+  inst_: TValue_Pair_Pool__.TPair_BigList__;
+begin
+  Critical.Lock;
+  try
+    inst_ := p^.Instance___;
+    inst_.Remove(p);
+  finally
+      Critical.UnLock;
+  end;
+  if inst_.Num <= 0 then
+      Free_Recycle_Pool();
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Num: NativeInt;
