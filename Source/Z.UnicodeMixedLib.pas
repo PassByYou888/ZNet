@@ -541,6 +541,7 @@ type
   PMD5 = ^TMD5;
   TMD5 = array [0 .. 15] of Byte;
   TMD5_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
+  TMD5_Big_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TMD5>;
   TArrayMD5 = array of TMD5;
   TMD5_Pair_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TMD5, TMD5>;
 
@@ -555,12 +556,15 @@ type
   end;
 
 const
+  Null_MD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  Zero_MD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   NullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   ZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   umlNullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   umlZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   Null_Buff_MD5: TMD5 = (212, 29, 140, 217, 143, 0, 178, 4, 233, 128, 9, 152, 236, 248, 66, 126);
 
+function umlStrIsMD5(hex: TPascalString): Boolean;
 function umlStrToMD5(hex: TPascalString): TMD5;
 procedure umlTransformMD5(var Accu; const Buf);
 function umlMD5(const buffPtr: PByte; bufSiz: NativeUInt): TMD5;
@@ -4567,7 +4571,7 @@ function umlCharIsSymbol(c: SystemChar): Boolean;
 begin
   Result := CharIn(c,
     [#13, #10, #9, #32, #46, #44, #43, #45, #42, #47, #40, #41, #59, #58, #61, #35, #64, #94,
-    #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
+      #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
 end;
 
 function umlCharIsSymbol(c: SystemChar; const CustomSymbol_: TArrayChar): Boolean;
@@ -5926,6 +5930,19 @@ begin
       StreamWriteMD5(stream, Queue^.Data^.Data.Primary);
       StreamWriteMD5(stream, Queue^.Data^.Data.Second);
     until not Right;
+end;
+
+function umlStrIsMD5(hex: TPascalString): Boolean;
+var
+  c: SystemChar;
+begin
+  Result := False;
+  if hex.L <> 32 then
+      exit;
+  for c in hex.buff do
+    if not CharIn(c, cHex) then
+        exit;
+  Result := True;
 end;
 
 function umlStrToMD5(hex: TPascalString): TMD5;
