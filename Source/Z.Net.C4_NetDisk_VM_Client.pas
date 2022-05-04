@@ -15,6 +15,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.GHashList,
+  Z.IOThread, Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.APP,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth,
   Z.Net.C4_NetDisk_Directory,
   Z.Net.C4, Z.Net.C4.VM;
@@ -304,6 +305,31 @@ type
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
+  TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result = record
+    MD5: TMD5;
+    IsFound: Boolean;
+  end;
+
+  TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array = array of TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result;
+
+  TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5C = procedure(sender: TC40_NetDisk_VM_Client; arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array);
+  TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5M = procedure(sender: TC40_NetDisk_VM_Client; arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array) of object;
+{$IFDEF FPC}
+  TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P = procedure(sender: TC40_NetDisk_VM_Client; arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array) is nested;
+{$ELSE FPC}
+  TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P = reference to procedure(sender: TC40_NetDisk_VM_Client; arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array);
+{$ENDIF FPC}
+
+  TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5 = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_VM_Client;
+    OnResultC: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5C;
+    OnResultM: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5M;
+    OnResultP: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P;
+    constructor Create;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
+  end;
+
   TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_File_List_Data = record
     Name: U_String;
     Num: Int64;
@@ -475,6 +501,15 @@ type
   PON_Usr_Auto_Post_File = ^TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File;
   TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File>;
 
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched = record
+    FPos, Size: Int64;
+    LMD5: TMD5;
+    RMD5: TMD5;
+    RFound: Boolean;
+  end;
+
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched>;
+
   TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_Ptr_ = record
     Instance_: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File;
   end;
@@ -493,8 +528,8 @@ type
   public
     Client: TC40_NetDisk_VM_Client;
     Chunk_Size: Int64;
-    MD5_Buff: TMD5_Pool;
-    MD5: TMD5;
+    MD5_Matched_Pool: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched_Pool;
+    Stream_Final_MD5__: TMD5;
     OnResultC: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileC;
     OnResultM: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileM;
     OnResultP: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileP;
@@ -509,15 +544,16 @@ type
     procedure Do_Result(Successed: Boolean; info: U_String);             // step done.
     procedure Do_Done_And_DelayFree(Successed: Boolean; info: U_String); // step done.
     procedure Compute_Stream_MD5;
-    procedure Do_Compute_Stream_MD5; // step 1
-    procedure Do_Done_Compute_Stream_MD5;
-    procedure Do_Compute_Stream_MD5_Error;                                                                           // step done.
-    procedure Do_CheckAndCopy_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);      // step 2
-    procedure Do_SearchMultiMD5_FS_Service(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);      // step 3
-    procedure Do_BeginPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);         // step 4
-    procedure Do_CheckAndCopy_NetDisk_File_Frag(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // loop 5
-    procedure Do_Done_PostFile_Frag(Successed: Boolean);                                                             // loop 5
-    procedure Do_EndPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);           // step done.
+    procedure Do_Compute_Stream_MD5;                                                                            // step 1
+    procedure Do_Done_Compute_Stream_MD5;                                                                       // md5 done
+    procedure Do_Compute_Stream_MD5_Error;                                                                      // error
+    procedure Do_CheckAndCopy_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 2
+    procedure Do_SearchMultiMD5_FS_Service(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 3
+    procedure Do_Get_NetDisk_Multi_File_Frag_MD5(sender: TC40_NetDisk_VM_Client;
+      arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array);                                          // step 4
+    procedure Do_BeginPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 5
+    procedure Do_Done_PostFile_Frag(Successed: Boolean);                                                     // step 5 - loop
+    procedure Do_EndPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);   // step done.
   end;
 
   TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileC = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String);
@@ -531,6 +567,15 @@ type
   PON_Usr_Auto_Get_File = ^TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File;
   TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File>;
 
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched = record
+    FS_AliasOrHash: U_String;
+    FPos, Size: Int64;
+    LMD5: TMD5;
+    RMD5: TMD5;
+  end;
+
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched>;
+
   TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_Ptr_ = record
     Instance_: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File;
   end;
@@ -539,8 +584,6 @@ type
 
   TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File = class
   private
-    Current_Remote_Frag_Index: Integer;
-    Current_Local_MD5_Chunk: array of TMD5;
     IsBusy, IsExit: Boolean;
     Ptr_: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_Ptr_;
   public
@@ -548,7 +591,10 @@ type
     OnResultC: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileC;
     OnResultM: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileM;
     OnResultP: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileP;
-    Remote_Frag_List: TDirectory_MD5_Data_Frag_Struct_List;
+    MD5_Matched_Pool: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched_Pool;
+    Stream_Final_MD5__: TMD5;
+    Stream_Final_Size__: Int64;
+    Stream_Final_Time__: TDateTime;
     stream: TCore_Stream;
     Done_Free_Stream: Boolean;
     State_Completed, State_Total: Int64;
@@ -557,15 +603,16 @@ type
     destructor Destroy; override;
     procedure Do_Result(Successed: Boolean; info: U_String);
     procedure Do_Done_And_DelayFree(Successed: Boolean; info: U_String);
-    procedure Do_Usr_Get_NetDisk_File_Frag_Info(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String; L: TDirectory_MD5_Data_Frag_Struct_List); // step 1
-    procedure Do_Compute_Local_Frag;                                                                                                                          // step 2
+    procedure Do_Usr_Get_NetDisk_File_Frag_Info(sender: TC40_NetDisk_VM_Client;
+      Successed: Boolean; info: U_String; L: TDirectory_MD5_Data_Frag_Struct_List); // step 1
+    procedure Do_Compute_Local_Frag;                                                // compute local md5                                                                                                          // step 2
     procedure Do_File_Same;
-    procedure Do_File_Downloaded;                                                                                          // step done.
-    procedure Do_Download_Frag;                                                                                            // step 3
-    procedure Do_Get_NetDisk_File_Frag_MD5(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String; MD5: TMD5); // loop 4
-    procedure Do_Download_Frag_Done(m64: TMS64);                                                                           // loop 5
-    procedure Do_Download_Frag_Error();
+    procedure Do_File_Downloaded;                // done.
+    procedure Do_Download_Frag;                  // step 3
+    procedure Do_Download_Frag_Done(m64: TMS64); // loop 4
+    procedure Do_Download_Frag_Error();          // error
   end;
+{$ENDREGION 'event'}
 
   TC40_NetDisk_VM_Client_OnEvent = procedure(sender: TC40_NetDisk_VM_Client) of object;
 
@@ -591,8 +638,6 @@ type
     destructor Destroy; override;
     procedure Do_Event(Source_, New_Intance_: TC40_NetDisk_VM_Client);
   end;
-
-{$ENDREGION 'event'}
 
   I_C40_NetDisk_VM_Client_Event = interface
     procedure Do_UserMsg(sender: TC40_NetDisk_VM_Client; FromUserName_, ToUserName_, msg_: U_String);
@@ -699,8 +744,10 @@ type
     procedure CheckAndCopy_NetDisk_File_Frag_C(alias_or_hash_: U_String; frag_md5_: TMD5; frag_pos_, frag_size_: Int64; OnResult: TC40_NetDisk_VM_Client_On_Usr_CheckAndCopy_NetDisk_File_FragC);
     procedure CheckAndCopy_NetDisk_File_Frag_M(alias_or_hash_: U_String; frag_md5_: TMD5; frag_pos_, frag_size_: Int64; OnResult: TC40_NetDisk_VM_Client_On_Usr_CheckAndCopy_NetDisk_File_FragM);
     procedure CheckAndCopy_NetDisk_File_Frag_P(alias_or_hash_: U_String; frag_md5_: TMD5; frag_pos_, frag_size_: Int64; OnResult: TC40_NetDisk_VM_Client_On_Usr_CheckAndCopy_NetDisk_File_FragP);
+    // fast copy fragment for fs service
+    procedure Fast_Copy_NetDisk_File_Frag(alias_or_hash_: U_String; frag_md5_: TMD5; frag_pos_, frag_size_: Int64);
     // post fragment for fs service
-    procedure Post_NetDisk_File_Frag(Pos_: Int64; Event_, buff: Pointer; buff_size: Int64);
+    procedure Post_NetDisk_File_Frag(RealTime_Reponse_: Boolean; Pos_: Int64; Event_, buff: Pointer; buff_size: Int64);
     // end post
     procedure EndPost_NetDisk_File_C(OnResult: TC40_NetDisk_VM_Client_On_Usr_EndPost_NetDisk_FileC);
     procedure EndPost_NetDisk_File_M(OnResult: TC40_NetDisk_VM_Client_On_Usr_EndPost_NetDisk_FileM);
@@ -713,6 +760,10 @@ type
     procedure Get_NetDisk_File_Frag_MD5_C(alias_or_hash_, FS_File: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_File_Frag_MD5C);
     procedure Get_NetDisk_File_Frag_MD5_M(alias_or_hash_, FS_File: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_File_Frag_MD5M);
     procedure Get_NetDisk_File_Frag_MD5_P(alias_or_hash_, FS_File: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_File_Frag_MD5P);
+    // get multi file fragment md5 from directory service
+    procedure Get_NetDisk_Multi_File_Frag_MD5_C(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5C);
+    procedure Get_NetDisk_Multi_File_Frag_MD5_M(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5M);
+    procedure Get_NetDisk_Multi_File_Frag_MD5_P(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P);
     // download fragment from fs service
     procedure Get_NetDisk_File_Frag(alias_or_hash_: U_String; FS_File: U_String; Pos_: Int64; Event_: Pointer);
     // my netdisk file list
@@ -736,9 +787,9 @@ type
     procedure RenameField(DB_Field, New_Field_Name: U_String);
     procedure RenameItem(DB_Field, Old_Item_Name, New_Item_Name: U_String);
     // build my share disk
-    procedure Build_Share_Disk_C(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskC);
-    procedure Build_Share_Disk_M(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskM);
-    procedure Build_Share_Disk_P(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskP);
+    procedure Build_Share_Disk_C(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskC);
+    procedure Build_Share_Disk_M(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskM);
+    procedure Build_Share_Disk_P(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskP);
     // list my share disk
     procedure Get_Share_Disk_C(OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_Share_DiskC);
     procedure Get_Share_Disk_M(OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_Share_DiskM);
@@ -1353,6 +1404,42 @@ begin
   DelayFreeObject(1.0, self);
 end;
 
+constructor TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5.DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine);
+var
+  arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array;
+  i: Integer;
+begin
+  SetLength(arry, Result_.Count shr 1);
+  i := 0;
+  while Result_.R.NotEnd do
+    begin
+      arry[i].MD5 := Result_.R.ReadMD5;
+      arry[i].IsFound := Result_.R.ReadBool;
+      inc(i);
+    end;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, arry);
+    if Assigned(OnResultM) then
+        OnResultM(Client, arry);
+    if Assigned(OnResultP) then
+        OnResultP(Client, arry);
+  except
+  end;
+  SetLength(arry, 0);
+  DelayFreeObject(1.0, self);
+end;
+
 constructor TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_File_List.Create;
 begin
   inherited Create;
@@ -1721,8 +1808,8 @@ begin
   Ptr_.Instance_ := self;
   Client := nil;
   Chunk_Size := 1024 * 1024;
-  MD5_Buff := TMD5_Pool.Create;
-  MD5 := NullMD5;
+  MD5_Matched_Pool := TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched_Pool.Create;
+  Stream_Final_MD5__ := NullMD5;
   OnResultC := nil;
   OnResultM := nil;
   OnResultP := nil;
@@ -1739,7 +1826,7 @@ end;
 destructor TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Destroy;
 begin
   DisposeObject(Current_Stream_Chunk);
-  DisposeObject(MD5_Buff);
+  DisposeObject(MD5_Matched_Pool);
   if Done_Free_Stream then
       DisposeObjectAndNil(stream);
   inherited Destroy;
@@ -1788,6 +1875,7 @@ var
   tmp: TMS64;
   Siz: Int64;
   md5_cont: TMD5Context;
+  p: TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File_MD5_Matched_Pool.PQueueStruct;
 begin
   try
     if Assigned(Client.OnEvent) then
@@ -1800,19 +1888,29 @@ begin
       begin
         if Siz > Chunk_Size then
           begin
+            p := MD5_Matched_Pool.Add_Null;
+            p^.Data.FPos := stream.Position;
+            p^.Data.Size := Chunk_Size;
             tmp.Clear;
             tmp.CopyFrom(stream, Chunk_Size);
-            MD5_Buff.Add(tmp.ToMD5);
+            p^.Data.LMD5 := tmp.ToMD5;
+            p^.Data.RMD5 := NullMD5;
+            p^.Data.RFound := False;
             THashMD5.UpdateMD5(md5_cont, tmp.Memory^, Chunk_Size);
             dec(Siz, Chunk_Size);
           end
         else if Siz > 0 then
           begin
+            p := MD5_Matched_Pool.Add_Null;
+            p^.Data.FPos := stream.Position;
+            p^.Data.Size := Siz;
             tmp.Clear;
             tmp.CopyFrom(stream, Siz);
-            MD5_Buff.Add(tmp.ToMD5);
+            p^.Data.LMD5 := tmp.ToMD5;
+            p^.Data.RMD5 := NullMD5;
+            p^.Data.RFound := False;
             THashMD5.UpdateMD5(md5_cont, tmp.Memory^, Siz);
-            THashMD5.FinalizeMD5(md5_cont, MD5);
+            THashMD5.FinalizeMD5(md5_cont, Stream_Final_MD5__);
             Siz := 0;
           end;
         if IsExit then
@@ -1838,7 +1936,9 @@ begin
       Do_Done_And_DelayFree(False, 'no connection.');
       exit;
     end;
-  Client.CheckAndCopy_NetDisk_File_M(MD5, umlCombineUnixFileName(DB_Field, DB_Item), FileTime_, stream.Size, {$IFDEF FPC}@{$ENDIF FPC}Do_CheckAndCopy_NetDisk_File);
+  // matched remote
+  Client.CheckAndCopy_NetDisk_File_M(Stream_Final_MD5__,
+    umlCombineUnixFileName(DB_Field, DB_Item), FileTime_, stream.Size, {$IFDEF FPC}@{$ENDIF FPC}Do_CheckAndCopy_NetDisk_File);
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_Compute_Stream_MD5_Error;
@@ -1849,7 +1949,6 @@ end;
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_CheckAndCopy_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);
 var
   arry: TArrayMD5;
-  i: Integer;
 begin
   State_Total := stream.Size;
   State_Completed := 0;
@@ -1866,14 +1965,22 @@ begin
       if Assigned(Client.OnEvent) then
           Client.OnEvent.Do_Auto_Post_State(Client, UserData, stream, State_Completed, State_Total);
     end;
-  SetLength(arry, umlMin(100, MD5_Buff.Count));
-  for i := low(arry) to high(arry) do
-      arry[i] := MD5_Buff[i];
+
+  // search optimzied FS
+  SetLength(arry, umlMin(50, MD5_Matched_Pool.Num));
+  if MD5_Matched_Pool.Num > 0 then
+    with MD5_Matched_Pool.Repeat_ do
+      repeat
+          arry[I__] := Queue^.Data.LMD5;
+      until (not Next) or (I__ = length(arry));
+
   Client.SearchMultiMD5_FS_Service_M(arry, {$IFDEF FPC}@{$ENDIF FPC}Do_SearchMultiMD5_FS_Service);
   SetLength(arry, 0);
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_SearchMultiMD5_FS_Service(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);
+var
+  arry: TArrayMD5;
 begin
   if not Successed then
     begin
@@ -1881,8 +1988,39 @@ begin
       exit;
     end;
   Current_FS2_AliasOrHash := info;
+
+  SetLength(arry, MD5_Matched_Pool.Num);
+  if MD5_Matched_Pool.Num > 0 then
+    with MD5_Matched_Pool.Repeat_ do
+      repeat
+          arry[I__] := Queue^.Data.LMD5;
+      until (not Next);
+  Client.Get_NetDisk_Multi_File_Frag_MD5_M(Current_FS2_AliasOrHash, arry, {$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_Multi_File_Frag_MD5);
+  SetLength(arry, 0);
+end;
+
+procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_Get_NetDisk_Multi_File_Frag_MD5(sender: TC40_NetDisk_VM_Client;
+  arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array);
+begin
   Client.BeginPost_NetDisk_File_M(Current_FS2_AliasOrHash,
-    MD5, umlCombineUnixFileName(DB_Field, DB_Item), FileTime_, stream.Size, {$IFDEF FPC}@{$ENDIF FPC}Do_BeginPost_NetDisk_File);
+    Stream_Final_MD5__,
+    umlCombineUnixFileName(DB_Field, DB_Item), FileTime_, stream.Size, {$IFDEF FPC}@{$ENDIF FPC}Do_BeginPost_NetDisk_File);
+
+  // compute remote md5
+  if MD5_Matched_Pool.Num > 0 then
+    with MD5_Matched_Pool.Repeat_ do
+      repeat
+        Queue^.Data.RMD5 := arry[I__].MD5;
+        Queue^.Data.RFound := arry[I__].IsFound;
+
+        if Queue^.Data.RFound and umlMD5Compare(Queue^.Data.LMD5, Queue^.Data.RMD5) then
+          begin
+            Client.Fast_Copy_NetDisk_File_Frag(Current_FS2_AliasOrHash, Queue^.Data.LMD5, Queue^.Data.FPos, Queue^.Data.Size);
+            MD5_Matched_Pool.Push_To_Recycle_Pool(Queue);
+          end;
+      until (not Next);
+
+  MD5_Matched_Pool.Free_Recycle_Pool;
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_BeginPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);
@@ -1893,46 +2031,25 @@ begin
       exit;
     end;
 
-  Current_Stream_Chunk_Pos := 0;
-  Current_Stream_Chunk_Siz := umlMin(Chunk_Size, stream.Size - Current_Stream_Chunk_Pos);
-  Current_Stream_Chunk.Clear;
-  stream.Position := Current_Stream_Chunk_Pos;
-  Current_Stream_Chunk.CopyFrom(stream, Current_Stream_Chunk_Siz);
-  Current_Stream_Chunk_MD5 := Current_Stream_Chunk.ToMD5;
-
-  Client.CheckAndCopy_NetDisk_File_Frag_M(Current_FS2_AliasOrHash,
-    Current_Stream_Chunk_MD5, Current_Stream_Chunk_Pos, Current_Stream_Chunk_Siz, {$IFDEF FPC}@{$ENDIF FPC}Do_CheckAndCopy_NetDisk_File_Frag);
-end;
-
-procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_CheckAndCopy_NetDisk_File_Frag(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);
-begin
-  if Successed then
+  if MD5_Matched_Pool.Num > 0 then
     begin
-      State_Completed := Current_Stream_Chunk_Pos;
-      if Assigned(Client.OnEvent) then
-          Client.OnEvent.Do_Auto_Post_State(Client, UserData, stream, State_Completed, State_Total);
-
-      if Current_Stream_Chunk_Pos + Current_Stream_Chunk_Siz >= stream.Size then
-        begin
-          // successed
-          Client.EndPost_NetDisk_File_M({$IFDEF FPC}@{$ENDIF FPC}Do_EndPost_NetDisk_File);
-          exit;
-        end;
-
-      // to next chunk
-      inc(Current_Stream_Chunk_Pos, Current_Stream_Chunk_Siz);
-      Current_Stream_Chunk_Siz := umlMin(Chunk_Size, stream.Size - Current_Stream_Chunk_Pos);
+      Current_Stream_Chunk_Pos := MD5_Matched_Pool.First^.Data.FPos;
+      Current_Stream_Chunk_Siz := MD5_Matched_Pool.First^.Data.Size;
       Current_Stream_Chunk.Clear;
       stream.Position := Current_Stream_Chunk_Pos;
       Current_Stream_Chunk.CopyFrom(stream, Current_Stream_Chunk_Siz);
       Current_Stream_Chunk_MD5 := Current_Stream_Chunk.ToMD5;
 
-      Client.CheckAndCopy_NetDisk_File_Frag_M(Current_FS2_AliasOrHash,
-        Current_Stream_Chunk_MD5, Current_Stream_Chunk_Pos, Current_Stream_Chunk_Siz, {$IFDEF FPC}@{$ENDIF FPC}Do_CheckAndCopy_NetDisk_File_Frag);
+      Client.Post_NetDisk_File_Frag(False, Current_Stream_Chunk_Pos, @Ptr_, Current_Stream_Chunk.Memory, Current_Stream_Chunk.Size);
+
+      State_Completed := Current_Stream_Chunk_Pos;
+      if Assigned(Client.OnEvent) then
+          Client.OnEvent.Do_Auto_Post_State(Client, UserData, stream, State_Completed, State_Total);
     end
   else
     begin
-      Client.Post_NetDisk_File_Frag(Current_Stream_Chunk_Pos, @Ptr_, Current_Stream_Chunk.Memory, Current_Stream_Chunk.Size);
+      // successed
+      Client.EndPost_NetDisk_File_M({$IFDEF FPC}@{$ENDIF FPC}Do_EndPost_NetDisk_File);
     end;
 end;
 
@@ -1944,28 +2061,28 @@ begin
       exit;
     end;
 
-  State_Completed := Current_Stream_Chunk_Pos;
-  if Assigned(Client.OnEvent) then
-      Client.OnEvent.Do_Auto_Post_State(Client, UserData, stream, State_Completed, State_Total);
+  MD5_Matched_Pool.Next;
 
-  if Current_Stream_Chunk_Pos + Current_Stream_Chunk_Siz >= stream.Size then
+  if MD5_Matched_Pool.Num > 0 then
+    begin
+      Current_Stream_Chunk_Pos := MD5_Matched_Pool.First^.Data.FPos;
+      Current_Stream_Chunk_Siz := MD5_Matched_Pool.First^.Data.Size;
+      Current_Stream_Chunk.Clear;
+      stream.Position := Current_Stream_Chunk_Pos;
+      Current_Stream_Chunk.CopyFrom(stream, Current_Stream_Chunk_Siz);
+      Current_Stream_Chunk_MD5 := Current_Stream_Chunk.ToMD5;
+
+      Client.Post_NetDisk_File_Frag(False, Current_Stream_Chunk_Pos, @Ptr_, Current_Stream_Chunk.Memory, Current_Stream_Chunk.Size);
+
+      State_Completed := Current_Stream_Chunk_Pos;
+      if Assigned(Client.OnEvent) then
+          Client.OnEvent.Do_Auto_Post_State(Client, UserData, stream, State_Completed, State_Total);
+    end
+  else
     begin
       // successed
       Client.EndPost_NetDisk_File_M({$IFDEF FPC}@{$ENDIF FPC}Do_EndPost_NetDisk_File);
-      exit;
     end;
-
-  // to next chunk
-  inc(Current_Stream_Chunk_Pos, Current_Stream_Chunk_Siz);
-  Current_Stream_Chunk_Siz := umlMin(Chunk_Size, stream.Size - Current_Stream_Chunk_Pos);
-  Current_Stream_Chunk.Clear;
-  stream.Position := Current_Stream_Chunk_Pos;
-  Current_Stream_Chunk.CopyFrom(stream, Current_Stream_Chunk_Siz);
-  Current_Stream_Chunk_MD5 := Current_Stream_Chunk.ToMD5;
-
-  // recheck frag
-  Client.CheckAndCopy_NetDisk_File_Frag_M(Current_FS2_AliasOrHash,
-    Current_Stream_Chunk_MD5, Current_Stream_Chunk_Pos, Current_Stream_Chunk_Siz, {$IFDEF FPC}@{$ENDIF FPC}Do_CheckAndCopy_NetDisk_File_Frag);
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_EndPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);
@@ -1979,8 +2096,6 @@ end;
 constructor TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Create;
 begin
   inherited Create;
-  Current_Remote_Frag_Index := 0;
-  SetLength(Current_Local_MD5_Chunk, 0);
   IsBusy := False;
   IsExit := False;
   Ptr_.Instance_ := self;
@@ -1988,7 +2103,10 @@ begin
   OnResultC := nil;
   OnResultM := nil;
   OnResultP := nil;
-  Remote_Frag_List := TDirectory_MD5_Data_Frag_Struct_List.Create;
+  MD5_Matched_Pool := TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched_Pool.Create;
+  Stream_Final_MD5__ := NullMD5;
+  Stream_Final_Size__ := 0;
+  Stream_Final_Time__ := umlNow;
   stream := nil;
   Done_Free_Stream := False;
   State_Completed := 0;
@@ -1998,7 +2116,7 @@ end;
 
 destructor TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Destroy;
 begin
-  DisposeObject(Remote_Frag_List);
+  DisposeObject(MD5_Matched_Pool);
   if Done_Free_Stream then
       DisposeObjectAndNil(stream);
   inherited Destroy;
@@ -2035,10 +2153,11 @@ begin
   DelayFreeObject(0.1, self);
 end;
 
-procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Usr_Get_NetDisk_File_Frag_Info(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String; L: TDirectory_MD5_Data_Frag_Struct_List);
+procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Usr_Get_NetDisk_File_Frag_Info(sender: TC40_NetDisk_VM_Client;
+  Successed: Boolean; info: U_String; L: TDirectory_MD5_Data_Frag_Struct_List);
 var
   i: Integer;
-  p: PDirectory_MD5_Data_Frag_Struct;
+  p: TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File_MD5_Matched_Pool.PQueueStruct;
 begin
   if not Successed then
     begin
@@ -2047,14 +2166,23 @@ begin
     end;
   for i := 0 to L.Count - 1 do
     begin
-      new(p);
-      p^ := L[i]^;
-      Remote_Frag_List.Add(p);
+      p := MD5_Matched_Pool.Add_Null;
+      p^.Data.FS_AliasOrHash := L[i]^.FS_AliasOrHash;
+      p^.Data.FPos := L[i]^.Pos_;
+      p^.Data.Size := L[i]^.Size_;
+
+      if not umlStrIsMD5(L[i]^.FS_File) then
+        begin
+          Do_Done_And_DelayFree(Successed, 'MD5 format error.');
+          exit;
+        end;
+      p^.Data.RMD5 := umlStrToMD5(L[i]^.FS_File);
     end;
-  Remote_Frag_List.MD5 := L.MD5;
-  Remote_Frag_List.Size := L.Size;
-  Remote_Frag_List.Time_ := L.Time_;
-  State_Total := Remote_Frag_List.Size;
+  Stream_Final_MD5__ := L.MD5;
+  Stream_Final_Size__ := L.Size;
+  Stream_Final_Time__ := L.Time_;
+
+  State_Total := Stream_Final_Size__;
   State_Completed := 0;
 
   TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Compute_Local_Frag);
@@ -2063,23 +2191,16 @@ begin
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Compute_Local_Frag;
-var
-  i: Integer;
-  p: PDirectory_MD5_Data_Frag_Struct;
 begin
-  Remote_Frag_List.SortPos;
   State_Completed := 0;
 
   if Assigned(Client.OnEvent) then
       Client.OnEvent.Do_Auto_Begin_MD5(Client, UserData, stream);
   try
-    stream.Size := Remote_Frag_List.Size;
-    SetLength(Current_Local_MD5_Chunk, Remote_Frag_List.Count);
-    for i := 0 to Remote_Frag_List.Count - 1 do
-        Current_Local_MD5_Chunk[i] := Null_Buff_MD5;
+    stream.Size := Stream_Final_Size__;
 
     // compare stream md5
-    if umlCompareMD5(umlStreamMD5(stream), Remote_Frag_List.MD5) or (Remote_Frag_List.Count = 0) then
+    if umlCompareMD5(umlStreamMD5(stream), Stream_Final_MD5__) or (MD5_Matched_Pool.Num = 0) then
       begin
         if Assigned(Client.OnEvent) then
             Client.OnEvent.Do_Auto_End_MD5(Client, UserData, stream);
@@ -2087,18 +2208,15 @@ begin
         exit;
       end;
 
-    // compute local fragment
-    i := 0;
-    for i := 0 to Remote_Frag_List.Count - 1 do
-      begin
-        p := Remote_Frag_List[i];
-        try
-            Current_Local_MD5_Chunk[i] := umlStreamMD5(stream, p^.Pos_, p^.Pos_ + p^.Size_);
-        except
-            Current_Local_MD5_Chunk[i] := Null_Buff_MD5;
-        end;
-      end;
-    Current_Remote_Frag_Index := 0;
+    if MD5_Matched_Pool.Num > 0 then
+      with MD5_Matched_Pool.Repeat_ do
+        repeat
+          Queue^.Data.LMD5 := umlStreamMD5(stream, Queue^.Data.FPos, Queue^.Data.FPos + Queue^.Data.Size);
+          if umlMD5Compare(Queue^.Data.LMD5, Queue^.Data.RMD5) then
+              MD5_Matched_Pool.Push_To_Recycle_Pool(Queue);
+        until not Next;
+    MD5_Matched_Pool.Free_Recycle_Pool;
+
     if Assigned(Client.OnEvent) then
         Client.OnEvent.Do_Auto_End_MD5(Client, UserData, stream);
     SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Download_Frag);
@@ -2131,66 +2249,33 @@ begin
   IsBusy := False;
   if IsExit then
       exit;
-  Client.Get_NetDisk_File_Frag_MD5_M(
-    Remote_Frag_List[Current_Remote_Frag_Index]^.FS_AliasOrHash,
-    Remote_Frag_List[Current_Remote_Frag_Index]^.FS_File,
-{$IFDEF FPC}@{$ENDIF FPC}Do_Get_NetDisk_File_Frag_MD5);
-end;
 
-procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Get_NetDisk_File_Frag_MD5(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String; MD5: TMD5);
-begin
-  if Successed and umlCompareMD5(MD5, Current_Local_MD5_Chunk[Current_Remote_Frag_Index]) then
+  if MD5_Matched_Pool.Num > 0 then
     begin
-      if not Client.Client.QuietMode then
-          DoStatus('skip chunk position:%d size:%d md5:%s',
-          [Remote_Frag_List[Current_Remote_Frag_Index]^.Pos_, Remote_Frag_List[Current_Remote_Frag_Index]^.Size_, umlMD5ToStr(MD5).Text]);
-
-      State_Completed := State_Completed + Remote_Frag_List[Current_Remote_Frag_Index]^.Size_;
-      if Assigned(Client.OnEvent) then
-          Client.OnEvent.Do_Auto_Get_State(Client, UserData, stream, State_Completed, State_Total);
-
-      // do next
-      if Current_Remote_Frag_Index + 1 < Remote_Frag_List.Count then
-        begin
-          inc(Current_Remote_Frag_Index);
-          Do_Download_Frag();
-        end
-      else
-        begin
-          Do_File_Downloaded();
-        end;
+      Client.Get_NetDisk_File_Frag(
+        MD5_Matched_Pool.First^.Data.FS_AliasOrHash,
+        umlMD5ToStr(MD5_Matched_Pool.First^.Data.RMD5),
+        MD5_Matched_Pool.First^.Data.FPos,
+        @Ptr_);
     end
   else
     begin
-      // begin download
-      Client.Get_NetDisk_File_Frag(
-        Remote_Frag_List[Current_Remote_Frag_Index]^.FS_AliasOrHash,
-        Remote_Frag_List[Current_Remote_Frag_Index]^.FS_File,
-        Remote_Frag_List[Current_Remote_Frag_Index]^.Pos_,
-        @Ptr_);
+      Do_File_Downloaded;
     end;
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Download_Frag_Done(m64: TMS64);
 begin
   m64.Position := 0;
-  stream.Position := Remote_Frag_List[Current_Remote_Frag_Index]^.Pos_;
+  stream.Position := MD5_Matched_Pool.First^.Data.FPos;
   stream.CopyFrom(m64, m64.Size);
 
   State_Completed := State_Completed + m64.Size;
   if Assigned(Client.OnEvent) then
       Client.OnEvent.Do_Auto_Get_State(Client, UserData, stream, State_Completed, State_Total);
 
-  // do next
-  if Current_Remote_Frag_Index + 1 < Remote_Frag_List.Count then
-    begin
-      inc(Current_Remote_Frag_Index);
-      Do_Download_Frag();
-    end
-  else
-    begin
-      Do_File_Downloaded();
-    end;
+  MD5_Matched_Pool.Next;
+  Do_Download_Frag;
 end;
 
 procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Download_Frag_Error;
@@ -3162,13 +3247,27 @@ begin
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_VM_Client.Post_NetDisk_File_Frag(Pos_: Int64; Event_, buff: Pointer; buff_size: Int64);
+procedure TC40_NetDisk_VM_Client.Fast_Copy_NetDisk_File_Frag(alias_or_hash_: U_String; frag_md5_: TMD5; frag_pos_, frag_size_: Int64);
+var
+  d: TDFE;
+begin
+  d := TDFE.Create;
+  d.WriteString(alias_or_hash_);
+  d.WriteMD5(frag_md5_);
+  d.WriteInt64(frag_pos_);
+  d.WriteInt64(frag_size_);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Fast_Copy_NetDisk_File_Frag', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Post_NetDisk_File_Frag(RealTime_Reponse_: Boolean; Pos_: Int64; Event_, buff: Pointer; buff_size: Int64);
 var
   tmp: TMem64;
 begin
   tmp := TMem64.Create;
-  tmp.Size := buff_size + 16;
+  tmp.Size := buff_size + 17;
   tmp.Position := 0;
+  tmp.WriteBool(RealTime_Reponse_);
   tmp.WriteInt64(Pos_);
   tmp.WriteUInt64(UInt64(Event_));
   tmp.WritePtr(buff, buff_size);
@@ -3310,6 +3409,60 @@ begin
   d.WriteString(alias_or_hash_);
   d.WriteString(FS_File);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_File_Frag_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_Multi_File_Frag_MD5_C(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5C);
+var
+  tmp: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(alias_or_hash_);
+  for i := low(md5_arry) to high(md5_arry) do
+      d.WriteMD5(md5_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Multi_File_Frag_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_Multi_File_Frag_MD5_M(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5M);
+var
+  tmp: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(alias_or_hash_);
+  for i := low(md5_arry) to high(md5_arry) do
+      d.WriteMD5(md5_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Multi_File_Frag_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_VM_Client.Get_NetDisk_Multi_File_Frag_MD5_P(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P);
+var
+  tmp: TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5;
+  d: TDFE;
+  i: Integer;
+begin
+  tmp := TC40_NetDisk_VM_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(alias_or_hash_);
+  for i := low(md5_arry) to high(md5_arry) do
+      d.WriteMD5(md5_arry[i]);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_Multi_File_Frag_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3505,7 +3658,7 @@ begin
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_VM_Client.Build_Share_Disk_C(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskC);
+procedure TC40_NetDisk_VM_Client.Build_Share_Disk_C(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskC);
 var
   tmp: TC40_NetDisk_VM_Client_On_Usr_Build_Share_Disk;
   d: TDFE;
@@ -3515,11 +3668,12 @@ begin
   tmp.OnResultC := OnResult;
 
   d := TDFE.Create;
+  d.WriteString(Ref_Share_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Build_Share_Disk', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_VM_Client.Build_Share_Disk_M(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskM);
+procedure TC40_NetDisk_VM_Client.Build_Share_Disk_M(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskM);
 var
   tmp: TC40_NetDisk_VM_Client_On_Usr_Build_Share_Disk;
   d: TDFE;
@@ -3529,11 +3683,12 @@ begin
   tmp.OnResultM := OnResult;
 
   d := TDFE.Create;
+  d.WriteString(Ref_Share_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Build_Share_Disk', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
-procedure TC40_NetDisk_VM_Client.Build_Share_Disk_P(OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskP);
+procedure TC40_NetDisk_VM_Client.Build_Share_Disk_P(Ref_Share_Name: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_Build_Share_DiskP);
 var
   tmp: TC40_NetDisk_VM_Client_On_Usr_Build_Share_Disk;
   d: TDFE;
@@ -3543,6 +3698,7 @@ begin
   tmp.OnResultP := OnResult;
 
   d := TDFE.Create;
+  d.WriteString(Ref_Share_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Build_Share_Disk', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
