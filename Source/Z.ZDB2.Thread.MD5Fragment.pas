@@ -238,7 +238,7 @@ begin
       tmp.Size := umlRandomRange(16384, 1024 * 1024 * 2);
       TMT19937.Rand32(MaxInt, tmp.Memory, tmp.Size div 4);
       inst_.Set_MD5_Fragment(tmp, True);
-      data_List.Add(inst_.MD5_Pool.Queue_Pool.Last^.Data.Data.Primary);
+      data_List.Add(inst_.MD5_Pool.Queue_Pool.Last^.Data^.Data.Primary);
     end;
   inst_.Marshal.Wait_Busy_Task;
 
