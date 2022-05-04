@@ -283,6 +283,8 @@ type
     R, S: Cardinal;
   end;
 
+  TDoubleTunnel_IO_ID_Big_List = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TDoubleTunnel_IO_ID>;
+
   TDoubleTunnel_IO_ID_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TDoubleTunnel_IO_ID>;
 
   TDoubleTunnel_IO_ID_List = class(TDoubleTunnel_IO_ID_List_Decl)
@@ -343,7 +345,9 @@ type
   PQueueData = ^TQueueData;
   TQueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueData>;
 
-  TSwapSpaceList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TCore_Stream>;
+  TSwapSpaceFileStream = class;
+
+  TSwapSpaceList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TSwapSpaceFileStream>;
 
   TSwapSpaceList = class(TSwapSpaceList_Decl)
   private
@@ -352,17 +356,16 @@ type
     WorkPath: U_String;
     constructor Create;
     destructor Destroy; override;
+    procedure DoFree(var data: TSwapSpaceFileStream); override;
+    function CompareData(Data_1, Data_2: TSwapSpaceFileStream): Boolean; override;
     procedure Lock;
     procedure UnLock;
-    procedure Add(obj: TCore_Stream);
-    procedure Remove(obj: TCore_Stream);
-    procedure Delete(index: Integer);
-    procedure Clean;
   end;
 
   TSwapSpaceFileStream = class(TCore_FileStream)
   private
     FOwnerSwapSpace: TSwapSpaceList;
+    FPoolPtr: TSwapSpaceList_Decl.PQueueStruct;
   public
     class function CreateSwapSpace(stream_: TCore_Stream; OwnerSwapSpace_: TSwapSpaceList): TSwapSpaceFileStream;
     destructor Destroy; override;
@@ -1326,7 +1329,7 @@ type
     procedure WriteCustomBuffer(P_IO: TPeerIO; const buffer: PByte; const Size: NativeInt);
 
     property PrefixName: SystemString read FPrefixName write FPrefixName;
-    property Name: SystemString read FName write FName;
+    property name: SystemString read FName write FName;
 
     { IO backcall interface }
     property IOInterface: IIOInterface read FIOInterface write FIOInterface;
@@ -1994,7 +1997,7 @@ type
     procedure WaitSendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; Timeout: TTimeTick); override;
   end;
 
-  TZNet_WithP2PVM_ClientList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZNet_WithP2PVM_Client>;
+  TZNet_WithP2PVM_ClientList = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZNet_WithP2PVM_Client>;
 
   TZNet_WithP2PVM_Client = class(TZNet_Client)
   protected
@@ -2008,6 +2011,7 @@ type
     FVMClientIO: TP2PVM_PeerIO;
     FVMConnected: Boolean;
     FP2PVM_ClonePool: TZNet_WithP2PVM_ClientList;
+    FP2PVM_ClonePool_Ptr: TZNet_WithP2PVM_ClientList.PQueueStruct;
     FP2PVM_CloneOwner: TZNet_WithP2PVM_Client;
     FP2PVM_Clone_NextProgressDoFreeSelf: Boolean;
   private
@@ -2731,7 +2735,6 @@ end;
 
 procedure FreeBigStream_SwapSpace;
 begin
-  BigStream_SwapSpace.Clean;
   DisposeObjectAndNil(BigStream_SwapSpace);
 end;
 
@@ -4346,6 +4349,20 @@ begin
   inherited Destroy;
 end;
 
+procedure TSwapSpaceList.DoFree(var data: TSwapSpaceFileStream);
+begin
+  if data = nil then
+      exit;
+  data.FOwnerSwapSpace := nil;
+  data.FPoolPtr := nil;
+  DisposeObjectAndNil(data);
+end;
+
+function TSwapSpaceList.CompareData(Data_1, Data_2: TSwapSpaceFileStream): Boolean;
+begin
+  Result := Data_1 = Data_2;
+end;
+
 procedure TSwapSpaceList.Lock;
 begin
   FCritical.Lock;
@@ -4354,46 +4371,6 @@ end;
 procedure TSwapSpaceList.UnLock;
 begin
   FCritical.UnLock;
-end;
-
-procedure TSwapSpaceList.Add(obj: TCore_Stream);
-begin
-  Lock;
-  inherited Add(obj);
-  UnLock;
-end;
-
-procedure TSwapSpaceList.Remove(obj: TCore_Stream);
-var
-  i: Integer;
-begin
-  Lock;
-  i := 0;
-  while i < Count do
-    if Items[i] = obj then
-        inherited Delete(i)
-    else
-        inc(i);
-  UnLock;
-end;
-
-procedure TSwapSpaceList.Delete(index: Integer);
-begin
-  Lock;
-  if (index >= 0) and (index < Count) then
-      inherited Delete(index);
-  UnLock;
-end;
-
-procedure TSwapSpaceList.Clean;
-var
-  i: Integer;
-begin
-  Lock;
-  for i := 0 to Count - 1 do
-      DisposeObject(Items[i]);
-  inherited Clear;
-  UnLock;
 end;
 
 class function TSwapSpaceFileStream.CreateSwapSpace(stream_: TCore_Stream; OwnerSwapSpace_: TSwapSpaceList): TSwapSpaceFileStream;
@@ -4421,7 +4398,7 @@ begin
     Result.CopyFrom(stream_, stream_.Size);
     Result.Position := 0;
     Result.FOwnerSwapSpace := OwnerSwapSpace_;
-    OwnerSwapSpace_.Add(Result);
+    Result.FPoolPtr := OwnerSwapSpace_.Add(Result);
   except
       Result := nil;
   end;
@@ -4432,8 +4409,8 @@ var
   tmpFileName: U_String;
 begin
   tmpFileName := FileName;
-  if FOwnerSwapSpace <> nil then
-      FOwnerSwapSpace.Remove(Self);
+  if (FOwnerSwapSpace <> nil) and (FPoolPtr <> nil) then
+      FOwnerSwapSpace.Remove(FPoolPtr);
   inherited Destroy;
   umlDeletefile(tmpFileName);
 end;
@@ -9444,7 +9421,7 @@ begin
   FSendDataCompressed := True;
   FCompleteBufferCompressed := False;
   SetLength(FCipherSecurityArray, Length(C_CipherSecurity));
-  for i := Low(C_CipherSecurity) to high(C_CipherSecurity) do
+  for i := low(C_CipherSecurity) to high(C_CipherSecurity) do
       FCipherSecurityArray[i] := C_CipherSecurity[i];
 end;
 
@@ -9461,7 +9438,7 @@ begin
   FSendDataCompressed := False;
   FCompleteBufferCompressed := False;
   SetLength(FCipherSecurityArray, Length(C_CipherSecurity));
-  for i := Low(C_CipherSecurity) to high(C_CipherSecurity) do
+  for i := low(C_CipherSecurity) to high(C_CipherSecurity) do
       FCipherSecurityArray[i] := C_CipherSecurity[i];
 end;
 
@@ -10145,7 +10122,7 @@ end;
 function TZNet.GetRandomCipherSecurity: TCipherSecurity;
 begin
   if Length(FCipherSecurityArray) > 0 then
-      Result := FCipherSecurityArray[umlRandomRange(Low(FCipherSecurityArray), High(FCipherSecurityArray))]
+      Result := FCipherSecurityArray[umlRandomRange(low(FCipherSecurityArray), high(FCipherSecurityArray))]
   else
       Result := csNone;
 end;
@@ -10168,7 +10145,7 @@ begin
   CompleteBufferCompressionCondition := Source.CompleteBufferCompressionCondition;
   ProgressMaxDelay := Source.ProgressMaxDelay;
   PrefixName := Source.PrefixName;
-  Name := Source.Name;
+  name := Source.Name;
 end;
 
 procedure TZNet.CopyParamTo(Dest: TZNet);
@@ -10320,7 +10297,7 @@ begin
   FFrameworkIsServer := True;
   FFrameworkIsClient := False;
 
-  Name := '';
+  name := '';
 end;
 
 destructor TZNet_Server.Destroy;
@@ -11582,7 +11559,7 @@ begin
   FFrameworkIsServer := False;
   FFrameworkIsClient := True;
 
-  Name := '';
+  name := '';
 end;
 
 destructor TZNet_Client.Destroy;
@@ -13020,7 +12997,7 @@ begin
   FLinkVMPool := TUInt32HashObjectList.Create;
   FFrameworkWithVM_ID := FrameworkID;
   StopService;
-  Name := 'VMServer';
+  name := 'VMServer';
 end;
 
 destructor TZNet_WithP2PVM_Server.Destroy;
@@ -13228,24 +13205,27 @@ begin
   FVMClientIO := nil;
   FVMConnected := False;
   FP2PVM_ClonePool := TZNet_WithP2PVM_ClientList.Create;
+  FP2PVM_ClonePool_Ptr := nil;
   FP2PVM_CloneOwner := nil;
   FP2PVM_Clone_NextProgressDoFreeSelf := False;
   FOnP2PVMAsyncConnectNotify_C := nil;
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := nil;
-  Name := 'VMClientIO';
+  name := 'VMClientIO';
 end;
 
 destructor TZNet_WithP2PVM_Client.Destroy;
 begin
-  try
-    if FP2PVM_CloneOwner <> nil then
-        FP2PVM_CloneOwner.RemoveCloneClient(Self);
-  except
-  end;
+  if FP2PVM_CloneOwner <> nil then
+      FP2PVM_CloneOwner.RemoveCloneClient(Self);
 
-  while FP2PVM_ClonePool.Count > 0 do
-      DisposeObject(FP2PVM_ClonePool[0]);
+  while FP2PVM_ClonePool.num > 0 do
+    begin
+      FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool := nil;
+      FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool_Ptr := nil;
+      DisposeObjectAndNil(FP2PVM_ClonePool.First^.data);
+      FP2PVM_ClonePool.Next;
+    end;
   DisposeObjectAndNil(FP2PVM_ClonePool);
 
   if FVMClientIO <> nil then
@@ -13273,7 +13253,7 @@ begin
   bridge_.OnResultC := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := Self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);
-  FP2PVM_ClonePool.Add(bridge_.NewClient);
+  bridge_.NewClient.FP2PVM_ClonePool_Ptr := FP2PVM_ClonePool.Add(bridge_.NewClient);
   bridge_.NewClient.AsyncConnectM(IPv6ToStr(FVMClientIO.FIP), FVMClientIO.FPort, {$IFDEF FPC}@{$ENDIF FPC}bridge_.DoAsyncConnectState);
   Result := bridge_;
 end;
@@ -13296,7 +13276,7 @@ begin
   bridge_.OnResultM := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := Self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);
-  FP2PVM_ClonePool.Add(bridge_.NewClient);
+  bridge_.NewClient.FP2PVM_ClonePool_Ptr := FP2PVM_ClonePool.Add(bridge_.NewClient);
   bridge_.NewClient.AsyncConnectM(IPv6ToStr(FVMClientIO.FIP), FVMClientIO.FPort, {$IFDEF FPC}@{$ENDIF FPC}bridge_.DoAsyncConnectState);
   Result := bridge_;
 end;
@@ -13319,26 +13299,15 @@ begin
   bridge_.OnResultP := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := Self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);
-  FP2PVM_ClonePool.Add(bridge_.NewClient);
+  bridge_.NewClient.FP2PVM_ClonePool_Ptr := FP2PVM_ClonePool.Add(bridge_.NewClient);
   bridge_.NewClient.AsyncConnectM(IPv6ToStr(FVMClientIO.FIP), FVMClientIO.FPort, {$IFDEF FPC}@{$ENDIF FPC}bridge_.DoAsyncConnectState);
   Result := bridge_;
 end;
 
 procedure TZNet_WithP2PVM_Client.RemoveCloneClient(client_: TZNet_WithP2PVM_Client);
-var
-  i: Integer;
 begin
-  i := 0;
-  while i < FP2PVM_ClonePool.Count do
-    begin
-      if FP2PVM_ClonePool[i] = client_ then
-        begin
-          FP2PVM_ClonePool[i].FP2PVM_CloneOwner := nil;
-          FP2PVM_ClonePool.Delete(i);
-        end
-      else
-          inc(i);
-    end;
+  if client_.FP2PVM_ClonePool_Ptr <> nil then
+      FP2PVM_ClonePool.Remove(client_.FP2PVM_ClonePool_Ptr);
 end;
 
 procedure TZNet_WithP2PVM_Client.TriggerDoConnectFailed;
@@ -13391,29 +13360,24 @@ end;
 
 procedure TZNet_WithP2PVM_Client.Progress;
 var
-  i: Integer;
-  p2p_: TZNet_WithP2PVM_Client;
+  __repeat__: TZNet_WithP2PVM_ClientList.TRepeat___;
 begin
   inherited Progress;
-  i := 0;
-  while i < FP2PVM_ClonePool.Count do
+  if FP2PVM_ClonePool.num > 0 then
     begin
-      p2p_ := FP2PVM_ClonePool[i];
-      try
-        if p2p_.FP2PVM_Clone_NextProgressDoFreeSelf then
+      __repeat__ := FP2PVM_ClonePool.Repeat_();
+      repeat
+        if __repeat__.Queue^.data.FP2PVM_Clone_NextProgressDoFreeSelf then
           begin
-            p2p_.FP2PVM_CloneOwner := nil;
-            p2p_.Disconnect;
-            DelayFreeObj(1, p2p_);
-            FP2PVM_ClonePool.Delete(i);
+            __repeat__.Queue^.data.FP2PVM_ClonePool := nil;
+            __repeat__.Queue^.data.FP2PVM_ClonePool_Ptr := nil;
+            FP2PVM_ClonePool.Push_To_Recycle_Pool(__repeat__.Queue);
+            PostProgress.PostDelayFreeObject(0.1, __repeat__.Queue^.data);
           end
         else
-          begin
-            p2p_.Progress;
-            inc(i);
-          end;
-      except
-      end;
+            __repeat__.Queue^.data.Progress;
+      until not __repeat__.Next;
+      FP2PVM_ClonePool.Free_Recycle_Pool;
     end;
 end;
 
@@ -13749,10 +13713,15 @@ end;
 
 procedure TZNet_WithP2PVM_Client.Disconnect;
 var
-  i: Integer;
+  __repeat__: TZNet_WithP2PVM_ClientList.TRepeat___;
 begin
-  for i := 0 to FP2PVM_ClonePool.Count - 1 do
-      FP2PVM_ClonePool[i].Disconnect;
+  if FP2PVM_ClonePool.num > 0 then
+    begin
+      __repeat__ := FP2PVM_ClonePool.Repeat_();
+      repeat
+          __repeat__.Queue^.data.Disconnect;
+      until not __repeat__.Next;
+    end;
 
   if FVMClientIO <> nil then
       FVMClientIO.Disconnect;
@@ -15336,7 +15305,7 @@ begin
   FAutoProgressOwnerIOServer := True;
   CustomStableServerProgressing := False;
 
-  Name := 'StableServer';
+  name := 'StableServer';
 end;
 
 destructor TZNet_CustomStableServer.Destroy;
@@ -15755,7 +15724,7 @@ begin
   FOnAsyncConnectNotify_C := nil;
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
-  Name := 'StableClient';
+  name := 'StableClient';
 end;
 
 destructor TZNet_CustomStableClient.Destroy;
