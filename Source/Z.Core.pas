@@ -473,6 +473,7 @@ type
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): Boolean;
     function Find_Data(Data: T_): PQueueStruct;
+    function Remove_Data(Data: T_): Integer;
     function Repeat_(): TRepeat___; overload;
     function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
     function Invert_Repeat_(): TInvert_Repeat___; overload;
@@ -610,6 +611,7 @@ type
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): Boolean;
     function Find_Data(Data: T_): PQueueStruct;
+    function Remove_Data(Data: T_): Integer;
     function Repeat_(): TRepeat___; overload;
     function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
     function Invert_Repeat_(): TInvert_Repeat___; overload;
@@ -773,6 +775,7 @@ type
     procedure Set_Key_Value(Key: TKey_; Value: TValue_);
     property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
     procedure Delete(Key: TKey_);
+    procedure Remove(p: PPair_Pool_Value__);
     function Num: NativeInt;
     property Count: NativeInt read Num;
     function GetSum: NativeInt;
@@ -848,6 +851,7 @@ type
     procedure Set_Key_Value(Key: TKey_; Value: TValue_);
     property Key_Value[Key: TKey_]: TValue_ read Get_Key_Value write Set_Key_Value; default;
     procedure Delete(Key: TKey_);
+    procedure Remove(p: PPair_Pool_Value__);
     function Num: NativeInt;
     property Count: NativeInt read Num;
     function GetSum: NativeInt;
@@ -1303,6 +1307,7 @@ procedure Nop;
 // process Synchronize
 var
   Enabled_Check_Thread_Synchronize_System: Boolean;
+function IsMainThread: Boolean;
 procedure CheckThreadSynchronize; overload;
 function CheckThreadSynchronize(Timeout: Integer): Boolean; overload;
 procedure CheckThreadSync; overload;
@@ -2005,6 +2010,11 @@ end;
 
 procedure Nop;
 begin
+end;
+
+function IsMainThread: Boolean;
+begin
+  Result := TCore_Thread.CurrentThread.ThreadID = MainThreadID;
 end;
 
 procedure CheckThreadSynchronize;
