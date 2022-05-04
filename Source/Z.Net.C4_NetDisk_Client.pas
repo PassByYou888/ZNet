@@ -15,7 +15,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.GHashList,
-  Z.IOThread, Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.APP,
+  Z.IOThread, Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.MD5Fragment,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth,
   Z.Net.C4_NetDisk_Directory,
   Z.Net.C4;
@@ -849,8 +849,23 @@ type
 
   TC40_NetDisk_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Client>;
 
+function Fragment_Cache: TZDB2_MD5_Fragment_Tool;
+
 implementation
 
+var
+  Fragment_Cache__: TZDB2_MD5_Fragment_Tool;
+
+function Fragment_Cache: TZDB2_MD5_Fragment_Tool;
+begin
+  if Fragment_Cache__ = nil then
+    begin
+      Fragment_Cache__ := TZDB2_MD5_Fragment_Tool.Create(1024 * 1024);
+      Fragment_Cache__.BuildOrOpen(umlCombineFileName(C40_RootPath, 'C40_NetDisk_Client_Cache.OX2'), False, False);
+      Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity, Max_Thread_Supported);
+    end;
+  Result := Fragment_Cache__;
+end;
 
 constructor TC40_NetDisk_Client_On_Usr_Auth.Create;
 begin
@@ -2400,6 +2415,8 @@ begin
   m64 := TMS64.Create;
   m64.Mapping(GetOffset(InData, 16), DataSize - 16);
 
+  Fragment_Cache.Set_MD5_Fragment(m64, False);
+
   if Event_ <> nil then
     begin
       PON_Usr_Auto_Get_File_Ptr(Event_)^.Instance_.Do_Download_Frag_Done(m64);
@@ -3254,6 +3271,10 @@ procedure TC40_NetDisk_Client.Post_NetDisk_File_Frag(RealTime_Reponse_: Boolean;
 var
   tmp: TMem64;
 begin
+  // save cache
+  Fragment_Cache.Set_MD5_Fragment(buff, buff_size);
+
+  // send buffer
   tmp := TMem64.Create;
   tmp.Size := buff_size + 17;
   tmp.Position := 0;
@@ -3459,7 +3480,22 @@ end;
 procedure TC40_NetDisk_Client.Get_NetDisk_File_Frag(alias_or_hash_, FS_File: U_String; Pos_: Int64; Event_: Pointer);
 var
   d: TDFE;
+  md5_: TMD5;
+  m64: TMS64;
 begin
+  if umlStrIsMD5(FS_File) then
+    begin
+      md5_ := umlStrToMD5(FS_File);
+      if Fragment_Cache.Exists_MD5_Fragment(md5_) then
+        begin
+          m64 := TMS64.Create;
+          Fragment_Cache.Get_MD5_Fragment(md5_, m64);
+          PON_Usr_Auto_Get_File_Ptr(Event_)^.Instance_.Do_Download_Frag_Done(m64);
+          DisposeObject(m64);
+          exit;
+        end;
+    end;
+
   d := TDFE.Create;
   d.WriteString(alias_or_hash_);
   d.WriteString(FS_File);
@@ -4222,6 +4258,11 @@ end;
 
 initialization
 
+Fragment_Cache__ := nil;
 RegisterC40('NetDisk_Center', nil, TC40_NetDisk_Client);
+
+finalization
+
+DisposeObjectAndNil(Fragment_Cache__);
 
 end.
