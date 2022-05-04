@@ -7,7 +7,8 @@ unit Z.ListEngine;
 
 interface
 
-uses SysUtils, Classes, Variants, Z.Core,
+uses SysUtils, Classes, Variants,
+  Z.Core,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
@@ -1086,6 +1087,20 @@ type
   end;
 {$ENDREGION 'TBackcall_Pool'}
 {$REGION 'Generics decl'}
+
+  TStringBigList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<SystemString>;
+
+  TStringBigList = class(TStringBigList_Decl)
+  public
+    procedure DoFree(var Data: SystemString); override;
+  end;
+
+  TPascalStringBigList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPascalString>;
+
+  TPascalStringBigList = class(TPascalStringBigList_Decl)
+  public
+    procedure DoFree(var Data: TPascalString); override;
+  end;
 
   TUInt8List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Byte>;
   TByteList = TUInt8List;
@@ -8817,6 +8832,16 @@ begin
       if (i >= 0) and (i < FList.Count) and (FList[i] = p) then
           inc(i);
     end;
+end;
+
+procedure TStringBigList.DoFree(var Data: SystemString);
+begin
+  Data := '';
+end;
+
+procedure TPascalStringBigList.DoFree(var Data: TPascalString);
+begin
+  Data := '';
 end;
 
 end.
