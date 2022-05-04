@@ -64,7 +64,7 @@ type
   public
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
-    TimeOut: TTimeTick;
+    Mode: TZDB2_SpaceMode;
     Database_File: U_String;
     OnlyRead: Boolean;
     Delta: Int64;
@@ -157,8 +157,11 @@ type
     procedure Wait_P(On_Wait: TOn_Wait_P);
   end;
 
+  TZDB2_Th_Engine_Marshal_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Marshal>;
+
   TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject)
   private
+    Pool_Ptr: TZDB2_Th_Engine_Marshal_Pool.PQueueStruct;
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
   public
     Data_Marshal: TZDB2_Th_Engine_Marshal_BigList__;
@@ -194,6 +197,9 @@ type
     // test
     class procedure Test();
   end;
+
+var
+  Th_Engine_Marshal_Pool__: TZDB2_Th_Engine_Marshal_Pool;
 
 implementation
 
@@ -369,7 +375,7 @@ begin
   inherited Create;
   Name := '';
   Owner := Owner_;
-  TimeOut := 5000;
+  Mode := smNormal;
   Database_File := '';
   OnlyRead := False;
   Delta := 16 * 1024 * 1024;
@@ -398,7 +404,6 @@ end;
 procedure TZDB2_Th_Engine.ReadConfig(Name_: U_String; cfg: THashStringList);
 begin
   Name := Name_;
-  TimeOut := EStrToInt(cfg.GetDefaultValue('TimeOut', umlIntToStr(TimeOut)), TimeOut);
   Database_File := cfg.GetDefaultValue('database', Database_File);
   OnlyRead := EStrToBool(cfg.GetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead)), OnlyRead);
   Delta := EStrToInt(cfg.GetDefaultValue('Delta', umlIntToStr(Delta)), Delta);
@@ -412,7 +417,6 @@ end;
 
 procedure TZDB2_Th_Engine.WriteConfig(cfg: THashStringList);
 begin
-  cfg.SetDefaultValue('TimeOut', umlIntToStr(TimeOut));
   cfg.SetDefaultValue('database', Database_File);
   cfg.SetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead));
   cfg.SetDefaultValue('Delta', umlIntToStr(Delta));
@@ -463,11 +467,11 @@ begin
       begin
         // check stream
         if not OnlyRead then
-            Engine := TZDB2_Th_Queue.Create(Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+            Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
       end
     else if TZDB2_Core_Space.CheckStream(Stream, Cipher) then // check open from cipher
       begin
-        Engine := TZDB2_Th_Queue.Create(Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+        Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
         if Engine.Sync_Get_And_Clean_Sequence_Table(Queue_Table_) then
           begin
             for ID in Queue_Table_ do
@@ -828,11 +832,13 @@ begin
   Data_Marshal.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
   Engine_Pool := TZDB2_Th_Engine_List.Create;
   Current_Data_Class := TZDB2_Th_Engine_Data;
+  Pool_Ptr := Th_Engine_Marshal_Pool__.Add(self);
 end;
 
 destructor TZDB2_Th_Engine_Marshal.Destroy;
 begin
-  Wait_Busy_Task;
+  Th_Engine_Marshal_Pool__.Remove(Pool_Ptr);
+  Flush;
   disposeObjectAndNil(Engine_Pool);
   disposeObjectAndNil(Data_Marshal);
   inherited Destroy;
@@ -1038,7 +1044,6 @@ const
     'Level=1'#13#10 +
     'Tail=True'#13#10 +
     'CBC=True'#13#10 +
-    'TimeOut=5000'#13#10 +
     #13#10 +
     '[2]'#13#10 +
     'database='#13#10 +
@@ -1050,7 +1055,6 @@ const
     'Level=1'#13#10 +
     'Tail=True'#13#10 +
     'CBC=True'#13#10 +
-    'TimeOut=5000'#13#10 +
     #13#10 +
     '[3]'#13#10 +
     'database='#13#10 +
@@ -1062,7 +1066,6 @@ const
     'Level=1'#13#10 +
     'Tail=True'#13#10 +
     'CBC=True'#13#10 +
-    'TimeOut=5000'#13#10 +
     #13#10 +
     '[4]'#13#10 +
     'database='#13#10 +
@@ -1073,8 +1076,7 @@ const
     'Password=ZDB_2.0'#13#10 +
     'Level=1'#13#10 +
     'Tail=True'#13#10 +
-    'CBC=True'#13#10 +
-    'TimeOut=5000'#13#10;
+    'CBC=True'#13#10;
 
 var
   DM: TZDB2_Th_Engine_Marshal;
@@ -1118,5 +1120,13 @@ begin
 
   disposeObject(DM);
 end;
+
+initialization
+
+Th_Engine_Marshal_Pool__ := TZDB2_Th_Engine_Marshal_Pool.Create;
+
+finalization
+
+disposeObjectAndNil(Th_Engine_Marshal_Pool__);
 
 end.
