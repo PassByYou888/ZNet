@@ -23,6 +23,7 @@ type
     FData_Mem64: TMem64;
     FData_Mem64_MD5: TMD5;
   public
+    TimeOut: TTimeTick;
     constructor Create; override;
     destructor Destroy; override;
     procedure Progress(); override;
@@ -40,6 +41,7 @@ type
     FData_MS64: TMS64;
     FData_MS64_MD5: TMD5;
   public
+    TimeOut: TTimeTick;
     constructor Create; override;
     destructor Destroy; override;
     procedure Progress(); override;
@@ -59,6 +61,7 @@ begin
   FAlive := GetTimeTick();
   FData_Mem64 := nil;
   FData_Mem64_MD5 := NullMD5;
+  TimeOut := 5000;
 end;
 
 destructor TZDB2_Th_Engine_Data_Mem64.Destroy;
@@ -71,7 +74,7 @@ procedure TZDB2_Th_Engine_Data_Mem64.Progress();
 begin
   if FData_Mem64 = nil then
       exit;
-  if (GetTimeTick() - FAlive > Th_Engine.TimeOut) then
+  if (GetTimeTick() - FAlive > TimeOut) then
       Save();
 end;
 
@@ -122,6 +125,7 @@ begin
   FAlive := GetTimeTick();
   FData_MS64 := nil;
   FData_MS64_MD5 := NullMD5;
+  TimeOut := 5000;
 end;
 
 destructor TZDB2_Th_Engine_Data_MS64.Destroy;
@@ -134,7 +138,7 @@ procedure TZDB2_Th_Engine_Data_MS64.Progress();
 begin
   if FData_MS64 = nil then
       exit;
-  if (GetTimeTick() - FAlive > Th_Engine.TimeOut) then
+  if (GetTimeTick() - FAlive > TimeOut) then
       Save();
 end;
 
