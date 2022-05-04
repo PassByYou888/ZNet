@@ -7,7 +7,7 @@ unit Z.ZDB;
 
 interface
 
-uses Z.Core, Z.ZDB.ObjectData_LIB, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine;
+uses Z.Core, Z.ZDB.ObjectData_LIB, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.ZDB2, Z.GHashList;
 
 type
   TItemHandle = Z.ZDB.ObjectData_LIB.TItemHandle_;
@@ -80,6 +80,7 @@ type
   TZDB_Import_Proc = reference to procedure(Sender: TObjectDataManager; sourFile: SystemString; Field_Pos, Item_Pos: Int64);
   TZDB_Export_Proc = reference to procedure(Sender: TObjectDataManager; Field_Pos, Item_Pos: Int64; destFile: SystemString);
 {$ENDIF FPC}
+  TObjectDataManager_Struct_Hash_Info = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<Int64>;
 
   TObjectDataManager = class(TCore_Object)
   protected
@@ -122,6 +123,9 @@ type
     // destroy
     destructor Destroy; override;
 
+    function Build_Struct_Info_As_HashInfo(HashSize_: Integer): TObjectDataManager_Struct_Hash_Info;
+    function Build_Struct_Info_As_BigList(SizeInfo_: Boolean): TStringBigList;
+    function Build_Struct_Info_As_PascalStringList(SizeInfo_: Boolean): TPascalStringList;
     function CopyTo(DestDB: TObjectDataManager): Boolean;
     function CopyToPath(DestDB: TObjectDataManager; destPath: SystemString): Boolean;
     function CopyFieldToPath(Field_Pos: Int64; DestDB: TObjectDataManager; destPath: SystemString): Boolean; overload;
@@ -138,7 +142,8 @@ type
     procedure SaveToParallelCompressionStream(stream: TCore_Stream);
 
     // export to ZDB2 tream
-    procedure Save_To_ZDB2_Stream(stream: TCore_Stream);
+    procedure Save_To_ZDB2_Stream(Cipher_: IZDB2_Cipher; stream: TCore_Stream); overload;
+    procedure Save_To_ZDB2_Stream(stream: TCore_Stream); overload;
 
     // Import recursively
     procedure ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TZDB_Import_Proc); overload;
@@ -395,7 +400,7 @@ implementation
 uses Z.ZDB.ItemStream_LIB,
   Z.MemoryStream,
   Z.Status,
-  Z.ZDB2.FileEncoder, Z.ZDB2;
+  Z.ZDB2.FileEncoder;
 
 const
   SFlush = '.~flush';
@@ -760,6 +765,126 @@ begin
   inherited Destroy;
 end;
 
+function TObjectDataManager.Build_Struct_Info_As_HashInfo(HashSize_: Integer): TObjectDataManager_Struct_Hash_Info;
+var
+  rsHnd: TItemRecursionSearch;
+  fld: TField;
+  itm: TItem;
+begin
+  Result := TObjectDataManager_Struct_Hash_Info.Create(HashSize_, 0);
+  if RecursionSearchFirst('/', '*', rsHnd) then
+    begin
+      Init_TField(fld);
+      Init_TItem(itm);
+      repeat
+        case rsHnd.ReturnHeader.ID of
+          DB_Header_Field_ID:
+            if dbField_OnlyReadFieldRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, fld) then
+                Result.Add(GetFieldPath(rsHnd.ReturnHeader.CurrentHeader), fld.HeaderCount, True);
+          DB_Header_Item_ID:
+            if dbItem_OnlyReadItemRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, itm) then
+                Result.Add(umlCombineUnixFileName(GetFieldPath(rsHnd.ReturnHeader.CurrentHeader), rsHnd.ReturnHeader.Name), itm.Size, False);
+        end;
+      until not RecursionSearchNext(rsHnd);
+    end;
+end;
+
+function TObjectDataManager.Build_Struct_Info_As_BigList(SizeInfo_: Boolean): TStringBigList;
+var
+  rsHnd: TItemRecursionSearch;
+  fld: TField;
+  itm: TItem;
+  space_, tmp: U_String;
+  i: Integer;
+begin
+  Result := TStringBigList.Create;
+  if RecursionSearchFirst('/', '*', rsHnd) then
+    begin
+      if SizeInfo_ then
+        begin
+          Init_TField(fld);
+          Init_TItem(itm);
+        end;
+
+      repeat
+        case rsHnd.ReturnHeader.ID of
+          DB_Header_Field_ID:
+            begin
+              space_.L := rsHnd.SearchBuffGo;
+              for i := 0 to rsHnd.SearchBuffGo - 1 do
+                  space_.buff[i] := #9;
+              tmp := space_ + '+ ' + rsHnd.ReturnHeader.Name;
+              if SizeInfo_ then
+                begin
+                  if dbField_OnlyReadFieldRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, fld) then
+                      tmp.Append('=%d', [fld.HeaderCount]);
+                end;
+              Result.Add(tmp);
+              space_.Append(#9);
+            end;
+          DB_Header_Item_ID:
+            begin
+              tmp := space_ + '- ' + rsHnd.ReturnHeader.Name;
+              if SizeInfo_ then
+                begin
+                  if dbItem_OnlyReadItemRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, itm) then
+                      tmp.Append('=' + umlSizeToStr(itm.Size));
+                end;
+              Result.Add(tmp);
+            end;
+        end;
+      until not RecursionSearchNext(rsHnd);
+    end;
+end;
+
+function TObjectDataManager.Build_Struct_Info_As_PascalStringList(SizeInfo_: Boolean): TPascalStringList;
+var
+  rsHnd: TItemRecursionSearch;
+  fld: TField;
+  itm: TItem;
+  space_, tmp: U_String;
+  i: Integer;
+begin
+  Result := TPascalStringList.Create;
+  if RecursionSearchFirst('/', '*', rsHnd) then
+    begin
+      if SizeInfo_ then
+        begin
+          Init_TField(fld);
+          Init_TItem(itm);
+        end;
+
+      repeat
+        case rsHnd.ReturnHeader.ID of
+          DB_Header_Field_ID:
+            begin
+              space_.L := rsHnd.SearchBuffGo;
+              for i := 0 to rsHnd.SearchBuffGo - 1 do
+                  space_.buff[i] := #9;
+              tmp := space_ + '+ ' + rsHnd.ReturnHeader.Name;
+              if SizeInfo_ then
+                begin
+                  if dbField_OnlyReadFieldRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, fld) then
+                      tmp.Append('=%d', [fld.HeaderCount]);
+                end;
+              Result.Add(tmp);
+              space_.Append(#9);
+            end;
+          DB_Header_Item_ID:
+            begin
+              tmp := space_ + '- ' + rsHnd.ReturnHeader.Name;
+              if SizeInfo_ then
+                begin
+                  if dbItem_OnlyReadItemRec(rsHnd.ReturnHeader.DataPosition, FDB_HND.IOHnd, itm) then
+                      tmp.Append('=' + umlSizeToStr(itm.Size));
+                end;
+              Result.Add(tmp);
+            end;
+        end;
+      until not RecursionSearchNext(rsHnd);
+    end;
+end;
+
 function TObjectDataManager.CopyTo(DestDB: TObjectDataManager): Boolean;
 begin
   Result := db_CopyAllTo(FDB_HND, DestDB.FDB_HND);
@@ -846,7 +971,7 @@ begin
   DisposeObject(m64);
 end;
 
-procedure TObjectDataManager.Save_To_ZDB2_Stream(stream: TCore_Stream);
+procedure TObjectDataManager.Save_To_ZDB2_Stream(Cipher_: IZDB2_Cipher; stream: TCore_Stream);
 var
   enc: TZDB2_File_Encoder;
 
@@ -869,10 +994,10 @@ var
 
           DoStatus('%s %s->%s ratio:%d%%',
             [
-            umlCombineUnixFileName(Path_, FI.fileName).Text,
-            umlSizeToStr(FI.Size).Text,
-            umlSizeToStr(FI.Compressed).Text,
-            100 - umlPercentageToInt64(FI.Size, FI.Compressed)]);
+              umlCombineUnixFileName(Path_, FI.fileName).Text,
+              umlSizeToStr(FI.Size).Text,
+              umlSizeToStr(FI.Compressed).Text,
+              100 - umlPercentageToInt64(FI.Size, FI.Compressed)]);
         until not ItemFindNext(itmSR);
       end;
 
@@ -885,10 +1010,15 @@ var
   end;
 
 begin
-  enc := TZDB2_File_Encoder.Create(stream, Get_Parallel_Granularity);
+  enc := TZDB2_File_Encoder.Create(Cipher_, stream, Get_Parallel_Granularity);
   Do_Enc_Path('/');
   enc.Flush;
   DisposeObject(enc);
+end;
+
+procedure TObjectDataManager.Save_To_ZDB2_Stream(stream: TCore_Stream);
+begin
+  Save_To_ZDB2_Stream(nil, stream);
 end;
 
 procedure TObjectDataManager.ImpFromPathP(ImpPath, Path_: SystemString; IncludeSub: Boolean; Notify: TZDB_Import_Proc);
