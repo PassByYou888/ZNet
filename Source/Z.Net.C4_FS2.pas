@@ -99,6 +99,8 @@ type
   TFS2_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TFS2_Client_CacheData>;
 
 {$REGION 'bridge_define'}
+  TP2PVM_Recycle_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TOrderStruct<TZNet_WithP2PVM_Client>;
+
   TC40_FS2_Client_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_Client; State_: Boolean);
   TC40_FS2_Client_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_Client; State_: Boolean) of object;
 {$IFDEF FPC}
@@ -203,14 +205,14 @@ type
     IsFound: Boolean;
   end;
 
-  TFS2_SearchMultiMD5_State_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TFS2_SearchMultiMD5_State>;
+  TFS2_SearchMultiMD5_State_Array = array of TFS2_SearchMultiMD5_State;
 
-  TC40_FS2_Client_SearchMultiMD5C = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
-  TC40_FS2_Client_SearchMultiMD5M = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) of object;
+  TC40_FS2_Client_SearchMultiMD5C = procedure(Sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array);
+  TC40_FS2_Client_SearchMultiMD5M = procedure(Sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array) of object;
 {$IFDEF FPC}
-  TC40_FS2_Client_SearchMultiMD5P = procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List) is nested;
+  TC40_FS2_Client_SearchMultiMD5P = procedure(Sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array) is nested;
 {$ELSE FPC}
-  TC40_FS2_Client_SearchMultiMD5P = reference to procedure(Sender: TC40_FS2_Client; L: TFS2_SearchMultiMD5_State_List);
+  TC40_FS2_Client_SearchMultiMD5P = reference to procedure(Sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array);
 {$ENDIF FPC}
 
   TC40_FS2_Client_SearchMultiMD5 = class(TOnResultBridge)
@@ -360,6 +362,7 @@ type
     Cache_File_Life: Int64;
     FileCacheHashPool: TFS2_Client_CacheHashPool;
     Cache_Database: TZDB2_List_MS64;
+    P2PVM_Recycle_Pool: TP2PVM_Recycle_Pool;
     property MaxFileSize: Cardinal read FMaxFileSize;
     property Remote_FS_DB_Size: Int64 read FRemote_FS_DB_Size;
     property Remote_FS_Num: Int64 read FRemote_FS_Num;
@@ -1151,7 +1154,8 @@ begin
         OnResultP(Client, InData);
   except
   end;
-  p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
+  p2pClient.UnRegisted('PostDone');
+  Client.P2PVM_Recycle_Pool.Push(p2pClient);
 end;
 
 constructor TC40_FS2_Client_Post_File_Cache.Create;
@@ -1197,7 +1201,14 @@ begin
       tmp.Stream.WriteInt32(0);          // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
-      Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+
+      if Client.P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndPostFile(Client.P2PVM_Recycle_Pool.First^.Data);
+          Client.P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
       if doneFree then
           disposeObject(Stream);
     end;
@@ -1258,7 +1269,9 @@ begin
   disposeObject(tmp1);
   disposeObject(tmp2);
 
-  p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
+  p2pClient.UnRegisted('Save');
+  p2pClient.UnRegisted('Error');
+  Client.P2PVM_Recycle_Pool.Push(p2pClient);
 end;
 
 procedure TC40_FS2_Client_Get_File_Tunnel.cmd_Error(Sender: TPeerIO; InData: SystemString);
@@ -1273,7 +1286,9 @@ begin
   except
   end;
 
-  p2pClient.P2PVM_Clone_NextProgressDoFreeSelf := True;
+  p2pClient.UnRegisted('Save');
+  p2pClient.UnRegisted('Error');
+  Client.P2PVM_Recycle_Pool.Push(p2pClient);
 end;
 
 procedure TC40_FS2_Client_Get_File_Tunnel.DoP2PVM_CloneConnectAndGetFile(Sender: TZNet_WithP2PVM_Client);
@@ -1362,45 +1377,47 @@ end;
 
 procedure TC40_FS2_Client_SearchMultiMD5.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
-  L: TFS2_SearchMultiMD5_State_List;
-  State_: TFS2_SearchMultiMD5_State;
+  arry: TFS2_SearchMultiMD5_State_Array;
+  i: Integer;
 begin
-  L := TFS2_SearchMultiMD5_State_List.Create;
+  SetLength(arry, Result_.Count shr 1);
+  i := 0;
   while Result_.R.NotEnd do
     begin
-      State_.MD5 := Result_.R.ReadMD5;
-      State_.IsFound := Result_.R.ReadBool;
-      L.Add(State_);
+      arry[i].MD5 := Result_.R.ReadMD5;
+      arry[i].IsFound := Result_.R.ReadBool;
+      inc(i);
     end;
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
+        OnResultC(Client, arry);
     if Assigned(OnResultM) then
-        OnResultM(Client, L);
+        OnResultM(Client, arry);
     if Assigned(OnResultP) then
-        OnResultP(Client, L);
+        OnResultP(Client, arry);
   except
   end;
-  DelayFreeObject(1.0, Self, L);
+  SetLength(arry, 0);
+  DelayFreeObject(1.0, Self);
 end;
 
 procedure TC40_FS2_Client_SearchMultiMD5.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
-  L: TFS2_SearchMultiMD5_State_List;
+  arry: TFS2_SearchMultiMD5_State_Array;
 begin
-  L := TFS2_SearchMultiMD5_State_List.Create;
+  SetLength(arry, 0);
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
+        OnResultC(Client, arry);
     if Assigned(OnResultM) then
-        OnResultM(Client, L);
+        OnResultM(Client, arry);
     if Assigned(OnResultP) then
-        OnResultP(Client, L);
+        OnResultP(Client, arry);
   except
   end;
-  DelayFreeObject(1.0, Self, L);
+  DelayFreeObject(1.0, Self);
 end;
 
 constructor TC40_FS2_Client_GetMD5Files.Create;
@@ -1517,7 +1534,15 @@ begin
   tmp.OnResultC := OnResultC;
   tmp.OnResultM := OnResultM;
   tmp.OnResultP := OnResultP;
-  Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+
+  if Client.P2PVM_Recycle_Pool.Num > 0 then
+    begin
+      tmp.DoP2PVM_CloneConnectAndGetFile(Client.P2PVM_Recycle_Pool.First^.Data);
+      Client.P2PVM_Recycle_Pool.Next;
+    end
+  else
+      Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+
   Client.DTNoAuth.ProgressEngine.PostDelayFreeObject(1.0, Self, nil);
 end;
 
@@ -1752,10 +1777,13 @@ begin
 
   FMaxFileSize := 0;
   FRemoveCacheList := TPascalStringList.Create;
+
+  P2PVM_Recycle_Pool := TP2PVM_Recycle_Pool.Create;
 end;
 
 destructor TC40_FS2_Client.Destroy;
 begin
+  disposeObject(P2PVM_Recycle_Pool);
   disposeObject(FileCacheHashPool);
   disposeObject(Cache_Database);
   umlDeleteFile(C40_FS2_Cache_FileName);
@@ -1949,7 +1977,13 @@ begin
       tmp.Stream.WriteInt32(0);          // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndPostFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
       if doneFree then
           disposeObject(Stream);
     end;
@@ -1987,7 +2021,13 @@ begin
       tmp.Stream.WriteInt32(0);          // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndPostFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
       if doneFree then
           disposeObject(Stream);
     end;
@@ -2025,7 +2065,13 @@ begin
       tmp.Stream.WriteInt32(0);          // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndPostFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
       if doneFree then
           disposeObject(Stream);
     end;
@@ -2063,7 +2109,13 @@ begin
       tmp.Stream.WriteInt32(0);          // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndPostFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
       if doneFree then
           disposeObject(Stream);
     end;
@@ -2088,7 +2140,13 @@ begin
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndGetFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
@@ -2111,7 +2169,13 @@ begin
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultM := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndGetFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
@@ -2134,7 +2198,13 @@ begin
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.OnResultP := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      if P2PVM_Recycle_Pool.Num > 0 then
+        begin
+          tmp.DoP2PVM_CloneConnectAndGetFile(P2PVM_Recycle_Pool.First^.Data);
+          P2PVM_Recycle_Pool.Next;
+        end
+      else
+          Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
