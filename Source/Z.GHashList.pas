@@ -54,13 +54,6 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TMD5_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TMD5, T_>)
-{$ELSE FPC}
-  TMD5_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TMD5, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
   generic TPointer_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Pointer, T_>)
 {$ELSE FPC}
   TPointer_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Pointer, T_>)
@@ -92,6 +85,13 @@ type
   generic TUInt64_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<UInt64, T_>)
 {$ELSE FPC}
   TUInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<UInt64, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TMD5_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TMD5, T_>)
+{$ELSE FPC}
+  TMD5_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TMD5, T_>)
 {$ENDIF FPC}
   end;
 
@@ -171,6 +171,13 @@ type
   generic TUInt64_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
 {$ELSE FPC}
   TUInt64_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
+{$ELSE FPC}
+  TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
 {$ENDIF FPC}
   end;
 
