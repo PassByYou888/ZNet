@@ -265,6 +265,7 @@ type
   private
     CMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
+    CoreSpace_Mode: TZDB2_SpaceMode;
     CoreSpace_Delta: Int64;
     CoreSpace_BlockSize: Word;
     CoreSpace_Cipher: IZDB2_Cipher;
@@ -275,7 +276,8 @@ type
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
   public
     class function CheckStream(Stream_: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
-    constructor Create(Stream_: TCore_Stream; AutoFree_, OnlyRead_: Boolean; Delta_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
+    constructor Create(Mode_: TZDB2_SpaceMode;
+      Stream_: TCore_Stream; AutoFree_, OnlyRead_: Boolean; Delta_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
     destructor Destroy; override;
 
     // queue state
@@ -819,7 +821,7 @@ var
 begin
   CoreSpace := TZDB2_Core_Space.Create(@CoreSpace_IOHnd);
   CoreSpace.Cipher := CoreSpace_Cipher;
-  CoreSpace.Mode := smNormal;
+  CoreSpace.Mode := CoreSpace_Mode;
   CoreSpace.AutoCloseIOHnd := True;
   CoreSpace.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
   if umlFileSize(CoreSpace_IOHnd) > 0 then
@@ -882,13 +884,15 @@ begin
   Result := TZDB2_Core_Space.CheckStream(Stream_, Cipher_);
 end;
 
-constructor TZDB2_Th_Queue.Create(Stream_: TCore_Stream; AutoFree_, OnlyRead_: Boolean; Delta_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
+constructor TZDB2_Th_Queue.Create(Mode_: TZDB2_SpaceMode;
+  Stream_: TCore_Stream; AutoFree_, OnlyRead_: Boolean; Delta_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
 begin
   inherited Create;
   CMD_Queue := TZDB2_Th_CMD_Queue.Create;
   CMD_Queue.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free_CMD;
   FCMD_Execute_Thread_Is_Runing := False;
   FCMD_Execute_Thread_Is_Exit := False;
+  CoreSpace_Mode := Mode_;
   CoreSpace_Delta := Delta_;
   CoreSpace_BlockSize := BlockSize_;
   CoreSpace_Cipher := Cipher_;
@@ -1443,9 +1447,9 @@ var
   Output_: TZDB2_Th_CMD_ID_And_State_Array;
   i: Integer;
 begin
-  tmp_inst1 := TZDB2_Th_Queue.Create(TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 4096, nil);
-  tmp_inst2 := TZDB2_Th_Queue.Create(TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 1000, nil);
-  tmp_inst3 := TZDB2_Th_Queue.Create(TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 500, nil);
+  tmp_inst1 := TZDB2_Th_Queue.Create(smNormal, TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 4096, nil);
+  tmp_inst2 := TZDB2_Th_Queue.Create(smNormal, TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 1000, nil);
+  tmp_inst3 := TZDB2_Th_Queue.Create(smNormal, TMS64.CustomCreate(1024 * 1024), True, False, 1024 * 1024, 500, nil);
 
   Mem64 := TMS64.Create;
   Mem64.Size := 3992;
