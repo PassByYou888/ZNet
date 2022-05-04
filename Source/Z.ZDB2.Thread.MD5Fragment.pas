@@ -14,7 +14,7 @@ uses Z.Core,
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib,
   Z.MemoryStream, Z.GHashList,
   Z.Status, Z.Cipher, Z.ZDB2, Z.ListEngine, Z.TextDataEngine, Z.Notify, Z.IOThread,
-  Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.APP;
+  Z.ZDB2.Thread.Queue, Z.ZDB2.Thread;
 
 type
   TZDB2_MD5_Fragment_Tool = class;
@@ -41,19 +41,24 @@ type
   private
     procedure Do_Th_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
   public
-    Marshal: TZDB2_Th_Engine_Marshal;
+    ZDB2_Marshal: TZDB2_Th_Engine_Marshal;
     MD5_Pool: TZDB2_MD5_Fragment_Pool;
-    Last_Extract_Num: Int64;
     constructor Create(hash_size_: Integer);
     destructor Destroy; override;
-    function BuildMemory(Encrypt_: Boolean): TZDB2_Th_Engine;
+    function BuildMemory(): TZDB2_Th_Engine;
     function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine;
     procedure Extract_MD5_Pool(ThNum_, Max_Queue_: Integer);
     procedure Clear(Delete_Data_: Boolean);
     procedure Delete(Key: TMD5; Delete_Data_: Boolean);
     function Exists_MD5_Fragment(MD5_: TMD5): Boolean;
     function Get_MD5_Fragment(MD5_: TMD5; IO_: TMS64): Boolean;
-    procedure Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean);
+    procedure Set_MD5_Fragment(buff: Pointer; buff_size: Int64); overload;
+    procedure Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean); overload;
+    procedure Set_MD5_Fragment(MD5_: TMD5; IO_: TMS64; Done_Free_IO_: Boolean); overload;
+    procedure Flush;
+    function Num: NativeInt;
+    function Total: NativeInt;
+    procedure Wait();
 
     class procedure Test();
   end;
@@ -107,34 +112,37 @@ begin
   obj_ := Sender as TZDB2_MD5_Fragment_Data;
   obj_.Owner_MD5_Fragment_Tool := self;
   obj_.MD5_Fragment_Pool_Ptr := MD5_Pool.Add(MD5_, obj_, False);
-  AtomInc(Last_Extract_Num);
 end;
 
 constructor TZDB2_MD5_Fragment_Tool.Create(hash_size_: Integer);
 begin
   inherited Create;
-  Marshal := TZDB2_Th_Engine_Marshal.Create;
-  Marshal.Current_Data_Class := TZDB2_MD5_Fragment_Data;
+  ZDB2_Marshal := TZDB2_Th_Engine_Marshal.Create;
+  ZDB2_Marshal.Current_Data_Class := TZDB2_MD5_Fragment_Data;
   MD5_Pool := TZDB2_MD5_Fragment_Pool.Create(hash_size_, nil);
-  Last_Extract_Num := 0;
 end;
 
 destructor TZDB2_MD5_Fragment_Tool.Destroy;
 begin
-  DisposeObject(Marshal);
+  DisposeObject(ZDB2_Marshal);
   DisposeObject(MD5_Pool);
   inherited Destroy;
 end;
 
-function TZDB2_MD5_Fragment_Tool.BuildMemory(
-  Encrypt_: Boolean): TZDB2_Th_Engine;
+function TZDB2_MD5_Fragment_Tool.BuildMemory(): TZDB2_Th_Engine;
 begin
-
+  Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
+  Result.Mode := smBigData;
+  Result.Database_File := '';
+  Result.OnlyRead := False;
+  Result.Cipher_Security := TCipherSecurity.csNone;
+  Result.Build(ZDB2_Marshal.Current_Data_Class);
 end;
 
 function TZDB2_MD5_Fragment_Tool.BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine;
 begin
-  Result := TZDB2_Th_Engine.Create(Marshal);
+  Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
+  Result.Mode := smNormal;
   Result.Database_File := FileName_;
   Result.OnlyRead := OnlyRead_;
 
@@ -143,34 +151,33 @@ begin
   else
       Result.Cipher_Security := TCipherSecurity.csNone;
 
-  Result.Build(Marshal.Current_Data_Class);
+  Result.Build(ZDB2_Marshal.Current_Data_Class);
 end;
 
 procedure TZDB2_MD5_Fragment_Tool.Extract_MD5_Pool(ThNum_, Max_Queue_: Integer);
 begin
   Clear(False);
-  Marshal.Parallel_Load_M(ThNum_, Max_Queue_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Data_Loaded, nil);
+  ZDB2_Marshal.Parallel_Load_M(ThNum_, Max_Queue_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Data_Loaded, nil);
 end;
 
 procedure TZDB2_MD5_Fragment_Tool.Clear(Delete_Data_: Boolean);
 begin
-  Last_Extract_Num := 0;
   MD5_Pool.Clear;
-  if Marshal.Data_Marshal.Num <= 0 then
+  if ZDB2_Marshal.Data_Marshal.Num <= 0 then
       exit;
 
   if Delete_Data_ then
     begin
-      Marshal.Wait_Busy_Task();
-      with Marshal.Data_Marshal.Repeat_ do
+      ZDB2_Marshal.Wait_Busy_Task();
+      with ZDB2_Marshal.Data_Marshal.Repeat_ do
         repeat
             Queue^.Data.Remove(True);
         until not Next;
-      Marshal.Wait_Busy_Task();
+      ZDB2_Marshal.Wait_Busy_Task();
     end
   else
     begin
-      Marshal.Clear;
+      ZDB2_Marshal.Clear;
     end;
 end;
 
@@ -198,19 +205,58 @@ begin
       Result := obj_.Load_Data(IO_);
 end;
 
-procedure TZDB2_MD5_Fragment_Tool.Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean);
+procedure TZDB2_MD5_Fragment_Tool.Set_MD5_Fragment(buff: Pointer; buff_size: Int64);
 var
-  MD5_: TMD5;
+  m64: TMS64;
+begin
+  m64 := TMS64.Create;
+  m64.Mapping(buff, buff_size);
+  Set_MD5_Fragment(m64, True);
+end;
+
+procedure TZDB2_MD5_Fragment_Tool.Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean);
+begin
+  Set_MD5_Fragment(IO_.ToMD5, IO_, Done_Free_IO_);
+end;
+
+procedure TZDB2_MD5_Fragment_Tool.Set_MD5_Fragment(MD5_: TMD5; IO_: TMS64; Done_Free_IO_: Boolean);
+var
   obj_: TZDB2_MD5_Fragment_Data;
 begin
-  MD5_ := IO_.ToMD5;
-  obj_ := Marshal.Add_Data_To_Minimize_Size_Engine as TZDB2_MD5_Fragment_Data;
+  if MD5_Pool.Exists_Key(MD5_) then
+    begin
+      if Done_Free_IO_ then
+          DisposeObject(IO_);
+      exit;
+    end;
+
+  obj_ := ZDB2_Marshal.Add_Data_To_Minimize_Size_Engine as TZDB2_MD5_Fragment_Data;
   obj_.Owner_MD5_Fragment_Tool := self;
   obj_.MD5_Fragment_Pool_Ptr := MD5_Pool.Add(MD5_, obj_, True);
   if Done_Free_IO_ then
       obj_.Async_Save_And_Free_Data(IO_)
   else
       obj_.Async_Save_And_Free_Data(IO_.Clone);
+end;
+
+procedure TZDB2_MD5_Fragment_Tool.Flush;
+begin
+  ZDB2_Marshal.Flush;
+end;
+
+function TZDB2_MD5_Fragment_Tool.Num: NativeInt;
+begin
+  Result := ZDB2_Marshal.Data_Marshal.Num;
+end;
+
+function TZDB2_MD5_Fragment_Tool.Total: NativeInt;
+begin
+  Result := ZDB2_Marshal.Total;
+end;
+
+procedure TZDB2_MD5_Fragment_Tool.Wait;
+begin
+  ZDB2_Marshal.Wait_Busy_Task;
 end;
 
 class procedure TZDB2_MD5_Fragment_Tool.Test;
@@ -226,8 +272,8 @@ begin
   inst_.Extract_MD5_Pool(4, 100);
   data_List := TMD5_Big_Pool.Create;
 
-  if inst_.Marshal.Data_Marshal.Num > 0 then
-    with inst_.Marshal.Data_Marshal.Repeat_ do
+  if inst_.ZDB2_Marshal.Data_Marshal.Num > 0 then
+    with inst_.ZDB2_Marshal.Data_Marshal.Repeat_ do
       repeat
           data_List.Add(TZDB2_MD5_Fragment_Data(Queue^.Data).MD5_Fragment_Pool_Ptr^.Data.Primary);
       until not Next;
@@ -240,7 +286,7 @@ begin
       inst_.Set_MD5_Fragment(tmp, True);
       data_List.Add(inst_.MD5_Pool.Queue_Pool.Last^.Data^.Data.Primary);
     end;
-  inst_.Marshal.Wait_Busy_Task;
+  inst_.ZDB2_Marshal.Wait_Busy_Task;
 
   if False then
     while data_List.Num > 0 do
@@ -256,8 +302,8 @@ begin
             inst_.Delete(Queue^.Data, True);
       until not Next;
 
-  inst_.Marshal.Wait_Busy_Task;
-  inst_.Marshal.Flush;
+  inst_.ZDB2_Marshal.Wait_Busy_Task;
+  inst_.ZDB2_Marshal.Flush;
 
   DisposeObject(data_List);
   DisposeObject(inst_);
