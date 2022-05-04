@@ -23,7 +23,7 @@ type
     FData_Mem64: TMem64;
     FData_Mem64_MD5: TMD5;
   public
-    constructor Create(); override;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Progress(); override;
     procedure Load; virtual;
@@ -40,7 +40,7 @@ type
     FData_MS64: TMS64;
     FData_MS64_MD5: TMD5;
   public
-    constructor Create(); override;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Progress(); override;
     procedure Load; virtual;
