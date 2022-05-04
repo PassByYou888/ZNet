@@ -409,11 +409,27 @@ begin
 end;
 
 procedure THashTextEngine.DeleteKey(Section_, Key_: SystemString);
+var
+  found_: Boolean;
 begin
+  found_ := False;
   if FSectionHashVariantList.Exists(Section_) then
+    begin
+      found_ := THashVariantList(FSectionHashVariantList[Section_]).Exists(Key_);
       THashVariantList(FSectionHashVariantList[Section_]).Delete(Key_);
+    end;
   if FSectionHashStringList.Exists(Section_) then
+    begin
+      found_ := THashStringList(FSectionHashStringList[Section_]).Exists(Key_);
       THashStringList(FSectionHashStringList[Section_]).Delete(Key_);
+    end;
+  if not found_ then
+    begin
+      Rebuild;
+      HStringList[Section_].Delete(Key_);
+      Rebuild;
+    end;
+
   FIsChanged := True;
 end;
 
