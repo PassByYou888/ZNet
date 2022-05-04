@@ -505,6 +505,27 @@ begin
     end;
 end;
 
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(Data: T_): Integer;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  if FNum > 0 then
+    begin
+      i := 0;
+      p := FFirst;
+      while i < FNum do
+        begin
+          if CompareData(Data, p^.Data) then
+              Push_To_Recycle_Pool(p);
+          inc(i);
+          p := p^.Next;
+        end;
+    end;
+  Result := FRecycle_Pool__.Num;
+  Free_Recycle_Pool();
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Repeat_(): TRepeat___;
 begin
   if Num <= 0 then
@@ -756,9 +777,9 @@ end;
 
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetList(const Index: NativeInt): PQueueStruct;
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^;
+      Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^;
     end
   else
       raiseInfo('error');
@@ -766,9 +787,9 @@ end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetList(const Index: NativeInt; const Value: PQueueStruct);
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^ := Value;
+      PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^ := Value;
     end
   else
       raiseInfo('error');
@@ -776,9 +797,9 @@ end;
 
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetItems(const Index: NativeInt): T_;
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      Result := PQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^.Data;
+      Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^^.Data;
     end
   else
       raiseInfo('error');
@@ -786,9 +807,9 @@ end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetItems(const Index: NativeInt; const Value: T_);
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      PQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^.Data := Value;
+      PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^^.Data := Value;
     end
   else
       raiseInfo('error');
@@ -800,9 +821,9 @@ end;
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Test_Check__: Boolean;
 var
   arry: PQueueArrayStruct;
-  i: integer;
+  i: Integer;
   p, F_P, L_P, P_P, N_P: PQueueStruct;
-  P_P_i, N_P_i: integer;
+  P_P_i, N_P_i: Integer;
 begin
   Result := True;
   if Num = 0 then
@@ -846,10 +867,10 @@ end;
 
 class procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Test;
 type
-  TTest_BigList = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<integer>;
+  TTest_BigList = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Integer>;
 var
   L: TTest_BigList;
-  i, j: integer;
+  i, j: Integer;
 begin
   L := TTest_BigList.Create;
 
@@ -1456,6 +1477,32 @@ begin
   end;
 end;
 
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(Data: T_): Integer;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  FCritical.Lock;
+  try
+    if FNum > 0 then
+      begin
+        i := 0;
+        p := FFirst;
+        while i < FNum do
+          begin
+            if CompareData(Data, p^.Data) then
+                Push_To_Recycle_Pool(p);
+            inc(i);
+            p := p^.Next;
+          end;
+      end;
+    Result := FRecycle_Pool__.Num;
+    Free_Recycle_Pool();
+  finally
+      FCritical.UnLock;
+  end;
+end;
+
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Repeat_(): TRepeat___;
 begin
   if Num <= 0 then
@@ -1757,11 +1804,11 @@ end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetList(const Index: NativeInt): PQueueStruct;
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
       FCritical.Lock;
       try
-          Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^;
+          Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^;
       finally
           FCritical.UnLock;
       end;
@@ -1772,11 +1819,11 @@ end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetList(const Index: NativeInt; const Value: PQueueStruct);
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
       FCritical.Lock;
       try
-          PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^ := Value;
+          PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^ := Value;
       finally
           FCritical.UnLock;
       end;
@@ -1787,9 +1834,9 @@ end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetItems(const Index: NativeInt): T_;
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      Result := PQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^.Data;
+      Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^^.Data;
     end
   else
       raiseInfo('error');
@@ -1797,9 +1844,9 @@ end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetItems(const Index: NativeInt; const Value: T_);
 begin
-  if (Index >= 0) and (Index < FNum) then
+  if (index >= 0) and (index < FNum) then
     begin
-      PQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * Index))^.Data := Value;
+      PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^^.Data := Value;
     end
   else
       raiseInfo('error');
@@ -1811,9 +1858,9 @@ end;
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Test_Check__: Boolean;
 var
   arry: PQueueArrayStruct;
-  i: integer;
+  i: Integer;
   p, F_P, L_P, P_P, N_P: PQueueStruct;
-  P_P_i, N_P_i: integer;
+  P_P_i, N_P_i: Integer;
 begin
   Result := True;
   if Num = 0 then
@@ -1862,10 +1909,10 @@ end;
 
 class procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Test;
 type
-  TCritical_Test_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<integer>;
+  TCritical_Test_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<Integer>;
 var
   L: TCritical_Test_BigList___;
-  i, j: integer;
+  i, j: Integer;
 begin
   L := TCritical_Test_BigList___.Create;
 
