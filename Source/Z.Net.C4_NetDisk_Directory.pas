@@ -383,11 +383,29 @@ type
 
   TCopyItem_Info_Array = array of TCopyItem_Info;
 
+  TCopyItem_Info_Tool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCopyItem_Info>;
+
+  TCopyItem_Info_Tool = class(TCopyItem_Info_Tool_Decl)
+  public
+    procedure DoFree(var Data: TCopyItem_Info); override;
+    procedure Add_CopyItem_Info(Sour_DB_Name, Sour_DB_Field, Sour_DB_Item, Dest_DB_Name, Dest_DB_Field: SystemString);
+    function Build_Array: TCopyItem_Info_Array;
+  end;
+
   TCopyField_Info = record
     Sour_DB_Name, Sour_DB_Field, Dest_DB_Name, Dest_DB_Field: SystemString;
   end;
 
   TCopyField_Info_Array = array of TCopyField_Info;
+
+  TCopyField_Info_Tool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCopyField_Info>;
+
+  TCopyField_Info_Tool = class(TCopyField_Info_Tool_Decl)
+  public
+    procedure DoFree(var Data: TCopyField_Info); override;
+    procedure Add_CopyField_Info(Sour_DB_Name, Sour_DB_Field, Dest_DB_Name, Dest_DB_Field: SystemString);
+    function Build_Array: TCopyField_Info_Array;
+  end;
 
   TON_SearchInvalidFrag_C = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
   TON_SearchInvalidFrag_M = procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray) of object;
@@ -1813,7 +1831,7 @@ begin
     Directory_ZDB2_Cipher);
   Directory_Database.AutoFreeStream := True;
 
-  if Directory_Database.Count > 0 then
+  if Directory_Database.count > 0 then
     with Directory_Database.Repeat_ do
       repeat
         fd := TDirectory_Service_User_File_DB.Create(self, Queue^.Data);
@@ -2260,6 +2278,74 @@ begin
   end;
   SetLength(SearchResult, 0);
   DelayFreeObject(1.0, self);
+end;
+
+procedure TCopyItem_Info_Tool.DoFree(var Data: TCopyItem_Info);
+begin
+  Data.Sour_DB_Name := '';
+  Data.Sour_DB_Field := '';
+  Data.Sour_DB_Item := '';
+  Data.Dest_DB_Name := '';
+  Data.Dest_DB_Field := '';
+end;
+
+procedure TCopyItem_Info_Tool.Add_CopyItem_Info(Sour_DB_Name, Sour_DB_Field, Sour_DB_Item, Dest_DB_Name, Dest_DB_Field: SystemString);
+var
+  p: TCopyItem_Info_Tool_Decl.PQueueStruct;
+begin
+  p := Add_Null;
+  p^.Data.Sour_DB_Name := Sour_DB_Name;
+  p^.Data.Sour_DB_Field := Sour_DB_Field;
+  p^.Data.Sour_DB_Item := Sour_DB_Item;
+  p^.Data.Dest_DB_Name := Dest_DB_Name;
+  p^.Data.Dest_DB_Field := Dest_DB_Field;
+end;
+
+function TCopyItem_Info_Tool.Build_Array: TCopyItem_Info_Array;
+var
+  __repeat__: TCopyItem_Info_Tool_Decl.TRepeat___;
+begin
+  SetLength(Result, Num);
+  if Num > 0 then
+    begin
+      __repeat__ := Repeat_();
+      repeat
+          Result[__repeat__.I__] := __repeat__.Queue^.Data;
+      until not __repeat__.Next;
+    end;
+end;
+
+procedure TCopyField_Info_Tool.DoFree(var Data: TCopyField_Info);
+begin
+  Data.Sour_DB_Name := '';
+  Data.Sour_DB_Field := '';
+  Data.Dest_DB_Name := '';
+  Data.Dest_DB_Field := '';
+end;
+
+procedure TCopyField_Info_Tool.Add_CopyField_Info(Sour_DB_Name, Sour_DB_Field, Dest_DB_Name, Dest_DB_Field: SystemString);
+var
+  p: TCopyField_Info_Tool_Decl.PQueueStruct;
+begin
+  p := Add_Null;
+  p^.Data.Sour_DB_Name := Sour_DB_Name;
+  p^.Data.Sour_DB_Field := Sour_DB_Field;
+  p^.Data.Dest_DB_Name := Dest_DB_Name;
+  p^.Data.Dest_DB_Field := Dest_DB_Field;
+end;
+
+function TCopyField_Info_Tool.Build_Array: TCopyField_Info_Array;
+var
+  __repeat__: TCopyField_Info_Tool_Decl.TRepeat___;
+begin
+  SetLength(Result, Num);
+  if Num > 0 then
+    begin
+      __repeat__ := Repeat_();
+      repeat
+          Result[__repeat__.I__] := __repeat__.Queue^.Data;
+      until not __repeat__.Next;
+    end;
 end;
 
 constructor TON_Temp_SearchInvalidFrag.Create;
