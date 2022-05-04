@@ -1317,9 +1317,7 @@ implementation
 uses Z.Geometry3D, Z.Geometry.Low, Z.DFE, Z.Status;
 
 const
-  // Epsilon
   C_Epsilon = 1.0E-12;
-
   Zero = 0.0;
   PIDiv180 = 0.017453292519943295769236907684886;
 
