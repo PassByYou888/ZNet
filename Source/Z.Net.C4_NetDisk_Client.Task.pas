@@ -175,12 +175,12 @@ begin
       On_All_Done(self);
 
   if All_Done_Do_Auto_Free_Self then
-      DelayFreeObj(1.0, self);
+      DelayFreeObj(0, self);
   if All_Done_Do_Auto_Free_Client then
     begin
       Client.OnEvent := nil;
       Client.C40PhysicsTunnel.OnEvent := nil;
-      DelayFreeObj(1.0, Client.C40PhysicsTunnel);
+      DelayFreeObj(0, Client.C40PhysicsTunnel);
     end;
 end;
 
