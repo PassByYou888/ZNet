@@ -30,6 +30,17 @@ type
   end;
 
 {$IFDEF FPC}
+  generic TPascalString_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TPascalString, T_>)
+{$ELSE FPC}
+  TPascalString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TPascalString, T_>)
+{$ENDIF FPC}
+  public
+    function Get_Key_Hash(Key_: TPascalString): THash; override;
+    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    procedure DoFree(var Key: TPascalString; var Value: T_); override;
+  end;
+
+{$IFDEF FPC}
   generic TSingle_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Single, T_>)
 {$ELSE FPC}
   TSingle_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Single, T_>)
@@ -106,6 +117,17 @@ type
     function Get_Key_Hash(Key_: SystemString): THash; override;
     function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
     procedure DoFree(var Key: SystemString; var Value: T_); override;
+  end;
+
+{$IFDEF FPC}
+  generic TPascalString_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
+{$ELSE FPC}
+  TPascalString_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
+{$ENDIF FPC}
+  public
+    function Get_Key_Hash(Key_: TPascalString): THash; override;
+    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    procedure DoFree(var Key: TPascalString; var Value: T_); override;
   end;
 
 {$IFDEF FPC}
@@ -312,6 +334,23 @@ begin
   inherited DoFree(Key, Value);
 end;
 
+function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: TPascalString): THash;
+begin
+  Result := FastHashPPascalString(@Key_);
+  Result := Get_CRC32(@Result, SizeOf(THash));
+end;
+
+function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+begin
+  Result := Key_1.Same(@Key_2);
+end;
+
+procedure TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: TPascalString; var Value: T_);
+begin
+  Key := '';
+  inherited DoFree(Key, Value);
+end;
+
 constructor TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
 begin
   inherited Create(HashSize_, Null_Value_);
@@ -364,6 +403,23 @@ begin
 end;
 
 procedure TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: SystemString; var Value: T_);
+begin
+  Key := '';
+  inherited DoFree(Key, Value);
+end;
+
+function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: TPascalString): THash;
+begin
+  Result := FastHashPPascalString(@Key_);
+  Result := Get_CRC32(@Result, SizeOf(THash));
+end;
+
+function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+begin
+  Result := Key_1.Same(@Key_2);
+end;
+
+procedure TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: TPascalString; var Value: T_);
 begin
   Key := '';
   inherited DoFree(Key, Value);
