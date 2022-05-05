@@ -30,7 +30,7 @@ type
     procedure Cmd_BigStreamPostInfo(Sender: TPeerIO; InData: SystemString);
     procedure Cmd_TestCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure Cmd_RemoteInfo(Sender: TPeerIO; InData: SystemString);
-    procedure Delay_RunTestReponse(Sender: TNPostExecute);
+    procedure Delay_RunTestReponse(Sender: TN_Post_Execute);
     procedure Cmd_RunTestReponse(Sender: TPeerIO; InData: TDFE);
 
     // server test command result
@@ -143,7 +143,7 @@ begin
   Sender.Print('remote:' + InData);
 end;
 
-procedure TCommunicationTestIntf.Delay_RunTestReponse(Sender: TNPostExecute);
+procedure TCommunicationTestIntf.Delay_RunTestReponse(Sender: TN_Post_Execute);
 begin
   ExecuteAsyncTestWithBigStream(TPeerIO(Sender.Data1));
 end;
@@ -260,8 +260,7 @@ TestBuffMD5 := umlMD5String(TestBuff, TestBuffSize).Text;
 
 finalization
 
-DisposeObject(TestStreamData);
-TestStreamData := nil;
+DisposeObjectAndNil(TestStreamData);
 FreeMem(TestBuff, TestBuffSize);
 
 end.
