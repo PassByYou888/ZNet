@@ -221,6 +221,7 @@ end;
 
 destructor TC40_NoAuth_VM_Service.Destroy;
 begin
+  StopService;
   disposeObject(Service);
   inherited Destroy;
 end;
@@ -280,6 +281,7 @@ end;
 destructor TC40_NoAuth_VM_Client.Destroy;
 begin
   Client.PhysicsTunnel.OnInterface := nil;
+  Client.Disconnect;
   disposeObject(Client);
   inherited Destroy;
 end;
@@ -389,6 +391,7 @@ end;
 
 destructor TC40_VirtualAuth_VM_Service.Destroy;
 begin
+  StopService;
   disposeObject(Service);
   inherited Destroy;
 end;
@@ -448,6 +451,7 @@ end;
 destructor TC40_VirtualAuth_VM_Client.Destroy;
 begin
   Client.PhysicsTunnel.OnInterface := nil;
+  Client.Disconnect;
   disposeObject(Client);
   inherited Destroy;
 end;
@@ -546,6 +550,7 @@ end;
 
 destructor TC40_VM_Service.Destroy;
 begin
+  StopService;
   disposeObject(Service);
   inherited Destroy;
 end;
@@ -605,6 +610,7 @@ end;
 destructor TC40_VM_Client.Destroy;
 begin
   Client.PhysicsTunnel.OnInterface := nil;
+  Client.Disconnect;
   disposeObject(Client);
   inherited Destroy;
 end;
