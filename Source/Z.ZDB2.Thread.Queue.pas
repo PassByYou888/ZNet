@@ -283,6 +283,7 @@ type
     // queue state
     function QueueNum: NativeInt;
     function CoreSpace_Size: Int64;
+    function CoreSpace_Physics_Size: Int64;
     function IsOnlyRead: Boolean;
 
     // sync
@@ -933,6 +934,16 @@ begin
   CMD_Queue.Critical.Lock;
   if CoreSpace <> nil then
       Result := CoreSpace.State^.Physics - CoreSpace.State^.FreeSpace
+  else
+      Result := 0;
+  CMD_Queue.Critical.UnLock;
+end;
+
+function TZDB2_Th_Queue.CoreSpace_Physics_Size: Int64;
+begin
+  CMD_Queue.Critical.Lock;
+  if CoreSpace <> nil then
+      Result := CoreSpace.State^.Physics
   else
       Result := 0;
   CMD_Queue.Critical.UnLock;
