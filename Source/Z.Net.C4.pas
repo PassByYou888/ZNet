@@ -164,12 +164,13 @@ type
     procedure DoConnectAndQuery(Param1: Pointer; Param2: TObject; const state: Boolean);
     procedure DoConnectAndCheckDepend(Param1: Pointer; Param2: TObject; const state: Boolean);
     procedure DoConnectAndBuildDependNetwork(Param1: Pointer; Param2: TObject; const state: Boolean);
-  protected
+  private
     procedure ClientConnected(Sender: TZNet_Client); virtual;
-    procedure Do_Notify_All_Disconnect;
     procedure ClientDisconnect(Sender: TZNet_Client); virtual;
+    procedure Do_Notify_All_Disconnect;
   public
     PhysicsAddr: U_String;
+
     PhysicsPort: Word;
     PhysicsTunnel: TZNet_Client;
     DependNetworkInfoArray: TC40_DependNetworkInfoArray;
@@ -1116,6 +1117,8 @@ begin
       C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
   for i := 0 to C40_PhysicsServicePool.Count - 1 do
       C40_PhysicsServicePool[i].StopService;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+      C40_VM_Client_Pool[i].Disconnect;
   for i := 0 to C40_VM_Service_Pool.Count - 1 do
       C40_VM_Service_Pool[i].StopService;
 
@@ -1140,12 +1143,16 @@ var
 begin
   for i := 0 to C40_PhysicsServicePool.Count - 1 do
       C40_PhysicsServicePool[i].StopService;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+      C40_VM_Service_Pool[i].StopService;
 
   while C40_ServicePool.Count > 0 do
       disposeObject(C40_ServicePool[0]);
   C40_ServicePool.FIPV6_Seed := 1;
   while C40_PhysicsServicePool.Count > 0 do
       disposeObject(C40_PhysicsServicePool[0]);
+  while C40_VM_Service_Pool.Count > 0 do
+      disposeObject(C40_VM_Service_Pool[0]);
 end;
 
 procedure C40Clean_Client;
@@ -1154,11 +1161,15 @@ var
 begin
   for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
       C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+      C40_VM_Client_Pool[i].Disconnect;
 
   while C40_ClientPool.Count > 0 do
       disposeObject(C40_ClientPool[0]);
   while C40_PhysicsTunnelPool.Count > 0 do
       disposeObject(C40_PhysicsTunnelPool[0]);
+  while C40_VM_Client_Pool.Count > 0 do
+      disposeObject(C40_VM_Client_Pool[0]);
 end;
 
 procedure C40PrintRegistation;
@@ -1883,6 +1894,16 @@ begin
   end;
 end;
 
+procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
+begin
+  try
+    if Assigned(OnEvent) then
+        OnEvent.C40_PhysicsTunnel_Disconnect(Self);
+  except
+  end;
+  Sender.PostProgress.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Notify_All_Disconnect);
+end;
+
 procedure TC40_PhysicsTunnel.Do_Notify_All_Disconnect;
 var
   i: Integer;
@@ -1892,16 +1913,6 @@ begin
         DependNetworkClientPool[i].DoNetworkOffline;
   except
   end;
-end;
-
-procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
-begin
-  try
-    if Assigned(OnEvent) then
-        OnEvent.C40_PhysicsTunnel_Disconnect(Self);
-  except
-  end;
-  Sender.PostProgress.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Notify_All_Disconnect);
 end;
 
 constructor TC40_PhysicsTunnel.Create(Addr_: U_String; Port_: Word);
