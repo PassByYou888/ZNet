@@ -45,6 +45,9 @@ type
     property Th_Engine: TZDB2_Th_Engine read FTh_Engine;
     property ID: Integer read FID;
     property Busy_Task_Num: Integer read FBusy_Task_Num;
+    // position
+    procedure MoveToLast;
+    procedure MoveToFirst;
     // assync delete and delay free
     procedure Remove(Delete_Data_: Boolean);
     // sync load.
@@ -64,6 +67,7 @@ type
   public
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
+    RemoveDatabaseOnDestroy: Boolean;
     Mode: TZDB2_SpaceMode;
     Database_File: U_String;
     OnlyRead: Boolean;
@@ -77,11 +81,13 @@ type
     Cipher_CBC: Boolean;
     Engine: TZDB2_Th_Queue;
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList__;
+    Last_Build_Class: TZDB2_Th_Engine_Data_Class;
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal);
     destructor Destroy; override;
     procedure ReadConfig(Name_: U_String; cfg: THashStringList);
     procedure WriteConfig(cfg: THashStringList);
     procedure Clear;
+    procedure Format_Database;
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
     function Flush: Boolean;
@@ -173,6 +179,9 @@ type
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     // clear
     procedure Clear;
+    // database space state
+    function Database_Size: Int64;
+    function Database_Physics_Size: Int64;
     // data num
     function Total: NativeInt;
     // task queue
@@ -188,12 +197,18 @@ type
     procedure Check_Recycle_Pool;
     // flush
     procedure Flush;
+    // remove and rebuild datgabase
+    procedure Format_Database;
     // parallel load
     procedure Parallel_Load_C(ThNum_, Max_Queue_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_C; On_Wait: TOn_Wait_C);
     procedure Parallel_Load_M(ThNum_, Max_Queue_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_M; On_Wait: TOn_Wait_M);
     procedure Parallel_Load_P(ThNum_, Max_Queue_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_P; On_Wait: TOn_Wait_P);
     // progress
     procedure Progress;
+    // RemoveDatabaseOnDestroy
+    function GetRemoveDatabaseOnDestroy: Boolean;
+    procedure SetRemoveDatabaseOnDestroy(const Value: Boolean);
+    property RemoveDatabaseOnDestroy: Boolean read GetRemoveDatabaseOnDestroy write SetRemoveDatabaseOnDestroy;
     // test
     class procedure Test();
   end;
@@ -283,6 +298,22 @@ begin
       Result := FTh_Engine.Engine
   else
       Result := nil;
+end;
+
+procedure TZDB2_Th_Engine_Data.MoveToLast;
+begin
+  if (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil) then
+      FTh_Engine.Th_Engine_Data_Pool.MoveToLast(FTh_Engine_Data_Ptr);
+  if (FOwner <> nil) and (FOwner_Data_Ptr <> nil) then
+      FOwner.Data_Marshal.MoveToLast(FOwner_Data_Ptr);
+end;
+
+procedure TZDB2_Th_Engine_Data.MoveToFirst;
+begin
+  if (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil) then
+      FTh_Engine.Th_Engine_Data_Pool.MoveToFirst(FTh_Engine_Data_Ptr);
+  if (FOwner <> nil) and (FOwner_Data_Ptr <> nil) then
+      FOwner.Data_Marshal.MoveToFirst(FOwner_Data_Ptr);
 end;
 
 procedure TZDB2_Th_Engine_Data.Remove(Delete_Data_: Boolean);
@@ -375,6 +406,7 @@ begin
   inherited Create;
   Name := '';
   Owner := Owner_;
+  RemoveDatabaseOnDestroy := False;
   Mode := smNormal;
   Database_File := '';
   OnlyRead := False;
@@ -390,6 +422,7 @@ begin
   Th_Engine_Data_Pool := TZDB2_Th_Engine_Data_BigList__.Create;
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
   Owner.Engine_Pool.Add(self);
+  Last_Build_Class := TZDB2_Th_Engine_Data;
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -398,12 +431,15 @@ begin
   disposeObjectAndNil(Th_Engine_Data_Pool);
   disposeObjectAndNil(Engine);
   disposeObjectAndNil(Cipher);
+  if RemoveDatabaseOnDestroy and umlFileExists(Database_File) then
+      umlDeleteFile(Database_File);
   inherited Destroy;
 end;
 
 procedure TZDB2_Th_Engine.ReadConfig(Name_: U_String; cfg: THashStringList);
 begin
   Name := Name_;
+  RemoveDatabaseOnDestroy := EStrToBool(cfg.GetDefaultValue('RemoveDatabaseOnDestroy', umlBoolToStr(RemoveDatabaseOnDestroy)), RemoveDatabaseOnDestroy);
   Database_File := cfg.GetDefaultValue('database', Database_File);
   OnlyRead := EStrToBool(cfg.GetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead)), OnlyRead);
   Delta := EStrToInt(cfg.GetDefaultValue('Delta', umlIntToStr(Delta)), Delta);
@@ -417,6 +453,7 @@ end;
 
 procedure TZDB2_Th_Engine.WriteConfig(cfg: THashStringList);
 begin
+  cfg.SetDefaultValue('RemoveDatabaseOnDestroy', umlBoolToStr(RemoveDatabaseOnDestroy));
   cfg.SetDefaultValue('database', Database_File);
   cfg.SetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead));
   cfg.SetDefaultValue('Delta', umlIntToStr(Delta));
@@ -434,15 +471,31 @@ begin
   Th_Engine_Data_Pool.Clear;
 end;
 
+procedure TZDB2_Th_Engine.Format_Database;
+begin
+  if Engine = nil then
+      exit;
+  while Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
+  Th_Engine_Data_Pool.Clear;
+  disposeObjectAndNil(Engine);
+  disposeObjectAndNil(Cipher);
+
+  if umlFileExists(Database_File) then
+      umlDeleteFile(Database_File);
+
+  Build(Last_Build_Class);
+end;
+
 procedure TZDB2_Th_Engine.Build(Data_Class: TZDB2_Th_Engine_Data_Class);
 var
   Stream: TCore_Stream;
   Queue_Table_: TZDB2_BlockHandle;
   ID: Integer;
 begin
+  Th_Engine_Data_Pool.Clear;
   disposeObjectAndNil(Engine);
   disposeObjectAndNil(Cipher);
-  Th_Engine_Data_Pool.Clear;
 
   // init cipher
   if Cipher_Security <> TCipherSecurity.csNone then
@@ -485,7 +538,9 @@ begin
   end;
 
   if Engine = nil then
-      disposeObject(Stream);
+      disposeObject(Stream)
+  else
+      Last_Build_Class := Data_Class;
 end;
 
 procedure TZDB2_Th_Engine.Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
@@ -503,6 +558,7 @@ begin
           Add(Data_Class, ID);
       SetLength(Queue_Table_, 0);
     end;
+  Last_Build_Class := Data_Class;
 end;
 
 function TZDB2_Th_Engine.Flush: Boolean;
@@ -511,6 +567,9 @@ var
 begin
   if Engine = nil then
       exit(False);
+
+  while Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
   Th_Engine_Data_Pool.Free_Recycle_Pool;
   Engine.Async_Flush;
   Queue_ID_List_ := TZDB2_ID_List.Create;
@@ -860,6 +919,28 @@ begin
   Data_Marshal.Clear;
 end;
 
+function TZDB2_Th_Engine_Marshal.Database_Size: Int64;
+begin
+  Result := 0;
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+        if Queue^.Data.Engine <> nil then
+            inc(Result, Queue^.Data.Engine.CoreSpace_Size);
+      until not Next;
+end;
+
+function TZDB2_Th_Engine_Marshal.Database_Physics_Size: Int64;
+begin
+  Result := 0;
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+        if Queue^.Data.Engine <> nil then
+            inc(Result, Queue^.Data.Engine.CoreSpace_Physics_Size);
+      until not Next;
+end;
+
 function TZDB2_Th_Engine_Marshal.Total: NativeInt;
 begin
   Result := 0;
@@ -953,6 +1034,19 @@ begin
   Wait_Busy_Task;
 end;
 
+procedure TZDB2_Th_Engine_Marshal.Format_Database;
+begin
+  Wait_Busy_Task;
+  Check_Recycle_Pool;
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+          Queue^.Data.Format_Database;
+      until not Next;
+  Check_Recycle_Pool;
+  Wait_Busy_Task;
+end;
+
 procedure TZDB2_Th_Engine_Marshal.Parallel_Load_C(ThNum_, Max_Queue_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_C; On_Wait: TOn_Wait_C);
 var
   processor_: TZDB2_Th_Engine_Load_Processor;
@@ -1030,6 +1124,25 @@ begin
       until not Next;
 
   Check_Recycle_Pool;
+end;
+
+function TZDB2_Th_Engine_Marshal.GetRemoveDatabaseOnDestroy: Boolean;
+begin
+  Result := False;
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+          Result := Result or Queue^.Data.RemoveDatabaseOnDestroy;
+      until not Next;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.SetRemoveDatabaseOnDestroy(const Value: Boolean);
+begin
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+          Queue^.Data.RemoveDatabaseOnDestroy := Value;
+      until not Next;
 end;
 
 class procedure TZDB2_Th_Engine_Marshal.Test;
