@@ -175,11 +175,11 @@ begin
       On_All_Done(self);
 
   if All_Done_Do_Auto_Free_Self then
-      DelayFreeObj(1.0, self);
+      DelayFreeObj(0, self);
   if All_Done_Do_Auto_Free_Client then
     begin
       Client.OnEvent := nil;
-      DelayFreeObj(1.0, Client);
+      DelayFreeObj(0, Client);
     end;
 end;
 
