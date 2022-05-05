@@ -15,7 +15,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.GHashList,
-  Z.IOThread, Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.MD5Fragment,
+  Z.IOThread, Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread, Z.ZDB2.Thread.Pair_MD5_Stream,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth,
   Z.Net.C4_NetDisk_Directory,
   Z.Net.C4;
@@ -849,18 +849,18 @@ type
 
   TC40_NetDisk_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Client>;
 
-function Fragment_Cache: TZDB2_MD5_Fragment_Tool;
+function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool;
 
 implementation
 
 var
-  Fragment_Cache__: TZDB2_MD5_Fragment_Tool;
+  Fragment_Cache__: TZDB2_Pair_MD5_Stream_Tool;
 
-function Fragment_Cache: TZDB2_MD5_Fragment_Tool;
+function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool;
 begin
   if Fragment_Cache__ = nil then
     begin
-      Fragment_Cache__ := TZDB2_MD5_Fragment_Tool.Create(1024 * 1024);
+      Fragment_Cache__ := TZDB2_Pair_MD5_Stream_Tool.Create(1024 * 1024);
       Fragment_Cache__.BuildOrOpen(umlCombineFileName(C40_RootPath, 'C40_NetDisk_Client_Cache.OX2'), False, False);
       Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity, Max_Thread_Supported);
     end;
