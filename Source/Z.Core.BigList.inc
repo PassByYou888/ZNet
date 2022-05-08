@@ -99,11 +99,6 @@ begin
       raiseInfo('error');
 {$ENDIF DEBUG}
   DoFree(p^.Data);
-{$IFDEF DEBUG}
-{$IFNDEF Fill_0_On_Generic}
-  FillPtr(p, SizeOf(TQueueStruct), 0);
-{$ENDIF Fill_0_On_Generic}
-{$ENDIF DEBUG}
   Dispose(p);
 end;
 
@@ -196,7 +191,9 @@ begin
       System.FreeMemory(FList);
       FList := nil;
     end;
-  FChanged := False;
+  FFirst := nil;
+  FLast := nil;
+  FChanged := True;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
@@ -247,9 +244,6 @@ var
 begin
   new(p);
 
-{$IFNDEF Fill_0_On_Generic}
-  FillPtr(@p^.Data, SizeOf(T_), 0);
-{$ENDIF Fill_0_On_Generic}
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;
@@ -1027,11 +1021,6 @@ begin
       raiseInfo('error');
 {$ENDIF DEBUG}
   DoFree(p^.Data);
-{$IFDEF DEBUG}
-{$IFNDEF Fill_0_On_Generic}
-  FillPtr(p, SizeOf(TQueueStruct), 0);
-{$ENDIF Fill_0_On_Generic}
-{$ENDIF DEBUG}
   Dispose(p);
 end;
 
@@ -1137,7 +1126,9 @@ begin
       System.FreeMemory(FList);
       FList := nil;
     end;
-  FChanged := False;
+  FFirst := nil;
+  FLast := nil;
+  FChanged := True;
   FCritical.UnLock;
 end;
 
@@ -1194,9 +1185,6 @@ begin
 
   new(p);
 
-{$IFNDEF Fill_0_On_Generic}
-  FillPtr(@p^.Data, SizeOf(T_), 0);
-{$ENDIF Fill_0_On_Generic}
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;
