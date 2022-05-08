@@ -445,6 +445,11 @@ begin
       Result := THashVariantList(FSectionHashVariantList[Section_]).Exists(Key_) or Result;
   if FSectionHashStringList.Exists(Section_) then
       Result := THashStringList(FSectionHashStringList[Section_]).Exists(Key_) or Result;
+  if (not Result) and FSectionList.Exists(Section_) then
+    begin
+      Result := GetHStringList(Section_).Exists(Key_);
+      FSectionHashStringList.Delete(Section_);
+    end;
 end;
 
 function THashTextEngine.GetDefaultValue(const SectionName, KeyName: SystemString; const DefaultValue: Variant): Variant;
