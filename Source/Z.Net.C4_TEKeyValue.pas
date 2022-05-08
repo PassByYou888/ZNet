@@ -20,7 +20,12 @@ uses Variants,
   Z.ZDB2.TE, Z.ZDB2, Z.GHashList;
 
 type
-  TC40_TEKeyValue_Service_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TZDB2_HashTextEngine>;
+  TC40_TEKeyValue_Service_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TString_Big_Hash_Pair_Pool<TZDB2_HashTextEngine>;
+
+  TC40_TEKeyValue_Service_Hash_Pool = class(TC40_TEKeyValue_Service_Hash_Pool_Decl)
+  public
+    function Compare_Value(Value_1, Value_2: TZDB2_HashTextEngine): Boolean; override;
+  end;
 
   TC40_TEKeyValue_Service = class(TC40_Base_NoAuth_Service)
   protected
@@ -30,6 +35,7 @@ type
     procedure cmd_SetTE(sender: TPeerIO; InData: TDFE);
     procedure cmd_MergeTE(sender: TPeerIO; InData: TDFE);
     procedure cmd_RemoveTE(sender: TPeerIO; InData: TDFE);
+    procedure cmd_SearchAndRemoveTE(sender: TPeerIO; InData: TDFE);
     procedure cmd_GetSection(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetKey(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetTextKey(sender: TPeerIO; InData, OutData: TDFE);
@@ -313,6 +319,7 @@ type
     procedure MergeTE(TEName_: U_String; TE: THashTextEngine);
     //
     procedure RemoveTE(TEName_: U_String);
+    procedure SearchAndRemoveTE(TEName_: U_String);
     //
     procedure GetSection_Bridge(TEName_: U_String; Bridge_IO_: TPeerIO);
     procedure GetSection_C(TEName_: U_String; OnResult: TC40_TEKeyValue_Client_GetSection_C);
@@ -386,6 +393,11 @@ const
   C_Main = '___Main___';
   C_Name = '___Name___';
 
+function TC40_TEKeyValue_Service_Hash_Pool.Compare_Value(Value_1, Value_2: TZDB2_HashTextEngine): Boolean;
+begin
+  Result := Value_1 = Value_2;
+end;
+
 procedure TC40_TEKeyValue_Service.cmd_Rebuild(sender: TPeerIO; InData: TDFE);
 var
   TEName_: U_String;
@@ -442,6 +454,28 @@ begin
   TE := GetOrCreateTE(TEName_);
   TEKeyValue_Hash.Delete(TEName_);
   TEKeyValue_DB.Remove(TE, True);
+end;
+
+procedure TC40_TEKeyValue_Service.cmd_SearchAndRemoveTE(sender: TPeerIO; InData: TDFE);
+var
+  TEName_: U_String;
+  // repeat model
+  __repeat__: TC40_TEKeyValue_Service_Hash_Pool_Decl.TRepeat___;
+begin
+  TEName_ := InData.R.ReadString;
+
+  if TEKeyValue_Hash.Num > 0 then
+    begin
+      __repeat__ := TEKeyValue_Hash.Repeat_;
+      repeat
+        if umlMultipleMatch(TEName_, __repeat__.Queue^.Data^.Data.Primary) then
+          begin
+            TEKeyValue_Hash.Push_To_Recycle_Pool(__repeat__.Queue^.Data);
+            TEKeyValue_DB.Remove(__repeat__.Queue^.Data^.Data.Second, True);
+          end;
+      until not __repeat__.Next;
+      TEKeyValue_Hash.Free_Recycle_Pool;
+    end;
 end;
 
 procedure TC40_TEKeyValue_Service.cmd_GetSection(sender: TPeerIO; InData, OutData: TDFE);
@@ -640,74 +674,45 @@ var
   filter_, exclude_, search_: U_String;
   search_word_: Boolean;
   MaxNum_: Integer;
-{$IFDEF FPC}
-  procedure fpc_progress_(const Name_: PSystemString; Obj_: TZDB2_HashTextEngine);
-  var
-    Data_is_Null_: Boolean;
-    tmp: TListPascalString;
-    R: Integer;
-  begin
-    if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, exclude_, Name_^) then
-      begin
-        Data_is_Null_ := Obj_.Data_Direct = nil;
-        tmp := TListPascalString.Create;
-        Obj_.Data.DataExport(tmp);
-        if Data_is_Null_ then
-            Obj_.RecycleMemory;
-
-        if (search_.L = 0) then
-            R := 1
-        else
-            R := umlReplaceSum(tmp.AsText, search_, search_word_, True, 0, 0, nil);
-        if R > 0 then
-          begin
-            OutData.WriteInteger(R);
-            OutData.WriteString(Name_^);
-            OutData.WritePascalStrings(tmp);
-          end;
-        disposeObject(tmp);
-      end;
-  end;
-{$ENDIF FPC}
-
-
+  // repeat model
+  __repeat__: TC40_TEKeyValue_Service_Hash_Pool_Decl.TInvert_Repeat___;
+  Data_is_Null_: Boolean;
+  tmp: TListPascalString;
+  found_Num: Integer;
 begin
   filter_ := InData.R.ReadString;
   exclude_ := InData.R.ReadString;
   search_ := InData.R.ReadString;
   search_word_ := InData.R.ReadBool;
   MaxNum_ := InData.R.ReadInteger;
-{$IFDEF FPC}
-  TEKeyValue_Hash.ProgressP(@fpc_progress_);
-{$ELSE FPC}
-  TEKeyValue_Hash.ProgressP(procedure(const Name_: PSystemString; Obj_: TZDB2_HashTextEngine)
-    var
-      Data_is_Null_: Boolean;
-      tmp: TListPascalString;
-      R: Integer;
-    begin
-      if ((MaxNum_ <= 0) or (OutData.Count div 3 < MaxNum_)) and umlSearchMatch(filter_, exclude_, Name_^) then
-        begin
-          Data_is_Null_ := Obj_.Data_Direct = nil;
-          tmp := TListPascalString.Create;
-          Obj_.Data.DataExport(tmp);
-          if Data_is_Null_ then
-              Obj_.RecycleMemory;
 
-          if (search_.L = 0) then
-              R := 1
-          else
-              R := umlReplaceSum(tmp.AsText, search_, search_word_, True, 0, 0, nil);
-          if R > 0 then
-            begin
-              OutData.WriteInteger(R);
-              OutData.WriteString(Name_^);
-              OutData.WritePascalStrings(tmp);
-            end;
-          disposeObject(tmp);
-        end;
-    end);
-{$ENDIF FPC}
+  if TEKeyValue_Hash.Num > 0 then
+    begin
+      __repeat__ := TEKeyValue_Hash.Invert_Repeat_;
+      repeat
+        if umlSearchMatch(filter_, exclude_, __repeat__.Queue^.Data^.Data.Primary) then
+          begin
+            Data_is_Null_ := __repeat__.Queue^.Data^.Data.Second.Data_Direct = nil;
+            tmp := TListPascalString.Create;
+            __repeat__.Queue^.Data^.Data.Second.Data.DataExport(tmp);
+            if Data_is_Null_ then
+                __repeat__.Queue^.Data^.Data.Second.RecycleMemory;
+
+            if (search_.L = 0) then
+                found_Num := 1
+            else
+                found_Num := umlReplaceSum(tmp.AsText, search_, search_word_, True, 0, 0, nil);
+
+            if found_Num > 0 then
+              begin
+                OutData.WriteInteger(found_Num);
+                OutData.WriteString(__repeat__.Queue^.Data^.Data.Primary);
+                OutData.WritePascalStrings(tmp);
+              end;
+            disposeObject(tmp);
+          end;
+      until (not __repeat__.Prev) or ((MaxNum_ > 0) and (OutData.Count div 3 >= MaxNum_));
+    end;
 end;
 
 constructor TC40_TEKeyValue_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
@@ -728,6 +733,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('SetTE').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SetTE;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('MergeTE').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_MergeTE;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveTE').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveTE;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('SearchAndRemoveTE').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchAndRemoveTE;
   DTNoAuthService.RecvTunnel.RegisterStream('GetSection').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetSection;
   DTNoAuthService.RecvTunnel.RegisterStream('GetKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetKey;
   DTNoAuthService.RecvTunnel.RegisterStream('GetTextKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetTextKey;
@@ -774,11 +780,9 @@ begin
     ZDB2Cipher);
   TEKeyValue_DB.AutoFreeStream := True;
 
-  TEKeyValue_Hash := TC40_TEKeyValue_Service_Hash_Pool.Create(False,
+  TEKeyValue_Hash := TC40_TEKeyValue_Service_Hash_Pool.Create(
     EStrToInt64(ParamList.GetDefaultValue('Identifier_HashPool', '1024*1024'), 1024 * 1024),
     nil);
-  TEKeyValue_Hash.AccessOptimization := True;
-  TEKeyValue_Hash.IgnoreCase := True;
 
   if not C40_QuietMode then
       DoStatus('extract Text Engine Database.');
@@ -787,13 +791,9 @@ begin
       repeat
         TE := Queue^.Data;
         TEName_ := GetTEName(TE);
-        if TEKeyValue_Hash.Exists(TEName_) then
-          begin
+        if TEKeyValue_Hash.Exists_Key(TEName_) then
             DoStatus('repeat Text engine %s', [TEName_]);
-            TEKeyValue_Hash.Add(TEName_, TE);
-          end
-        else
-            TEKeyValue_Hash.FastAdd(TEName_, TE);
+        TEKeyValue_Hash.Add(TEName_, TE, False);
         TE.RecycleMemory;
       until not Next;
   TEKeyValue_DB.Flush;
@@ -823,7 +823,7 @@ end;
 
 function TC40_TEKeyValue_Service.Exists_TE(TEName_: SystemString): Boolean;
 begin
-  Result := TEKeyValue_Hash.Exists(TEName_);
+  Result := TEKeyValue_Hash.Exists_Key(TEName_);
 end;
 
 function TC40_TEKeyValue_Service.GetOrCreateTE(TEName_: SystemString): TZDB2_HashTextEngine;
@@ -833,7 +833,7 @@ begin
     begin
       Result := TEKeyValue_DB.NewData;
       Result.Data.SetDefaultText(C_Main, C_Name, TEName_);
-      TEKeyValue_Hash.FastAdd(TEName_, Result);
+      TEKeyValue_Hash.Add(TEName_, Result, False);
     end;
 end;
 
@@ -1325,6 +1325,16 @@ begin
   D := TDFE.Create;
   D.WriteString(TEName_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('RemoveTE', D);
+  disposeObject(D);
+end;
+
+procedure TC40_TEKeyValue_Client.SearchAndRemoveTE(TEName_: U_String);
+var
+  D: TDFE;
+begin
+  D := TDFE.Create;
+  D.WriteString(TEName_);
+  DTNoAuthClient.SendTunnel.SendDirectStreamCmd('SearchAndRemoveTE', D);
   disposeObject(D);
 end;
 
