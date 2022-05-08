@@ -94,7 +94,6 @@ type
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
     procedure Progress;
-    function Get_Busy_Task_Num: Int64;
   end;
 
   TZDB2_Th_Engine_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine>;
@@ -177,6 +176,8 @@ type
     destructor Destroy; override;
     // load data as TZDB2_Th_Engine_Data_Class
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
+    // ready state
+    function Check_Engine: Boolean;
     // clear
     procedure Clear;
     // database space state
@@ -186,8 +187,6 @@ type
     function Total: NativeInt;
     // task queue
     function QueueNum: NativeInt;
-    // queue task num
-    function Get_Busy_Task_Num: Int64;
     // pick engine
     function Add_Data_To_Minimize_Workload_Engine(): TZDB2_Th_Engine_Data; overload;
     function Add_Data_To_Minimize_Size_Engine(): TZDB2_Th_Engine_Data; overload;
@@ -427,12 +426,14 @@ end;
 
 destructor TZDB2_Th_Engine.Destroy;
 begin
-  Flush;
-  disposeObjectAndNil(Th_Engine_Data_Pool);
-  disposeObjectAndNil(Engine);
-  disposeObjectAndNil(Cipher);
-  if RemoveDatabaseOnDestroy and umlFileExists(Database_File) then
-      umlDeleteFile(Database_File);
+  try
+    disposeObjectAndNil(Th_Engine_Data_Pool);
+    disposeObjectAndNil(Engine);
+    disposeObjectAndNil(Cipher);
+    if RemoveDatabaseOnDestroy and umlFileExists(Database_File) then
+        umlDeleteFile(Database_File);
+  except
+  end;
   inherited Destroy;
 end;
 
@@ -473,18 +474,17 @@ end;
 
 procedure TZDB2_Th_Engine.Format_Database;
 begin
-  if Engine = nil then
-      exit;
-  while Engine.QueueNum > 0 do
-      TCompute.Sleep(1);
-  Th_Engine_Data_Pool.Clear;
-  disposeObjectAndNil(Engine);
-  disposeObjectAndNil(Cipher);
+  if Engine <> nil then
+    begin
+      while Engine.QueueNum > 0 do
+          TCompute.Sleep(10);
+      Th_Engine_Data_Pool.Clear;
+      disposeObjectAndNil(Engine);
+      disposeObjectAndNil(Cipher);
+    end;
 
   if umlFileExists(Database_File) then
       umlDeleteFile(Database_File);
-
-  Build(Last_Build_Class);
 end;
 
 procedure TZDB2_Th_Engine.Build(Data_Class: TZDB2_Th_Engine_Data_Class);
@@ -505,7 +505,7 @@ begin
   try
     if umlTrimSpace(Database_File) = '' then
       begin
-        Stream := TMS64.CustomCreate(128 * 1024 * 1024);
+        Stream := TMS64.CustomCreate(if_(CPU64, 128 * 1024 * 1024, 8 * 1024 * 1024));
       end
     else
       begin
@@ -519,12 +519,12 @@ begin
     if (Stream.Size = 0) then
       begin
         // check stream
-        if not OnlyRead then
-            Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+        Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
       end
     else if TZDB2_Core_Space.CheckStream(Stream, Cipher) then // check open from cipher
       begin
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+        // init sequence
         if Engine.Sync_Get_And_Clean_Sequence_Table(Queue_Table_) then
           begin
             for ID in Queue_Table_ do
@@ -533,14 +533,15 @@ begin
           end;
       end
     else
+      begin
         DoStatus('"%s" password error or data corruption.', [Database_File.Text]);
+      end;
   except
   end;
 
   if Engine = nil then
-      disposeObject(Stream)
-  else
-      Last_Build_Class := Data_Class;
+      disposeObjectAndNil(Stream);
+  Last_Build_Class := Data_Class;
 end;
 
 procedure TZDB2_Th_Engine.Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
@@ -564,6 +565,7 @@ end;
 function TZDB2_Th_Engine.Flush: Boolean;
 var
   Queue_ID_List_: TZDB2_ID_List;
+  __repeat__: TZDB2_Th_Engine_Data_BigList__.TRepeat___;
 begin
   if Engine = nil then
       exit(False);
@@ -571,24 +573,27 @@ begin
   while Engine.QueueNum > 0 do
       TCompute.Sleep(1);
   Th_Engine_Data_Pool.Free_Recycle_Pool;
-  Engine.Async_Flush;
-  Queue_ID_List_ := TZDB2_ID_List.Create;
-  if Th_Engine_Data_Pool.Num > 0 then
-    begin
-      with Th_Engine_Data_Pool.Repeat_ do
+  try
+    Queue_ID_List_ := TZDB2_ID_List.Create;
+    if Th_Engine_Data_Pool.Num > 0 then
+      begin
+        __repeat__ := Th_Engine_Data_Pool.Repeat_;
         repeat
-          if Queue^.Data <> nil then
+          if __repeat__.Queue^.Data <> nil then
             begin
-              if Queue^.Data.FID >= 0 then
-                  Queue_ID_List_.Add(Queue^.Data.FID)
+              if __repeat__.Queue^.Data.FID >= 0 then
+                  Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
               else
-                  Th_Engine_Data_Pool.Push_To_Recycle_Pool(Queue);
+                  Th_Engine_Data_Pool.Push_To_Recycle_Pool(__repeat__.Queue);
             end;
-        until not Next;
-      Th_Engine_Data_Pool.Free_Recycle_Pool;
-    end;
-  Result := Engine.Sync_Flush_Sequence_Table(Queue_ID_List_);
-  disposeObject(Queue_ID_List_);
+        until not __repeat__.Next;
+        Th_Engine_Data_Pool.Free_Recycle_Pool;
+      end;
+    Result := Engine.Sync_Flush_Sequence_Table(Queue_ID_List_);
+    disposeObject(Queue_ID_List_);
+  except
+      Engine.Async_Flush;
+  end;
 end;
 
 function TZDB2_Th_Engine.Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer): TZDB2_Th_Engine_Data;
@@ -624,18 +629,6 @@ begin
       until not Next;
 end;
 
-function TZDB2_Th_Engine.Get_Busy_Task_Num: Int64;
-begin
-  Result := 0;
-  if Engine = nil then
-      exit;
-  if Th_Engine_Data_Pool.Num > 0 then
-    with Th_Engine_Data_Pool.Repeat_ do
-      repeat
-          inc(Result, Queue^.Data.FBusy_Task_Num);
-      until not Next;
-end;
-
 constructor TZDB2_Th_Engine_List.Create;
 begin
   inherited Create;
@@ -658,7 +651,7 @@ begin
 
   with Repeat_ do
     repeat
-      if Queue^.Data.Engine <> nil then
+      if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
         begin
           if Eng_ = nil then
               Eng_ := Queue
@@ -686,7 +679,7 @@ begin
 
   with Repeat_ do
     repeat
-      if Queue^.Data.Engine <> nil then
+      if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
         begin
           if Eng_ = nil then
               Eng_ := Queue
@@ -766,20 +759,20 @@ end;
 procedure TZDB2_Th_Engine_Load_Processor.Do_ThRun_Marshal_Load(ThSender: TCompute);
 var
   Owner_: TZDB2_Th_Engine_Marshal;
-  __Repeat__: TZDB2_Th_Engine_Marshal_BigList__.TRepeat___;
+  __repeat__: TZDB2_Th_Engine_Marshal_BigList__.TRepeat___;
   Load_Inst_: TZDB2_Th_Engine_Data_Load_Instance;
 begin
   Owner_ := ThSender.UserObject as TZDB2_Th_Engine_Marshal;
-  __Repeat__ := Owner_.Data_Marshal.Repeat_;
+  __repeat__ := Owner_.Data_Marshal.Repeat_;
   repeat
-    Load_Inst_ := TZDB2_Th_Engine_Data_Load_Instance.Create(FTh_Pool, __Repeat__.Queue^.Data);
+    Load_Inst_ := TZDB2_Th_Engine_Data_Load_Instance.Create(FTh_Pool, __repeat__.Queue^.Data);
     Load_Inst_.FOnRun_C := OnRun_C;
     Load_Inst_.FOnRun_M := OnRun_M;
     Load_Inst_.FOnRun_P := OnRun_P;
     Load_Inst_.Run;
     while FTh_Pool.Count + Owner_.QueueNum > FMax_Queue do
         TCompute.Sleep(10);
-  until not __Repeat__.Next;
+  until not __repeat__.Next;
   Owner_.Wait_Busy_Task();
   FTh_Pool.Wait;
   IsBusy := False;
@@ -896,10 +889,13 @@ end;
 
 destructor TZDB2_Th_Engine_Marshal.Destroy;
 begin
+  try
+    Flush;
+    disposeObjectAndNil(Engine_Pool);
+    disposeObjectAndNil(Data_Marshal);
+  except
+  end;
   Th_Engine_Marshal_Pool__.Remove(Pool_Ptr);
-  Flush;
-  disposeObjectAndNil(Engine_Pool);
-  disposeObjectAndNil(Data_Marshal);
   inherited Destroy;
 end;
 
@@ -911,6 +907,20 @@ begin
           Queue^.Data.Build(Data_Class);
       until not Next;
   Current_Data_Class := Data_Class;
+end;
+
+function TZDB2_Th_Engine_Marshal.Check_Engine: Boolean;
+var
+  ready_num: Integer;
+begin
+  ready_num := 0;
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+        if Queue^.Data.Engine <> nil then
+            inc(ready_num);
+      until not Next;
+  Result := (Engine_Pool.Num > 0) and (Engine_Pool.Num = ready_num);
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Clear;
@@ -957,17 +967,8 @@ begin
   if Engine_Pool.Num > 0 then
     with Engine_Pool.Repeat_ do
       repeat
-          inc(Result, Queue^.Data.Engine.QueueNum);
-      until not Next;
-end;
-
-function TZDB2_Th_Engine_Marshal.Get_Busy_Task_Num: Int64;
-begin
-  Result := 0;
-  if Engine_Pool.Num > 0 then
-    with Engine_Pool.Repeat_ do
-      repeat
-          inc(Result, Queue^.Data.Get_Busy_Task_Num);
+        if Queue^.Data.Engine <> nil then
+            inc(Result, Queue^.Data.Engine.QueueNum);
       until not Next;
 end;
 
@@ -977,7 +978,7 @@ var
 begin
   repeat
       Eng_ := Engine_Pool.Get_Minimize_Workload_Engine;
-  until not Eng_.OnlyRead;
+  until (Eng_ = nil) or (not Eng_.OnlyRead);
 
   if Eng_ <> nil then
       Result := Eng_.Add(Current_Data_Class)
@@ -991,7 +992,7 @@ var
 begin
   repeat
       Eng_ := Engine_Pool.Get_Minimize_Size_Engine;
-  until not Eng_.OnlyRead;
+  until (Eng_ = nil) or (not Eng_.OnlyRead);
 
   if Eng_ <> nil then
       Result := Eng_.Add(Current_Data_Class)
@@ -1002,7 +1003,7 @@ end;
 procedure TZDB2_Th_Engine_Marshal.Wait_Busy_Task;
 begin
   // wait task
-  while (Get_Busy_Task_Num + QueueNum > 0) do
+  while QueueNum > 0 do
     begin
       Progress;
       TCompute.Sleep(10);
@@ -1028,7 +1029,10 @@ begin
   if Engine_Pool.Num > 0 then
     with Engine_Pool.Repeat_ do
       repeat
-          Queue^.Data.Flush;
+        try
+            Queue^.Data.Flush;
+        except
+        end;
       until not Next;
   Check_Recycle_Pool;
   Wait_Busy_Task;
@@ -1038,13 +1042,15 @@ procedure TZDB2_Th_Engine_Marshal.Format_Database;
 begin
   Wait_Busy_Task;
   Check_Recycle_Pool;
+  Data_Marshal.Clear;
   if Engine_Pool.Num > 0 then
-    with Engine_Pool.Repeat_ do
-      repeat
-          Queue^.Data.Format_Database;
-      until not Next;
-  Check_Recycle_Pool;
-  Wait_Busy_Task;
+    begin
+      with Engine_Pool.Repeat_ do
+        repeat
+            Queue^.Data.Format_Database;
+        until not Next;
+    end;
+  Build(Current_Data_Class);
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Parallel_Load_C(ThNum_, Max_Queue_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_C; On_Wait: TOn_Wait_C);
