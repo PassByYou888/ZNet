@@ -532,19 +532,20 @@ end;
 
 procedure TC40_Log_DB_Service.Progress;
 begin
-  inherited Progress;
-
-  WaitFreeList.Clear;
   DB_Pool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}Do_DB_Pool_Progress);
 
-  if WaitFreeList.Count > 0 then
-    with WaitFreeList.Repeat_ do
-      repeat
+  while WaitFreeList.Count > 0 do
+    begin
+      try
         if not C40_QuietMode then
-            DoStatus('recycle Memory, Log Database: %s', [Queue^.Data.Name.Text]);
-        DB_Pool.Delete(Queue^.Data.Name);
-      until not Next;
-  WaitFreeList.Clear;
+            DoStatus('recycle Memory, Log Database: %s', [WaitFreeList.First^.Data.Name.Text]);
+        DB_Pool.Delete(WaitFreeList.First^.Data.Name);
+      except
+      end;
+      WaitFreeList.Next;
+    end;
+
+  inherited Progress;
 end;
 
 function TC40_Log_DB_Service.GetDB(const LogDB: SystemString): TC40_Log_DB_ZDB2_HashString;
