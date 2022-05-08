@@ -13368,7 +13368,7 @@ begin
       repeat
         if __repeat__.Queue^.data.FP2PVM_Clone_NextProgressDoFreeSelf then
           begin
-            __repeat__.Queue^.data.FP2PVM_ClonePool := nil;
+            __repeat__.Queue^.data.FP2PVM_CloneOwner := nil;
             __repeat__.Queue^.data.FP2PVM_ClonePool_Ptr := nil;
             FP2PVM_ClonePool.Push_To_Recycle_Pool(__repeat__.Queue);
             PostProgress.PostDelayFreeObject(0.1, __repeat__.Queue^.data);
