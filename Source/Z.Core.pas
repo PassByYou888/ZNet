@@ -735,6 +735,7 @@ type
     TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
     TPool_Queue_Ptr___ = TPool___.PQueueStruct;
     TRepeat___ = TPool___.TRepeat___;
+    TInvert_Repeat___ = TPool___.TInvert_Repeat___;
     TArray_Key = array of TKey_;
     TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
     TArray_Value = array of TValue_;
@@ -786,6 +787,8 @@ type
     procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
     function Repeat_(): TRepeat___; overload;
     function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    function Invert_Repeat_(): TInvert_Repeat___; overload;
+    function Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___; overload;
     procedure For_C(OnFor: TBig_Hash_Pool_For_C); overload;
     procedure For_M(OnFor: TBig_Hash_Pool_For_M); overload;
     procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
@@ -810,6 +813,7 @@ type
     TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
     TPool_Queue_Ptr___ = TPool___.PQueueStruct;
     TRepeat___ = TPool___.TRepeat___;
+    TInvert_Repeat___ = TPool___.TInvert_Repeat___;
     TArray_Key = array of TKey_;
     TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
     TArray_Value = array of TValue_;
@@ -862,6 +866,8 @@ type
     procedure Set_Default_Value(Key: TKey_; Default_:TValue_);
     function Repeat_(): TRepeat___; overload;
     function Repeat_(BI_, EI_: NativeInt): TRepeat___; overload;
+    function Invert_Repeat_(): TInvert_Repeat___; overload;
+    function Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___; overload;
     procedure For_C(OnFor: TBig_Hash_Pool_For_C); overload;
     procedure For_M(OnFor: TBig_Hash_Pool_For_M); overload;
     procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
