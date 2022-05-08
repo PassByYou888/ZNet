@@ -490,12 +490,12 @@ type
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileC = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String);
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileM = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String) of object;
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileC = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileM = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) of object;
 {$IFDEF FPC}
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileP = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String) is nested;
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileP = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) is nested;
 {$ELSE FPC}
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileP = reference to procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String);
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Post_FileP = reference to procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 {$ENDIF FPC}
   TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File = class;
   PON_Usr_Auto_Post_File = ^TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File;
@@ -544,24 +544,24 @@ type
     procedure Do_Result(Successed: Boolean; info: U_String);             // step done.
     procedure Do_Done_And_DelayFree(Successed: Boolean; info: U_String); // step done.
     procedure Compute_Stream_MD5;
-    procedure Do_Compute_Stream_MD5;                                                                            // step 1
-    procedure Do_Done_Compute_Stream_MD5;                                                                       // md5 done
-    procedure Do_Compute_Stream_MD5_Error;                                                                      // error
+    procedure Do_Compute_Stream_MD5;                                                                         // step 1
+    procedure Do_Done_Compute_Stream_MD5;                                                                    // md5 done
+    procedure Do_Compute_Stream_MD5_Error;                                                                   // error
     procedure Do_CheckAndCopy_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 2
     procedure Do_SearchMultiMD5_FS_Service(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 3
     procedure Do_Get_NetDisk_Multi_File_Frag_MD5(sender: TC40_NetDisk_VM_Client;
       arry: TC40_NetDisk_VM_Client_On_Usr_Multi_File_Result_Array);                                          // step 4
     procedure Do_BeginPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String); // step 5
-    procedure Do_Done_PostFile_Frag(Successed: Boolean);                                                     // step 5 - loop
+    procedure Do_Done_PostFile_Frag(Successed: Boolean);                                                  // step 5 - loop
     procedure Do_EndPost_NetDisk_File(sender: TC40_NetDisk_VM_Client; Successed: Boolean; info: U_String);   // step done.
   end;
 
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileC = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String);
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileM = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String) of object;
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileC = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileM = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) of object;
 {$IFDEF FPC}
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileP = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String) is nested;
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileP = procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) is nested;
 {$ELSE FPC}
-  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileP = reference to procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Successed: Boolean; info: U_String);
+  TC40_NetDisk_VM_Client_On_Usr_Auto_Get_FileP = reference to procedure(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 {$ENDIF FPC}
   TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File = class;
   PON_Usr_Auto_Get_File = ^TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File;
@@ -1851,11 +1851,11 @@ procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Post_File.Do_Result(Successed: Bool
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, UserData, stream, Successed, info);
+        OnResultC(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
     if Assigned(OnResultM) then
-        OnResultM(Client, UserData, stream, Successed, info);
+        OnResultM(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
     if Assigned(OnResultP) then
-        OnResultP(Client, UserData, stream, Successed, info);
+        OnResultP(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
   except
   end;
 end;
@@ -2141,11 +2141,11 @@ procedure TC40_NetDisk_VM_Client_On_Usr_Auto_Get_File.Do_Result(Successed: Boole
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, UserData, stream, Successed, info);
+        OnResultC(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
     if Assigned(OnResultM) then
-        OnResultM(Client, UserData, stream, Successed, info);
+        OnResultM(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
     if Assigned(OnResultP) then
-        OnResultP(Client, UserData, stream, Successed, info);
+        OnResultP(Client, UserData, stream, Stream_Final_MD5__, Successed, info);
   except
   end;
 end;
@@ -2338,6 +2338,7 @@ begin
       OnEvent_P(Source_, New_Intance_);
   DelayFreeObj(1.0, self);
 end;
+
 
 procedure TC40_NetDisk_VM_Client.cmd_userMsg(sender: TPeerIO; InData: TDFE);
 var
@@ -2636,6 +2637,7 @@ begin
   tmp.New_Instance.On_Auth_Done := {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_AuthDone;
   tmp.New_Instance.Connect_M(Client.LastAddr, Client.LastPort, Client.LastAuth, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_BuildDependNetwork_Done);
 end;
+
 
 procedure TC40_NetDisk_VM_Client.AuthC(userName_, Passwd_: U_String; OnResult: TC40_NetDisk_VM_Client_On_Usr_AuthC);
 var
