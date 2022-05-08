@@ -433,6 +433,16 @@ begin
   Result := Queue_Pool.Repeat_(BI_, EI_);
 end;
 
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(): TInvert_Repeat___;
+begin
+  Result := Queue_Pool.Invert_Repeat_();
+end;
+
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___;
+begin
+  Result := Queue_Pool.Invert_Repeat_(BI_, EI_);
+end;
+
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.For_C(OnFor: TBig_Hash_Pool_For_C);
 var
   i: integer;
@@ -1117,6 +1127,16 @@ end;
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Repeat_(BI_, EI_: NativeInt): TRepeat___;
 begin
   Result := Queue_Pool.Repeat_(BI_, EI_);
+end;
+
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(): TInvert_Repeat___;
+begin
+  Result := Queue_Pool.Invert_Repeat_();
+end;
+
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___;
+begin
+  Result := Queue_Pool.Invert_Repeat_(BI_, EI_);
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.For_C(OnFor: TBig_Hash_Pool_For_C);
