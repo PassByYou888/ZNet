@@ -2027,7 +2027,6 @@ type
     function CloneConnectC(OnResult: TOnP2PVM_CloneConnectEvent_C): TP2PVM_CloneConnectEventBridge;
     function CloneConnectM(OnResult: TOnP2PVM_CloneConnectEvent_M): TP2PVM_CloneConnectEventBridge;
     function CloneConnectP(OnResult: TOnP2PVM_CloneConnectEvent_P): TP2PVM_CloneConnectEventBridge;
-    procedure RemoveCloneClient(client_: TZNet_WithP2PVM_Client);
     property P2PVM_Clone_NextProgressDoFreeSelf: Boolean read FP2PVM_Clone_NextProgressDoFreeSelf write FP2PVM_Clone_NextProgressDoFreeSelf;
 
     procedure TriggerDoConnectFailed; override;
@@ -4914,11 +4913,11 @@ function TPeerIO.GetSequencePacketState: SystemString;
 begin
   Result := PFormat('History: %s (block: %d) Received Pool: %s (block: %d) Total Memory: %s',
     [umlSizeToStr(SendingSequencePacketHistoryMemory).Text,
-    SendingSequencePacketHistory.Count,
-    umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
-    SequencePacketReceivedPool.Count,
-    umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
-    ]);
+      SendingSequencePacketHistory.Count,
+      umlSizeToStr(SequencePacketReceivedPoolMemory).Text,
+      SequencePacketReceivedPool.Count,
+      umlSizeToStr(SendingSequencePacketHistoryMemory + SequencePacketReceivedPoolMemory).Text
+      ]);
 end;
 
 function TPeerIO.GetSequencePacketUsagePhysicsMemory: Int64;
@@ -5203,7 +5202,7 @@ begin
                   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stSequencePacketMatched]);
                 end
               else if (FSequencePacketSignal) and ((p^.SequenceNumber > SequenceNumberOnReceivedCounter) or
-                (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
+                  (Cardinal(p^.SequenceNumber + Cardinal($7FFFFFFF)) > Cardinal(SequenceNumberOnReceivedCounter + Cardinal($7FFFFFFF)))) then
                 begin
                   p^.data := TMS64.Create;
                   p^.data.CopyFrom(fastSwap, p^.Size);
@@ -13216,17 +13215,23 @@ end;
 
 destructor TZNet_WithP2PVM_Client.Destroy;
 begin
-  if FP2PVM_CloneOwner <> nil then
-      FP2PVM_CloneOwner.RemoveCloneClient(Self);
+  try
+    if (FP2PVM_CloneOwner <> nil) and (FP2PVM_ClonePool_Ptr <> nil) then
+        FP2PVM_CloneOwner.FP2PVM_ClonePool.Remove(FP2PVM_ClonePool_Ptr);
 
-  while FP2PVM_ClonePool.num > 0 do
-    begin
-      FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool := nil;
-      FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool_Ptr := nil;
-      DisposeObjectAndNil(FP2PVM_ClonePool.First^.data);
-      FP2PVM_ClonePool.Next;
-    end;
-  DisposeObjectAndNil(FP2PVM_ClonePool);
+    FP2PVM_CloneOwner := nil;
+    FP2PVM_ClonePool_Ptr := nil;
+
+    while FP2PVM_ClonePool.num > 0 do
+      begin
+        FP2PVM_ClonePool.First^.data.FP2PVM_CloneOwner := nil;
+        FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool_Ptr := nil;
+        DisposeObjectAndNil(FP2PVM_ClonePool.First^.data);
+        FP2PVM_ClonePool.Next;
+      end;
+    DisposeObjectAndNil(FP2PVM_ClonePool);
+  except
+  end;
 
   if FVMClientIO <> nil then
       DisposeObject(FVMClientIO);
@@ -13302,12 +13307,6 @@ begin
   bridge_.NewClient.FP2PVM_ClonePool_Ptr := FP2PVM_ClonePool.Add(bridge_.NewClient);
   bridge_.NewClient.AsyncConnectM(IPv6ToStr(FVMClientIO.FIP), FVMClientIO.FPort, {$IFDEF FPC}@{$ENDIF FPC}bridge_.DoAsyncConnectState);
   Result := bridge_;
-end;
-
-procedure TZNet_WithP2PVM_Client.RemoveCloneClient(client_: TZNet_WithP2PVM_Client);
-begin
-  if client_.FP2PVM_ClonePool_Ptr <> nil then
-      FP2PVM_ClonePool.Remove(client_.FP2PVM_ClonePool_Ptr);
 end;
 
 procedure TZNet_WithP2PVM_Client.TriggerDoConnectFailed;
