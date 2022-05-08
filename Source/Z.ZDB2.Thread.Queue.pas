@@ -926,7 +926,10 @@ end;
 
 function TZDB2_Th_Queue.QueueNum: NativeInt;
 begin
-  Result := CMD_Queue.Num;
+  if CMD_Queue <> nil then
+      Result := CMD_Queue.Num
+  else
+      Result := 0;
 end;
 
 function TZDB2_Th_Queue.CoreSpace_Size: Int64;
