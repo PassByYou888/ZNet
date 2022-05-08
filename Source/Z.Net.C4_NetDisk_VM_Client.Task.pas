@@ -25,6 +25,8 @@ type
   TC40_NetDisk_VM_Client_Task_Clone_Connection = class;
   TC40_NetDisk_VM_Client_Task_Auto_Post_Stream = class;
   TC40_NetDisk_VM_Client_Task_Auto_Get_Stream = class;
+  TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream = class;
+  TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream = class;
   TC40_NetDisk_VM_Client_Task_Auto_Post_File = class;
   TC40_NetDisk_VM_Client_Task_Auto_Get_File = class;
   TC40_NetDisk_VM_Client_Task_Auto_Get_Directory = class;
@@ -60,6 +62,13 @@ type
     function Add_Task_Post_Stream(Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Post_Stream;
     function Add_Task_Get_Stream(Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Stream;
     function Add_Task_Get_Share_Stream(Stream: TCore_Stream; AutoFreeStream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Stream;
+    // private stream
+    function Add_Task_Post_Encrypt_Stream(Encrypt_Security: TCipherSecurity; Encrypt_Key: U_String;
+      Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream;
+    function Add_Task_Get_Decrypt_Stream(Decrypt_Security: TCipherSecurity; Decrypt_Key: U_String;
+      Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+    function Add_Task_Get_Decrypt_Share_Stream(Decrypt_Security: TCipherSecurity; Decrypt_Key: U_String;
+      Stream: TCore_Stream; AutoFreeStream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
     // file
     function Add_Task_Post_File(Local_File, DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Post_File;
     function Add_Task_Post_Directory(Local_Directory, DB_Field: U_String): TC40_NetDisk_VM_Client_Task_Auto_Post_Directory;
@@ -97,7 +106,8 @@ type
     procedure Do_Run_Task; override;
   end;
 
-  TC40_NetDisk_VM_Client_Task_Auto_Post_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Post_Stream; Stream: TCore_Stream; Successed: Boolean; info: U_String) of object;
+  TC40_NetDisk_VM_Client_Task_Auto_Post_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Post_Stream;
+    Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) of object;
 
   TC40_NetDisk_VM_Client_Task_Auto_Post_Stream = class(TC40_NetDisk_VM_Client_Task)
   public
@@ -106,11 +116,13 @@ type
     DB_Field, DB_Item: U_String;
     On_Post_Stream_Done: TC40_NetDisk_VM_Client_Task_Auto_Post_Stream_Event;
     constructor Create;
-    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream_: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
     procedure Do_Run_Task; override;
   end;
 
-  TC40_NetDisk_VM_Client_Task_Auto_Get_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Get_Stream; Stream: TCore_Stream; Successed: Boolean; info: U_String) of object;
+  TC40_NetDisk_VM_Client_Task_Auto_Get_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Get_Stream;
+    Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) of object;
 
   TC40_NetDisk_VM_Client_Task_Auto_Get_Stream = class(TC40_NetDisk_VM_Client_Task)
   public
@@ -119,7 +131,48 @@ type
     Share_Directory_DB_Name, DB_Field, DB_Item: U_String;
     On_Get_Stream_Done: TC40_NetDisk_VM_Client_Task_Auto_Get_Stream_Event;
     constructor Create;
-    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream_: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+    procedure Do_Run_Task; override;
+  end;
+
+  TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream;
+    Stream: TCore_Stream; Encrypt_Stream: TMS64; Successed: Boolean; info: U_String) of object;
+
+  TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream = class(TC40_NetDisk_VM_Client_Task)
+  public
+    Stream: TCore_Stream;
+    AutoFreeStream: Boolean;
+    Encrypt_Stream: TMS64;
+    Encrypt_Security: TCipherSecurity;
+    Encrypt_Key: U_String;
+    DB_Field, DB_Item: U_String;
+    On_Post_Encrypt_Stream_Done: TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream_Event;
+    Prepare_Done: Boolean;
+    Source_MD5, Encrypt_MD5: TMD5;
+    constructor Create;
+    destructor Destroy; override;
+    procedure Th_Encrypt();
+    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+    procedure Do_Run_Task; override;
+  end;
+
+  TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+    Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String) of object;
+
+  TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream = class(TC40_NetDisk_VM_Client_Task)
+  public
+    Stream: TCore_Stream;
+    AutoFreeStream: Boolean;
+    Decrypt_Security: TCipherSecurity;
+    Decrypt_Key: U_String;
+    Share_Directory_DB_Name, DB_Field, DB_Item: U_String;
+    On_Get_Decrypt_Stream_Done: TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream_Event;
+    constructor Create;
+    destructor Destroy; override;
+    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
     procedure Do_Run_Task; override;
   end;
 
@@ -128,7 +181,8 @@ type
     Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
     destructor Destroy; override;
-    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
     procedure Do_Run_Task; override;
   end;
 
@@ -137,7 +191,8 @@ type
     Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
     destructor Destroy;
-    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+    procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+      Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
     procedure Do_Run_Task; override;
   end;
 
@@ -286,6 +341,66 @@ begin
   task_ := TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Create;
   task_.Stream := Stream;
   task_.AutoFreeStream := AutoFreeStream;
+  task_.Share_Directory_DB_Name := Share_Directory_DB_Name;
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.OwnerPool := self;
+  if Assigned(On_Add_Task) then
+      On_Add_Task(task_);
+  Result := task_;
+end;
+
+function TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Post_Encrypt_Stream(Encrypt_Security: TCipherSecurity; Encrypt_Key: U_String;
+  Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream;
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream;
+begin
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.Encrypt_Security := Encrypt_Security;
+  task_.Encrypt_Key := Encrypt_Key;
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.OwnerPool := self;
+  if Assigned(On_Add_Task) then
+      On_Add_Task(task_);
+  TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}task_.Th_Encrypt);
+  Result := task_;
+end;
+
+function TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Decrypt_Stream(Decrypt_Security: TCipherSecurity; Decrypt_Key: U_String;
+  Stream: TCore_Stream; AutoFreeStream: Boolean; DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+begin
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.Decrypt_Security := Decrypt_Security;
+  task_.Decrypt_Key := Decrypt_Key;
+  task_.Share_Directory_DB_Name := '';
+  task_.DB_Field := DB_Field;
+  task_.DB_Item := DB_Item;
+  task_.Pool_Ptr := FList.Add(task_);
+  task_.OwnerPool := self;
+  if Assigned(On_Add_Task) then
+      On_Add_Task(task_);
+  Result := task_;
+end;
+
+function TC40_NetDisk_VM_Client_Task_Tool.Add_Task_Get_Decrypt_Share_Stream(Decrypt_Security: TCipherSecurity; Decrypt_Key: U_String;
+  Stream: TCore_Stream; AutoFreeStream: Boolean; Share_Directory_DB_Name, DB_Field, DB_Item: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+var
+  task_: TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream;
+begin
+  task_ := TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Create;
+  task_.Stream := Stream;
+  task_.AutoFreeStream := AutoFreeStream;
+  task_.Decrypt_Security := Decrypt_Security;
+  task_.Decrypt_Key := Decrypt_Key;
   task_.Share_Directory_DB_Name := Share_Directory_DB_Name;
   task_.DB_Field := DB_Field;
   task_.DB_Item := DB_Item;
@@ -498,10 +613,11 @@ begin
   On_Post_Stream_Done := nil;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream_: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 begin
   if Assigned(On_Post_Stream_Done) then
-      On_Post_Stream_Done(self, Stream_, Successed, info);
+      On_Post_Stream_Done(self, Stream_, Stream_Final_MD5__, Successed, info);
   Go_Next_Task;
 end;
 
@@ -521,10 +637,11 @@ begin
   On_Get_Stream_Done := nil;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream_: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 begin
   if Assigned(On_Get_Stream_Done) then
-      On_Get_Stream_Done(self, Stream_, Successed, info);
+      On_Get_Stream_Done(self, Stream_, Stream_Final_MD5__, Successed, info);
   Go_Next_Task;
 end;
 
@@ -534,6 +651,130 @@ begin
       Client.Auto_Get_File_From_Share_Disk_M(self, Stream, AutoFreeStream, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
   else
       Client.Auto_Get_File_M(self, Stream, AutoFreeStream, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
+end;
+
+constructor TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Create;
+begin
+  inherited Create;
+  Stream := nil;
+  AutoFreeStream := False;
+  Encrypt_Stream := TMS64.Create;
+  Encrypt_Security := TCipherSecurity.csRijndael;
+  Encrypt_Key := C40_Password;
+  DB_Field := '';
+  DB_Item := '';
+  On_Post_Encrypt_Stream_Done := nil;
+  Prepare_Done := False;
+  Source_MD5 := Null_MD5;
+  Encrypt_MD5 := Null_MD5;
+end;
+
+destructor TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Destroy;
+begin
+  if AutoFreeStream then
+      DisposeObjectAndNil(Stream);
+  DisposeObject(Encrypt_Stream);
+  inherited Destroy;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Th_Encrypt;
+var
+  enc_: TCipher_Base;
+begin
+  Encrypt_Stream.Size := Stream.Size;
+  Stream.Position := 0;
+  Stream.Read(Encrypt_Stream.Memory^, Stream.Size);
+  Source_MD5 := umlMD5(Encrypt_Stream.Memory, Stream.Size);
+
+  enc_ := CreateCipherClassFromPassword(Encrypt_Security, Encrypt_Key);
+  enc_.Level := 1;
+  enc_.ProcessTail := True;
+  enc_.CBC := True;
+  enc_.Encrypt(Encrypt_Stream.Memory, Encrypt_Stream.Size);
+  DisposeObject(enc_);
+  Prepare_Done := True;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+begin
+  if Assigned(On_Post_Encrypt_Stream_Done) then
+    begin
+      Stream.Position := 0;
+      Encrypt_Stream.Position := 0;
+      Encrypt_MD5 := Stream_Final_MD5__;
+      On_Post_Encrypt_Stream_Done(self, Stream, Encrypt_Stream, Successed, info);
+    end;
+  Go_Next_Task;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Do_Run_Task;
+begin
+  while not Prepare_Done do
+      TCompute.Sleep(1);
+  Client.Auto_Post_File_M(self, Encrypt_Stream, False, umlNow(), DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Post_File);
+end;
+
+constructor TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Create;
+begin
+  inherited Create;
+  Stream := nil;
+  AutoFreeStream := False;
+  Decrypt_Security := TCipherSecurity.csRijndael;
+  Decrypt_Key := C40_Password;
+  Share_Directory_DB_Name := '';
+  DB_Field := '';
+  DB_Item := '';
+  On_Get_Decrypt_Stream_Done := nil;
+end;
+
+destructor TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Destroy;
+begin
+  if AutoFreeStream then
+      DisposeObject(Stream);
+  inherited Destroy;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream_: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
+var
+  Decrypt_Stream: TMS64;
+  enc_: TCipher_Base;
+begin
+  if Successed then
+    begin
+      Decrypt_Stream := TMS64(Stream_);
+
+      enc_ := CreateCipherClassFromPassword(Decrypt_Security, Decrypt_Key);
+      enc_.Level := 1;
+      enc_.ProcessTail := True;
+      enc_.CBC := True;
+      enc_.Decrypt(Decrypt_Stream.Memory, Decrypt_Stream.Size);
+      DisposeObject(enc_);
+      if Stream is TMS64 then
+        begin
+          TMS64(Stream).SwapInstance(Decrypt_Stream);
+        end
+      else
+        begin
+          Stream.Position := 0;
+          Stream.Size := Decrypt_Stream.Size;
+          Stream.Write(Decrypt_Stream.Memory^, Decrypt_Stream.Size);
+        end;
+      Stream.Position := 0;
+    end;
+
+  if Assigned(On_Get_Decrypt_Stream_Done) then
+      On_Get_Decrypt_Stream_Done(self, Stream, Stream_Final_MD5__, Successed, info);
+  Go_Next_Task;
+end;
+
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Do_Run_Task;
+begin
+  if Share_Directory_DB_Name <> '' then
+      Client.Auto_Get_File_From_Share_Disk_M(self, TMS64.Create, True, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
+  else
+      Client.Auto_Get_File_M(self, TMS64.Create, True, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Post_File.Create;
@@ -549,7 +790,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Post_File.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Post_File.Do_Usr_Auto_Post_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 begin
   Go_Next_Task;
 end;
@@ -581,7 +823,8 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_NetDisk_VM_Client_Task_Auto_Get_File.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object; Stream: TCore_Stream; Successed: Boolean; info: U_String);
+procedure TC40_NetDisk_VM_Client_Task_Auto_Get_File.Do_Usr_Auto_Get_File(sender: TC40_NetDisk_VM_Client; UserData: TCore_Object;
+  Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
 begin
   Go_Next_Task;
 end;
