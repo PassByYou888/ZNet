@@ -244,9 +244,6 @@
 // Sequence packets default are closed in P2PVM-IO
 {$UNDEF UsedSequencePacketOnP2PVM}
 
-// in Generic null data fill as 0
-{$UNDEF Fill_0_On_Generic}
-
 // CommunicationFramework used QuietMode
 {$UNDEF Communication_QuietMode}
 
