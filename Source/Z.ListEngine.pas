@@ -995,6 +995,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    function Add(const Fmt: SystemString; const Args: array of const): Integer; overload;
     function Add(Value: SystemString): Integer; overload;
     function Add(Value: TPascalString): Integer; overload;
     function Add(Value: TUPascalString): Integer; overload;
@@ -6777,11 +6778,11 @@ begin
         Result := body.Text;
       end
     else if n.ComparePos(1, 'exp') and umlMultipleMatch([
-      'expression(*)', 'expression[*]', 'expression<*>', 'expression"*"', 'expression'#39'*'#39,
-      'exp(*)', 'exp[*]', 'exp<*>', 'exp"*"', 'exp'#39'*'#39,
-      'expr(*)', 'expr[*]', 'expr<*>', 'expr"*"', 'expr'#39'*'#39,
-      'express(*)', 'express[*]', 'express<*>', 'express"*"', 'exp'#39'*'#39
-      ], n) then
+        'expression(*)', 'expression[*]', 'expression<*>', 'expression"*"', 'expression'#39'*'#39,
+        'exp(*)', 'exp[*]', 'exp<*>', 'exp"*"', 'exp'#39'*'#39,
+        'expr(*)', 'expr[*]', 'expr<*>', 'expr"*"', 'expr'#39'*'#39,
+        'express(*)', 'express[*]', 'express<*>', 'express"*"', 'exp'#39'*'#39
+        ], n) then
       begin
         body := umlDeleteFirstStr_Discontinuity(n, '([<"'#39);
         body.DeleteLast;
@@ -7897,11 +7898,11 @@ begin
         Result := body.Text;
       end
     else if n.ComparePos(1, 'exp') and umlMultipleMatch([
-      'expression(*)', 'expression[*]', 'expression<*>', 'expression"*"', 'expression'#39'*'#39,
-      'exp(*)', 'exp[*]', 'exp<*>', 'exp"*"', 'exp'#39'*'#39,
-      'expr(*)', 'expr[*]', 'expr<*>', 'expr"*"', 'expr'#39'*'#39,
-      'express(*)', 'express[*]', 'express<*>', 'express"*"', 'exp'#39'*'#39
-      ], n) then
+        'expression(*)', 'expression[*]', 'expression<*>', 'expression"*"', 'expression'#39'*'#39,
+        'exp(*)', 'exp[*]', 'exp<*>', 'exp"*"', 'exp'#39'*'#39,
+        'expr(*)', 'expr[*]', 'expr<*>', 'expr"*"', 'expr'#39'*'#39,
+        'express(*)', 'express[*]', 'express<*>', 'express"*"', 'exp'#39'*'#39
+        ], n) then
       begin
         body := umlDeleteFirstStr_Discontinuity(n, '([<"'#39);
         body.DeleteLast;
@@ -8386,6 +8387,11 @@ begin
   Clear;
   DisposeObject(FList);
   inherited Destroy;
+end;
+
+function TListPascalString.Add(const Fmt: SystemString; const Args: array of const): Integer;
+begin
+  Result := Add(PFormat(Fmt, Args));
 end;
 
 function TListPascalString.Add(Value: SystemString): Integer;
