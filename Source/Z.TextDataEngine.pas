@@ -118,6 +118,9 @@ type
 
   THashTextEngineList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<THashTextEngine>;
 
+  THashTextEngineList = class(THashTextEngineList_Decl)
+  end;
+
 implementation
 
 function THashTextEngine.GetNames(N_: SystemString): TCore_Strings;
