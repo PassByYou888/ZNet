@@ -330,6 +330,24 @@ type
     procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
   end;
 
+  TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5C = procedure(sender: TC40_NetDisk_Client; Successed: Boolean; info: U_String);
+  TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5M = procedure(sender: TC40_NetDisk_Client; Successed: Boolean; info: U_String) of object;
+{$IFDEF FPC}
+  TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5P = procedure(sender: TC40_NetDisk_Client; Successed: Boolean; info: U_String) is nested;
+{$ELSE FPC}
+  TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5P = reference to procedure(sender: TC40_NetDisk_Client; Successed: Boolean; info: U_String);
+{$ENDIF FPC}
+
+  TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5 = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Client;
+    OnResultC: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5C;
+    OnResultM: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5M;
+    OnResultP: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5P;
+    constructor Create;
+    procedure DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine); override;
+  end;
+
   TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_List_Data = record
     Name: U_String;
     Num: Int64;
@@ -767,6 +785,10 @@ type
     procedure Get_NetDisk_Multi_File_Frag_MD5_P(alias_or_hash_: U_String; md5_arry: TArrayMD5; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_Multi_File_Frag_MD5P);
     // download fragment from fs service
     procedure Get_NetDisk_File_Frag(alias_or_hash_: U_String; FS_File: U_String; Pos_: Int64; Event_: Pointer);
+    // my netdisk file md5
+    procedure Get_NetDisk_File_MD5_C(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5C);
+    procedure Get_NetDisk_File_MD5_M(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5M);
+    procedure Get_NetDisk_File_MD5_P(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5P);
     // my netdisk file list
     procedure Get_NetDisk_File_List_C(DB_Field: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_ListC);
     procedure Get_NetDisk_File_List_M(DB_Field: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_ListM);
@@ -1453,6 +1475,37 @@ begin
   except
   end;
   SetLength(arry, 0);
+  DelayFreeObject(1.0, self);
+end;
+
+constructor TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5.DoStreamEvent(sender: TPeerIO; Result_: TDataFrameEngine);
+var
+  Successed: Boolean;
+  info: U_String;
+begin
+  Successed := Result_.R.ReadBool;
+  info := '';
+  if Successed then
+      info := Result_.R.ReadString;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, Successed, info);
+    if Assigned(OnResultM) then
+        OnResultM(Client, Successed, info);
+    if Assigned(OnResultP) then
+        OnResultP(Client, Successed, info);
+  except
+  end;
   DelayFreeObject(1.0, self);
 end;
 
@@ -3502,6 +3555,54 @@ begin
   d.WriteInt64(Pos_);
   d.WritePointer(Event_);
   DTNoAuthClient.SendTunnel.SendDirectStreamCmd('Get_NetDisk_File_Frag', d);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Get_NetDisk_File_MD5_C(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5C);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_File_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Get_NetDisk_File_MD5_M(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5M);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_File_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Client.Get_NetDisk_File_MD5_P(DB_Field, DB_Item: U_String; OnResult: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5P);
+var
+  tmp: TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5;
+  d: TDFE;
+begin
+  tmp := TC40_NetDisk_Client_On_Usr_Get_NetDisk_File_MD5.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_NetDisk_File_MD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
