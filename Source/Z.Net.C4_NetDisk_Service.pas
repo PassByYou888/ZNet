@@ -225,6 +225,14 @@ type
     procedure Do_FS2_GetFile_Done(sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
   end;
 
+  TC40_NetDisk_Service_Get_NetDisk_File_MD5_Bridge = class(TCustomEventBridge)
+  public
+    VM_Service: TC40_NetDisk_Service;
+    DB_Field: U_String;
+    DB_Item: U_String;
+    procedure Do_GetItemMD5(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
+  end;
+
   TC40_NetDisk_Service_Get_NetDisk_File_List_Bridge = class(TCustomEventBridge)
   public
     VM_Service: TC40_NetDisk_Service;
@@ -366,6 +374,7 @@ type
     procedure cmd_Get_NetDisk_File_Frag_MD5(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_Multi_File_Frag_MD5(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_File_Frag(sender: TPeerIO; InData: TDFE);
+    procedure cmd_Get_NetDisk_File_MD5(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_File_List(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Get_NetDisk_SpaceInfo(sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Remove_Item(sender: TPeerIO; InData: TDFE);
@@ -1019,6 +1028,22 @@ begin
           DisposeObject(d);
           VM_Service.PostLog('%s Get_NetDisk_File_Frag failed.', [IO_Def.PrimaryIdentifier.Text], PFormat('pos:%d', [Pos_]));
         end;
+    end;
+  DelayFreeObj(1.0, self);
+end;
+
+procedure TC40_NetDisk_Service_Get_NetDisk_File_MD5_Bridge.Do_GetItemMD5(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+begin
+  if CheckIO then
+    begin
+      IO_Def := IO.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+      IO.OutDataFrame.WriteBool(Successed);
+      IO.OutDataFrame.WriteString(info_);
+      IO.ContinueResultSend;
+      VM_Service.PostLog('%s Get_NetDisk_File_MD5.', [IO_Def.PrimaryIdentifier.Text],
+        umlCombineUnixfileName(DB_Field, DB_Item));
     end;
   DelayFreeObj(1.0, self);
 end;
@@ -2337,6 +2362,51 @@ begin
   fs_.FS2_GetFile_M(True, tmp.FS_File, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_GetFile_Done);
 end;
 
+procedure TC40_NetDisk_Service.cmd_Get_NetDisk_File_MD5(sender: TPeerIO; InData, OutData: TDFE);
+var
+  IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  tmp: TC40_NetDisk_Service_Get_NetDisk_File_MD5_Bridge;
+begin
+  if (UserDB_Client = nil) or (not UserDB_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('user db is offline.');
+      exit;
+    end;
+  if FFS2_Client_Pool.Count = 0 then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('FS is offline.');
+      exit;
+    end;
+  if (FDirectory_Client = nil) or (not FDirectory_Client.Connected) then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('Directory is offline.');
+      exit;
+    end;
+
+  IO_Def := sender.UserDefine as TC40_NetDisk_Service_RecvTunnel_NoAuth;
+  if not IO_Def.AuthDone then
+    begin
+      OutData.WriteBool(False);
+      OutData.WriteString('no auth.');
+      exit;
+    end;
+
+  tmp := TC40_NetDisk_Service_Get_NetDisk_File_MD5_Bridge.Create(sender);
+  tmp.VM_Service := self;
+  tmp.DB_Field := InData.R.ReadString;
+  tmp.DB_Item := InData.R.ReadString;
+  FDirectory_Client.GetItemMD5_M(
+    PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
+    tmp.DB_Field,
+    tmp.DB_Item,
+{$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemMD5);
+
+  sender.PauseResultSend;
+end;
+
 procedure TC40_NetDisk_Service.cmd_Get_NetDisk_File_List(sender: TPeerIO; InData, OutData: TDFE);
 var
   IO_Def: TC40_NetDisk_Service_RecvTunnel_NoAuth;
@@ -2434,7 +2504,7 @@ begin
 
   FDirectory_Client.RemoveItem(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), DB_Field, DB_Remove_Item_);
   PostLog('%s Remove Item %s',
-    [IO_Def.PrimaryIdentifier.Text, umlCombineUnixFileName(DB_Field, DB_Remove_Item_).Text]);
+    [IO_Def.PrimaryIdentifier.Text, umlCombineUnixfileName(DB_Field, DB_Remove_Item_).Text]);
 end;
 
 procedure TC40_NetDisk_Service.cmd_Remove_Field(sender: TPeerIO; InData: TDFE);
@@ -2490,8 +2560,8 @@ begin
 
       PostLog('%s CopyItem %s@%s -> %s@%s',
         [IO_Def.PrimaryIdentifier.Text,
-        arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
-        arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
+          arry[i].Sour_DB_Name, umlCombineUnixPath(arry[i].Sour_DB_Field, arry[i].Sour_DB_Item).Text,
+          arry[i].Dest_DB_Name, arry[i].Dest_DB_Field]);
 
       inc(i);
     end;
@@ -3213,6 +3283,7 @@ begin
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_Frag_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag_MD5;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Multi_File_Frag_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_Multi_File_Frag_MD5;
   DTNoAuth.RecvTunnel.RegisterDirectStream('Get_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_MD5;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_List;
   DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_SpaceInfo;
   DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Item;
