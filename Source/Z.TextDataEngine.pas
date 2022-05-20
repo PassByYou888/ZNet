@@ -60,16 +60,17 @@ type
 
     // import section
     function DataImport(TextList_: TCore_Strings): Boolean; overload;
-    function DataImport(TextList_: TListPascalString): Boolean; overload;
+    function DataImport(TextList_: TPascalStringList): Boolean; overload;
 
     // export section
     procedure DataExport(TextList_: TCore_Strings); overload;
-    procedure DataExport(TextList_: TListPascalString); overload;
+    procedure DataExport(TextList_: TPascalStringList); overload;
 
     procedure SwapInstance(sour: THashTextEngine);
     procedure Merge(sour: THashTextEngine);
     procedure Assign(sour: THashTextEngine);
     function Same(sour: THashTextEngine): Boolean;
+    function Clone: THashTextEngine;
 
     procedure LoadFromStream(stream: TCore_Stream);
     procedure SaveToStream(stream: TCore_Stream);
@@ -90,7 +91,7 @@ type
 
     procedure GetSectionList(dest: TCore_Strings); overload;
     procedure GetSectionList(dest: TListString); overload;
-    procedure GetSectionList(dest: TListPascalString); overload;
+    procedure GetSectionList(dest: TPascalStringList); overload;
     function GetSectionObjectName(Obj_: THashVariantList): SystemString; overload;
     function GetSectionObjectName(Obj_: THashStringList): SystemString; overload;
 
@@ -355,12 +356,12 @@ end;
 procedure THashTextEngine.Rebuild;
 var
   i: Integer;
-  tmpSecLst: TListPascalString;
+  tmpSecLst: TPascalStringList;
   nsl: TCore_Strings;
   hv: THashVariantTextStream;
   hs: THashStringTextStream;
 begin
-  tmpSecLst := TListPascalString.Create;
+  tmpSecLst := TPascalStringList.Create;
 
   if FSectionHashVariantList.Count > 0 then
     begin
@@ -527,7 +528,7 @@ begin
     end;
 end;
 
-function THashTextEngine.DataImport(TextList_: TListPascalString): Boolean;
+function THashTextEngine.DataImport(TextList_: TPascalStringList): Boolean;
 var
   i: Integer;
   ln: U_String;
@@ -583,7 +584,7 @@ end;
 procedure THashTextEngine.DataExport(TextList_: TCore_Strings);
 var
   i: Integer;
-  tmpSecLst: TListPascalString;
+  tmpSecLst: TPascalStringList;
   nsl: TCore_Strings;
 begin
   Rebuild;
@@ -592,7 +593,7 @@ begin
   if FComment.Count > 0 then
       TextList_.Append('');
 
-  tmpSecLst := TListPascalString.Create;
+  tmpSecLst := TPascalStringList.Create;
 
   FSectionList.GetListData(tmpSecLst);
   if tmpSecLst.Count > 0 then
@@ -611,10 +612,10 @@ begin
   DisposeObject(tmpSecLst);
 end;
 
-procedure THashTextEngine.DataExport(TextList_: TListPascalString);
+procedure THashTextEngine.DataExport(TextList_: TPascalStringList);
 var
   i: Integer;
-  tmpSecLst: TListPascalString;
+  tmpSecLst: TPascalStringList;
   nsl: TCore_Strings;
 begin
   Rebuild;
@@ -623,7 +624,7 @@ begin
   if FComment.Count > 0 then
       TextList_.Append('');
 
-  tmpSecLst := TListPascalString.Create;
+  tmpSecLst := TPascalStringList.Create;
 
   FSectionList.GetListData(tmpSecLst);
   if tmpSecLst.Count > 0 then
@@ -696,15 +697,15 @@ end;
 
 procedure THashTextEngine.Assign(sour: THashTextEngine);
 var
-  ns: TCore_StringList;
+  L: TPascalStringList;
 begin
   try
-    ns := TCore_StringList.Create;
+    L := TPascalStringList.Create;
     sour.Rebuild;
-    sour.DataExport(ns);
+    sour.DataExport(L);
     Clear;
-    DataImport(ns);
-    DisposeObject(ns);
+    DataImport(L);
+    DisposeObject(L);
     FIsChanged := True;
   except
   end;
@@ -749,12 +750,18 @@ begin
   Result := True;
 end;
 
+function THashTextEngine.Clone: THashTextEngine;
+begin
+  Result := THashTextEngine.Create;
+  Result.Assign(Self);
+end;
+
 procedure THashTextEngine.LoadFromStream(stream: TCore_Stream);
 var
-  N_: TListPascalString;
+  N_: TPascalStringList;
 begin
   Clear;
-  N_ := TListPascalString.Create;
+  N_ := TPascalStringList.Create;
   N_.LoadFromStream(stream);
   DataImport(N_);
   DisposeObject(N_);
@@ -762,9 +769,9 @@ end;
 
 procedure THashTextEngine.SaveToStream(stream: TCore_Stream);
 var
-  N_: TListPascalString;
+  N_: TPascalStringList;
 begin
-  N_ := TListPascalString.Create;
+  N_ := TPascalStringList.Create;
   DataExport(N_);
   N_.SaveToStream(stream);
   DisposeObject(N_);
@@ -805,10 +812,10 @@ end;
 function THashTextEngine.TotalCount: Integer;
 var
   i: Integer;
-  tmpSecLst: TListPascalString;
+  tmpSecLst: TPascalStringList;
 begin
   Result := 0;
-  tmpSecLst := TListPascalString.Create;
+  tmpSecLst := TPascalStringList.Create;
 
   FSectionList.GetListData(tmpSecLst);
   if tmpSecLst.Count > 0 then
@@ -853,11 +860,11 @@ end;
 
 procedure THashTextEngine.SetAsText(const Value: SystemString);
 var
-  ns: TListPascalString;
+  ns: TPascalStringList;
 begin
   Clear;
 
-  ns := TListPascalString.Create;
+  ns := TPascalStringList.Create;
   ns.AsText := Value;
   DataImport(ns);
   DisposeObject(ns);
@@ -876,7 +883,7 @@ begin
   FSectionList.GetListData(dest);
 end;
 
-procedure THashTextEngine.GetSectionList(dest: TListPascalString);
+procedure THashTextEngine.GetSectionList(dest: TPascalStringList);
 begin
   Rebuild;
   FSectionList.GetListData(dest);
