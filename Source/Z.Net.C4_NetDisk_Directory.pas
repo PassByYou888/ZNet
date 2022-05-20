@@ -121,6 +121,7 @@ type
     procedure cmd_NewDB(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_RemoveDB(Sender: TPeerIO; InData: TDFE);
     procedure cmd_Download_DB(Sender: TPeerIO; InData: TDFE);
+    procedure cmd_GetItemMD5(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetItemList(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_GetItemFrag(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FoundMD5(Sender: TPeerIO; InData, OutData: TDFE);
@@ -239,6 +240,24 @@ type
     OnResultC: TON_GetItemList_C;
     OnResultM: TON_GetItemList_M;
     OnResultP: TON_GetItemList_P;
+    constructor Create;
+    procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
+  end;
+
+  TON_GetItemMD5_C = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
+  TON_GetItemMD5_M = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String) of object;
+{$IFDEF FPC}
+  TON_GetItemMD5_P = procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String) is nested;
+{$ELSE FPC}
+  TON_GetItemMD5_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
+{$ENDIF FPC}
+
+  TON_Temp_GetItemMD5 = class(TOnResultBridge)
+  public
+    Client: TC40_NetDisk_Directory_Client;
+    OnResultC: TON_GetItemMD5_C;
+    OnResultM: TON_GetItemMD5_M;
+    OnResultP: TON_GetItemMD5_P;
     constructor Create;
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); override;
   end;
@@ -497,6 +516,10 @@ type
     procedure GetItemList_C(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_C);
     procedure GetItemList_M(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_M);
     procedure GetItemList_P(DB_Name, DB_Field: U_String; OnResult: TON_GetItemList_P);
+    // item md5
+    procedure GetItemMD5_C(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_C);
+    procedure GetItemMD5_M(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_M);
+    procedure GetItemMD5_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_P);
     // frag
     procedure GetItemFrag_C(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_C);
     procedure GetItemFrag_M(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemFrag_M);
@@ -938,6 +961,51 @@ begin
   DTNoAuth.PostBatchStream(DTNoAuth.GetUserDefineRecvTunnel(Sender).SendTunnel.Owner, tmp, True);
   DTNoAuth.GetUserDefineRecvTunnel(Sender).SendTunnel.Owner.SendDirectStreamCmd('download_DB_Done', InData);
   DTNoAuth.ClearBatchStream(Sender);
+end;
+
+procedure TC40_NetDisk_Directory_Service.cmd_GetItemMD5(Sender: TPeerIO; InData, OutData: TDFE);
+var
+  DB_Name: U_String;
+  DB_Field: U_String;
+  DB_Item: U_String;
+  fd: TDirectory_Service_User_File_DB;
+  Field_Pos: Int64;
+  ir: TItemSearch;
+  itm_stream: TItemStream;
+  md5_name_: U_String;
+  Size_: Int64;
+begin
+  DB_Name := InData.R.ReadString;
+  DB_Field := InData.R.ReadString;
+  DB_Item := InData.R.ReadString;
+  fd := Directory_HashPool[DB_Name];
+  if fd = nil then
+    begin
+      OutData.WriteBool(False);
+      exit;
+    end;
+
+  if not fd.Stream.Data.GetPathField(DB_Field, Field_Pos) then
+    begin
+      OutData.WriteBool(False);
+      exit;
+    end;
+
+  DB_Field := fd.Stream.Data.GetFieldPath(Field_Pos);
+
+  if fd.Stream.Data.ItemFindFirst(DB_Field, DB_Item, ir) then
+    begin
+      itm_stream := TItemStream.Create(fd.Stream.Data, ir.HeaderPOS);
+      md5_name_ := StreamReadString(itm_stream);
+      DisposeObject(itm_stream);
+
+      OutData.WriteBool(True);
+      OutData.WriteString(md5_name_);
+    end
+  else
+    begin
+      OutData.WriteBool(False);
+    end;
 end;
 
 procedure TC40_NetDisk_Directory_Service.cmd_GetItemList(Sender: TPeerIO; InData, OutData: TDFE);
@@ -1637,7 +1705,7 @@ procedure TC40_NetDisk_Directory_Service.Opti_Progress();
                         Opti_Directory_File_Hash.FastAdd(hash_Name, info_L);
                       end;
                     info_L.Add_Item_Data(
-                      Reserved_To_String(Obj_.Stream.Data.Reserved),
+                    Reserved_To_String(Obj_.Stream.Data.Reserved),
                       Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
                       itm_stream.Hnd^.Name,
                       itm_size,
@@ -1729,9 +1797,9 @@ begin
                       if not C40_QuietMode then
                           DoStatus('error: DB "%s" field "%s" Item "%s" Loss "%s"',
                           [Obj_.DB_Name.Text,
-                          Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
-                          ir.ReturnHeader.Name.Text,
-                          hash_Name]);
+                            Obj_.Stream.Data.GetFieldPath(ir.CurrentField.RHeader.CurrentHeader),
+                            ir.ReturnHeader.Name.Text,
+                            hash_Name]);
                       Loss_Ptr := Loss_List.Add_Null;
                       Loss_Ptr^.Data.Field_Pos := ir.CurrentField.RHeader.CurrentHeader;
                       Loss_Ptr^.Data.Item_Pos := ir.ReturnHeader.CurrentHeader;
@@ -1773,6 +1841,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('NewDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewDB;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveDB;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('Download_DB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Download_DB;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetItemMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemMD5;
   DTNoAuthService.RecvTunnel.RegisterStream('GetItemList').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemList;
   DTNoAuthService.RecvTunnel.RegisterStream('GetItemFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemFrag;
   DTNoAuthService.RecvTunnel.RegisterStream('FoundMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FoundMD5;
@@ -1821,7 +1890,7 @@ begin
       Directory_FS := TCore_FileStream.Create(C40_Directory_Database_File, fmCreate);
 
   Directory_Database := TZDB2_List_ObjectDataManager.Create(
-    TZDB2_ObjectDataManager,
+  TZDB2_ObjectDataManager,
     nil,
     Directory_ZDB2_RecycleMemoryTimeOut,
     Directory_FS,
@@ -1871,7 +1940,7 @@ begin
       MD5_FS := TCore_FileStream.Create(C40_MD5_Database_File, fmCreate);
 
   MD5_Database := TZDB2_List_DFE.Create(
-    TZDB2_DFE,
+  TZDB2_DFE,
     nil,
     MD5_ZDB2_RecycleMemoryTimeOut,
     MD5_FS,
@@ -2052,6 +2121,38 @@ begin
   for i := low(arry) to high(arry) do
       arry[i].Name := '';
   SetLength(arry, 0);
+  DelayFreeObject(1.0, self);
+end;
+
+constructor TON_Temp_GetItemMD5.Create;
+begin
+  inherited Create;
+  Client := nil;
+  OnResultC := nil;
+  OnResultM := nil;
+  OnResultP := nil;
+end;
+
+procedure TON_Temp_GetItemMD5.DoStreamEvent(Sender: TPeerIO; Result_: TDFE);
+var
+  Successed: Boolean;
+  info_: U_String;
+begin
+  Successed := Result_.R.ReadBool;
+  info_ := '';
+  if Successed then
+      info_ := Result_.R.ReadString;
+
+  try
+    if Assigned(OnResultC) then
+        OnResultC(Client, Successed, info_);
+    if Assigned(OnResultM) then
+        OnResultM(Client, Successed, info_);
+    if Assigned(OnResultP) then
+        OnResultP(Client, Successed, info_);
+  except
+  end;
+
   DelayFreeObject(1.0, self);
 end;
 
@@ -2705,6 +2806,57 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.GetItemMD5_C(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_C);
+var
+  tmp: TON_Temp_GetItemMD5;
+  d: TDFE;
+begin
+  tmp := TON_Temp_GetItemMD5.Create;
+  tmp.Client := self;
+  tmp.OnResultC := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.GetItemMD5_M(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_M);
+var
+  tmp: TON_Temp_GetItemMD5;
+  d: TDFE;
+begin
+  tmp := TON_Temp_GetItemMD5.Create;
+  tmp.Client := self;
+  tmp.OnResultM := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DisposeObject(d);
+end;
+
+procedure TC40_NetDisk_Directory_Client.GetItemMD5_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_GetItemMD5_P);
+var
+  tmp: TON_Temp_GetItemMD5;
+  d: TDFE;
+begin
+  tmp := TON_Temp_GetItemMD5.Create;
+  tmp.Client := self;
+  tmp.OnResultP := OnResult;
+
+  d := TDFE.Create;
+  d.WriteString(DB_Name);
+  d.WriteString(DB_Field);
+  d.WriteString(DB_Item);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
