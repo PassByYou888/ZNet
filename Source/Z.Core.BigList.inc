@@ -499,6 +499,42 @@ begin
     end;
 end;
 
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(Data: T_): TArray_T_;
+var
+  L: TOrder_Data_Pool;
+  i: Integer;
+begin
+  L := Search_Data_As_Order(Data);
+  SetLength(Result, L.Num);
+  i := 0;
+  while L.Num > 0 do
+    begin
+      Result[i] := L.First^.Data;
+      L.Next;
+    end;
+  DisposeObject(L);
+end;
+
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(Data: T_): TOrder_Data_Pool;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  Result := TOrder_Data_Pool.Create;
+  if FNum > 0 then
+    begin
+      i := 0;
+      p := FFirst;
+      while i < FNum do
+        begin
+          if CompareData(Data, p^.Data) then
+              Result.Push(p^.Data);
+          inc(i);
+          p := p^.Next;
+        end;
+    end;
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(Data: T_): Integer;
 var
   i: NativeInt;
@@ -1456,6 +1492,47 @@ begin
           begin
             if CompareData(Data, p^.Data) then
                 exit(p);
+            inc(i);
+            p := p^.Next;
+          end;
+      end;
+  finally
+      FCritical.UnLock;
+  end;
+end;
+
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(Data: T_): TArray_T_;
+var
+  L: TOrder_Data_Pool;
+  i: Integer;
+begin
+  L := Search_Data_As_Order(Data);
+  SetLength(Result, L.Num);
+  i := 0;
+  while L.Num > 0 do
+    begin
+      Result[i] := L.First^.Data;
+      L.Next;
+    end;
+  DisposeObject(L);
+end;
+
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(Data: T_): TOrder_Data_Pool;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  Result := TOrder_Data_Pool.Create;
+  FCritical.Lock;
+  try
+    if FNum > 0 then
+      begin
+        i := 0;
+        p := FFirst;
+        while i < FNum do
+          begin
+            if CompareData(Data, p^.Data) then
+                Result.Push(p^.Data);
             inc(i);
             p := p^.Next;
           end;
