@@ -642,6 +642,7 @@ function umlTrimSpace(const s: TPascalString): TPascalString;
 function umlSeparatorText(Text_: TPascalString; dest: TCore_Strings; SeparatorChar: TPascalString): Integer; overload;
 function umlSeparatorText(Text_: TPascalString; dest: THashVariantList; SeparatorChar: TPascalString): Integer; overload;
 function umlSeparatorText(Text_: TPascalString; dest: TListPascalString; SeparatorChar: TPascalString): Integer; overload;
+function umlSeparatorText(Text_: TPascalString; var dest: U_StringArray; SeparatorChar: TPascalString): Integer; overload;
 
 function umlStringsMatchText(OriginValue: TCore_Strings; DestValue: TPascalString; IgnoreCase: Boolean): Boolean;
 
@@ -6743,6 +6744,19 @@ begin
           SeparatorText_ := umlGetFirstStr(NewText_, SeparatorChar);
         end;
     end;
+end;
+
+function umlSeparatorText(Text_: TPascalString; var dest: U_StringArray; SeparatorChar: TPascalString): Integer;
+var
+  L: TListPascalString;
+  i: Integer;
+begin
+  L := TListPascalString.Create;
+  Result := umlSeparatorText(Text_, L, SeparatorChar);
+  SetLength(dest, L.Count);
+  for i := 0 to L.Count - 1 do
+      dest[i] := L[i];
+  DisposeObject(L);
 end;
 
 function umlStringsMatchText(OriginValue: TCore_Strings; DestValue: TPascalString; IgnoreCase: Boolean): Boolean;
