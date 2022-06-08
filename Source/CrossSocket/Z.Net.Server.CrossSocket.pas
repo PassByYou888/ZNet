@@ -375,7 +375,13 @@ end;
 
 constructor TZNet_Server_CrossSocket.Create;
 begin
-  CreateTh(CPUCount);
+  CreateTh(
+{$IFDEF DEBUG}
+  umlMin(2, Z.Core.Get_Parallel_Granularity)
+{$ELSE DEBUG}
+  Z.Core.Get_Parallel_Granularity
+{$ENDIF DEBUG}
+  );
 end;
 
 constructor TZNet_Server_CrossSocket.CreateTh(maxThPool: Word);
