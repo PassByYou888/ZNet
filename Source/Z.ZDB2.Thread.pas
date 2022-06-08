@@ -149,7 +149,7 @@ type
     OnRun_C: TZDB2_Th_Engine_On_Data_Event_C;
     OnRun_M: TZDB2_Th_Engine_On_Data_Event_M;
     OnRun_P: TZDB2_Th_Engine_On_Data_Event_P;
-    FTh_Pool: TIO_Thread;
+    FTh_Pool: TIO_Thread_Base;
     FMax_Queue: Integer;
     procedure Do_ThRun_Marshal_Load(ThSender: TCompute);
   public
@@ -785,8 +785,13 @@ begin
   OnRun_C := nil;
   OnRun_M := nil;
   OnRun_P := nil;
+{$IFDEF DEBUG}
+  FTh_Pool := TIO_Direct.Create();
+  FMax_Queue := Max_Thread_Supported;
+{$ELSE DEBUG}
   FTh_Pool := TIO_Thread.Create(ThNum_);
   FMax_Queue := Max_Thread_Supported;
+{$ENDIF DEBUG}
 end;
 
 destructor TZDB2_Th_Engine_Load_Processor.Destroy;
@@ -1063,7 +1068,7 @@ begin
   Wait_Busy_Task;
   Check_Recycle_Pool;
 
-  processor_ := TZDB2_Th_Engine_Load_Processor.Create(ThNum_);
+  processor_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
   processor_.OnRun_C := On_Run;
   processor_.FMax_Queue := if_(Max_Queue_ <= 0, Max_Thread_Supported, Max_Queue_);
   processor_.Run(self);
@@ -1085,7 +1090,7 @@ begin
 
   Check_Recycle_Pool;
 
-  processor_ := TZDB2_Th_Engine_Load_Processor.Create(ThNum_);
+  processor_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
   processor_.OnRun_M := On_Run;
   processor_.FMax_Queue := if_(Max_Queue_ <= 0, Max_Thread_Supported, Max_Queue_);
   processor_.Run(self);
@@ -1107,7 +1112,7 @@ begin
 
   Check_Recycle_Pool;
 
-  processor_ := TZDB2_Th_Engine_Load_Processor.Create(ThNum_);
+  processor_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
   processor_.OnRun_P := On_Run;
   processor_.FMax_Queue := if_(Max_Queue_ <= 0, Max_Thread_Supported, Max_Queue_);
   processor_.Run(self);
