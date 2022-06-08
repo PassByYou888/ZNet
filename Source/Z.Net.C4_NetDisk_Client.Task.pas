@@ -53,6 +53,7 @@ type
     constructor Create(Client_: TC40_NetDisk_Client);
     destructor Destroy; override;
     procedure All_Done; virtual;
+    function Is_Runing: Boolean;
     function Task_Num: NativeInt;
     function Repeat_: TC40_NetDisk_Client_Task_List.TRepeat___;
     function First: TC40_NetDisk_Client_Task;
@@ -271,6 +272,23 @@ end;
 
 procedure TC40_NetDisk_Client_Task_Tool.All_Done;
 begin
+end;
+
+function TC40_NetDisk_Client_Task_Tool.Is_Runing: Boolean;
+var
+  num_: Integer;
+  __Repeat__: TC40_NetDisk_Client_Task_List.TRepeat___;
+begin
+  num_ := 0;
+  if Task_Num > 0 then
+    begin
+      __Repeat__ := Repeat_;
+      repeat
+        if __Repeat__.Queue^.Data.FTask_Is_Busy then
+            inc(num_);
+      until not __Repeat__.Next;
+    end;
+  Result := num_ > 0;
 end;
 
 function TC40_NetDisk_Client_Task_Tool.Task_Num: NativeInt;
