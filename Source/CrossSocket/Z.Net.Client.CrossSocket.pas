@@ -270,7 +270,13 @@ end;
 constructor TGlobalCrossSocketClientPool.Create;
 begin
   inherited Create;
-  driver := TDriverEngine.Create(0);
+  driver := TDriverEngine.Create(
+{$IFDEF DEBUG}
+    umlMin(2, Z.Core.Get_Parallel_Granularity)
+{$ELSE DEBUG}
+    Z.Core.Get_Parallel_Granularity
+{$ENDIF DEBUG}
+    );
   driver.OnDisconnected := DoDisconnect;
   driver.OnReceived := DoReceived;
 
@@ -298,7 +304,7 @@ end;
 procedure TGlobalCrossSocketClientPool.DoDisconnect(Sender: TObject; AConnection: ICrossConnection);
 begin
   TCore_Thread.Synchronize(TCore_Thread.CurrentThread,
-    procedure
+      procedure
     var
       p_io: TCrossSocketClient_PeerIO;
     begin
