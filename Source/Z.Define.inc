@@ -42,7 +42,11 @@
   {$IFDEF CPUARM}
     {$UNDEF Parallel}
   {$ELSE CPUARM}
-    {$DEFINE Parallel}
+    {$IFDEF DEBUG}
+      {$UNDEF Parallel}
+    {$ELSE DEBUG}
+      {$DEFINE Parallel}
+    {$ENDIF DEBUG}
   {$ENDIF CPUARM}
 
   // Parallel for fold make better use CPU of multi core
@@ -109,7 +113,11 @@
   {$IFDEF CPUARM}
     {$UNDEF Parallel}
   {$ELSE CPUARM}
-    {$DEFINE Parallel}
+    {$IFDEF DEBUG}
+      {$UNDEF Parallel}
+    {$ELSE DEBUG}
+      {$DEFINE Parallel}
+    {$ENDIF DEBUG}
   {$ENDIF CPUARM}
 
   // Parallel for fold make better use CPU of multi core
@@ -191,8 +199,8 @@
   {$ELSE}
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
-    {$R-} { range check }
-    {$I-} { Input output checking }
+    {$R+} { range check }
+    {$I+} { Input output checking }
     {$D+} { debug information }
   {$ENDIF}
 
@@ -276,6 +284,15 @@
   {$DEFINE Morphomatics_Parallel}
   // TMorphologyBinaryzation Parallel switch.
   {$DEFINE MorphologyBinaryzation_Parallel}
+{$ELSE Parallel}
+  // TMemoryRaster Parallel switch.
+  {$UNDEF MemoryRaster_Parallel}
+  // TRasterVertex Parallel switch.
+  {$UNDEF Vertex_Parallel}
+  // TMorphomatics Parallel switch.
+  {$DEFINE Morphomatics_Parallel}
+  // TMorphologyBinaryzation Parallel switch.
+  {$UNDEF MorphologyBinaryzation_Parallel}
 {$ENDIF Parallel}
 
 {$HINTS OFF}
@@ -318,3 +335,158 @@
 {$IFOPT Q+}
   {$DEFINE OverflowCheck}
 {$ENDIF}
+
+(*
+  {$IFDEF FPC}
+    Z.FPC.GenericList,
+  {$ENDIF FPC}
+
+  {$IFDEF INLINE_ASM}inline;{$ENDIF INLINE_ASM}
+
+  {$IFDEF DEBUG}
+  {$ELSE DEBUG}
+  {$ENDIF DEBUG}
+
+  {$IFDEF DEBUG}
+  {$ENDIF DEBUG}
+
+  {$IFDEF FPC}
+  {$ELSE FPC}
+  {$ENDIF FPC}
+
+  {$IFDEF FPC}
+  {$ENDIF FPC}
+
+  {$IFDEF DELPHI}
+  {$ENDIF DELPHI}
+
+  {$IFDEF DELPHI}
+  {$ELSE DELPHI}
+  {$ENDIF DELPHI}
+
+  {$IFDEF DoubleIOFileSystem}
+  {$ELSE DoubleIOFileSystem}
+  {$ENDIF DoubleIOFileSystem}
+
+  {$IFDEF FPC}@{$ENDIF FPC}
+  {$IFDEF FPC}specialize {$ENDIF FPC}
+
+  {$IFNDEF FPC}
+  {$ENDIF FPC}
+
+  {$IFDEF CPU64}
+  {$ENDIF CPU64}
+
+  {$IFDEF Communication_QuietMode}{$ELSE Communication_QuietMode}{$ENDIF Communication_QuietMode}
+
+  {$IFDEF JPEG_Debug}
+  {$ENDIF JPEG_Debug}
+
+  {$IFDEF Linux}
+  {$ELSE Linux}
+  {$ENDIF Linux}
+
+  {$IFDEF MSWINDOWS}
+  {$ELSE MSWINDOWS}
+  {$ENDIF MSWINDOWS}
+
+  {$IFDEF Parallel}
+  {$ELSE Parallel}
+  {$ENDIF Parallel}
+
+  {$IFNDEF Parallel}
+  {$ENDIF Parallel}
+
+  {$IFDEF SystemParallel}
+  {$ELSE SystemParallel}
+  {$ENDIF SystemParallel}
+
+  {$IFDEF initializationStatus}
+  {$ENDIF initializationStatus}
+
+  {$Region 'RegionName'}
+  {$EndRegion 'RegionName'}
+
+  {$IFDEF OverflowCheck}{$Q-}{$ENDIF}
+  {$IFDEF OverflowCheck}{$Q+}{$ENDIF}
+
+  {$IFDEF RangeCheck}{$R-}{$ENDIF}
+  {$IFDEF RangeCheck}{$R+}{$ENDIF}
+
+  {$IFDEF Z_AI_Dataset_Build_In}
+  {$ELSE Z_AI_Dataset_Build_In}
+  {$ENDIF Z_AI_Dataset_Build_In}
+
+  {$IFDEF SystemParallel}
+  {$ELSE SystemParallel}
+  {$ENDIF SystemParallel}
+
+  {$IFDEF MT19937SeedOnTComputeThreadIs0}
+  {$ELSE MT19937SeedOnTComputeThreadIs0}
+  {$ENDIF MT19937SeedOnTComputeThreadIs0}
+
+{$IFDEF Parallel}
+{$IFDEF FPC}
+  procedure Nested_ParallelFor(pass: Integer);
+  begin
+  end;
+{$ENDIF FPC}
+{$ELSE Parallel}
+  procedure DoFor();
+  var
+    pass: Integer;
+  begin
+    for pass:= 0 to Count - 1 do
+      begin
+      end;
+  end;
+{$ENDIF Parallel}
+
+{$IFDEF Parallel}
+{$IFDEF FPC}
+      FPCParallelFor(@Nested_ParallelFor, 0, Count - 1);
+{$ELSE FPC}
+      DelphiParallelFor(0, Count - 1, procedure(pass: Integer)
+        begin
+        end);
+{$ENDIF FPC}
+{$ELSE Parallel}
+      DoFor();
+{$ENDIF Parallel}
+
+
+
+
+{$IFDEF FPC}
+  procedure fpc_progress_(const Name_: PSystemString; Obj: TNumberModule);
+  begin
+  end;
+{$ENDIF FPC}
+
+{$IFDEF FPC}
+  NMPool.ProgressP(@fpc_progress_);
+{$ELSE FPC}
+  FList.ProgressP(procedure(const Name_: PSystemString; Obj: TNumberModule)
+    begin
+    end);
+{$ENDIF FPC}
+
+
+{$IFDEF FPC}
+  procedure fpc_progress_(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean);
+  begin
+    Inc(num);
+  end;
+{$ENDIF FPC}
+
+{$IFDEF FPC}
+      umlReplace(Name, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+{$ELSE FPC}
+      umlReplace(Name, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
+        procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
+        begin
+        end);
+{$ENDIF FPC}
+
+*)
+
