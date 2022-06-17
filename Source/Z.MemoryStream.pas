@@ -340,9 +340,11 @@ function DecompressFile(sour, dest: SystemString): Boolean;
 function SelectCompressStream(const scm: TSelectCompressionMethod; const sour, dest: TCore_Stream): Boolean;
 function SelectDecompressStream(const sour, dest: TCore_Stream): Boolean; overload;
 function SelectDecompressStream(const sour, dest: TCore_Stream; var scm: TSelectCompressionMethod): Boolean; overload;
+procedure ParallelCompressMemory(const ThNum: Integer; const scm: TSelectCompressionMethod; const StripNum_: Integer; const sour: TMS64; const dest: TCore_Stream); overload;
 procedure ParallelCompressMemory(const scm: TSelectCompressionMethod; const StripNum_: Integer; const sour: TMS64; const dest: TCore_Stream); overload;
 procedure ParallelCompressMemory(const scm: TSelectCompressionMethod; const sour: TMS64; const dest: TCore_Stream); overload;
 procedure ParallelCompressMemory(const sour: TMS64; const dest: TCore_Stream); overload;
+procedure ParallelDecompressStream(const ThNum: Integer; const sour_, dest_: TCore_Stream); overload;
 procedure ParallelDecompressStream(const sour_, dest_: TCore_Stream); overload;
 procedure ParallelCompressFile(const sour, dest: SystemString);
 procedure ParallelDecompressFile(const sour, dest: SystemString);
@@ -2299,7 +2301,7 @@ begin
   end;
 end;
 
-procedure ParallelCompressMemory(const scm: TSelectCompressionMethod; const StripNum_: Integer; const sour: TMS64; const dest: TCore_Stream);
+procedure ParallelCompressMemory(const ThNum: Integer; const scm: TSelectCompressionMethod; const StripNum_: Integer; const sour: TMS64; const dest: TCore_Stream);
 var
   StripNum: Integer;
   sourStrips: TStream64List;
@@ -2390,7 +2392,7 @@ begin
       StripNum := StripNum_;
   BuildBuff;
 
-  if sour.Size < 16 * 1024 then
+  if Length(StripArry) < ThNum then
     begin
       DoFor;
     end
@@ -2398,9 +2400,9 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
+      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
 {$ELSE FPC}
-      DelphiParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, procedure(pass: Integer)
+      DelphiParallelFor(ThNum, True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin
           SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
         end);
@@ -2413,6 +2415,11 @@ begin
   FreeBuff;
 end;
 
+procedure ParallelCompressMemory(const scm: TSelectCompressionMethod; const StripNum_: Integer; const sour: TMS64; const dest: TCore_Stream);
+begin
+  ParallelCompressMemory(umlMin(4, Get_Parallel_Granularity), scm, StripNum_, sour, dest);
+end;
+
 procedure ParallelCompressMemory(const scm: TSelectCompressionMethod; const sour: TMS64; const dest: TCore_Stream);
 begin
   ParallelCompressMemory(scm, sour.Size div (16 * 1024), sour, dest);
@@ -2423,7 +2430,7 @@ begin
   ParallelCompressMemory(scmZLIB, sour, dest);
 end;
 
-procedure ParallelDecompressStream(const sour_, dest_: TCore_Stream);
+procedure ParallelDecompressStream(const ThNum: Integer; const sour_, dest_: TCore_Stream);
 type
   TPara_strip_ = record
     sour, dest: TMS64;
@@ -2543,7 +2550,7 @@ begin
       Exit;
     end;
 
-  if Length(StripArry) < 10 then
+  if Length(StripArry) < ThNum then
     begin
       DoFor;
     end
@@ -2551,9 +2558,9 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
+      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
 {$ELSE FPC}
-      DelphiParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, procedure(pass: Integer)
+      DelphiParallelFor(ThNum, True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin
           SelectDecompressStream(StripArry[pass].sour, StripArry[pass].dest);
         end);
@@ -2564,6 +2571,11 @@ begin
     end;
   BuildOutput;
   FreeBuff;
+end;
+
+procedure ParallelDecompressStream(const sour_, dest_: TCore_Stream);
+begin
+  ParallelDecompressStream(umlMin(4, Get_Parallel_Granularity), sour_, dest_);
 end;
 
 procedure ParallelCompressFile(const sour, dest: SystemString);
