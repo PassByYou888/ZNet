@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * FPC Synpase service Support, Max Connection:100                            * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   Synapse Server的最大连接被限制到100
@@ -48,12 +32,12 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: nativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: nativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
     procedure Progress; override;
   end;
 
@@ -77,7 +61,6 @@ type
     Recv_Buff: Pointer;
     Recv_Siz: Integer;
     procedure Sync_PickBuff;
-    procedure Sync_FillReceivedBuff;
     procedure Sync_CloseIO;
     procedure Execute; override;
   end;
@@ -149,7 +132,7 @@ begin
   DisposeObject(Self);
 end;
 
-procedure TSynapseServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: nativeInt);
+procedure TSynapseServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: nativeInt);
 begin
   if not Connected then
       Exit;
@@ -194,7 +177,7 @@ begin
       Result := LastPeerIP;
 end;
 
-function TSynapseServer_PeerIO.WriteBufferEmpty: Boolean;
+function TSynapseServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := (SendBuffQueue.Count = 0) and (SockTh <> nil) and (SockTh.CurrentSendBuff = nil);
 end;
@@ -202,7 +185,7 @@ end;
 procedure TSynapseServer_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Self.Process_Send_Buffer;
 end;
 
 procedure TSynapseListenTh.Sync_CreateIO;
@@ -217,7 +200,7 @@ begin
   CurrentAcceptSockTh.Suspended := False;
 
   while not CurrentAcceptSockTh.Activted do
-      Z.Core.CheckThreadSynchronize(1);
+      TCompute.Sleep(1);
 end;
 
 procedure TSynapseListenTh.Execute;
@@ -233,8 +216,8 @@ begin
     if (Listen) and (Server.Count <= 100) then
       begin
         try
-          if LSock.CanRead(1000) then
-              SyncMethod(Self, True, {$IFDEF FPC}@{$ENDIF FPC}Sync_CreateIO);
+          if LSock.CanRead(10) then
+              TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_CreateIO);
         except
             Listen := False;
         end;
@@ -251,15 +234,6 @@ begin
     begin
       CurrentSendBuff := TMS64(IO.SendBuffQueue[0]);
       IO.SendBuffQueue.Delete(0);
-    end;
-end;
-
-procedure TSynapseSockTh.Sync_FillReceivedBuff;
-begin
-  if (IO <> nil) then
-    begin
-      IO.SaveReceiveBuffer(Recv_Buff, Recv_Siz);
-      IO.FillRecvBuffer(Self, True, True);
     end;
 end;
 
@@ -290,7 +264,7 @@ begin
         while Activted and (IO.SendBuffQueue.Count > 0) do
           begin
             CurrentSendBuff := nil;
-            SyncMethod(Self, True, {$IFDEF FPC}@{$ENDIF FPC}Sync_PickBuff);
+            TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_PickBuff);
 
             if CurrentSendBuff <> nil then
               begin
@@ -308,14 +282,14 @@ begin
                 break;
 
             if (Activted) and (Recv_Siz > 0) then
-                TCore_Thread.Synchronize(Self, {$IFDEF FPC}@{$ENDIF FPC}Sync_FillReceivedBuff);
+                IO.Write_Physics_Fragment(Recv_Buff, Recv_Siz);
           end;
       except
           Activted := False;
       end;
     end;
   System.FreeMemory(Recv_Buff);
-  SyncMethod(Self, True, {$IFDEF FPC}@{$ENDIF FPC}Sync_CloseIO);
+  TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_CloseIO);
 end;
 
 procedure TZNet_Server_Synapse.All_Disconnect(PeerClient: TPeerIO);
@@ -376,7 +350,7 @@ begin
   if c <> nil then
     begin
       c.PostQueueData(v);
-      c.ProcessAllSendCmd(nil, False, False);
+      c.Process_Send_Buffer();
     end
   else
       DisposeQueueData(v);
@@ -385,6 +359,7 @@ end;
 procedure TZNet_Server_Synapse.Progress;
 begin
   inherited Progress;
+  CheckThread;
 end;
 
 procedure TZNet_Server_Synapse.CloseAll;

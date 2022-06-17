@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * DIOCP Support                                                              * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   DIOCP Server的最大连接被限制到20000
@@ -55,12 +39,12 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
     procedure Progress; override;
   end;
 
@@ -68,7 +52,6 @@ type
   private
   protected
     FDIOCPServer: TDiocpTcpServer;
-
     procedure DIOCP_IOAccept(pvSocket: THandle; pvAddr: String; pvPort: Integer; var vAllowAccept: Boolean);
     procedure DIOCP_IOConnected(pvClientContext: TIocpClientContext);
     procedure DIOCP_IODisconnect(pvClientContext: TIocpClientContext);
@@ -78,13 +61,10 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-
     function StartService(Host: SystemString; Port: Word): Boolean; override;
     procedure StopService; override;
-
     procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
-
     function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick); override;
   end;
@@ -99,13 +79,13 @@ end;
 
 destructor TIocpClientContextIntf_WithDServ.Destroy;
 var
-  peerio: TDIOCPServer_PeerIO;
+  PeerIO: TDIOCPServer_PeerIO;
 begin
   if Link <> nil then
     begin
-      peerio := Link;
+      PeerIO := Link;
       Link := nil;
-      DisposeObject(peerio);
+      DisposeObject(PeerIO);
     end;
   inherited Destroy;
 end;
@@ -154,7 +134,7 @@ begin
   DisposeObject(Self);
 end;
 
-procedure TDIOCPServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TDIOCPServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if not Connected then
       Exit;
@@ -195,7 +175,7 @@ begin
       Result := '';
 end;
 
-function TDIOCPServer_PeerIO.WriteBufferEmpty: Boolean;
+function TDIOCPServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := not WasSending;
 end;
@@ -203,7 +183,7 @@ end;
 procedure TDIOCPServer_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Server_DIOCP.DIOCP_IOAccept(pvSocket: THandle; pvAddr: String; pvPort: Integer; var vAllowAccept: Boolean);
@@ -237,13 +217,13 @@ end;
 
 procedure TZNet_Server_DIOCP.DIOCP_IOSendCompleted(pvContext: TIocpClientContext; pvBuff: Pointer; Len: Cardinal; pvBufferTag: Integer; pvTagData: Pointer; pvErrorCode: Integer);
 var
-  peerio: TDIOCPServer_PeerIO;
+  PeerIO: TDIOCPServer_PeerIO;
 begin
   if TIocpClientContextIntf_WithDServ(pvContext).Link = nil then
       Exit;
-  peerio := TIocpClientContextIntf_WithDServ(pvContext).Link;
-  if peerio.lastSendBufferTag = pvBufferTag then
-      peerio.WasSending := False;
+  PeerIO := TIocpClientContextIntf_WithDServ(pvContext).Link;
+  if PeerIO.lastSendBufferTag = pvBufferTag then
+      PeerIO.WasSending := False;
 end;
 
 procedure TZNet_Server_DIOCP.DIOCP_IOReceive(pvClientContext: TIocpClientContext; Buf: Pointer; Len: Cardinal; ErrCode: Integer);
@@ -251,14 +231,10 @@ begin
   if TIocpClientContextIntf_WithDServ(pvClientContext).Link = nil then
       Exit;
 
-  TCore_Thread.Synchronize(TCore_Thread.CurrentThread, procedure
-    begin
-      // zs内核在新版本已经完全支持100%的异步解析
-      // 经过简单分析，这个事件被上锁保护了，似乎调度有点延迟
-      // 这里的性能热点不太好找，diocp的瓶颈主要是卡在这一步
-      TIocpClientContextIntf_WithDServ(pvClientContext).Link.SaveReceiveBuffer(Buf, Len);
-      TIocpClientContextIntf_WithDServ(pvClientContext).Link.FillRecvBuffer(TCore_Thread.CurrentThread, False, False);
-    end);
+  // zs内核在新版本已经完全支持100%的异步解析
+  // 经过简单分析，这个事件被上锁保护了，似乎调度有点延迟
+  // 这里的性能热点不太好找，diocp的瓶颈主要是卡在这一步
+  TIocpClientContextIntf_WithDServ(pvClientContext).Link.Write_Physics_Fragment(Buf, Len);
 end;
 
 constructor TZNet_Server_DIOCP.Create;
@@ -312,11 +288,11 @@ procedure TZNet_Server_DIOCP.TriggerQueueData(v: PQueueData);
 var
   c: TPeerIO;
 begin
-  c := peerio[v^.IO_ID];
+  c := PeerIO[v^.IO_ID];
   if c <> nil then
     begin
       c.PostQueueData(v);
-      c.ProcessAllSendCmd(nil, False, False);
+      c.Process_Send_Buffer();
     end
   else
       DisposeQueueData(v);

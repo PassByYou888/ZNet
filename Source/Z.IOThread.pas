@@ -385,7 +385,7 @@ var
   i, j: Integer;
   d: TIO_Thread_Data;
 begin
-  with TIO_Thread.Create(CpuCount) do
+  with TIO_Thread.Create(Get_Parallel_Granularity) do
     begin
       for i := 1 to 1000000 do
           Enqueue_C(TIO_Thread_Data.Create, Pointer(i), {$IFDEF FPC}@{$ENDIF FPC}Test_IOData__C);

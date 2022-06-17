@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * IndyInterface                                                              * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   update history
@@ -43,7 +27,7 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
@@ -137,7 +121,7 @@ begin
   Context.Disconnect;
 end;
 
-procedure TIDClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TIDClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if Size > 0 then
       Context.IOHandler.write(ToIDBytes(buff, Size));
@@ -375,57 +359,10 @@ begin
           begin
             FDriver.IOHandler.InputBuffer.ExtractToBytes(iBuf);
             FDriver.IOHandler.InputBuffer.Clear;
-            ClientIntf.SaveReceiveBuffer(@iBuf[0], length(iBuf));
+            ClientIntf.Write_Physics_Fragment(@iBuf[0], length(iBuf));
             SetLength(iBuf, 0);
-            try
-                ClientIntf.FillRecvBuffer(nil, False, False);
-            except
-              ClientIntf.Disconnect;
-              FProgressing := False;
-              Exit;
-            end;
-            inherited Progress;
             FDriver.IOHandler.CheckForDataOnSource(5);
           end;
-
-        try
-          if Connected then
-            begin
-              ClientIntf.ProcessAllSendCmd(nil, False, False);
-              t := GetTimeTick + 15000;
-              while (ClientIntf <> nil) and (Connected) and (ClientIntf.WaitOnResult) do
-                begin
-                  FDriver.IOHandler.CheckForDataOnSource(5);
-                  if FDriver.IOHandler.InputBuffer.Size > 0 then
-                    begin
-                      t := GetTimeTick + 15000;
-
-                      FDriver.IOHandler.InputBuffer.ExtractToBytes(iBuf);
-                      FDriver.IOHandler.InputBuffer.Clear;
-                      ClientIntf.SaveReceiveBuffer(@iBuf[0], length(iBuf));
-                      SetLength(iBuf, 0);
-                      try
-                          ClientIntf.FillRecvBuffer(nil, False, False);
-                      except
-                        ClientIntf.Disconnect;
-                        FProgressing := False;
-                        Exit;
-                      end;
-                    end
-                  else if GetTimeTick > t then
-                    begin
-                      ClientIntf.Disconnect;
-                      Break;
-                    end;
-                  inherited Progress;
-                end;
-            end;
-        except
-          ClientIntf.Disconnect;
-          FProgressing := False;
-          Exit;
-        end;
-
       finally
           FProgressing := False;
       end;

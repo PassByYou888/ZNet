@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * Developer refrence Support                                                 * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   update history
@@ -45,7 +29,7 @@ type
     procedure Disconnect; override;
 
     { core interface: kernel triggers when sending data. }
-    procedure SendByteBuffer(const buff: PByte; const Size: nativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: nativeInt); override;
     { core interface: kernel will do WriteBufferOpen before sending data. }
     procedure WriteBufferOpen; override;
     { core interface: kernel will do WriteBufferFlush after sending data. }
@@ -58,7 +42,7 @@ type
 
     { select: If your data is in memory and wait been sent, it returns to False. }
     { select: if you do not consider high concurrency optimization, you can ignore the interface. }
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
 
     { select: Kernel main loop, you can do ignore the interface }
     procedure Progress; override;
@@ -117,7 +101,7 @@ procedure TClient_PeerIO.Disconnect;
 begin
 end;
 
-procedure TClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: nativeInt);
+procedure TClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: nativeInt);
 begin
   if not Connected then
       Exit;
@@ -140,7 +124,7 @@ begin
   Result := '';
 end;
 
-function TClient_PeerIO.WriteBufferEmpty: Boolean;
+function TClient_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := True;
 end;
@@ -148,7 +132,7 @@ end;
 procedure TClient_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 constructor TCommunicationFramework_Client_Refrence.Create;
@@ -217,7 +201,7 @@ begin
     end;
 
   ClientIO.PostQueueData(v);
-  ClientIO.ProcessAllSendCmd(nil, False, False);
+  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TCommunicationFramework_Client_Refrence.Progress;

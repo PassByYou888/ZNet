@@ -1,62 +1,3 @@
-{$IFDEF SystemParallel}
-
-
-procedure DelphiParallelFor(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
-var
-  i: Integer;
-begin
-  if b > e then
-      exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
-    begin
-      i := b;
-      while i <= e do
-        begin
-          try
-              OnFor(i);
-          except
-          end;
-          inc(i);
-        end;
-      exit;
-    end;
-  Parallel_Overflow__.Acquire;
-  try
-      TParallel.&For(b, e, OnFor);
-  finally
-      Parallel_Overflow__.Release;
-  end;
-end;
-
-procedure DelphiParallelFor(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
-var
-  i: Int64;
-begin
-  if b > e then
-      exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
-    begin
-      i := b;
-      while i <= e do
-        begin
-          try
-              OnFor(i);
-          except
-          end;
-          inc(i);
-        end;
-      exit;
-    end;
-  Parallel_Overflow__.Acquire;
-  try
-      TParallel.&For(b, e, OnFor);
-  finally
-      Parallel_Overflow__.Release;
-  end;
-end;
-{$ELSE SystemParallel}
-
-
 type
   TDelphiParallelThData32_Block = record
     b, e: Integer;
@@ -76,10 +17,7 @@ begin
   Pass := p^.b;
   while Pass <= p^.e do
     begin
-      try
-          p^.OnFor(Pass);
-      except
-      end;
+      p^.OnFor(Pass);
       inc(Pass);
     end;
 
@@ -89,7 +27,7 @@ begin
   dispose(p);
 end;
 
-procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+procedure DelphiParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
 var
   Total, Depth, Completed, StepTotal, stepW, Pass, w: Integer;
   p: PDelphiParallelThData32_Block;
@@ -98,22 +36,19 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
     end;
   Parallel_Overflow__.Acquire;
   try
-    Depth := Parallel_Granularity__;
+    Depth := ThNum;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -175,6 +110,11 @@ begin
   finally
       Parallel_Overflow__.Release;
   end;
+end;
+
+procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+begin
+  DelphiParallelFor_Block(Parallel_Granularity__, parallel, b, e, OnFor);
 end;
 
 type
@@ -196,10 +136,7 @@ begin
   Pass := p^.b;
   while Pass <= p^.e do
     begin
-      try
-          p^.OnFor(Pass);
-      except
-      end;
+      p^.OnFor(Pass);
       inc(Pass);
     end;
 
@@ -209,7 +146,7 @@ begin
   dispose(p);
 end;
 
-procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+procedure DelphiParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
 var
   Total, Depth, Completed, StepTotal, stepW, Pass, w: Int64;
   p: PDelphiParallelThData64_Block;
@@ -218,22 +155,19 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
     end;
   Parallel_Overflow__.Acquire;
   try
-    Depth := Parallel_Granularity__;
+    Depth := ThNum;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -297,6 +231,11 @@ begin
   end;
 end;
 
+procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+begin
+  DelphiParallelFor_Block(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
 type
   TDelphiParallelThData32_Fold = record
     Pass: Int64;
@@ -316,10 +255,7 @@ begin
   with p^ do
     while Pass <= Total do
       begin
-        try
-            OnFor(Pass);
-        except
-        end;
+        OnFor(Pass);
         inc(Pass, Granularity);
       end;
 
@@ -328,7 +264,7 @@ begin
   p^.Critical.Release;
 end;
 
-procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+procedure DelphiParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
 var
   p: PDelphiParallelThData32_Fold;
   i, Depth: Integer;
@@ -338,15 +274,12 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
@@ -354,7 +287,7 @@ begin
   Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(Parallel_Granularity__, e - b + 1);
+    Depth := Min(ThNum, e - b + 1);
     SetLength(states, Depth);
 
     i := 0;
@@ -363,7 +296,7 @@ begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := Parallel_Granularity__;
+        p^.Granularity := ThNum;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -390,6 +323,11 @@ begin
   end;
 end;
 
+procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+begin
+  DelphiParallelFor_Fold(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
 type
   TDelphiParallelThData64_Fold = record
     Pass: Int64;
@@ -409,10 +347,7 @@ begin
   with p^ do
     while Pass <= Total do
       begin
-        try
-            OnFor(Pass);
-        except
-        end;
+        OnFor(Pass);
         inc(Pass, Granularity);
       end;
 
@@ -421,7 +356,7 @@ begin
   p^.Critical.Release;
 end;
 
-procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+procedure DelphiParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
 var
   p: PDelphiParallelThData64_Fold;
   i, Depth: Int64;
@@ -431,15 +366,12 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
@@ -447,7 +379,7 @@ begin
   Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(Parallel_Granularity__, e - b + 1);
+    Depth := Min(ThNum, e - b + 1);
     SetLength(states, Depth);
 
     i := 0;
@@ -456,7 +388,7 @@ begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := Parallel_Granularity__;
+        p^.Granularity := ThNum;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -483,6 +415,29 @@ begin
   end;
 end;
 
+procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+begin
+  DelphiParallelFor_Fold(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
+procedure DelphiParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+begin
+{$IFDEF FoldParallel}
+  DelphiParallelFor_Fold(ThNum, parallel, b, e, OnFor);
+{$ELSE FoldParallel}
+  DelphiParallelFor_Block(ThNum, parallel, b, e, OnFor);
+{$ENDIF FoldParallel}
+end;
+
+procedure DelphiParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+begin
+{$IFDEF FoldParallel}
+  DelphiParallelFor_Fold(ThNum, parallel, b, e, OnFor);
+{$ELSE FoldParallel}
+  DelphiParallelFor_Block(ThNum, parallel, b, e, OnFor);
+{$ENDIF FoldParallel}
+end;
+
 procedure DelphiParallelFor(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
 begin
 {$IFDEF FoldParallel}
@@ -500,9 +455,6 @@ begin
   DelphiParallelFor_Block(parallel, b, e, OnFor);
 {$ENDIF FoldParallel}
 end;
-
-{$ENDIF SystemParallel}
-
 
 procedure DelphiParallelFor(b, e: Integer; OnFor: TDelphiParallel_P32);
 begin
@@ -534,6 +486,16 @@ begin
   DelphiParallelFor(parallel, b, e, OnFor);
 end;
 
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
+begin
+  DelphiParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64);
+begin
+  DelphiParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
 procedure ParallelFor(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32);
 begin
   DelphiParallelFor(parallel, b, e, OnFor);
@@ -562,6 +524,16 @@ end;
 procedure ParallelFor(OnFor: TDelphiParallel_P64; b, e: Int64);
 begin
   DelphiParallelFor(b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integer);
+begin
+  DelphiParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64);
+begin
+  DelphiParallelFor(ThNum, parallel, b, e, OnFor);
 end;
 
 procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integer);

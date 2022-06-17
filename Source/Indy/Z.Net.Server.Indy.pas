@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * IndyInterface                                                              * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   INDY Server的最大连接被限制到20
@@ -55,7 +39,7 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
@@ -171,7 +155,7 @@ begin
   inherited Disconnect;
 end;
 
-procedure TIDServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TIDServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if Size > 0 then
     begin
@@ -400,7 +384,7 @@ begin
     TCore_Thread.Synchronize(TIdYarnOfThread(AContext.Yarn).Thread,
       procedure
       begin
-        c.ClientIntf.ProcessAllSendCmd(TIdYarnOfThread(AContext.Yarn).Thread, False, False);
+        c.ClientIntf.Process_Send_Buffer;
       end);
 
     t := GetTimeTick + 5000;
@@ -419,8 +403,7 @@ begin
             TCore_Thread.Synchronize(TIdYarnOfThread(AContext.Yarn).Thread,
               procedure
               begin
-                c.ClientIntf.SaveReceiveBuffer(@iBuf[0], length(iBuf));
-                c.ClientIntf.FillRecvBuffer(TIdYarnOfThread(AContext.Yarn).Thread, False, False);
+                c.ClientIntf.Write_Physics_Fragment(@iBuf[0], length(iBuf));
               end);
             SetLength(iBuf, 0);
           end
@@ -456,8 +439,7 @@ begin
           TCore_Thread.Synchronize(TIdYarnOfThread(AContext.Yarn).Thread,
             procedure
             begin
-              c.ClientIntf.SaveReceiveBuffer(@iBuf[0], length(iBuf));
-              c.ClientIntf.FillRecvBuffer(TIdYarnOfThread(AContext.Yarn).Thread, False, False);
+              c.ClientIntf.Write_Physics_Fragment(@iBuf[0], length(iBuf));
             end);
           SetLength(iBuf, 0);
           c.Connection.IOHandler.CheckForDataOnSource(10);

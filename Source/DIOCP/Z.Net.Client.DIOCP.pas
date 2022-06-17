@@ -44,7 +44,7 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
@@ -150,7 +150,6 @@ begin
           TZNet_Client_DIOCP(FOwnerFramework).DoDisconnect(Self);
       cintf.Close();
     end;
-
   DisposeObject(SendingStream);
   inherited Destroy;
 end;
@@ -176,7 +175,7 @@ begin
   DisposeObject(Self);
 end;
 
-procedure TDIOCPClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TDIOCPClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if not Connected then
       Exit;
@@ -215,7 +214,7 @@ end;
 procedure TDIOCPClient_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_DIOCP.DCDoConnected(Sender: TIocpClientContextIntf_WithDCli);
@@ -245,11 +244,7 @@ end;
 
 procedure TZNet_Client_DIOCP.DCDoRecvBuffer(Buf: Pointer; Len: Cardinal; ErrCode: Word);
 begin
-  TCore_Thread.Synchronize(TCore_Thread.CurrentThread, procedure
-    begin
-      DCIntf.Link.SaveReceiveBuffer(Buf, Len);
-      DCIntf.Link.FillRecvBuffer(TCore_Thread.CurrentThread, False, False);
-    end);
+  DCIntf.Link.Write_Physics_Fragment(Buf, Len);
 end;
 
 procedure TZNet_Client_DIOCP.DoConnected(Sender: TPeerIO);
@@ -286,7 +281,10 @@ end;
 
 destructor TZNet_Client_DIOCP.Destroy;
 begin
-  Disconnect;
+  DCIntf.Link.CanTriggerDoDisconnect := False;
+  DisposeObject(DCIntf.Link);
+  DIOCPClientPool.RemoveAllContext;
+
   DIOCPClientPool.Close;
   DisposeObject(DIOCPClientPool);
   inherited Destroy;
@@ -349,7 +347,7 @@ begin
     end;
 
   ClientIO.PostQueueData(v);
-  ClientIO.ProcessAllSendCmd(nil, False, False);
+  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_DIOCP.Progress;

@@ -8,13 +8,6 @@ unit Z.Core;
 interface
 
 uses SysUtils, Classes, Types, Variants,
-  {$IFDEF Parallel}
-  {$IFNDEF FPC}
-  {$IFDEF SystemParallel}
-  Threading,
-  {$ENDIF SystemParallel}
-  {$ENDIF FPC}
-  {$ENDIF Parallel}
   SyncObjs,
   {$IFDEF FPC}
   Z.FPC.GenericList, fgl,
@@ -1250,14 +1243,22 @@ procedure Set_Parallel_Granularity(Thread_Num: Integer);
 procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
 
 {$IFDEF FPC}
-  // freepascal
 type
+  // freepascal
   TFPCParallel_P32 = procedure(pass: Integer) is nested;
   TFPCParallel_P64 = procedure(pass: Int64) is nested;
+// parallel core
+procedure FPCParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
 procedure FPCParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
+procedure FPCParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure FPCParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
+procedure FPCParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
 procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
+procedure FPCParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
+// parallel package
+procedure FPCParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
+procedure FPCParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure FPCParallelFor(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
 procedure FPCParallelFor(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure FPCParallelFor(b, e: Integer; OnFor: TFPCParallel_P32); overload;
@@ -1266,29 +1267,35 @@ procedure FPCParallelFor(OnFor: TFPCParallel_P32; b, e: Integer); overload;
 procedure FPCParallelFor(OnFor: TFPCParallel_P64; b, e: Int64); overload;
 procedure FPCParallelFor(parallel: Boolean; OnFor: TFPCParallel_P32; b, e: Integer); overload;
 procedure FPCParallelFor(parallel: Boolean; OnFor: TFPCParallel_P64; b, e: Int64); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure ParallelFor(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32); overload;
 procedure ParallelFor(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure ParallelFor(b, e: Integer; OnFor: TFPCParallel_P32); overload;
 procedure ParallelFor(b, e: Int64; OnFor: TFPCParallel_P64); overload;
 procedure ParallelFor(OnFor: TFPCParallel_P32; b, e: Integer); overload;
 procedure ParallelFor(OnFor: TFPCParallel_P64; b, e: Int64); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TFPCParallel_P32; b, e: Integer); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TFPCParallel_P64; b, e: Int64); overload;
 procedure ParallelFor(parallel: Boolean; OnFor: TFPCParallel_P32; b, e: Integer); overload;
 procedure ParallelFor(parallel: Boolean; OnFor: TFPCParallel_P64; b, e: Int64); overload;
 {$ELSE FPC}
 type
   // delphi
-{$IFDEF SystemParallel}
-  TDelphiParallel_P32 = TProc<Integer>;
-  TDelphiParallel_P64 = TProc<Int64>;
-{$ELSE SystemParallel}
   TDelphiParallel_P32 = reference to procedure(pass: Integer);
   TDelphiParallel_P64 = reference to procedure(pass: Int64);
+// parallel core
+procedure DelphiParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
 procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
+procedure DelphiParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure DelphiParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
+procedure DelphiParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
 procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
+procedure DelphiParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure DelphiParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
-{$ENDIF SystemParallel}
-
+// parallel package
+procedure DelphiParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
+procedure DelphiParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure DelphiParallelFor(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
 procedure DelphiParallelFor(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure DelphiParallelFor(b, e: Integer; OnFor: TDelphiParallel_P32); overload;
@@ -1297,12 +1304,16 @@ procedure DelphiParallelFor(OnFor: TDelphiParallel_P32; b, e: Integer); overload
 procedure DelphiParallelFor(OnFor: TDelphiParallel_P64; b, e: Int64); overload;
 procedure DelphiParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integer); overload;
 procedure DelphiParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure ParallelFor(parallel: Boolean; b, e: Integer; OnFor: TDelphiParallel_P32); overload;
 procedure ParallelFor(parallel: Boolean; b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure ParallelFor(b, e: Integer; OnFor: TDelphiParallel_P32); overload;
 procedure ParallelFor(b, e: Int64; OnFor: TDelphiParallel_P64); overload;
 procedure ParallelFor(OnFor: TDelphiParallel_P32; b, e: Integer); overload;
 procedure ParallelFor(OnFor: TDelphiParallel_P64; b, e: Int64); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integer); overload;
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64); overload;
 procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P32; b, e: Integer); overload;
 procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64); overload;
 {$ENDIF FPC}
@@ -1313,6 +1324,9 @@ procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64
 // NoP = No Operation. It's the empty function, whose purpose is only for the
 // debugging, or for the piece of code where intentionaly nothing is planned to be.
 procedure Nop;
+
+// debug state
+function IsDebuging: Boolean;
 
 // process Synchronize
 var
@@ -2022,6 +2036,16 @@ procedure Nop;
 begin
 end;
 
+function IsDebuging: Boolean;
+begin
+  Result := False;
+{$IFDEF DELPHI}
+{$IFDEF MSWINDOWS}
+  Result := Boolean(DebugHook);
+{$ENDIF MSWINDOWS}
+{$ENDIF DELPHI}
+end;
+
 function IsMainThread: Boolean;
 begin
   Result := TCore_Thread.CurrentThread.ThreadID = MainThreadID;
@@ -2103,8 +2127,9 @@ initialization
   Init_Critical_System();
   InitMT19937Rand();
   CoreInitedTimeTick := GetTimeTick();
-  InitCoreThreadPool(CpuCount * 2);
+  InitCoreThreadPool(CpuCount);
   MainThreadProgress := TThreadPost.Create(MainThreadID);
+  MainThreadProgress.OneStep := False;
   MainThSynchronizeRunning := False;
   MainThreadPost := MainThreadProgress;
   SysProgress := MainThreadProgress;

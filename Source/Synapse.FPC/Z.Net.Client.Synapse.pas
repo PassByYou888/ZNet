@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * FPC Synpase client Support                                                 * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   update history
@@ -47,12 +31,12 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: nativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: nativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
     procedure Progress; override;
   end;
 
@@ -117,7 +101,7 @@ begin
   Context.Disconnect;
 end;
 
-procedure TSynapseClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: nativeInt);
+procedure TSynapseClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: nativeInt);
 begin
   if not Connected then
       Exit;
@@ -162,7 +146,7 @@ begin
       Result := LastPeerIP;
 end;
 
-function TSynapseClient_PeerIO.WriteBufferEmpty: Boolean;
+function TSynapseClient_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := SendBuffQueue.Count = 0;
 end;
@@ -170,7 +154,7 @@ end;
 procedure TSynapseClient_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_Synapse.DoConnected(Sender: TPeerIO);
@@ -222,7 +206,7 @@ begin
     end;
 
   ClientIO.PostQueueData(v);
-  ClientIO.ProcessAllSendCmd(nil, False, False);
+  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_Synapse.Progress;
@@ -233,9 +217,11 @@ var
   CurrentSendBuff: TMS64;
   buff: Pointer;
   siz: Integer;
+  Total_Recv: Integer;
   ReadTimeout_: TTimeTick;
 begin
   inherited Progress;
+  CheckThread;
 
   if not Connected then
       Exit;
@@ -256,7 +242,9 @@ begin
     end;
 
   buff := System.GetMemory(memSiz);
-  ReadTimeout_ := GetTimeTick() + 50;
+  ReadTimeout_ := GetTimeTick() + 10;
+
+  Total_Recv := 0;
 
 go_recv:
   try
@@ -277,15 +265,20 @@ go_recv:
       Exit;
     end;
 
+  inc(Total_Recv, siz);
+
   if (siz > 0) then
     begin
-      InternalClient.SaveReceiveBuffer(buff, siz);
-      InternalClient.FillRecvBuffer(nil, False, False);
+      InternalClient.Write_Physics_Fragment(buff, siz);
+      inherited Progress;
+      CheckThread;
       if GetTimeTick() < ReadTimeout_ then
           goto go_recv;
     end;
 
   System.FreeMemory(buff);
+  if Total_Recv > 0 then
+      inherited Progress;
 end;
 
 function TZNet_Client_Synapse.Connect(addr: SystemString; Port: Word): Boolean;

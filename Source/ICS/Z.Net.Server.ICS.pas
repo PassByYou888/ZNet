@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * ics support                                                                * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   ICS Server的最大连接被限制到500
@@ -46,12 +30,12 @@ type
     destructor Destroy; override;
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
     procedure Progress; override;
   end;
 
@@ -89,12 +73,7 @@ begin
   BuffCount := Context.Receive(buff, BuffCount);
   if BuffCount > 0 then
     begin
-      try
-        SaveReceiveBuffer(buff, BuffCount);
-        FillRecvBuffer(nil, False, False);
-      except
-          Context.Close;
-      end;
+      Write_Physics_Fragment(buff, BuffCount);
     end;
   System.FreeMemory(buff);
 end;
@@ -133,7 +112,7 @@ begin
   DisposeObject(Self);
 end;
 
-procedure TICSServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TICSServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   SendBuffer.WritePtr(buff, Size);
 end;
@@ -162,7 +141,7 @@ begin
       Result := '';
 end;
 
-function TICSServer_PeerIO.WriteBufferEmpty: Boolean;
+function TICSServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := True;
 end;
@@ -170,7 +149,7 @@ end;
 procedure TICSServer_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Server_ICS.SessionAvailable(Sender: TObject; ErrCode: Word);

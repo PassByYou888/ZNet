@@ -25,25 +25,24 @@ type
   public
     LastPeerIP: SystemString;
     Sending: Boolean;
-    SendBuffQueue: TCrossSocketServer_Mem_Order;
+    Internal_Send_Queue: TCrossSocketServer_Mem_Order;
     CurrentBuff: TMem64;
     LastSendingBuff: TMem64;
     OnSendBackcall: TProc<ICrossConnection, Boolean>;
     FSendCritical: TCritical;
-
     procedure CreateAfter; override;
     destructor Destroy; override;
     function Context: TCrossConnection;
-    //
     function Connected: Boolean; override;
     procedure Disconnect; override;
     procedure SendBuffResult(Success_: Boolean);
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
+    function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; override;
     procedure Progress; override;
   end;
 
@@ -91,7 +90,7 @@ begin
   inherited CreateAfter;
   LastPeerIP := '';
   Sending := False;
-  SendBuffQueue := TCrossSocketServer_Mem_Order.Create;
+  Internal_Send_Queue := TCrossSocketServer_Mem_Order.Create;
   CurrentBuff := TMem64.Create;
   LastSendingBuff := nil;
   OnSendBackcall := nil;
@@ -113,10 +112,10 @@ begin
       end;
     end;
 
-  while SendBuffQueue.Num > 0 do
+  while Internal_Send_Queue.Num > 0 do
     begin
-      DisposeObject(SendBuffQueue.First^.Data);
-      SendBuffQueue.Next;
+      DisposeObject(Internal_Send_Queue.First^.Data);
+      Internal_Send_Queue.Next;
     end;
 
   if LastSendingBuff <> nil then
@@ -126,7 +125,7 @@ begin
     end;
 
   DisposeObject(CurrentBuff);
-  DisposeObject(SendBuffQueue);
+  DisposeObject(Internal_Send_Queue);
   FSendCritical.Free;
 
   inherited Destroy;
@@ -181,16 +180,16 @@ begin
           try
             UpdateLastCommunicationTime;
             FSendCritical.Lock;
-            Num := SendBuffQueue.Num;
+            Num := Internal_Send_Queue.Num;
             FSendCritical.UnLock;
 
             if Num > 0 then
               begin
                 FSendCritical.Lock;
                 // 将发送队列拾取出来
-                LastSendingBuff := SendBuffQueue.First^.Data;
+                LastSendingBuff := Internal_Send_Queue.First^.Data;
                 // 删除队列，下次回调时后置式释放
-                SendBuffQueue.Next;
+                Internal_Send_Queue.Next;
 
                 if Context <> nil then
                   begin
@@ -220,7 +219,7 @@ begin
     end);
 end;
 
-procedure TCrossSocketServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TCrossSocketServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   // 避免大量零碎数据消耗流量资源，碎片收集
   // 在flush中实现精确异步发送和校验
@@ -248,18 +247,18 @@ begin
   FSendCritical.Lock;
   if Sending then
     begin
-      SendBuffQueue.Push(CurrentBuff);
+      Internal_Send_Queue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;
     end
   else
     begin
-      if SendBuffQueue.Num = 0 then
+      if Internal_Send_Queue.Num = 0 then
           DisposeObjectAndNil(LastSendingBuff);
 
-      SendBuffQueue.Push(CurrentBuff);
+      Internal_Send_Queue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;
-      LastSendingBuff := SendBuffQueue.First^.Data;
-      SendBuffQueue.Next;
+      LastSendingBuff := Internal_Send_Queue.First^.Data;
+      Internal_Send_Queue.Next;
       Context.SendBuf(LastSendingBuff.Memory, LastSendingBuff.Size, OnSendBackcall);
     end;
   FSendCritical.UnLock;
@@ -281,18 +280,38 @@ begin
       Result := LastPeerIP;
 end;
 
-function TCrossSocketServer_PeerIO.WriteBufferEmpty: Boolean;
+function TCrossSocketServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   FSendCritical.Lock;
-  Result := (not Sending) and (SendBuffQueue.Num = 0);
+  Result := (not Sending) and (Internal_Send_Queue.Num <= 0);
+  FSendCritical.UnLock;
+end;
+
+function TCrossSocketServer_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
+var
+  p: TCrossSocketServer_Mem_Order.POrderStruct;
+begin
+  FSendCritical.Lock;
+  Result := Sending;
+  WriteBuffer_Queue_Num := Internal_Send_Queue.Num;
+  WriteBuffer_Size := CurrentBuff.Size;
+
+  if Internal_Send_Queue.First <> nil then
+    begin
+      p := Internal_Send_Queue.First;
+      repeat
+        inc(WriteBuffer_Size, p^.Data.Size);
+        p := p^.Next;
+      until p <> nil;
+    end;
+
   FSendCritical.UnLock;
 end;
 
 procedure TCrossSocketServer_PeerIO.Progress;
 begin
   inherited Progress;
-
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Server_CrossSocket.DoAccept(Sender: TObject; AListen: ICrossListen; var Accept: Boolean);
@@ -335,24 +354,19 @@ begin
 end;
 
 procedure TZNet_Server_CrossSocket.DoReceived(Sender: TObject; AConnection: ICrossConnection; aBuf: Pointer; ALen: Integer);
+var
+  p_io: TCrossSocketServer_PeerIO;
 begin
   if ALen <= 0 then
       exit;
 
-  TCompute.SyncP(procedure
-    var
-      p_io: TCrossSocketServer_PeerIO;
-    begin
-      try
-        p_io := TCrossSocketServer_PeerIO(AConnection.UserObject);
-        if (p_io = niL) or (p_io.IOInterface = nil) then
-            exit;
-
-        p_io.SaveReceiveBuffer(aBuf, ALen);
-        p_io.FillRecvBuffer(nil, False, False);
-      except
-      end;
-    end);
+  try
+    p_io := TCrossSocketServer_PeerIO(AConnection.UserObject);
+    if (p_io = niL) or (p_io.IOInterface = nil) then
+        exit;
+    p_io.Write_Physics_Fragment(aBuf, ALen);
+  except
+  end;
 end;
 
 procedure TZNet_Server_CrossSocket.DoSent(Sender: TObject; AConnection: ICrossConnection; aBuf: Pointer; ALen: Integer);
@@ -377,7 +391,7 @@ constructor TZNet_Server_CrossSocket.Create;
 begin
   CreateTh(
 {$IFDEF DEBUG}
-  umlMin(2, Z.Core.Get_Parallel_Granularity)
+  2
 {$ELSE DEBUG}
   Z.Core.Get_Parallel_Granularity
 {$ENDIF DEBUG}
@@ -458,7 +472,7 @@ begin
   if c <> nil then
     begin
       c.PostQueueData(v);
-      c.ProcessAllSendCmd(nil, False, False);
+      c.Process_Send_Buffer();
     end
   else
       DisposeQueueData(v);

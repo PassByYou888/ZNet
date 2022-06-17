@@ -208,7 +208,7 @@ begin
     end;
 
   ClientIOIntf.PostQueueData(v);
-  ClientIOIntf.FillRecvBuffer(nil, False, False);
+  ClientIOIntf.Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_CrossSocket.Progress;
@@ -272,7 +272,7 @@ begin
   inherited Create;
   driver := TDriverEngine.Create(
 {$IFDEF DEBUG}
-    umlMin(2, Z.Core.Get_Parallel_Granularity)
+    2
 {$ELSE DEBUG}
     Z.Core.Get_Parallel_Granularity
 {$ENDIF DEBUG}
@@ -341,20 +341,10 @@ begin
 
   p_io := TCrossSocketClient_PeerIO(AConnection.UserObject);
 
-  if p_io = nil then
-      Exit;
-
   if (p_io.IOInterface = nil) then
       Exit;
 
-  TCompute.SyncP(procedure
-    begin
-      try
-        p_io.SaveReceiveBuffer(aBuf, ALen);
-        p_io.FillRecvBuffer(nil, False, False);
-      except
-      end;
-    end);
+  p_io.Write_Physics_Fragment(aBuf, ALen);
 end;
 
 procedure TGlobalCrossSocketClientPool.DoSendBuffResult(AConnection: ICrossConnection; ASuccess: Boolean);

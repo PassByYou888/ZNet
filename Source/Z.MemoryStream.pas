@@ -2398,9 +2398,9 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
+      FPCParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
 {$ELSE FPC}
-      DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
+      DelphiParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin
           SelectCompressStream(scm, sourStrips[pass], StripArry[pass]);
         end);
@@ -2551,9 +2551,9 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(@Nested_ParallelFor, 0, Length(StripArry) - 1);
+      FPCParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
 {$ELSE FPC}
-      DelphiParallelFor(0, Length(StripArry) - 1, procedure(pass: Integer)
+      DelphiParallelFor(umlMin(4, Get_Parallel_Granularity), True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin
           SelectDecompressStream(StripArry[pass].sour, StripArry[pass].dest);
         end);

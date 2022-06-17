@@ -4502,7 +4502,7 @@ var
 begin
 {$IFDEF Parallel}
   { system default Parallel depth }
-  DefaultParallelDepth := CPUCount * 2;
+  DefaultParallelDepth := Get_Parallel_Granularity;
   ParallelTriggerCondition := 1024;
 {$ENDIF}
   SetLength(SystemCBC, 64 * 1024);

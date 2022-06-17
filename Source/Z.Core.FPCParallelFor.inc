@@ -17,10 +17,7 @@ begin
   Pass := p^.b;
   while Pass <= p^.e do
     begin
-      try
-          p^.OnFor(Pass);
-      except
-      end;
+      p^.OnFor(Pass);
       inc(Pass);
     end;
 
@@ -30,7 +27,7 @@ begin
   dispose(p);
 end;
 
-procedure FPCParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+procedure FPCParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
 var
   Total, Depth, Completed, StepTotal, stepW, Pass, w: Integer;
   p: PFPCParallelThData32_Block;
@@ -39,22 +36,19 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
     end;
   Parallel_Overflow__.Acquire;
   try
-    Depth := Parallel_Granularity__;
+    Depth := ThNum;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -116,6 +110,11 @@ begin
   finally
       Parallel_Overflow__.Release;
   end;
+end;
+
+procedure FPCParallelFor_Block(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+begin
+  FPCParallelFor_Block(Parallel_Granularity__, parallel, b, e, OnFor);
 end;
 
 type
@@ -137,10 +136,7 @@ begin
   Pass := p^.b;
   while Pass <= p^.e do
     begin
-      try
-          p^.OnFor(Pass);
-      except
-      end;
+      p^.OnFor(Pass);
       inc(Pass);
     end;
 
@@ -150,7 +146,7 @@ begin
   dispose(p);
 end;
 
-procedure FPCParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+procedure FPCParallelFor_Block(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
 var
   Total, Depth, Completed, StepTotal, stepW, Pass, w: Int64;
   p: PFPCParallelThData64_Block;
@@ -159,22 +155,19 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
     end;
   Parallel_Overflow__.Acquire;
   try
-    Depth := Parallel_Granularity__;
+    Depth := ThNum;
     Total := e - b + 1;
     Critical := TCritical.Create;
 
@@ -238,6 +231,11 @@ begin
   end;
 end;
 
+procedure FPCParallelFor_Block(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+begin
+  FPCParallelFor_Block(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
 type
   TFPCParallelThData32_Fold = record
     Pass: Int64;
@@ -257,10 +255,7 @@ begin
   with p^ do
     while Pass <= Total do
       begin
-        try
-            OnFor(Pass);
-        except
-        end;
+        OnFor(Pass);
         inc(Pass, Granularity);
       end;
 
@@ -269,7 +264,7 @@ begin
   p^.Critical.Release;
 end;
 
-procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+procedure FPCParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
 var
   p: PFPCParallelThData32_Fold;
   i, Depth: Integer;
@@ -279,15 +274,12 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
@@ -295,7 +287,7 @@ begin
   Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(Parallel_Granularity__, e - b + 1);
+    Depth := Min(ThNum, e - b + 1);
     SetLength(states, Depth);
 
     i := 0;
@@ -304,7 +296,7 @@ begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := Parallel_Granularity__;
+        p^.Granularity := ThNum;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -331,6 +323,11 @@ begin
   end;
 end;
 
+procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+begin
+  FPCParallelFor_Fold(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
 type
   TFPCParallelThData64_Fold = record
     Pass: Int64;
@@ -350,10 +347,7 @@ begin
   with p^ do
     while Pass <= Total do
       begin
-        try
-            OnFor(Pass);
-        except
-        end;
+        OnFor(Pass);
         inc(Pass, Granularity);
       end;
 
@@ -362,7 +356,7 @@ begin
   p^.Critical.Release;
 end;
 
-procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+procedure FPCParallelFor_Fold(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
 var
   p: PFPCParallelThData64_Fold;
   i, Depth: Int64;
@@ -372,15 +366,12 @@ var
 begin
   if b > e then
       exit;
-  if (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
+  if (ThNum <= 0) or (not parallel) or (not WorkInParallelCore.V) or Parallel_Overflow__.Busy() then
     begin
       i := b;
       while i <= e do
         begin
-          try
-              OnFor(i);
-          except
-          end;
+          OnFor(i);
           inc(i);
         end;
       exit;
@@ -388,15 +379,16 @@ begin
   Parallel_Overflow__.Acquire;
   try
     Critical := TCritical.Create;
-    Depth := Min(Parallel_Granularity__, e - b + 1);
+    Depth := Min(ThNum, e - b + 1);
     SetLength(states, Depth);
+
     i := 0;
     while i < Depth do
       begin
         p := @states[i];
         p^.Pass := b + i;
         p^.Total := e;
-        p^.Granularity := Parallel_Granularity__;
+        p^.Granularity := ThNum;
         p^.Completed := False;
         p^.OnFor := OnFor;
         p^.Critical := Critical;
@@ -421,6 +413,29 @@ begin
   finally
       Parallel_Overflow__.Release;
   end;
+end;
+
+procedure FPCParallelFor_Fold(parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+begin
+  FPCParallelFor_Fold(Parallel_Granularity__, parallel, b, e, OnFor);
+end;
+
+procedure FPCParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+begin
+{$IFDEF FoldParallel}
+  FPCParallelFor_Fold(ThNum, parallel, b, e, OnFor);
+{$ELSE FoldParallel}
+  FPCParallelFor_Block(ThNum, parallel, b, e, OnFor);
+{$ENDIF FoldParallel}
+end;
+
+procedure FPCParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+begin
+{$IFDEF FoldParallel}
+  FPCParallelFor_Fold(ThNum, parallel, b, e, OnFor);
+{$ELSE FoldParallel}
+  FPCParallelFor_Block(ThNum, parallel, b, e, OnFor);
+{$ENDIF FoldParallel}
 end;
 
 procedure FPCParallelFor(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
@@ -471,6 +486,16 @@ begin
   FPCParallelFor(parallel, b, e, OnFor);
 end;
 
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
+begin
+  FPCParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; b, e: Int64; OnFor: TFPCParallel_P64);
+begin
+  FPCParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
 procedure ParallelFor(parallel: Boolean; b, e: Integer; OnFor: TFPCParallel_P32);
 begin
   FPCParallelFor(parallel, b, e, OnFor);
@@ -499,6 +524,16 @@ end;
 procedure ParallelFor(OnFor: TFPCParallel_P64; b, e: Int64);
 begin
   FPCParallelFor(b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TFPCParallel_P32; b, e: Integer);
+begin
+  FPCParallelFor(ThNum, parallel, b, e, OnFor);
+end;
+
+procedure ParallelFor(ThNum: Integer; parallel: Boolean; OnFor: TFPCParallel_P64; b, e: Int64);
+begin
+  FPCParallelFor(ThNum, parallel, b, e, OnFor);
 end;
 
 procedure ParallelFor(parallel: Boolean; OnFor: TFPCParallel_P32; b, e: Integer);

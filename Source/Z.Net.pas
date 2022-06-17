@@ -292,6 +292,8 @@ type
     procedure AddDoubleTunenlID(R, S: Cardinal);
   end;
 
+  TSwap_Space_Pool_File_Stream = class;
+
   TQueueState = (
     qsUnknow,
     qsSendConsoleCMD,
@@ -333,8 +335,9 @@ type
     BigStreamStartPos: Int64;
     BigStream: TCore_Stream;
     { complete buffer }
-    buffer: PByte;
+    Buffer: PByte;
     BufferSize: NativeInt;
+    Buffer_Swap_Stream: TSwap_Space_Pool_File_Stream;
     { memory recycle }
     DoneAutoFree: Boolean;
     { console and stream param }
@@ -345,29 +348,28 @@ type
   PQueueData = ^TQueueData;
   TQueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueData>;
 
-  TSwapSpaceFileStream = class;
+  TSwap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TSwap_Space_Pool_File_Stream>;
 
-  TSwapSpaceList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TSwapSpaceFileStream>;
-
-  TSwapSpaceList = class(TSwapSpaceList_Decl)
+  TSwap_Space_Pool = class(TSwap_Space_Pool_Decl)
   private
     FCritical: TCritical;
   public
     WorkPath: U_String;
     constructor Create;
     destructor Destroy; override;
-    procedure DoFree(var data: TSwapSpaceFileStream); override;
-    function CompareData(Data_1, Data_2: TSwapSpaceFileStream): Boolean; override;
+    procedure DoFree(var data: TSwap_Space_Pool_File_Stream); override;
+    function CompareData(Data_1, Data_2: TSwap_Space_Pool_File_Stream): Boolean; override;
     procedure Lock;
     procedure UnLock;
   end;
 
-  TSwapSpaceFileStream = class(TCore_FileStream)
+  TSwap_Space_Pool_File_Stream = class(TCore_FileStream)
   private
-    FOwnerSwapSpace: TSwapSpaceList;
-    FPoolPtr: TSwapSpaceList_Decl.PQueueStruct;
+    FOwnerSwapSpace: TSwap_Space_Pool;
+    FPoolPtr: TSwap_Space_Pool_Decl.PQueueStruct;
   public
-    class function CreateSwapSpace(stream_: TCore_Stream; OwnerSwapSpace_: TSwapSpaceList): TSwapSpaceFileStream;
+    class function Create_BigStream(stream_: TCore_Stream; OwnerSwapSpace_: TSwap_Space_Pool): TSwap_Space_Pool_File_Stream;
+    class function Create_CompleteBuffer(buff: PByte; BuffSiz: NativeInt; OwnerSwapSpace_: TSwap_Space_Pool): TSwap_Space_Pool_File_Stream;
     destructor Destroy; override;
   end;
 
@@ -591,18 +593,24 @@ type
 {$REGION 'IO'}
   TInternalSendByteBuffer = procedure(const Sender: TPeerIO; const buff: PByte; siz: NativeInt) of object;
   TInternalSaveReceiveBuffer = procedure(const Sender: TPeerIO; const buff: Pointer; siz: Int64) of object;
-  TInternalProcessReceiveBuffer = procedure(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean) of object;
-  TInternalProcessAllSendCmd = procedure(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean) of object;
+  TInternalProcessReceiveBuffer = procedure(const Sender: TPeerIO) of object;
+  TInternalProcessSendBuffer = procedure(const Sender: TPeerIO) of object;
   TInternalIOCreate = procedure(const Sender: TPeerIO) of object;
-  TInternalIODestory = procedure(const Sender: TPeerIO) of object;
+  TInternal_IO_Destory = procedure(const Sender: TPeerIO) of object;
 
   TSequence_Packet_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Cardinal, PSequencePacket>;
+
+  TPhysics_Fragment_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TMem64>;
+
+  TPhysics_Fragment_Pool = class(TPhysics_Fragment_Pool_Decl)
+  public
+    procedure DoFree(var data: TMem64); override;
+  end;
 
   TZNet_WithP2PVM = class;
 
   TPeerIO = class(TCore_InterfacedObject)
   protected
-    FCritical: TCritical;
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
     FID: Cardinal;
@@ -616,12 +624,15 @@ type
     FBigStreamReceiveFragmentSignal: Byte;
     FBigStreamReceiveDoneSignal: Byte;
     FCompleteBufferToken: Byte;
+    FReceived_Physics_Critical: TCritical;
+    FReceived_Physics_Fragment_Pool: TPhysics_Fragment_Pool;
     FReceivedAbort: Boolean;
     FReceivedBuffer: TMS64;
     FReceivedBuffer_Busy: TMS64;
     FBigStreamReceiveProcessing: Boolean;
     FBigStreamTotal: Int64;
     FBigStreamCompleted: Int64;
+    FBigStream_Current_Received: Int64;
     FBigStreamCmd: SystemString;
     FSyncBigStreamReceive: TCore_Stream;
     FBigStreamSending: TCore_Stream;
@@ -669,12 +680,13 @@ type
     { external interface }
     function Connected: Boolean; virtual;
     procedure Disconnect; virtual;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); virtual;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); virtual;
     procedure WriteBufferOpen; virtual;
     procedure WriteBufferFlush; virtual;
     procedure WriteBufferClose; virtual;
     function GetPeerIP: SystemString; virtual;
-    function WriteBufferEmpty: Boolean; virtual;
+    function WriteBuffer_is_NULL: Boolean; virtual;
+    function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; virtual;
   protected
     { Sequence Packet Model }
     FSequencePacketActivted, FSequencePacketSignal: Boolean;
@@ -721,12 +733,12 @@ type
     { vm auth token buffer }
     FP2PAuthToken: TBytes;
     { vm hook }
-    OnInternalSendByteBuffer: TInternalSendByteBuffer;
-    OnInternalSaveReceiveBuffer: TInternalSaveReceiveBuffer;
-    OnInternalProcessReceiveBuffer: TInternalProcessReceiveBuffer;
-    OnInternalProcessAllSendCmd: TInternalProcessAllSendCmd;
+    On_Internal_Send_Byte_Buffer: TInternalSendByteBuffer;
+    On_Internal_Save_Receive_Buffer: TInternalSaveReceiveBuffer;
+    On_Internal_Process_Receive_Buffer: TInternalProcessReceiveBuffer;
+    On_Internal_Process_Send_Buffer: TInternalProcessSendBuffer;
     OnCreate: TInternalIOCreate;
-    OnDestroy: TInternalIODestory;
+    OnDestroy: TInternal_IO_Destory;
   protected
     { p2p vm: auth model result }
     OnVMBuildAuthModelResult_C: TOnNotify_C;
@@ -777,51 +789,48 @@ type
     procedure SendEncryptBuffer(buff: PByte; siz: NativeInt; CS: TCipherSecurity);
     procedure SendEncryptMemoryStream(Stream: TMS64; CS: TCipherSecurity);
 
-    procedure InternalSendConsoleBuff(buff: TMS64; CS: TCipherSecurity);
-    procedure InternalSendStreamBuff(buff: TMS64; CS: TCipherSecurity);
-    procedure InternalSendDirectConsoleBuff(buff: TMS64; CS: TCipherSecurity);
-    procedure InternalSendDirectStreamBuff(buff: TMS64; CS: TCipherSecurity);
-    procedure InternalSendBigStreamHeader(Cmd: SystemString; streamSiz: Int64);
-    procedure InternalSendBigStreamBuff(var Queue: TQueueData);
-    procedure InternalSendCompleteBufferHeader(Cmd: SystemString; buffSiz, compSiz: Cardinal);
-    procedure InternalSendCompleteBufferBuff(var Queue: TQueueData);
-    procedure InternalSendBigStreamFragmentSignal;
-    procedure InternalSendBigStreamDoneSignal;
+    procedure Internal_Send_Console_Buff(buff: TMS64; CS: TCipherSecurity);
+    procedure Internal_Send_Stream_Buff(buff: TMS64; CS: TCipherSecurity);
+    procedure Internal_Send_DirectConsole_Buff(buff: TMS64; CS: TCipherSecurity);
+    procedure Internal_Send_DirectStream_Buff(buff: TMS64; CS: TCipherSecurity);
+    procedure Internal_Send_Big_Stream_Header(Cmd: SystemString; streamSiz: Int64);
+    procedure Internal_Send_BigStream_Buff(var Queue: TQueueData);
+    procedure Internal_Send_Complete_Buffer_Header(Cmd: SystemString; BuffSiz, compSiz: Cardinal);
+    procedure Internal_Send_CompleteBuffer_Buff(var Queue: TQueueData);
+    procedure Internal_Send_BigStream_Fragment_Signal;
+    procedure Internal_Send_BigStream_Done_Signal;
     procedure SendBigStreamMiniPacket(buff: PByte; Size: NativeInt);
 
-    procedure Sync_InternalSendResultData;
-    procedure Sync_InternalSendConsoleCmd;
-    procedure Sync_InternalSendStreamCmd;
-    procedure Sync_InternalSendDirectConsoleCmd;
-    procedure Sync_InternalSendDirectStreamCmd;
-    procedure Sync_InternalSendBigStreamCmd;
-    procedure Sync_InternalSendCompleteBufferCmd;
+    procedure Internal_Send_Result_Data;
+    procedure Internal_Send_Console_Cmd;
+    procedure Internal_Send_Stream_Cmd;
+    procedure Internal_Send_DirectConsole_Cmd;
+    procedure Internal_Send_DirectStream_Cmd;
+    procedure Internal_Send_BigStream_Cmd;
+    procedure Internal_Send_CompleteBuffer_Cmd;
 
-    procedure Sync_ExecuteConsole;
-    procedure Sync_ExecuteStream;
-    procedure Sync_ExecuteDirectConsole;
-    procedure Sync_ExecuteDirectStream;
-    procedure Sync_SendConsoleResult;
-    procedure Sync_SendStreamResult;
-    procedure ExecuteDataFrame(CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean; CommDataType: Byte; DataFrame: TDFE);
+    procedure Internal_Execute_Console;
+    procedure Internal_Execute_Stream;
+    procedure Internal_Execute_DirectConsole;
+    procedure Internal_Execute_DirectStream;
+    procedure SendConsoleResult;
+    procedure SendStreamResult;
+    procedure ExecuteDataFrame(CommDataType: Byte; DataFrame: TDFE);
 
-    procedure Sync_ExecuteBigStream;
-    function ReceivedBigStreamFragment(CurrentActiveThread_: TCore_Thread; const Sync: Boolean): Boolean;
+    procedure Internal_Execute_BigStream;
+    function ReceivedBigStreamFragment(): Boolean;
 
-    procedure Sync_ExecuteCompleteBuffer;
-    function FillCompleteBufferBuffer(CurrentActiveThread_: TCore_Thread; const Sync: Boolean): Boolean;
+    procedure Internal_Execute_CompleteBuffer;
+    function FillCompleteBufferBuffer(): Boolean;
 
-    procedure Sync_ExecuteResult;
-    function FillWaitOnResultBuffer(CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean): Boolean;
+    procedure Internal_ExecuteResult;
+    function FillWaitOnResultBuffer(): Boolean;
 
-    procedure InternalSaveReceiveBuffer(const buff: Pointer; siz: Int64);
-    procedure InternalProcessReceiveBuffer(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
-    procedure InternalProcessAllSendCmd(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
-
-    procedure Sync_CheckAndTriggerFailedWaitResult;
+    procedure Internal_Save_Receive_Buffer(const buff: Pointer; siz: Int64);
+    procedure Internal_Process_Receive_Buffer();
+    procedure Internal_Process_Send_Buffer();
     procedure CheckAndTriggerFailedWaitResult;
-
-    procedure InternalCloseP2PVMTunnel;
+    procedure Internal_Close_P2PVMTunnel;
   public
     constructor Create(OwnerFramework_: TZNet; IOInterface_: TCore_Object);
     procedure CreateAfter; virtual;
@@ -886,11 +895,6 @@ type
     procedure PrintWarning(v: SystemString); overload;
     procedure PrintWarning(v: SystemString; const Args: array of const); overload;
 
-    { asynchronous io }
-    procedure LockIO;
-    procedure UnLockIO;
-    procedure IO_SyncMethod(t: TCore_Thread; Sync: Boolean; proc: TThreadMethod);
-
     { progress IO }
     procedure Progress; virtual;
 
@@ -903,19 +907,20 @@ type
     procedure DelayFree(const t: Double); overload;
 
     { packet buffer }
-    procedure SaveReceiveBuffer(const p: Pointer; siz: Int64);
-    procedure FillRecvBuffer(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
-    procedure ProcessAllSendCmd(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+    procedure Write_Physics_Fragment(const p: Pointer; siz: Int64);
+    function Extract_Physics_Fragment_To_Receive_Buffer(): Boolean;
+    procedure Process_Receive_Buffer();
+    procedure Process_Send_Buffer();
     procedure PostQueueData(p: PQueueData);
 
     { custom protocol }
     procedure BeginWriteCustomBuffer;
     procedure EndWriteCustomBuffer;
-    procedure WriteCustomBuffer(const buffer: PByte; const Size: NativeInt); overload; virtual;
-    procedure WriteCustomBuffer(const buffer: TMS64); overload;
-    procedure WriteCustomBuffer(const buffer: TMem64); overload;
-    procedure WriteCustomBuffer(const buffer: TMS64; const doneFreeBuffer: Boolean); overload;
-    procedure WriteCustomBuffer(const buffer: TMem64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteCustomBuffer(const Buffer: PByte; const Size: NativeInt); overload; virtual;
+    procedure WriteCustomBuffer(const Buffer: TMS64); overload;
+    procedure WriteCustomBuffer(const Buffer: TMem64); overload;
+    procedure WriteCustomBuffer(const Buffer: TMS64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteCustomBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean); overload;
 
     { pause reponse }
     procedure PauseResultSend; virtual;
@@ -1214,6 +1219,8 @@ type
     FHashSecurity: THashSecurity;
     FMaxCompleteBufferSize: Cardinal;
     FCompleteBufferCompressionCondition: Cardinal;
+    FCompleteBufferSwapSpace: Boolean;
+    FCompleteBufferSwapSpaceTriggerSize: Int64;
     FPrintParams: TPrint_Param_Hash_Pool;
     FPostProgress: TN_Progress_ToolWithCadencer;
     FFrameworkIsServer: Boolean;
@@ -1257,15 +1264,15 @@ type
     function MakeID: Cardinal;
 
     { user protocol support }
-    procedure FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
+    procedure FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
   protected
     { event }
-    procedure Framework_InternalSendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
-    procedure Framework_InternalSaveReceiveBuffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
-    procedure Framework_InternalProcessReceiveBuffer(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
-    procedure Framework_InternalProcessAllSendCmd(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+    procedure Framework_Internal_Send_Byte_Buffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
+    procedure Framework_Internal_Save_Receive_Buffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
+    procedure Framework_Internal_Process_Receive_Buffer(const Sender: TPeerIO);
+    procedure Framework_Internal_Process_Send_Buffer(const Sender: TPeerIO);
     procedure Framework_InternalIOCreate(const Sender: TPeerIO); virtual;
-    procedure Framework_InternalIODestroy(const Sender: TPeerIO); virtual;
+    procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); virtual;
 
     { private vm and protocol stack support }
     procedure BuildP2PAuthTokenResult_OnIOIDLE(Sender: TCore_Object);
@@ -1326,7 +1333,7 @@ type
     property Protocol: TCommunicationProtocol read FProtocol write FProtocol;
     procedure BeginWriteCustomBuffer(P_IO: TPeerIO);
     procedure EndWriteCustomBuffer(P_IO: TPeerIO);
-    procedure WriteCustomBuffer(P_IO: TPeerIO; const buffer: PByte; const Size: NativeInt);
+    procedure WriteCustomBuffer(P_IO: TPeerIO; const Buffer: PByte; const Size: NativeInt);
 
     property PrefixName: SystemString read FPrefixName write FPrefixName;
     property name: SystemString read FName write FName;
@@ -1485,6 +1492,8 @@ type
     property HashSecurity: THashSecurity read FHashSecurity;
     property MaxCompleteBufferSize: Cardinal read FMaxCompleteBufferSize write FMaxCompleteBufferSize;
     property CompleteBufferCompressionCondition: Cardinal read FCompleteBufferCompressionCondition write FCompleteBufferCompressionCondition;
+    property CompleteBufferSwapSpace: Boolean read FCompleteBufferSwapSpace write FCompleteBufferSwapSpace;
+    property CompleteBufferSwapSpaceTriggerSize: Int64 read FCompleteBufferSwapSpaceTriggerSize write FCompleteBufferSwapSpaceTriggerSize;
     property ProgressMaxDelay: TTimeTick read FProgressMaxDelay write FProgressMaxDelay; { large-scale IO support }
     procedure CopyParamFrom(Source: TZNet);
     procedure CopyParamTo(Dest: TZNet);
@@ -1531,7 +1540,7 @@ type
 {$ENDREGION 'Z.Net'}
 {$REGION 'ZNetServer'}
 
-  TOnServerCustomProtocolReceiveBufferNotify = procedure(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean) of object;
+  TOnServerCustomProtocolReceiveBufferNotify = procedure(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean) of object;
 
   TZNet_StableServer = class;
 
@@ -1545,15 +1554,10 @@ type
     procedure Command_Wait(Sender: TPeerIO; InData: SystemString; var OutData: SystemString); virtual;
 
     procedure Framework_InternalIOCreate(const Sender: TPeerIO); override;
-    procedure Framework_InternalIODestroy(const Sender: TPeerIO); override;
+    procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); override;
   protected
     FOnServerCustomProtocolReceiveBufferNotify: TOnServerCustomProtocolReceiveBufferNotify;
-    FillSync_Sender: TPeerIO;
-    FillSync_Buffer: PByte;
-    FillSync_BufferSize: NativeInt;
-    FillSync_Done: Boolean;
-    procedure SyncFillCustomBuffer;
-    procedure FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean); override;
+    procedure FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean); override;
   protected
     FStableIOProgressing: Boolean;
     FStableIO: TZNet_StableServer;
@@ -1573,14 +1577,14 @@ type
     procedure Disconnect(ID: Cardinal; delay: Double); overload;
 
     { OnReceiveBuffer work on Protocol is cpCustom }
-    procedure OnReceiveBuffer(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
+    procedure OnReceiveBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
     procedure BeginWriteBuffer(P_IO: TPeerIO);
     procedure EndWriteBuffer(P_IO: TPeerIO);
-    procedure WriteBuffer(P_IO: TPeerIO; const buffer: PByte; const Size: NativeInt); overload; virtual;
-    procedure WriteBuffer(P_IO: TPeerIO; const buffer: TMS64); overload;
-    procedure WriteBuffer(P_IO: TPeerIO; const buffer: TMem64); overload;
-    procedure WriteBuffer(P_IO: TPeerIO; const buffer: TMS64; const doneFreeBuffer: Boolean); overload;
-    procedure WriteBuffer(P_IO: TPeerIO; const buffer: TMem64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteBuffer(P_IO: TPeerIO; const Buffer: PByte; const Size: NativeInt); overload; virtual;
+    procedure WriteBuffer(P_IO: TPeerIO; const Buffer: TMS64); overload;
+    procedure WriteBuffer(P_IO: TPeerIO; const Buffer: TMem64); overload;
+    procedure WriteBuffer(P_IO: TPeerIO; const Buffer: TMS64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteBuffer(P_IO: TPeerIO; const Buffer: TMem64; const doneFreeBuffer: Boolean); overload;
 
     { external service method }
     procedure StopService; virtual;
@@ -1699,7 +1703,7 @@ type
     procedure ClientDisconnect(Sender: TZNet_Client);
   end;
 
-  TOnClientCustomProtocolReceiveBufferNotify = procedure(Sender: TZNet_Client; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean) of object;
+  TOnClientCustomProtocolReceiveBufferNotify = procedure(Sender: TZNet_Client; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean) of object;
   TOnCipherModelDone = procedure(Sender: TZNet_Client) of object;
 
   TZNet_StableClient = class;
@@ -1742,11 +1746,7 @@ type
     function CanRegCommand(Sender: TZNet; Cmd: SystemString): Boolean; override;
   protected
     FOnClientCustomProtocolReceiveBufferNotify: TOnClientCustomProtocolReceiveBufferNotify;
-    FillSync_Buffer: PByte;
-    FillSync_BufferSize: NativeInt;
-    FillSync_Done: Boolean;
-    procedure SyncFillCustomBuffer;
-    procedure FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean); override;
+    procedure FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean); override;
   protected
     FStableIOProgressing: Boolean;
     FStableIO: TZNet_StableClient;
@@ -1774,14 +1774,14 @@ type
     procedure IO_IDLE_Trace_And_FreeSelf(Additional_Object_: TCore_Object);
 
     { OnReceiveBuffer work on Protocol is cpCustom }
-    procedure OnReceiveBuffer(const buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
+    procedure OnReceiveBuffer(const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean); virtual;
     procedure BeginWriteBuffer();
     procedure EndWriteBuffer();
-    procedure WriteBuffer(const buffer: PByte; const Size: NativeInt); overload; virtual;
-    procedure WriteBuffer(const buffer: TMS64); overload;
-    procedure WriteBuffer(const buffer: TMem64); overload;
-    procedure WriteBuffer(const buffer: TMS64; const doneFreeBuffer: Boolean); overload;
-    procedure WriteBuffer(const buffer: TMem64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteBuffer(const Buffer: PByte; const Size: NativeInt); overload; virtual;
+    procedure WriteBuffer(const Buffer: TMS64); overload;
+    procedure WriteBuffer(const Buffer: TMem64); overload;
+    procedure WriteBuffer(const Buffer: TMS64; const doneFreeBuffer: Boolean); overload;
+    procedure WriteBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean); overload;
 
     { ServerState must be connected successfully. }
     function ServerState: PZNet_ServerState;
@@ -1906,7 +1906,7 @@ type
   PP2PVMFragmentPacket = ^TP2PVMFragmentPacket;
 
   TP2PVMFragmentPacket = record
-    buffSiz: Cardinal;
+    BuffSiz: Cardinal;
     FrameworkID: Cardinal;
     p2pID: Cardinal;
     pkType: Byte;
@@ -1933,12 +1933,13 @@ type
     destructor Destroy; override;
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
+    function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; override;
     procedure Progress; override;
 
     property LinkVM: TZNet_WithP2PVM read FLinkVM;
@@ -2002,7 +2003,7 @@ type
   TZNet_WithP2PVM_Client = class(TZNet_Client)
   protected
     procedure Framework_InternalIOCreate(const Sender: TPeerIO); override;
-    procedure Framework_InternalIODestroy(const Sender: TPeerIO); override;
+    procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); override;
     procedure VMConnectSuccessed(SenderVM: TZNet_WithP2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal); virtual;
     procedure VMDisconnect(SenderVM: TZNet_WithP2PVM); virtual;
   protected
@@ -2069,7 +2070,6 @@ type
 
   TZNet_WithP2PVM = class(TCore_Object)
   protected
-    FCritical: TCritical;
     FOwner_IO: TPeerIO;
     FAuthWaiting: Boolean;
     FAuthed: Boolean;
@@ -2086,8 +2086,7 @@ type
   protected
     procedure Hook_SendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
     procedure Hook_SaveReceiveBuffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
-    procedure SyncProcessReceiveBuff;
-    procedure Hook_ProcessReceiveBuffer(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+    procedure Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
     procedure Hook_ClientDestroy(const Sender: TPeerIO);
 
     procedure SendVMBuffer(const buff: Pointer; const siz: NativeInt);
@@ -2181,21 +2180,22 @@ type
     Activted: Boolean;
     DestroyRecycleOwnerIO: Boolean;
     Connection_Token: Cardinal;
-    InternalBindOwnerIO: TPeerIO;
+    Internal_Bind_Owner_IO: TPeerIO;
     OfflineTick: TTimeTick;
-    property BindOwnerIO: TPeerIO read InternalBindOwnerIO write InternalBindOwnerIO;
+    property BindOwnerIO: TPeerIO read Internal_Bind_Owner_IO write Internal_Bind_Owner_IO;
 
     procedure CreateAfter; override;
     destructor Destroy; override;
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
+    function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; override;
     procedure Progress; override;
   end;
 
@@ -2209,7 +2209,7 @@ type
     FAutoProgressOwnerIOServer: Boolean;
     CustomStableServerProgressing: Boolean;
 
-    procedure ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+    procedure ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
     procedure SetOwnerIOServer(const Value: TZNet_Server);
 
     procedure cmd_BuildStableIO(Sender: TPeerIO; InData, OutData: TDFE);
@@ -2250,12 +2250,13 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-    function WriteBufferEmpty: Boolean; override;
+    function WriteBuffer_is_NULL: Boolean; override;
+    function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; override;
     procedure Progress; override;
   end;
 
@@ -2276,7 +2277,7 @@ type
     FOnAsyncConnectNotify_C: TOnState_C;
     FOnAsyncConnectNotify_M: TOnState_M;
     FOnAsyncConnectNotify_P: TOnState_P;
-    procedure ClientCustomProtocolReceiveBufferNotify(Sender: TZNet_Client; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+    procedure ClientCustomProtocolReceiveBufferNotify(Sender: TZNet_Client; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
     procedure SetOwnerIOClient(const Value: TZNet_Client);
 
     { connection }
@@ -2527,7 +2528,7 @@ procedure DisposeQueueData(const v: PQueueData);
 procedure InitQueueData(var v: TQueueData);
 function NewQueueData: PQueueData;
 
-function BuildP2PVMPacket(buffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
+function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
 procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
 
 function IsSystemCMD(const Cmd: U_String): Boolean;
@@ -2547,7 +2548,6 @@ function CompareIPV6(const IP1, IP2: TIPV6): Boolean;
 function TranslateBindAddr(addr: SystemString): SystemString;
 procedure ExtractHostAddress(var Host: U_String; var Port: Word);
 
-procedure SyncMethod(t: TCore_Thread; Sync: Boolean; OnProc: TThreadMethod);
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 {$ENDREGION 'api'}
 {$REGION 'ConstAndVariant'}
@@ -2597,6 +2597,8 @@ var
   C_MaxCompleteBufferSize: Cardinal = 64 * 1024 * 1024; { 64M, 0 = infinity }
   { complete buffer compression condition }
   C_CompleteBufferCompressionCondition: Cardinal = 1024;
+  { complete buffer swap space technology }
+  C_CompleteBuffer_SwapSpace_Trigger: Int64 = 8 * 1024;
 
   { sequence packet model Packet MTU }
   C_SequencePacketMTU: Word = 1024;
@@ -2720,21 +2722,21 @@ var
 implementation
 
 var
-  BigStream_SwapSpace: TSwapSpaceList;
+  BS_And_CB_SwapPool: TSwap_Space_Pool;
 
 procedure InitBigStream_SwapSpace;
 begin
-  BigStream_SwapSpace := TSwapSpaceList.Create;
+  BS_And_CB_SwapPool := TSwap_Space_Pool.Create;
 {$IFDEF FPC}
-  BigStream_SwapSpace.WorkPath := umlCurrentPath;
+  BS_And_CB_SwapPool.WorkPath := umlCurrentPath;
 {$ELSE FPC}
-  BigStream_SwapSpace.WorkPath := TPath.GetTempPath;
+  BS_And_CB_SwapPool.WorkPath := TPath.GetTempPath;
 {$ENDIF FPC}
 end;
 
 procedure FreeBigStream_SwapSpace;
 begin
-  DisposeObjectAndNil(BigStream_SwapSpace);
+  DisposeObjectAndNil(BS_And_CB_SwapPool);
 end;
 
 type
@@ -2820,8 +2822,11 @@ begin
         if v^.BigStream <> nil then
             DisposeObject(v^.BigStream);
 
-        if v^.buffer <> nil then
-            System.FreeMemory(v^.buffer);
+        if v^.Buffer <> nil then
+            System.FreeMemory(v^.Buffer);
+
+        if v^.Buffer_Swap_Stream <> nil then
+            DisposeObject(v^.Buffer_Swap_Stream);
       except
       end;
     end;
@@ -2851,8 +2856,9 @@ begin
   v.OnStreamFailedProc := nil;
   v.BigStreamStartPos := 0;
   v.BigStream := nil;
-  v.buffer := nil;
+  v.Buffer := nil;
   v.BufferSize := 0;
+  v.Buffer_Swap_Stream := nil;
   v.DoneAutoFree := True;
   v.Param1 := nil;
   v.Param2 := nil;
@@ -2864,19 +2870,19 @@ begin
   InitQueueData(Result^);
 end;
 
-function BuildP2PVMPacket(buffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
+function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
 var
   p: PP2PVMFragmentPacket;
 begin
   new(p);
-  p^.buffSiz := buffSiz;
+  p^.BuffSiz := BuffSiz;
   p^.FrameworkID := FrameworkID;
   p^.p2pID := p2pID;
   p^.pkType := pkType;
-  if (buff <> nil) and (p^.buffSiz > 0) then
+  if (buff <> nil) and (p^.BuffSiz > 0) then
     begin
-      p^.buff := GetMemory(p^.buffSiz);
-      CopyPtr(buff, p^.buff, p^.buffSiz);
+      p^.buff := GetMemory(p^.BuffSiz);
+      CopyPtr(buff, p^.buff, p^.BuffSiz);
     end
   else
       p^.buff := nil;
@@ -2886,8 +2892,8 @@ end;
 
 procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
 begin
-  if (p^.buff <> nil) and (p^.buffSiz > 0) then
-      FreeMem(p^.buff, p^.buffSiz);
+  if (p^.buff <> nil) and (p^.BuffSiz > 0) then
+      FreeMem(p^.buff, p^.BuffSiz);
   Dispose(p);
 end;
 
@@ -3253,24 +3259,6 @@ begin
     begin
       Port := umlStrToInt(umlGetLastStr(Host, ':'), Port);
       Host := umlDeleteLastStr(Host, ':');
-    end;
-end;
-
-procedure SyncMethod(t: TCore_Thread; Sync: Boolean; OnProc: TThreadMethod);
-begin
-  if Sync then
-    begin
-      try
-          TCore_Thread.Synchronize(t, OnProc);
-      except
-      end;
-    end
-  else
-    begin
-      try
-          OnProc();
-      except
-      end;
     end;
 end;
 
@@ -4335,20 +4323,20 @@ begin
   Add(tmp);
 end;
 
-constructor TSwapSpaceList.Create;
+constructor TSwap_Space_Pool.Create;
 begin
   inherited Create;
   FCritical := TCritical.Create;
   WorkPath := umlCurrentPath;
 end;
 
-destructor TSwapSpaceList.Destroy;
+destructor TSwap_Space_Pool.Destroy;
 begin
   DisposeObject(FCritical);
   inherited Destroy;
 end;
 
-procedure TSwapSpaceList.DoFree(var data: TSwapSpaceFileStream);
+procedure TSwap_Space_Pool.DoFree(var data: TSwap_Space_Pool_File_Stream);
 begin
   if data = nil then
       exit;
@@ -4357,22 +4345,22 @@ begin
   DisposeObjectAndNil(data);
 end;
 
-function TSwapSpaceList.CompareData(Data_1, Data_2: TSwapSpaceFileStream): Boolean;
+function TSwap_Space_Pool.CompareData(Data_1, Data_2: TSwap_Space_Pool_File_Stream): Boolean;
 begin
   Result := Data_1 = Data_2;
 end;
 
-procedure TSwapSpaceList.Lock;
+procedure TSwap_Space_Pool.Lock;
 begin
   FCritical.Lock;
 end;
 
-procedure TSwapSpaceList.UnLock;
+procedure TSwap_Space_Pool.UnLock;
 begin
   FCritical.UnLock;
 end;
 
-class function TSwapSpaceFileStream.CreateSwapSpace(stream_: TCore_Stream; OwnerSwapSpace_: TSwapSpaceList): TSwapSpaceFileStream;
+class function TSwap_Space_Pool_File_Stream.Create_BigStream(stream_: TCore_Stream; OwnerSwapSpace_: TSwap_Space_Pool): TSwap_Space_Pool_File_Stream;
 var
   MD5Name: U_String;
   tmpFileName: U_String;
@@ -4383,14 +4371,14 @@ begin
       exit;
   try
     MD5Name := umlStreamMD5String(stream_);
-    tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + '.tmp');
+    tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + '.~tmp');
     i := 1;
     while umlFileExists(tmpFileName) do
       begin
-        tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + PFormat('(%d).tmp', [i]));
+        tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + PFormat('(%d).~tmp', [i]));
         inc(i);
       end;
-    Result := TSwapSpaceFileStream.Create(tmpFileName, fmCreate);
+    Result := TSwap_Space_Pool_File_Stream.Create(tmpFileName, fmCreate);
     MD5Name := '';
     tmpFileName := '';
     stream_.Position := 0;
@@ -4403,15 +4391,58 @@ begin
   end;
 end;
 
-destructor TSwapSpaceFileStream.Destroy;
+class function TSwap_Space_Pool_File_Stream.Create_CompleteBuffer(buff: PByte; BuffSiz: NativeInt; OwnerSwapSpace_: TSwap_Space_Pool): TSwap_Space_Pool_File_Stream;
+var
+  MD5Name: U_String;
+  tmpFileName: U_String;
+  i: Integer;
+  m64: TMS64;
+begin
+  Result := nil;
+  if not umlDirectoryExists(OwnerSwapSpace_.WorkPath) then
+      exit;
+  try
+    MD5Name := umlMD5String(buff, BuffSiz);
+    tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + '.~tmp');
+    i := 1;
+    while umlFileExists(tmpFileName) do
+      begin
+        tmpFileName := umlCombineFileName(OwnerSwapSpace_.WorkPath, 'ZNet_' + MD5Name.Text + PFormat('(%d).~tmp', [i]));
+        inc(i);
+      end;
+    Result := TSwap_Space_Pool_File_Stream.Create(tmpFileName, fmCreate);
+    MD5Name := '';
+    tmpFileName := '';
+    // mapping as stream
+    m64 := TMS64.Create;
+    m64.Mapping(buff, BuffSiz);
+    // write
+    m64.SaveToStream(Result);
+    DisposeObject(m64);
+    // done
+    Result.Position := 0;
+    Result.FOwnerSwapSpace := OwnerSwapSpace_;
+    Result.FPoolPtr := OwnerSwapSpace_.Add(Result);
+  except
+      Result := nil;
+  end;
+end;
+
+destructor TSwap_Space_Pool_File_Stream.Destroy;
 var
   tmpFileName: U_String;
 begin
-  tmpFileName := FileName;
-  if (FOwnerSwapSpace <> nil) and (FPoolPtr <> nil) then
-      FOwnerSwapSpace.Remove(FPoolPtr);
-  inherited Destroy;
-  umlDeletefile(tmpFileName);
+  try
+    tmpFileName := FileName;
+    if (FOwnerSwapSpace <> nil) and (FPoolPtr <> nil) then
+      begin
+        FPoolPtr^.data := nil;
+        FOwnerSwapSpace.Remove(FPoolPtr);
+      end;
+    inherited Destroy;
+    umlDeletefile(tmpFileName);
+  except
+  end;
 end;
 
 constructor TCommandStream.Create;
@@ -4770,6 +4801,11 @@ begin
   Result := @FBusyNum;
 end;
 
+procedure TPhysics_Fragment_Pool.DoFree(var data: TMem64);
+begin
+  DisposeObjectAndNil(data);
+end;
+
 function TPeerIO.Connected: Boolean;
 begin
   Result := False;
@@ -4780,7 +4816,7 @@ begin
   CheckAndTriggerFailedWaitResult();
 end;
 
-procedure TPeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TPeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
 end;
 
@@ -4801,9 +4837,16 @@ begin
   Result := 'offline';
 end;
 
-function TPeerIO.WriteBufferEmpty: Boolean;
+function TPeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := True;
+end;
+
+function TPeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
+begin
+  WriteBuffer_Queue_Num := 0;
+  WriteBuffer_Size := 0;
+  Result := False;
 end;
 
 procedure TPeerIO.InitSequencePacketModel(const hashSize, MemoryDelta: Integer);
@@ -4884,7 +4927,7 @@ begin
 
   if (FSequencePacketSignal)
     and (SendingSequencePacketHistory.Count > 0)
-    and (WriteBufferEmpty)
+    and (WriteBuffer_is_NULL)
     and (GetTimeTick - SequencePacketVerifyTick > 1000) then
     begin
       IOSendBuffer.Position := IOSendBuffer.Size;
@@ -4940,7 +4983,7 @@ begin
   if (IOSendBuffer.Size > 0) then
     begin
       WriteBufferOpen;
-      OnInternalSendByteBuffer(Self, IOSendBuffer.Memory, IOSendBuffer.Size);
+      On_Internal_Send_Byte_Buffer(Self, IOSendBuffer.Memory, IOSendBuffer.Size);
       IOSendBuffer.Clear;
       WriteBufferFlush;
       WriteBufferClose;
@@ -4970,7 +5013,7 @@ begin
   if not IsSequencePacketModel then
     begin
       WriteBufferOpen;
-      OnInternalSendByteBuffer(Self, SequencePacketSendBuffer.Memory, SequencePacketSendBuffer.Size);
+      On_Internal_Send_Byte_Buffer(Self, SequencePacketSendBuffer.Memory, SequencePacketSendBuffer.Size);
       SequencePacketSendBuffer.Clear;
       WriteBufferFlush;
       WriteBufferClose;
@@ -5419,7 +5462,7 @@ begin
   SendEncryptBuffer(Stream.Memory, Stream.Size, CS);
 end;
 
-procedure TPeerIO.InternalSendConsoleBuff(buff: TMS64; CS: TCipherSecurity);
+procedure TPeerIO.Internal_Send_Console_Buff(buff: TMS64; CS: TCipherSecurity);
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5432,7 +5475,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendStreamBuff(buff: TMS64; CS: TCipherSecurity);
+procedure TPeerIO.Internal_Send_Stream_Buff(buff: TMS64; CS: TCipherSecurity);
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5445,7 +5488,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendDirectConsoleBuff(buff: TMS64; CS: TCipherSecurity);
+procedure TPeerIO.Internal_Send_DirectConsole_Buff(buff: TMS64; CS: TCipherSecurity);
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5458,7 +5501,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendDirectStreamBuff(buff: TMS64; CS: TCipherSecurity);
+procedure TPeerIO.Internal_Send_DirectStream_Buff(buff: TMS64; CS: TCipherSecurity);
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5471,7 +5514,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendBigStreamHeader(Cmd: SystemString; streamSiz: Int64);
+procedure TPeerIO.Internal_Send_Big_Stream_Header(Cmd: SystemString; streamSiz: Int64);
 var
   buff: TBytes;
 begin
@@ -5487,7 +5530,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendBigStreamBuff(var Queue: TQueueData);
+procedure TPeerIO.Internal_Send_BigStream_Buff(var Queue: TQueueData);
 var
   StartPos, EndPos: Int64;
   tmpPos: Int64;
@@ -5496,7 +5539,7 @@ var
   Rest: Int64;
   BigStream_Chunk: PByte;
 begin
-  InternalSendBigStreamHeader(Queue.Cmd, Queue.BigStream.Size - Queue.BigStreamStartPos);
+  Internal_Send_Big_Stream_Header(Queue.Cmd, Queue.BigStream.Size - Queue.BigStreamStartPos);
 
   StartPos := Queue.BigStreamStartPos;
   EndPos := Queue.BigStream.Size;
@@ -5552,13 +5595,13 @@ begin
   FreeMemory(BigStream_Chunk);
 end;
 
-procedure TPeerIO.InternalSendCompleteBufferHeader(Cmd: SystemString; buffSiz, compSiz: Cardinal);
+procedure TPeerIO.Internal_Send_Complete_Buffer_Header(Cmd: SystemString; BuffSiz, compSiz: Cardinal);
 var
   buff: TBytes;
 begin
   SendCardinal(FHeadToken);
   SendByte(FCompleteBufferToken);
-  SendCardinal(buffSiz);
+  SendCardinal(BuffSiz);
   SendCardinal(compSiz);
   buff := TPascalString(Cmd).Bytes;
   SendCardinal(Cardinal(Length(buff)));
@@ -5567,31 +5610,53 @@ begin
   SendCardinal(FTailToken);
 end;
 
-procedure TPeerIO.InternalSendCompleteBufferBuff(var Queue: TQueueData);
+procedure TPeerIO.Internal_Send_CompleteBuffer_Buff(var Queue: TQueueData);
 var
-  sour, Dest: TMS64;
+  Sour, Dest: TMS64;
 begin
   BeginSend;
   if FOwnerFramework.FCompleteBufferCompressed and (Queue.BufferSize > OwnerFramework.FCompleteBufferCompressionCondition) then
     begin
-      sour := TMS64.Create;
-      sour.SetPointerWithProtectedMode(Queue.buffer, Queue.BufferSize);
+      Sour := TMS64.Create;
+      if (Queue.Buffer <> nil) and (Queue.Buffer_Swap_Stream = nil) then
+          Sour.SetPointerWithProtectedMode(Queue.Buffer, Queue.BufferSize)
+      else if (Queue.Buffer = nil) and (Queue.Buffer_Swap_Stream <> nil) and (Queue.Buffer_Swap_Stream.Size = Queue.BufferSize) then
+        begin
+          Sour.LoadFromStream(Queue.Buffer_Swap_Stream);
+          DisposeObject(Queue.Buffer_Swap_Stream);
+          Queue.Buffer_Swap_Stream := nil;
+        end
+      else
+          RaiseInfo('illegal CompleteBuffer Queue.');
+
       Dest := TMS64.Create;
-      ParallelCompressMemory(scmZLIB_Fast, sour, Dest);
-      InternalSendCompleteBufferHeader(Queue.Cmd, Queue.BufferSize, Dest.Size);
+      ParallelCompressMemory(scmZLIB_Fast, Sour, Dest);
+      DisposeObject(Sour);
+      Internal_Send_Complete_Buffer_Header(Queue.Cmd, Queue.BufferSize, Dest.Size);
       Send(Dest.Memory, Dest.Size);
-      DisposeObject(sour);
       DisposeObject(Dest);
     end
   else
     begin
-      InternalSendCompleteBufferHeader(Queue.Cmd, Queue.BufferSize, 0);
-      Send(Queue.buffer, Queue.BufferSize);
+      Internal_Send_Complete_Buffer_Header(Queue.Cmd, Queue.BufferSize, 0);
+      if (Queue.Buffer <> nil) and (Queue.Buffer_Swap_Stream = nil) then
+          Send(Queue.Buffer, Queue.BufferSize)
+      else if (Queue.Buffer = nil) and (Queue.Buffer_Swap_Stream <> nil) and (Queue.Buffer_Swap_Stream.Size = Queue.BufferSize) then
+        begin
+          Sour := TMS64.Create;
+          Sour.LoadFromStream(Queue.Buffer_Swap_Stream);
+          DisposeObject(Queue.Buffer_Swap_Stream);
+          Queue.Buffer_Swap_Stream := nil;
+          Send(Sour.Memory, Queue.BufferSize);
+          DisposeObject(Sour);
+        end
+      else
+          RaiseInfo('illegal CompleteBuffer Queue.');
     end;
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendBigStreamFragmentSignal;
+procedure TPeerIO.Internal_Send_BigStream_Fragment_Signal;
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5600,7 +5665,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.InternalSendBigStreamDoneSignal;
+procedure TPeerIO.Internal_Send_BigStream_Done_Signal;
 begin
   BeginSend;
   SendCardinal(FHeadToken);
@@ -5644,7 +5709,7 @@ begin
   EndSend;
 end;
 
-procedure TPeerIO.Sync_InternalSendResultData;
+procedure TPeerIO.Internal_Send_Result_Data;
 begin
   if FResultDataBuffer.Size > 0 then
     begin
@@ -5655,7 +5720,7 @@ begin
     end;
 end;
 
-procedure TPeerIO.Sync_InternalSendConsoleCmd;
+procedure TPeerIO.Internal_Send_Console_Cmd;
 var
   d: TDFE;
   enSiz: Int64;
@@ -5688,7 +5753,7 @@ begin
   else
       d.EncodeTo(Stream, True, False);
 
-  InternalSendConsoleBuff(Stream, FSyncPick^.Cipher);
+  Internal_Send_Console_Buff(Stream, FSyncPick^.Cipher);
 
   DisposeObject(d);
   DisposeObject(Stream);
@@ -5697,7 +5762,7 @@ begin
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
 end;
 
-procedure TPeerIO.Sync_InternalSendStreamCmd;
+procedure TPeerIO.Internal_Send_Stream_Cmd;
 var
   d: TDFE;
   enSiz: Int64;
@@ -5730,7 +5795,7 @@ begin
   else
       d.EncodeTo(Stream, True, False);
 
-  InternalSendStreamBuff(Stream, FSyncPick^.Cipher);
+  Internal_Send_Stream_Buff(Stream, FSyncPick^.Cipher);
 
   DisposeObject(d);
   DisposeObject(Stream);
@@ -5739,7 +5804,7 @@ begin
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
 end;
 
-procedure TPeerIO.Sync_InternalSendDirectConsoleCmd;
+procedure TPeerIO.Internal_Send_DirectConsole_Cmd;
 var
   d: TDFE;
   enSiz: Int64;
@@ -5772,7 +5837,7 @@ begin
   else
       d.EncodeTo(Stream, True, False);
 
-  InternalSendDirectConsoleBuff(Stream, FSyncPick^.Cipher);
+  Internal_Send_DirectConsole_Buff(Stream, FSyncPick^.Cipher);
 
   DisposeObject(d);
   DisposeObject(Stream);
@@ -5781,7 +5846,7 @@ begin
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
 end;
 
-procedure TPeerIO.Sync_InternalSendDirectStreamCmd;
+procedure TPeerIO.Internal_Send_DirectStream_Cmd;
 var
   d: TDFE;
   enSiz: Int64;
@@ -5814,7 +5879,7 @@ begin
   else
       d.EncodeTo(Stream, True, False);
 
-  InternalSendDirectStreamBuff(Stream, FSyncPick^.Cipher);
+  Internal_Send_DirectStream_Buff(Stream, FSyncPick^.Cipher);
 
   DisposeObject(d);
   DisposeObject(Stream);
@@ -5823,19 +5888,19 @@ begin
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
 end;
 
-procedure TPeerIO.Sync_InternalSendBigStreamCmd;
+procedure TPeerIO.Internal_Send_BigStream_Cmd;
 begin
-  InternalSendBigStreamBuff(FSyncPick^);
+  Internal_Send_BigStream_Buff(FSyncPick^);
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecBigStream]);
 end;
 
-procedure TPeerIO.Sync_InternalSendCompleteBufferCmd;
+procedure TPeerIO.Internal_Send_CompleteBuffer_Cmd;
 begin
-  InternalSendCompleteBufferBuff(FSyncPick^);
+  Internal_Send_CompleteBuffer_Buff(FSyncPick^);
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stExecCompleteBuffer]);
 end;
 
-procedure TPeerIO.Sync_ExecuteConsole;
+procedure TPeerIO.Internal_Execute_Console;
 var
   Tick_: TTimeTick;
 begin
@@ -5853,7 +5918,7 @@ begin
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
 end;
 
-procedure TPeerIO.Sync_ExecuteStream;
+procedure TPeerIO.Internal_Execute_Stream;
 var
   Tick_: TTimeTick;
 begin
@@ -5871,7 +5936,7 @@ begin
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
 end;
 
-procedure TPeerIO.Sync_ExecuteDirectConsole;
+procedure TPeerIO.Internal_Execute_DirectConsole;
 var
   Tick_: TTimeTick;
 begin
@@ -5889,7 +5954,7 @@ begin
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
 end;
 
-procedure TPeerIO.Sync_ExecuteDirectStream;
+procedure TPeerIO.Internal_Execute_DirectStream;
 var
   Tick_: TTimeTick;
 begin
@@ -5907,7 +5972,7 @@ begin
   FOwnerFramework.CmdRecvStatistics.IncValue(FInCmd, 1);
 end;
 
-procedure TPeerIO.Sync_SendConsoleResult;
+procedure TPeerIO.SendConsoleResult;
 var
   buff: TBytes;
 begin
@@ -5934,7 +5999,7 @@ begin
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
 end;
 
-procedure TPeerIO.Sync_SendStreamResult;
+procedure TPeerIO.SendStreamResult;
 var
   enSiz: Int64;
   m64: TMS64;
@@ -5974,7 +6039,7 @@ begin
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
 end;
 
-procedure TPeerIO.ExecuteDataFrame(CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean; CommDataType: Byte; DataFrame: TDFE);
+procedure TPeerIO.ExecuteDataFrame(CommDataType: Byte; DataFrame: TDFE);
 begin
   FInCmd := DataFrame.Reader.ReadString;
 
@@ -5985,7 +6050,7 @@ begin
 
       FCanPauseResultSend := True;
       FReceiveTriggerRuning := True;
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteConsole);
+      Internal_Execute_Console();
       FReceiveTriggerRuning := False;
       FCanPauseResultSend := False;
 
@@ -6001,7 +6066,7 @@ begin
 
       if not OwnerFramework.QuietMode then
           PrintCommand('send console cmd %s Result data', FInCmd);
-      IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_SendConsoleResult);
+      SendConsoleResult();
     end
   else if CommDataType = FStreamToken then
     begin
@@ -6011,7 +6076,7 @@ begin
 
       FCanPauseResultSend := True;
       FReceiveTriggerRuning := True;
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteStream);
+      Internal_Execute_Stream();
       FReceiveTriggerRuning := False;
       FCanPauseResultSend := False;
 
@@ -6028,14 +6093,14 @@ begin
 
       if not OwnerFramework.QuietMode then
           PrintCommand('send stream cmd %s Result data', FInCmd);
-      IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_SendStreamResult);
+      SendStreamResult();
     end
   else if CommDataType = FDirectConsoleToken then
     begin
       FInText := DataFrame.Reader.ReadString;
 
       FReceiveTriggerRuning := True;
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteDirectConsole);
+      Internal_Execute_DirectConsole();
       FReceiveTriggerRuning := False;
     end
   else if CommDataType = FDirectStreamToken then
@@ -6045,12 +6110,12 @@ begin
       DataFrame.Reader.ReadDataFrame(FInDataFrame);
 
       FReceiveTriggerRuning := True;
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteDirectStream);
+      Internal_Execute_DirectStream();
       FReceiveTriggerRuning := False;
     end;
 end;
 
-procedure TPeerIO.Sync_ExecuteBigStream;
+procedure TPeerIO.Internal_Execute_BigStream;
 var
   d: TTimeTick;
 begin
@@ -6062,7 +6127,7 @@ begin
 
   if FBigStreamTotal = FBigStreamCompleted then
     begin
-      InternalSendBigStreamDoneSignal();
+      Internal_Send_BigStream_Done_Signal();
       { do stream state }
       if Assigned(FOwnerFramework.FOnBigStreamInterface) then
           FOwnerFramework.FOnBigStreamInterface.EndStream(Self, FBigStreamTotal);
@@ -6079,7 +6144,7 @@ begin
     end;
 end;
 
-function TPeerIO.ReceivedBigStreamFragment(CurrentActiveThread_: TCore_Thread; const Sync: Boolean): Boolean;
+function TPeerIO.ReceivedBigStreamFragment(): Boolean;
 var
   head: TBigStreamFragmentHead;
   np: Int64;
@@ -6092,7 +6157,10 @@ begin
   FReceivedBuffer.ReadPtr(@head, SizeOf(head));
 
   if (FReceivedBuffer.Size - FReceivedBuffer.Position < head.Size) then
+    begin
+      FBigStream_Current_Received := FBigStreamCompleted + (FReceivedBuffer.Size - FReceivedBuffer.Position);
       exit;
+    end;
 
   np := FReceivedBuffer.Position + head.Size;
 
@@ -6112,26 +6180,25 @@ begin
   leftSize := FBigStreamTotal - FBigStreamCompleted;
   if leftSize > buff.Size then
     begin
-      InternalSendBigStreamFragmentSignal;
+      { fragment }
+      Internal_Send_BigStream_Fragment_Signal;
 
       FBigStreamCompleted := FBigStreamCompleted + buff.Size;
+      FBigStream_Current_Received := FBigStreamCompleted;
       FSyncBigStreamReceive := buff;
 
-      { sync }
-      IO_SyncMethod(CurrentActiveThread_, Sync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteBigStream);
+      Internal_Execute_BigStream();
     end
-  else
+  else { done }
     begin
       FBigStreamCompleted := FBigStreamTotal;
+      FBigStream_Current_Received := FBigStreamCompleted;
       FSyncBigStreamReceive := buff;
-
-      { sync }
-      IO_SyncMethod(CurrentActiveThread_, Sync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteBigStream);
-
+      Internal_Execute_BigStream();
       Result := True;
-
       FBigStreamTotal := 0;
       FBigStreamCompleted := 0;
+      FBigStream_Current_Received := 0;
       FBigStreamCmd := '';
       FBigStreamReceiveProcessing := False;
     end;
@@ -6152,7 +6219,7 @@ begin
       FReceivedBuffer.Clear;
 end;
 
-procedure TPeerIO.Sync_ExecuteCompleteBuffer;
+procedure TPeerIO.Internal_Execute_CompleteBuffer;
 var
   d: TTimeTick;
 begin
@@ -6186,7 +6253,7 @@ begin
     end;
 end;
 
-function TPeerIO.FillCompleteBufferBuffer(CurrentActiveThread_: TCore_Thread; const Sync: Boolean): Boolean;
+function TPeerIO.FillCompleteBufferBuffer(): Boolean;
 var
   leftSize: Cardinal;
   tmpStream: TMS64;
@@ -6227,7 +6294,7 @@ begin
           FCompleteBufferReceivedStream := Dest;
         end;
 
-      IO_SyncMethod(CurrentActiveThread_, Sync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteCompleteBuffer);
+      Internal_Execute_CompleteBuffer();
       FCompleteBufferReceivedStream.Clear;
 
       Result := True;
@@ -6242,7 +6309,7 @@ begin
     end;
 end;
 
-procedure TPeerIO.Sync_ExecuteResult;
+procedure TPeerIO.Internal_ExecuteResult;
 begin
   if FCurrentQueueData = nil then
       exit;
@@ -6264,7 +6331,7 @@ begin
   FCurrentQueueData := nil;
 end;
 
-function TPeerIO.FillWaitOnResultBuffer(CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean): Boolean;
+function TPeerIO.FillWaitOnResultBuffer(): Boolean;
 var
   dHead, dTail: Cardinal;
   dSize: Integer;
@@ -6383,7 +6450,7 @@ begin
           end;
         end;
 
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteResult);
+      Internal_ExecuteResult();
 
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
     end
@@ -6404,7 +6471,7 @@ begin
         exit;
       end;
 
-      IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_ExecuteResult);
+      Internal_ExecuteResult();
 
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
     end;
@@ -6420,32 +6487,27 @@ begin
   Result := True;
 end;
 
-procedure TPeerIO.InternalSaveReceiveBuffer(const buff: Pointer; siz: Int64);
+procedure TPeerIO.Internal_Save_Receive_Buffer(const buff: Pointer; siz: Int64);
 begin
   if not Connected then
       exit;
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stReceiveSize], siz);
 
-  LockIO;
-  try
-    if FReceiveProcessing or FAllSendProcessing then
-        FReceivedAbort := not FillSequencePacketTo(buff, siz, FReceivedBuffer_Busy)
-    else
-      begin
-        FReceivedBuffer.Position := FReceivedBuffer.Size;
-        if FReceivedBuffer_Busy.Size > 0 then
-          begin
-            FReceivedBuffer.WritePtr(FReceivedBuffer_Busy.Memory, FReceivedBuffer_Busy.Size);
-            FReceivedBuffer_Busy.Clear;
-          end;
-        FReceivedAbort := not FillSequencePacketTo(buff, siz, FReceivedBuffer);
-      end;
-  finally
-      UnLockIO;
-  end;
+  if FReceiveProcessing or FAllSendProcessing then
+      FReceivedAbort := not FillSequencePacketTo(buff, siz, FReceivedBuffer_Busy)
+  else
+    begin
+      FReceivedBuffer.Position := FReceivedBuffer.Size;
+      if FReceivedBuffer_Busy.Size > 0 then
+        begin
+          FReceivedBuffer.WritePtr(FReceivedBuffer_Busy.Memory, FReceivedBuffer_Busy.Size);
+          FReceivedBuffer_Busy.Clear;
+        end;
+      FReceivedAbort := not FillSequencePacketTo(buff, siz, FReceivedBuffer);
+    end;
 end;
 
-procedure TPeerIO.InternalProcessReceiveBuffer(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+procedure TPeerIO.Internal_Process_Receive_Buffer();
 var
   rState: Boolean;
   dHead, dTail: Cardinal;
@@ -6483,10 +6545,7 @@ begin
 
   FReceiveProcessing := True;
 
-  LockIO;
-
   BreakAndDisconnect := False;
-
   try
     while ((FReceivedBuffer.Size > 0) or (FReceivedBuffer_Busy.Size > 0)) and (Connected) do
       begin
@@ -6501,7 +6560,7 @@ begin
 
         if FWaitOnResult then
           begin
-            rState := FillWaitOnResultBuffer(CurrentActiveThread_, RecvSync, SendSync);
+            rState := FillWaitOnResultBuffer();
 
             if rState then
                 Continue
@@ -6511,7 +6570,7 @@ begin
 
         if FBigStreamReceiveProcessing then
           begin
-            rState := ReceivedBigStreamFragment(CurrentActiveThread_, RecvSync);
+            rState := ReceivedBigStreamFragment();
 
             if rState then
                 Continue
@@ -6521,7 +6580,7 @@ begin
 
         if FCompleteBufferReceiveProcessing then
           begin
-            rState := FillCompleteBufferBuffer(CurrentActiveThread_, RecvSync);
+            rState := FillCompleteBufferBuffer();
 
             if rState then
                 Continue
@@ -6667,6 +6726,7 @@ begin
 
             FBigStreamTotal := Total;
             FBigStreamCompleted := 0;
+            FBigStream_Current_Received := 0;
             FBigStreamCmd := umlStringOf(buff).Text;
             FBigStreamReceiveProcessing := True;
             SetLength(buff, 0);
@@ -6818,7 +6878,7 @@ begin
             FReceivedBuffer := tmpStream;
 
             try
-                ExecuteDataFrame(CurrentActiveThread_, RecvSync, SendSync, dID, d);
+                ExecuteDataFrame(dID, d);
             except
               PrintError('Execute error!');
               DisposeObject(d);
@@ -6838,18 +6898,17 @@ begin
   finally
     FReceivedBuffer.Position := FReceivedBuffer.Size;
     FReceiveProcessing := False;
-    UnLockIO;
 
     if BreakAndDisconnect then
         DelayClose()
-    else if FReceivedBuffer_Busy.Size > 0 then
-        FillRecvBuffer(CurrentActiveThread_, RecvSync, SendSync)
+    else if Extract_Physics_Fragment_To_Receive_Buffer or (FReceivedBuffer_Busy.Size > 0) then
+        Process_Receive_Buffer()
     else
-        ProcessAllSendCmd(CurrentActiveThread_, RecvSync, SendSync);
+        Process_Send_Buffer();
   end;
 end;
 
-procedure TPeerIO.InternalProcessAllSendCmd(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+procedure TPeerIO.Internal_Process_Send_Buffer();
 var
   p: PQueueData;
 begin
@@ -6866,13 +6925,10 @@ begin
 
   FAllSendProcessing := True;
 
-  LockIO;
-
   if FResultDataBuffer.Size > 0 then
     begin
-      IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendResultData);
+      Internal_Send_Result_Data();
       FAllSendProcessing := False;
-      UnLockIO;
       exit;
     end;
 
@@ -6891,7 +6947,7 @@ begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stConsole]);
               FSyncPick := p;
               FWaitOnResult := True;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendConsoleCmd);
+              Internal_Send_Console_Cmd();
               FSyncPick := nil;
               FQueuePool.Next;
               Break;
@@ -6901,7 +6957,7 @@ begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stStream]);
               FSyncPick := p;
               FWaitOnResult := True;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendStreamCmd);
+              Internal_Send_Stream_Cmd();
               FSyncPick := nil;
               FQueuePool.Next;
               Break;
@@ -6910,7 +6966,7 @@ begin
             begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stDirestConsole]);
               FSyncPick := p;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendDirectConsoleCmd);
+              Internal_Send_DirectConsole_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
               FQueuePool.Next;
@@ -6919,7 +6975,7 @@ begin
             begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stDirestStream]);
               FSyncPick := p;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendDirectStreamCmd);
+              Internal_Send_DirectStream_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
               FQueuePool.Next;
@@ -6929,7 +6985,7 @@ begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stSendBigStream]);
               FSyncPick := p;
               FWaitBigStreamReceiveDoneSignal := True;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendBigStreamCmd);
+              Internal_Send_BigStream_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
               FQueuePool.Next;
@@ -6939,7 +6995,7 @@ begin
             begin
               AtomInc(FOwnerFramework.Statistics[TStatisticsType.stSendCompleteBuffer]);
               FSyncPick := p;
-              IO_SyncMethod(CurrentActiveThread_, SendSync, {$IFDEF FPC}@{$ENDIF FPC}Sync_InternalSendCompleteBufferCmd);
+              Internal_Send_CompleteBuffer_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
               FQueuePool.Next;
@@ -6949,13 +7005,12 @@ begin
       end;
   finally
     FAllSendProcessing := False;
-    UnLockIO;
-    if FReceivedBuffer_Busy.Size > 0 then
-        FillRecvBuffer(CurrentActiveThread_, RecvSync, SendSync);
+    if Extract_Physics_Fragment_To_Receive_Buffer or (FReceivedBuffer_Busy.Size > 0) then
+        Process_Receive_Buffer();
   end;
 end;
 
-procedure TPeerIO.Sync_CheckAndTriggerFailedWaitResult;
+procedure TPeerIO.CheckAndTriggerFailedWaitResult;
 var
   tmp: TDFE;
 begin
@@ -6987,12 +7042,7 @@ begin
     end;
 end;
 
-procedure TPeerIO.CheckAndTriggerFailedWaitResult;
-begin
-  SyncMethod(TCore_Thread.CurrentThread, True, {$IFDEF FPC}@{$ENDIF FPC}Sync_CheckAndTriggerFailedWaitResult);
-end;
-
-procedure TPeerIO.InternalCloseP2PVMTunnel;
+procedure TPeerIO.Internal_Close_P2PVMTunnel;
 begin
   if FP2PVMTunnel <> nil then
     begin
@@ -7010,7 +7060,6 @@ var
 begin
   inherited Create;
 
-  FCritical := TCritical.Create;
   FOwnerFramework := OwnerFramework_;
   FIOInterface := IOInterface_;
 
@@ -7031,6 +7080,9 @@ begin
   FBigStreamReceiveDoneSignal := C_DefaultBigStreamReceiveDoneSignal;
   FCompleteBufferToken := C_DefaultCompleteBufferToken;
 
+  FReceived_Physics_Critical := TCritical.Create;
+  FReceived_Physics_Fragment_Pool := TPhysics_Fragment_Pool.Create;
+
   FReceivedAbort := False;
   FReceivedBuffer := TMS64.CustomCreate(8192);
   FReceivedBuffer_Busy := TMS64.CustomCreate(8192);
@@ -7038,6 +7090,7 @@ begin
   FBigStreamReceiveProcessing := False;
   FBigStreamTotal := 0;
   FBigStreamCompleted := 0;
+  FBigStream_Current_Received := 0;
   FBigStreamCmd := '';
   FSyncBigStreamReceive := nil;
   FBigStreamSending := nil;
@@ -7101,12 +7154,12 @@ begin
   FP2PVMTunnel := nil;
   SetLength(FP2PAuthToken, 0);
 
-  OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalSendByteBuffer;
-  OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalSaveReceiveBuffer;
-  OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalProcessReceiveBuffer;
-  OnInternalProcessAllSendCmd := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalProcessAllSendCmd;
+  On_Internal_Send_Byte_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_Internal_Send_Byte_Buffer;
+  On_Internal_Save_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_Internal_Save_Receive_Buffer;
+  On_Internal_Process_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_Internal_Process_Receive_Buffer;
+  On_Internal_Process_Send_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_Internal_Process_Send_Buffer;
   OnCreate := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalIOCreate;
-  OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_InternalIODestroy;
+  OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.Framework_Internal_IO_Destroy;
 
   OnVMBuildAuthModelResult_C := nil;
   OnVMBuildAuthModelResult_M := nil;
@@ -7152,15 +7205,13 @@ var
 begin
   CheckAndTriggerFailedWaitResult();
 
-  LockIO;
   try
       OnDestroy(Self);
   except
   end;
-  UnLockIO;
 
   FreeSequencePacketModel();
-  InternalCloseP2PVMTunnel;
+  Internal_Close_P2PVMTunnel;
 
   if (FBigStreamSending <> nil) and (FBigStreamSendDoneTimeFree) then
     begin
@@ -7174,16 +7225,11 @@ begin
   FOwnerFramework.FPeerIO_HashPool.Delete(FID);
   FOwnerFramework.UnLock_All_IO;
 
-  LockIO;
-  try
-    while FQueuePool.num > 0 do
-      begin
-        DisposeQueueData(FQueuePool.current^.data);
-        FQueuePool.Next;
-      end;
-  finally
-      UnLockIO;
-  end;
+  while FQueuePool.num > 0 do
+    begin
+      DisposeQueueData(FQueuePool.current^.data);
+      FQueuePool.Next;
+    end;
 
   if (FUserDefine.FBusy) or (FUserDefine.FBusyNum > 0) then
       TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserDefine.DelayFreeOnBusy)
@@ -7197,6 +7243,8 @@ begin
 
   // free buffer
   DisposeObject(FQueuePool);
+  DisposeObject(FReceived_Physics_Critical);
+  DisposeObject(FReceived_Physics_Fragment_Pool);
   DisposeObject(FReceivedBuffer);
   DisposeObject(FReceivedBuffer_Busy);
   DisposeObject(FCompleteBufferReceivedStream);
@@ -7204,8 +7252,6 @@ begin
   DisposeObject(FInDataFrame);
   DisposeObject(FOutDataFrame);
   DisposeObject(ResultDataFrame);
-
-  DisposeObject(FCritical);
 
   // free cipher instance
   DisposeObjectAndNil(FDecryptInstance);
@@ -7309,7 +7355,7 @@ begin
   d.WriteInteger(umlRandomRange64(-MaxInt, MaxInt));
   SendStreamCmdM(C_BuildP2PAuthToken, d, {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.CommandResult_BuildP2PAuthToken);
   DisposeObject(d);
-  InternalProcessAllSendCmd(nil, False, False);
+  Internal_Process_Send_Buffer();
 
   OnVMBuildAuthModelResult_C := nil;
   OnVMBuildAuthModelResult_M := nil;
@@ -7377,7 +7423,7 @@ begin
               exit;
             end;
           SendDirectConsoleCmd(C_InitP2PTunnel, AuthToken);
-          ProcessAllSendCmd(nil, False, False);
+          Process_Send_Buffer();
         end;
 
       FP2PVMTunnel := TZNet_WithP2PVM.Create(vmHashPoolSize);
@@ -7496,7 +7542,7 @@ begin
       exit;
     end;
   SendDirectConsoleCmd(C_CloseP2PTunnel, '');
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TPeerIO.Print(v: SystemString);
@@ -7577,31 +7623,6 @@ begin
   PrintWarning(Format(v, Args));
 end;
 
-procedure TPeerIO.LockIO;
-begin
-  if FOwnerFramework.FEnabledAtomicLockAndMultiThread then
-      FCritical.Acquire;
-end;
-
-procedure TPeerIO.UnLockIO;
-begin
-  if FOwnerFramework.FEnabledAtomicLockAndMultiThread then
-      FCritical.Release;
-end;
-
-procedure TPeerIO.IO_SyncMethod(t: TCore_Thread; Sync: Boolean; proc: TThreadMethod);
-begin
-  if FOwnerFramework.FEnabledAtomicLockAndMultiThread then
-      SyncMethod(t, Sync, proc)
-  else
-    begin
-      try
-          proc();
-      except
-      end;
-    end;
-end;
-
 procedure TPeerIO.Progress;
 begin
   { anti dead loop }
@@ -7610,7 +7631,18 @@ begin
 
   FProgressRunning := True;
 
-  ProcessSequencePacketModel();
+  // optimize physics model
+  try
+    Extract_Physics_Fragment_To_Receive_Buffer;
+    Process_Receive_Buffer;
+  except
+  end;
+
+  // sequence packet model
+  try
+      ProcessSequencePacketModel();
+  except
+  end;
 
   if FP2PVMTunnel <> nil then
     begin
@@ -7638,7 +7670,7 @@ begin
     end;
 
   if (not FTimeOutProcessDone) and (OwnerFramework.FTimeOutKeepAlive) and (IsSequencePacketModel) and (FSequencePacketSignal) and
-    (GetTimeTick() - LastCommunicationTick_KeepAlive > 1000) and (WriteBufferEmpty) then
+    (GetTimeTick() - LastCommunicationTick_KeepAlive > 1000) and (WriteBuffer_is_NULL) then
     begin
       SendSequencePacketKeepAlive(nil, 0);
       FlushIOSendBuffer;
@@ -7669,30 +7701,49 @@ begin
   FOwnerFramework.ProgressPost.PostExecuteM(t, {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.DelayFree).Data3 := ID;
 end;
 
-procedure TPeerIO.SaveReceiveBuffer(const p: Pointer; siz: Int64);
+procedure TPeerIO.Write_Physics_Fragment(const p: Pointer; siz: Int64);
+var
+  m64: TMem64;
 begin
-  OnInternalSaveReceiveBuffer(Self, p, siz);
-  UpdateLastCommunicationTime;
-  LastCommunicationTick_Received := FLastCommunicationTick;
-  LastCommunicationTick_KeepAlive := LastCommunicationTick_Received;
+  FReceived_Physics_Critical.Lock;
+  m64 := TMem64.Create;
+  m64.WritePtr(p, siz);
+  FReceived_Physics_Fragment_Pool.Push(m64);
+  FReceived_Physics_Critical.UnLock;
 end;
 
-procedure TPeerIO.FillRecvBuffer(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+function TPeerIO.Extract_Physics_Fragment_To_Receive_Buffer(): Boolean;
 begin
-  OnInternalProcessReceiveBuffer(Self, CurrentActiveThread_, RecvSync, SendSync);
+  Result := False;
+  FReceived_Physics_Critical.Lock;
+  if FReceived_Physics_Fragment_Pool.num > 0 then
+    begin
+      repeat
+        On_Internal_Save_Receive_Buffer(Self, FReceived_Physics_Fragment_Pool.First^.data.Memory, FReceived_Physics_Fragment_Pool.First^.data.Size);
+        FReceived_Physics_Fragment_Pool.Next;
+      until FReceived_Physics_Fragment_Pool.num <= 0;
+      UpdateLastCommunicationTime;
+      LastCommunicationTick_Received := FLastCommunicationTick;
+      LastCommunicationTick_KeepAlive := LastCommunicationTick_Received;
+      Result := True;
+    end;
+  FReceived_Physics_Critical.UnLock;
 end;
 
-procedure TPeerIO.ProcessAllSendCmd(const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+procedure TPeerIO.Process_Receive_Buffer();
 begin
-  OnInternalProcessAllSendCmd(Self, CurrentActiveThread_, RecvSync, SendSync);
+  On_Internal_Process_Receive_Buffer(Self);
+end;
+
+procedure TPeerIO.Process_Send_Buffer();
+begin
+  On_Internal_Process_Send_Buffer(Self);
 end;
 
 procedure TPeerIO.PostQueueData(p: PQueueData);
 begin
   FOwnerFramework.CmdSendStatistics.IncValue(p^.Cmd, 1);
-  LockIO;
   FQueuePool.Push(p);
-  UnLockIO;
 end;
 
 procedure TPeerIO.BeginWriteCustomBuffer;
@@ -7706,33 +7757,33 @@ begin
   WriteBufferClose;
 end;
 
-procedure TPeerIO.WriteCustomBuffer(const buffer: PByte; const Size: NativeInt);
+procedure TPeerIO.WriteCustomBuffer(const Buffer: PByte; const Size: NativeInt);
 begin
-  OnInternalSendByteBuffer(Self, buffer, Size);
+  On_Internal_Send_Byte_Buffer(Self, Buffer, Size);
 end;
 
-procedure TPeerIO.WriteCustomBuffer(const buffer: TMS64);
+procedure TPeerIO.WriteCustomBuffer(const Buffer: TMS64);
 begin
-  WriteCustomBuffer(buffer.Memory, buffer.Size);
+  WriteCustomBuffer(Buffer.Memory, Buffer.Size);
 end;
 
-procedure TPeerIO.WriteCustomBuffer(const buffer: TMem64);
+procedure TPeerIO.WriteCustomBuffer(const Buffer: TMem64);
 begin
-  WriteCustomBuffer(buffer.Memory, buffer.Size);
+  WriteCustomBuffer(Buffer.Memory, Buffer.Size);
 end;
 
-procedure TPeerIO.WriteCustomBuffer(const buffer: TMS64; const doneFreeBuffer: Boolean);
+procedure TPeerIO.WriteCustomBuffer(const Buffer: TMS64; const doneFreeBuffer: Boolean);
 begin
-  WriteCustomBuffer(buffer);
+  WriteCustomBuffer(Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
-procedure TPeerIO.WriteCustomBuffer(const buffer: TMem64; const doneFreeBuffer: Boolean);
+procedure TPeerIO.WriteCustomBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
-  WriteCustomBuffer(buffer);
+  WriteCustomBuffer(Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TPeerIO.PauseResultSend;
@@ -7872,7 +7923,7 @@ function TPeerIO.GetBigStreamReceiveState(var Total, Complete: Int64): Boolean;
 begin
   Result := FBigStreamReceiveProcessing;
   Total := FBigStreamTotal;
-  Complete := FBigStreamCompleted;
+  Complete := FBigStream_Current_Received;
 end;
 
 function TPeerIO.GetBigStreamSendingState(var Total, Complete: Int64): Boolean;
@@ -8402,7 +8453,7 @@ var
   p: TCommand_Num_Hash_Pool_Decl.PValue;
 begin
   p := Get_Value_Ptr(Key_, 0);
-  inc(p^);
+  inc(p^, Value_);
 end;
 
 procedure TCommand_Num_Hash_Pool.IncValue(Source: TCommand_Num_Hash_Pool);
@@ -8640,11 +8691,11 @@ begin
   until not FPeerIO_HashPool.Exists_Key(Result);
 end;
 
-procedure TZNet.FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet.FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
 end;
 
-procedure TZNet.Framework_InternalSendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
+procedure TZNet.Framework_Internal_Send_Byte_Buffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
 var
   p: PByte;
 begin
@@ -8658,58 +8709,49 @@ begin
   { fill fragment }
   while siz > C_SendFlushSize do
     begin
-      Sender.SendByteBuffer(p, C_SendFlushSize);
+      Sender.Write_IO_Buffer(p, C_SendFlushSize);
       inc(p, C_SendFlushSize);
       dec(siz, C_SendFlushSize);
     end;
 
   if siz > 0 then
     begin
-      Sender.SendByteBuffer(p, siz);
+      Sender.Write_IO_Buffer(p, siz);
     end;
 
   Sender.UpdateLastCommunicationTime;
   Sender.LastCommunicationTick_Sending := Sender.FLastCommunicationTick;
 end;
 
-procedure TZNet.Framework_InternalSaveReceiveBuffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
+procedure TZNet.Framework_Internal_Save_Receive_Buffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
 begin
   if siz > 0 then
     begin
-      Sender.InternalSaveReceiveBuffer(buff, siz);
+      Sender.Internal_Save_Receive_Buffer(buff, siz);
     end;
 end;
 
-procedure TZNet.Framework_InternalProcessReceiveBuffer(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+procedure TZNet.Framework_Internal_Process_Receive_Buffer(const Sender: TPeerIO);
 var
   FillDone: Boolean;
 begin
   if FProtocol = cpCustom then
     begin
-      if FEnabledAtomicLockAndMultiThread then
-          Sender.FCritical.Acquire;
-
       FillDone := True;
-      if RecvSync and (CurrentActiveThread_ <> nil) then
-          FillCustomBuffer(Sender, CurrentActiveThread_, Sender.FReceivedBuffer.Memory, Sender.FReceivedBuffer.Size, FillDone)
-      else
-          FillCustomBuffer(Sender, nil, Sender.FReceivedBuffer.Memory, Sender.FReceivedBuffer.Size, FillDone);
-
-      if FEnabledAtomicLockAndMultiThread then
-          Sender.FCritical.Release;
+      FillCustomBuffer(Sender, Sender.FReceivedBuffer.Memory, Sender.FReceivedBuffer.Size, FillDone);
 
       if FillDone then
           Sender.FReceivedBuffer.Clear
       else
-          Sender.InternalProcessReceiveBuffer(CurrentActiveThread_, RecvSync, SendSync);
+          Sender.Internal_Process_Receive_Buffer();
     end
   else
-      Sender.InternalProcessReceiveBuffer(CurrentActiveThread_, RecvSync, SendSync);
+      Sender.Internal_Process_Receive_Buffer();
 end;
 
-procedure TZNet.Framework_InternalProcessAllSendCmd(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
+procedure TZNet.Framework_Internal_Process_Send_Buffer(const Sender: TPeerIO);
 begin
-  Sender.InternalProcessAllSendCmd(CurrentActiveThread_, RecvSync, SendSync);
+  Sender.Internal_Process_Send_Buffer();
 end;
 
 procedure TZNet.Framework_InternalIOCreate(const Sender: TPeerIO);
@@ -8718,7 +8760,7 @@ begin
       FIOInterface.PeerIO_Create(Sender);
 end;
 
-procedure TZNet.Framework_InternalIODestroy(const Sender: TPeerIO);
+procedure TZNet.Framework_Internal_IO_Destroy(const Sender: TPeerIO);
 begin
   if FIOInterface <> nil then
       FIOInterface.PeerIO_Destroy(Sender);
@@ -8809,7 +8851,7 @@ end;
 
 procedure TZNet.Command_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
 begin
-  Sender.InternalCloseP2PVMTunnel;
+  Sender.Internal_Close_P2PVMTunnel;
   Sender.ResetSequencePacketBuffer;
 end;
 
@@ -9135,6 +9177,7 @@ begin
   FSyncOnCompleteBuffer := True;
   FBigStreamMemorySwapSpace := False;
   FBigStreamSwapSpaceTriggerSize := C_BigStream_SwapSpace_Trigger;
+
   FEnabledAtomicLockAndMultiThread := True;
   FTimeOutKeepAlive := True;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
@@ -9144,6 +9187,8 @@ begin
   FHashSecurity := THashSecurity.hsNone;
   FMaxCompleteBufferSize := C_MaxCompleteBufferSize;
   FCompleteBufferCompressionCondition := C_CompleteBufferCompressionCondition;
+  FCompleteBufferSwapSpace := False;
+  FCompleteBufferSwapSpaceTriggerSize := C_CompleteBuffer_SwapSpace_Trigger;
   FPeerIOUserDefineClass := TPeerIOUserDefine;
   FPeerIOUserSpecialClass := TPeerIOUserSpecial;
 
@@ -9248,9 +9293,9 @@ begin
   P_IO.EndWriteCustomBuffer;
 end;
 
-procedure TZNet.WriteCustomBuffer(P_IO: TPeerIO; const buffer: PByte; const Size: NativeInt);
+procedure TZNet.WriteCustomBuffer(P_IO: TPeerIO; const Buffer: PByte; const Size: NativeInt);
 begin
-  P_IO.WriteCustomBuffer(buffer, Size);
+  P_IO.WriteCustomBuffer(Buffer, Size);
 end;
 
 procedure TZNet.p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean);
@@ -9443,14 +9488,12 @@ end;
 
 procedure TZNet.Lock_All_IO;
 begin
-  if FEnabledAtomicLockAndMultiThread then
-      FCritical.Acquire; { atomic lock }
+  FCritical.Acquire; { atomic lock }
 end;
 
 procedure TZNet.UnLock_All_IO;
 begin
-  if FEnabledAtomicLockAndMultiThread then
-      FCritical.Release; { atomic lock }
+  FCritical.Release; { atomic lock }
 end;
 
 function TZNet.IOBusy: Boolean;
@@ -10156,7 +10199,7 @@ procedure TZNet.SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
 begin
   // safe
   if FPeerIOUserDefineClass <> nil then
-    if not Value.InheritsFrom(FPeerIOUserDefineClass) then
+    if (not Value.InheritsFrom(FPeerIOUserDefineClass)) and (Value <> TPeerIOUserDefine) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserDefineClass.ClassName]);
   // update
   FPeerIOUserDefineClass := Value;
@@ -10166,7 +10209,7 @@ procedure TZNet.SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
 begin
   // safe
   if FPeerIOUserSpecialClass <> nil then
-    if not Value.InheritsFrom(FPeerIOUserSpecialClass) then
+    if (not Value.InheritsFrom(FPeerIOUserSpecialClass)) and (Value <> TPeerIOUserSpecial) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserSpecialClass.ClassName]);
   // update
   FPeerIOUserSpecialClass := Value;
@@ -10238,35 +10281,23 @@ begin
       DoIOConnectAfter(Sender);
 end;
 
-procedure TZNet_Server.Framework_InternalIODestroy(const Sender: TPeerIO);
+procedure TZNet_Server.Framework_Internal_IO_Destroy(const Sender: TPeerIO);
 begin
   DoIODisconnect(Sender);
-  inherited Framework_InternalIODestroy(Sender);
+  inherited Framework_Internal_IO_Destroy(Sender);
 end;
 
-procedure TZNet_Server.SyncFillCustomBuffer;
-begin
-  if Assigned(FOnServerCustomProtocolReceiveBufferNotify) then
-    begin
-      FOnServerCustomProtocolReceiveBufferNotify(FillSync_Sender, FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-
-      if not FillSync_Done then
-          OnReceiveBuffer(FillSync_Sender, FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-    end
-  else
-      OnReceiveBuffer(FillSync_Sender, FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-end;
-
-procedure TZNet_Server.FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_Server.FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
   if Protocol = cpCustom then
     begin
-      FillSync_Sender := Sender;
-      FillSync_Buffer := buffer;
-      FillSync_BufferSize := Size;
-      FillSync_Done := FillDone;
-      Sender.IO_SyncMethod(th, th <> nil, {$IFDEF FPC}@{$ENDIF FPC}SyncFillCustomBuffer);
-      FillDone := FillSync_Done;
+      if Assigned(FOnServerCustomProtocolReceiveBufferNotify) then
+        begin
+          FOnServerCustomProtocolReceiveBufferNotify(Sender, Buffer, Size, FillDone);
+          if FillDone then
+              exit;
+        end;
+      OnReceiveBuffer(Sender, Buffer, Size, FillDone);
     end;
 end;
 
@@ -10279,10 +10310,6 @@ constructor TZNet_Server.CreateCustomHashPool(HashPoolSize: Integer);
 begin
   inherited Create(HashPoolSize);
   FOnServerCustomProtocolReceiveBufferNotify := nil;
-  FillSync_Sender := nil;
-  FillSync_Buffer := nil;
-  FillSync_BufferSize := 0;
-  FillSync_Done := True;
 
   FStableIOProgressing := False;
   FStableIO := nil;
@@ -10355,7 +10382,7 @@ begin
       io_cli.DelayClose(delay);
 end;
 
-procedure TZNet_Server.OnReceiveBuffer(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_Server.OnReceiveBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
 end;
 
@@ -10369,33 +10396,33 @@ begin
   EndWriteCustomBuffer(P_IO);
 end;
 
-procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const buffer: PByte; const Size: NativeInt);
+procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: PByte; const Size: NativeInt);
 begin
-  WriteCustomBuffer(P_IO, buffer, Size);
+  WriteCustomBuffer(P_IO, Buffer, Size);
 end;
 
-procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const buffer: TMS64);
+procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMS64);
 begin
-  WriteBuffer(P_IO, buffer.Memory, buffer.Size);
+  WriteBuffer(P_IO, Buffer.Memory, Buffer.Size);
 end;
 
-procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const buffer: TMem64);
+procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMem64);
 begin
-  WriteBuffer(P_IO, buffer.Memory, buffer.Size);
+  WriteBuffer(P_IO, Buffer.Memory, Buffer.Size);
 end;
 
-procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const buffer: TMS64; const doneFreeBuffer: Boolean);
+procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMS64; const doneFreeBuffer: Boolean);
 begin
-  WriteBuffer(P_IO, buffer);
+  WriteBuffer(P_IO, Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
-procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const buffer: TMem64; const doneFreeBuffer: Boolean);
+procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
-  WriteBuffer(P_IO, buffer);
+  WriteBuffer(P_IO, Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TZNet_Server.StopService;
@@ -11021,9 +11048,10 @@ begin
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.BigStreamStartPos := StartPos;
-  if FBigStreamMemorySwapSpace and DoneAutoFree and P_IO.IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize) and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
+  if FBigStreamMemorySwapSpace and DoneAutoFree and P_IO.IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
+    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
     begin
-      p^.BigStream := TSwapSpaceFileStream.CreateSwapSpace(BigStream, BigStream_SwapSpace);
+      p^.BigStream := TSwap_Space_Pool_File_Stream.Create_BigStream(BigStream, BS_And_CB_SwapPool);
       if DoneAutoFree then
           DisposeObject(BigStream);
       p^.DoneAutoFree := True;
@@ -11046,6 +11074,7 @@ end;
 procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
 var
   p: PQueueData;
+  tmp_queue_num, tmp_buff_siz: Int64;
 begin
   { init queue data }
   if (P_IO = nil) or (not P_IO.Connected) then
@@ -11060,7 +11089,21 @@ begin
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
-  p^.buffer := buff;
+
+  P_IO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
+  if FCompleteBufferSwapSpace and DoneAutoFree and P_IO.IOBusy
+    and ((BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
+    begin
+      p^.Buffer_Swap_Stream := TSwap_Space_Pool_File_Stream.Create_CompleteBuffer(buff, BuffSize, BS_And_CB_SwapPool);
+      System.FreeMemory(buff);
+      p^.Buffer := nil;
+    end
+  else
+    begin
+      p^.Buffer := buff;
+      p^.Buffer_Swap_Stream := nil;
+    end;
+
   p^.BufferSize := BuffSize;
   p^.DoneAutoFree := DoneAutoFree;
   TriggerQueueData(p);
@@ -11462,27 +11505,17 @@ begin
   Result := inherited CanRegCommand(Sender, Cmd);
 end;
 
-procedure TZNet_Client.SyncFillCustomBuffer;
-begin
-  if Assigned(FOnClientCustomProtocolReceiveBufferNotify) then
-    begin
-      FOnClientCustomProtocolReceiveBufferNotify(Self, FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-      if not FillSync_Done then
-          OnReceiveBuffer(FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-    end
-  else
-      OnReceiveBuffer(FillSync_Buffer, FillSync_BufferSize, FillSync_Done);
-end;
-
-procedure TZNet_Client.FillCustomBuffer(Sender: TPeerIO; const th: TCore_Thread; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_Client.FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
   if Protocol = cpCustom then
     begin
-      FillSync_Buffer := buffer;
-      FillSync_BufferSize := Size;
-      FillSync_Done := FillDone;
-      Sender.IO_SyncMethod(th, th <> nil, {$IFDEF FPC}@{$ENDIF FPC}SyncFillCustomBuffer);
-      FillDone := FillSync_Done;
+      if Assigned(FOnClientCustomProtocolReceiveBufferNotify) then
+        begin
+          FOnClientCustomProtocolReceiveBufferNotify(Self, Buffer, Size, FillDone);
+          if FillDone then
+              exit;
+        end;
+      OnReceiveBuffer(Buffer, Size, FillDone);
     end;
 end;
 
@@ -11529,9 +11562,6 @@ begin
   inherited Create(1);
   FMaxCompleteBufferSize := 0; { 0 = infinity }
   FOnClientCustomProtocolReceiveBufferNotify := nil;
-  FillSync_Buffer := nil;
-  FillSync_BufferSize := 0;
-  FillSync_Done := True;
 
   FStableIOProgressing := False;
   FStableIO := nil;
@@ -11609,7 +11639,7 @@ begin
   IO_IDLE_TraceM(Additional_Object_, {$IFDEF FPC}@{$ENDIF FPC}Do_IO_IDLE_FreeSelf);
 end;
 
-procedure TZNet_Client.OnReceiveBuffer(const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_Client.OnReceiveBuffer(const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
 end;
 
@@ -11623,33 +11653,33 @@ begin
   EndWriteCustomBuffer(ClientIO);
 end;
 
-procedure TZNet_Client.WriteBuffer(const buffer: PByte; const Size: NativeInt);
+procedure TZNet_Client.WriteBuffer(const Buffer: PByte; const Size: NativeInt);
 begin
-  WriteCustomBuffer(ClientIO, buffer, Size);
+  WriteCustomBuffer(ClientIO, Buffer, Size);
 end;
 
-procedure TZNet_Client.WriteBuffer(const buffer: TMS64);
+procedure TZNet_Client.WriteBuffer(const Buffer: TMS64);
 begin
-  WriteBuffer(buffer.Memory, buffer.Size);
+  WriteBuffer(Buffer.Memory, Buffer.Size);
 end;
 
-procedure TZNet_Client.WriteBuffer(const buffer: TMem64);
+procedure TZNet_Client.WriteBuffer(const Buffer: TMem64);
 begin
-  WriteBuffer(buffer.Memory, buffer.Size);
+  WriteBuffer(Buffer.Memory, Buffer.Size);
 end;
 
-procedure TZNet_Client.WriteBuffer(const buffer: TMS64; const doneFreeBuffer: Boolean);
+procedure TZNet_Client.WriteBuffer(const Buffer: TMS64; const doneFreeBuffer: Boolean);
 begin
-  WriteBuffer(buffer);
+  WriteBuffer(Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
-procedure TZNet_Client.WriteBuffer(const buffer: TMem64; const doneFreeBuffer: Boolean);
+procedure TZNet_Client.WriteBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
-  WriteBuffer(buffer);
+  WriteBuffer(Buffer);
   if doneFreeBuffer then
-      DisposeObject(buffer);
+      DisposeObject(Buffer);
 end;
 
 function TZNet_Client.ServerState: PZNet_ServerState;
@@ -12592,9 +12622,10 @@ begin
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.BigStreamStartPos := StartPos;
 
-  if FBigStreamMemorySwapSpace and DoneAutoFree and IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize) and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
+  if FBigStreamMemorySwapSpace and DoneAutoFree and IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
+    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
     begin
-      p^.BigStream := TSwapSpaceFileStream.CreateSwapSpace(BigStream, BigStream_SwapSpace);
+      p^.BigStream := TSwap_Space_Pool_File_Stream.Create_BigStream(BigStream, BS_And_CB_SwapPool);
       if DoneAutoFree then
           DisposeObject(BigStream);
       p^.DoneAutoFree := True;
@@ -12618,6 +12649,7 @@ end;
 procedure TZNet_Client.SendCompleteBuffer(Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
 var
   p: PQueueData;
+  tmp_queue_num, tmp_buff_siz: Int64;
 begin
   if ClientIO = nil then
       exit;
@@ -12631,7 +12663,21 @@ begin
 
   p^.Cmd := Cmd;
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
-  p^.buffer := buff;
+
+  ClientIO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
+  if FCompleteBufferSwapSpace and DoneAutoFree and IOBusy
+    and ((BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
+    begin
+      p^.Buffer_Swap_Stream := TSwap_Space_Pool_File_Stream.Create_CompleteBuffer(buff, BuffSize, BS_And_CB_SwapPool);
+      System.FreeMemory(buff);
+      p^.Buffer := nil;
+    end
+  else
+    begin
+      p^.Buffer := buff;
+      p^.Buffer_Swap_Stream := nil;
+    end;
+
   p^.BufferSize := BuffSize;
   p^.DoneAutoFree := DoneAutoFree;
   TriggerQueueData(p);
@@ -12682,7 +12728,7 @@ end;
 
 procedure TP2PVMFragmentPacket.Init;
 begin
-  buffSiz := 0;
+  BuffSiz := 0;
   FrameworkID := 0;
   p2pID := 0;
   pkType := 0;
@@ -12702,25 +12748,25 @@ begin
       Init;
       exit;
     end;
-  buffSiz := PCardinal(Stream.PositionAsPtr(0))^;
+  BuffSiz := PCardinal(Stream.PositionAsPtr(0))^;
   FrameworkID := PCardinal(Stream.PositionAsPtr(4))^;
   p2pID := PCardinal(Stream.PositionAsPtr(8))^;
   pkType := PByte(Stream.PositionAsPtr(12))^;
-  if buffSiz > 0 then
+  if BuffSiz > 0 then
       buff := Stream.PositionAsPtr(13)
   else
       buff := nil;
-  Result := buffSiz + 13;
+  Result := BuffSiz + 13;
 end;
 
 procedure TP2PVMFragmentPacket.BuildSendBuff(Stream: TMS64);
 begin
-  Stream.WritePtr(@buffSiz, 4);
+  Stream.WritePtr(@BuffSiz, 4);
   Stream.WritePtr(@FrameworkID, 4);
   Stream.WritePtr(@p2pID, 4);
   Stream.WritePtr(@pkType, 1);
-  if buffSiz > 0 then
-      Stream.WritePtr(buff, buffSiz);
+  if BuffSiz > 0 then
+      Stream.WritePtr(buff, BuffSiz);
 end;
 
 procedure TP2PVM_PeerIO.CreateAfter;
@@ -12798,7 +12844,7 @@ begin
   DisposeObject(Self);
 end;
 
-procedure TP2PVM_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TP2PVM_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if Size <= 0 then
       exit;
@@ -12851,15 +12897,33 @@ begin
       Result := FLinkVM.FOwner_IO.PeerIP + '(' + Result + ')';
 end;
 
-function TP2PVM_PeerIO.WriteBufferEmpty: Boolean;
+function TP2PVM_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   Result := (FRealSendBuff.Size = 0) and (FSendQueue.num = 0);
+end;
+
+function TP2PVM_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
+var
+  p: TP2P_VM_Fragment_Packet_Pool.POrderStruct;
+begin
+  Result := not WriteBuffer_is_NULL;
+  WriteBuffer_Queue_Num := FSendQueue.num;
+  WriteBuffer_Size := 0;
+
+  if FSendQueue.First <> nil then
+    begin
+      p := FSendQueue.First;
+      repeat
+        inc(WriteBuffer_Size, p^.data^.BuffSiz);
+        p := p^.Next;
+      until p <> nil;
+    end;
 end;
 
 procedure TP2PVM_PeerIO.Progress;
 begin
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_WithP2PVM_Server.Connecting(SenderVM: TZNet_WithP2PVM;
@@ -13040,7 +13104,7 @@ begin
   if c <> nil then
     begin
       c.PostQueueData(v);
-      c.ProcessAllSendCmd(nil, False, False);
+      c.Process_Send_Buffer();
     end;
 end;
 
@@ -13166,11 +13230,11 @@ begin
   inherited Framework_InternalIOCreate(Sender);
 end;
 
-procedure TZNet_WithP2PVM_Client.Framework_InternalIODestroy(const Sender: TPeerIO);
+procedure TZNet_WithP2PVM_Client.Framework_Internal_IO_Destroy(const Sender: TPeerIO);
 begin
   FVMClientIO := nil;
   FVMConnected := False;
-  inherited Framework_InternalIODestroy(Sender);
+  inherited Framework_Internal_IO_Destroy(Sender);
 end;
 
 procedure TZNet_WithP2PVM_Client.VMConnectSuccessed(SenderVM: TZNet_WithP2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal);
@@ -13385,7 +13449,7 @@ begin
   if Connected then
     begin
       FVMClientIO.PostQueueData(v);
-      FVMClientIO.ProcessAllSendCmd(nil, False, False);
+      FVMClientIO.Process_Send_Buffer();
     end
   else
       DisposeQueueData(v);
@@ -13753,7 +13817,7 @@ begin
   if FAuthed then
     begin
       t.Init;
-      t.buffSiz := siz;
+      t.BuffSiz := siz;
       t.FrameworkID := 0;
       t.p2pID := 0;
       t.pkType := C_p2pVM_OwnerIOFragmentData;
@@ -13769,14 +13833,11 @@ begin
   if siz <= 0 then
       exit;
 
-  if FOwner_IO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
-      FCritical.Acquire;
-
   FReceiveStream.Position := FReceiveStream.Size;
   FReceiveStream.WritePtr(buff, siz);
 end;
 
-procedure TZNet_WithP2PVM.SyncProcessReceiveBuff;
+procedure TZNet_WithP2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
 var
   i: Integer;
   LP: Pp2pVMListen;
@@ -13839,9 +13900,9 @@ begin
           { safe process fragment }
           if FReceiveStream.Size >= Length(FOwner_IO.FP2PAuthToken) then
             begin
-              FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FOwner_IO, FReceiveStream.Memory, FReceiveStream.Size);
+              FOwner_IO.FOwnerFramework.Framework_Internal_Save_Receive_Buffer(FOwner_IO, FReceiveStream.Memory, FReceiveStream.Size);
               FReceiveStream.Clear;
-              FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FOwner_IO, nil, False, False);
+              FOwner_IO.FOwnerFramework.Framework_Internal_Process_Receive_Buffer(FOwner_IO);
             end;
           exit;
         end;
@@ -13862,9 +13923,9 @@ begin
         begin
           { protocol support }
           if fPk.pkType = C_p2pVM_echoing then
-              ReceivedEchoing(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedEchoing(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_echo then
-              ReceivedEcho(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedEcho(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_AuthSuccessed then
             begin
               if Assigned(OnAuthSuccessOnesNotify) then
@@ -13877,19 +13938,19 @@ begin
                 end;
             end
           else if fPk.pkType = C_p2pVM_Listen then
-              ReceivedListen(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedListen(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_ListenState then
-              ReceivedListenState(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedListenState(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_Connecting then
-              ReceivedConnecting(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedConnecting(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_ConnectedReponse then
-              ReceivedConnectedReponse(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedConnectedReponse(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_Disconnect then
-              ReceivedDisconnect(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedDisconnect(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_LogicFragmentData then
-              ReceivedLogicFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedLogicFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else if fPk.pkType = C_p2pVM_OwnerIOFragmentData then
-              ReceivedOwnerIOFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.buffSiz)
+              ReceivedOwnerIOFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else
             begin
               FOwner_IO.PrintError('VM protocol header errror');
@@ -13922,23 +13983,16 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO; const CurrentActiveThread_: TCore_Thread; const RecvSync, SendSync: Boolean);
-begin
-  Sender.IO_SyncMethod(CurrentActiveThread_, RecvSync, {$IFDEF FPC}@{$ENDIF FPC}SyncProcessReceiveBuff);
-  if FOwner_IO.OwnerFramework.FEnabledAtomicLockAndMultiThread then
-      FCritical.Release;
-end;
-
 procedure TZNet_WithP2PVM.Hook_ClientDestroy(const Sender: TPeerIO);
 begin
   CloseP2PVMTunnel;
-  Sender.FOwnerFramework.Framework_InternalIODestroy(Sender);
+  Sender.FOwnerFramework.Framework_Internal_IO_Destroy(Sender);
 end;
 
 procedure TZNet_WithP2PVM.SendVMBuffer(const buff: Pointer; const siz: NativeInt);
 begin
   FOwner_IO.WriteBufferOpen;
-  FOwner_IO.OwnerFramework.Framework_InternalSendByteBuffer(FOwner_IO, buff, siz);
+  FOwner_IO.OwnerFramework.Framework_Internal_Send_Byte_Buffer(FOwner_IO, buff, siz);
   FOwner_IO.WriteBufferFlush;
   FOwner_IO.WriteBufferClose;
 end;
@@ -14243,8 +14297,7 @@ begin
       LocalVMc := c.FPeerIO_HashPool[p2pID];
       if LocalVMc <> nil then
         begin
-          LocalVMc.SaveReceiveBuffer(buff, siz);
-          LocalVMc.FillRecvBuffer(nil, False, False);
+          LocalVMc.Write_Physics_Fragment(buff, siz);
         end
       else
         begin
@@ -14257,8 +14310,7 @@ begin
       LocalVMc := TZNet_WithP2PVM_Client(c).FVMClientIO;
       if LocalVMc <> nil then
         begin
-          LocalVMc.SaveReceiveBuffer(buff, siz);
-          LocalVMc.FillRecvBuffer(nil, False, False);
+          LocalVMc.Write_Physics_Fragment(buff, siz);
         end
       else
         begin
@@ -14276,8 +14328,8 @@ procedure TZNet_WithP2PVM.ReceivedOwnerIOFragmentData(const FrameworkID, p2pID: 
 begin
   if FOwner_IO = nil then
       exit;
-  FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer(FOwner_IO, buff, siz);
-  FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer(FOwner_IO, nil, False, False);
+  FOwner_IO.FOwnerFramework.Framework_Internal_Save_Receive_Buffer(FOwner_IO, buff, siz);
+  FOwner_IO.FOwnerFramework.Framework_Internal_Process_Receive_Buffer(FOwner_IO);
 end;
 
 procedure TZNet_WithP2PVM.DoProcessPerClientFragmentSend(P_IO: TPeerIO);
@@ -14307,7 +14359,6 @@ end;
 constructor TZNet_WithP2PVM.Create(HashPoolSize: Integer);
 begin
   inherited Create;
-  FCritical := TCritical.Create;
   FOwner_IO := nil;
   FAuthWaiting := False;
   FAuthed := False;
@@ -14344,7 +14395,6 @@ begin
   DisposeObject(FSendStream);
   DisposeObject(FFrameworkPool);
   DisposeObject(FFrameworkListenPool);
-  DisposeObject(FCritical);
   inherited Destroy;
 end;
 
@@ -14386,7 +14436,7 @@ begin
           inc(i);
     end;
 
-  if not FOwner_IO.WriteBufferEmpty then
+  if not FOwner_IO.WriteBuffer_is_NULL then
       exit;
 
   { real send buffer }
@@ -14504,9 +14554,9 @@ begin
 
   { install tunnel driver }
   try
-    FOwner_IO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SendByteBuffer;
-    FOwner_IO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SaveReceiveBuffer;
-    FOwner_IO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_ProcessReceiveBuffer;
+    FOwner_IO.On_Internal_Send_Byte_Buffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SendByteBuffer;
+    FOwner_IO.On_Internal_Save_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_SaveReceiveBuffer;
+    FOwner_IO.On_Internal_Process_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}Hook_ProcessReceiveBuffer;
     FOwner_IO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}Hook_ClientDestroy;
   except
   end;
@@ -14558,10 +14608,10 @@ begin
       exit;
 
   try
-    FOwner_IO.OnInternalSendByteBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalSendByteBuffer;
-    FOwner_IO.OnInternalSaveReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalSaveReceiveBuffer;
-    FOwner_IO.OnInternalProcessReceiveBuffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalProcessReceiveBuffer;
-    FOwner_IO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_InternalIODestroy;
+    FOwner_IO.On_Internal_Send_Byte_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_Internal_Send_Byte_Buffer;
+    FOwner_IO.On_Internal_Save_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_Internal_Save_Receive_Buffer;
+    FOwner_IO.On_Internal_Process_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_Internal_Process_Receive_Buffer;
+    FOwner_IO.OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}FOwner_IO.FOwnerFramework.Framework_Internal_IO_Destroy;
   except
   end;
 
@@ -15067,7 +15117,7 @@ begin
   Activted := False;
   DestroyRecycleOwnerIO := True;
   Connection_Token := 0;
-  InternalBindOwnerIO := nil;
+  Internal_Bind_Owner_IO := nil;
   OfflineTick := GetTimeTick;
 end;
 
@@ -15093,12 +15143,12 @@ begin
   DelayFree();
 end;
 
-procedure TStableServer_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TStableServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if BindOwnerIO = nil then
       AtomDec(FOwnerFramework.Statistics[TStatisticsType.stSendSize], Size)
   else
-      BindOwnerIO.SendByteBuffer(buff, Size);
+      BindOwnerIO.Write_IO_Buffer(buff, Size);
 end;
 
 procedure TStableServer_PeerIO.WriteBufferOpen;
@@ -15127,12 +15177,20 @@ begin
       Result := 'StableIO - offline';
 end;
 
-function TStableServer_PeerIO.WriteBufferEmpty: Boolean;
+function TStableServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   if BindOwnerIO <> nil then
-      Result := BindOwnerIO.WriteBufferEmpty
+      Result := BindOwnerIO.WriteBuffer_is_NULL
   else
       Result := False;
+end;
+
+function TStableServer_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
+begin
+  if BindOwnerIO <> nil then
+      Result := BindOwnerIO.WriteBuffer_State(WriteBuffer_Queue_Num, WriteBuffer_Size)
+  else
+      Result := inherited WriteBuffer_State(WriteBuffer_Queue_Num, WriteBuffer_Size);
 end;
 
 procedure TStableServer_PeerIO.Progress;
@@ -15157,10 +15215,10 @@ begin
     end;
 
   inherited Progress;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
-procedure TZNet_CustomStableServer.ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_CustomStableServer.ServerCustomProtocolReceiveBufferNotify(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 var
   io_def: TStableServer_OwnerIO_UserDefine;
 begin
@@ -15168,8 +15226,7 @@ begin
   FillDone := (io_def.BindStableIO <> nil);
   if FillDone then
     begin
-      io_def.BindStableIO.SaveReceiveBuffer(buffer, Size);
-      io_def.BindStableIO.FillRecvBuffer(nil, False, False);
+      io_def.BindStableIO.Write_Physics_Fragment(Buffer, Size);
     end;
 end;
 
@@ -15357,7 +15414,7 @@ begin
   if c <> nil then
     begin
       c.PostQueueData(v);
-      c.ProcessAllSendCmd(nil, False, False);
+      c.Process_Send_Buffer();
     end
   else
       DisposeQueueData(v);
@@ -15409,7 +15466,7 @@ begin
   TZNet_CustomStableClient(FOwnerFramework).Disconnect;
 end;
 
-procedure TStableClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TStableClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
     begin
@@ -15417,7 +15474,7 @@ begin
       exit;
     end;
 
-  BindOwnerIO.SendByteBuffer(buff, Size);
+  BindOwnerIO.Write_IO_Buffer(buff, Size);
 end;
 
 procedure TStableClient_PeerIO.WriteBufferOpen;
@@ -15448,29 +15505,36 @@ begin
       Result := BindOwnerIO.GetPeerIP;
 end;
 
-function TStableClient_PeerIO.WriteBufferEmpty: Boolean;
+function TStableClient_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
   if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
       Result := False
   else
-      Result := BindOwnerIO.WriteBufferEmpty;
+      Result := BindOwnerIO.WriteBuffer_is_NULL;
+end;
+
+function TStableClient_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
+begin
+  if (BindOwnerIO = nil) or (not Activted) or (WaitConnecting) then
+      Result := inherited WriteBuffer_State(WriteBuffer_Queue_Num, WriteBuffer_Size)
+  else
+      Result := BindOwnerIO.WriteBuffer_State(WriteBuffer_Queue_Num, WriteBuffer_Size);
 end;
 
 procedure TStableClient_PeerIO.Progress;
 begin
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
   inherited Progress;
 end;
 
-procedure TZNet_CustomStableClient.ClientCustomProtocolReceiveBufferNotify(Sender: TZNet_Client; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
+procedure TZNet_CustomStableClient.ClientCustomProtocolReceiveBufferNotify(Sender: TZNet_Client; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
   KeepAliveChecking := False;
 
   FillDone := FStableClientIO.Activted and (not FStableClientIO.WaitConnecting) and (FStableClientIO.BindOwnerIO <> nil);
   if FillDone then
     begin
-      FStableClientIO.SaveReceiveBuffer(buffer, Size);
-      FStableClientIO.FillRecvBuffer(nil, False, False);
+      FStableClientIO.Write_Physics_Fragment(Buffer, Size);
     end;
 end;
 
@@ -15890,7 +15954,7 @@ begin
           ProgressWaitSend(FStableClientIO);
       FStableClientIO.SendDirectConsoleCmd(C_CloseStableIO);
       FStableClientIO.Progress;
-      while FOwnerIOClient.Connected and (not FOwnerIOClient.ClientIO.WriteBufferEmpty) do
+      while FOwnerIOClient.Connected and (not FOwnerIOClient.ClientIO.WriteBuffer_is_NULL) do
           FOwnerIOClient.ProgressWaitSend(FOwnerIOClient.ClientIO);
       FStableClientIO.FSequencePacketSignal := True;
     end;
@@ -15913,7 +15977,7 @@ begin
     end;
 
   ClientIO.PostQueueData(v);
-  ClientIO.FillRecvBuffer(nil, False, False);
+  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TZNet_CustomStableClient.Progress;

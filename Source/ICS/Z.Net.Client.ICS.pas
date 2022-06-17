@@ -1,21 +1,5 @@
 { ****************************************************************************** }
 { * ics support                                                                * }
-{ * written by QQ 600585@qq.com                                                * }
-{ * https://zpascal.net                                                        * }
-{ * https://github.com/PassByYou888/zAI                                        * }
-{ * https://github.com/PassByYou888/ZServer4D                                  * }
-{ * https://github.com/PassByYou888/PascalString                               * }
-{ * https://github.com/PassByYou888/zRasterization                             * }
-{ * https://github.com/PassByYou888/CoreCipher                                 * }
-{ * https://github.com/PassByYou888/zSound                                     * }
-{ * https://github.com/PassByYou888/zChinese                                   * }
-{ * https://github.com/PassByYou888/zExpression                                * }
-{ * https://github.com/PassByYou888/zGameWare                                  * }
-{ * https://github.com/PassByYou888/zAnalysis                                  * }
-{ * https://github.com/PassByYou888/FFMPEG-Header                              * }
-{ * https://github.com/PassByYou888/zTranslate                                 * }
-{ * https://github.com/PassByYou888/InfiniteIoT                                * }
-{ * https://github.com/PassByYou888/FastMD5                                    * }
 { ****************************************************************************** }
 (*
   update history
@@ -44,7 +28,7 @@ type
 
     function Connected: Boolean; override;
     procedure Disconnect; override;
-    procedure SendByteBuffer(const buff: PByte; const Size: NativeInt); override;
+    procedure Write_IO_Buffer(const buff: PByte; const Size: NativeInt); override;
     procedure WriteBufferOpen; override;
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
@@ -121,7 +105,7 @@ begin
   Context.Disconnect;
 end;
 
-procedure TICSClient_PeerIO.SendByteBuffer(const buff: PByte; const Size: NativeInt);
+procedure TICSClient_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
 begin
   if Connected then
       Context.FDriver.Send(buff, Size);
@@ -149,7 +133,7 @@ end;
 procedure TICSClient_PeerIO.ContinueResultSend;
 begin
   inherited ContinueResultSend;
-  ProcessAllSendCmd(nil, False, False);
+  Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_ICS.DataAvailable(Sender: TObject; ErrCode: Word);
@@ -165,12 +149,7 @@ begin
   BuffCount := FDriver.Receive(buff, BuffCount);
   if BuffCount > 0 then
     begin
-      try
-        FClient.SaveReceiveBuffer(buff, BuffCount);
-        FClient.FillRecvBuffer(nil, False, False);
-      except
-          FDriver.Close;
-      end;
+      FClient.Write_Physics_Fragment(buff, BuffCount);
     end;
   System.FreeMemory(buff);
 end;
@@ -398,13 +377,13 @@ begin
     end;
 
   FClient.PostQueueData(v);
-  FClient.ProcessAllSendCmd(nil, False, False);
+  FClient.Process_Send_Buffer();
   inherited Progress;
 end;
 
 procedure TZNet_Client_ICS.Progress;
 begin
-  FClient.ProcessAllSendCmd(nil, False, False);
+  FClient.Process_Send_Buffer();
 
   inherited Progress;
 
