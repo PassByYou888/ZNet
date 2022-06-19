@@ -221,9 +221,15 @@ begin
       ProtocolHash := TUInt32HashObjectList.CustomCreate(8192);
 
   if RecvTunnel = nil then
+    begin
       RecvTunnel := TZNet_WithP2PVM_Client.Create;
+      RecvTunnel.CompleteBufferSwapSpace := True;
+    end;
   if SendTunnel = nil then
+    begin
       SendTunnel := TZNet_WithP2PVM_Client.Create;
+      SendTunnel.CompleteBufferSwapSpace := True;
+    end;
 
   XClientTunnel.PhysicsEngine.GetIO_Array(io_array);
   for p_id in io_array do

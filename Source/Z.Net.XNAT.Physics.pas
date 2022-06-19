@@ -10,8 +10,12 @@ interface
 uses Z.Core, Z.Net.PhysicsIO;
 
 type
-  TXPhysicsServer = TPhysicsServer;
-  TXPhysicsClient = TPhysicsClient;
+  TXPhysicsServer = class(TPhysicsServer)
+  end;
+
+  TXPhysicsClient = class(TPhysicsClient)
+  end;
+
   TXNAT_PHYSICS_MODEL = (XNAT_PHYSICS_SERVICE, XNAT_PHYSICS_CLIENT);
 
 procedure BuildBuff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; var NewSiz: NativeInt; var NewBuff: PByte);
@@ -54,4 +58,3 @@ begin
 end;
 
 end.
- 

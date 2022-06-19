@@ -63,6 +63,43 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2022-6-19，置换设备后重启技术更新**
+
+- hpc支持性大更新：分离出了物理网络数据和粘包流程，物理网络线程可处于无卡顿工作状态，解锁hpc高流量支持
+- hpc支持性大更新：在无卡顿的物理网络机制中，由于缓冲技术需要使用内存，从而增加了一个磁盘暂存技术支持体系(使用ZDB2暂存)
+
+```
+hpc支持性使用说明
+
+//常量，直接修改Z.Net.pas文件，BigStream每次发送的块大小，在万兆局域网中可以调大它，并发时它会很消耗内存，传大文件调大可提速
+C_BigStream_SwapSpace_Trigger: Int64 = 1024 * 1024;
+
+//在大量链接的服务器会用到主循环，该参数表示每次调用主循环的最大延迟，达到该延迟，循环会退出来，下次执行时会从检查点继续循环，默认100毫秒
+//当服务器链接过多，且负荷不过来，该参能有效防止假死
+TZNet.ProgressMaxDelay:TTimeTick
+
+//启用BigStream磁盘缓存模型
+BigStreamMemorySwapSpace: Boolean
+//触发BigStream的缓存模型的条件，当发送队列的数据达到，就执行磁盘缓存（Stream必须是TMemoryStream，TMemoryStream64）
+TZNet.BigStreamSwapSpaceTriggerSize: Int64
+
+//启用CompleteBuffer磁盘缓存模型
+TZNet.CompleteBufferSwapSpace: Boolean
+//触发BigStream的缓存模型的条件，当发送队列的数据达到，就执行磁盘缓存，0表示全部缓存
+TZNet.CompleteBufferSwapSpaceTriggerSize: Int64
+
+{ 在万兆网带宽峰值到来时，机器会处理不过来，这时候，缓存技术会把物理网络发来的数据记录到磁盘数据库，该常量是出发磁盘缓存的条件，当RX碎片达到100 }
+C_Physics_Fragment_Cache_Trigger: NativeInt = 100;
+{ 缓存数据库，加密，步进尺寸 }
+C_Swap_Space_Technology_Security_Model: Boolean = True;
+C_Swap_Space_Technology_Delta: Int64 = 8 * 1024 * 1024;
+C_Swap_Space_Technology_Block: Word = 1536;
+
+//以上参数请自行摸索，hpc下的准万兆网支持模式还要考虑cpu调度，分线程，磁盘运用，数据库优化，多种因素决定结果
+//并不是网络解决万兆项目就能跑出万兆效果
+
+```
+
 **2022-6-9，置换设备后重启技术更新**
 ```
 针对hpc无法调试的修复更新: 在hpc使用cpuCount作为构建参数，程序启动就是300个线程，调试器会在启动时卡住

@@ -319,7 +319,10 @@ begin
       RecvTunnel.SyncOnCompleteBuffer := True;
       RecvTunnel.SyncOnResult := True;
       RecvTunnel.SwitchMaxPerformance;
+      { compressed complete buffer }
       RecvTunnel.CompleteBufferCompressed := XNAT.ProtocolCompressed;
+      { automated swap space }
+      RecvTunnel.CompleteBufferSwapSpace := True;
       { register cmd }
       if not RecvTunnel.ExistsRegistedCmd(C_Connect_request) then
           RecvTunnel.RegisterDirectStream(C_Connect_request).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_connect_request;
@@ -341,6 +344,8 @@ begin
       SendTunnel.SwitchMaxPerformance;
       { compressed complete buffer }
       SendTunnel.CompleteBufferCompressed := XNAT.ProtocolCompressed;
+      { automated swap space }
+      SendTunnel.CompleteBufferSwapSpace := True;
       { disable status }
       SendTunnel.PrintParams[C_Connect_reponse] := False;
       SendTunnel.PrintParams[C_Disconnect_reponse] := False;

@@ -1370,7 +1370,11 @@ begin
   if FAutoCloseIOHnd then
       umlFileClose(FSpace_IOHnd^);
   if FAutoFreeIOHnd then
+    begin
+      InitIOHnd(FSpace_IOHnd^);
       Dispose(FSpace_IOHnd);
+    end;
+  FCipher := nil;
   inherited Destroy;
 end;
 

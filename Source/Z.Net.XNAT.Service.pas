@@ -244,7 +244,10 @@ var
 begin
   { build receive tunnel }
   if RecvTunnel = nil then
+    begin
       RecvTunnel := TXCustomP2PVM_Server.Create;
+      RecvTunnel.CompleteBufferSwapSpace := True;
+    end;
 
   { sequence sync }
   RecvTunnel.SyncOnCompleteBuffer := True;
@@ -283,7 +286,10 @@ begin
 
   { build send tunnel }
   if SendTunnel = nil then
+    begin
       SendTunnel := TXCustomP2PVM_Server.Create;
+      SendTunnel.CompleteBufferSwapSpace := True;
+    end;
 
   { sequence sync }
   SendTunnel.SyncOnCompleteBuffer := True;
