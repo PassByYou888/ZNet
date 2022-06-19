@@ -221,7 +221,7 @@ var
   m64: TMS64;
 begin
   m64 := TMS64.Create;
-  m64.Mapping(buff, buff_size);
+  m64.WritePtr(buff, buff_size);
   Set_MD5_Fragment(m64, True);
 end;
 
