@@ -296,7 +296,7 @@ type
 {$REGION 'CacheTechnology'}
 
   TFile_Swap_Space_Stream = class;
-  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Swap_Space_Stream>;
+  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TFile_Swap_Space_Stream>;
 
   TFile_Swap_Space_Pool = class(TFile_Swap_Space_Pool_Decl)
   private
@@ -328,6 +328,7 @@ type
     tmp_swap_space_file: U_String;
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
   public
+    Critical: TCritical;
     constructor Create();
     destructor Destroy; override;
     function Create_Memory(buff: PByte; BuffSiz: NativeInt; BuffProtected_: Boolean): TZDB2_Swap_Space_Technology_Memory;
@@ -2794,6 +2795,7 @@ var
   prefix: U_String;
   i: Integer;
 begin
+  Critical := TCritical.Create;
 {$IFDEF MSWINDOWS}
   path_ := umlGetFilePath(ParamStr(0));
   prefix := umlChangeFileExt(umlGetFileName(ParamStr(0)), '');
@@ -2828,6 +2830,7 @@ destructor TZDB2_Swap_Space_Technology.Destroy;
 var
   tmp: U_String;
 begin
+  DisposeObject(Critical);
   tmp := tmp_swap_space_file;
   try
     inherited Destroy;
@@ -2843,11 +2846,13 @@ var
 begin
   tmp := TMem64.Create;
   tmp.Mapping(buff, BuffSiz);
+  Critical.Lock;
   if WriteData(tmp, ID_, BuffProtected_) then
       Result := TZDB2_Swap_Space_Technology_Memory.Create(self, ID_)
   else
       Result := nil;
-  disposeObject(tmp);
+  Critical.UnLock;
+  DisposeObject(tmp);
 end;
 
 class function TZDB2_Swap_Space_Technology.RunTime_Pool(): TZDB2_Swap_Space_Technology;
@@ -2867,7 +2872,11 @@ end;
 destructor TZDB2_Swap_Space_Technology_Memory.Destroy;
 begin
   if (FOwner <> nil) and (FID >= 0) then
+    begin
+      FOwner.Critical.Lock;
       FOwner.RemoveData(FID, False);
+      FOwner.Critical.UnLock;
+    end;
   inherited Destroy;
 end;
 
@@ -2877,8 +2886,10 @@ begin
   Clear;
   if (FOwner <> nil) and (FID >= 0) then
     begin
+      FOwner.Critical.Lock;
       Result := FOwner.ReadData(self, FID);
       Result := FOwner.RemoveData(FID, False) and Result;
+      FOwner.Critical.UnLock;
       FID := -1;
     end;
 end;
@@ -2936,7 +2947,7 @@ end;
 
 destructor TWaitSendStreamCmdIntf.Destroy;
 begin
-  disposeObject(NewResult);
+  DisposeObject(NewResult);
   inherited Destroy;
 end;
 
@@ -2961,16 +2972,16 @@ begin
     begin
       try
         if v^.StreamData <> nil then
-            disposeObject(v^.StreamData);
+            DisposeObject(v^.StreamData);
 
         if v^.BigStream <> nil then
-            disposeObject(v^.BigStream);
+            DisposeObject(v^.BigStream);
 
         if v^.Buffer <> nil then
             System.FreeMemory(v^.Buffer);
 
         if v^.Buffer_Swap_Memory <> nil then
-            disposeObject(v^.Buffer_Swap_Memory);
+            DisposeObject(v^.Buffer_Swap_Memory);
       except
       end;
     end;
@@ -3472,7 +3483,7 @@ begin
           QueuePtr^.StreamData.Position := 0;
           InData.DecodeFrom(QueuePtr^.StreamData, True);
           QueuePtr^.OnStreamParamMethod(IO, QueuePtr^.Param1, QueuePtr^.Param2, InData, Result_DF);
-          disposeObject(InData);
+          DisposeObject(InData);
         except
         end;
       end;
@@ -3496,7 +3507,7 @@ begin
           QueuePtr^.StreamData.Position := 0;
           InData.DecodeFrom(QueuePtr^.StreamData, True);
           QueuePtr^.OnStreamParamProc(IO, QueuePtr^.Param1, QueuePtr^.Param2, InData, Result_DF);
-          disposeObject(InData);
+          DisposeObject(InData);
         except
         end;
       end;
@@ -3547,7 +3558,7 @@ begin
       end;
   except
   end;
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 constructor THPC_Stream.Create;
@@ -3570,8 +3581,8 @@ end;
 
 destructor THPC_Stream.Destroy;
 begin
-  disposeObject(InData);
-  disposeObject(OutData);
+  DisposeObject(InData);
+  DisposeObject(OutData);
   inherited Destroy;
 end;
 
@@ -3698,7 +3709,7 @@ end;
 
 destructor THPC_DirectStream.Destroy;
 begin
-  disposeObject(InData);
+  DisposeObject(InData);
   inherited Destroy;
 end;
 
@@ -3826,7 +3837,7 @@ begin
       end;
   except
   end;
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 constructor THPC_Console.Create;
@@ -4142,7 +4153,7 @@ begin
       OnNotifyM(Param1, Param2, State);
   if Assigned(OnNotifyP) then
       OnNotifyP(Param1, Param2, State);
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 procedure TCustomEventBridge.DoFree(Sender: TZNet_Progress);
@@ -4476,7 +4487,7 @@ end;
 
 destructor TFile_Swap_Space_Pool.Destroy;
 begin
-  disposeObject(FCritical);
+  DisposeObject(FCritical);
   inherited Destroy;
 end;
 
@@ -4786,7 +4797,7 @@ end;
 destructor TBigStreamBatch.Destroy;
 begin
   Clear;
-  disposeObject(FList);
+  DisposeObject(FList);
   inherited Destroy;
 end;
 
@@ -4798,7 +4809,7 @@ begin
   for i := 0 to FList.Count - 1 do
     begin
       p := PBigStreamBatchPostData(FList[i]);
-      disposeObject(p^.Source);
+      DisposeObject(p^.Source);
       Dispose(p);
     end;
 
@@ -4840,7 +4851,7 @@ var
   i: Integer;
 begin
   p := FList[index];
-  disposeObject(p^.Source);
+  DisposeObject(p^.Source);
   Dispose(p);
   FList.Delete(index);
 
@@ -4857,7 +4868,7 @@ begin
   while FBusy or (FBusyNum > 0) do
       TCore_Thread.Sleep(1);
 
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 constructor TPeerIOUserDefine.Create(Owner_: TPeerIO);
@@ -4871,7 +4882,7 @@ end;
 
 destructor TPeerIOUserDefine.Destroy;
 begin
-  disposeObject(FBigStreamBatch);
+  DisposeObject(FBigStreamBatch);
   inherited Destroy;
 end;
 
@@ -4889,7 +4900,7 @@ begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
       TCore_Thread.Sleep(1);
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 constructor TPeerIOUserSpecial.Create(Owner_: TPeerIO);
@@ -4994,19 +5005,19 @@ end;
 
 procedure TPeerIO.FreeSequencePacketModel;
 begin
-  disposeObject(SendingSequencePacketHistory);
+  DisposeObject(SendingSequencePacketHistory);
   SendingSequencePacketHistory := nil;
 
-  disposeObject(SequencePacketReceivedPool);
+  DisposeObject(SequencePacketReceivedPool);
   SequencePacketReceivedPool := nil;
 
-  disposeObject(IOSendBuffer);
+  DisposeObject(IOSendBuffer);
   IOSendBuffer := nil;
 
-  disposeObject(SequencePacketSendBuffer);
+  DisposeObject(SequencePacketSendBuffer);
   SequencePacketSendBuffer := nil;
 
-  disposeObject(SequencePacketReceivedBuffer);
+  DisposeObject(SequencePacketReceivedBuffer);
   SequencePacketReceivedBuffer := nil;
 end;
 
@@ -5161,7 +5172,7 @@ begin
           SendingSequencePacketHistory.Add(p^.SequenceNumber, p, False)
       else
         begin
-          disposeObject(p^.data);
+          DisposeObject(p^.data);
           Dispose(p);
         end;
     end;
@@ -5184,7 +5195,7 @@ begin
           SendingSequencePacketHistory.Add(p^.SequenceNumber, p, False)
       else
         begin
-          disposeObject(p^.data);
+          DisposeObject(p^.data);
           Dispose(p);
         end;
     end;
@@ -5394,14 +5405,14 @@ begin
 
       n := TMS64.Create;
       n.SetPointerWithProtectedMode(fastSwap.PositionAsPtr(), fastSwap.Size - fastSwap.Position);
-      disposeObject(fastSwap);
+      DisposeObject(fastSwap);
       fastSwap := n;
     end;
   Dispose(p);
 
   if ErrorState then
     begin
-      disposeObject(fastSwap);
+      DisposeObject(fastSwap);
       Result := False;
       exit;
     end;
@@ -5413,9 +5424,9 @@ begin
       n.WritePtr(fastSwap.Memory, fastSwap.Size);
       n.Position := 0;
     end;
-  disposeObject(SequencePacketReceivedBuffer);
+  DisposeObject(SequencePacketReceivedBuffer);
   SequencePacketReceivedBuffer := n;
-  disposeObject(fastSwap);
+  DisposeObject(fastSwap);
 
   { extract buffer }
   while SequencePacketReceivedPool.Count > 0 do
@@ -5442,7 +5453,7 @@ begin
   dec(SendingSequencePacketHistoryMemory, p^.Size);
   if SendingSequencePacketHistoryMemory < 0 then
       PrintError('SendingSequencePacketHistoryMemory overflow');
-  disposeObject(p^.data);
+  DisposeObject(p^.data);
   Dispose(p);
 end;
 
@@ -5461,7 +5472,7 @@ begin
   if SequencePacketReceivedPoolMemory < 0 then
       PrintError('SequencePacketReceivedPoolMemory overflow');
 
-  disposeObject(p^.data);
+  DisposeObject(p^.data);
   Dispose(p);
 end;
 
@@ -5736,7 +5747,7 @@ begin
         begin
           Queue.Buffer_Swap_Memory.PrepareAndRemoveID;
           Sour.SwapInstance(Queue.Buffer_Swap_Memory);
-          disposeObject(Queue.Buffer_Swap_Memory);
+          DisposeObject(Queue.Buffer_Swap_Memory);
           Queue.Buffer_Swap_Memory := nil;
         end
       else
@@ -5744,10 +5755,10 @@ begin
 
       Dest := TMS64.Create;
       ParallelCompressMemory(scmZLIB_Fast, Sour, Dest);
-      disposeObject(Sour);
+      DisposeObject(Sour);
       Internal_Send_Complete_Buffer_Header(Queue.Cmd, Queue.BufferSize, Dest.Size);
       Send(Dest.Memory, Dest.Size);
-      disposeObject(Dest);
+      DisposeObject(Dest);
     end
   else
     begin
@@ -5758,7 +5769,7 @@ begin
         begin
           Queue.Buffer_Swap_Memory.PrepareAndRemoveID;
           Send(Queue.Buffer_Swap_Memory.Memory, Queue.BufferSize);
-          disposeObject(Queue.Buffer_Swap_Memory);
+          DisposeObject(Queue.Buffer_Swap_Memory);
           Queue.Buffer_Swap_Memory := nil;
         end
       else
@@ -5805,8 +5816,8 @@ begin
       Send(@head, SizeOf(head));
       Send(destStream.Memory, destStream.Size);
 
-      disposeObject(sourStream);
-      disposeObject(destStream);
+      DisposeObject(sourStream);
+      DisposeObject(destStream);
     end
   else
     begin
@@ -5866,8 +5877,8 @@ begin
 
   Internal_Send_Console_Buff(Stream, FSyncPick^.Cipher);
 
-  disposeObject(d);
-  disposeObject(Stream);
+  DisposeObject(d);
+  DisposeObject(Stream);
 
   if FOwnerFramework.FSendDataCompressed then
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
@@ -5908,8 +5919,8 @@ begin
 
   Internal_Send_Stream_Buff(Stream, FSyncPick^.Cipher);
 
-  disposeObject(d);
-  disposeObject(Stream);
+  DisposeObject(d);
+  DisposeObject(Stream);
 
   if FOwnerFramework.FSendDataCompressed then
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
@@ -5950,8 +5961,8 @@ begin
 
   Internal_Send_DirectConsole_Buff(Stream, FSyncPick^.Cipher);
 
-  disposeObject(d);
-  disposeObject(Stream);
+  DisposeObject(d);
+  DisposeObject(Stream);
 
   if FOwnerFramework.FSendDataCompressed then
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
@@ -5992,8 +6003,8 @@ begin
 
   Internal_Send_DirectStream_Buff(Stream, FSyncPick^.Cipher);
 
-  disposeObject(d);
-  disposeObject(Stream);
+  DisposeObject(d);
+  DisposeObject(Stream);
 
   if FOwnerFramework.FSendDataCompressed then
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stCompress]);
@@ -6145,7 +6156,7 @@ begin
 
   SendEncryptBuffer(m64.Memory, m64.Size, FReceiveDataCipherSecurity);
   SendCardinal(FTailToken);
-  disposeObject(m64);
+  DisposeObject(m64);
   EndSend;
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
 end;
@@ -6283,7 +6294,7 @@ begin
     begin
       destBuff := TMS64.CustomCreate(8192);
       ParallelDecompressStream(buff, destBuff);
-      disposeObject(buff);
+      DisposeObject(buff);
       buff := destBuff;
       buff.Position := 0;
     end;
@@ -6315,14 +6326,14 @@ begin
     end;
 
   FSyncBigStreamReceive := nil;
-  disposeObject(buff);
+  DisposeObject(buff);
 
   { replace fragment buffer }
   if FReceivedBuffer.Size - np > 0 then
     begin
       buff := TMS64.CustomCreate(FReceivedBuffer.Delta);
       buff.WritePtr(FReceivedBuffer.PositionAsPtr(np), FReceivedBuffer.Size - np);
-      disposeObject(FReceivedBuffer);
+      DisposeObject(FReceivedBuffer);
       FReceivedBuffer := buff;
       FReceivedBuffer.Position := 0;
     end
@@ -6393,14 +6404,14 @@ begin
       tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
       if FReceivedBuffer.Size - leftSize > 0 then
           tmpStream.WritePtr(FReceivedBuffer.PositionAsPtr(leftSize), FReceivedBuffer.Size - leftSize);
-      disposeObject(FReceivedBuffer);
+      DisposeObject(FReceivedBuffer);
       FReceivedBuffer := tmpStream;
 
       if FCompleteBufferCompressedSize > 0 then
         begin
           Dest := TMS64.Create;
           ParallelDecompressStream(FCompleteBufferReceivedStream, Dest);
-          disposeObject(FCompleteBufferReceivedStream);
+          DisposeObject(FCompleteBufferReceivedStream);
           Dest.Position := 0;
           FCompleteBufferReceivedStream := Dest;
         end;
@@ -6534,7 +6545,7 @@ begin
   tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
   if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
       tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-  disposeObject(FReceivedBuffer);
+  DisposeObject(FReceivedBuffer);
   FReceivedBuffer := tmpStream;
   FReceivedBuffer.Position := 0;
 
@@ -6727,7 +6738,7 @@ begin
             tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
             if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
                 tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-            disposeObject(FReceivedBuffer);
+            DisposeObject(FReceivedBuffer);
             FReceivedBuffer := tmpStream;
 
             { done }
@@ -6748,7 +6759,7 @@ begin
             tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
             if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
                 tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-            disposeObject(FReceivedBuffer);
+            DisposeObject(FReceivedBuffer);
             FReceivedBuffer := tmpStream;
 
             { save }
@@ -6789,7 +6800,7 @@ begin
                         FOwnerFramework.FOnBigStreamInterface.EndStream(self, FBigStreamSending.Size);
 
                     if FBigStreamSendDoneTimeFree then
-                        disposeObject(FBigStreamSending);
+                        DisposeObject(FBigStreamSending);
                     FBigStreamSending := nil;
                     FBigStreamSendCurrentPos := -1;
                     FBigStreamSendDoneTimeFree := False;
@@ -6846,7 +6857,7 @@ begin
             tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
             if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
                 tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-            disposeObject(FReceivedBuffer);
+            DisposeObject(FReceivedBuffer);
             FReceivedBuffer := tmpStream;
 
             { do stream state }
@@ -6903,7 +6914,7 @@ begin
             tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
             if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
                 tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-            disposeObject(FReceivedBuffer);
+            DisposeObject(FReceivedBuffer);
             FReceivedBuffer := tmpStream;
 
             AtomInc(FOwnerFramework.Statistics[TStatisticsType.stReceiveCompleteBuffer]);
@@ -6955,7 +6966,7 @@ begin
                 Encrypt(FReceiveDataCipherSecurity, tmpStream.Memory, tmpStream.Size, FCipherKey, False);
             except
               PrintError('Encrypt error!');
-              disposeObject(tmpStream);
+              DisposeObject(tmpStream);
               BreakAndDisconnect := True;
               Break;
             end;
@@ -6963,7 +6974,7 @@ begin
             if not VerifyHashCode(THashSecurity(dHashSecurity), tmpStream.Memory, tmpStream.Size, dHash) then
               begin
                 PrintError('verify error!');
-                disposeObject(tmpStream);
+                DisposeObject(tmpStream);
                 BreakAndDisconnect := True;
                 Break;
               end;
@@ -6974,29 +6985,29 @@ begin
                 d.DecodeFrom(tmpStream, True);
             except
               PrintError('decrypt error!');
-              disposeObject(tmpStream);
-              disposeObject(d);
+              DisposeObject(tmpStream);
+              DisposeObject(d);
               BreakAndDisconnect := True;
               Break;
             end;
-            disposeObject(tmpStream);
+            DisposeObject(tmpStream);
 
             { stripped stream }
             tmpStream := TMS64.CustomCreate(FReceivedBuffer.Delta);
             if FReceivedBuffer.Size - FReceivedBuffer.Position > 0 then
                 tmpStream.CopyFrom(FReceivedBuffer, FReceivedBuffer.Size - FReceivedBuffer.Position);
-            disposeObject(FReceivedBuffer);
+            DisposeObject(FReceivedBuffer);
             FReceivedBuffer := tmpStream;
 
             try
                 ExecuteDataFrame(dID, d);
             except
               PrintError('Execute error!');
-              disposeObject(d);
+              DisposeObject(d);
               BreakAndDisconnect := True;
               Break;
             end;
-            disposeObject(d);
+            DisposeObject(d);
 
             AtomInc(FOwnerFramework.Statistics[TStatisticsType.stRequest]);
           end
@@ -7144,7 +7155,7 @@ begin
                 FCurrentQueueData^.OnStreamFailedMethod(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, tmp);
             if Assigned(FCurrentQueueData^.OnStreamFailedProc) then
                 FCurrentQueueData^.OnStreamFailedProc(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, tmp);
-            disposeObject(tmp);
+            DisposeObject(tmp);
           end;
         DisposeQueueData(FCurrentQueueData);
       except
@@ -7159,7 +7170,7 @@ begin
     begin
       FOwnerFramework.p2pVMTunnelClose(self, FP2PVMTunnel);
       FP2PVMTunnel.CloseP2PVMTunnel;
-      disposeObject(FP2PVMTunnel);
+      DisposeObject(FP2PVMTunnel);
       FP2PVMTunnel := nil;
       SetLength(FP2PAuthToken, 0);
     end;
@@ -7326,7 +7337,7 @@ begin
 
   if (FBigStreamSending <> nil) and (FBigStreamSendDoneTimeFree) then
     begin
-      disposeObject(FBigStreamSending);
+      DisposeObject(FBigStreamSending);
       FBigStreamSending := nil;
     end;
 
@@ -7345,35 +7356,35 @@ begin
   if (FUserDefine.FBusy) or (FUserDefine.FBusyNum > 0) then
       TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserDefine.DelayFreeOnBusy)
   else
-      disposeObject(FUserDefine);
+      DisposeObject(FUserDefine);
 
   if (FUserSpecial.FBusy) or (FUserSpecial.FBusyNum > 0) then
       TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserSpecial.DelayFreeOnBusy)
   else
-      disposeObject(FUserSpecial);
+      DisposeObject(FUserSpecial);
 
   // free buffer
-  disposeObject(FQueuePool);
-  disposeObject(FReceived_Physics_Critical);
-  disposeObject(FReceived_Physics_Fragment_Pool);
-  disposeObject(FReceivedBuffer);
-  disposeObject(FReceivedBuffer_Busy);
-  disposeObject(FCompleteBufferReceivedStream);
-  disposeObject(FResultDataBuffer);
-  disposeObject(FInDataFrame);
-  disposeObject(FOutDataFrame);
-  disposeObject(ResultDataFrame);
+  DisposeObject(FQueuePool);
+  DisposeObject(FReceived_Physics_Critical);
+  DisposeObject(FReceived_Physics_Fragment_Pool);
+  DisposeObject(FReceivedBuffer);
+  DisposeObject(FReceivedBuffer_Busy);
+  DisposeObject(FCompleteBufferReceivedStream);
+  DisposeObject(FResultDataBuffer);
+  DisposeObject(FInDataFrame);
+  DisposeObject(FOutDataFrame);
+  DisposeObject(ResultDataFrame);
 
   // free cipher instance
   DisposeObjectAndNil(FDecryptInstance);
   DisposeObjectAndNil(FEncryptInstance);
 
   if FUserVariants <> nil then
-      disposeObject(FUserVariants);
+      DisposeObject(FUserVariants);
   if FUserObjects <> nil then
-      disposeObject(FUserObjects);
+      DisposeObject(FUserObjects);
   if FUserAutoFreeObjects <> nil then
-      disposeObject(FUserAutoFreeObjects);
+      DisposeObject(FUserAutoFreeObjects);
   inherited Destroy;
 end;
 
@@ -7465,7 +7476,7 @@ begin
   d := TDFE.Create;
   d.WriteInteger(umlRandomRange64(-MaxInt, MaxInt));
   SendStreamCmdM(C_BuildP2PAuthToken, d, {$IFDEF FPC}@{$ENDIF FPC}FOwnerFramework.CommandResult_BuildP2PAuthToken);
-  disposeObject(d);
+  DisposeObject(d);
   Internal_Process_Send_Buffer();
 
   OnVMBuildAuthModelResult_C := nil;
@@ -7897,14 +7908,14 @@ procedure TPeerIO.WriteCustomBuffer(const Buffer: TMS64; const doneFreeBuffer: B
 begin
   WriteCustomBuffer(Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TPeerIO.WriteCustomBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
   WriteCustomBuffer(Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TPeerIO.PauseResultSend;
@@ -8018,7 +8029,7 @@ begin
       { data tail }
       FResultDataBuffer.WritePtr(@dTail, C_Cardinal_Size);
 
-      disposeObject(buff);
+      DisposeObject(buff);
 
       AtomInc(FOwnerFramework.Statistics[TStatisticsType.stResponse]);
     end;
@@ -8726,7 +8737,7 @@ begin
   IO_ID := Sender.Data3;
   c_IO := FPeerIO_HashPool[IO_ID];
   if c_IO <> nil then
-      disposeObject(c_IO);
+      DisposeObject(c_IO);
 end;
 
 procedure TZNet.DelayExecuteOnResultState(Sender: TN_Post_Execute);
@@ -8760,7 +8771,7 @@ begin
       if not QuietMode then
           P_IO.PrintCommand('execute complete buffer(delay): %s', Cmd);
       ExecuteCompleteBuffer(P_IO, Cmd, CompleteBuff.Memory, CompleteBuff.Size);
-      disposeObject(CompleteBuff);
+      DisposeObject(CompleteBuff);
 
       CmdRecvStatistics.IncValue(Cmd, 1);
     end;
@@ -9069,9 +9080,9 @@ end;
 procedure TZNet.FreeAutomatedP2PVM;
 begin
   FAutomatedP2PVMServiceBind.Clean;
-  disposeObject(FAutomatedP2PVMServiceBind);
+  DisposeObject(FAutomatedP2PVMServiceBind);
   FAutomatedP2PVMClientBind.Clean;
-  disposeObject(FAutomatedP2PVMClientBind);
+  DisposeObject(FAutomatedP2PVMClientBind);
 end;
 
 procedure TZNet.DoAutomatedP2PVMClient_DelayRequest(Sender: TN_Post_Execute);
@@ -9245,7 +9256,7 @@ end;
 
 procedure TZNet.FreeLargeScaleIOPool;
 begin
-  disposeObject(FProgress_LargeScale_IO_Pool);
+  DisposeObject(FProgress_LargeScale_IO_Pool);
 end;
 
 procedure TZNet.ProgressLargeScaleIOPool;
@@ -9371,18 +9382,18 @@ end;
 destructor TZNet.Destroy;
 begin
   try
-    disposeObject(FProgress_Pool);
+    DisposeObject(FProgress_Pool);
     FreeAutomatedP2PVM();
     SetLength(FCipherSecurityArray, 0);
     DeleteRegistedCMD(C_BuildP2PAuthToken);
     DeleteRegistedCMD(C_InitP2PTunnel);
     DeleteRegistedCMD(C_CloseP2PTunnel);
-    disposeObject(FCommandList);
-    disposeObject(FPeerIO_HashPool);
-    disposeObject(FPrintParams);
-    disposeObject(FPostProgress);
-    disposeObject([CmdRecvStatistics, CmdSendStatistics, CmdMaxExecuteConsumeStatistics]);
-    disposeObject(FCritical);
+    DisposeObject(FCommandList);
+    DisposeObject(FPeerIO_HashPool);
+    DisposeObject(FPrintParams);
+    DisposeObject(FPostProgress);
+    DisposeObject([CmdRecvStatistics, CmdSendStatistics, CmdMaxExecuteConsumeStatistics]);
+    DisposeObject(FCritical);
     FreeLargeScaleIOPool();
     FIOInterface := nil;
     FVMInterface := nil;
@@ -10115,7 +10126,7 @@ begin
   for i := 0 to L.Count - 1 do
     if incl_internalCMD or (not umlMultipleMatch('__@*', L[i])) then
         Print(prefix + L.Objects[i].ClassName + ': ' + L[i]);
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 procedure TZNet.PrintRegistedCMD(prefix: SystemString);
@@ -10452,7 +10463,7 @@ begin
   if (FStableIO <> nil) and (not FStableIO.AutoFreeOwnerIOServer) then
     begin
       FStableIO.OwnerIOServer := nil;
-      disposeObject(FStableIO);
+      DisposeObject(FStableIO);
       FStableIO := nil;
     end;
 
@@ -10536,14 +10547,14 @@ procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMS64; const don
 begin
   WriteBuffer(P_IO, Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TZNet_Server.WriteBuffer(P_IO: TPeerIO; const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
   WriteBuffer(P_IO, Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TZNet_Server.StopService;
@@ -11026,7 +11037,7 @@ var
 begin
   d := TDFE.Create;
   SendDirectStreamCmd(P_IO, Cmd, d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 function TZNet_Server.WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString;
@@ -11078,7 +11089,7 @@ begin
     else
         Result := '';
     if waitIntf.Done then
-        disposeObject(waitIntf);
+        DisposeObject(waitIntf);
     if not QuietMode then
       if ExistsID(IO_ID) then
           P_IO.PrintCommand('End Wait Console cmd: %s', Cmd);
@@ -11141,7 +11152,7 @@ begin
             Result_.Assign(waitIntf.NewResult);
             Result_.Reader.index := 0;
           end;
-        disposeObject(waitIntf);
+        DisposeObject(waitIntf);
       end;
 
     if not QuietMode then
@@ -11178,7 +11189,7 @@ begin
       if p^.BigStream <> nil then
         begin
           if DoneAutoFree then
-              disposeObject(BigStream);
+              DisposeObject(BigStream);
           p^.DoneAutoFree := True;
         end
       else
@@ -11258,7 +11269,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -11268,7 +11279,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -11399,7 +11410,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -11409,7 +11420,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -11586,7 +11597,7 @@ begin
       d := TDFE.Create;
       d.WriteInteger(Integer(CurrentPlatform));
       SendStreamCmdM(C_CipherModel, d, {$IFDEF FPC}@{$ENDIF FPC}StreamResult_CipherModel);
-      disposeObject(d);
+      DisposeObject(d);
 
       if FOnInterface <> nil then
         begin
@@ -11739,7 +11750,7 @@ begin
   try
     if (FStableIO <> nil) and (not FStableIO.AutoFreeOwnerIOClient) then
       begin
-        disposeObject(FStableIO);
+        DisposeObject(FStableIO);
         FStableIO := nil;
       end;
     FOnInterface := nil;
@@ -11815,14 +11826,14 @@ procedure TZNet_Client.WriteBuffer(const Buffer: TMS64; const doneFreeBuffer: Bo
 begin
   WriteBuffer(Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 procedure TZNet_Client.WriteBuffer(const Buffer: TMem64; const doneFreeBuffer: Boolean);
 begin
   WriteBuffer(Buffer);
   if doneFreeBuffer then
-      disposeObject(Buffer);
+      DisposeObject(Buffer);
 end;
 
 function TZNet_Client.ServerState: PZNet_ServerState;
@@ -12604,7 +12615,7 @@ var
 begin
   d := TDFE.Create;
   SendDirectStreamCmd(Cmd, d);
-  disposeObject(d);
+  DisposeObject(d);
 end;
 
 function TZNet_Client.WaitSendConsoleCmd(Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString;
@@ -12668,7 +12679,7 @@ begin
     end;
 
     if waitIntf.Done then
-        disposeObject(waitIntf);
+        DisposeObject(waitIntf);
   except
       Result := '';
   end;
@@ -12738,7 +12749,7 @@ begin
             Result_.Assign(waitIntf.NewResult);
             Result_.Reader.index := 0;
           end;
-        disposeObject(waitIntf);
+        DisposeObject(waitIntf);
       end;
   except
   end;
@@ -12774,7 +12785,7 @@ begin
       if p^.BigStream <> nil then
         begin
           if DoneAutoFree then
-              disposeObject(BigStream);
+              DisposeObject(BigStream);
           p^.DoneAutoFree := True;
         end
       else
@@ -12856,7 +12867,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -12866,7 +12877,7 @@ begin
   if DoneAutoFree then
     begin
       buff.DiscardMemory;
-      disposeObject(buff);
+      DisposeObject(buff);
     end;
 end;
 
@@ -12984,8 +12995,8 @@ begin
       FreeP2PVMPacket(FSendQueue.current^.data);
       FSendQueue.Next;
     end;
-  disposeObject(FSendQueue);
-  disposeObject(FRealSendBuff);
+  DisposeObject(FSendQueue);
+  DisposeObject(FRealSendBuff);
 
   if not FOwnerFramework.FQuietMode then
       FOwnerFramework.Print('VM-IO Destroy %d', [LID]);
@@ -13006,7 +13017,7 @@ end;
 
 procedure TP2PVM_PeerIO.Disconnect;
 begin
-  disposeObject(self);
+  DisposeObject(self);
 end;
 
 procedure TP2PVM_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
@@ -13137,7 +13148,7 @@ end;
 
 procedure TZNet_WithP2PVM_Server.ProgressDisconnectClient(P_IO: TPeerIO);
 begin
-  disposeObject(P_IO);
+  DisposeObject(P_IO);
 end;
 
 function TZNet_WithP2PVM_Server.ListenCount: Integer;
@@ -13251,8 +13262,8 @@ begin
         end;
     end;
 
-  disposeObject(FLinkVMPool);
-  disposeObject(FFrameworkListenPool);
+  DisposeObject(FLinkVMPool);
+  DisposeObject(FFrameworkListenPool);
   inherited Destroy;
 end;
 
@@ -13298,7 +13309,7 @@ begin
       p := lst[i];
       SenderVM.SendListen(p^.FrameworkID, p^.ListenHost, p^.ListenPort, False);
     end;
-  disposeObject(lst);
+  DisposeObject(lst);
 end;
 
 procedure TZNet_WithP2PVM_Server.StopService;
@@ -13463,7 +13474,7 @@ begin
   end;
 
   if FVMClientIO <> nil then
-      disposeObject(FVMClientIO);
+      DisposeObject(FVMClientIO);
   if FLinkVM <> nil then
       FLinkVM.UninstallLogicFramework(self);
   inherited Destroy;
@@ -14052,7 +14063,7 @@ begin
           FReceiveStream.Position := p64;
           if FReceiveStream.Size - FReceiveStream.Position > 0 then
               sourStream.CopyFrom(FReceiveStream, FReceiveStream.Size - FReceiveStream.Position);
-          disposeObject(FReceiveStream);
+          DisposeObject(FReceiveStream);
           FReceiveStream := sourStream;
 
           if not FQuietMode then
@@ -14135,7 +14146,7 @@ begin
           Break;
     end;
 
-  disposeObject(sourStream);
+  DisposeObject(sourStream);
 
   if p64 > 0 then
     begin
@@ -14143,7 +14154,7 @@ begin
       FReceiveStream.Position := p64;
       if FReceiveStream.Size - FReceiveStream.Position > 0 then
           sourStream.CopyFrom(FReceiveStream, FReceiveStream.Size - FReceiveStream.Position);
-      disposeObject(FReceiveStream);
+      DisposeObject(FReceiveStream);
       FReceiveStream := sourStream;
     end;
 end;
@@ -14555,11 +14566,11 @@ begin
   if FOwner_IO <> nil then
       CloseP2PVMTunnel;
   ClearListen;
-  disposeObject(FWaitEchoList);
-  disposeObject(FReceiveStream);
-  disposeObject(FSendStream);
-  disposeObject(FFrameworkPool);
-  disposeObject(FFrameworkListenPool);
+  DisposeObject(FWaitEchoList);
+  DisposeObject(FReceiveStream);
+  DisposeObject(FSendStream);
+  DisposeObject(FFrameworkPool);
+  DisposeObject(FFrameworkListenPool);
   inherited Destroy;
 end;
 
@@ -15228,7 +15239,7 @@ begin
   for i := 0 to L.Count - 1 do
       TZNet(L[i]).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
 
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 procedure TZNet_WithP2PVM.CloseAllServerIO;
@@ -15255,7 +15266,7 @@ begin
   for i := 0 to L.Count - 1 do
       TZNet(L[i]).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
 
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 constructor TStableServer_OwnerIO_UserDefine.Create(Owner_: TPeerIO);
@@ -15536,13 +15547,13 @@ begin
   UnRegisted(C_CloseStableIO);
 
   while Count > 0 do
-      disposeObject(FirstIO);
+      DisposeObject(FirstIO);
 
   StopService;
   phyServ := FOwnerIOServer;
   SetOwnerIOServer(nil);
   if FAutoFreeOwnerIOServer and (phyServ <> nil) then
-      disposeObject(phyServ);
+      DisposeObject(phyServ);
   inherited Destroy;
 end;
 
@@ -15787,7 +15798,7 @@ begin
     begin
       d := TDFE.Create;
       FOwnerIOClient.SendStreamCmdM(C_BuildStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}BuildStableIO_Result);
-      disposeObject(d);
+      DisposeObject(d);
     end
   else
     begin
@@ -15883,7 +15894,7 @@ begin
       d.WriteCardinal(FStableClientIO.Connection_Token);
       d.WriteArrayByte.SetBuff(@FStableClientIO.FCipherKey[0], Length(FStableClientIO.FCipherKey));
       FOwnerIOClient.SendStreamCmdM(C_OpenStableIO, d, {$IFDEF FPC}@{$ENDIF FPC}OpenStableIO_Result);
-      disposeObject(d);
+      DisposeObject(d);
     end
   else
     begin
@@ -15964,7 +15975,7 @@ begin
   phyCli := FOwnerIOClient;
   SetOwnerIOClient(nil);
   if (phyCli <> nil) and (FAutoFreeOwnerIOClient) then
-      disposeObject(phyCli);
+      DisposeObject(phyCli);
   inherited Destroy;
 end;
 
@@ -16124,7 +16135,7 @@ begin
       FStableClientIO.FSequencePacketSignal := True;
     end;
 
-  disposeObject(FStableClientIO);
+  DisposeObject(FStableClientIO);
   FStableClientIO := TStableClient_PeerIO.Create(self, nil);
 end;
 
