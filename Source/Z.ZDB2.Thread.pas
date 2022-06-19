@@ -785,13 +785,8 @@ begin
   OnRun_C := nil;
   OnRun_M := nil;
   OnRun_P := nil;
-{$IFDEF DEBUG}
-  FTh_Pool := TIO_Direct.Create();
-  FMax_Queue := Max_Thread_Supported;
-{$ELSE DEBUG}
   FTh_Pool := TIO_Thread.Create(ThNum_);
   FMax_Queue := Max_Thread_Supported;
-{$ENDIF DEBUG}
 end;
 
 destructor TZDB2_Th_Engine_Load_Processor.Destroy;
