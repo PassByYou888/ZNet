@@ -157,8 +157,8 @@ begin
       // 因为DIOCP的发送是基于数据队列
       // 把所有的预置数据以队列方式fill后再发
       // 这里我用flush方式后置化发送数据，做到每次发送出去的是一个块，一般来说，这里被zs触发时，都是一个ip包左右的大小
-      Link.PostWSASendRequest(SendingStream.Memory, SendingStream.Size, True, lastSendBufferTag);
-      SendingStream.Clear;
+      Link.PostWSASendRequest(SendingStream.Memory, SendingStream.Size, dtFreeMem, lastSendBufferTag, nil);
+      SendingStream.DiscardMemory;
     end;
 end;
 
@@ -177,7 +177,10 @@ end;
 
 function TDIOCPServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
-  Result := not WasSending;
+  if Connected then
+      Result := (not WasSending) and (Link.GetSendQueueSize <= 0)
+  else
+      Result := True;
 end;
 
 procedure TDIOCPServer_PeerIO.Progress;
