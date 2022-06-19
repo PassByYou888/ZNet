@@ -296,7 +296,7 @@ type
 {$REGION 'CacheTechnology'}
 
   TFile_Swap_Space_Stream = class;
-  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TFile_Swap_Space_Stream>;
+  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Swap_Space_Stream>;
 
   TFile_Swap_Space_Pool = class(TFile_Swap_Space_Pool_Decl)
   private
@@ -324,6 +324,9 @@ type
   TZDB2_Swap_Space_Technology_Memory = class;
 
   TZDB2_Swap_Space_Technology = class(TZDB2_Core_Space)
+  public
+    class var ZDB2_Swap_Space_Pool___: TZDB2_Swap_Space_Technology;
+    class var ZDB2_Swap_Space_Pool_Cipher___: TZDB2_Cipher;
   private
     tmp_swap_space_file: U_String;
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
@@ -340,9 +343,10 @@ type
     FOwner: TZDB2_Swap_Space_Technology;
     FID: Integer;
   public
+    constructor Create(); overload;
     constructor Create(Owner_: TZDB2_Swap_Space_Technology; ID_: Integer); overload;
     destructor Destroy; override;
-    function PrepareAndRemoveID: Boolean;
+    function Prepare: Boolean;
   end;
 
 {$ENDREGION 'CacheTechnology'}
@@ -1233,6 +1237,8 @@ type
     FPeerIOUserDefineClass: TPeerIOUserDefineClass;
     FPeerIOUserSpecialClass: TPeerIOUserSpecialClass;
     FIdleTimeOut: TTimeTick;
+    FPhysicsFragmentSwapSpaceTechnology: Boolean;
+    FPhysicsFragmentSwapSpaceTrigger: NativeInt;
     FSendDataCompressed: Boolean;
     FCompleteBufferCompressed: Boolean;
     FFastEncrypt: Boolean;
@@ -1516,6 +1522,8 @@ type
     property RandomCipherSecurity: TCipherSecurity read GetRandomCipherSecurity;
     property IdleTimeOut: TTimeTick read GetIdleTimeOut write SetIdleTimeOut;
     property TimeOutIDLE: TTimeTick read GetIdleTimeOut write SetIdleTimeOut;
+    property PhysicsFragmentSwapSpaceTechnology: Boolean read FPhysicsFragmentSwapSpaceTechnology write FPhysicsFragmentSwapSpaceTechnology;
+    property PhysicsFragmentSwapSpaceTrigger: NativeInt read FPhysicsFragmentSwapSpaceTrigger write FPhysicsFragmentSwapSpaceTrigger;
     property SendDataCompressed: Boolean read FSendDataCompressed write FSendDataCompressed;
     property CompleteBufferCompressed: Boolean read FCompleteBufferCompressed write FCompleteBufferCompressed;
     property HashSecurity: THashSecurity read FHashSecurity;
@@ -2582,7 +2590,7 @@ procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_
 {$REGION 'ConstAndVariant'}
 
 
-const
+var
   { sequence packet model }
   C_Sequence_Packet_HeadSize: Byte = $16;
   C_Sequence_QuietPacket: Byte = $01;
@@ -2627,7 +2635,8 @@ const
   { complete buffer compression condition }
   C_CompleteBufferCompressionCondition: Cardinal = 1024;
   { complete buffer swap space technology }
-  C_CompleteBuffer_SwapSpace_Trigger: Int64 = 8 * 1024;
+  C_CompleteBuffer_SwapSpace_Activted: Boolean = False;
+  C_CompleteBuffer_SwapSpace_Trigger: Int64 = 1024;
 
   { sequence packet model Packet MTU }
   C_SequencePacketMTU: Word = 1024;
@@ -2645,9 +2654,11 @@ const
   C_BigStream_ChunkSize: NativeInt = 1024 * 1024;
 
   { BigStream SwapSpace }
+  C_BigStream_Memory_SwapSpace_Activted: Boolean = False;
   C_BigStream_SwapSpace_Trigger: Int64 = 1024 * 1024;
 
   { physics fragment cache technology }
+  C_Physics_Fragment_Cache_Activted: Boolean = False;
   C_Physics_Fragment_Cache_Trigger: NativeInt = 100;
 
   { swap cache technology }
@@ -2660,7 +2671,7 @@ const
   ProgressBackgroundMethod: TOnProgressBackground_M = nil;
 
   { random ipv6 seed }
-  V_IPV6_Seed: UInt64 = 0;
+  C_IPV6_Seed: UInt64 = 0;
 
   { system }
   C_CipherModel: SystemString = '__@CipherModel';
@@ -2760,8 +2771,6 @@ implementation
 
 var
   BigStream_Swap_Space_Pool: TFile_Swap_Space_Pool;
-  ZDB2_Swap_Space_Pool___: TZDB2_Swap_Space_Technology;
-  ZDB2_Swap_Space_Pool_Cipher___: TZDB2_Cipher;
 
 procedure Init_SwapSpace_Tech;
 begin
@@ -2772,15 +2781,15 @@ begin
 {$ELSE MSWINDOWS}
   BigStream_Swap_Space_Pool.WorkPath := umlCurrentPath;
 {$ENDIF MSWINDOWS}
-  ZDB2_Swap_Space_Pool___ := nil;
-  ZDB2_Swap_Space_Pool_Cipher___ := nil;
+  TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___ := nil;
+  TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___ := nil;
 end;
 
 procedure Free_SwapSpace_Tech;
 begin
   DisposeObjectAndNil(BigStream_Swap_Space_Pool);
-  DisposeObjectAndNil(ZDB2_Swap_Space_Pool___);
-  DisposeObjectAndNil(ZDB2_Swap_Space_Pool_Cipher___);
+  DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___);
+  DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___);
 end;
 
 procedure TZDB2_Swap_Space_Technology.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
@@ -2803,8 +2812,8 @@ begin
   path_ := BigStream_Swap_Space_Pool.WorkPath;
   prefix := 'ZNet_Space_Technology_' + umlDecodeTimeToStr(umlNow);
 {$ENDIF MSWINDOWS}
-  if ZDB2_Swap_Space_Pool_Cipher___ = nil then
-      ZDB2_Swap_Space_Pool_Cipher___ := TZDB2_Cipher.Create(TCipherSecurity.csRijndael, prefix, 1, True, False);
+  if TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___ = nil then
+      TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___ := TZDB2_Cipher.Create(TCipherSecurity.csRijndael, prefix, 1, True, False);
 
   tmp_swap_space_file := umlCombineFileName(path_, prefix + '.~tmp');
   i := 1;
@@ -2819,7 +2828,7 @@ begin
   umlFileCreate(tmp_swap_space_file, p^);
   inherited Create(p);
   if C_Swap_Space_Technology_Security_Model then
-      Cipher := ZDB2_Swap_Space_Pool_Cipher___;
+      Cipher := TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___;
   Mode := smNormal;
   AutoCloseIOHnd := True;
   AutoFreeIOHnd := True;
@@ -2857,9 +2866,14 @@ end;
 
 class function TZDB2_Swap_Space_Technology.RunTime_Pool(): TZDB2_Swap_Space_Technology;
 begin
-  if ZDB2_Swap_Space_Pool___ = nil then
-      ZDB2_Swap_Space_Pool___ := TZDB2_Swap_Space_Technology.Create;
-  Result := ZDB2_Swap_Space_Pool___;
+  if TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___ = nil then
+      TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___ := TZDB2_Swap_Space_Technology.Create;
+  Result := TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___;
+end;
+
+constructor TZDB2_Swap_Space_Technology_Memory.Create();
+begin
+  Create(nil, -1);
 end;
 
 constructor TZDB2_Swap_Space_Technology_Memory.Create(Owner_: TZDB2_Swap_Space_Technology; ID_: Integer);
@@ -2876,22 +2890,21 @@ begin
       FOwner.Critical.Lock;
       FOwner.RemoveData(FID, False);
       FOwner.Critical.UnLock;
+      if FOwner.State^.FreeSpace >= FOwner.State^.Physics then
+          DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___);
     end;
   inherited Destroy;
 end;
 
-function TZDB2_Swap_Space_Technology_Memory.PrepareAndRemoveID: Boolean;
+function TZDB2_Swap_Space_Technology_Memory.Prepare: Boolean;
 begin
   Result := False;
-  Clear;
   if (FOwner <> nil) and (FID >= 0) then
     begin
       FOwner.Critical.Lock;
       Result := FOwner.ReadData(self, FID);
-      Result := FOwner.RemoveData(FID, False) and Result;
       FOwner.Critical.UnLock;
-      FID := -1;
-    end;
+    end
 end;
 
 type
@@ -3372,8 +3385,8 @@ begin
   PTimeTick(@tmp[0])^ := GetTimeTick();
   PInt64(@tmp[8])^ := MT19937Rand64($7FFFFFFFFFFFFFFF);
   PDouble(@tmp[16])^ := umlNow();
-  PInt64(@tmp[24])^ := V_IPV6_Seed;
-  AtomInc(V_IPV6_Seed);
+  PInt64(@tmp[24])^ := C_IPV6_Seed;
+  AtomInc(C_IPV6_Seed);
   PMD5(@Result)^ := umlMD5(@tmp[0], 32);
 end;
 
@@ -5745,7 +5758,7 @@ begin
           Sour.SetPointerWithProtectedMode(Queue.Buffer, Queue.BufferSize)
       else if (Queue.Buffer = nil) and (Queue.Buffer_Swap_Memory <> nil) then
         begin
-          Queue.Buffer_Swap_Memory.PrepareAndRemoveID;
+          Queue.Buffer_Swap_Memory.Prepare;
           Sour.SwapInstance(Queue.Buffer_Swap_Memory);
           DisposeObject(Queue.Buffer_Swap_Memory);
           Queue.Buffer_Swap_Memory := nil;
@@ -5767,7 +5780,7 @@ begin
           Send(Queue.Buffer, Queue.BufferSize)
       else if (Queue.Buffer = nil) and (Queue.Buffer_Swap_Memory <> nil) then
         begin
-          Queue.Buffer_Swap_Memory.PrepareAndRemoveID;
+          Queue.Buffer_Swap_Memory.Prepare;
           Send(Queue.Buffer_Swap_Memory.Memory, Queue.BufferSize);
           DisposeObject(Queue.Buffer_Swap_Memory);
           Queue.Buffer_Swap_Memory := nil;
@@ -7829,7 +7842,7 @@ var
 begin
   AtomInc(FOwnerFramework.Statistics[TStatisticsType.stPhysicsFragmentCache], siz);
   FReceived_Physics_Critical.Lock;
-  if FReceived_Physics_Fragment_Pool.num > C_Physics_Fragment_Cache_Trigger then
+  if FOwnerFramework.FPhysicsFragmentSwapSpaceTechnology and (FReceived_Physics_Fragment_Pool.num > FOwnerFramework.FPhysicsFragmentSwapSpaceTrigger) then
       m64 := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(p, siz, True)
   else
       m64 := TMem64.Create;
@@ -7845,8 +7858,8 @@ begin
   if FReceived_Physics_Fragment_Pool.num > 0 then
     begin
       repeat
-        if FReceived_Physics_Fragment_Pool.First^.data is TZDB2_Swap_Space_Technology_Memory then
-            TZDB2_Swap_Space_Technology_Memory(FReceived_Physics_Fragment_Pool.First^.data).PrepareAndRemoveID;
+        if FOwnerFramework.FPhysicsFragmentSwapSpaceTechnology and (FReceived_Physics_Fragment_Pool.First^.data is TZDB2_Swap_Space_Technology_Memory) then
+            TZDB2_Swap_Space_Technology_Memory(FReceived_Physics_Fragment_Pool.First^.data).Prepare;
         if FReceived_Physics_Fragment_Pool.First^.data.Size > 0 then
           begin
             On_Internal_Save_Receive_Buffer(self, FReceived_Physics_Fragment_Pool.First^.data.Memory, FReceived_Physics_Fragment_Pool.First^.data.Size);
@@ -9307,19 +9320,21 @@ begin
   FUsedParallelEncrypt := True;
   FSyncOnResult := False;
   FSyncOnCompleteBuffer := True;
-  FBigStreamMemorySwapSpace := False;
+  FBigStreamMemorySwapSpace := C_BigStream_Memory_SwapSpace_Activted;
   FBigStreamSwapSpaceTriggerSize := C_BigStream_SwapSpace_Trigger;
 
   FEnabledAtomicLockAndMultiThread := True;
   FTimeOutKeepAlive := True;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
   SetLength(FCipherSecurityArray, 0);
+  FPhysicsFragmentSwapSpaceTechnology := C_Physics_Fragment_Cache_Activted;
+  FPhysicsFragmentSwapSpaceTrigger := C_Physics_Fragment_Cache_Trigger;
   FSendDataCompressed := False;
   FCompleteBufferCompressed := False;
   FHashSecurity := THashSecurity.hsNone;
   FMaxCompleteBufferSize := C_MaxCompleteBufferSize;
   FCompleteBufferCompressionCondition := C_CompleteBufferCompressionCondition;
-  FCompleteBufferSwapSpace := False;
+  FCompleteBufferSwapSpace := C_CompleteBuffer_SwapSpace_Activted;
   FCompleteBufferSwapSpaceTriggerSize := C_CompleteBuffer_SwapSpace_Trigger;
   FPeerIOUserDefineClass := TPeerIOUserDefine;
   FPeerIOUserSpecialClass := TPeerIOUserSpecial;
@@ -13231,7 +13246,8 @@ end;
 constructor TZNet_WithP2PVM_Server.CustomCreate(HashPoolSize: Integer; FrameworkID: Cardinal);
 begin
   inherited CreateCustomHashPool(HashPoolSize);
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
+  PhysicsFragmentSwapSpaceTechnology := False;
   FFrameworkListenPool := TCore_List.Create;
   FLinkVMPool := TUInt32HashObjectList.Create;
   FFrameworkWithVM_ID := FrameworkID;
@@ -13438,7 +13454,8 @@ end;
 constructor TZNet_WithP2PVM_Client.CustomCreate(FrameworkID: Cardinal);
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
+  PhysicsFragmentSwapSpaceTechnology := False;
   FLinkVM := nil;
   FFrameworkWithVM_ID := FrameworkID;
   FVMClientIO := nil;
@@ -15525,6 +15542,7 @@ constructor TZNet_CustomStableServer.Create;
 begin
   inherited Create;
   EnabledAtomicLockAndMultiThread := False;
+  PhysicsFragmentSwapSpaceTechnology := False;
   SwitchMaxSecurity;
 
   RegisterDirectConsole(C_CloseStableIO).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CloseStableIO;
@@ -15945,6 +15963,7 @@ constructor TZNet_CustomStableClient.Create;
 begin
   inherited Create;
   EnabledAtomicLockAndMultiThread := False;
+  PhysicsFragmentSwapSpaceTechnology := False;
   FIgnoreProcessConnectedAndDisconnect := True;
 
   FOwnerIOClient := nil;
