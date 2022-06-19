@@ -870,22 +870,51 @@ type
 
   TC40_NetDisk_VM_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_VM_Client>;
 
-function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool;
+var
+  Fragment_Cache_FileName: SystemString;
+
+function Fragment_Cache(Wait_loading: Boolean): TZDB2_Pair_MD5_Stream_Tool; overload;
+function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool; overload;
+function Fragment_Cache_Loading: Boolean;
 
 implementation
 
 var
   Fragment_Cache__: TZDB2_Pair_MD5_Stream_Tool;
+  Fragment_Cache_Loading__: Boolean;
 
-function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool;
+procedure Fragment_Cache_Load_Th();
 begin
+  Fragment_Cache__.BuildOrOpen(umlCombineFileName(C40_RootPath, Fragment_Cache_FileName), False, False);
+  Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity, Max_Thread_Supported);
+  Fragment_Cache_Loading__ := False;
+end;
+
+function Fragment_Cache(Wait_loading: Boolean): TZDB2_Pair_MD5_Stream_Tool;
+begin
+  while Wait_loading and Fragment_Cache_Loading__ do
+      TCompute.Sleep(1);
+
   if Fragment_Cache__ = nil then
     begin
       Fragment_Cache__ := TZDB2_Pair_MD5_Stream_Tool.Create(1024 * 1024);
-      Fragment_Cache__.BuildOrOpen(umlCombineFileName(C40_RootPath, 'C40_NetDisk_VM_Client_Cache.OX2'), False, False);
-      Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity, Max_Thread_Supported);
+      TCompute.RunC_NP({$IFDEF FPC}@{$ENDIF FPC}Fragment_Cache_Load_Th);
+      Fragment_Cache_Loading__ := True;
+      while Wait_loading and Fragment_Cache_Loading__ do
+          TCompute.Sleep(1);
     end;
   Result := Fragment_Cache__;
+end;
+
+function Fragment_Cache: TZDB2_Pair_MD5_Stream_Tool;
+begin
+  Result := Fragment_Cache(True);
+end;
+
+function Fragment_Cache_Loading: Boolean;
+begin
+  Fragment_Cache(False);
+  Result := Fragment_Cache_Loading__;
 end;
 
 constructor TC40_NetDisk_VM_Client_On_Usr_Auth.Create;
@@ -2459,7 +2488,8 @@ begin
   m64 := TMS64.Create;
   m64.Mapping(GetOffset(InData, 16), DataSize - 16);
 
-  Fragment_Cache.Set_MD5_Fragment(m64, False);
+  if not Fragment_Cache_Loading then
+      Fragment_Cache.Set_MD5_Fragment(m64, False);
 
   if Event_ <> nil then
     begin
@@ -3341,7 +3371,8 @@ var
   tmp: TMem64;
 begin
   // save cache
-  Fragment_Cache.Set_MD5_Fragment(buff, buff_size);
+  if not Fragment_Cache_Loading then
+      Fragment_Cache.Set_MD5_Fragment(buff, buff_size);
 
   // send buffer
   tmp := TMem64.Create;
@@ -3555,14 +3586,15 @@ begin
   if umlStrIsMD5(FS_File) then
     begin
       md5_ := umlStrToMD5(FS_File);
-      if Fragment_Cache.Exists_MD5_Fragment(md5_) then
-        begin
-          m64 := TMS64.Create;
-          Fragment_Cache.Get_MD5_Fragment(md5_, m64);
-          PON_Usr_Auto_Get_File_Ptr(Event_)^.Instance_.Do_Download_Frag_Done(m64);
-          DisposeObject(m64);
-          exit;
-        end;
+      if not Fragment_Cache_Loading then
+        if Fragment_Cache.Exists_MD5_Fragment(md5_) then
+          begin
+            m64 := TMS64.Create;
+            Fragment_Cache.Get_MD5_Fragment(md5_, m64);
+            PON_Usr_Auto_Get_File_Ptr(Event_)^.Instance_.Do_Download_Frag_Done(m64);
+            DisposeObject(m64);
+            exit;
+          end;
     end;
 
   d := TDFE.Create;
@@ -4375,7 +4407,9 @@ end;
 
 initialization
 
+Fragment_Cache_FileName := 'C40_NetDisk_VM_Client_Cache.OX2';
 Fragment_Cache__ := nil;
+Fragment_Cache_Loading__ := False;
 
 finalization
 
