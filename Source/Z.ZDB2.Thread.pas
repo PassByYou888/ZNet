@@ -88,6 +88,7 @@ type
     procedure WriteConfig(cfg: THashStringList);
     procedure Clear;
     procedure Format_Database;
+    function Ready: Boolean;
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
     function Flush: Boolean;
@@ -485,6 +486,11 @@ begin
 
   if umlFileExists(Database_File) then
       umlDeleteFile(Database_File);
+end;
+
+function TZDB2_Th_Engine.Ready: Boolean;
+begin
+  Result := (Engine <> nil);
 end;
 
 procedure TZDB2_Th_Engine.Build(Data_Class: TZDB2_Th_Engine_Data_Class);
