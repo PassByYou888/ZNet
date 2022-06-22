@@ -14,7 +14,7 @@ uses
   System.IOUtils,
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
-  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
+  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2, Z.ZDB2.MS64, Z.GHashList,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4, Z.Net.C4.VM;
@@ -63,6 +63,9 @@ type
     procedure cmd_FS2_Size(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_Search(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_FS2_PoolFrag(Sender: TPeerIO; InData, OutData: TDFE);
+  protected
+    // console command
+    procedure CC_Compress_And_Reload(var OP_Param: TOpParam);
   private
     FileDatabaseIsUpdate: Boolean;
     FLast_FS_Update_TimeTick: TTimeTick;
@@ -871,9 +874,20 @@ begin
       until not Prev;
 end;
 
+procedure TC40_FS2_VM_Service.CC_Compress_And_Reload(var OP_Param: TOpParam);
+var
+  New_F: U_String;
+  FS: TCore_FileStream;
+begin
+  New_F := Get_New_ZDB2_Extract_FileName(C40_FS2_VM_FileName);
+  FS := TCore_FileStream.Create(New_F, fmCreate);
+  FileDatabase.ExtractTo(FS);
+  disposeObject(FS);
+end;
+
 constructor TC40_FS2_VM_Service.Create(Param_: U_String);
 var
-  fs: TCore_Stream;
+  FS: TCore_Stream;
   fd: TC40_FS2_VM_Service_File_Data;
   FL_: TPascalStringList;
 begin
@@ -908,6 +922,7 @@ begin
   else
       ZDB2Cipher := nil;
   C40_FS2_VM_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space2', ['FS2_VM'])));
+  Check_And_Replace_ZDB2_Extract_FileName(C40_FS2_VM_FileName);
 
   FileHashPool := TC40_FS2_VM_Service_File_Data_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('File_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -919,15 +934,15 @@ begin
     nil);
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_FS2_VM_FileName) then
-      fs := TCore_FileStream.Create(C40_FS2_VM_FileName, fmOpenReadWrite)
+      FS := TCore_FileStream.Create(C40_FS2_VM_FileName, fmOpenReadWrite)
   else
-      fs := TCore_FileStream.Create(C40_FS2_VM_FileName, fmCreate);
+      FS := TCore_FileStream.Create(C40_FS2_VM_FileName, fmCreate);
 
   FileDatabase := TZDB2_List_MS64.Create(
-    TC40_FS2_VM_Service_ZDB2_MS64,
+  TC40_FS2_VM_Service_ZDB2_MS64,
     nil,
     ZDB2RecycleMemoryTimeOut,
-    fs,
+    FS,
     False,
     ZDB2DeltaSpace,
     ZDB2BlockSize,
@@ -963,6 +978,8 @@ begin
 
   FLast_FS_Update_TimeTick := GetTimeTick();
   FileDatabaseIsUpdate := False;
+
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress file system and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
 end;
 
 destructor TC40_FS2_VM_Service.Destroy;
@@ -1760,7 +1777,7 @@ begin
     nil);
 
   Cache_Database := TZDB2_List_MS64.Create(
-    TZDB2_MS64,
+  TZDB2_MS64,
     nil,
     ZDB2RecycleMemoryTimeOut,
     TCore_FileStream.Create(C40_FS2_VM_Cache_FileName, fmCreate),
