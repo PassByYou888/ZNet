@@ -12,7 +12,7 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
-  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
+  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2, Z.ZDB2.ObjectDataManager, Z.ZDB2.DFE,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
@@ -148,6 +148,9 @@ type
     procedure Free_Opti;
     procedure Opti_Remove_invalid_MD5_and_Rebuild_Frag_Hash;
     procedure Opti_Progress();
+  protected
+    // console command
+    procedure CC_Compress_And_Reload(var OP_Param: TOpParam);
   public
     // ZDB1.0 directory struct
     Directory_ZDB2_RecycleMemoryTimeOut: TTimeTick;
@@ -1829,6 +1832,22 @@ begin
   Opti_Remove_invalid_MD5_and_Rebuild_Frag_Hash;
 end;
 
+procedure TC40_NetDisk_Directory_Service.CC_Compress_And_Reload(var OP_Param: TOpParam);
+var
+  New_F: U_String;
+  FS: TCore_FileStream;
+begin
+  New_F := Get_New_ZDB2_Extract_FileName(C40_Directory_Database_File);
+  FS := TCore_FileStream.Create(New_F, fmCreate);
+  Directory_Database.ExtractTo(FS);
+  DisposeObject(FS);
+
+  New_F := Get_New_ZDB2_Extract_FileName(C40_MD5_Database_File);
+  FS := TCore_FileStream.Create(New_F, fmCreate);
+  MD5_Database.ExtractTo(FS);
+  DisposeObject(FS);
+end;
+
 constructor TC40_NetDisk_Directory_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
   Directory_FS: TCore_Stream;
@@ -1878,6 +1897,7 @@ begin
   else
       Directory_ZDB2_Cipher := nil;
   C40_Directory_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Directory', [ServiceInfo.ServiceTyp.Text])));
+  Check_And_Replace_ZDB2_Extract_FileName(C40_Directory_Database_File);
 
   Directory_HashPool := TDirectory_Service_User_File_DB_Pool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('Directory_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -1929,6 +1949,7 @@ begin
   else
       MD5_ZDB2_Cipher := nil;
   C40_MD5_Database_File := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.MD5_Frag', [ServiceInfo.ServiceTyp.Text])));
+  Check_And_Replace_ZDB2_Extract_FileName(C40_MD5_Database_File);
 
   MD5_Pool := TDirectory_Service_MD5_DataPool.Create(True,
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '16*1024*1024'), 16 * 1024 * 1024),
@@ -1960,6 +1981,8 @@ begin
       until not Next;
 
   Init_Opti();
+
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
 end;
 
 destructor TC40_NetDisk_Directory_Service.Destroy;
