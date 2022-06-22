@@ -8,6 +8,7 @@ unit Z.Pascal_Code_Tool;
 interface
 
 uses
+  SysUtils,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
@@ -200,6 +201,40 @@ function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus): Integer; overload;
 
 // rewrite ZDB file
+type
+  TThread_RewritePascal_Process_ZDB_File = class
+  public
+    // runtime param
+    Busy: Boolean;
+    th_Post: TThreadPost;
+    Eng_: TObjectDataManager;
+    fn: U_String;
+    UnitHash_, PatternHash_: THashStringList;
+    Trace_: TRewrite_Trace;
+    FileInfo__: SystemString;
+    OnStatus: TOnRewriteStatus;
+    // internal
+    Code: TCore_StringList;
+    ft: TDateTime;
+    ph, OLD_Name, New_Name, new_fn: U_String;
+    m64: TMem64;
+    LEncode: TEncoding;
+    // return
+    Result_RewritePascal_Process_ZDB_File: Boolean;
+
+    class function Init_(th_Post: TThreadPost; Eng_: TObjectDataManager; fn: U_String; UnitHash_, PatternHash_: THashStringList;
+      Trace_: TRewrite_Trace; FileInfo__: SystemString; OnStatus: TOnRewriteStatus): TThread_RewritePascal_Process_ZDB_File;
+    destructor Destroy; override;
+    procedure Do_Sync();
+    procedure Do_RewritePascal_Process_Code();
+    procedure Do_Run;
+  end;
+
+  TThread_RewritePascal_Process_ZDB_File_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TThread_RewritePascal_Process_ZDB_File>;
+
+procedure Th_RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; UnitHash_, PatternHash_: THashStringList; OnStatus: TOnRewriteStatus); overload;
+procedure Th_RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus); overload;
+
 function RewritePascal_Process_ZDB_File(Eng_: TObjectDataManager; fn: U_String;
   UnitHash_, PatternHash_: THashStringList; Trace_: TRewrite_Trace;
   FileInfo__: SystemString; OnStatus: TOnRewriteStatus): Boolean;
@@ -213,7 +248,7 @@ function Check_RewritePascal_Model(UnitData_, PatternData_: TSourceProcessorData
 
 implementation
 
-uses SysUtils, Z.Json, Z.Status, Z.UReplace;
+uses Z.Json, Z.Status, Z.UReplace;
 
 function Pascal_Keyword(const s: TP_String): TPascal_Keyword;
 var
@@ -263,7 +298,7 @@ begin
   Code_.Text := U_BatchReplace(u_TP.Text.TrimChar(#0#13#10#32#9), arry, OnlyWord, IgnoreCase, 0, 0, L, @fpc_progress_);
 {$ELSE FPC}
   Code_.Text := U_BatchReplace(u_TP.Text.TrimChar(#0#13#10#32#9), arry, OnlyWord, IgnoreCase, 0, 0, L,
-    procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean)
+      procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean)
     begin
       Accept := u_TP.TokenPos[bPos]^.tokenType in TT_;
       if Accept then
@@ -773,6 +808,7 @@ var
   end;
 
 begin
+  Result := False;
   if Trace_ <> nil then
       Trace_.IsCode_ := False;
 
@@ -1108,6 +1144,266 @@ begin
   disposeObject(PatternHash_);
 end;
 
+class function TThread_RewritePascal_Process_ZDB_File.Init_(th_Post: TThreadPost; Eng_: TObjectDataManager; fn: U_String; UnitHash_, PatternHash_: THashStringList;
+Trace_: TRewrite_Trace; FileInfo__: SystemString; OnStatus: TOnRewriteStatus): TThread_RewritePascal_Process_ZDB_File;
+begin
+  Result := TThread_RewritePascal_Process_ZDB_File.Create;
+  Result.Busy := True;
+  Result.th_Post := th_Post;
+  Result.Eng_ := Eng_;
+  Result.fn := fn;
+  Result.UnitHash_ := UnitHash_;
+  Result.PatternHash_ := PatternHash_;
+  Result.Trace_ := Trace_;
+  Result.FileInfo__ := FileInfo__;
+  Result.OnStatus := OnStatus;
+  Result.Do_Run;
+end;
+
+destructor TThread_RewritePascal_Process_ZDB_File.Destroy;
+begin
+  inherited Destroy;
+end;
+
+procedure TThread_RewritePascal_Process_ZDB_File.Do_Sync();
+var
+  tmp_m64: TMS64;
+begin
+  if Trace_ <> nil then
+      Trace_.IsCode_ := True;
+  if Result_RewritePascal_Process_ZDB_File then
+    begin
+      tmp_m64 := TMS64.Create;
+      Code.SaveToStream(tmp_m64, LEncode);
+      tmp_m64.SaveTo_ZDB_File(Eng_, new_fn);
+      disposeObject(tmp_m64);
+      if Assigned(OnStatus) then
+          OnStatus(FileInfo__ + 'rebuild code %s', [New_Name.Text]);
+      umlSetFileTime(new_fn, ft);
+      if Assigned(OnStatus) then
+          OnStatus(FileInfo__ + 'rewrite file time %s -> %s', [New_Name.Text, DateTimeToStr(ft)]);
+    end;
+  disposeObject(Code);
+  Busy := False;
+end;
+
+procedure TThread_RewritePascal_Process_ZDB_File.Do_RewritePascal_Process_Code;
+begin
+  Result_RewritePascal_Process_ZDB_File := RewritePascal_Process_Code(Code, UnitHash_, PatternHash_, Trace_, FileInfo__, nil);
+  th_Post.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Sync);
+end;
+
+procedure TThread_RewritePascal_Process_ZDB_File.Do_Run;
+  procedure Process_AddionalFile(ext_: U_String);
+  var
+    tmp_old_fn, tmp_new_fn: U_String;
+  begin
+    tmp_old_fn := umlChangeFileExt(fn, ext_);
+    tmp_new_fn := umlChangeFileExt(new_fn, ext_);
+    if Eng_.ItemExists(tmp_old_fn) then
+      begin
+        m64 := TMem64.Create;
+        m64.LoadFrom_ZDB_File(Eng_, tmp_old_fn);
+        Eng_.ItemDelete(tmp_old_fn);
+        m64.SaveTo_ZDB_File(Eng_, tmp_new_fn);
+        disposeObject(m64);
+        if Assigned(OnStatus) then
+            OnStatus(FileInfo__ + 'rename %s -> %s', [tmp_old_fn.Text, tmp_new_fn.Text]);
+      end;
+  end;
+  procedure checkAndLoadFile(fn_: U_String);
+  var
+    ms64_: TMS64;
+  begin
+    ms64_ := TMS64.Create;
+    ms64_.LoadFrom_ZDB_File(Eng_, fn_);
+    if umlBufferIsASCII(ms64_.Memory, ms64_.Size) then
+        LEncode := TEncoding.ANSI
+    else
+        LEncode := TEncoding.UTF8;
+
+    try
+      ms64_.Position := 0;
+      Code.LoadFromStream(ms64_, LEncode);
+    except
+      LEncode := TEncoding.ANSI;
+      ms64_.Position := 0;
+      Code.LoadFromStream(ms64_, LEncode);
+    end;
+    disposeObject(ms64_);
+  end;
+
+begin
+  Result_RewritePascal_Process_ZDB_File := False;
+
+  if Trace_ <> nil then
+      Trace_.IsCode_ := False;
+
+  ph := umlGetUnixFilePath(fn);
+  OLD_Name := umlGetUnixFileName(fn);
+  New_Name := UnitHash_.GetDefaultValue(OLD_Name, OLD_Name);
+  new_fn := umlCombineUnixFileName(ph, New_Name);
+  ft := Eng_.ItemTime(fn);
+
+  if not OLD_Name.Same(False, New_Name) then
+    begin
+      m64 := TMem64.Create;
+      m64.LoadFrom_ZDB_File(Eng_, fn);
+      Eng_.ItemDelete(fn);
+      m64.SaveTo_ZDB_File(Eng_, new_fn);
+      disposeObject(m64);
+      if Assigned(OnStatus) then
+          OnStatus(FileInfo__ + 'rename file %s -> %s', [OLD_Name.Text, New_Name.Text]);
+      Eng_.SetItemTime(new_fn, ft);
+      if Assigned(OnStatus) then
+          OnStatus(FileInfo__ + 'rewrite file time %s -> %s', [New_Name.Text, DateTimeToStr(ft)]);
+
+      if umlMultipleMatch(['*.pas', '*.pp'], OLD_Name) then
+        begin
+          Process_AddionalFile('.dfm');
+          Process_AddionalFile('.fmx');
+          Process_AddionalFile('.lfm');
+        end;
+    end;
+
+  if umlMultipleMatch(['*.pas', '*.dpr', '*.lpr', '*.pp', '*.inc'], fn) then
+    begin
+      Code := TCore_StringList.Create;
+      checkAndLoadFile(new_fn);
+      if Trace_ <> nil then
+          Trace_.Current_ := new_fn;
+      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_RewritePascal_Process_Code);
+    end
+  else
+      Busy := False;
+end;
+
+procedure Th_RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; UnitHash_, PatternHash_: THashStringList; OnStatus: TOnRewriteStatus);
+var
+  thID: TThreadID;
+  th_Post: TThreadPost;
+  th_Pool: TThread_RewritePascal_Process_ZDB_File_Pool;
+  arry: U_StringArray;
+  Trace_Pool: TRewrite_Trace_Pool;
+  pass: Integer;
+  Busy: Integer;
+begin
+  thID := TCompute.CurrentThread.ThreadID;
+  th_Post := TThreadPost.Create(thID);
+  th_Post.OneStep := False;
+  th_Pool := TThread_RewritePascal_Process_ZDB_File_Pool.Create;
+
+  arry := Eng_.GetItemListWithFullPath(directory_);
+  Trace_Pool := TRewrite_Trace_Pool.Create;
+
+  for pass := 0 to Length(arry) - 1 do
+    begin
+      th_Pool.Add(TThread_RewritePascal_Process_ZDB_File.Init_(
+        th_Post, Eng_, arry[pass], UnitHash_, PatternHash_, TRewrite_Trace.Create, PFormat('"%s" ', [arry[pass]]), OnStatus));
+    end;
+
+  repeat
+    Busy := 0;
+    th_Post.Progress(thID);
+    if th_Pool.num > 0 then
+      with th_Pool.Repeat_ do
+        repeat
+          if Queue^.Data.Busy then
+              Inc(Busy);
+        until not Next;
+    if Busy > 0 then
+        TCompute.Sleep(100);
+  until Busy = 0;
+  disposeObject(th_Post);
+
+  while th_Pool.num > 0 do
+    begin
+      if th_Pool.First^.Data.Trace_.IsCode_ then
+        begin
+          Trace_Pool.Add(th_Pool.First^.Data.Trace_);
+        end
+      else
+          disposeObject(th_Pool.First^.Data.Trace_);
+      disposeObject(th_Pool.First^.Data);
+      th_Pool.Next;
+    end;
+  disposeObject(th_Pool);
+
+  // tracert pool
+  RewritePascal_ZDB_Include_File_Processor(Eng_, UnitHash_, PatternHash_, Trace_Pool, OnStatus);
+  Trace_Pool.Clean;
+  disposeObject(Trace_Pool);
+
+  arry := Eng_.GetFieldListWithFullPath(directory_);
+  for pass := 0 to Length(arry) - 1 do
+      Th_RewritePascal_Process_ZDB_Directory(Eng_, arry[pass], UnitHash_, PatternHash_, OnStatus);
+end;
+
+procedure Th_RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus);
+var
+  dec: TZDB2_File_Decoder;
+  fi: TZDB2_FI;
+  UnitData_, PatternData_: TSourceProcessorDataPool;
+  m64: TMS64;
+  UnitHash_, PatternHash_: THashStringList;
+  i: Integer;
+begin
+  if not TZDB2_File_Decoder.Check(Model_) then
+      Exit;
+
+  dec := TZDB2_File_Decoder.Create(Model_, 0);
+  UnitData_ := TSourceProcessorDataPool.Create;
+  PatternData_ := TSourceProcessorDataPool.Create;
+
+  fi := dec.Files.FindFile('Unit');
+  if fi <> nil then
+    begin
+      m64 := TMS64.Create;
+      dec.DecodeToStream(fi, m64);
+      m64.Position := 0;
+      UnitData_.LoadFromStream(m64);
+      disposeObject(m64);
+      DoStatus('Open Unit Rewrite Model.');
+    end;
+
+  fi := dec.Files.FindFile('Pattern');
+  if fi <> nil then
+    begin
+      m64 := TMS64.Create;
+      dec.DecodeToStream(fi, m64);
+      m64.Position := 0;
+      PatternData_.LoadFromStream(m64);
+      disposeObject(m64);
+      DoStatus('Open Symbol Rewrite Model.');
+    end;
+
+  disposeObject(dec);
+
+  if Reverse_ then
+    begin
+      for i := 0 to UnitData_.Count - 1 do
+        with UnitData_[i]^ do
+            OLD_Name.SwapInstance(New_Name);
+
+      for i := 0 to PatternData_.Count - 1 do
+        with PatternData_[i]^ do
+            OLD_Name.SwapInstance(New_Name);
+    end;
+
+  UnitHash_ := THashStringList.CustomCreate($FFFF);
+  UnitData_.Build_uHash(UnitHash_);
+  disposeObject(UnitData_);
+
+  PatternHash_ := THashStringList.CustomCreate($FFFF);
+  PatternData_.Build_uHash(PatternHash_);
+  disposeObject(PatternData_);
+
+  Th_RewritePascal_Process_ZDB_Directory(Eng_, directory_, UnitHash_, PatternHash_, OnStatus);
+
+  disposeObject(UnitHash_);
+  disposeObject(PatternHash_);
+end;
+
 function RewritePascal_Process_ZDB_File(Eng_: TObjectDataManager; fn: U_String;
 UnitHash_, PatternHash_: THashStringList; Trace_: TRewrite_Trace;
 FileInfo__: SystemString; OnStatus: TOnRewriteStatus): Boolean;
@@ -1163,6 +1459,7 @@ var
 var
   tmp_m64: TMS64;
 begin
+  Result := False;
   if Trace_ <> nil then
       Trace_.IsCode_ := False;
 
