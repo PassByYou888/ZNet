@@ -141,6 +141,7 @@ type
     function GetProcDescription(ProcName: SystemString): SystemString; overload;
     function GetAllProcDescription(): TPascalStringList; overload;
     function GetAllProcDescription(Category: U_String): TPascalStringList; overload;
+    function GetAllProcDescription(InclSys_: Boolean; Category: U_String): TPascalStringList; overload;
     function RegOpC(ProcName: SystemString; On_P: TOnOp_C): POpRTData; overload;
     function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C): POpRTData; overload;
     function RegOpM(ProcName: SystemString; On_P: TOnOp_M): POpRTData; overload;
@@ -1271,16 +1272,20 @@ begin
 end;
 
 function TOpCustomRunTime.GetAllProcDescription(Category: U_String): TPascalStringList;
+begin
+  Result := GetAllProcDescription(True, Category);
+end;
+
+function TOpCustomRunTime.GetAllProcDescription(InclSys_: Boolean; Category: U_String): TPascalStringList;
 var
   arry: THashDataArray;
   hl: THashObjectList;
   ns, tmp: TPascalStringList;
-
   i, j: Integer;
   p: POpRTData;
   n: TPascalString;
 begin
-  if self <> SystemOpRunTime then
+  if InclSys_ and (self <> SystemOpRunTime) then
       Result := SystemOpRunTime.GetAllProcDescription(Category)
   else
       Result := TPascalStringList.Create;
@@ -1296,7 +1301,12 @@ begin
       tmp := hl[p^.Category] as TPascalStringList;
 
       if p^.Description <> '' then
-          n := p^.Description
+        begin
+          if umlReplaceSum(p^.Description, p^.Name, True, True, 0, 0, nil) > 0 then
+              n := p^.Description
+          else
+              n := p^.Name + '(): ' + p^.Description;
+        end
       else
           n := p^.Name + '(): no Descripion';
 
