@@ -361,6 +361,35 @@ type
     procedure SaveToDF(D: TDFE);
   end;
 {$ENDREGION 'infoDefine'}
+{$REGION 'Help_Console_Command'}
+
+  TOn_C4_Help_Console_Command_C = procedure(var OP_Param: TOpParam);
+  TOn_C4_Help_Console_Command_M = procedure(var OP_Param: TOpParam) of object;
+{$IFDEF FPC}
+  TOn_C4_Help_Console_Command_P = procedure(var OP_Param: TOpParam) is nested;
+{$ELSE FPC}
+  TOn_C4_Help_Console_Command_P = reference to procedure(var OP_Param: TOpParam);
+{$ENDIF FPC}
+
+  TC4_Help_Console_Command_Data = class
+  public
+    Cmd: SystemString;
+    Desc: SystemString;
+    OnEvent_C: TOn_C4_Help_Console_Command_C;
+    OnEvent_M: TOn_C4_Help_Console_Command_M;
+    OnEvent_P: TOn_C4_Help_Console_Command_P;
+    constructor Create;
+    destructor Destroy; override;
+    procedure DoExecute(var OP_Param: TOpParam);
+  end;
+
+  TC4_Help_Console_Command_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TC4_Help_Console_Command_Data>;
+
+  TC4_Help_Console_Command = class(TC4_Help_Console_Command_Decl)
+  public
+    procedure DoFree(var Data: TC4_Help_Console_Command_Data); override;
+  end;
+{$ENDREGION 'Help_Console_Command'}
 {$REGION 'p2p_Custom_Service_Templet'}
 
   TC40_Custom_Service = class(TCore_InterfacedObject)
@@ -373,6 +402,7 @@ type
     Alias_or_Hash___: U_String;
     ServiceInfo: TC40_Info;
     C40PhysicsService: TC40_PhysicsService;
+    ConsoleCommand: TC4_Help_Console_Command;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -385,6 +415,8 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    { console command }
+    function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
     procedure DoLinkSuccess(Trigger_: TCore_Object);
     procedure DoUserOut(Trigger_: TCore_Object);
@@ -429,6 +461,7 @@ type
     Alias_or_Hash___: U_String;
     ClientInfo: TC40_Info;
     C40PhysicsTunnel: TC40_PhysicsTunnel;
+    ConsoleCommand: TC4_Help_Console_Command;
     On_Client_Offline: TOn_Client_Offline;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); virtual;
     destructor Destroy; override;
@@ -443,6 +476,8 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    { console command }
+    function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
     procedure DoNetworkOnline; virtual;  { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
@@ -793,6 +828,7 @@ type
     Param: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
+    ConsoleCommand: TC4_Help_Console_Command;
     constructor Create(Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -800,6 +836,8 @@ type
     procedure StartService(ListenAddr, ListenPort, Auth: SystemString); virtual;
     procedure StopService; virtual;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    { console command }
+    function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
     procedure DoLinkSuccess(Trigger_: TCore_Object);
     procedure DoUserOut(Trigger_: TCore_Object);
@@ -821,6 +859,7 @@ type
     Param: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
+    ConsoleCommand: TC4_Help_Console_Command;
     On_Client_Online: TOn_VM_Client_Event;
     On_Client_Offline: TOn_VM_Client_Event;
     constructor Create(Param_: U_String); virtual;
@@ -830,6 +869,8 @@ type
     function Connected: Boolean; virtual;
     procedure Disconnect; virtual;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    { console command }
+    function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
     procedure DoNetworkOnline; virtual;  { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
@@ -926,6 +967,11 @@ function ExtractDependInfo(arry: TC40_DependNetworkString): TC40_DependNetworkIn
 function ExtractDependInfoToL(info: U_String): TC40_DependNetworkInfoList; overload;
 function ExtractDependInfoToL(arry: TC40_DependNetworkString): TC40_DependNetworkInfoList; overload;
 procedure ResetDependInfoBuff(var arry: TC40_DependNetworkInfoArray);
+
+{ ZDB2 extract swap define }
+function Get_New_ZDB2_Extract_FileName(OLD_F: U_String): U_String;
+procedure Check_And_Replace_ZDB2_Extract_FileName(F: U_String);
+function Get_New_ZDB2_Backup_FileName(F: U_String): U_String;
 
 implementation
 
@@ -1457,6 +1503,30 @@ begin
       arry[i].Param := '';
     end;
   SetLength(arry, 0);
+end;
+
+function Get_New_ZDB2_Extract_FileName(OLD_F: U_String): U_String;
+begin
+  Result := OLD_F + '.~Extract';
+end;
+
+procedure Check_And_Replace_ZDB2_Extract_FileName(F: U_String);
+var
+  OLD_F, New_F: U_String;
+begin
+  OLD_F := F + '.~OLD';
+  New_F := F + '.~Extract';
+  if umlFileExists(New_F) then
+    begin
+      umlDeleteFile(OLD_F);
+      umlRenameFile(F, OLD_F);
+      umlRenameFile(New_F, F);
+    end;
+end;
+
+function Get_New_ZDB2_Backup_FileName(F: U_String): U_String;
+begin
+  Result := F + '.Backup';
 end;
 
 procedure TC40_PhysicsService.cmd_QueryInfo(Sender: TPeerIO; InData, OutData: TDFE);
@@ -3375,6 +3445,44 @@ begin
   disposeObject(m64);
 end;
 
+constructor TC4_Help_Console_Command_Data.Create;
+begin
+  inherited Create;
+  Cmd := '';
+  Desc := '';
+  OnEvent_C := nil;
+  OnEvent_M := nil;
+  OnEvent_P := nil;
+end;
+
+destructor TC4_Help_Console_Command_Data.Destroy;
+begin
+  Cmd := '';
+  Desc := '';
+  OnEvent_C := nil;
+  OnEvent_M := nil;
+  OnEvent_P := nil;
+  inherited Destroy;
+end;
+
+procedure TC4_Help_Console_Command_Data.DoExecute(var OP_Param: TOpParam);
+begin
+  try
+    if Assigned(OnEvent_C) then
+        OnEvent_C(OP_Param);
+    if Assigned(OnEvent_M) then
+        OnEvent_M(OP_Param);
+    if Assigned(OnEvent_P) then
+        OnEvent_P(OP_Param);
+  except
+  end;
+end;
+
+procedure TC4_Help_Console_Command.DoFree(var Data: TC4_Help_Console_Command_Data);
+begin
+  DisposeObjectAndNil(Data);
+end;
+
 constructor TC40_Custom_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
   P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_: U_String;
@@ -3420,10 +3528,13 @@ begin
 
   C40_ServicePool.Add(Self);
   C40PhysicsService.DependNetworkServicePool.Add(Self);
+
+  ConsoleCommand := TC4_Help_Console_Command.Create;
 end;
 
 destructor TC40_Custom_Service.Destroy;
 begin
+  disposeObject(ConsoleCommand);
   C40PhysicsService.DependNetworkServicePool.Remove(Self);
   C40_ServicePool.Remove(Self);
   disposeObject(ServiceInfo);
@@ -3542,6 +3653,14 @@ end;
 function TC40_Custom_Service.Get_DB_FileName_Config(source_: U_String): U_String;
 begin
   Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
+function TC40_Custom_Service.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
+begin
+  Result := TC4_Help_Console_Command_Data.Create;
+  Result.Cmd := Cmd;
+  Result.Desc := Desc;
+  ConsoleCommand.Add(Result);
 end;
 
 procedure TC40_Custom_Service.DoLinkSuccess(Trigger_: TCore_Object);
@@ -3750,12 +3869,14 @@ begin
       C40PhysicsTunnel := PhysicsTunnel_;
   C40PhysicsTunnel.DependNetworkClientPool.Add(Self);
   C40_ClientPool.Add(Self);
+  ConsoleCommand := TC4_Help_Console_Command.Create;
 
   On_Client_Offline := nil;
 end;
 
 destructor TC40_Custom_Client.Destroy;
 begin
+  disposeObject(ConsoleCommand);
   C40_ClientPool.Remove(Self);
   C40PhysicsTunnel.DependNetworkClientPool.Remove(Self);
   disposeObject(ClientInfo);
@@ -3859,6 +3980,14 @@ end;
 function TC40_Custom_Client.Get_DB_FileName_Config(source_: U_String): U_String;
 begin
   Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
+function TC40_Custom_Client.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
+begin
+  Result := TC4_Help_Console_Command_Data.Create;
+  Result.Cmd := Cmd;
+  Result.Desc := Desc;
+  ConsoleCommand.Add(Result);
 end;
 
 procedure TC40_Custom_Client.DoNetworkOnline;
@@ -5587,10 +5716,12 @@ begin
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
   C40_VM_Service_Pool.Add(Self);
+  ConsoleCommand := TC4_Help_Console_Command.Create;
 end;
 
 destructor TC40_Custom_VM_Service.Destroy;
 begin
+  disposeObject(ConsoleCommand);
   C40_VM_Service_Pool.Remove(Self);
   disposeObject(ParamList);
   inherited Destroy;
@@ -5628,6 +5759,14 @@ begin
   Result := ParamList.GetDefaultValue(source_, source_);
 end;
 
+function TC40_Custom_VM_Service.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
+begin
+  Result := TC4_Help_Console_Command_Data.Create;
+  Result.Cmd := Cmd;
+  Result.Desc := Desc;
+  ConsoleCommand.Add(Result);
+end;
+
 procedure TC40_Custom_VM_Service.DoLinkSuccess(Trigger_: TCore_Object);
 begin
 
@@ -5660,10 +5799,12 @@ begin
   On_Client_Online := nil;
   On_Client_Offline := nil;
   C40_VM_Client_Pool.Add(Self);
+  ConsoleCommand := TC4_Help_Console_Command.Create;
 end;
 
 destructor TC40_Custom_VM_Client.Destroy;
 begin
+  disposeObject(ConsoleCommand);
   C40_VM_Client_Pool.Remove(Self);
   disposeObject(ParamList);
   inherited Destroy;
@@ -5699,6 +5840,14 @@ end;
 function TC40_Custom_VM_Client.Get_DB_FileName_Config(source_: U_String): U_String;
 begin
   Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
+function TC40_Custom_VM_Client.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
+begin
+  Result := TC4_Help_Console_Command_Data.Create;
+  Result.Cmd := Cmd;
+  Result.Desc := Desc;
+  ConsoleCommand.Add(Result);
 end;
 
 procedure TC40_Custom_VM_Client.DoNetworkOnline;
