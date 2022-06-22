@@ -396,7 +396,6 @@ begin
   TmpSpace.Cipher := CoreSpace.Cipher;
   TmpSpace.Mode := smBigData;
   TmpSpace.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
-  TmpSpace.BuildSpace(CoreSpace.State^.Physics, BlockSize);
 
   if List.num > 0 then
     begin
