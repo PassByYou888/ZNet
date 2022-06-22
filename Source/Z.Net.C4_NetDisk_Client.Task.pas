@@ -191,7 +191,7 @@ type
   public
     Share_Directory_DB_Name, Local_File, DB_Field, DB_Item: U_String;
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
     procedure Do_Usr_Auto_Get_File(sender: TC40_NetDisk_Client; UserData: TCore_Object;
       Stream: TCore_Stream; Stream_Final_MD5__: TMD5; Successed: Boolean; info: U_String);
     procedure Do_Run_Task; override;
