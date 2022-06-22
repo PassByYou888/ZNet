@@ -88,6 +88,8 @@ type
     procedure Do_Go_Next_Task;
   public
     UserData: TCore_Object;
+    UserData2: TCore_Object;
+    UserDataInfo: U_String;
     On_Run: TC40_NetDisk_VM_Client_Task_Event;
     On_Done: TC40_NetDisk_VM_Client_Task_Event;
     constructor Create;
@@ -556,6 +558,8 @@ begin
   AtomInc(Task_Seed_No);
   FTask_No := Task_Seed_No;
   UserData := nil;
+  UserData2 := nil;
+  UserDataInfo := '';
   On_Run := nil;
   On_Done := nil;
 end;
