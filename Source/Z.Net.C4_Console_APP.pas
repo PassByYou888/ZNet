@@ -285,7 +285,10 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
+              begin
                 rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ServicePool[i].ClassName, C40_ServicePool[i].ServiceInfo.ServiceTyp.Text]);
+              end;
           until not __repeat__.Next;
         end;
     end;
@@ -298,7 +301,10 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
+              begin
                 rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ClientPool[i].ClassName, C40_ClientPool[i].ClientInfo.ServiceTyp.Text]);
+              end;
           until not __repeat__.Next;
         end;
     end;
@@ -311,7 +317,10 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
+              begin
                 rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Service_Pool[i].ClassName]);
+              end;
           until not __repeat__.Next;
         end;
     end;
@@ -324,10 +333,14 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
+              begin
                 rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Client_Pool[i].ClassName]);
+              end;
           until not __repeat__.Next;
         end;
     end;
+  DoStatus('request reopen.');
   Result := GetTimeTick - tk;
 end;
 
