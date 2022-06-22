@@ -38,6 +38,7 @@ type
     function Do_Tunnel(var OP_Param: TOpParam): Variant;
     function Do_Reg(var OP_Param: TOpParam): Variant;
     function Do_Cmd(var OP_Param: TOpParam): Variant;
+    function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
     HelpTextStyle: TTextStyle;
@@ -70,9 +71,9 @@ begin
       phy_serv := C40_PhysicsServicePool[i];
       DoStatus('service "%s" port:%d connection workload:%d send:%s receive:%s',
         [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort, phy_serv.PhysicsTunnel.Count,
-        umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text,
-        umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text
-        ]);
+          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text,
+          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text
+          ]);
     end;
 end;
 
@@ -123,9 +124,9 @@ begin
       phy_tunnel := C40_PhysicsTunnelPool[i];
       DoStatus('tunnel "%s" port:%d send:%s receive:%s',
         [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort,
-        umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text,
-        umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text
-        ]);
+          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text,
+          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text
+          ]);
     end;
 end;
 
@@ -166,14 +167,13 @@ begin
 end;
 
 function TC40_Console_Help.Do_Help(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  L: TPascalStringList;
 begin
-  DoStatus('help(), help info.');
-  DoStatus('exit()/close(), safe close this console.');
-  DoStatus('service(ip, port), local service report.');
-  DoStatus('tunnel(ip, port), tunnel report.');
-  DoStatus('RegInfo(), C4 registed info.');
-  DoStatus('cmd(), current command line.');
-  DoStatus('');
+  L := opRT.GetAllProcDescription(True, '*');
+  for i := 0 to L.Count - 1 do
+      DoStatus(L[i]);
   Result := True;
 end;
 
@@ -195,7 +195,7 @@ begin
       for i := 0 to C40_PhysicsServicePool.Count - 1 do
         begin
           if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
-            or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) then
+              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) then
               UpdateServiceInfo(C40_PhysicsServicePool[i]);
         end;
     end
@@ -206,7 +206,7 @@ begin
       for i := 0 to C40_PhysicsServicePool.Count - 1 do
         begin
           if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
-            or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) and (port = C40_PhysicsServicePool[i].PhysicsPort) then
+              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) and (port = C40_PhysicsServicePool[i].PhysicsPort) then
               UpdateServiceInfo(C40_PhysicsServicePool[i]);
         end;
     end
@@ -265,24 +265,148 @@ begin
   Result := True;
 end;
 
+function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+var
+  tk: TTimeTick;
+  LName: U_String;
+  i: Integer;
+  cc: TC4_Help_Console_Command;
+  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
+  rData: TC4_Help_Console_Command_Data;
+begin
+  tk := GetTimeTick;
+  LName := Sender.Trigger^.Name;
+  for i := 0 to C40_ServicePool.Count - 1 do
+    begin
+      cc := C40_ServicePool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+                rData.DoExecute(OP_Param);
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_ClientPool.Count - 1 do
+    begin
+      cc := C40_ClientPool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+                rData.DoExecute(OP_Param);
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Service_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+                rData.DoExecute(OP_Param);
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Client_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+                rData.DoExecute(OP_Param);
+          until not __repeat__.Next;
+        end;
+    end;
+  Result := GetTimeTick - tk;
+end;
+
 constructor TC40_Console_Help.Create;
+var
+  i: Integer;
+  cc: TC4_Help_Console_Command;
+  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
+  rData: TC4_Help_Console_Command_Data;
 begin
   inherited Create;
   opRT := TOpCustomRunTime.Create;
   HelpTextStyle := C40AppParsingTextStyle;
   IsExit := False;
 
-  opRT.RegOpM('Help', {$IFDEF FPC}@{$ENDIF FPC}Do_Help);
-  opRT.RegOpM('Exit', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit);
-  opRT.RegOpM('Close', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit);
-  opRT.RegOpM('service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('server', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
-  opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
-  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel);
-  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg);
-  opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd);
+  opRT.RegOpM('Help', {$IFDEF FPC}@{$ENDIF FPC}Do_Help).Description := 'help info.';
+  opRT.RegOpM('Exit', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit).Description := 'safe close this console.';
+  opRT.RegOpM('Close', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit).Description := 'safe close this console.';
+  opRT.RegOpM('service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
+  opRT.RegOpM('server', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
+  opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
+  opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
+  opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
+  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
+  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg).Description := 'C4 registed info.';
+  opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd).Description := 'current command line.';
+
+  for i := 0 to C40_ServicePool.Count - 1 do
+    begin
+      cc := C40_ServicePool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_ClientPool.Count - 1 do
+    begin
+      cc := C40_ClientPool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Service_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Client_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+          until not __repeat__.Next;
+        end;
+    end;
 end;
 
 destructor TC40_Console_Help.Destroy;
