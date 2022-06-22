@@ -969,7 +969,7 @@ function ExtractDependInfoToL(arry: TC40_DependNetworkString): TC40_DependNetwor
 procedure ResetDependInfoBuff(var arry: TC40_DependNetworkInfoArray);
 
 { ZDB2 extract swap define }
-function Get_New_ZDB2_Extract_FileName(OLD_F: U_String): U_String;
+function Get_New_ZDB2_Extract_FileName(F: U_String): U_String;
 procedure Check_And_Replace_ZDB2_Extract_FileName(F: U_String);
 function Get_New_ZDB2_Backup_FileName(F: U_String): U_String;
 
@@ -1505,9 +1505,10 @@ begin
   SetLength(arry, 0);
 end;
 
-function Get_New_ZDB2_Extract_FileName(OLD_F: U_String): U_String;
+function Get_New_ZDB2_Extract_FileName(F: U_String): U_String;
 begin
-  Result := OLD_F + '.~Extract';
+  Result := F + '.~Extract';
+  DoStatus('extract define: %s -> %s', [umlGetFileName(F).Text, umlGetFileName(Result).Text]);
 end;
 
 procedure Check_And_Replace_ZDB2_Extract_FileName(F: U_String);
@@ -1518,7 +1519,9 @@ begin
   New_F := F + '.~Extract';
   if umlFileExists(New_F) then
     begin
+      DoStatus('rename %s -> %s', [umlGetFileName(New_F).Text, umlGetFileName(F).Text]);
       umlDeleteFile(OLD_F);
+      DoStatus('remove %s', [umlGetFileName(OLD_F).Text]);
       umlRenameFile(F, OLD_F);
       umlRenameFile(New_F, F);
     end;
