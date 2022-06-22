@@ -51,6 +51,9 @@ type
     procedure cmd_SetTextValue(sender: TPeerIO; InData: TDFE);
     // admin
     procedure cmd_SearchTE(sender: TPeerIO; InData, OutData: TDFE);
+  protected
+    // console command
+    procedure CC_Compress_And_Reload(var OP_Param: TOpParam);
   public
     ZDB2RecycleMemoryTimeOut: TTimeTick;
     ZDB2DeltaSpace: Int64;
@@ -714,9 +717,20 @@ begin
     end;
 end;
 
+procedure TC40_TEKeyValue_VM_Service.CC_Compress_And_Reload(var OP_Param: TOpParam);
+var
+  New_F: U_String;
+  FS: TCore_FileStream;
+begin
+  New_F := Get_New_ZDB2_Extract_FileName(C40_TEKeyValue_VM_DB_FileName);
+  FS := TCore_FileStream.Create(New_F, fmCreate);
+  TEKeyValue_DB.ExtractTo(FS);
+  disposeObject(FS);
+end;
+
 constructor TC40_TEKeyValue_VM_Service.Create(Param_: U_String);
 var
-  fs: TCore_Stream;
+  FS: TCore_Stream;
   TE: TZDB2_HashTextEngine;
   TEName_: SystemString;
 begin
@@ -758,17 +772,18 @@ begin
   else
       ZDB2Cipher := nil;
   C40_TEKeyValue_VM_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space', ['TEKeyValue_VM'])));
+  Check_And_Replace_ZDB2_Extract_FileName(C40_TEKeyValue_VM_DB_FileName);
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_TEKeyValue_VM_DB_FileName) then
-      fs := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite)
+      FS := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite)
   else
-      fs := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmCreate);
+      FS := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmCreate);
 
   TEKeyValue_DB := TZDB2_List_HashTextEngine.Create(
     TZDB2_HashTextEngine,
     nil,
     ZDB2RecycleMemoryTimeOut,
-    fs,
+    FS,
     False,
     ZDB2DeltaSpace,
     ZDB2BlockSize,
@@ -794,6 +809,8 @@ begin
   TEKeyValue_DB.Flush;
   if not C40_QuietMode then
       DoStatus('extract Text Engine Database done.');
+
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
 end;
 
 destructor TC40_TEKeyValue_VM_Service.Destroy;
