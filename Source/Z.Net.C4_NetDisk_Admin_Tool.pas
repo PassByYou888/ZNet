@@ -12,7 +12,7 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
-  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
+  Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2,
   Z.GHashList,
@@ -87,6 +87,9 @@ type
   protected
     procedure cmd_Enabled_Automated_Admin_Program(Sender: TPeerIO; InData: TDFE);
     procedure cmd_Check_And_Recycle_Fragment_For_FS2(Sender: TPeerIO; InData: TDFE);
+  protected
+    // console command
+    procedure CC_Check_And_Recycle_Fragment(var OP_Param: TOpParam);
   public
     Enabled_Automated_Admin_Program: Boolean;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
@@ -365,6 +368,11 @@ begin
   Check_And_Recycle_Fragment_For_FS2;
 end;
 
+procedure TC40_NetDisk_Admin_Tool_Service.CC_Check_And_Recycle_Fragment(var OP_Param: TOpParam);
+begin
+  Check_And_Recycle_Fragment_For_FS2();
+end;
+
 constructor TC40_NetDisk_Admin_Tool_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
@@ -384,6 +392,8 @@ begin
   FTEKeyValue_Client := nil;
   FLog_Client := nil;
   FFS2_Client_Pool := TC40_NetDisk_FS2_Client_List.Create;
+
+  Register_ConsoleCommand('Check_And_Recycle_Fragment', 'Now recycle netdisk Fragment.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Check_And_Recycle_Fragment;
 end;
 
 destructor TC40_NetDisk_Admin_Tool_Service.Destroy;
