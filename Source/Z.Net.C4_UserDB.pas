@@ -12,7 +12,7 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib,
-  Z.Geometry2D, Z.DFE, Z.Expression, Z.ListEngine,
+  Z.Geometry2D, Z.DFE, Z.Expression, Z.OpCode, Z.ListEngine,
   Z.Json, Z.GHashList, Z.ZDB2, Z.ZDB2.Json, Z.Cipher,
   Z.Notify, Z.MemoryStream,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4;
@@ -72,6 +72,9 @@ type
     procedure cmd_Usr_Search(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Usr_Upload(Sender: TPeerIO; InData: TDFE);
     procedure cmd_Usr_Remove(Sender: TPeerIO; InData: TDFE);
+  protected
+    // console command
+    procedure CC_Compress_And_Reload(var OP_Param: TOpParam);
   public
     C40_UserDB_FileName: U_String;
     UserIdentifierHash: TC40_UserDB_Json_Hash_Pool;
@@ -1382,9 +1385,20 @@ begin
     end;
 end;
 
+procedure TC40_UserDB_Service.CC_Compress_And_Reload(var OP_Param: TOpParam);
+var
+  New_F: U_String;
+  FS: TCore_FileStream;
+begin
+  New_F := Get_New_ZDB2_Extract_FileName(C40_UserDB_FileName);
+  FS := TCore_FileStream.Create(New_F, fmCreate);
+  JsonDatabase.ExtractTo(FS);
+  DisposeObject(FS);
+end;
+
 constructor TC40_UserDB_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 var
-  fs: TCore_FileStream;
+  FS: TCore_FileStream;
   i, j: Integer;
   Json: TZDB2_Json;
   identifier_arry: TZJArry;
@@ -1423,6 +1437,7 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   C40_UserDB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text])));
+  Check_And_Replace_ZDB2_Extract_FileName(C40_UserDB_FileName);
 
   UserIdentifierHash := TC40_UserDB_Json_Hash_Pool.Create(False,
     EStrToInt64(ParamList.GetDefaultValue('Identifier_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
@@ -1431,9 +1446,9 @@ begin
   UserIdentifierHash.IgnoreCase := True;
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_UserDB_FileName) then
-      fs := TCore_FileStream.Create(C40_UserDB_FileName, fmOpenReadWrite)
+      FS := TCore_FileStream.Create(C40_UserDB_FileName, fmOpenReadWrite)
   else
-      fs := TCore_FileStream.Create(C40_UserDB_FileName, fmCreate);
+      FS := TCore_FileStream.Create(C40_UserDB_FileName, fmCreate);
 
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '60*1000'), 60 * 1000);
   ZDB2DeltaSpace := EStrToInt64(ParamList.GetDefaultValue('DeltaSpace', '16*1024*1024'), 16 * 1024 * 1024);
@@ -1448,7 +1463,7 @@ begin
   else
       ZDB2Cipher := nil;
 
-  JsonDatabase := TZDB2_List_Json.Create(TZDB2_Json, nil, ZDB2RecycleMemoryTimeOut, fs, False, ZDB2DeltaSpace, ZDB2BlockSize, ZDB2Cipher);
+  JsonDatabase := TZDB2_List_Json.Create(TZDB2_Json, nil, ZDB2RecycleMemoryTimeOut, FS, False, ZDB2DeltaSpace, ZDB2BlockSize, ZDB2Cipher);
   JsonDatabase.AutoFreeStream := True;
 
   if not C40_QuietMode then
@@ -1474,6 +1489,8 @@ begin
   JsonDatabase.Flush;
   if not C40_QuietMode then
       DoStatus('extract user Database done.');
+
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
 end;
 
 destructor TC40_UserDB_Service.Destroy;
