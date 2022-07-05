@@ -677,6 +677,7 @@ type
     FCompleteBufferCompleted: Cardinal;
     FCompleteBufferCmd: SystemString;
     FCompleteBufferReceivedStream: TMS64;
+    FCompleteBuffer_Current_Trigger: TMS64;
     FCurrentQueueData: PQueueData;
     FWaitOnResult: Boolean;
     FCurrentPauseResultSend_CommDataType: Byte;
@@ -995,6 +996,7 @@ type
     property BigStreamBatchList: TBigStreamBatch read GetBigStreamBatch;
     property BigStreamBatch: TBigStreamBatch read GetBigStreamBatch;
     property CompleteBufferReceivedStream: TMS64 read FCompleteBufferReceivedStream;
+    property CompleteBuffer_Current_Trigger: TMS64 read FCompleteBuffer_Current_Trigger;
 
     { framework }
     property OwnerFramework: TZNet read FOwnerFramework;
@@ -6366,6 +6368,7 @@ begin
       if not OwnerFramework.QuietMode then
           PrintCommand('execute complete buffer: %s', FCompleteBufferCmd);
 
+      FCompleteBuffer_Current_Trigger := FCompleteBufferReceivedStream;
       FOwnerFramework.ExecuteCompleteBuffer(self, FCompleteBufferCmd, FCompleteBufferReceivedStream.Memory, FCompleteBufferReceivedStream.Size);
 
       FReceiveCommandRuning := False;
@@ -7239,6 +7242,7 @@ begin
   FCompleteBufferCompleted := 0;
   FCompleteBufferCmd := '';
   FCompleteBufferReceivedStream := TMS64.Create;
+  FCompleteBuffer_Current_Trigger := nil;
 
   FCurrentQueueData := nil;
   FWaitOnResult := False;
@@ -8783,6 +8787,8 @@ begin
       CompleteBuff := TMS64(Sender.Data1);
       if not QuietMode then
           P_IO.PrintCommand('execute complete buffer(delay): %s', Cmd);
+
+      P_IO.FCompleteBuffer_Current_Trigger := CompleteBuff;
       ExecuteCompleteBuffer(P_IO, Cmd, CompleteBuff.Memory, CompleteBuff.Size);
       DisposeObject(CompleteBuff);
 
