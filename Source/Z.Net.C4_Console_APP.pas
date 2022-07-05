@@ -356,17 +356,17 @@ begin
   HelpTextStyle := C40AppParsingTextStyle;
   IsExit := False;
 
-  opRT.RegOpM('Help', {$IFDEF FPC}@{$ENDIF FPC}Do_Help).Description := 'help info.';
-  opRT.RegOpM('Exit', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit).Description := 'safe close this console.';
-  opRT.RegOpM('Close', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit).Description := 'safe close this console.';
-  opRT.RegOpM('service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
-  opRT.RegOpM('server', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
-  opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service).Description := 'local service report.';
-  opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
-  opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
-  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel).Description := 'tunnel report.';
-  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg).Description := 'C4 registed info.';
-  opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd).Description := 'current command line.';
+  opRT.RegOpM('Help', {$IFDEF FPC}@{$ENDIF FPC}Do_Help)^.Description := 'help info.';
+  opRT.RegOpM('Exit', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Description := 'safe close this console.';
+  opRT.RegOpM('Close', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Description := 'safe close this console.';
+  opRT.RegOpM('service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
+  opRT.RegOpM('server', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
+  opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
+  opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
+  opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
+  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
+  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg)^.Description := 'C4 registed info.';
+  opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd)^.Description := 'current command line.';
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
@@ -377,7 +377,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
           until not __repeat__.Next;
         end;
     end;
@@ -390,7 +390,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
           until not __repeat__.Next;
         end;
     end;
@@ -403,7 +403,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
           until not __repeat__.Next;
         end;
     end;
@@ -416,7 +416,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd).Description := rData.Desc;
+                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
           until not __repeat__.Next;
         end;
     end;
