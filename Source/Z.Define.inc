@@ -277,9 +277,9 @@
 
 {$IFDEF Parallel}
   // TMemoryRaster Parallel switch.
-  {$UNDEF MemoryRaster_Parallel}
+  {$DEFINE MemoryRaster_Parallel}
   // TRasterVertex Parallel switch.
-  {$UNDEF Vertex_Parallel}
+  {$DEFINE Vertex_Parallel}
   // TMorphomatics Parallel switch.
   {$DEFINE Morphomatics_Parallel}
   // TMorphologyBinaryzation Parallel switch.
@@ -290,7 +290,7 @@
   // TRasterVertex Parallel switch.
   {$UNDEF Vertex_Parallel}
   // TMorphomatics Parallel switch.
-  {$DEFINE Morphomatics_Parallel}
+  {$UNDEF Morphomatics_Parallel}
   // TMorphologyBinaryzation Parallel switch.
   {$UNDEF MorphologyBinaryzation_Parallel}
 {$ENDIF Parallel}
