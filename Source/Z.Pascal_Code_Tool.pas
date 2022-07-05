@@ -102,6 +102,8 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Add_Feature(File_Match, OLD_Feature, New_Feature: U_String);
+    function Replace_OLD_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+    function Replace_New_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
     procedure Clean;
     procedure SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
     procedure LoadFromStream(stream: TCore_Stream);
@@ -217,7 +219,7 @@ function RewritePascal_Process_Code(const Code_: TCore_Strings; UnitHash_, Patte
 // rewrite system file
 function RewritePascal_ProcessFile(fn: U_String; UnitHash_, PatternHash_: THashStringList; Trace_: TRewrite_Trace; FileInfo__: SystemString; OnStatus: TOnRewriteStatus): Boolean;
 procedure RewritePascal_Include_File_Processor(UnitHash_, PatternHash_: THashStringList; Trace_Pool: TRewrite_Trace_Pool; OnStatus: TOnRewriteStatus);
-procedure RewritePascal_Include_Custom_After_Processor(fn: U_String; Custom_PatternHash_: THashStringList; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
+procedure RewritePascal_Custom_After_Processor(fn: U_String; Custom_PatternHash_: THashStringList; OnlyWord_: Boolean; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; UnitHash_, PatternHash_: THashStringList; CustomPattern_: TCustom_After_Source_Processor_Data_Pool; OnStatus: TOnRewriteStatus): Integer; overload;
 function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus): Integer; overload;
 
@@ -260,11 +262,12 @@ function RewritePascal_Process_ZDB_File(Eng_: TObjectDataManager; fn: U_String;
   UnitHash_, PatternHash_: THashStringList; Trace_: TRewrite_Trace;
   FileInfo__: SystemString; OnStatus: TOnRewriteStatus): Boolean;
 procedure RewritePascal_ZDB_Include_File_Processor(Eng_: TObjectDataManager; UnitHash_, PatternHash_: THashStringList; Trace_Pool: TRewrite_Trace_Pool; OnStatus: TOnRewriteStatus);
-procedure RewritePascal_ZDB_Include_Custom_After_Processor(Eng_: TObjectDataManager; fn: U_String; Custom_PatternHash_: THashStringList; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
+procedure RewritePascal_ZDB_Custom_After_Processor(Eng_: TObjectDataManager; fn: U_String; Custom_PatternHash_: THashStringList; OnlyWord_: Boolean; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
 function RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; UnitHash_, PatternHash_: THashStringList; CustomPattern_: TCustom_After_Source_Processor_Data_Pool; OnStatus: TOnRewriteStatus): Integer; overload;
 function RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; Model_: TMS64; Reverse_: Boolean; OnStatus: TOnRewriteStatus): Integer; overload;
 
 // model
+function Load_RewritePascal_Model(Model_: TMS64; UnitData_, PatternData_: TSource_Processor_Data_Pool; CustomPattern_: TCustom_After_Source_Processor_Data_Pool): Boolean;
 function Build_RewritePascal_Model(UnitData_, PatternData_: TSource_Processor_Data_Pool; CustomPattern_: TCustom_After_Source_Processor_Data_Pool): TMS64;
 function Check_RewritePascal_Model(UnitData_, PatternData_: TSource_Processor_Data_Pool; CustomPattern_: TCustom_After_Source_Processor_Data_Pool): Boolean;
 
@@ -1018,7 +1021,7 @@ begin
       OnStatus('include after done.', []);
 end;
 
-procedure RewritePascal_Include_Custom_After_Processor(fn: U_String; Custom_PatternHash_: THashStringList; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
+procedure RewritePascal_Custom_After_Processor(fn: U_String; Custom_PatternHash_: THashStringList; OnlyWord_: Boolean; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
 var
   LEncode: TEncoding;
   Code: TCore_StringList;
@@ -1055,7 +1058,7 @@ begin
   checkAndLoadFile(fn);
 
   N.Text := Code.Text;
-  if Replace_ASCII_Code(N, Custom_PatternHash_, False, True, 0, 0, FileInfo__, OnStatus) then
+  if Replace_ASCII_Code(N, Custom_PatternHash_, OnlyWord_, True, 0, 0, FileInfo__, OnStatus) then
     begin
       Code.Text := N;
       tmp_m64 := TMS64.Create;
@@ -1100,7 +1103,7 @@ var
   begin
     Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
     if CustomPattern_.Build_Hash_Pool(umlGetFileName(arry[pass]), Custom_PatternHash_) then
-        RewritePascal_Include_Custom_After_Processor(arry[pass], Custom_PatternHash_, umlGetFileName(arry[pass]), OnStatus);
+        RewritePascal_Custom_After_Processor(arry[pass], Custom_PatternHash_, True, umlGetFileName(arry[pass]), OnStatus);
     disposeObject(Custom_PatternHash_);
   end;
 
@@ -1132,11 +1135,12 @@ var
     Trace_Pool.Clean;
     disposeObject(Trace_Pool);
 
+    arry := umlGetFileListWithFullPath(directory_);
     for pass := 0 to Length(arry) - 1 do
       begin
         Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
         if CustomPattern_.Build_Hash_Pool(umlGetFileName(arry[pass]), Custom_PatternHash_) then
-            RewritePascal_Include_Custom_After_Processor(arry[pass], Custom_PatternHash_, umlGetFileName(arry[pass]), OnStatus);
+            RewritePascal_Custom_After_Processor(arry[pass], Custom_PatternHash_, True, umlGetFileName(arry[pass]), OnStatus);
         disposeObject(Custom_PatternHash_);
       end;
 
@@ -1158,6 +1162,7 @@ begin
       RewritePascal_Include_File_Processor(UnitHash_, PatternHash_, Trace_Pool, OnStatus);
       Trace_Pool.Clean;
       disposeObject(Trace_Pool);
+      arry := umlGetFileListWithFullPath(directory_);
       FPCParallelFor(@Nested_ParallelFor_File_Custom_Pattern, 0, Length(arry) - 1);
       arry := umlGetDirListWithFullPath(directory_);
       FPCParallelFor(@Nested_ParallelFor_Dir, 0, Length(arry) - 1);
@@ -1178,21 +1183,22 @@ begin
           else
               disposeObject(tmp);
         end);
-      arry := umlGetDirListWithFullPath(directory_);
       RewritePascal_Include_File_Processor(UnitHash_, PatternHash_, Trace_Pool, OnStatus);
       Trace_Pool.Clean;
       disposeObject(Trace_Pool);
 
+      arry := umlGetFileListWithFullPath(directory_);
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
         var
           Custom_PatternHash_: THashStringList;
         begin
           Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
           if CustomPattern_.Build_Hash_Pool(umlGetFileName(arry[pass]), Custom_PatternHash_) then
-              RewritePascal_Include_Custom_After_Processor(arry[pass], Custom_PatternHash_, umlGetFileName(arry[pass]), OnStatus);
+              RewritePascal_Custom_After_Processor(arry[pass], Custom_PatternHash_, True, umlGetFileName(arry[pass]), OnStatus);
           disposeObject(Custom_PatternHash_);
         end);
 
+      arry := umlGetDirListWithFullPath(directory_);
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
         begin
           AtomInc(num, RewritePascal_ProcessDirectory(Parallel_, arry[pass], UnitHash_, PatternHash_, CustomPattern_, OnStatus));
@@ -1595,11 +1601,12 @@ begin
   Trace_Pool.Clean;
   disposeObject(Trace_Pool);
 
+  arry := Eng_.GetItemListWithFullPath(directory_);
   for pass := 0 to Length(arry) - 1 do
     begin
       Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
       if CustomPattern_.Build_Hash_Pool(umlGetUnixFileName(arry[pass]), Custom_PatternHash_) then
-          RewritePascal_ZDB_Include_Custom_After_Processor(Eng_, arry[pass], Custom_PatternHash_, umlGetUnixFileName(arry[pass]), OnStatus);
+          RewritePascal_ZDB_Custom_After_Processor(Eng_, arry[pass], Custom_PatternHash_, True, umlGetUnixFileName(arry[pass]), OnStatus);
       disposeObject(Custom_PatternHash_);
     end;
 
@@ -1919,7 +1926,7 @@ begin
       OnStatus('include after done.', []);
 end;
 
-procedure RewritePascal_ZDB_Include_Custom_After_Processor(Eng_: TObjectDataManager; fn: U_String; Custom_PatternHash_: THashStringList; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
+procedure RewritePascal_ZDB_Custom_After_Processor(Eng_: TObjectDataManager; fn: U_String; Custom_PatternHash_: THashStringList; OnlyWord_: Boolean; FileInfo__: SystemString; OnStatus: TOnRewriteStatus);
 var
   LEncode: TEncoding;
   Code: TCore_StringList;
@@ -1956,7 +1963,7 @@ begin
   checkAndLoadFile(fn);
 
   N.Text := Code.Text;
-  if Replace_ASCII_Code(N, Custom_PatternHash_, False, True, 0, 0, FileInfo__, OnStatus) then
+  if Replace_ASCII_Code(N, Custom_PatternHash_, OnlyWord_, True, 0, 0, FileInfo__, OnStatus) then
     begin
       Code.Text := N;
       tmp_m64 := TMS64.Create;
@@ -2001,11 +2008,12 @@ begin
   Trace_Pool.Clean;
   disposeObject(Trace_Pool);
 
+  arry := Eng_.GetItemListWithFullPath(directory_);
   for pass := 0 to Length(arry) - 1 do
     begin
       Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
       if CustomPattern_.Build_Hash_Pool(umlGetUnixFileName(arry[pass]), Custom_PatternHash_) then
-          RewritePascal_ZDB_Include_Custom_After_Processor(Eng_, arry[pass], Custom_PatternHash_, umlGetUnixFileName(arry[pass]), OnStatus);
+          RewritePascal_ZDB_Custom_After_Processor(Eng_, arry[pass], Custom_PatternHash_, True, umlGetUnixFileName(arry[pass]), OnStatus);
       disposeObject(Custom_PatternHash_);
     end;
 
@@ -2097,6 +2105,56 @@ begin
   disposeObject(UnitHash_);
   disposeObject(PatternHash_);
   disposeObject(CustomPattern_);
+end;
+
+function Load_RewritePascal_Model(Model_: TMS64; UnitData_, PatternData_: TSource_Processor_Data_Pool; CustomPattern_: TCustom_After_Source_Processor_Data_Pool): Boolean;
+var
+  dec: TZDB2_File_Decoder;
+  fi: TZDB2_FI;
+  m64: TMS64;
+begin
+  Result := False;
+  if not TZDB2_File_Decoder.Check(Model_) then
+      Exit;
+  dec := TZDB2_File_Decoder.Create(Model_, 0);
+
+  fi := dec.Files.FindFile('Unit');
+  if (UnitData_ <> nil) and (fi <> nil) then
+    begin
+      m64 := TMS64.Create;
+      dec.DecodeToStream(fi, m64);
+      m64.Position := 0;
+      UnitData_.LoadFromStream(m64);
+      disposeObject(m64);
+      Result := True;
+      DoStatus('Open Unit Rewrite Model.');
+    end;
+
+  fi := dec.Files.FindFile('Pattern');
+  if (PatternData_ <> nil) and (fi <> nil) then
+    begin
+      m64 := TMS64.Create;
+      dec.DecodeToStream(fi, m64);
+      m64.Position := 0;
+      PatternData_.LoadFromStream(m64);
+      disposeObject(m64);
+      Result := True;
+      DoStatus('Open Symbol Rewrite Model.');
+    end;
+
+  fi := dec.Files.FindFile('Custom');
+  if (CustomPattern_ <> nil) and (fi <> nil) then
+    begin
+      m64 := TMS64.Create;
+      dec.DecodeToStream(fi, m64);
+      m64.Position := 0;
+      CustomPattern_.LoadFromStream(m64);
+      disposeObject(m64);
+      Result := True;
+      DoStatus('Open Custom Rewrite Model.');
+    end;
+
+  disposeObject(dec);
 end;
 
 function Build_RewritePascal_Model(UnitData_, PatternData_: TSource_Processor_Data_Pool; CustomPattern_: TCustom_After_Source_Processor_Data_Pool): TMS64;
@@ -2256,7 +2314,6 @@ begin
       Inc(Result, num);
       if not N.Same(@p^.NewName) then
         begin
-          DoStatus('%s -> %s', [p^.NewName.Text, N.Text]);
           p^.NewName := N;
         end;
     end;
@@ -2453,7 +2510,6 @@ begin
       Inc(Result, num);
       if not N.Same(@p^.OLD_Feature) then
         begin
-          DoStatus('%s -> %s', [p^.OLD_Feature.Text, N.Text]);
           p^.OLD_Feature := N;
         end;
     end;
@@ -2492,7 +2548,6 @@ begin
       Inc(Result, num);
       if not N.Same(@p^.New_Feature) then
         begin
-          DoStatus('%s -> %s', [p^.New_Feature.Text, N.Text]);
           p^.New_Feature := N;
         end;
     end;
@@ -2621,6 +2676,82 @@ begin
   p^.OLD_Feature := OLD_Feature;
   p^.New_Feature := New_Feature;
   Add(p);
+end;
+
+function TCustom_After_Source_Processor_Data_Pool.Replace_OLD_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+var
+  num: Integer;
+{$IFDEF FPC}
+  procedure fpc_progress_(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean);
+  begin
+    Inc(num);
+  end;
+{$ENDIF FPC}
+
+
+var
+  i: Integer;
+  p: PCustom_After_Source_Processor_Data;
+  N: U_String;
+begin
+  Result := 0;
+  for i := 0 to Count - 1 do
+    begin
+      p := items[i];
+      num := 0;
+{$IFDEF FPC}
+      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+{$ELSE FPC}
+      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
+        procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
+        begin
+          Inc(num);
+        end);
+{$ENDIF FPC}
+      Inc(Result, num);
+      if not N.Same(@p^.OLD_Feature) then
+        begin
+          p^.OLD_Feature := N;
+        end;
+    end;
+end;
+
+function TCustom_After_Source_Processor_Data_Pool.Replace_New_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+var
+  num: Integer;
+{$IFDEF FPC}
+  procedure fpc_progress_(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean);
+  begin
+    Inc(num);
+  end;
+{$ENDIF FPC}
+
+
+var
+  i: Integer;
+  p: PCustom_After_Source_Processor_Data;
+  N: U_String;
+begin
+  Result := 0;
+  for i := 0 to Count - 1 do
+    begin
+      p := items[i];
+      num := 0;
+{$IFDEF FPC}
+      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+{$ELSE FPC}
+      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
+        procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
+        begin
+          Inc(num);
+        end);
+{$ENDIF FPC}
+      Inc(Result, num);
+      if not N.Same(@p^.New_Feature) then
+        begin
+          p^.New_Feature := N;
+        end;
+    end;
 end;
 
 procedure TCustom_After_Source_Processor_Data_Pool.Clean;
