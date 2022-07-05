@@ -23,8 +23,8 @@ uses Variants, SysUtils,
 type
   TUnitRewriteService_IO_Define_ = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
   public
-    UnitRewriteProcessor: TSourceProcessorDataPool;
-    SymbolRewriteProcessor: TSourceProcessorDataPool;
+    UnitRewriteProcessor: TSource_Processor_Data_Pool;
+    SymbolRewriteProcessor: TSource_Processor_Data_Pool;
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
@@ -50,8 +50,8 @@ implementation
 constructor TUnitRewriteService_IO_Define_.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
-  UnitRewriteProcessor := TSourceProcessorDataPool.Create;
-  SymbolRewriteProcessor := TSourceProcessorDataPool.Create;
+  UnitRewriteProcessor := TSource_Processor_Data_Pool.Create;
+  SymbolRewriteProcessor := TSource_Processor_Data_Pool.Create;
 end;
 
 destructor TUnitRewriteService_IO_Define_.Destroy;
@@ -159,9 +159,9 @@ var
     if IO_Def = nil then
         exit;
     uHash := THashStringList.CustomCreate($FFFF);
-    IO_Def.UnitRewriteProcessor.Build_uHash(uHash);
+    IO_Def.UnitRewriteProcessor.Build_Hash_Pool(uHash);
     symHash := THashStringList.CustomCreate($FFFF);
-    IO_Def.SymbolRewriteProcessor.Build_uHash(symHash);
+    IO_Def.SymbolRewriteProcessor.Build_Hash_Pool(symHash);
     Current_Status := TPascalStringList.Create;
   end;
 
@@ -188,9 +188,9 @@ begin
       if IO_Def = nil then
           exit;
       uHash := THashStringList.CustomCreate($FFFF);
-      IO_Def.UnitRewriteProcessor.Build_uHash(uHash);
+      IO_Def.UnitRewriteProcessor.Build_Hash_Pool(uHash);
       symHash := THashStringList.CustomCreate($FFFF);
-      IO_Def.SymbolRewriteProcessor.Build_uHash(symHash);
+      IO_Def.SymbolRewriteProcessor.Build_Hash_Pool(symHash);
       Current_Status := TPascalStringList.Create;
     end);
 {$ENDIF FPC}
