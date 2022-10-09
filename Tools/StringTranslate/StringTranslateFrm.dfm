@@ -14,7 +14,7 @@ object StringTranslateForm: TStringTranslateForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
-  Position = poDesktopCenter
+  Position = poScreenCenter
   ScreenSnap = True
   PixelsPerInch = 96
   TextHeight = 13
@@ -23,18 +23,6 @@ object StringTranslateForm: TStringTranslateForm
     Top = 0
     Width = 498
     Height = 393
-    Lines.Strings = (
-      
-        #39'program PascalUnitRewriteTool;'#39'#$D#$A#$D#$A'#39'uses'#39'#$D#$A'#39'  Vcl.F' +
-        'orms,'#39'#$D#$A'#39'  PascalUnitDefineToolFrm in '#39#39'PascalUnitDefineTool' +
-        'Frm.pas'#39#39' {PascalUnitRewriteToolForm},'#39'#$D#$A'#39'  NewUnitNameFrm i' +
-        'n '#39#39'NewUnitNameFrm.pas'#39#39' {NewUnitNameForm};'#39'#$D#$A#$D#$A'#39'{$R *.r' +
-        'es}'#39'#$D#$A#$D#$A'#39'begin'#39'#$D#$A'#39'  Application.Initialize;'#39'#$D#$A'#39' ' +
-        ' Application.MainFormOnTaskbar := False;'#39'#$D#$A'#39'  Application.Ti' +
-        'tle := '#39#39'Rename Pascal Unit tool'#39#39';'#39'#$D#$A'#39'  Application.CreateF' +
-        'orm(TPascalUnitRewriteToolForm, PascalUnitRewriteToolForm);'#39'#$D#' +
-        '$A'#39'  Application.CreateForm(TNewUnitNameForm, NewUnitNameForm);'#39 +
-        '#$D#$A'#39'  Application.Run;'#39'#$D#$A'#39'end.'#39'#$D#$A'#39' '#39)
     ScrollBars = ssBoth
     TabOrder = 0
     WordWrap = False

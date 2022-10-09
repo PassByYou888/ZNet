@@ -6058,7 +6058,7 @@ begin
   if pVarData <> nil then
       Result := pVarData^.V
   else
-      Result := Null;
+      Result := '';
 end;
 
 procedure THashStringList.SetKeyValue(const Name: SystemString; const Value: SystemString);

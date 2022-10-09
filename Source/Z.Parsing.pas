@@ -35,7 +35,7 @@ type
   TP_OrdChar = TOrdChar;
   TP_OrdChars = TOrdChars;
 {$ENDIF FPC}
-  TTextStyle = (tsPascal, tsC, tsText);
+  TTextStyle = (tsPascal, tsC, tsText, tsXML);
 
   TTokenType = (ttTextDecl, ttComment, ttNumber, ttSymbol, ttAscii, ttSpecialSymbol, ttUnknow);
   TTokenTypes = set of TTokenType;
@@ -99,6 +99,8 @@ type
     class function Char_is(c: TP_Char; const SomeCharsets: TP_OrdChars; const p: TP_PString): Boolean; overload;
     function ComparePosStr(const cOffset: Integer; const t: TP_String): Boolean; overload;
     function ComparePosStr(const cOffset: Integer; const p: TP_PString): Boolean; overload;
+    function ComparePosChar(const cOffset: Integer; c: TP_Char): Boolean; overload;
+    function ComparePosChar(const cOffset: Integer; c: TP_Char; ignoreCase_: Boolean): Boolean; overload;
 
     { compare comment and text declaration: TokenCache }
     function CompareCommentGetEndPos(const cOffset: Integer): Integer;
@@ -286,17 +288,21 @@ type
     function SearchWordBody(initPos: Integer; wordInfo: TP_String; var OutPos: TTextPos): Boolean;
 
     { string declaration }
-    class function TranslatePascalDeclToText(const Decl: TP_String): TP_String;
-    class function TranslateTextToPascalDecl(const Decl: TP_String): TP_String;
-    class function TranslateTextToPascalDeclWithUnicode(const Decl: TP_String): TP_String;
-    class function TranslateC_DeclToText(const Decl: TP_String): TP_String;
-    class function TranslateTextToC_Decl(const Decl: TP_String): TP_String;
+    class function Translate_Pascal_Decl_To_Text(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_Pascal_Decl(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_Pascal_Decl_With_Unicode(const Decl: TP_String): TP_String;
+    class function Translate_C_Decl_To_Text(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_C_Decl(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_XML_Decl(const Decl: TP_String): TP_String;
+    class function Translate_XML_Decl_To_Text(const Decl: TP_String): TP_String;
 
     { comment declaration }
-    class function TranslatePascalDeclCommentToText(const Decl: TP_String): TP_String;
-    class function TranslateTextToPascalDeclComment(const Decl: TP_String): TP_String;
-    class function TranslateC_DeclCommentToText(const Decl: TP_String): TP_String;
-    class function TranslateTextToC_DeclComment(const Decl: TP_String): TP_String;
+    class function Translate_Pascal_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_Pascal_Decl_Comment(const Decl: TP_String): TP_String;
+    class function Translate_C_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_C_Decl_Comment(const Decl: TP_String): TP_String;
+    class function Translate_XML_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
+    class function Translate_Text_To_XML_Decl_Comment(const Decl: TP_String): TP_String;
 
     { structor }
     constructor Create(const Text_: TP_String; Style_: TTextStyle; SpecialSymbol_: TListPascalString; SpacerSymbol_: TP_SystemString); overload;
@@ -410,11 +416,25 @@ begin
   Result := ParsingData.Text.ComparePos(cOffset, p);
 end;
 
+function TTextParsing.ComparePosChar(const cOffset: Integer; c: TP_Char): Boolean;
+begin
+  Result := ParsingData.Text[cOffset] = c;
+end;
+
+function TTextParsing.ComparePosChar(const cOffset: Integer; c: TP_Char; ignoreCase_: Boolean): Boolean;
+begin
+  if ignoreCase_ then
+      Result := ComparePosStr(cOffset, c)
+  else
+      Result := ComparePosChar(cOffset, c);
+end;
+
 function TTextParsing.CompareCommentGetEndPos(const cOffset: Integer): Integer;
 var
   L: Integer;
   cPos: Integer;
   p: PTokenData;
+  indent_num: Integer;
 begin
   if not RebuildCacheBusy then
     begin
@@ -438,7 +458,7 @@ begin
 
   Result := cPos;
 
-  if (TextStyle <> tsText) and (ComparePosStr(Result, '//')) then
+  if (TextStyle in [tsPascal, tsC]) and (ComparePosStr(Result, '//')) then
     begin
       inc(Result, 2);
       while not Char_is(ParsingData.Text[Result], [#13, #10]) do
@@ -448,7 +468,7 @@ begin
           inc(Result);
         end;
     end
-  else if (TextStyle = tsC) and (ComparePosStr(Result, '#')) then
+  else if (TextStyle = tsC) and (ComparePosChar(Result, '#')) then
     begin
       inc(Result, 1);
       while not Char_is(ParsingData.Text[Result], [#13, #10]) do
@@ -469,7 +489,7 @@ begin
         end;
       inc(Result, 2);
     end
-  else if (TextStyle = tsPascal) and (ComparePosStr(Result, '{')) then
+  else if (TextStyle = tsPascal) and (ComparePosChar(Result, '{')) then
     begin
       inc(Result, 1);
       while ParsingData.Text[Result] <> '}' do
@@ -490,7 +510,46 @@ begin
           inc(Result);
         end;
       inc(Result, 2);
+    end
+  else if (TextStyle = tsXML) and (ComparePosStr(Result, '<!--')) then
+    begin
+      inc(Result, 4);
+      while not ComparePosStr(Result, '-->') do
+        begin
+          if Result + 1 > L then
+              Break;
+          inc(Result);
+        end;
+      inc(Result, 3);
+    end
+  else if (TextStyle = tsXML) and (ComparePosStr(Result, '<![CDATA[')) then
+    begin
+      inc(Result, 9);
+      while not ComparePosStr(Result, ']]>') do
+        begin
+          if Result + 1 > L then
+              Break;
+          inc(Result);
+        end;
+      inc(Result, 3);
+    end
+  else if (TextStyle = tsXML) and (ComparePosStr(Result, '<!DOCTYPE')) then
+    begin
+      inc(Result, 9);
+      indent_num := 1;
+      while Result < L do
+        begin
+          if ComparePosChar(Result, '<') then
+              inc(indent_num)
+          else if ComparePosChar(Result, '>') then
+              dec(indent_num);
+          inc(Result);
+          if indent_num = 0 then
+              Break;
+        end;
     end;
+  if Result > L + 1 then
+      Result := L + 1;
 end;
 
 function TTextParsing.CompareTextDeclGetEndPos(const cOffset: Integer): Integer;
@@ -571,6 +630,20 @@ begin
       inc(cPos, 1);
     end;
 
+  if (cPos + 1 < L) and (TextStyle = tsXML) and (ParsingData.Text[cPos] = '"') then
+    begin
+      inc(cPos, 1);
+      while ParsingData.Text[cPos] <> '"' do
+        begin
+          if cPos + 1 > L then
+              Break;
+          if ParsingData.Text[cPos] = #10 then
+              exit(cPos);
+          inc(cPos);
+        end;
+      inc(cPos, 1);
+    end;
+
   if (cPos + 1 < L) and (TextStyle = tsPascal) and (ParsingData.Text[cPos] = '#') then
     begin
       repeat
@@ -610,6 +683,7 @@ var
   textPosPtr: PTextPos;
   TokenDataPtr: PTokenData;
 begin
+  // clean cache
   RebuildCacheBusy := True;
   if ParsingData.Cache.CommentDecls <> nil then
     begin
@@ -1027,7 +1101,7 @@ var
   c: TP_Char;
   L: Integer;
   cPos, bkPos: Integer;
-  NC: Integer;
+  nc: Integer;
   dotNum: Integer;
   eNum: Integer;
   eSymNum: Integer;
@@ -1085,7 +1159,7 @@ begin
   if IsHex then
     begin
       bkPos := cPos;
-      NC := 0;
+      nc := 0;
       while True do
         begin
           cPos := GetTextDeclEndPos(GetCommentEndPos(cPos));
@@ -1096,11 +1170,11 @@ begin
 
           if isWordSplitChar(c, True, SymbolTable) then
             begin
-              if NC > 0 then
+              if nc > 0 then
                   Break;
             end
           else if Char_is(c, {$IFDEF FPC}ucHex{$ELSE FPC}cHex{$ENDIF FPC}) then
-              inc(NC)
+              inc(nc)
           else
             begin
               Result := False;
@@ -1110,7 +1184,7 @@ begin
           inc(cPos);
         end;
 
-      Result := (NC > 0);
+      Result := (nc > 0);
       NumberBegin := bkPos;
       exit;
     end;
@@ -1119,7 +1193,7 @@ begin
   if Char_is(c, {$IFDEF FPC}uc0to9{$ELSE FPC}c0to9{$ENDIF FPC}) then
     begin
       bkPos := cPos;
-      NC := 0;
+      nc := 0;
       dotNum := 0;
       eNum := 0;
       eSymNum := 0;
@@ -1138,12 +1212,12 @@ begin
                   Break;
             end
           else if Char_is(c, {$IFDEF FPC}uc0to9{$ELSE FPC}c0to9{$ENDIF FPC}) then
-              inc(NC)
-          else if (NC > 0) and (eNum = 0) and Char_is(c, 'eE') then
+              inc(nc)
+          else if (nc > 0) and (eNum = 0) and Char_is(c, 'eE') then
             begin
               inc(eNum);
             end
-          else if (NC > 0) and (eNum = 1) and Char_is(c, '-+') then
+          else if (nc > 0) and (eNum = 1) and Char_is(c, '-+') then
             begin
               inc(eSymNum);
             end
@@ -1160,14 +1234,14 @@ begin
           inc(cPos);
         end;
 
-      Result := (NC > 0) and (dotNum <= 1);
+      Result := (nc > 0) and (dotNum <= 1);
       NumberBegin := bkPos;
       exit;
     end
   else if Char_is(c, '+-.') then
     begin
       bkPos := cPos;
-      NC := 0;
+      nc := 0;
       dotNum := 0;
       eNum := 0;
       eSymNum := 0;
@@ -1180,7 +1254,7 @@ begin
               Break;
           c := ParsingData.Text[cPos];
 
-          if (NC = 0) and (eSymNum = 0) and (eNum = 0) and Char_is(c, '-+') then
+          if (nc = 0) and (eSymNum = 0) and (eNum = 0) and Char_is(c, '-+') then
             begin
               inc(pSym);
             end
@@ -1191,12 +1265,12 @@ begin
                   Break;
             end
           else if Char_is(c, {$IFDEF FPC}uc0to9{$ELSE FPC}c0to9{$ENDIF FPC}) then
-              inc(NC)
-          else if (NC > 0) and (eNum = 0) and Char_is(c, 'eE') then
+              inc(nc)
+          else if (nc > 0) and (eNum = 0) and Char_is(c, 'eE') then
             begin
               inc(eNum);
             end
-          else if (NC > 0) and (eNum = 1) and Char_is(c, '-+') then
+          else if (nc > 0) and (eNum = 1) and Char_is(c, '-+') then
             begin
               inc(eSymNum);
             end
@@ -1213,7 +1287,7 @@ begin
           inc(cPos);
         end;
 
-      Result := (NC > 0) and (dotNum <= 1);
+      Result := (nc > 0) and (dotNum <= 1);
       NumberBegin := bkPos;
       exit;
     end;
@@ -1225,7 +1299,7 @@ var
   L: Integer;
   cPos: Integer;
   c: TP_Char;
-  NC: Integer;
+  nc: Integer;
   dotNum: Integer;
   eNum: Integer;
   p: PTokenData;
@@ -1252,7 +1326,7 @@ begin
 
   if isNumber(cPos, Result, IsHex) then
     begin
-      NC := 0;
+      nc := 0;
       dotNum := 0;
       eNum := 0;
       while True do
@@ -1265,7 +1339,7 @@ begin
             begin
               if Char_is(c, '+-') then
                 begin
-                  if NC > 0 then
+                  if nc > 0 then
                     begin
                       if eNum = 1 then
                           inc(eNum)
@@ -1286,12 +1360,12 @@ begin
                   inc(eNum);
                 end
               else if (IsHex and (Char_is(c, [{$IFDEF FPC}ucLoAtoF, ucHiAtoF{$ELSE FPC}cLoAtoF, cHiAtoF{$ENDIF FPC}]))) then
-                  inc(NC)
+                  inc(nc)
               else
                   exit;
             end
           else
-              inc(NC);
+              inc(nc);
 
           inc(Result);
           if Result > L then
@@ -1332,9 +1406,11 @@ end;
 function TTextParsing.GetTextBody(const Text_: TP_String): TP_String;
 begin
   if TextStyle = tsPascal then
-      Result := TranslatePascalDeclToText(Text_)
+      Result := Translate_Pascal_Decl_To_Text(Text_)
   else if TextStyle = tsC then
-      Result := TranslateC_DeclToText(Text_)
+      Result := Translate_C_Decl_To_Text(Text_)
+  else if TextStyle = tsXML then
+      Result := Translate_XML_Decl_To_Text(Text_)
   else
       Result := Text_;
 end;
@@ -3001,7 +3077,7 @@ begin
     end;
 end;
 
-class function TTextParsing.TranslatePascalDeclToText(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Pascal_Decl_To_Text(const Decl: TP_String): TP_String;
 var
   cPos: Integer;
 
@@ -3053,7 +3129,7 @@ begin
     end;
 end;
 
-class function TTextParsing.TranslateTextToPascalDecl(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_Pascal_Decl(const Decl: TP_String): TP_String;
 var
   cPos: Integer;
   c: TP_Char;
@@ -3103,7 +3179,7 @@ begin
       Result.Append(#39);
 end;
 
-class function TTextParsing.TranslateTextToPascalDeclWithUnicode(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_Pascal_Decl_With_Unicode(const Decl: TP_String): TP_String;
 var
   cPos: Integer;
   c: TP_Char;
@@ -3153,7 +3229,7 @@ begin
       Result.Append(#39);
 end;
 
-class function TTextParsing.TranslateC_DeclToText(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_C_Decl_To_Text(const Decl: TP_String): TP_String;
 var
   cPos: Integer;
   i: Integer;
@@ -3203,7 +3279,7 @@ begin
     end;
 end;
 
-class function TTextParsing.TranslateTextToC_Decl(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_C_Decl(const Decl: TP_String): TP_String;
   function GetCStyle(const c: TP_Char): TP_SystemString;
   var
     i: Integer;
@@ -3251,7 +3327,88 @@ begin
       Result.Append('"');
 end;
 
-class function TTextParsing.TranslatePascalDeclCommentToText(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_XML_Decl(const Decl: TP_String): TP_String;
+var
+  c: TP_Char;
+begin
+  Result := '"';
+  for c in Decl.buff do
+    begin
+      case c of
+        #0 .. #31: Result.Append('&#' + umlIntToStr(Ord(c)) + ';');
+        '&': Result.Append('&amp;');
+        #39: Result.Append('&apos;');
+        '"': Result.Append('&quot;');
+        '<': Result.Append('&lt;');
+        '>': Result.Append('&gt;');
+        else
+          Result.Append(c);
+      end;
+    end;
+  Result.Append('"');
+end;
+
+class function TTextParsing.Translate_XML_Decl_To_Text(const Decl: TP_String): TP_String;
+var
+  n: TP_String;
+  i, bPos, ePos: Integer;
+begin
+  Result := '';
+  if (Decl.First <> '"') or (Decl.Last <> '"') then
+      exit;
+
+  n := Decl;
+  n.DeleteFirst;
+  n.DeleteLast;
+  i := 1;
+  while i <= n.L do
+    begin
+      if n.ComparePos(i, '&#') then
+        begin
+          inc(i, 2);
+          bPos := i;
+          ePos := i;
+          while (ePos <= n.L) and (n[ePos] <> ';') do
+            begin
+              inc(ePos);
+            end;
+          Result.Append(TP_Char(umlStrToInt(n.GetString(bPos, ePos))));
+          i := ePos + 1;
+        end
+      else if n.ComparePos(i, '&amp;') then
+        begin
+          Result.Append('&');
+          inc(i, 5);
+        end
+      else if n.ComparePos(i, '&apos;') then
+        begin
+          Result.Append(#39);
+          inc(i, 6);
+        end
+      else if n.ComparePos(i, '&quot;') then
+        begin
+          Result.Append('"');
+          inc(i, 6);
+        end
+      else if n.ComparePos(i, '&lt;') then
+        begin
+          Result.Append('<');
+          inc(i, 4);
+        end
+      else if n.ComparePos(i, '&gt;') then
+        begin
+          Result.Append('>');
+          inc(i, 4);
+        end
+      else
+        begin
+          Result.Append(n[i]);
+          inc(i);
+        end;
+    end;
+end;
+
+class function TTextParsing.Translate_Pascal_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
 begin
   Result := Decl.TrimChar(#32#9);
   if umlMultipleMatch(False, '{*}', Result) then
@@ -3294,7 +3451,7 @@ begin
     end;
 end;
 
-class function TTextParsing.TranslateTextToPascalDeclComment(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_Pascal_Decl_Comment(const Decl: TP_String): TP_String;
 var
   n: TP_String;
 begin
@@ -3309,7 +3466,7 @@ begin
       Result := '{ ' + Decl.Text + ' }';
 end;
 
-class function TTextParsing.TranslateC_DeclCommentToText(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_C_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
 begin
   Result := Decl.TrimChar(#32#9);
   if umlMultipleMatch(False, '#*', Result) then
@@ -3343,7 +3500,7 @@ begin
     end;
 end;
 
-class function TTextParsing.TranslateTextToC_DeclComment(const Decl: TP_String): TP_String;
+class function TTextParsing.Translate_Text_To_C_Decl_Comment(const Decl: TP_String): TP_String;
 var
   n: TP_String;
 begin
@@ -3352,6 +3509,39 @@ begin
       Result := Decl
   else
       Result := '/* ' + n.Text + ' */';
+end;
+
+class function TTextParsing.Translate_XML_Decl_Comment_To_Text(const Decl: TP_String): TP_String;
+var
+  i: Integer;
+begin
+  if Decl.ComparePos(1, '<!--') then
+    begin
+      i := 5;
+      while (i <= Decl.L) do
+        if Decl.ComparePos(i, '-->') then
+            Break
+        else
+            inc(i);
+      Result := Decl.GetString(5, i);
+    end
+  else if Decl.ComparePos(1, '<![CDATA[') then
+    begin
+      i := 9;
+      while (i <= Decl.L) do
+        if Decl.ComparePos(i, ']]>') then
+            Break
+        else
+            inc(i);
+      Result := Decl.GetString(9, i);
+    end
+  else
+      Result := Decl;
+end;
+
+class function TTextParsing.Translate_Text_To_XML_Decl_Comment(const Decl: TP_String): TP_String;
+begin
+  Result := '<!--' + Decl + '-->';
 end;
 
 constructor TTextParsing.Create(const Text_: TP_String; Style_: TTextStyle; SpecialSymbol_: TListPascalString; SpacerSymbol_: TP_SystemString);

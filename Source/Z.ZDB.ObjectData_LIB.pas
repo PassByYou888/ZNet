@@ -230,7 +230,7 @@ type
   PObjectDataHandle = ^TObjectDataHandle;
 
   // backcall declaration
-  TObjectDataErrorProc = procedure(error: U_String) of object;
+  TObjectDataErrorProc = procedure(error: U_String; error_code: Integer) of object;
   TObjectDataHeaderDeleteProc = procedure(fPos: Int64) of object;
   TObjectDataHeaderWriteBeforeProc = procedure(fPos: Int64; var wVal: THeader; var Done: Boolean) of object;
   TObjectDataHeaderWriteAfterProc = procedure(fPos: Int64; var wVal: THeader) of object;
@@ -1092,7 +1092,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Header_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Header_.State), Header_.State);
   end;
 end;
 
@@ -1101,6 +1101,8 @@ begin
   Result := False;
   Header_.State := DB_ExceptionError;
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnReadHeader) then
         begin
@@ -1125,13 +1127,31 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Header_.NextHeader) then
+      begin
+        Header_.State := DB_Header_ReadNextPosError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Header_.PrevHeader) = False then
       begin
         Header_.State := DB_Header_ReadPrevPosError;
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Header_.PrevHeader) then
+      begin
+        Header_.State := DB_Header_ReadPrevPosError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Header_.DataPosition) = False then
+      begin
+        Header_.State := DB_Header_ReadPubMainPosError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, Header_.DataPosition) then
       begin
         Header_.State := DB_Header_ReadPubMainPosError;
         Result := False;
@@ -1155,7 +1175,19 @@ begin
         Result := False;
         exit;
       end;
+    if not(Header_.ID in [DB_Header_Field_ID, DB_Header_Item_ID]) then
+      begin
+        Header_.State := DB_Header_ReadIDError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_ID_Size, Header_.PositionID) = False then
+      begin
+        Header_.State := DB_Header_ReadPositionIDError;
+        Result := False;
+        exit;
+      end;
+    if not(Header_.PositionID in [DB_Header_First, DB_Header_Medium, DB_Header_Last, DB_Header_1]) then
       begin
         Header_.State := DB_Header_ReadPositionIDError;
         Result := False;
@@ -1184,7 +1216,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Header_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Header_.State), Header_.State);
   end;
 end;
 
@@ -1285,7 +1317,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State), Item_.State);
   end;
 end;
 
@@ -1294,6 +1326,8 @@ begin
   Result := False;
   Item_.State := DB_ExceptionError;
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnReadItem) then
         begin
@@ -1333,7 +1367,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Item_.FirstBlockPOS) then
+      begin
+        Item_.State := DB_Item_ReadFirstBlockPOSError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Item_.LastBlockPOS) = False then
+      begin
+        Item_.State := DB_Item_ReadLastBlockPOSError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, Item_.LastBlockPOS) then
       begin
         Item_.State := DB_Item_ReadLastBlockPOSError;
         Result := False;
@@ -1361,7 +1407,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State), Item_.State);
   end;
 end;
 
@@ -1443,7 +1489,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State), Field_.State);
   end;
 end;
 
@@ -1451,7 +1497,10 @@ function dbField_ReadRec(const fPos: Int64; var IOHnd: TIOHnd; var Field_: TFiel
 begin
   Result := False;
   Field_.State := DB_ExceptionError;
+
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnReadField) then
         begin
@@ -1497,7 +1546,19 @@ begin
         Result := False;
         exit;
       end;
+    if (Field_.HeaderCount > 0) and (not umlCheckSeedPos(IOHnd, Field_.FirstHeaderPOS)) then
+      begin
+        Field_.State := DB_Field_ReadFirstPosError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Field_.LastHeaderPOS) = False then
+      begin
+        Field_.State := DB_Field_ReadLastPosError;
+        Result := False;
+        exit;
+      end;
+    if (Field_.HeaderCount > 0) and (not umlCheckSeedPos(IOHnd, Field_.LastHeaderPOS)) then
       begin
         Field_.State := DB_Field_ReadLastPosError;
         Result := False;
@@ -1513,7 +1574,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State), Field_.State);
   end;
 end;
 
@@ -1594,7 +1655,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Block_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Block_.State), Block_.State);
   end;
 end;
 
@@ -1630,7 +1691,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Block_.CurrentBlockPOS) then
+      begin
+        Block_.State := DB_Item_ReadCurrentBlockPOSError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Block_.NextBlockPOS) = False then
+      begin
+        Block_.State := DB_Item_ReadNextBlockPOSError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, Block_.NextBlockPOS) then
       begin
         Block_.State := DB_Item_ReadNextBlockPOSError;
         Result := False;
@@ -1642,7 +1715,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Block_.PrevBlockPOS) then
+      begin
+        Block_.State := DB_Item_ReadPrevBlockPOSError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Block_.DataPosition) = False then
+      begin
+        Block_.State := DB_Item_ReadDataBlockPOSError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, Block_.DataPosition) then
       begin
         Block_.State := DB_Item_ReadDataBlockPOSError;
         Result := False;
@@ -1664,7 +1749,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Block_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Block_.State), Block_.State);
   end;
 end;
 
@@ -1781,7 +1866,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(DB_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(DB_.State), DB_.State);
   end;
 end;
 
@@ -1790,6 +1875,8 @@ begin
   Result := False;
   DB_.State := DB_ExceptionError;
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnReadTMDB) then
         begin
@@ -1855,7 +1942,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, DB_.DefaultFieldPOS) then
+      begin
+        DB_.State := DB_ReadDefaultPositionError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, DB_.FirstHeaderPOS) = False then
+      begin
+        DB_.State := DB_ReadFirstPositionError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, DB_.FirstHeaderPOS) then
       begin
         DB_.State := DB_ReadFirstPositionError;
         Result := False;
@@ -1867,7 +1966,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, DB_.LastHeaderPOS) then
+      begin
+        DB_.State := DB_ReadLastPositionError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, DB_.CurrentFieldPOS) = False then
+      begin
+        DB_.State := DB_ReadCurrentPositionError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, DB_.CurrentFieldPOS) then
       begin
         DB_.State := DB_ReadCurrentPositionError;
         Result := False;
@@ -1885,7 +1996,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(DB_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(DB_.State), DB_.State);
   end;
 end;
 
@@ -1966,7 +2077,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State), Item_.State);
   end;
 end;
 
@@ -1975,6 +2086,8 @@ begin
   Result := False;
   Item_.State := DB_ExceptionError;
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnOnlyReadItemRec) then
         begin
@@ -2008,7 +2121,19 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Item_.FirstBlockPOS) then
+      begin
+        Item_.State := DB_Item_ReadFirstBlockPOSError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Item_.LastBlockPOS) = False then
+      begin
+        Item_.State := DB_Item_ReadLastBlockPOSError;
+        Result := False;
+        exit;
+      end;
+    if not umlCheckSeedPos(IOHnd, Item_.LastBlockPOS) then
       begin
         Item_.State := DB_Item_ReadLastBlockPOSError;
         Result := False;
@@ -2036,7 +2161,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Item_.State), Item_.State);
   end;
 end;
 
@@ -2111,7 +2236,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State), Field_.State);
   end;
 end;
 
@@ -2120,6 +2245,8 @@ begin
   Result := False;
   Field_.State := DB_ExceptionError;
   try
+    if not umlCheckSeedPos(IOHnd, fPos) then
+        exit;
     if IOHnd.Data <> nil then
       if Assigned(PObjectDataHandle(IOHnd.Data)^.OnOnlyReadFieldRec) then
         begin
@@ -2159,6 +2286,12 @@ begin
         Result := False;
         exit;
       end;
+    if not umlCheckSeedPos(IOHnd, Field_.FirstHeaderPOS) then
+      begin
+        Field_.State := DB_Field_ReadFirstPosError;
+        Result := False;
+        exit;
+      end;
     if umlFileRead(IOHnd, DB_Position_Size, Field_.LastHeaderPOS) = False then
       begin
         Field_.State := DB_Field_ReadLastPosError;
@@ -2175,7 +2308,7 @@ begin
     if not Result then
       if IOHnd.Data <> nil then
         if Assigned(PObjectDataHandle(IOHnd.Data)^.OnError) then
-            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State));
+            PObjectDataHandle(IOHnd.Data)^.OnError(TranslateReturnCode(Field_.State), Field_.State);
   end;
 end;
 
@@ -4433,6 +4566,8 @@ begin
 
   Field_.HeaderCount := 0;
   Field_.UpFieldPOS := fPos;
+  Field_.FirstHeaderPOS := 0;
+  Field_.LastHeaderPOS := 0;
   if dbField_OnlyWriteFieldRec(Field_.RHeader.DataPosition, IOHnd, Field_) = False then
     begin
       Result := False;
@@ -4453,6 +4588,8 @@ begin
 
   Field_.HeaderCount := 0;
   Field_.UpFieldPOS := FieldPos;
+  Field_.FirstHeaderPOS := 0;
+  Field_.LastHeaderPOS := 0;
   if dbField_OnlyWriteFieldRec(Field_.RHeader.DataPosition, IOHnd, Field_) = False then
     begin
       Result := False;
@@ -4964,6 +5101,8 @@ begin
         end;
       Field_.HeaderCount := 0;
       Field_.UpFieldPOS := -1;
+      Field_.FirstHeaderPOS := 0;
+      Field_.LastHeaderPOS := 0;
       if dbField_OnlyWriteFieldRec(Field_.RHeader.DataPosition, DB_.IOHnd, Field_) = False then
         begin
           DB_.State := Field_.State;
@@ -5116,6 +5255,8 @@ begin
   f.Description := Description;
   f.HeaderCount := 0;
   f.UpFieldPOS := -1;
+  f.FirstHeaderPOS := 0;
+  f.LastHeaderPOS := 0;
   if dbField_OnlyWriteFieldRec(f.RHeader.DataPosition, DB_.IOHnd, f) = False then
     begin
       DB_.State := f.State;
@@ -5152,6 +5293,8 @@ begin
   f.Description := Description;
   f.HeaderCount := 0;
   f.UpFieldPOS := -1;
+  f.FirstHeaderPOS := 0;
+  f.LastHeaderPOS := 0;
   if dbField_OnlyWriteFieldRec(f.RHeader.DataPosition, DB_.IOHnd, f) = False then
     begin
       DB_.State := f.State;

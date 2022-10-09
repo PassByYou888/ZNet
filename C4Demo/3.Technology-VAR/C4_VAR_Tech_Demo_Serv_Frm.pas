@@ -33,7 +33,7 @@ type
     procedure UpdateStateTimerTimer(Sender: TObject);
   private
     procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
-    procedure Do_NMPool_Remove(Sender: TC40_Var_Service; NMPool_: TC40_VarService_NM_Pool);
+    procedure Do_NMPool_Remove(Sender: TC40_Var_Service; NMPool_: TC40_Var_Service_NM_Pool);
   public
   end;
 
@@ -148,7 +148,7 @@ begin
   arry := C40_ServicePool.GetFromServiceTyp('var');
   if length(arry) = 0 then
       exit;
-  TC40_Var_Service(arry[0]).NMBigPool.ProgressP(procedure(const NMPoolName_: PSystemString; NMPool_: TC40_VarService_NM_Pool)
+  TC40_Var_Service(arry[0]).NMBigPool.ProgressP(procedure(const NMPoolName_: PSystemString; NMPool_: TC40_Var_Service_NM_Pool)
     begin
       NMPool_.List.ProgressP(procedure(const NMName_: PSystemString; NM_: TNumberModule)
         var
@@ -168,7 +168,7 @@ begin
   Memo.Lines.Add(Text_);
 end;
 
-procedure TC4_VAR_Tech_Demo_Serv_Form.Do_NMPool_Remove(Sender: TC40_Var_Service; NMPool_: TC40_VarService_NM_Pool);
+procedure TC4_VAR_Tech_Demo_Serv_Form.Do_NMPool_Remove(Sender: TC40_Var_Service; NMPool_: TC40_Var_Service_NM_Pool);
 var
   RN: TTreeNode;
 begin

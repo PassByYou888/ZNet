@@ -58,11 +58,11 @@ type
     procedure AddCustom(SourFile, NewName: U_String; Overwrite_: Boolean);
     function ReplaceNewName(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
     procedure Clean;
-    procedure Update_To_Unit_Processor(Processor: TSource_Processor_Data_Pool);
     procedure SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
     procedure LoadFromStream(stream: TCore_Stream);
     procedure SaveToFile(fn: U_String);
     procedure LoadFromFile(fn: U_String);
+    procedure Build_Unit_Processor(Processor: TSource_Processor_Data_Pool);
   end;
 
   TSource_Processor_Data = record
@@ -78,9 +78,11 @@ type
     constructor Create;
     destructor Destroy; override;
     function Exists_OLD_Feature(OLD_Feature: U_String): Boolean;
+    function Remove_OLD_Feature(OLD_Feature: U_String): Integer;
     procedure Add_Feature(OLD_Feature, New_Feature: U_String);
     function Replace_OLD_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
     function Replace_New_Feature(OLD_, New_: U_String; OnlyWord, IgnoreCase: Boolean): Integer;
+    procedure Import(source: TSource_Processor_Data_Pool);
     procedure Clean;
     procedure SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
     procedure LoadFromStream(stream: TCore_Stream);
@@ -735,11 +737,11 @@ begin
                   end
                 else if p^.tokenType = ttTextDecl then
                   begin
-                    N := TTextParsing.TranslatePascalDeclToText(p^.Text);
+                    N := TTextParsing.Translate_Pascal_Decl_To_Text(p^.Text);
                     N2 := umlGetFileName(N);
                     prefix := umlGetFilePath(N);
                     N3 := UnitHash_.GetDefaultValue(N2, N2);
-                    N := TTextParsing.TranslateTextToPascalDecl(umlCombineFileName(prefix, N3));
+                    N := TTextParsing.Translate_Text_To_Pascal_Decl(umlCombineFileName(prefix, N3));
                     nComp := p^.Text <> N;
                     Result := Result or nComp;
                     if nComp then
@@ -2005,6 +2007,7 @@ begin
           disposeObject(tmp);
     end;
   RewritePascal_ZDB_Include_File_Processor(Eng_, UnitHash_, PatternHash_, Trace_Pool, OnStatus);
+
   Trace_Pool.Clean;
   disposeObject(Trace_Pool);
 
@@ -2334,42 +2337,6 @@ begin
   inherited Clear;
 end;
 
-procedure TSource_Define_Pool.Update_To_Unit_Processor(Processor: TSource_Processor_Data_Pool);
-var
-  tmpHash: THashStringList;
-
-  procedure AddKey_(N: U_String);
-  var
-    N2: U_String;
-  begin
-    N2 := N + '_LIB';
-    N2.First := N2.UpperChar[1];
-    tmpHash.Add(N, N2);
-  end;
-
-  function Fixed_Pascal_Keyword(N: U_String): U_String;
-  begin
-    Result := tmpHash.Replace(N, True, True, 0, 0);
-  end;
-
-var
-  i: Integer;
-  p: PSource_Define;
-  k: TPascal_Keyword;
-begin
-  Processor.Clean;
-  tmpHash := THashStringList.Create;
-  for k := low(TPascal_Keyword) to high(TPascal_Keyword) do
-    if Pascal_Keyword_DICT[k].Decl <> '' then
-        AddKey_(Pascal_Keyword_DICT[k].Decl);
-  for i := 0 to Count - 1 do
-    begin
-      p := items[i];
-      Processor.Add_Feature(umlGetFileName(p^.SourceFile), Fixed_Pascal_Keyword(umlGetFileName(p^.NewName)));
-    end;
-  disposeObject(tmpHash);
-end;
-
 procedure TSource_Define_Pool.SaveToStream(stream: TCore_Stream; Foramted_: Boolean);
 var
   js: TZ_JsonObject;
@@ -2446,6 +2413,42 @@ begin
   end;
 end;
 
+procedure TSource_Define_Pool.Build_Unit_Processor(Processor: TSource_Processor_Data_Pool);
+var
+  tmpHash: THashStringList;
+
+  procedure AddKey_(N: U_String);
+  var
+    N2: U_String;
+  begin
+    N2 := N + '_LIB';
+    N2.First := N2.UpperChar[1];
+    tmpHash.Add(N, N2);
+  end;
+
+  function Fixed_Pascal_Keyword(N: U_String): U_String;
+  begin
+    Result := tmpHash.Replace(N, True, True, 0, 0);
+  end;
+
+var
+  i: Integer;
+  p: PSource_Define;
+  k: TPascal_Keyword;
+begin
+  Processor.Clean;
+  tmpHash := THashStringList.Create;
+  for k := low(TPascal_Keyword) to high(TPascal_Keyword) do
+    if Pascal_Keyword_DICT[k].Decl <> '' then
+        AddKey_(Pascal_Keyword_DICT[k].Decl);
+  for i := 0 to Count - 1 do
+    begin
+      p := items[i];
+      Processor.Add_Feature(umlGetFileName(p^.SourceFile), Fixed_Pascal_Keyword(umlGetFileName(p^.NewName)));
+    end;
+  disposeObject(tmpHash);
+end;
+
 constructor TSource_Processor_Data_Pool.Create;
 begin
   inherited Create;
@@ -2467,10 +2470,29 @@ begin
   Result := False;
 end;
 
+function TSource_Processor_Data_Pool.Remove_OLD_Feature(OLD_Feature: U_String): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  i := 0;
+  while i < Count do
+    begin
+      if OLD_Feature.Same(@items[i]^.OLD_Feature) then
+        begin
+          Delete(i);
+          Inc(Result);
+        end
+      else
+          Inc(i);
+    end;
+end;
+
 procedure TSource_Processor_Data_Pool.Add_Feature(OLD_Feature, New_Feature: U_String);
 var
   p: PSource_Processor_Data;
 begin
+  Remove_OLD_Feature(OLD_Feature);
   new(p);
   p^.OLD_Feature := OLD_Feature;
   p^.New_Feature := New_Feature;
@@ -2550,6 +2572,18 @@ begin
         begin
           p^.New_Feature := N;
         end;
+    end;
+end;
+
+procedure TSource_Processor_Data_Pool.Import(source: TSource_Processor_Data_Pool);
+var
+  i: Integer;
+  p: PSource_Processor_Data;
+begin
+  for i := 0 to source.Count - 1 do
+    begin
+      p := source[i];
+      Add_Feature(p^.OLD_Feature, p^.New_Feature);
     end;
 end;
 
@@ -2832,3 +2866,4 @@ begin
 end;
 
 end.
+

@@ -2394,7 +2394,7 @@ end;
 constructor TDBStore.CreateNewMemory;
 begin
   inherited Create;
-  FDBEngine := TObjectDataManagerOfCache.CreateAsStream(TMS64.Create, '', ObjectDataMarshal.ID, False, True, True);
+  FDBEngine := TObjectDataManagerOfCache.CreateAsStream(TMS64.CustomCreate(8192), '', ObjectDataMarshal.ID, False, True, True);
   FDBEngine.CreateField('/Store', '');
   ReadHeaderInfo;
   DoCreateInit;

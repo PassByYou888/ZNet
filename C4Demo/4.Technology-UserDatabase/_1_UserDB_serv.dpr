@@ -64,9 +64,6 @@ begin
       StartService;
     end;
 
-  // 注册一个新用户，testUser为主标识符，主标识符可以用于数据指向和登录，例如数据条目，次要标识符则只能登录验证
-  GetMyUserDB_Service.RegUser('testUser', '123456');
-
   // 接通调度端
   Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(Internet_DP_Addr_, Internet_DP_Port_, 'DP', nil);
 

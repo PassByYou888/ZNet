@@ -10,7 +10,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
   ParentFont = True
   Menu = MainMenu_
   OldCreateOrder = True
-  Position = poDesktopCenter
+  Position = poScreenCenter
   PixelsPerInch = 96
   TextHeight = 13
   object memoSplitter: TSplitter
@@ -417,22 +417,79 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         end
       end
     end
+    object TS_UserDefine: TTabSheet
+      Caption = 'User Define'
+      ImageIndex = -1
+      object Panel1: TPanel
+        Left = 0
+        Top = 0
+        Width = 1376
+        Height = 30
+        Align = alTop
+        Alignment = taLeftJustify
+        BorderWidth = 2
+        TabOrder = 0
+        object update_custom_processor_Button: TButton
+          Left = 3
+          Top = 3
+          Width = 47
+          Height = 24
+          Align = alLeft
+          Caption = 'update'
+          TabOrder = 0
+          OnClick = update_custom_processor_ButtonClick
+        end
+        object NewDemoCustomDefine_Button: TButton
+          Left = 50
+          Top = 3
+          Width = 175
+          Height = 24
+          Align = alLeft
+          Caption = 'New Demo for Custom Define'
+          TabOrder = 1
+          OnClick = NewDemoCustomDefine_ButtonClick
+        end
+        object Reset_Custom_Processor_Button: TButton
+          Left = 1326
+          Top = 3
+          Width = 47
+          Height = 24
+          Align = alRight
+          Caption = 'reset'
+          TabOrder = 2
+          OnClick = Reset_Custom_Processor_ButtonClick
+        end
+      end
+      object CustomProccessorJsonSourceMemo: TMemo
+        Left = 0
+        Top = 30
+        Width = 1376
+        Height = 362
+        Align = alClient
+        DoubleBuffered = True
+        ParentDoubleBuffered = False
+        ScrollBars = ssBoth
+        TabOrder = 1
+        WordWrap = False
+        OnExit = SymbolJsonSourceMemoExit
+      end
+    end
     object TS_Model: TTabSheet
       Caption = 'Build Model'
       ImageIndex = 1
       object newDefList_Splitter: TSplitter
-        Left = 808
+        Left = 603
         Top = 0
         Width = 8
         Height = 392
         AutoSnap = False
         MinSize = 250
         ResizeStyle = rsUpdate
-        ExplicitLeft = 529
-        ExplicitHeight = 411
+        ExplicitLeft = 538
+        ExplicitTop = -3
       end
       object Sym_LSplitter: TSplitter
-        Left = 400
+        Left = 315
         Top = 0
         Width = 8
         Height = 392
@@ -443,50 +500,63 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         ExplicitTop = -2
         ExplicitHeight = 296
       end
-      object UnitRenamePanel: TPanel
-        Left = 816
+      object Splitter1: TSplitter
+        Left = 891
         Top = 0
-        Width = 560
+        Width = 8
+        Height = 392
+        AutoSnap = False
+        MinSize = 250
+        ResizeStyle = rsUpdate
+        ExplicitLeft = 923
+        ExplicitTop = -16
+      end
+      object UnitRenamePanel: TPanel
+        Left = 899
+        Top = 0
+        Width = 477
         Height = 392
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 0
+        ExplicitLeft = 611
+        ExplicitWidth = 765
         DesignSize = (
-          560
+          477
           392)
         object ApplyToolPanel: TPanel
           Left = 0
           Top = 0
-          Width = 560
+          Width = 477
           Height = 25
           Align = alTop
           BevelOuter = bvNone
           TabOrder = 0
+          ExplicitWidth = 765
         end
         object DoCreateModel_Btn: TButton
-          Left = 151
+          Left = 6
           Top = 77
-          Width = 271
-          Height = 40
+          Width = 187
+          Height = 28
           Caption = 'Do Build Pascal Code rewrite model.'
           TabOrder = 1
           OnClick = DoCreateModel_BtnClick
         end
         object ModelOuytputEdit: TLabeledEdit
-          Left = 71
-          Top = 37
-          Width = 453
+          Left = 6
+          Top = 50
+          Width = 435
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           EditLabel.Width = 49
           EditLabel.Height = 13
           EditLabel.Caption = 'Model file:'
-          LabelPosition = lpLeft
           TabOrder = 2
         end
         object Browse_ModelOuytput_Btn: TButton
-          Left = 530
-          Top = 35
+          Left = 447
+          Top = 48
           Width = 25
           Height = 25
           Anchors = [akTop, akRight]
@@ -496,9 +566,9 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         end
       end
       object unit_L_Panel: TPanel
-        Left = 408
+        Left = 323
         Top = 0
-        Width = 400
+        Width = 280
         Height = 392
         Align = alLeft
         BevelOuter = bvNone
@@ -506,7 +576,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         object Unit_Processor_LB: TListBox
           Left = 0
           Top = 26
-          Width = 400
+          Width = 280
           Height = 366
           Align = alClient
           DoubleBuffered = True
@@ -519,7 +589,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         object u_model_t_Panel: TPanel
           Left = 0
           Top = 0
-          Width = 400
+          Width = 280
           Height = 26
           Align = alTop
           Alignment = taLeftJustify
@@ -548,7 +618,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
       object Marco_rep_L_Panel: TPanel
         Left = 0
         Top = 0
-        Width = 400
+        Width = 315
         Height = 392
         Align = alLeft
         BevelOuter = bvNone
@@ -556,7 +626,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         object SymbolReplaceListBox: TListBox
           Left = 0
           Top = 26
-          Width = 400
+          Width = 315
           Height = 366
           Align = alClient
           DoubleBuffered = True
@@ -569,14 +639,14 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
         object sym_model_t_Panel: TPanel
           Left = 0
           Top = 0
-          Width = 400
+          Width = 315
           Height = 26
           Align = alTop
           Alignment = taLeftJustify
           Caption = 'Symbol Rewrite'
           TabOrder = 1
           DesignSize = (
-            400
+            315
             26)
           object rebuild_sym_Button: TButton
             Left = 104
@@ -597,7 +667,7 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
             OnClick = Swap_Symbol_Click
           end
           object check_model_Button: TButton
-            Left = 337
+            Left = 252
             Top = 0
             Width = 57
             Height = 25
@@ -608,9 +678,60 @@ object PascalRewriteModelForm: TPascalRewriteModelForm
           end
         end
       end
+      object custom_Rewrite_Panel: TPanel
+        Left = 611
+        Top = 0
+        Width = 280
+        Height = 392
+        Align = alLeft
+        BevelOuter = bvNone
+        TabOrder = 3
+        ExplicitLeft = 823
+        object custom_rewrite_ListBox: TListBox
+          Left = 0
+          Top = 26
+          Width = 280
+          Height = 366
+          Align = alClient
+          DoubleBuffered = True
+          ItemHeight = 13
+          MultiSelect = True
+          ParentDoubleBuffered = False
+          TabOrder = 0
+          OnKeyUp = Unit_Processor_LBKeyUp
+        end
+        object custom_Rewrite_t_Panel: TPanel
+          Left = 0
+          Top = 0
+          Width = 280
+          Height = 26
+          Align = alTop
+          Alignment = taLeftJustify
+          Caption = 'Custom Rewrite'
+          TabOrder = 1
+          object rebuild_custom_Button: TButton
+            Left = 89
+            Top = 0
+            Width = 71
+            Height = 25
+            Caption = 'Rebuild'
+            TabOrder = 0
+            OnClick = rebuild_custom_ButtonClick
+          end
+          object swap_custom_Button: TButton
+            Left = 166
+            Top = 0
+            Width = 57
+            Height = 25
+            Caption = 'Swap'
+            TabOrder = 1
+            OnClick = swap_custom_ButtonClick
+          end
+        end
+      end
     end
     object TS_Test: TTabSheet
-      Caption = 'test'
+      Caption = 'TEST'
       ImageIndex = 2
       DesignSize = (
         1376

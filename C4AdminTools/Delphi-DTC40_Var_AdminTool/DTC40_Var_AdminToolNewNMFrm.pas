@@ -63,7 +63,7 @@ procedure TDTC40_Var_AdminToolNewNMForm.CreateNMButtonClick(Sender: TObject);
 var
   i: Integer;
   n: U_String;
-  nmPool: TC40_VarService_NM_Pool;
+  nmPool: TC40_Var_Service_NM_Pool;
 begin
   if DTC40_Var_AdminToolForm.CurrentClient = nil then
       exit;

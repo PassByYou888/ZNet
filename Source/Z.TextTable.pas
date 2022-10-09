@@ -396,11 +396,11 @@ begin
       if (p^.Picked) and (p^.index = index) then
         begin
           case p^.TextStyle of
-            tsPascalText: p^.DefineText := TTextParsing.TranslateTextToPascalDecl(newDefine);
-            tsPascalComment: p^.DefineText := TTextParsing.TranslateTextToPascalDeclComment(newDefine);
-            tsCText: p^.DefineText := TTextParsing.TranslateTextToC_Decl(newDefine);
-            tsCComment: p^.DefineText := TTextParsing.TranslateTextToC_DeclComment(newDefine);
-            tsDFMText: p^.DefineText := TTextParsing.TranslateTextToPascalDeclWithUnicode(newDefine);
+            tsPascalText: p^.DefineText := TTextParsing.Translate_Text_To_Pascal_Decl(newDefine);
+            tsPascalComment: p^.DefineText := TTextParsing.Translate_Text_To_Pascal_Decl_Comment(newDefine);
+            tsCText: p^.DefineText := TTextParsing.Translate_Text_To_C_Decl(newDefine);
+            tsCComment: p^.DefineText := TTextParsing.Translate_Text_To_C_Decl_Comment(newDefine);
+            tsDFMText: p^.DefineText := TTextParsing.Translate_Text_To_Pascal_Decl_With_Unicode(newDefine);
             else p^.DefineText := newDefine;
           end;
 
@@ -512,11 +512,11 @@ begin
           begin
             expList.Add(p^.OriginText, p, False);
             case p^.TextStyle of
-              tsPascalText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.TranslatePascalDeclToText(p^.DefineText).Text]));
-              tsCText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.TranslateC_DeclToText(p^.DefineText).Text]));
-              tsPascalComment: ns.Add(Format('%d=%s', [p^.index, TTextParsing.TranslatePascalDeclCommentToText(p^.DefineText).Text]));
-              tsCComment: ns.Add(Format('%d=%s', [p^.index, TTextParsing.TranslateC_DeclCommentToText(p^.DefineText).Text]));
-              tsDFMText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.TranslatePascalDeclToText(p^.DefineText).Text]));
+              tsPascalText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.Translate_Pascal_Decl_To_Text(p^.DefineText).Text]));
+              tsCText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.Translate_C_Decl_To_Text(p^.DefineText).Text]));
+              tsPascalComment: ns.Add(Format('%d=%s', [p^.index, TTextParsing.Translate_Pascal_Decl_Comment_To_Text(p^.DefineText).Text]));
+              tsCComment: ns.Add(Format('%d=%s', [p^.index, TTextParsing.Translate_C_Decl_Comment_To_Text(p^.DefineText).Text]));
+              tsDFMText: ns.Add(Format('%d=%s', [p^.index, TTextParsing.Translate_Pascal_Decl_To_Text(p^.DefineText).Text]));
               else ns.Add(Format('%d=%s', [p^.index, p^.DefineText]));
             end;
           end;
@@ -579,3 +579,4 @@ begin
 end;
 
 end.
+

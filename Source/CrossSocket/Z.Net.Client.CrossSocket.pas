@@ -398,9 +398,12 @@ begin
 
   TCore_Thread.Sleep(10);
 
-  dt := GetTimeTick + 3000;
+  dt := GetTimeTick + 5000;
   while (not LastCompleted) and (GetTimeTick < dt) do
+    begin
+      BuildIntf.Progress;
       CheckThreadSynchronize(5);
+    end;
 
   if LastResult then
     begin
@@ -412,7 +415,7 @@ begin
       BuildIntf.DoConnected(p_io);
     end;
 
-  dt := GetTimeTick + 4000;
+  dt := GetTimeTick + 5000;
   while (LastCompleted) and (LastResult) and (not BuildIntf.RemoteInited) do
     begin
       BuildIntf.Progress;

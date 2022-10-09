@@ -57,9 +57,11 @@ begin
   // WaitConnectedDone可以同时检查多个依赖服务是否就绪
   Z.Net.C4.C40_ClientPool.WaitConnectedDoneP('DP|UserDB', procedure(States_: TC40_Custom_ClientPool_Wait_States)
     begin
+      GetMyUserDB_Client.Usr_RegC('testUser', '123456', nil);
+
       // 给testUser永久增加一个可用与登录的别名，例如增加用户的电子邮件，手机号码
       GetMyUserDB_Client.Usr_NewIdentifierP('testUser', 'test@mail.com',
-        procedure(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString)
+          procedure(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString)
         begin
           DoStatus(info_);
         end);

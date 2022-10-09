@@ -8,16 +8,16 @@ uses
 
   System.Math,
 
-  Z.Core, Z.PascalStrings, Z.Parsing, Z.UnicodeMixedLib;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Parsing, Z.UnicodeMixedLib;
 
 type
   TNumTransForm = class(TForm)
     Memo1: TMemo;
     Memo2: TMemo;
-    Button1: TButton;
-    Button2: TButton;
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    bin2decButton: TButton;
+    dec2binButton: TButton;
+    procedure bin2decButtonClick(Sender: TObject);
+    procedure dec2binButtonClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -65,7 +65,7 @@ begin
       Result.DeleteFirst;
 end;
 
-procedure TNumTransForm.Button1Click(Sender: TObject);
+procedure TNumTransForm.bin2decButtonClick(Sender: TObject);
 var
   dest: TPascalString;
   procedure Append(s: SystemString);
@@ -90,13 +90,13 @@ begin
       case p^.tokenType of
         ttTextDecl:
           begin
-            n := TTextParsing.TranslatePascalDeclToText(p^.Text);
-            Append(TTextParsing.TranslateTextToPascalDecl(n));
+            n := TTextParsing.Translate_Pascal_Decl_To_Text(p^.Text);
+            Append(TTextParsing.Translate_Text_To_Pascal_Decl(n));
           end;
         ttComment:
           begin
-            n := TTextParsing.TranslatePascalDeclCommentToText(p^.Text);
-            Append(TTextParsing.TranslateTextToPascalDeclComment(umlTrimSpace(n)));
+            n := TTextParsing.Translate_Pascal_Decl_Comment_To_Text(p^.Text);
+            Append(TTextParsing.Translate_Text_To_Pascal_Decl_Comment(umlTrimSpace(n)));
           end;
         ttNumber:
           begin
@@ -138,7 +138,7 @@ begin
   Memo2.Text := dest;
 end;
 
-procedure TNumTransForm.Button2Click(Sender: TObject);
+procedure TNumTransForm.dec2binButtonClick(Sender: TObject);
 var
   dest: TPascalString;
   procedure Append(s: SystemString);
@@ -163,13 +163,13 @@ begin
       case p^.tokenType of
         ttTextDecl:
           begin
-            n := TTextParsing.TranslatePascalDeclToText(p^.Text);
-            Append(TTextParsing.TranslateTextToPascalDecl(n));
+            n := TTextParsing.Translate_Pascal_Decl_To_Text(p^.Text);
+            Append(TTextParsing.Translate_Text_To_Pascal_Decl(n));
           end;
         ttComment:
           begin
-            n := TTextParsing.TranslatePascalDeclCommentToText(p^.Text);
-            Append(TTextParsing.TranslateTextToPascalDeclComment(umlTrimSpace(n)));
+            n := TTextParsing.Translate_Pascal_Decl_Comment_To_Text(p^.Text);
+            Append(TTextParsing.Translate_Text_To_Pascal_Decl_Comment(umlTrimSpace(n)));
           end;
         ttNumber:
           begin
@@ -195,4 +195,4 @@ begin
 end;
 
 end.
- 
+

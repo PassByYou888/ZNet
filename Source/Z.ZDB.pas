@@ -104,11 +104,13 @@ type
     procedure SetOverWriteItem(Value: Boolean);
     procedure SetAllowSameHeaderName(Value: Boolean);
 
-    procedure DBErrorProc(error: U_String);
+    procedure DBErrorProc(error: U_String; error_code: Integer);
     function DoOpen(): Boolean;
     function NewHandle(Stream_: TCore_Stream; const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead, IsNewDB_: Boolean): Boolean; overload;
     function NewHandle(FixedStringL: Byte; Stream_: TCore_Stream; const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead, IsNewDB_: Boolean): Boolean; overload;
   public
+    Last_Error: U_String;
+    Last_Error_Code: Integer;
     // Open Database
     constructor Open(const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead: Boolean); overload;
     // create new Database
@@ -168,6 +170,7 @@ type
     procedure ExpItemToDisk(Path_, DBItem, ExpFilename_: SystemString);
 
     // state
+    function Is_Error: Boolean;
     function Is_BACKUP_Mode: Boolean;
     function Is_Flush_Mode: Boolean;
     function isAbort: Boolean;
@@ -298,6 +301,8 @@ type
 
     // user custom data
     property Data: Pointer read FData write FData;
+
+    class function Marshal_ID: Byte;
   end;
 
   TObjectDataManagerClass = class of TObjectDataManager;
@@ -650,9 +655,11 @@ begin
   FDB_HND.AllowSameHeaderName := Value;
 end;
 
-procedure TObjectDataManager.DBErrorProc(error: U_String);
+procedure TObjectDataManager.DBErrorProc(error: U_String; error_code: Integer);
 begin
-  DoStatus('error: %s - %s!', [ObjectName, error.Text]);
+  Last_Error := error;
+  Last_Error_Code := error_code;
+  DoStatus('error: %s - %s code: %d', [ObjectName, error.Text, error_code]);
 end;
 
 function TObjectDataManager.DoOpen(): Boolean;
@@ -722,6 +729,8 @@ end;
 constructor TObjectDataManager.Open(const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead: Boolean);
 begin
   inherited Create;
+  Last_Error := '';
+  Last_Error_Code := 0;
   if dbOnlyRead then
       CheckAndRemoveFlush(dbFile)
   else
@@ -732,6 +741,8 @@ end;
 constructor TObjectDataManager.CreateNew(const dbFile: SystemString; const dbItemID: Byte);
 begin
   inherited Create;
+  Last_Error := '';
+  Last_Error_Code := 0;
   CheckAndRemoveFlush(dbFile);
   NewHandle(nil, dbFile, dbItemID, False, True);
 end;
@@ -739,6 +750,8 @@ end;
 constructor TObjectDataManager.CreateNew(FixedStringL: Byte; const dbFile: SystemString; const dbItemID: Byte);
 begin
   inherited Create;
+  Last_Error := '';
+  Last_Error_Code := 0;
   CheckAndRemoveFlush(dbFile);
   NewHandle(FixedStringL, nil, dbFile, dbItemID, False, True);
 end;
@@ -747,6 +760,8 @@ constructor TObjectDataManager.CreateAsStream(Stream_: TCore_Stream;
   const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead, isNewDB, DestroyTimeFreeStream: Boolean);
 begin
   inherited Create;
+  Last_Error := '';
+  Last_Error_Code := 0;
   NewHandle(Stream_, dbFile, dbItemID, dbOnlyRead, isNewDB);
   AutoFreeHandle := DestroyTimeFreeStream;
 end;
@@ -755,6 +770,8 @@ constructor TObjectDataManager.CreateAsStream(FixedStringL: Byte; Stream_: TCore
   const dbFile: SystemString; const dbItemID: Byte; dbOnlyRead, isNewDB, DestroyTimeFreeStream: Boolean);
 begin
   inherited Create;
+  Last_Error := '';
+  Last_Error_Code := 0;
   NewHandle(FixedStringL, Stream_, dbFile, dbItemID, dbOnlyRead, isNewDB);
   AutoFreeHandle := DestroyTimeFreeStream;
 end;
@@ -1355,6 +1372,11 @@ begin
       end;
       ItemClose(itmHnd);
     end;
+end;
+
+function TObjectDataManager.Is_Error: Boolean;
+begin
+  Result := Last_Error_Code < 0;
 end;
 
 function TObjectDataManager.Is_BACKUP_Mode: Boolean;
@@ -2133,6 +2155,11 @@ end;
 function TObjectDataManager.HandlePtr: PObjectDataHandle;
 begin
   Result := @FDB_HND;
+end;
+
+class function TObjectDataManager.Marshal_ID: Byte;
+begin
+  Result := ObjectDataMarshal.ID;
 end;
 
 procedure TObjectDataManagerOfCache.HeaderCache_DataFreeProc(p: Pointer);

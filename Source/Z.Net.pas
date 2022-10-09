@@ -5282,6 +5282,8 @@ begin
       exit;
     end;
 
+{$IFDEF OverflowCheck}{$Q-}{$ENDIF}
+{$IFDEF RangeCheck}{$R-}{$ENDIF}
   SequencePacketReceivedBuffer.Position := SequencePacketReceivedBuffer.Size;
   if (buff <> nil) and (siz > 0) then
       SequencePacketReceivedBuffer.WritePtr(buff, siz);
@@ -5460,6 +5462,8 @@ begin
       SequencePacketReceivedPool.Delete(SequenceNumberOnReceivedCounter);
       inc(SequenceNumberOnReceivedCounter);
     end;
+{$IFDEF OverflowCheck}{$Q+}{$ENDIF}
+{$IFDEF RangeCheck}{$R+}{$ENDIF}
 end;
 
 procedure TPeerIO.Send_Free_OnPtr(var Sequence_ID_: Cardinal; var p: PSequencePacket);

@@ -762,6 +762,135 @@ begin
     end;
 end;
 
+class procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Swap_(var Left, Right: T_);
+var
+  tmp: T_;
+begin
+  tmp := Left;
+  Left := Right;
+  Right := tmp;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_C(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      tmp := BuildArrayMemory;
+      Sort_C(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+    end;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_M(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      tmp := BuildArrayMemory;
+      Sort_M(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+    end;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_P(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      tmp := BuildArrayMemory;
+      Sort_P(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+    end;
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.BuildArrayMemory: PQueueArrayStruct;
 var
   i: NativeInt;
@@ -772,7 +901,7 @@ begin
   // copy to order buffer
   if FNum > 0 then
     begin
-      Result := System.GetMemory(SizeOf(PQueueStruct) * FNum);
+      Result := System.GetMemory(DeltaStep(SizeOf(PQueueStruct) * FNum, 8));
       i := 0;
       p := FFirst;
       tmp := PPQueueStruct(Result);
@@ -1814,6 +1943,141 @@ begin
   end;
 end;
 
+class procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Swap_(var Left, Right: T_);
+var
+  tmp: T_;
+begin
+  tmp := Left;
+  Left := Right;
+  Right := tmp;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_C(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      FCritical.Lock;
+      tmp := BuildArrayMemory;
+      Sort_C(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+      FCritical.UnLock;
+    end;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_M(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      FCritical.Lock;
+      tmp := BuildArrayMemory;
+      Sort_M(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+      FCritical.UnLock;
+    end;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
+var
+  i, j: NativeInt;
+  p: PQueueStruct;
+begin
+  repeat
+    i := L;
+    j := R;
+    p := Arry_^[(L + R) shr 1];
+    repeat
+      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
+          inc(i);
+      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
+          Dec(j);
+      if i <= j then
+        begin
+          if i <> j then
+              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
+          inc(i);
+          Dec(j);
+        end;
+    until i > j;
+    if L < j then
+        Sort_P(Arry_, L, j, OnSort);
+    L := i;
+  until i >= R;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P);
+var
+  tmp: PQueueArrayStruct;
+begin
+  if (Num > 1) and (Assigned(OnSort)) then
+    begin
+      FCritical.Lock;
+      tmp := BuildArrayMemory;
+      Sort_P(tmp, 0, Num - 1, OnSort);
+      System.FreeMemory(tmp);
+      FCritical.UnLock;
+    end;
+end;
+
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.BuildArrayMemory: PQueueArrayStruct;
 var
   i: NativeInt;
@@ -1826,7 +2090,7 @@ begin
     // copy to order buffer
     if FNum > 0 then
       begin
-        Result := System.GetMemory(SizeOf(PQueueStruct) * FNum);
+        Result := System.GetMemory(DeltaStep(SizeOf(PQueueStruct) * FNum, 8));
         i := 0;
         p := FFirst;
         tmp := PPQueueStruct(Result);

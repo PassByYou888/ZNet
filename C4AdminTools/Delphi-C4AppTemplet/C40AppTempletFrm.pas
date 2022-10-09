@@ -129,7 +129,7 @@ type
     procedure UpdateTunnelInfo; overload;
     procedure UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel; dest: TStrings); overload;
     procedure UpdateSaaSInfo;
-    class function GetPathTreeNode(Text_, Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+    class function GetPathTreeNode(Text_, Path_Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
   public
     IsCommandLineWorkEnvir: Boolean;
     constructor Create(AOwner: TComponent); override;
@@ -523,9 +523,9 @@ procedure TC40AppTempletForm.GenerateCmdLineButtonClick(Sender: TObject);
   function conv_(sour: SystemString): SystemString;
   begin
     if Pas_RadioButton.Checked then
-        Result := TTextParsing.TranslateTextToPascalDecl(sour)
+        Result := TTextParsing.Translate_Text_To_Pascal_Decl(sour)
     else if c_RadioButton.Checked then
-        Result := TTextParsing.TranslateTextToC_Decl(sour)
+        Result := TTextParsing.Translate_Text_To_C_Decl(sour)
     else
         Result := sour;
   end;
@@ -584,9 +584,9 @@ procedure TC40AppTempletForm.Generate_Console_CmdLineButtonClick(Sender: TObject
   function conv_(sour: SystemString): SystemString;
   begin
     if Pas_RadioButton.Checked then
-        Result := TTextParsing.TranslateTextToPascalDecl(sour)
+        Result := TTextParsing.Translate_Text_To_Pascal_Decl(sour)
     else if c_RadioButton.Checked then
-        Result := TTextParsing.TranslateTextToC_Decl(sour)
+        Result := TTextParsing.Translate_Text_To_C_Decl(sour)
     else
         Result := sour;
   end;
@@ -1079,16 +1079,18 @@ begin
     end;
 end;
 
-class function TC40AppTempletForm.GetPathTreeNode(Text_, Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+class function TC40AppTempletForm.GetPathTreeNode(Text_, Path_Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+const
+  Key_Value_Split: SystemChar = '@';
 var
   i: Integer;
   prefix_, match_, value_: U_String;
 begin
-  prefix_ := umlGetFirstStr(Text_, Split_);
-  if prefix_.Exists('@') then
+  prefix_ := umlGetFirstStr(Text_, Path_Split_);
+  if prefix_.Exists(Key_Value_Split) then
     begin
-      match_ := umlGetFirstStr(prefix_, '@');
-      value_ := umlDeleteFirstStr(prefix_, '@');
+      match_ := umlGetFirstStr(prefix_, Key_Value_Split);
+      value_ := umlDeleteFirstStr(prefix_, Key_Value_Split);
     end
   else
     begin
@@ -1096,7 +1098,7 @@ begin
       value_ := prefix_;
     end;
 
-  if Text_ = '' then
+  if prefix_ = '' then
       Result := RootNode_
   else if RootNode_ = nil then
     begin
@@ -1107,7 +1109,7 @@ begin
               if (TreeView_.Items[i].Parent = RootNode_) and umlMultipleMatch(True, match_, TreeView_.Items[i].Text) then
                 begin
                   TreeView_.Items[i].Text := value_;
-                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Split_), Split_, TreeView_, TreeView_.Items[i]);
+                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, TreeView_.Items[i]);
                   exit;
                 end;
             end;
@@ -1120,7 +1122,7 @@ begin
           SelectedIndex := -1;
           Data := nil;
         end;
-      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Split_), Split_, TreeView_, Result);
+      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, Result);
     end
   else
     begin
@@ -1131,7 +1133,7 @@ begin
               if (RootNode_.Item[i].Parent = RootNode_) and umlMultipleMatch(True, match_, RootNode_.Item[i].Text) then
                 begin
                   RootNode_.Item[i].Text := value_;
-                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Split_), Split_, TreeView_, RootNode_.Item[i]);
+                  Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, RootNode_.Item[i]);
                   exit;
                 end;
             end;
@@ -1144,7 +1146,7 @@ begin
           SelectedIndex := -1;
           Data := nil;
         end;
-      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Split_), Split_, TreeView_, Result);
+      Result := GetPathTreeNode(umlDeleteFirstStr(Text_, Path_Split_), Path_Split_, TreeView_, Result);
     end;
 end;
 

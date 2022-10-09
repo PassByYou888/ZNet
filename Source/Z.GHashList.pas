@@ -19,6 +19,19 @@ function IsEqual__(const Val1, Val2, Epsilon_: Double): Boolean; overload;
 
 type
 {$IFDEF FPC}
+  TPascalString_Hash_Pool__ = specialize TBig_Hash_Pair_Pool<TPascalString, TPascalString>;
+  TPascalString_Hash_Pool = class(TPascalString_Hash_Pool__)
+{$ELSE FPC}
+  TPascalString_Hash_Pool = class(TBig_Hash_Pair_Pool<TPascalString, TPascalString>)
+{$ENDIF FPC}
+  public
+    function Get_Key_Hash(Key_: TPascalString): THash; override;
+    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    procedure DoFree(var Key: TPascalString; var Value: TPascalString); override;
+    function Compare_Value(Value_1, Value_2: TPascalString): Boolean; override;
+  end;
+
+{$IFDEF FPC}
   generic TString_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<SystemString, T_>)
 {$ELSE FPC}
   TString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<SystemString, T_>)
@@ -106,7 +119,7 @@ type
 {$ENDIF FPC}
   end;
 
-// **********************************************************************************************************
+  // **********************************************************************************************************
 
 {$IFDEF FPC}
   generic TString_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
@@ -203,7 +216,7 @@ type
 {$ENDIF FPC}
   end;
 
-// **********************************************************************************************************
+  // **********************************************************************************************************
 
 {$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
@@ -301,20 +314,42 @@ implementation
 
 uses SysUtils;
 
-function IsEqual__(const Val1, Val2, Epsilon_: Single): boolean;
+function IsEqual__(const Val1, Val2, Epsilon_: Single): Boolean;
 var
-  Diff: single;
+  Diff: Single;
 begin
   Diff := Val1 - Val2;
   Result := ((-Epsilon_ <= Diff) and (Diff <= Epsilon_));
 end;
 
-function IsEqual__(const Val1, Val2, Epsilon_: Double): boolean;
+function IsEqual__(const Val1, Val2, Epsilon_: Double): Boolean;
 var
-  Diff: single;
+  Diff: Single;
 begin
   Diff := Val1 - Val2;
   Result := ((-Epsilon_ <= Diff) and (Diff <= Epsilon_));
+end;
+
+function TPascalString_Hash_Pool.Get_Key_Hash(Key_: TPascalString): THash;
+begin
+  Result := FastHashPPascalString(@Key_);
+  Result := Get_CRC32(@Result, SizeOf(THash));
+end;
+
+function TPascalString_Hash_Pool.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+begin
+  Result := Key_1.Same(@Key_2);
+end;
+
+procedure TPascalString_Hash_Pool.DoFree(var Key: TPascalString; var Value: TPascalString);
+begin
+  Key := '';
+  Value := '';
+end;
+
+function TPascalString_Hash_Pool.Compare_Value(Value_1, Value_2: TPascalString): Boolean;
+begin
+  Result := Value_1.Same(@Value_2);
 end;
 
 function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: SystemString): THash;

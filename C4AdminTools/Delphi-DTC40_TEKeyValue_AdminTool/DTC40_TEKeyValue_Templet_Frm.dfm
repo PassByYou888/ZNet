@@ -146,7 +146,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
     BevelOuter = bvNone
     TabOrder = 2
     object lpLSplitter: TSplitter
-      Left = 326
+      Left = 388
       Top = 0
       Width = 8
       Height = 308
@@ -162,7 +162,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
     object leftPanel: TPanel
       Left = 0
       Top = 0
-      Width = 326
+      Width = 388
       Height = 308
       Align = alLeft
       BevelOuter = bvNone
@@ -170,7 +170,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
       object TE_ListView: TListView
         Left = 0
         Top = 33
-        Width = 326
+        Width = 388
         Height = 275
         Align = alClient
         BevelOuter = bvNone
@@ -187,6 +187,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
         RowSelect = True
         ParentColor = True
         ParentDoubleBuffered = False
+        PopupMenu = PopupMenu__
         ShowColumnHeaders = False
         TabOrder = 0
         ViewStyle = vsReport
@@ -196,55 +197,68 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
       object TE_L_ToolBarPanel: TPanel
         Left = 0
         Top = 0
-        Width = 326
+        Width = 388
         Height = 33
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 1
-        DesignSize = (
-          326
-          33)
         object search_TE_Button: TButton
-          Left = 260
-          Top = 4
+          Left = 330
+          Top = 2
           Width = 54
           Height = 25
-          Anchors = [akTop, akRight]
           Caption = 'Serach'
-          TabOrder = 0
+          TabOrder = 4
           OnClick = search_TE_ButtonClick
         end
-        object SearchEdit: TLabeledEdit
-          Left = 56
+        object FilterEdit: TLabeledEdit
+          Left = 38
           Top = 6
-          Width = 120
+          Width = 57
           Height = 21
-          Anchors = [akLeft, akTop, akRight]
-          EditLabel.Width = 24
+          EditLabel.Width = 26
           EditLabel.Height = 13
-          EditLabel.Caption = 'text:'
+          EditLabel.Caption = 'filter:'
           LabelPosition = lpLeft
-          TabOrder = 1
+          TabOrder = 0
         end
         object NumEdit: TLabeledEdit
-          Left = 214
+          Left = 284
           Top = 6
           Width = 40
           Height = 21
-          Anchors = [akTop, akRight]
           EditLabel.Width = 25
           EditLabel.Height = 13
           EditLabel.Caption = 'Num:'
           LabelPosition = lpLeft
+          TabOrder = 3
+          Text = '100'
+        end
+        object SearchEdit: TLabeledEdit
+          Left = 142
+          Top = 6
+          Width = 56
+          Height = 21
+          EditLabel.Width = 36
+          EditLabel.Height = 13
+          EditLabel.Caption = 'search:'
+          LabelPosition = lpLeft
+          TabOrder = 1
+        end
+        object word_CheckBox: TCheckBox
+          Left = 204
+          Top = 10
+          Width = 45
+          Height = 17
+          Caption = 'word'
           TabOrder = 2
-          Text = '5000'
         end
       end
     end
     object rCliPanel: TPanel
-      Left = 334
+      Left = 396
       Top = 0
-      Width = 735
+      Width = 673
       Height = 308
       Align = alClient
       BevelOuter = bvNone
@@ -252,7 +266,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
       object TE_Memo: TMemo
         Left = 0
         Top = 33
-        Width = 735
+        Width = 673
         Height = 275
         Align = alClient
         BevelInner = bvNone
@@ -272,20 +286,16 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
       object Panel1: TPanel
         Left = 0
         Top = 0
-        Width = 735
+        Width = 673
         Height = 33
         Align = alTop
         BevelOuter = bvNone
         TabOrder = 1
-        DesignSize = (
-          735
-          33)
         object UpdateMemoTo_TE_Button: TButton
-          Left = 182
-          Top = 4
+          Left = 289
+          Top = 2
           Width = 69
           Height = 25
-          Anchors = [akTop, akRight]
           Caption = 'Update'
           TabOrder = 0
           OnClick = UpdateMemoTo_TE_ButtonClick
@@ -293,7 +303,7 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
         object TE_Name_Edit: TLabeledEdit
           Left = 56
           Top = 6
-          Width = 120
+          Width = 227
           Height = 21
           EditLabel.Width = 46
           EditLabel.Height = 13
@@ -309,5 +319,13 @@ object DTC40_TEKeyValue_Templet_Form: TDTC40_TEKeyValue_Templet_Form
     OnTimer = netTimerTimer
     Left = 74
     Top = 242
+  end
+  object PopupMenu__: TPopupMenu
+    Left = 74
+    Top = 126
+    object RemoveTE_MI: TMenuItem
+      Caption = 'Remove TE'
+      OnClick = RemoveTE_MIClick
+    end
   end
 end

@@ -111,7 +111,7 @@ function MaxF(const v1, v2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$
 function MinF(const v1, v2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareFloat(const f1, f2, Epsilon_: TGeoFloat): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function CompareFloat(const f1, f2: TGeoFloat): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
-function CompareGeoInt(const g1, g2: TGeoInt): ShortInt;
+function CompareGeoInt(const g1, g2: TGeoInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
 
 function MakeVec2(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function MakeVec2(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -369,8 +369,13 @@ function RectTransform(const sour, dest: TRectV2; const sour_rect: TRectf): TRec
 
 function RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectScaleSpace(const R: TRect; const SS_width, SS_height: TGeoInt): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function ComputeScaleSpace(box: TRectV2; SS: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
 function CalibrationRectInRect(const R, Area: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function CalibrationRectInRect(const R, Area: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Make_Jitter_Box(rnd: TMT19937Random; XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: boolean;
+  const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt; overload;
+function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: boolean;
+  const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt; overload;
 
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -542,9 +547,9 @@ type
     function Area: TGeoFloat;
     function Rotation(Angle: TGeoFloat): TV2Rect4; overload;
     function Rotation(axis: TVec2; Angle: TGeoFloat): TV2Rect4; overload;
-    function TransformToRect(Box: TRectV2; Edge: TGeoFloat): TV2Rect4; overload;
-    function TransformToRect(Box: TRectV2; Angle, Edge: TGeoFloat): TV2Rect4; overload;
-    function TransformToRect(Box: TRectV2; axis: TVec2; Angle, Edge: TGeoFloat): TV2Rect4; overload;
+    function TransformToRect(box: TRectV2; Edge: TGeoFloat): TV2Rect4; overload;
+    function TransformToRect(box: TRectV2; Angle, Edge: TGeoFloat): TV2Rect4; overload;
+    function TransformToRect(box: TRectV2; axis: TVec2; Angle, Edge: TGeoFloat): TV2Rect4; overload;
     function Add(V: TVec2): TV2Rect4;
     function Sub(V: TVec2): TV2Rect4;
     function Mul(V: TVec2): TV2Rect4; overload;
@@ -656,7 +661,7 @@ type
     procedure SwapData(dest: TVec2List);
     procedure MoveDataTo(dest: TVec2List);
 
-    procedure Assign(Source: TCore_Object);
+    procedure Assign(source: TCore_Object);
     procedure AssignFromArrayV2(arry: TArrayVec2);
 
     function BuildArray: TArrayVec2;
@@ -791,7 +796,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Assign(Source: TCore_Object);
+    procedure Assign(source: TCore_Object);
 
     function NewCollapse(): T2DPolygon;
     procedure AddCollapse(polygon: T2DPolygon);
@@ -865,7 +870,7 @@ type
 
     procedure Reset; overload;
 
-    procedure Assign(Source: TCore_Object);
+    procedure Assign(source: TCore_Object);
 
     function BuildArray: TArrayVec2;
     function BuildSplineSmoothInSideClosedArray: TArrayVec2;
@@ -1025,7 +1030,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Assign(Source: TCore_Persistent); override;
+    procedure Assign(source: TCore_Persistent); override;
 
     property Items[index: TGeoInt]: PDeflectionPolygonLine read GetItems; default;
     function Add(V: TDeflectionPolygonLine): TGeoInt; overload;
@@ -1157,7 +1162,7 @@ type
       'target' - the list to write the data to.
       'source' - the input stream to read from.
     }
-    procedure InitAndReadPolygon(var target: PLinkedList; const Source: TVec2List);
+    procedure InitAndReadPolygon(var target: PLinkedList; const source: TVec2List);
     {
       The function provides an access to the list's elements by their index. If the list is looped, the index could exceed the list's num.
       The index starts from 0.
@@ -1169,12 +1174,12 @@ type
       The procedure THausdorf.gets the longest vectors form the source list and puts them to the target list.
       Note: the comparison is performed impreciesly, using the FRoundKOEF threshold.
     }
-    procedure GetMax(var target, Source: PLinkedList);
+    procedure GetMax(var target, source: PLinkedList);
     {
       The procedure THausdorf.gets the shortest vectors form the source list and puts them to the target list.
       Note: the comparison is performed impreciesly, using the FRoundKOEF threshold.
     }
-    procedure GetMin(var target, Source: PLinkedList);
+    procedure GetMin(var target, source: PLinkedList);
     {
       The procedure THausdorf.adds wrapped items to the specified list. The list should be initialised prior to calling the procedure.
       'target' - the list to add item to.
@@ -1205,7 +1210,7 @@ type
     }
     function Contains(const pol: PLinkedList; const p: TVec2): boolean;
     { The procedure THausdorf.copies the source list to the target list removing the duplicates of the items in the source list. }
-    procedure DeleteCopies(var target, Source: PLinkedList);
+    procedure DeleteCopies(var target, source: PLinkedList);
     { The procedure THausdorf.calculates the Hausdorff distance from the first polygon to from second one. The data are stored in the specified list. }
     procedure HausdorfDistanceVectors(var target, Polygon1_, Polygon2_: PLinkedList);
     {
@@ -1255,7 +1260,7 @@ type
       puts the vectors from the source list to the target list in the way, that the angle,
       closed to the OX-axis is non-decreasing.
     }
-    procedure SortByAngle(var target, Source: PLinkedList);
+    procedure SortByAngle(var target, source: PLinkedList);
     { The function THausdorf.returns the normalised TVec2. }
     function Normalise(const vec: TVec2): TVec2;
     {
@@ -2816,38 +2821,18 @@ begin
 end;
 
 function RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2;
-var
-  k: TGeoFloat;
-  w, h, nw, nh: TGeoFloat;
-  d: TVec2;
 begin
-  k := SS_width / SS_height;
-  Result := ForwardRect(R);
-  w := RectWidth(Result);
-  h := RectHeight(Result);
-
-  if w < h then
-    begin
-      nw := h * k;
-      nh := h;
-    end
-  else
-    begin
-      nw := w;
-      nh := w * k;
-    end;
-
-  d[0] := (nw - w) * 0.5;
-  d[1] := (nh - h) * 0.5;
-  Result[0] := Vec2Sub(Result[0], d);
-  Result[1] := Vec2Add(Result[1], d);
-
-  Result := FixRect(Result);
+  Result := RectFit(RectV2(0, 0, SS_width, SS_height), R);
 end;
 
 function RectScaleSpace(const R: TRect; const SS_width, SS_height: TGeoInt): TRect;
 begin
   Result := MakeRect(RectScaleSpace(RectV2(R), SS_width, SS_height));
+end;
+
+function ComputeScaleSpace(box: TRectV2; SS: TVec2): TRectV2;
+begin
+  Result := RectScaleSpace(box, SS[0], SS[1]);
 end;
 
 function CalibrationRectInRect(const R, Area: TRectV2): TRectV2;
@@ -2871,6 +2856,94 @@ end;
 function CalibrationRectInRect(const R, Area: TRect): TRect;
 begin
   Result := MakeRect(CalibrationRectInRect(RectV2(R), RectV2(Area)));
+end;
+
+function Make_Jitter_Box(rnd: TMT19937Random; XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: boolean;
+  const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt;
+var
+  source_axis: TVec2;
+  source_size: TVec2;
+  new_axis: TVec2;
+  new_size: TVec2;
+begin
+  source_axis := RectCentre(source);
+  source_size := RectSize(source);
+
+  Result := 0;
+
+  repeat
+    if Fit_ and (Result > 0) then
+        source_size := Vec2Sub(source_size, vec2(umlRandomRangeS(rnd, 0, source_size[0] * 0.01), umlRandomRangeS(rnd, 0, source_size[1] * 0.01)));
+
+    if XY_Offset_Scale_ > 0 then
+      begin
+        new_axis[0] := source_axis[0] + umlRandomRangeS(rnd, 0 - source_size[0] * XY_Offset_Scale_, source_size[0] * XY_Offset_Scale_);
+        new_axis[1] := source_axis[1] + umlRandomRangeS(rnd, 0 - source_size[1] * XY_Offset_Scale_, source_size[1] * XY_Offset_Scale_);
+      end
+    else
+        new_axis := source_axis;
+
+    if Scale_ > 0 then
+      begin
+        new_size[0] := source_size[0] + umlRandomRangeS(rnd, 0 - source_size[0] * Scale_, source_size[0] * Scale_);
+        new_size[1] := source_size[1] + umlRandomRangeS(rnd, 0 - source_size[1] * Scale_, source_size[1] * Scale_);
+      end
+    else
+        new_size := source_size;
+
+    if Rotate_ > 0 then
+        Angle := umlRandomRangeS(rnd, -Rotate_, Rotate_)
+    else
+        Angle := 0;
+
+    dest := ComputeScaleSpace(RectV2(new_axis, new_size[0], new_size[1]), source_size);
+
+    inc(Result);
+  until (not Fit_) or RectInRect(TV2R4.Init(dest, Angle).BoundRect, source);
+end;
+
+function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: boolean;
+  const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt;
+var
+  source_axis: TVec2;
+  source_size: TVec2;
+  new_axis: TVec2;
+  new_size: TVec2;
+begin
+  source_axis := RectCentre(source);
+  source_size := RectSize(source);
+
+  Result := 0;
+
+  repeat
+    if Fit_ and (Result > 0) then
+        source_size := Vec2Sub(source_size, vec2(umlRandomRangeS(0, source_size[0] * 0.01), umlRandomRangeS(0, source_size[1] * 0.01)));
+
+    if XY_Offset_Scale_ > 0 then
+      begin
+        new_axis[0] := source_axis[0] + umlRandomRangeS(0 - source_size[0] * XY_Offset_Scale_, source_size[0] * XY_Offset_Scale_);
+        new_axis[1] := source_axis[1] + umlRandomRangeS(0 - source_size[1] * XY_Offset_Scale_, source_size[1] * XY_Offset_Scale_);
+      end
+    else
+        new_axis := source_axis;
+
+    if Scale_ > 0 then
+      begin
+        new_size[0] := source_size[0] + umlRandomRangeS(0 - source_size[0] * Scale_, source_size[0] * Scale_);
+        new_size[1] := source_size[1] + umlRandomRangeS(0 - source_size[1] * Scale_, source_size[1] * Scale_);
+      end
+    else
+        new_size := source_size;
+
+    if Rotate_ > 0 then
+        Angle := umlRandomRangeS(-Rotate_, Rotate_)
+    else
+        Angle := 0;
+
+    dest := ComputeScaleSpace(RectV2(new_axis, new_size[0], new_size[1]), source_size);
+
+    inc(Result);
+  until (not Fit_) or RectInRect(TV2R4.Init(dest, Angle).BoundRect, source);
 end;
 
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt);
@@ -3083,7 +3156,7 @@ function RectSize(const R: TRectV2): TVec2;
 var
   n: TRectV2;
 begin
-  n := FixRect(R);
+  n := ForwardRect(R);
   Result := Vec2Sub(n[1], n[0]);
 end;
 
@@ -3616,7 +3689,7 @@ function SimpleIntersect(const x1, y1, x2, y2, x3, y3, x4, y4: TGeoFloat): boole
 begin
   Result := (
     ((Orientation(x1, y1, x2, y2, x3, y3) * Orientation(x1, y1, x2, y2, x4, y4)) <= 0) and
-    ((Orientation(x3, y3, x4, y4, x1, y1) * Orientation(x3, y3, x4, y4, x2, y2)) <= 0)
+      ((Orientation(x3, y3, x4, y4, x1, y1) * Orientation(x3, y3, x4, y4, x2, y2)) <= 0)
     );
 end;
 
@@ -4509,36 +4582,36 @@ begin
   Result.LeftBottom := PointRotation(axis, LeftBottom, PointAngle(axis, LeftBottom) + Angle);
 end;
 
-function TV2Rect4.TransformToRect(Box: TRectV2; Edge: TGeoFloat): TV2Rect4;
+function TV2Rect4.TransformToRect(box: TRectV2; Edge: TGeoFloat): TV2Rect4;
 var
   boxSelf, nArea: TRectV2;
 begin
   boxSelf := BoundRect();
-  nArea := RectEdge(Box, -abs(Edge));
+  nArea := RectEdge(box, -abs(Edge));
   Result.LeftTop := RectProjection(boxSelf, nArea, LeftTop);
   Result.RightTop := RectProjection(boxSelf, nArea, RightTop);
   Result.RightBottom := RectProjection(boxSelf, nArea, RightBottom);
   Result.LeftBottom := RectProjection(boxSelf, nArea, LeftBottom);
 end;
 
-function TV2Rect4.TransformToRect(Box: TRectV2; Angle, Edge: TGeoFloat): TV2Rect4;
+function TV2Rect4.TransformToRect(box: TRectV2; Angle, Edge: TGeoFloat): TV2Rect4;
 var
   boxSelf, nArea: TRectV2;
 begin
   boxSelf := BoundRect();
-  nArea := RectEdge(Box, -abs(Edge));
+  nArea := RectEdge(box, -abs(Edge));
   Result.LeftTop := RectProjectionRotationDest(boxSelf, nArea, Angle, LeftTop);
   Result.RightTop := RectProjectionRotationDest(boxSelf, nArea, Angle, RightTop);
   Result.RightBottom := RectProjectionRotationDest(boxSelf, nArea, Angle, RightBottom);
   Result.LeftBottom := RectProjectionRotationDest(boxSelf, nArea, Angle, LeftBottom);
 end;
 
-function TV2Rect4.TransformToRect(Box: TRectV2; axis: TVec2; Angle, Edge: TGeoFloat): TV2Rect4;
+function TV2Rect4.TransformToRect(box: TRectV2; axis: TVec2; Angle, Edge: TGeoFloat): TV2Rect4;
 var
   boxSelf, nArea: TRectV2;
 begin
   boxSelf := BoundRect();
-  nArea := RectEdge(Box, -abs(Edge));
+  nArea := RectEdge(box, -abs(Edge));
   Result.LeftTop := RectProjectionRotationDest(boxSelf, nArea, axis, Angle, LeftTop);
   Result.RightTop := RectProjectionRotationDest(boxSelf, nArea, axis, Angle, RightTop);
   Result.RightBottom := RectProjectionRotationDest(boxSelf, nArea, axis, Angle, RightBottom);
@@ -5313,21 +5386,21 @@ begin
   FList.Clear;
 end;
 
-procedure TVec2List.Assign(Source: TCore_Object);
+procedure TVec2List.Assign(source: TCore_Object);
 var
   i: TGeoInt;
 begin
-  if Source is TVec2List then
+  if source is TVec2List then
     begin
       Clear;
-      for i := 0 to TVec2List(Source).Count - 1 do
-          Add(TVec2List(Source)[i]^);
+      for i := 0 to TVec2List(source).Count - 1 do
+          Add(TVec2List(source)[i]^);
     end
-  else if Source is TDeflectionPolygon then
+  else if source is TDeflectionPolygon then
     begin
       Clear;
-      for i := 0 to TDeflectionPolygon(Source).Count - 1 do
-          Add(TDeflectionPolygon(Source).Points[i]);
+      for i := 0 to TDeflectionPolygon(source).Count - 1 do
+          Add(TDeflectionPolygon(source).Points[i]);
     end;
 end;
 
@@ -6793,24 +6866,24 @@ begin
   inherited Destroy;
 end;
 
-procedure T2DPolygonGraph.Assign(Source: TCore_Object);
+procedure T2DPolygonGraph.Assign(source: TCore_Object);
 var
   i: TGeoInt;
 begin
   Clear;
-  if Source is T2DPolygonGraph then
+  if source is T2DPolygonGraph then
     begin
-      Surround.Assign(T2DPolygonGraph(Source).Surround);
-      SetLength(Collapses, T2DPolygonGraph(Source).CollapsesCount);
-      for i := 0 to T2DPolygonGraph(Source).CollapsesCount - 1 do
+      Surround.Assign(T2DPolygonGraph(source).Surround);
+      SetLength(Collapses, T2DPolygonGraph(source).CollapsesCount);
+      for i := 0 to T2DPolygonGraph(source).CollapsesCount - 1 do
         begin
           Collapses[i] := T2DPolygon.Create;
           Collapses[i].Owner := Self;
-          Collapses[i].Assign(T2DPolygonGraph(Source).Collapses[i]);
+          Collapses[i].Assign(T2DPolygonGraph(source).Collapses[i]);
         end;
     end
   else
-      Surround.Assign(Source);
+      Surround.Assign(source);
 end;
 
 function T2DPolygonGraph.NewCollapse: T2DPolygon;
@@ -7284,34 +7357,34 @@ begin
   Clear;
 end;
 
-procedure TDeflectionPolygon.Assign(Source: TCore_Object);
+procedure TDeflectionPolygon.Assign(source: TCore_Object);
 var
   i: TGeoInt;
   p, p2: PDeflectionPolygonVec;
 begin
-  if Source is TDeflectionPolygon then
+  if source is TDeflectionPolygon then
     begin
       Clear;
 
-      FScale := TDeflectionPolygon(Source).FScale;
-      FAngle := TDeflectionPolygon(Source).FAngle;
-      FMaxRadius := TDeflectionPolygon(Source).FMaxRadius;
-      FPosition := TDeflectionPolygon(Source).FPosition;
-      FExpandMode := TDeflectionPolygon(Source).FExpandMode;
+      FScale := TDeflectionPolygon(source).FScale;
+      FAngle := TDeflectionPolygon(source).FAngle;
+      FMaxRadius := TDeflectionPolygon(source).FMaxRadius;
+      FPosition := TDeflectionPolygon(source).FPosition;
+      FExpandMode := TDeflectionPolygon(source).FExpandMode;
 
-      for i := 0 to TDeflectionPolygon(Source).FList.Count - 1 do
+      for i := 0 to TDeflectionPolygon(source).FList.Count - 1 do
         begin
           new(p);
-          p2 := TDeflectionPolygon(Source).DeflectionPolygon[i];
+          p2 := TDeflectionPolygon(source).DeflectionPolygon[i];
           p^.Owner := Self;
           p^.Angle := p2^.Angle;
           p^.Dist := p2^.Dist;
           FList.Add(p);
         end;
     end
-  else if Source is TVec2List then
+  else if source is TVec2List then
     begin
-      Rebuild(TVec2List(Source), False);
+      Rebuild(TVec2List(source), False);
     end;
 end;
 
@@ -9008,15 +9081,15 @@ begin
   inherited Destroy;
 end;
 
-procedure TDeflectionPolygonLines.Assign(Source: TCore_Persistent);
+procedure TDeflectionPolygonLines.Assign(source: TCore_Persistent);
 var
   i: TGeoInt;
 begin
-  if Source is TDeflectionPolygonLines then
+  if source is TDeflectionPolygonLines then
     begin
       Clear;
-      for i := 0 to TDeflectionPolygonLines(Source).Count - 1 do
-          Add(TDeflectionPolygonLines(Source)[i]^);
+      for i := 0 to TDeflectionPolygonLines(source).Count - 1 do
+          Add(TDeflectionPolygonLines(source)[i]^);
     end;
 end;
 
@@ -9834,13 +9907,13 @@ begin
   target^.Looped := False;
 end;
 
-procedure THausdorf.InitAndReadPolygon(var target: PLinkedList; const Source: TVec2List);
+procedure THausdorf.InitAndReadPolygon(var target: PLinkedList; const source: TVec2List);
 var
   i: TGeoInt;
 begin
   InitList(target);
-  for i := 0 to Source.Count - 1 do
-      AddTo(target, Source[i]^);
+  for i := 0 to source.Count - 1 do
+      AddTo(target, source[i]^);
   LoopTheList(target);
 end;
 
@@ -9861,26 +9934,26 @@ begin
     end;
 end;
 
-procedure THausdorf.GetMax(var target, Source: PLinkedList);
+procedure THausdorf.GetMax(var target, source: PLinkedList);
 var
   i: TGeoInt;
   Max_: TGeoFloat;
   curNode: PNode;
 begin
-  curNode := Source^.Head;
+  curNode := source^.Head;
   Max_ := Vec2Length(curNode^.Data);
   curNode := curNode^.Next;
 
-  for i := 2 to Source^.Num do
+  for i := 2 to source^.Num do
     begin
       if (Vec2Length(curNode^.Data) > Max_) then
           Max_ := Vec2Length(curNode^.Data);
       curNode := curNode^.Next;
     end;
 
-  curNode := Source^.Head;
+  curNode := source^.Head;
 
-  for i := 1 to Source^.Num do
+  for i := 1 to source^.Num do
     begin
       if abs(Vec2Length(curNode^.Data) - Max_) <= FRoundKOEF then
           AddTo(target, curNode^.Data);
@@ -9888,26 +9961,26 @@ begin
     end;
 end;
 
-procedure THausdorf.GetMin(var target, Source: PLinkedList);
+procedure THausdorf.GetMin(var target, source: PLinkedList);
 var
   i: TGeoInt;
   Min_: TGeoFloat;
   curNode: PNode;
 begin
-  curNode := Source^.Head;
+  curNode := source^.Head;
   Min_ := Vec2Length(curNode^.Data);
   curNode := curNode^.Next;
 
-  for i := 2 to Source^.Num do
+  for i := 2 to source^.Num do
     begin
       if (Vec2Length(curNode^.Data) < Min_) then
           Min_ := Vec2Length(curNode^.Data);
       curNode := curNode^.Next;
     end;
 
-  curNode := Source^.Head;
+  curNode := source^.Head;
 
-  for i := 1 to Source^.Num do
+  for i := 1 to source^.Num do
     begin
       if abs(Vec2Length(curNode^.Data) - Min_) <= FRoundKOEF then
           AddTo(target, curNode^.Data);
@@ -10109,13 +10182,13 @@ begin
   Result := True;
 end;
 
-procedure THausdorf.DeleteCopies(var target, Source: PLinkedList);
+procedure THausdorf.DeleteCopies(var target, source: PLinkedList);
 var
   i: TGeoInt;
   curNode: PNode;
 begin
-  curNode := Source^.Head;
-  for i := 0 to Source^.Num - 1 do
+  curNode := source^.Head;
+  for i := 0 to source^.Num - 1 do
     begin
       if (not IsInList(target, curNode^.Data)) then
           AddTo(target, curNode^.Data);
@@ -10285,14 +10358,14 @@ begin
       Quadrant := 4;
 end;
 
-procedure THausdorf.SortByAngle(var target, Source: PLinkedList);
+procedure THausdorf.SortByAngle(var target, source: PLinkedList);
 var
   i: TGeoInt;
   curNode: PNode;
 begin
-  curNode := Source^.Head;
+  curNode := source^.Head;
 
-  for i := 1 to Source^.Num do
+  for i := 1 to source^.Num do
     begin
       AddToQ(target, curNode^.Data);
       curNode := curNode^.Next;

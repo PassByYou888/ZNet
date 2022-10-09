@@ -124,9 +124,9 @@ begin
       LastSendingBuff := nil;
     end;
 
-  DisposeObject(CurrentBuff);
-  DisposeObject(Internal_Send_Queue);
-  FSendCritical.Free;
+  DisposeObjectAndnil(CurrentBuff);
+  DisposeObjectAndnil(Internal_Send_Queue);
+  DisposeObjectAndnil(FSendCritical);
 
   inherited Destroy;
 end;
@@ -164,9 +164,14 @@ begin
     var
       Num: Integer;
     begin
-      FSendCritical.Lock;
-      DisposeObjectAndNil(LastSendingBuff);
-      FSendCritical.UnLock;
+      if LastSendingBuff <> nil then
+        begin
+          if FSendCritical <> nil then
+              FSendCritical.Lock;
+          DisposeObjectAndnil(LastSendingBuff);
+          if FSendCritical <> nil then
+              FSendCritical.UnLock;
+        end;
 
       if (not Success_) then
         begin
@@ -253,7 +258,7 @@ begin
   else
     begin
       if Internal_Send_Queue.Num = 0 then
-          DisposeObjectAndNil(LastSendingBuff);
+          DisposeObjectAndnil(LastSendingBuff);
 
       Internal_Send_Queue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;

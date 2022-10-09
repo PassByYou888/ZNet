@@ -426,12 +426,16 @@ type
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
+    TSort_C = function(var Left, Right: T_): ShortInt;
     TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TSort_M = function(var Left, Right: T_): ShortInt of object;
     TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+    TSort_P = function(var Left, Right: T_): ShortInt is nested;
 {$ELSE FPC}
     TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TSort_P = reference to function(var Left, Right: T_): ShortInt;
 {$ENDIF FPC}
   private
     FRecycle_Pool__: TRecycle_Pool__;
@@ -481,6 +485,13 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
+    class procedure Swap_(var Left, Right: T_);
+    procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
+    procedure Sort_C(OnSort: TSort_C); overload;
+    procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
+    procedure Sort_M(OnSort: TSort_M); overload;
+    procedure Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P); overload;
+    procedure Sort_P(OnSort: TSort_P); overload;
     function BuildArrayMemory: PQueueArrayStruct;
     function CheckList: PQueueArrayStruct;
     function GetList(const Index: NativeInt): PQueueStruct;
@@ -562,12 +573,16 @@ type
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
+    TSort_C = function(var Left, Right: T_): ShortInt;
     TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TSort_M = function(var Left, Right: T_): ShortInt of object;
     TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
+    TSort_P = function(var Left, Right: T_): ShortInt is nested;
 {$ELSE FPC}
     TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
+    TSort_P = reference to function(var Left, Right: T_): ShortInt;
 {$ENDIF FPC}
   private
     FCritical: TCritical;
@@ -621,6 +636,13 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
+    class procedure Swap_(var Left, Right: T_);
+    procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
+    procedure Sort_C(OnSort: TSort_C); overload;
+    procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
+    procedure Sort_M(OnSort: TSort_M); overload;
+    procedure Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P); overload;
+    procedure Sort_P(OnSort: TSort_P); overload;
     function BuildArrayMemory: PQueueArrayStruct;
     function CheckList: PQueueArrayStruct;
     function GetList(const Index: NativeInt): PQueueStruct;
@@ -1133,8 +1155,10 @@ type
     class procedure SetSeed(seed: Integer); static;
     class function GetSeed(): Integer; static;
     class procedure Randomize(); static;
+    class function Rand32: Integer; overload; static;
     class function Rand32(L: Integer): Integer; overload; static;
     class procedure Rand32(L: Integer; dest: PInteger; num: NativeInt); overload; static;
+    class function Rand64: Int64; overload; static;
     class function Rand64(L: Int64): Int64; overload; static;
     class procedure Rand64(L: Int64; dest: PInt64; num: NativeInt); overload; static;
     class function RandE: Extended; overload; static;
@@ -1329,8 +1353,6 @@ procedure Nop;
 function IsDebuging: Boolean;
 
 // process Synchronize
-var
-  Enabled_Check_Thread_Synchronize_System: Boolean;
 function IsMainThread: Boolean;
 procedure CheckThreadSynchronize; overload;
 function CheckThreadSynchronize(Timeout: Integer): Boolean; overload;
@@ -1437,8 +1459,10 @@ function MT19937InstanceNum(): Integer;
 procedure SetMT19937Seed(seed: Integer);
 function GetMT19937Seed(): Integer;
 procedure MT19937Randomize();
+function MT19937Rand32: Integer; overload;
 function MT19937Rand32(L: Integer): Integer; overload;
 procedure MT19937Rand32(L: Integer; dest: PInteger; num: NativeInt); overload;
+function MT19937Rand64: Int64; overload;
 function MT19937Rand64(L: Int64): Int64; overload;
 procedure MT19937Rand64(L: Int64; dest: PInt64; num: NativeInt); overload;
 function MT19937RandE: Extended; overload;
@@ -1541,6 +1565,9 @@ function GetPtr(p_: Pointer; offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} i
 type TOnCheckThreadSynchronize = procedure();
 
 var
+  Enabled_Check_Thread_Synchronize_System: Boolean;
+  Main_Thread_Synchronize_Running: Boolean;
+  Main_Thread_OnCheck_Runing: Boolean;
   OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
 
   // DelphiParallelFor and FPCParallelFor work in parallel
@@ -2041,7 +2068,7 @@ begin
   Result := False;
 {$IFDEF DELPHI}
 {$IFDEF MSWINDOWS}
-  Result := Boolean(DebugHook);
+  Result := DebugHook > 0;
 {$ENDIF MSWINDOWS}
 {$ENDIF DELPHI}
 end;
@@ -2056,42 +2083,43 @@ begin
   CheckThreadSynchronize(0);
 end;
 
-var
-  MainThSynchronizeRunning: Boolean;
-
 function CheckThreadSynchronize(Timeout: Integer): Boolean;
 begin
-  if not Enabled_Check_Thread_Synchronize_System then
-    exit(False);
-  if TCore_Thread.CurrentThread.ThreadID <> MainThreadID then
+  Result := False;
+
+  if (TCore_Thread.CurrentThread.ThreadID <> MainThreadID) then
     begin
       if Timeout > 0 then
-        TCore_Thread.Sleep(Timeout);
+          TCore_Thread.Sleep(Timeout);
       Result := False;
     end
-  else
+  else if Enabled_Check_Thread_Synchronize_System then
     begin
-      if MainThSynchronizeRunning then
-        Exit(False);
-      MainThSynchronizeRunning := True;
       MainThreadProgress.Progress(MainThreadID);
-      try
-        Result := CheckSynchronize(Timeout);
-      except
-        Result := False;
-      end;
-      MainThSynchronizeRunning := False;
-    end;
 
-  if MainThSynchronizeRunning then
-    Exit;
-  MainThSynchronizeRunning := True;
-  try
-    if Assigned(OnCheckThreadSynchronize) then
-      OnCheckThreadSynchronize();
-  except
-  end;
-  MainThSynchronizeRunning := False;
+      if not Main_Thread_Synchronize_Running then
+        begin
+          Main_Thread_Synchronize_Running := True;
+          try
+              Result := CheckSynchronize(Timeout);
+          except
+              Result := False;
+          end;
+          Main_Thread_Synchronize_Running := False;
+        end;
+
+      if not Main_Thread_OnCheck_Runing then
+        begin
+          Main_Thread_OnCheck_Runing := True;
+          try
+            if Assigned(OnCheckThreadSynchronize) then
+                OnCheckThreadSynchronize();
+          except
+              Result := False;
+          end;
+          Main_Thread_OnCheck_Runing := False;
+        end;
+    end;
 end;
 
 procedure CheckThreadSync;
@@ -2115,7 +2143,6 @@ begin
 end;
 
 initialization
-  Enabled_Check_Thread_Synchronize_System := True;
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   Init_System_Critical_Recycle_Pool();
   OnCheckThreadSynchronize := nil;
@@ -2127,10 +2154,12 @@ initialization
   Init_Critical_System();
   InitMT19937Rand();
   CoreInitedTimeTick := GetTimeTick();
-  InitCoreThreadPool(CpuCount);
+  InitCoreThreadPool(if_(IsDebuging, 2, CpuCount * 2));
   MainThreadProgress := TThreadPost.Create(MainThreadID);
   MainThreadProgress.OneStep := False;
-  MainThSynchronizeRunning := False;
+  Enabled_Check_Thread_Synchronize_System := True;
+  Main_Thread_Synchronize_Running := False;
+  Main_Thread_OnCheck_Runing := False;
   MainThreadPost := MainThreadProgress;
   SysProgress := MainThreadProgress;
 finalization

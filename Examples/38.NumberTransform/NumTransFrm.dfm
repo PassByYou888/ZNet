@@ -14,6 +14,8 @@ object NumTransForm: TNumTransForm
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
+  ShowHint = True
   PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
@@ -277,22 +279,22 @@ object NumTransForm: TNumTransForm
     TabOrder = 1
     WordWrap = False
   end
-  object Button1: TButton
+  object bin2decButton: TButton
     Left = 407
     Top = 24
     Width = 121
     Height = 25
     Caption = 'Binary -> Dec'
     TabOrder = 2
-    OnClick = Button1Click
+    OnClick = bin2decButtonClick
   end
-  object Button2: TButton
+  object dec2binButton: TButton
     Left = 408
     Top = 55
     Width = 121
     Height = 25
     Caption = 'Binary <- Dec'
     TabOrder = 3
-    OnClick = Button2Click
+    OnClick = dec2binButtonClick
   end
 end

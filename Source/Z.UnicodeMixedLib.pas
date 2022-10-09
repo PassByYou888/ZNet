@@ -238,6 +238,7 @@ function umlGetDirListWithFullPath(const FullPath: TPascalString): U_StringArray
 function umlGetFileListPath(const FullPath: TPascalString): U_StringArray;
 function umlGetDirListPath(const FullPath: TPascalString): U_StringArray;
 
+function umlFixedPath(s: TPascalString): TPascalString;
 function umlCombinePath(const s1, s2: TPascalString): TPascalString;
 function umlCombineFileName(const pathName, FileName: TPascalString): TPascalString;
 function umlCombineUnixPath(const s1, s2: TPascalString): TPascalString;
@@ -278,6 +279,7 @@ function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; const buff): Boolean
 function umlBlockWrite(var IOHnd: TIOHnd; const buff; const Size: Int64): Boolean;
 function umlFileWriteFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
 function umlFileReadFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
+function umlCheckSeedPos(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
 function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
 function umlFileGetPOS(var IOHnd: TIOHnd): Int64;
 function umlFileSetSize(var IOHnd: TIOHnd; siz_: Int64): Boolean;
@@ -1849,6 +1851,22 @@ begin
   DisposeObject(L);
 end;
 
+function umlFixedPath(s: TPascalString): TPascalString;
+begin
+  if CurrentPlatform in [epWin32, epWin64] then
+    begin
+      Result := umlCharReplace(s, '/', '\');
+      if Result.Last <> '\' then
+          Result.Append('\');
+    end
+  else
+    begin
+      Result := umlCharReplace(s, '\', '/');
+      if Result.Last <> '/' then
+          Result.Append('/');
+    end;
+end;
+
 function umlCombinePath(const s1, s2: TPascalString): TPascalString;
 begin
   if CurrentPlatform in [epWin32, epWin64] then
@@ -2710,8 +2728,20 @@ begin
   end;
 end;
 
+function umlCheckSeedPos(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
+begin
+  Result := (Pos_ >= 0) and (Pos_ <= IOHnd.Size);
+end;
+
 function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
 begin
+  if Pos_ < 0 then
+    begin
+      IOHnd.Return := C_SeekError;
+      Result := False;
+      exit;
+    end;
+
   if (Pos_ = IOHnd.Position) and (Pos_ = IOHnd.Handle.Position) then
     begin
       IOHnd.Return := C_NotError;
@@ -2727,6 +2757,8 @@ begin
 
   IOHnd.Return := C_SeekError;
   Result := False;
+  if Pos_ > IOHnd.Size then
+      exit;
   try
     IOHnd.Position := IOHnd.Handle.Seek(Pos_, TSeekOrigin.soBeginning);
     Result := IOHnd.Position <> -1;
@@ -4445,6 +4477,8 @@ type
   TRanData = packed record
     Year, Month, Day: Word;
     Hour, min_, Sec, MSec: Word;
+    i64: Int64;
+    i32: Integer;
   end;
 var
   d: TDateTime;
@@ -4455,6 +4489,8 @@ begin
     begin
       DecodeDate(d, Year, Month, Day);
       DecodeTime(d, Hour, min_, Sec, MSec);
+      i64 := TMT19937.Rand64;
+      i32 := TMT19937.Rand32;
     end;
   Result := umlMD5String(@r, SizeOf(TRanData));
 end;

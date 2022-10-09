@@ -152,6 +152,7 @@ var
   MT19937InternalCritical: TCritical;
   MT19937_POOL__: TMT19937_Pool__;
   MT19937CoreToDelphi_: Boolean;
+  Randomize_Seed__: Integer;
 
 function Get_MT19937_POOL_Num: NativeInt;
 begin
@@ -280,6 +281,7 @@ begin
   MT19937InternalCritical := TCritical.Create;
   MT19937_POOL__ := TMT19937_Pool__.Create;
   MT19937CoreToDelphi_ := False;
+  Randomize_Seed__ := 1;
 
 {$IFDEF DELPHI}
 {$IFDEF InstallMT19937CoreToDelphi}
@@ -333,8 +335,21 @@ begin
 end;
 
 procedure MT19937Randomize();
+var
+  seed: Integer;
 begin
-  SetMT19937Seed(Integer(GetTimeTick()));
+  MT19937InternalCritical.Acquire;
+  seed := Randomize_Seed__;
+{$IFDEF OverflowCheck}{$Q-}{$ENDIF}
+  inc(Randomize_Seed__);
+{$IFDEF OverflowCheck}{$Q+}{$ENDIF}
+  MT19937InternalCritical.Release;
+  SetMT19937Seed(seed);
+end;
+
+function MT19937Rand32: Integer;
+begin
+  Result := MT19937Rand32($7FFFFFFF);
 end;
 
 function MT19937Rand32(L: Integer): Integer;
@@ -366,6 +381,11 @@ begin
         Busy := False;
       end;
     end;
+end;
+
+function MT19937Rand64: Int64;
+begin
+  Result := MT19937Rand64($7FFFFFFFFFFFFFFF);
 end;
 
 function MT19937Rand64(L: Int64): Int64;
@@ -711,6 +731,11 @@ begin
   MT19937Randomize();
 end;
 
+class function TMT19937.Rand32: Integer;
+begin
+  Result := MT19937Rand32();
+end;
+
 class function TMT19937.Rand32(L: Integer): Integer;
 begin
   Result := MT19937Rand32(L);
@@ -719,6 +744,11 @@ end;
 class procedure TMT19937.Rand32(L: Integer; dest: PInteger; Num: NativeInt);
 begin
   MT19937Rand32(L, dest, Num);
+end;
+
+class function TMT19937.Rand64: Int64;
+begin
+  Result := MT19937Rand64();
 end;
 
 class function TMT19937.Rand64(L: Int64): Int64;

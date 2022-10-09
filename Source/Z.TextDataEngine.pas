@@ -706,6 +706,7 @@ begin
     Clear;
     DataImport(L);
     DisposeObject(L);
+    Rebuild;
     FIsChanged := True;
   except
   end;

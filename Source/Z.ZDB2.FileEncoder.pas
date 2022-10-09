@@ -13,7 +13,7 @@ uses Z.Core,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Status, Z.MemoryStream, Z.ListEngine,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
-  Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
+  Z.GHashList, Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
 
 type
   TZDB2_File_HndList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;
@@ -34,13 +34,25 @@ type
     procedure LoadFromStream(stream: TMS64);
   end;
 
-  TZDB2_FIL_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZDB2_FI>;
+  TZDB2_FI_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_FI>;
+  TZDB2_FI_Hash_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TPascalString_Big_Hash_Pair_Pool<TZDB2_FI>;
 
-  TZDB2_FIL = class(TZDB2_FIL_Decl)
+  TZDB2_FI_Hash = class(TZDB2_FI_Hash_Decl)
   public
+    constructor Create;
+    function Compare_Value(Value_1, Value_2: TZDB2_FI): Boolean; override;
+    procedure DoFree(var Key: TPascalString; var Value: TZDB2_FI); override;
+  end;
+
+  TZDB2_FI_Pool = class(TZDB2_FI_Pool_Decl)
+  public
+    AutoFree: Boolean;
+    constructor Create;
+    procedure DoFree(var Data: TZDB2_FI); override;
+    function CompareData(Data_1, Data_2: TZDB2_FI): Boolean; override;
     function FindFile(FileName: U_String): TZDB2_FI;
-    function SearchFile(FileName, OwnerPath: U_String): TZDB2_FIL;
-    procedure Clean;
+    function SearchFile(FileName, OwnerPath: U_String): TZDB2_FI_Pool;
+    function Build_Hash_Pool(OwnerPath_: Boolean): TZDB2_FI_Hash;
   end;
 
   TZDB2_FE_IO = class(TIO_Thread_Data)
@@ -60,7 +72,7 @@ type
     FCore: TZDB2_Core_Space;
     FPlace: TZDB2_Space_Planner;
     FIO_Thread: TIO_Thread_Base;
-    FEncoderFiles: TZDB2_FIL;
+    FEncoderFiles: TZDB2_FI_Pool;
     FMaxQueue: Integer;
     FProgressInfo: SystemString;
     FOnProgress: TOn_ZDB2_File_OnProgress;
@@ -97,7 +109,9 @@ type
   private
     FCore: TZDB2_Core_Space;
     FIO_Thread: TIO_Thread_Base;
-    FDecoderFiles: TZDB2_FIL;
+    FDecoderFiles: TZDB2_FI_Pool;
+    FDecoderFile_Hash: TZDB2_FI_Hash;
+    FDecoderPath_Hash: TZDB2_FI_Hash;
     FMaxQueue: Integer;
     FFileLog: TPascalStringList;
     FProgressInfo: SystemString;
@@ -116,7 +130,9 @@ type
     function CheckFileInfo(FileInfo_: TZDB2_FI): Boolean;
     function DecodeToStream(source_: TZDB2_FI; Dest_: TCore_Stream): Boolean;
     function DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String): Boolean;
-    property Files: TZDB2_FIL read FDecoderFiles;
+    property Files: TZDB2_FI_Pool read FDecoderFiles;
+    property FileHash: TZDB2_FI_Hash read FDecoderFile_Hash;
+    property PathHash: TZDB2_FI_Hash read FDecoderPath_Hash;
     property MaxQueue: Integer read FMaxQueue write FMaxQueue;
     property FileLog: TPascalStringList read FFileLog;
     property OnProgress: TOn_ZDB2_File_OnProgress read FOnProgress write FOnProgress;
@@ -186,33 +202,84 @@ begin
   DisposeObject(d);
 end;
 
-function TZDB2_FIL.FindFile(FileName: U_String): TZDB2_FI;
-var
-  i: Integer;
+constructor TZDB2_FI_Hash.Create;
 begin
-  for i := Count - 1 downto 0 do
-    if FileName.Same(@items[i].FileName) then
-        exit(items[i]);
+  inherited Create($FFFF, nil);
+end;
+
+function TZDB2_FI_Hash.Compare_Value(Value_1, Value_2: TZDB2_FI): Boolean;
+begin
+  Result := Value_1 = Value_2;
+end;
+
+procedure TZDB2_FI_Hash.DoFree(var Key: TPascalString; var Value: TZDB2_FI);
+begin
+  Value := nil;
+  inherited DoFree(Key, Value);
+end;
+
+constructor TZDB2_FI_Pool.Create;
+begin
+  inherited Create;
+  AutoFree := True;
+end;
+
+procedure TZDB2_FI_Pool.DoFree(var Data: TZDB2_FI);
+begin
+  if AutoFree then
+      DisposeObjectAndNil(Data)
+  else
+      Data := nil;
+end;
+
+function TZDB2_FI_Pool.CompareData(Data_1, Data_2: TZDB2_FI): Boolean;
+begin
+  Result := Data_1 = Data_2;
+end;
+
+function TZDB2_FI_Pool.FindFile(FileName: U_String): TZDB2_FI;
+var
+  r_: TZDB2_FI_Pool_Decl.TInvert_Repeat___;
+begin
   Result := nil;
+  if num <= 0 then
+      exit;
+  r_ := Invert_Repeat_;
+  repeat
+    if FileName.Same(r_.Queue^.Data.FileName) then
+        exit(r_.Queue^.Data);
+  until not r_.Prev;
 end;
 
-function TZDB2_FIL.SearchFile(FileName, OwnerPath: U_String): TZDB2_FIL;
+function TZDB2_FI_Pool.SearchFile(FileName, OwnerPath: U_String): TZDB2_FI_Pool;
 var
-  i: Integer;
+  r_: TZDB2_FI_Pool_Decl.TInvert_Repeat___;
 begin
-  Result := TZDB2_FIL.Create;
-  for i := Count - 1 downto 0 do
-    if umlSearchMatch(FileName, items[i].FileName) and umlSearchMatch(OwnerPath, items[i].OwnerPath) then
-        Result.Add(items[i]);
+  Result := TZDB2_FI_Pool.Create;
+  Result.AutoFree := False;
+  if num <= 0 then
+      exit;
+  r_ := Invert_Repeat_;
+  repeat
+    if umlSearchMatch(FileName, r_.Queue^.Data.FileName) and umlSearchMatch(OwnerPath, r_.Queue^.Data.OwnerPath) then
+        Result.Add(r_.Queue^.Data);
+  until not r_.Prev;
 end;
 
-procedure TZDB2_FIL.Clean;
+function TZDB2_FI_Pool.Build_Hash_Pool(OwnerPath_: Boolean): TZDB2_FI_Hash;
 var
-  i: Integer;
+  r_: TZDB2_FI_Pool_Decl.TInvert_Repeat___;
 begin
-  for i := 0 to Count - 1 do
-      DisposeObject(items[i]);
-  inherited Clear;
+  Result := TZDB2_FI_Hash.Create;
+  if num <= 0 then
+      exit;
+  r_ := Invert_Repeat_;
+  repeat
+    if OwnerPath_ then
+        Result.Add(umlCombineUnixFileName(r_.Queue^.Data.OwnerPath, r_.Queue^.Data.FileName), r_.Queue^.Data, True)
+    else
+        Result.Add(r_.Queue^.Data.FileName, r_.Queue^.Data, True);
+  until not r_.Prev;
 end;
 
 constructor TZDB2_FE_IO.Create;
@@ -258,7 +325,7 @@ begin
       FIO_Thread := TIO_Thread.Create(ThNum_)
   else
       FIO_Thread := TIO_Direct.Create;
-  FEncoderFiles := TZDB2_FIL.Create;
+  FEncoderFiles := TZDB2_FI_Pool.Create;
   FMaxQueue := umlMax(1, ThNum_) * 5;
   FProgressInfo := '';
   FOnProgress := nil;
@@ -290,7 +357,6 @@ begin
   if not FFlushed then
       Flush;
   DisposeObject(FIO_Thread);
-  FEncoderFiles.Clean;
   DisposeObject(FEncoderFiles);
   DisposeObject(FPlace);
   DisposeObject(FCore);
@@ -484,7 +550,6 @@ end;
 
 function TZDB2_File_Encoder.Flush: Int64;
 var
-  i: Integer;
   d: TDFE;
   m64: TMS64;
   FileInfo_ID: Integer;
@@ -494,14 +559,15 @@ begin
 
   Result := 0;
   d := TDFE.Create;
-  for i := 0 to FEncoderFiles.Count - 1 do
-    begin
-      m64 := TMS64.Create;
-      FEncoderFiles[i].SaveToStream(m64);
-      inc(Result, FEncoderFiles[i].Size);
-      d.WriteStream(m64);
-      DisposeObject(m64);
-    end;
+  if FEncoderFiles.num > 0 then
+    with FEncoderFiles.repeat_ do
+      repeat
+        m64 := TMS64.Create;
+        Queue^.Data.SaveToStream(m64);
+        inc(Result, Queue^.Data.Size);
+        d.WriteStream(m64);
+        DisposeObject(m64);
+      until not Next;
   m64 := TMS64.Create;
   d.EncodeAsZLib(m64, False);
   if not FPlace.WriteStream(m64, 1024, FileInfo_ID) then
@@ -511,7 +577,7 @@ begin
   FPlace.Flush;
   PInteger(@FCore.UserCustomHeader^[$F0])^ := FileInfo_ID;
   FCore.Save;
-  FEncoderFiles.Clean;
+  FEncoderFiles.Clear;
   FFlushed := True;
 end;
 
@@ -522,13 +588,13 @@ var
   tmp: TMS64;
   i: Integer;
 begin
-  zdb_stream := TMS64.CustomCreate(1024 * 1024 * 8);
+  zdb_stream := TMS64.CustomCreate(1024 * 1024 * 2);
   en := TZDB2_File_Encoder.Create(zdb_stream, 8);
 
-  for i := 0 to 20 do
+  for i := 0 to 10 do
     begin
       tmp := TMS64.Create;
-      tmp.Size := umlRandomRange(16 * 1024 * 1024, 64 * 1024 * 1024);
+      tmp.Size := umlRandomRange(16 * 1024 * 1024, 4 * 1024 * 1024);
       MT19937Rand32(MaxInt, tmp.Memory, tmp.Size div 4);
       en.EncodeFromStream(tmp, 512 * 1024, TSelectCompressionMethod.scmZLIB, 8192);
       DisposeObject(tmp);
@@ -643,8 +709,8 @@ begin
   else
       FIO_Thread := TIO_Direct.Create;
 
-  FMaxQueue := umlMax(1, ThNum_) * 5;
-  FDecoderFiles := TZDB2_FIL.Create;
+  FMaxQueue := umlMax(1, ThNum_) * 10;
+  FDecoderFiles := TZDB2_FI_Pool.Create;
 
   mem := TZDB2_Mem.Create.Create;
   if FCore.ReadData(mem, PInteger(@FCore.UserCustomHeader^[$F0])^) then
@@ -664,6 +730,9 @@ begin
       DisposeObject(d);
     end;
   DisposeObject(mem);
+
+  FDecoderFile_Hash := FDecoderFiles.Build_Hash_Pool(False);
+  FDecoderPath_Hash := FDecoderFiles.Build_Hash_Pool(True);
 
   FFileLog := TPascalStringList.Create;
   FProgressInfo := '';
@@ -693,7 +762,8 @@ end;
 destructor TZDB2_File_Decoder.Destroy;
 begin
   DisposeObject(FIO_Thread);
-  FDecoderFiles.Clean;
+  DisposeObject(FDecoderFile_Hash);
+  DisposeObject(FDecoderPath_Hash);
   DisposeObject(FDecoderFiles);
   DisposeObject(FFileLog);
   DisposeObject(FCore);
@@ -741,6 +811,9 @@ var
   compSiz_: Int64;
   ioData: TZDB2_FD_IO;
 begin
+  Result := False;
+  if source_ = nil then
+      exit;
   Activted := TAtomBool.Create(True);
 
 {$IFDEF FPC}
@@ -795,6 +868,8 @@ var
   fs: TCore_FileStream;
 begin
   Result := False;
+  if source_ = nil then
+      exit;
   if source_.FileName.L = 0 then
       exit;
   if not CheckFileInfo(source_) then
@@ -852,6 +927,8 @@ begin
       tmp.Size := umlRandomRange(16 * 1024, 64 * 1024);
       MT19937Rand32(MaxInt, tmp.Memory, tmp.Size div 4);
       fi := en.EncodeFromStream(tmp, 8192, TSelectCompressionMethod.scmZLIB_Max, 1024);
+      fi.FileName := umlIntToStr(i);
+      fi.OwnerPath := umlIntToStr(i * i);
       DisposeObject(tmp);
     end;
   en.Flush;
@@ -863,21 +940,22 @@ begin
       DoStatus('TZDB2_File_Decoder check error.');
 
   de := TZDB2_File_Decoder.Create(Cipher_, zdb_stream, 4);
-  for i := 0 to de.Files.Count - 1 do
-    begin
-      tmp := TMS64.Create;
-      fi := de.Files[i];
-      if de.DecodeToStream(fi, tmp) then
-        begin
-          if umlCompareMD5(umlStreamMD5(tmp), fi.FileMD5) then
-              DoStatus('TZDB2_File_Decoder md5 ok.')
-          else
-              DoStatus('TZDB2_File_Decoder md5 error.');
-        end
-      else
-          DoStatus('TZDB2_File_Decoder error.');
-      DisposeObject(tmp);
-    end;
+  if de.Files.num > 0 then
+    with de.Files.repeat_ do
+      repeat
+        tmp := TMS64.Create;
+        fi := Queue^.Data;
+        if de.DecodeToStream(fi, tmp) then
+          begin
+            if umlCompareMD5(umlStreamMD5(tmp), fi.FileMD5) then
+                DoStatus('TZDB2_File_Decoder md5 ok.')
+            else
+                DoStatus('TZDB2_File_Decoder md5 error.');
+          end
+        else
+            DoStatus('TZDB2_File_Decoder error.');
+        DisposeObject(tmp);
+      until not Next;
   DisposeObject(de);
 
   DisposeObject(zdb_stream);

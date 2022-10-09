@@ -29,7 +29,7 @@ type
     ActivtedParallel: Integer;
     procedure Acquire;
     procedure Release;
-    function Busy(): Boolean; inline;
+    function Busy(): Boolean;
   end;
 
 var
@@ -442,10 +442,11 @@ end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d',
+  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d Post:%d',
     [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), IDLE_Thread(),
       Get_System_Critical_Recycle_Pool_Num(), Get_MT19937_POOL_Num(), Get_Object_Lock_Pool_Num(),
-      Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__]);
+      Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__,
+      MainThreadProgress.Num]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;

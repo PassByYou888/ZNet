@@ -16,9 +16,10 @@ uses
   Z.Net,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT,
   Z.Net.C4_FS2, Z.Net.C4_PascalRewrite_Client, Z.Net.C4_PascalRewrite_Service,
-  Z.Net.C4_NetDisk_VM_Service, Z.Net.C4_NetDisk_VM_Client, Z.Net.C4_NetDisk_Directory,
+  Z.Net.C4_NetDisk_Service, Z.Net.C4_NetDisk_Client,
+  Z.Net.C4_NetDisk_Directory,
   Z.Net.C4_TEKeyValue,
-  Z.Net.PhysicsIO;
+  Z.Net.PhysicsIO, Vcl.Menus;
 
 type
   TDTC40_TEKeyValue_Templet_Form = class(TForm, IC40_PhysicsTunnel_Event)
@@ -42,17 +43,22 @@ type
     search_TE_Button: TButton;
     rCliPanel: TPanel;
     TE_Memo: TMemo;
-    SearchEdit: TLabeledEdit;
+    FilterEdit: TLabeledEdit;
     NumEdit: TLabeledEdit;
     Panel1: TPanel;
     UpdateMemoTo_TE_Button: TButton;
     TE_Name_Edit: TLabeledEdit;
+    SearchEdit: TLabeledEdit;
+    word_CheckBox: TCheckBox;
+    PopupMenu__: TPopupMenu;
+    RemoveTE_MI: TMenuItem;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure netTimerTimer(Sender: TObject);
     procedure BuildDependNetButtonClick(Sender: TObject);
     procedure queryButtonClick(Sender: TObject);
     procedure resetDependButtonClick(Sender: TObject);
     procedure search_TE_ButtonClick(Sender: TObject);
+    procedure RemoveTE_MIClick(Sender: TObject);
     procedure TE_ListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);
     procedure TE_ListViewSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
     procedure UpdateMemoTo_TE_ButtonClick(Sender: TObject);
@@ -142,7 +148,17 @@ procedure TDTC40_TEKeyValue_Templet_Form.search_TE_ButtonClick(Sender: TObject);
 begin
   if TEKeyValue_Client = nil then
       exit;
-  TEKeyValue_Client.SearchTE_M(SearchEdit.Text, EStrToInt(NumEdit.Text), Do_SearchTE);
+  TEKeyValue_Client.SearchTE_M(FilterEdit.Text, '', SearchEdit.Text, word_CheckBox.Checked, EStrToInt(NumEdit.Text), Do_SearchTE);
+end;
+
+procedure TDTC40_TEKeyValue_Templet_Form.RemoveTE_MIClick(Sender: TObject);
+var
+  i: Integer;
+begin
+  for i := 0 to TE_ListView.Items.Count - 1 do
+    if TE_ListView.Items[i].Selected then
+        TEKeyValue_Client.RemoveTE(TE_ListView.Items[i].Caption);
+  search_TE_ButtonClick(search_TE_Button);
 end;
 
 procedure TDTC40_TEKeyValue_Templet_Form.TE_ListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);
@@ -171,6 +187,7 @@ begin
   TE.AsText := TE_Memo.Text;
   TEKeyValue_Client.SetTE(TE_Name_Edit.Text, TE);
   DisposeObject(TE);
+  search_TE_ButtonClick(search_TE_Button);
 end;
 
 procedure TDTC40_TEKeyValue_Templet_Form.DoStatus_backcall(Text_: SystemString; const ID: Integer);

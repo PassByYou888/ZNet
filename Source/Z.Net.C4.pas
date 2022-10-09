@@ -925,8 +925,9 @@ var
   { default configure }
   C40_DefaultConfig: THashStringList;
 
-procedure C40Progress;                        { C4 main progress }
-function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
+procedure C40Progress(sleep_: Integer); overload; { C4 main progress }
+procedure C40Progress; overload;                  { C4 main progress }
+function C40_Online_DP: TC40_Dispatch_Client;     { System Online-DP }
 
 { quiet }
 procedure C40SetQuietMode(QuietMode_: Boolean);
@@ -977,18 +978,32 @@ implementation
 
 var
   C40Progress_Working: Boolean = False;
+  Hooked_OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
 
-procedure C40Progress;
+procedure DoCheckThreadSynchronize();
+begin
+  if Assigned(Hooked_OnCheckThreadSynchronize) then
+    begin
+      try
+          Hooked_OnCheckThreadSynchronize();
+      except
+      end;
+    end;
+  C40Progress(0);
+end;
+
+procedure C40Progress(sleep_: Integer);
 var
   state_: Boolean;
 begin
   if C40Progress_Working then
       exit;
-  TCompute.Sleep(1);
+  C40Progress_Working := True;
+  if sleep_ > 0 then
+      TCompute.Sleep(sleep_);
   CheckThread;
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
-  C40Progress_Working := True;
   try
     C40_PhysicsServicePool.Progress;
     C40_ServicePool.Progress;
@@ -1001,6 +1016,11 @@ begin
   end;
   Enabled_Check_Thread_Synchronize_System := state_;
   C40Progress_Working := False;
+end;
+
+procedure C40Progress;
+begin
+  C40Progress(1);
 end;
 
 function C40_Online_DP: TC40_Dispatch_Client;
@@ -5939,6 +5959,10 @@ RegisterC40('DD', TC40_Base_DataStore_Service, TC40_Base_DataStore_Client);
 C40_DefaultConfig := THashStringList.CustomCreate(8);
 C40WriteConfig(C40_DefaultConfig);
 
+{ hook on check thread }
+Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
+Z.Core.OnCheckThreadSynchronize := {$IFDEF FPC}@{$ENDIF FPC}DoCheckThreadSynchronize;
+
 finalization
 
 C40Clean;
@@ -5951,5 +5975,7 @@ disposeObject(C40_VM_Service_Pool);
 disposeObject(C40_VM_Client_Pool);
 disposeObject(C40_Registed);
 disposeObject(C40_DefaultConfig);
+
+Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
 
 end.

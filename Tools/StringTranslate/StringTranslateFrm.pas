@@ -129,9 +129,9 @@ begin
   for i := 0 to Memo2.Lines.Count - 1 do
     begin
       if i = Memo2.Lines.Count - 1 then
-          Memo1.Lines.Add(TTextParsing.TranslateTextToPascalDecl(Memo2.Lines[i] + #13#10) + ';')
+          Memo1.Lines.Add(TTextParsing.Translate_Text_To_Pascal_Decl(Memo2.Lines[i] + #13#10) + ';')
       else
-          Memo1.Lines.Add(TTextParsing.TranslateTextToPascalDecl(Memo2.Lines[i] + #13#10) + '+');
+          Memo1.Lines.Add(TTextParsing.Translate_Text_To_Pascal_Decl(Memo2.Lines[i] + #13#10) + '+');
     end;
 end;
 
@@ -148,9 +148,9 @@ begin
   for i := 0 to Memo2.Lines.Count - 1 do
     begin
       if i = Memo2.Lines.Count - 1 then
-          Memo1.Lines.Add(TTextParsing.TranslateTextToC_Decl(Memo2.Lines[i] + #13#10) + ';')
+          Memo1.Lines.Add(TTextParsing.Translate_Text_To_C_Decl(Memo2.Lines[i] + #13#10) + ';')
       else
-          Memo1.Lines.Add(TTextParsing.TranslateTextToC_Decl(Memo2.Lines[i] + #13#10) + '+');
+          Memo1.Lines.Add(TTextParsing.Translate_Text_To_C_Decl(Memo2.Lines[i] + #13#10) + '+');
     end;
 end;
 
@@ -160,4 +160,4 @@ begin
 end;
 
 end.
- 
+

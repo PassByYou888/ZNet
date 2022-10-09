@@ -319,10 +319,10 @@ const
   MethodToken: TExpressionDeclTypes = ([edtProcExp]);
 
   AllExpressionValueType: TExpressionDeclTypes = ([
-    edtBool, edtInt, edtInt64, edtUInt64, edtWord, edtByte, edtSmallInt, edtShortInt, edtUInt,
-    edtSingle, edtDouble, edtCurrency,
-    edtString, edtProcExp,
-    edtExpressionAsValue]);
+      edtBool, edtInt, edtInt64, edtUInt64, edtWord, edtByte, edtSmallInt, edtShortInt, edtUInt,
+      edtSingle, edtDouble, edtCurrency,
+      edtString, edtProcExp,
+      edtExpressionAsValue]);
 
   SymbolOperationPriority: array [0 .. 4] of TSymbolOperations = (
     ([soAnd]),
@@ -333,15 +333,15 @@ const
     );
 
   AllowPrioritySymbol: TSymbolOperations = ([
-    soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor,
-    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,
-    soShl, soShr,
-    soDotSymbol, soCommaSymbol]);
+      soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor,
+      soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,
+      soShl, soShr,
+      soDotSymbol, soCommaSymbol]);
 
   OpLogicalSymbol: TSymbolOperations = ([
-    soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor,
-    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,
-    soShl, soShr]);
+      soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor,
+      soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,
+      soShl, soShr]);
 
   SymbolOperationTextDecl: array [TSymbolOperation] of TSymbolOperationType = (
     (State: soAdd; Decl: '+'),
@@ -631,9 +631,9 @@ begin
           p := GetItems(i);
 
           DoStatus(prefix + ' id:%d exp:%s symbol:%s val:%s', [i,
-            GetEnumName(TypeInfo(TExpressionDeclType), Ord(p^.dType)),
-            GetEnumName(TypeInfo(TSymbolOperation), Ord(p^.Symbol)),
-            VarToStr(p^.Value)]);
+              GetEnumName(TypeInfo(TExpressionDeclType), Ord(p^.dType)),
+              GetEnumName(TypeInfo(TSymbolOperation), Ord(p^.Symbol)),
+              VarToStr(p^.Value)]);
 
         end;
 
@@ -683,8 +683,8 @@ begin
         edtString:
           begin
             case FTextStyle of
-              tsPascal: Result := Result + TTextParsing.TranslateTextToPascalDecl(VarToStr(p^.Value));
-              tsC: Result := Result + TTextParsing.TranslateTextToC_Decl(VarToStr(p^.Value));
+              tsPascal: Result := Result + TTextParsing.Translate_Text_To_Pascal_Decl(VarToStr(p^.Value));
+              tsC: Result := Result + TTextParsing.Translate_Text_To_C_Decl(VarToStr(p^.Value));
               else Result := Result + VarToStr(p^.Value);
             end;
           end;
@@ -694,25 +694,25 @@ begin
               soBlockIndentBegin:
                 Result := Format('%s%s%s%s',
                   [Result,
-                  SymbolOperationTextDecl[soBlockIndentBegin].Decl,
-                  p^.Expression.Decl,
-                  SymbolOperationTextDecl[soBlockIndentEnd].Decl
-                  ]);
-              soPropIndentBegin:
-                Result := Format('%s%s%s%s',
-                  [Result,
-                  SymbolOperationTextDecl[soPropIndentBegin].Decl,
-                  p^.Expression.Decl,
-                  SymbolOperationTextDecl[soPropIndentEnd].Decl
-                  ]);
-              soParameter:
-                begin
-                  Result := Format('%s%s%s%s',
-                    [Result,
                     SymbolOperationTextDecl[soBlockIndentBegin].Decl,
                     p^.Expression.Decl,
                     SymbolOperationTextDecl[soBlockIndentEnd].Decl
                     ]);
+              soPropIndentBegin:
+                Result := Format('%s%s%s%s',
+                  [Result,
+                    SymbolOperationTextDecl[soPropIndentBegin].Decl,
+                    p^.Expression.Decl,
+                    SymbolOperationTextDecl[soPropIndentEnd].Decl
+                    ]);
+              soParameter:
+                begin
+                  Result := Format('%s%s%s%s',
+                    [Result,
+                      SymbolOperationTextDecl[soBlockIndentBegin].Decl,
+                      p^.Expression.Decl,
+                      SymbolOperationTextDecl[soBlockIndentEnd].Decl
+                      ]);
                 end;
               else
                 Result := Result + ' !error! ';
@@ -1418,11 +1418,14 @@ function ParseTextExpressionAsSymbol__(ParsingTool_: TTextParsing; const uName: 
 
   procedure PrintError(const s: SystemString);
   begin
-    if s = '' then
-        DoStatus('declaration error "%s"', [ParsingTool_.Text.Text])
-    else
-        DoStatus('declaration error "%s" -> [%s]', [ParsingTool_.Text.Text, s]);
-    DoStatus('');
+    if isDebug then
+      begin
+        if s = '' then
+            DoStatus('declaration error "%s"', [ParsingTool_.Text.Text])
+        else
+            DoStatus('declaration error "%s" -> [%s]', [ParsingTool_.Text.Text, s]);
+        DoStatus('');
+      end;
   end;
 
   function DeclValDefine(const Decl: SystemString; var v: Variant): TExpressionDeclType;
@@ -1584,10 +1587,10 @@ begin
           else if (td^.tokenType = ttAscii) and
             (
             td^.Text.Same('and', 'or', 'xor', 'shl', 'shr')
-            or
-            td^.Text.Same('div', 'idiv', 'intdiv', 'fdiv', 'floatdiv')
-            or
-            td^.Text.Same('mod')
+              or
+              td^.Text.Same('div', 'idiv', 'intdiv', 'fdiv', 'floatdiv')
+              or
+              td^.Text.Same('mod')
             ) then
             begin
               isSymbol := True;
@@ -1886,10 +1889,13 @@ var
   procedure PrintError(const s: SystemString);
   begin
     ParseAborted := True;
-    if s <> '' then
-        DoStatus(Format('Priority symbol failed : %s', [s]))
-    else
-        DoStatus('Priority symbol failed');
+    if isDebug then
+      begin
+        if s <> '' then
+            DoStatus(Format('Priority symbol failed : %s', [s]))
+        else
+            DoStatus('Priority symbol failed');
+      end;
   end;
 
   procedure ProcessSymbol(OwnerSym: TSymbolOperation);
@@ -2043,9 +2049,9 @@ begin
       Exit;
 
   if Exps.GetSymbolCount([
-    soBlockIndentBegin, soBlockIndentEnd,
-    soPropIndentBegin, soPropIndentEnd,
-    soEolSymbol, soUnknow]) > 0 then
+      soBlockIndentBegin, soBlockIndentEnd,
+      soPropIndentBegin, soPropIndentEnd,
+      soEolSymbol, soUnknow]) > 0 then
     begin
       PrintError('Illegal symbol');
       Exit;
@@ -2074,10 +2080,13 @@ var
   procedure PrintError(const s: SystemString);
   begin
     ParseAborted := True;
-    if s <> '' then
-        DoStatus(Format('indent symbol failed : %s', [s]))
-    else
-        DoStatus('indent symbol failed');
+    if isDebug then
+      begin
+        if s <> '' then
+            DoStatus(Format('indent symbol failed : %s', [s]))
+        else
+            DoStatus('indent symbol failed');
+      end;
   end;
 
   function ProcessIndent(OwnerIndentSym: TSymbolOperation): TSymbolExpression;
@@ -2283,10 +2292,13 @@ var
   procedure PrintError(const s: SystemString);
   begin
     BuildAborted := True;
-    if s <> '' then
-        DoStatus(Format('build op failed : %s', [s]))
-    else
-        DoStatus('build op failed');
+    if isDebug then
+      begin
+        if s <> '' then
+            DoStatus(Format('build op failed : %s', [s]))
+        else
+            DoStatus('build op failed');
+      end;
   end;
 
   function NewOpValue(uName: SystemString): TOpCode;

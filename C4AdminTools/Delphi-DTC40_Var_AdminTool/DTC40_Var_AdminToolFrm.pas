@@ -99,22 +99,22 @@ type
     procedure C40_PhysicsTunnel_Build_Network(Sender: TC40_PhysicsTunnel; Custom_Client_: TC40_Custom_Client);
     procedure C40_PhysicsTunnel_Client_Connected(Sender: TC40_PhysicsTunnel; Custom_Client_: TC40_Custom_Client);
     // NM Event
-    procedure Do_DTC40_Var_NM_Change(Sender: TC40_Var_Client; NMPool_: TC40_VarService_NM_Pool; NM: TNumberModule);
+    procedure Do_DTC40_Var_NM_Change(Sender: TC40_Var_Client; NMPool_: TC40_Var_Service_NM_Pool; NM: TNumberModule);
     procedure Do_DTC40_Var_Client_NM_Remove(Sender: TC40_Var_Client; NMName: U_String);
   private
-    FCurrentNM: TC40_VarService_NM_Pool;
-    procedure SetCurrentNM(const Value: TC40_VarService_NM_Pool);
+    FCurrentNM: TC40_Var_Service_NM_Pool;
+    procedure SetCurrentNM(const Value: TC40_Var_Service_NM_Pool);
   public
     ValidService: TC40_InfoList;
     CurrentClient: TC40_Var_Client;
-    property CurrentNM: TC40_VarService_NM_Pool read FCurrentNM write SetCurrentNM;
+    property CurrentNM: TC40_Var_Service_NM_Pool read FCurrentNM write SetCurrentNM;
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   end;
 
   TNM_Item = class(TListItem)
   public
-    NM: TC40_VarService_NM_Pool;
+    NM: TC40_Var_Service_NM_Pool;
   end;
 
   TNumber_Item = class(TListItem)
@@ -411,7 +411,7 @@ begin
     end;
 end;
 
-procedure TDTC40_Var_AdminToolForm.Do_DTC40_Var_NM_Change(Sender: TC40_Var_Client; NMPool_: TC40_VarService_NM_Pool; NM: TNumberModule);
+procedure TDTC40_Var_AdminToolForm.Do_DTC40_Var_NM_Change(Sender: TC40_Var_Client; NMPool_: TC40_Var_Service_NM_Pool; NM: TNumberModule);
 var
   i: Integer;
   itm: TNumber_Item;
@@ -457,7 +457,7 @@ begin
     end;
 end;
 
-procedure TDTC40_Var_AdminToolForm.SetCurrentNM(const Value: TC40_VarService_NM_Pool);
+procedure TDTC40_Var_AdminToolForm.SetCurrentNM(const Value: TC40_Var_Service_NM_Pool);
 begin
   VarListView.Clear;
   FCurrentNM := Value;

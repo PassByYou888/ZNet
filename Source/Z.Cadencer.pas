@@ -178,7 +178,7 @@ end;
 
 function TCadencer.GetRawReferenceTime: Double;
 begin
-  Result := GetTimeTick * 0.001;
+  Result := GetTimeTick() * 0.001;
 end;
 
 constructor TCadencer.Create;

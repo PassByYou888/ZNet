@@ -269,9 +269,9 @@ procedure TC4_VAR_Tech_Demo_Cli_Form.UpdateVarStates;
 begin
   if VarClient = nil then
       exit;
-  VarClient.NMBigPool.ProgressP(procedure(const NMPoolName_: PSystemString; NMPool_: TC40_VarService_NM_Pool)
+  VarClient.NMBigPool.ProgressP(procedure(const NMPoolName_: PSystemString; Obj_: TC40_Var_Service_NM_Pool)
     begin
-      NMPool_.List.ProgressP(procedure(const NMName_: PSystemString; NM_: TNumberModule)
+      Obj_.List.ProgressP(procedure(const NMName_: PSystemString; NM_: TNumberModule)
         var
           RN: TTreeNode;
         begin

@@ -524,6 +524,7 @@ type
     procedure WriteDataFrameCompressed(v: TDFE);
     // zlib compression
     procedure WriteDataFrameZLib(v: TDFE);
+    //
     procedure WriteHashStringList(v: THashStringList);
     procedure WriteVariantList(v: THashVariantList);
     procedure WriteSectionText(v: TSectionTextData);
