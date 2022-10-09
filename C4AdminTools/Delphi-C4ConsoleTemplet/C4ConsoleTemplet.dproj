@@ -157,6 +157,7 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
+        <Debugger_RunParams>&quot;Password(&apos;DTC40@ZSERVER&apos;),Service(&apos;0.0.0.0&apos;,&apos;192.168.2.79&apos;,&apos;9188&apos;,&apos;DP|FS2|FS|alias&apos;),AutoTunnel(&apos;192.168.2.79&apos;,&apos;9188&apos;,&apos;DP&apos;,True)&quot;</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>

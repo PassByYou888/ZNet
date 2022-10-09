@@ -14,7 +14,7 @@ object DTC40_Log_AdminToolForm: TDTC40_Log_AdminToolForm
   Font.Style = []
   Menu = MainMenu_
   OldCreateOrder = False
-  Position = poDesktopCenter
+  Position = poScreenCenter
   OnClose = FormClose
   PixelsPerInch = 96
   TextHeight = 13
@@ -288,7 +288,7 @@ object DTC40_Log_AdminToolForm: TDTC40_Log_AdminToolForm
           EditLabel.Height = 13
           EditLabel.Caption = 'filter1:'
           LabelPosition = lpLeft
-          TabOrder = 0
+          TabOrder = 1
         end
         object SearchLogButton: TButton
           Left = 488
@@ -296,7 +296,7 @@ object DTC40_Log_AdminToolForm: TDTC40_Log_AdminToolForm
           Width = 54
           Height = 25
           Caption = 'Serach'
-          TabOrder = 1
+          TabOrder = 3
           OnClick = SearchLogButtonClick
         end
         object filter2Edit: TLabeledEdit
@@ -318,7 +318,7 @@ object DTC40_Log_AdminToolForm: TDTC40_Log_AdminToolForm
           Style = csDropDownList
           DropDownCount = 12
           ItemIndex = 8
-          TabOrder = 3
+          TabOrder = 0
           Text = 'Last 1 Year'
           Items.Strings = (
             'Last 60 seconds'

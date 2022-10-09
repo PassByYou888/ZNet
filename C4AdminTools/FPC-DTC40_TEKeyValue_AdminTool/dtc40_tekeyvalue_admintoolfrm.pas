@@ -44,9 +44,16 @@ uses
   Z.Net.PhysicsIO;
 
 type
+
+  { TDTC40_TEKeyValue_AdminTool_Form }
+
   TDTC40_TEKeyValue_AdminTool_Form = class(TForm, IC40_PhysicsTunnel_Event)
+    FilterEdit: TLabeledEdit;
     netTimer: TTimer;
     logMemo: TMemo;
+    NumEdit: TLabeledEdit;
+    SearchEdit: TLabeledEdit;
+    search_TE_Button: TButton;
     TopBarPanel: TPanel;
     JoinHostEdit: TLabeledEdit;
     JoinPortEdit: TLabeledEdit;
@@ -56,17 +63,15 @@ type
     serviceComboBox: TComboBox;
     queryButton: TButton;
     DTC4PasswdEdit: TLabeledEdit;
+    word_CheckBox: TCheckBox;
     _B_Splitter: TSplitter;
     cliPanel: TPanel;
     lpLSplitter: TSplitter;
     leftPanel: TPanel;
     TE_ListView: TListView;
     TE_L_ToolBarPanel: TPanel;
-    search_TE_Button: TButton;
     rCliPanel: TPanel;
     TE_Memo: TMemo;
-    SearchEdit: TLabeledEdit;
-    NumEdit: TLabeledEdit;
     Panel1: TPanel;
     UpdateMemoTo_TE_Button: TButton;
     TE_Name_Edit: TLabeledEdit;
@@ -165,7 +170,7 @@ procedure TDTC40_TEKeyValue_AdminTool_Form.search_TE_ButtonClick(Sender: TObject
 begin
   if TEKeyValue_Client = nil then
       exit;
-  TEKeyValue_Client.SearchTE_M(SearchEdit.Text, EStrToInt(NumEdit.Text), @Do_SearchTE);
+  TEKeyValue_Client.SearchTE_M(FilterEdit.Text, '', SearchEdit.Text, word_CheckBox.Checked, EStrToInt(NumEdit.Text), @Do_SearchTE);
 end;
 
 procedure TDTC40_TEKeyValue_AdminTool_Form.TE_ListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);

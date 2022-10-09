@@ -536,9 +536,9 @@ procedure TC40AppTempletForm.GenerateCmdLineButtonClick(Sender: TObject);
   function conv_(sour: SystemString): SystemString;
   begin
     if Pas_RadioButton.Checked then
-      Result := TTextParsing.TranslateTextToPascalDecl(sour)
+      Result := TTextParsing.Translate_Text_To_Pascal_Decl(sour)
     else if c_RadioButton.Checked then
-      Result := TTextParsing.TranslateTextToC_Decl(sour)
+      Result := TTextParsing.Translate_Text_To_C_Decl(sour)
     else
       Result := sour;
   end;
@@ -601,9 +601,9 @@ procedure TC40AppTempletForm.Generate_Console_CmdLineButtonClick(Sender: TObject
   function conv_(sour: SystemString): SystemString;
   begin
     if Pas_RadioButton.Checked then
-      Result := TTextParsing.TranslateTextToPascalDecl(sour)
+      Result := TTextParsing.Translate_Text_To_Pascal_Decl(sour)
     else if c_RadioButton.Checked then
-      Result := TTextParsing.TranslateTextToC_Decl(sour)
+      Result := TTextParsing.Translate_Text_To_C_Decl(sour)
     else
       Result := sour;
   end;

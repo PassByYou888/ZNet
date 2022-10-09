@@ -17,14 +17,13 @@ object DTC40_Var_AdminToolNewNMForm: TDTC40_Var_AdminToolNewNMForm
   PopupMode = pmExplicit
   PopupParent = DTC40_Var_AdminToolForm.Owner
   Position = poMainFormCenter
-  LCLVersion = '2.0.12.0'
+  LCLVersion = '2.2.0.4'
   object Label1: TLabel
     Left = 8
     Height = 13
     Top = 63
     Width = 30
     Caption = 'script:'
-    ParentColor = False
   end
   object NameEdit: TLabeledEdit
     Left = 16
@@ -34,7 +33,6 @@ object DTC40_Var_AdminToolNewNMForm: TDTC40_Var_AdminToolNewNMForm
     EditLabel.Height = 13
     EditLabel.Width = 121
     EditLabel.Caption = 'Number Module Name'
-    EditLabel.ParentColor = False
     TabOrder = 0
   end
   object ScriptMemo: TMemo
@@ -70,7 +68,6 @@ object DTC40_Var_AdminToolNewNMForm: TDTC40_Var_AdminToolNewNMForm
     EditLabel.Height = 13
     EditLabel.Width = 52
     EditLabel.Caption = 'Temp Module Life time'
-    EditLabel.ParentColor = False
     TabOrder = 2
     Text = '5*1000'
   end

@@ -32,12 +32,13 @@ type
   TDTC40_UserDB_AdminLargeScaleRegForm = class(TForm)
     Label1: TLabel;
     PlanListView: TListView;
-    Label2: TLabel;
     makePlanButton: TButton;
     cleanPlanButton: TButton;
     executePlanButton: TButton;
     CorpusListBox: TCheckListBox;
     NumEdit: TLabeledEdit;
+    Random_Prefix_CheckBox: TCheckBox;
+    Label2: TLabel;
     procedure PlanListViewCreateItemClass(Sender: TCustomListView; var ItemClass: TListItemClass);
     procedure makePlanButtonClick(Sender: TObject);
     procedure cleanPlanButtonClick(Sender: TObject);
@@ -143,13 +144,23 @@ begin
               p := PHashListData(L[umlRandomRange(0, L.Count - 1)]);
               itm := PlanListView.Items.Add as TReg_Item;
               //
-              af := TPascalString.RandomString(umlRandomRange(1, 3), [cHiAtoZ]) + '_';
-              bf := '_' + TPascalString.RandomString(umlRandomRange(1, 4), [c0to9, cAtoZ]);
-              itm.oriName := af + p^.OriginName + bf;
+              if Random_Prefix_CheckBox.Checked then
+                begin
+                  af := TPascalString.RandomString(umlRandomRange(1, 3), [cHiAtoZ]) + '_';
+                  bf := '_' + TPascalString.RandomString(umlRandomRange(1, 4), [c0to9, cAtoZ]);
+                  itm.oriName := af + p^.OriginName + bf;
+                end
+              else
+                  itm.oriName := p^.OriginName;
               //
-              af := TPascalString.RandomString(umlRandomRange(1, 3), [cHiAtoZ]) + '_';
-              bf := '_' + TPascalString.RandomString(umlRandomRange(1, 4), [c0to9, cAtoZ]);
-              itm.UserName := af + PyNoSpace(p^.OriginName) + bf;
+              if Random_Prefix_CheckBox.Checked then
+                begin
+                  af := TPascalString.RandomString(umlRandomRange(1, 3), [cHiAtoZ]) + '_';
+                  bf := '_' + TPascalString.RandomString(umlRandomRange(1, 4), [c0to9, cAtoZ]);
+                  itm.UserName := af + PyNoSpace(p^.OriginName) + bf;
+                end
+              else
+                  itm.UserName := PyNoSpace(p^.OriginName);
               //
               itm.Passwd := itm.UserName;
 

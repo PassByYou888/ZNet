@@ -15,7 +15,7 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
   Menu = MainMenu_
   OnClose = FormClose
   Position = poDesktopCenter
-  LCLVersion = '2.0.12.0'
+  LCLVersion = '2.2.0.4'
   object botSplitter: TSplitter
     Cursor = crVSplit
     Left = 0
@@ -62,7 +62,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
       EditLabel.Height = 13
       EditLabel.Width = 44
       EditLabel.Caption = 'Join Host'
-      EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 0
     end
@@ -74,7 +73,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
       EditLabel.Height = 13
       EditLabel.Width = 20
       EditLabel.Caption = 'Port'
-      EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 1
     end
@@ -86,7 +84,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
       EditLabel.Height = 13
       EditLabel.Width = 37
       EditLabel.Caption = 'Depend'
-      EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 2
     end
@@ -139,7 +136,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
       EditLabel.Height = 13
       EditLabel.Width = 52
       EditLabel.Caption = 'C4 Passwd'
-      EditLabel.ParentColor = False
       LabelPosition = lpLeft
       PasswordChar = '*'
       TabOrder = 5
@@ -221,7 +217,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
         EditLabel.Height = 13
         EditLabel.Width = 20
         EditLabel.Caption = 'var:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 0
       end
@@ -242,7 +237,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
         EditLabel.Height = 13
         EditLabel.Width = 25
         EditLabel.Caption = 'Num:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 1
         Text = '100'
@@ -255,7 +249,6 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
         EditLabel.Height = 13
         EditLabel.Width = 31
         EditLabel.Caption = 'Script:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 3
       end
@@ -291,13 +284,13 @@ object DTC40_Var_AdminToolForm: TDTC40_Var_AdminToolForm
             AutoSize = True
             Caption = 'Var'
             MinWidth = 150
-            Width = 37
+            Width = 150
           end        
           item
             AutoSize = True
             Caption = 'Value'
             MinWidth = 150
-            Width = 49
+            Width = 150
           end>
         HideSelection = False
         MultiSelect = True

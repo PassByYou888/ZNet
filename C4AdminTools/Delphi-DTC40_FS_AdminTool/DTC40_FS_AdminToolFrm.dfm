@@ -14,7 +14,7 @@ object DTC40_FS_AdminToolForm: TDTC40_FS_AdminToolForm
   Font.Style = []
   Menu = MainMenu_
   OldCreateOrder = False
-  Position = poDesktopCenter
+  Position = poScreenCenter
   OnClose = FormClose
   PixelsPerInch = 96
   TextHeight = 13

@@ -3,7 +3,7 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
   Top = 0
   Caption = 'Large-scale registration.'
   ClientHeight = 369
-  ClientWidth = 946
+  ClientWidth = 1066
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,7 +16,7 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   DesignSize = (
-    946
+    1066
     369)
   PixelsPerInch = 96
   TextHeight = 13
@@ -37,7 +37,7 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
   object PlanListView: TListView
     Left = 320
     Top = 42
-    Width = 597
+    Width = 717
     Height = 303
     Anchors = [akLeft, akTop, akRight, akBottom]
     Columns = <
@@ -55,9 +55,10 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
     ReadOnly = True
     RowSelect = True
     ParentDoubleBuffered = False
-    TabOrder = 5
+    TabOrder = 6
     ViewStyle = vsReport
     OnCreateItemClass = PlanListViewCreateItemClass
+    ExplicitWidth = 597
   end
   object makePlanButton: TButton
     Left = 411
@@ -66,25 +67,25 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
     Height = 25
     Caption = 'Make Registration Plan'
     Default = True
-    TabOrder = 0
+    TabOrder = 1
     OnClick = makePlanButtonClick
   end
   object cleanPlanButton: TButton
-    Left = 626
+    Left = 796
     Top = 11
     Width = 75
     Height = 25
     Caption = 'Clean plan'
-    TabOrder = 2
+    TabOrder = 4
     OnClick = cleanPlanButtonClick
   end
   object executePlanButton: TButton
-    Left = 707
+    Left = 877
     Top = 11
     Width = 156
     Height = 25
     Caption = 'execute Registration Plan'
-    TabOrder = 3
+    TabOrder = 5
     OnClick = executePlanButtonClick
   end
   object CorpusListBox: TCheckListBox
@@ -96,10 +97,10 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
     DoubleBuffered = True
     ItemHeight = 13
     ParentDoubleBuffered = False
-    TabOrder = 4
+    TabOrder = 0
   end
   object NumEdit: TLabeledEdit
-    Left = 580
+    Left = 574
     Top = 15
     Width = 40
     Height = 21
@@ -107,7 +108,15 @@ object DTC40_UserDB_AdminLargeScaleRegForm: TDTC40_UserDB_AdminLargeScaleRegForm
     EditLabel.Height = 13
     EditLabel.Caption = 'Num:'
     LabelPosition = lpLeft
-    TabOrder = 1
+    TabOrder = 2
     Text = '100'
+  end
+  object Random_Prefix_CheckBox: TCheckBox
+    Left = 620
+    Top = 17
+    Width = 95
+    Height = 17
+    Caption = 'Random prefix'
+    TabOrder = 3
   end
 end

@@ -15,6 +15,7 @@ uses
   Z.MemoryStream, Z.Cipher, Z.Notify, Z.IOThread,
   Z.Net,
   Z.Net.C4, Z.Net.C4_UserDB, Z.Net.C4_Var, Z.Net.C4_FS, Z.Net.C4_RandSeed, Z.Net.C4_Log_DB, Z.Net.C4_XNAT,
+  Z.Net.C4_NetDisk_Service, Z.Net.C4_NetDisk_Client,
   Z.Net.C4_Alias,
   Z.Net.PhysicsIO;
 

@@ -3,8 +3,8 @@ object C40AppTempletForm: TC40AppTempletForm
   Height = 500
   Top = 115
   Width = 700
-  HorzScrollBar.Page = 371
-  VertScrollBar.Page = 498
+  HorzScrollBar.Page = 150
+  VertScrollBar.Page = 187
   Anchors = [akTop, akRight]
   AutoScroll = True
   Caption = 'Cloud 4.0 Application Templet.'
@@ -18,7 +18,7 @@ object C40AppTempletForm: TC40AppTempletForm
   Font.Name = 'Tahoma'
   OnClose = FormClose
   Position = poDesktopCenter
-  LCLVersion = '2.0.12.0'
+  LCLVersion = '2.2.0.4'
   object botSplitter: TSplitter
     Cursor = crVSplit
     Left = 0
@@ -102,7 +102,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 44
             EditLabel.Caption = 'Join Host'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 0
           end
@@ -114,7 +113,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 20
             EditLabel.Caption = 'Port'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 1
           end
@@ -147,7 +145,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 37
             EditLabel.Caption = 'Depend'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 2
             OnChange = DependEditChange
@@ -233,7 +230,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 62
             EditLabel.Caption = 'Listening  IP:'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 0
           end
@@ -245,7 +241,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 20
             EditLabel.Caption = 'Port'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 2
           end
@@ -258,7 +253,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 75
             EditLabel.Caption = 'Service Depend'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 3
             OnChange = ServiceDependEditChange
@@ -292,7 +286,6 @@ object C40AppTempletForm: TC40AppTempletForm
             EditLabel.Height = 13
             EditLabel.Width = 26
             EditLabel.Caption = 'Host:'
-            EditLabel.ParentColor = False
             LabelPosition = lpLeft
             TabOrder = 1
           end
@@ -350,7 +343,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 83
         EditLabel.Caption = 'Safe check timer:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 1
       end
@@ -362,7 +354,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 137
         EditLabel.Caption = 'Physics Reconnection Delay:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 2
       end
@@ -374,7 +365,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 129
         EditLabel.Caption = 'Update Service Info Timer:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 3
       end
@@ -386,7 +376,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 118
         EditLabel.Caption = 'Physics Service Timeout:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 4
       end
@@ -398,7 +387,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 115
         EditLabel.Caption = 'Physics Tunnel Timeout:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 5
       end
@@ -410,7 +398,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 105
         EditLabel.Caption = 'Kill IDC Fault Timeout:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 6
       end
@@ -422,7 +409,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 74
         EditLabel.Caption = 'Root Directory:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 7
       end
@@ -443,7 +429,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 99
         EditLabel.Caption = 'Cloud 4.0 Password:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 9
       end
@@ -579,7 +564,6 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 126
         Width = 79
         Caption = 'array parameter'
-        ParentColor = False
       end
       object cmdLineParamEdit: TLabeledEdit
         Left = 98
@@ -590,7 +574,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 79
         EditLabel.Caption = 'boot parameter:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 3
       end
@@ -611,7 +594,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 24
         EditLabel.Caption = 'Title:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 0
       end
@@ -623,7 +605,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 46
         EditLabel.Caption = 'App Title:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 1
       end
@@ -655,7 +636,6 @@ object C40AppTempletForm: TC40AppTempletForm
         EditLabel.Height = 13
         EditLabel.Width = 80
         EditLabel.Caption = 'code parameter:'
-        EditLabel.ParentColor = False
         LabelPosition = lpLeft
         TabOrder = 6
       end
