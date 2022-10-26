@@ -289,7 +289,7 @@ procedure TZDB2_List_HashVariant.Remove(Obj: TZDB2_HashVariant; RemoveData_: Boo
 begin
   if RemoveData_ then
       Obj.Remove;
-  List.Remove(Obj.FPool_Ptr);
+  List.Remove_P(Obj.FPool_Ptr);
 end;
 
 procedure TZDB2_List_HashVariant.Clear;

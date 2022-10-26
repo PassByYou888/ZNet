@@ -278,7 +278,7 @@ procedure TZDB2_List_ObjectDataManager.Remove(Obj: TZDB2_ObjectDataManager; Remo
 begin
   if RemoveData_ then
       Obj.Remove;
-  List.Remove(Obj.FPool_Ptr);
+  List.Remove_P(Obj.FPool_Ptr);
 end;
 
 procedure TZDB2_List_ObjectDataManager.Clear;

@@ -2096,7 +2096,7 @@ var
 begin
   sour := TItemStream.Create(self, ItemHnd);
   sour.SeekStart();
-  Result := stream.CopyFrom(sour, sour.Size) = sour.Size;
+  Result := stream.Helper_CopyFrom64__(sour, sour.Size) = sour.Size;
   DisposeObject(sour);
 end;
 
@@ -2127,7 +2127,7 @@ begin
   sour := TItemStream.Create(self, ItemHnd);
   sour.SeekStart();
   stream.Position := 0;
-  Result := sour.CopyFrom(stream, stream.Size) = stream.Size;
+  Result := sour.CopyFrom64(stream, stream.Size) = stream.Size;
   sour.UpdateHandle;
   DisposeObject(sour);
 end;

@@ -393,7 +393,7 @@ begin
   Data.FTh_Engine_Data_Ptr := nil;
   Data.FID := -1;
   if (Data.FOwner <> nil) and (Data.FOwner_Data_Ptr <> nil) then
-      Data.FOwner.Data_Marshal.Remove(Data.FOwner_Data_Ptr)
+      Data.FOwner.Data_Marshal.Remove_P(Data.FOwner_Data_Ptr)
   else
     begin
       Data.FPost_Free_Runing := True;
@@ -875,7 +875,7 @@ begin
   Data.FOwner := nil;
   Data.FOwner_Data_Ptr := nil;
   if (Data.FTh_Engine <> nil) and (Data.FTh_Engine_Data_Ptr <> nil) then
-      Data.FTh_Engine.Th_Engine_Data_Pool.Remove(Data.FTh_Engine_Data_Ptr)
+      Data.FTh_Engine.Th_Engine_Data_Pool.Remove_P(Data.FTh_Engine_Data_Ptr)
   else
     begin
       Data.FPost_Free_Runing := True;
@@ -901,7 +901,7 @@ begin
     disposeObjectAndNil(Data_Marshal);
   except
   end;
-  Th_Engine_Marshal_Pool__.Remove(Pool_Ptr);
+  Th_Engine_Marshal_Pool__.Remove_P(Pool_Ptr);
   inherited Destroy;
 end;
 

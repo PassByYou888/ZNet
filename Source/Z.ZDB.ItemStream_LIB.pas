@@ -58,6 +58,11 @@ type
     procedure SaveTo_ZDB_File(eng_: TObjectDataManager; FileName: SystemString);
   end;
 
+  TCore_Stream_Helper__ = class helper for TCore_Stream
+  public
+    function Helper_CopyFrom64__(const Source: TCore_Stream; Count: Int64): Int64;
+  end;
+
 implementation
 
 function TItemStream.GetSize: Int64;
@@ -325,6 +330,43 @@ begin
   field_path_ := umlGetUnixFilePath(FileName);
   item_name_ := umlGetUnixFileName(FileName);
   eng_.ItemWriteFromStream(field_path_, item_name_, Self.Stream64);
+end;
+
+function TCore_Stream_Helper__.Helper_CopyFrom64__(const Source: TCore_Stream; Count: Int64): Int64;
+const
+  MaxBufSize = $F000;
+var
+  BufSize, N: Int64;
+  buffer: Pointer;
+begin
+  if Count <= 0 then
+    begin
+      Source.Position := 0;
+      Count := Source.Size;
+    end;
+
+  Result := Count;
+  if Count > MaxBufSize then
+      BufSize := MaxBufSize
+  else
+      BufSize := Count;
+  buffer := System.GetMemory(BufSize);
+  try
+    while Count <> 0 do
+      begin
+        if Count > BufSize then
+            N := BufSize
+        else
+            N := Count;
+        if Source.Read(buffer^, N) <> N then
+            RaiseInfo('item read error.');
+        if Write(buffer^, N) <> N then
+            RaiseInfo('item write error.');
+        Dec(Count, N);
+      end;
+  finally
+      System.FreeMemory(buffer);
+  end;
 end;
 
 end.

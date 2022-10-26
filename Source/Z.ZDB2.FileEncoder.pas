@@ -40,7 +40,7 @@ type
   TZDB2_FI_Hash = class(TZDB2_FI_Hash_Decl)
   public
     constructor Create;
-    function Compare_Value(Value_1, Value_2: TZDB2_FI): Boolean; override;
+    function Compare_Value(const Value_1, Value_2: TZDB2_FI): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: TZDB2_FI); override;
   end;
 
@@ -49,7 +49,7 @@ type
     AutoFree: Boolean;
     constructor Create;
     procedure DoFree(var Data: TZDB2_FI); override;
-    function CompareData(Data_1, Data_2: TZDB2_FI): Boolean; override;
+    function CompareData(const Data_1, Data_2: TZDB2_FI): Boolean; override;
     function FindFile(FileName: U_String): TZDB2_FI;
     function SearchFile(FileName, OwnerPath: U_String): TZDB2_FI_Pool;
     function Build_Hash_Pool(OwnerPath_: Boolean): TZDB2_FI_Hash;
@@ -207,7 +207,7 @@ begin
   inherited Create($FFFF, nil);
 end;
 
-function TZDB2_FI_Hash.Compare_Value(Value_1, Value_2: TZDB2_FI): Boolean;
+function TZDB2_FI_Hash.Compare_Value(const Value_1, Value_2: TZDB2_FI): Boolean;
 begin
   Result := Value_1 = Value_2;
 end;
@@ -232,7 +232,7 @@ begin
       Data := nil;
 end;
 
-function TZDB2_FI_Pool.CompareData(Data_1, Data_2: TZDB2_FI): Boolean;
+function TZDB2_FI_Pool.CompareData(const Data_1, Data_2: TZDB2_FI): Boolean;
 begin
   Result := Data_1 = Data_2;
 end;

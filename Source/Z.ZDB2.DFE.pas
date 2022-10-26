@@ -280,7 +280,7 @@ procedure TZDB2_List_DFE.Remove(Obj: TZDB2_DFE; RemoveData_: Boolean);
 begin
   if RemoveData_ then
       Obj.Remove;
-  List.Remove(Obj.FPool_Ptr);
+  List.Remove_P(Obj.FPool_Ptr);
 end;
 
 procedure TZDB2_List_DFE.Clear;

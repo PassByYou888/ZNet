@@ -97,7 +97,7 @@ var
       if umlGetLength(ItemHnd.Name) > 0 then
         begin
           lName := ItemHnd.Name.LowerText;
-          newhash := MakeHashS(@lName);
+          newhash := MakeHashS(lName);
           idxLst := GetListTable(newhash, True);
           new(p);
           p^.qHash := newhash;
@@ -410,7 +410,7 @@ begin
   if umlGetLength(Name_) > 0 then
     begin
       lName := LowerCase(Name_);
-      newhash := MakeHashS(@lName);
+      newhash := MakeHashS(lName);
       idxLst := GetListTable(newhash, False);
       if idxLst <> nil then
         if idxLst.Count > 0 then
@@ -431,7 +431,7 @@ begin
   if umlGetLength(Name_) > 0 then
     begin
       lName := LowerCase(Name_);
-      newhash := MakeHashS(@lName);
+      newhash := MakeHashS(lName);
       idxLst := GetListTable(newhash, False);
       if idxLst <> nil then
         if idxLst.Count > 0 then

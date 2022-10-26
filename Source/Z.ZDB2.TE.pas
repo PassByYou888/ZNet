@@ -280,7 +280,7 @@ procedure TZDB2_List_HashTextEngine.Remove(Obj: TZDB2_HashTextEngine; RemoveData
 begin
   if RemoveData_ then
       Obj.Remove;
-  List.Remove(Obj.FPool_Ptr);
+  List.Remove_P(Obj.FPool_Ptr);
 end;
 
 procedure TZDB2_List_HashTextEngine.Clear;
