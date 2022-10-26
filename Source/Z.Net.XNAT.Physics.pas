@@ -7,7 +7,7 @@ unit Z.Net.XNAT.Physics;
 
 interface
 
-uses Z.Core, Z.Net.PhysicsIO;
+uses Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Net.PhysicsIO;
 
 type
   TXPhysicsServer = class(TPhysicsServer)
@@ -22,14 +22,14 @@ procedure BuildBuff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; 
 procedure ExtractBuff(sour: PByte; siz: NativeInt; var local_id, remote_id: Cardinal; var destSiz: NativeInt; var destBuff: PByte);
 
 const
-  C_RequestListen = '__@RequestListen';
-  C_Connect_request = '__@connect_request';
-  C_Disconnect_request = '__@disconnect_request';
-  C_Data = '__@data';
-  C_Connect_reponse = '__@connect_reponse';
-  C_Disconnect_reponse = '__@disconnect_reponse';
-  C_Workload = '__@workload';
-  C_IPV6Listen = '__@IPv6Listen';
+  C_RequestListen: SystemString = '__@RequestListen';
+  C_Connect_request: SystemString = '__@connect_request';
+  C_Disconnect_request: SystemString = '__@disconnect_request';
+  C_Data: SystemString = '__@data';
+  C_Connect_reponse: SystemString = '__@connect_reponse';
+  C_Disconnect_reponse: SystemString = '__@disconnect_reponse';
+  C_Workload: SystemString = '__@workload';
+  C_IPV6Listen: SystemString = '__@IPv6Listen';
 
 implementation
 

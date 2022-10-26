@@ -46,18 +46,18 @@ type
     property LastReg: TZNet read FLastReg;
   end;
 
-implementation
-
 const
-  C_TestStream = '__@TestStream';
-  C_TestConsole = '__@TestConsole';
-  C_TestDirectStream = '__@TestDirectStream';
-  C_TestDirectConsole = '__@TestDirectConsole';
-  C_TestBigStream = '__@TestBigStream';
-  C_BigStreamPostInfo = '__@BigStreamPostInfo';
-  C_TestCompleteBuffer = '__@TestCompleteBuffer';
-  C_RemoteInfo = '__@RemoteInfo';
-  C_RunTestReponse = '__@RunTestReponse';
+  C_TestStream: SystemString = '__@TestStream';
+  C_TestConsole: SystemString = '__@TestConsole';
+  C_TestDirectStream: SystemString = '__@TestDirectStream';
+  C_TestDirectConsole: SystemString = '__@TestDirectConsole';
+  C_TestBigStream: SystemString = '__@TestBigStream';
+  C_BigStreamPostInfo: SystemString = '__@BigStreamPostInfo';
+  C_TestCompleteBuffer: SystemString = '__@TestCompleteBuffer';
+  C_RemoteInfo: SystemString = '__@RemoteInfo';
+  C_RunTestReponse: SystemString = '__@RunTestReponse';
+
+implementation
 
 var
   TestStreamData: TMS64 = nil;

@@ -170,7 +170,7 @@ end;
 constructor TZNet_Client_Synapse.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   Sock := TTCPBlockSocket.Create;
   Sock.Family := TSocketFamily.SF_IP4;
@@ -305,7 +305,7 @@ begin
 
     DoConnected(InternalClient);
 
-    AStopTime := GetTimeTick + 3000;
+    AStopTime := GetTimeTick + 5000;
 
     while (not RemoteInited) and Connected do
       begin

@@ -192,7 +192,7 @@ end;
 constructor TZNet_Client_ICS.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   FDriver := TClientICSContextIntf.Create(nil);
   FDriver.MultiThreaded := False;

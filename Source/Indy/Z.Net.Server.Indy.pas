@@ -216,7 +216,7 @@ end;
 constructor TZNet_Server_Indy.Create;
 begin
   inherited CreateCustomHashPool(128);
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   FDriver := TIdTCPServer.Create(nil);
   FDriver.UseNagle := False;

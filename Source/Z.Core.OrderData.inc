@@ -59,7 +59,7 @@ begin
     end;
 end;
 
-function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderStruct;
+function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -86,6 +86,7 @@ var
   p: POrderStruct;
 begin
   new(p);
+  FillPtr(p, SizeOf(TOrderStruct_), 0);
   p^.Next := nil;
 
   Inc(FNum);
@@ -165,7 +166,7 @@ begin
     end;
 end;
 
-function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderPtrStruct;
+function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin
@@ -284,7 +285,7 @@ begin
   FCritical.UnLock;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderStruct;
+function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -313,6 +314,7 @@ var
   p: POrderStruct;
 begin
   new(p);
+  FillPtr(p, SizeOf(TOrderStruct_), 0);
   p^.Next := nil;
 
   FCritical.Lock;
@@ -414,7 +416,7 @@ begin
   FCritical.UnLock;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(Data: T_): POrderPtrStruct;
+function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin

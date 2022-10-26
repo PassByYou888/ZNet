@@ -39,6 +39,8 @@ procedure DeleteDoStatusHook(TokenObj: TCore_Object);
 procedure RemoveDoStatusHook(TokenObj: TCore_Object);
 procedure DisableStatus;
 procedure EnabledStatus;
+function Is_EnabledStatus: Boolean;
+function Is_DisableStatus: Boolean;
 
 procedure DoStatus(Text_: SystemString; const ID: Integer); overload;
 procedure DoStatus(const v: Pointer; siz, width: NativeInt); overload;
@@ -529,6 +531,11 @@ end;
 
 procedure DeleteDoStatusHook(TokenObj: TCore_Object);
 begin
+  RemoveDoStatusHook(TokenObj);
+end;
+
+procedure RemoveDoStatusHook(TokenObj: TCore_Object);
+begin
   Event_Pool__.Free_Recycle_Pool;
   if Event_Pool__.Num > 0 then
     with Event_Pool__.Repeat_ do
@@ -539,11 +546,6 @@ begin
   Event_Pool__.Free_Recycle_Pool;
 end;
 
-procedure RemoveDoStatusHook(TokenObj: TCore_Object);
-begin
-  DeleteDoStatusHook(TokenObj);
-end;
-
 procedure DisableStatus;
 begin
   Status_Active__ := False;
@@ -552,6 +554,16 @@ end;
 procedure EnabledStatus;
 begin
   Status_Active__ := True;
+end;
+
+function Is_EnabledStatus: Boolean;
+begin
+  Result := Status_Active__;
+end;
+
+function Is_DisableStatus: Boolean;
+begin
+  Result := not Status_Active__;
 end;
 
 procedure DoCheckThreadSynchronize;

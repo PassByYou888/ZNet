@@ -260,7 +260,7 @@ end;
 constructor TZNet_Client_DIOCP.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   DIOCPClientPool := TDiocpTcpClient.Create(nil);
   DIOCPClientPool.RegisterContextClass(TIocpClientContextIntf_WithDCli);

@@ -23,7 +23,7 @@ type
 
   TC40_TEKeyValue_VM_Service_Hash_Pool = class(TC40_TEKeyValue_VM_Service_Hash_Pool_Decl)
   public
-    function Compare_Value(Value_1, Value_2: TZDB2_HashTextEngine): Boolean; override;
+    function Compare_Value(const Value_1, Value_2: TZDB2_HashTextEngine): Boolean; override;
   end;
 
   TC40_TEKeyValue_VM_Service = class(TC40_NoAuth_VM_Service)
@@ -395,7 +395,7 @@ const
   C_Main = '___Main___';
   C_Name = '___Name___';
 
-function TC40_TEKeyValue_VM_Service_Hash_Pool.Compare_Value(Value_1, Value_2: TZDB2_HashTextEngine): Boolean;
+function TC40_TEKeyValue_VM_Service_Hash_Pool.Compare_Value(const Value_1, Value_2: TZDB2_HashTextEngine): Boolean;
 begin
   Result := Value_1 = Value_2;
 end;

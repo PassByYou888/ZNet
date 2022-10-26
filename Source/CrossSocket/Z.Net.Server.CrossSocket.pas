@@ -406,7 +406,7 @@ end;
 constructor TZNet_Server_CrossSocket.CreateTh(maxThPool: Word);
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
   FDriver := TDriverEngine.Create(maxThPool);
   FDriver.OnAccept := DoAccept;
   FDriver.OnConnected := DoConnected;

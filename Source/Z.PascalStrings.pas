@@ -15,7 +15,7 @@ type
   SystemString = AnsiString;
 {$ELSE FPC}
   SystemChar = Char;
-  SystemString = String;
+  SystemString = string;
 {$ENDIF FPC}
   PSystemChar = ^SystemChar;
   TArrayChar = array of SystemChar;
@@ -175,10 +175,8 @@ function CharIn(c: SystemChar; const SomeCharsets: TOrdChars; const p: PPascalSt
 function TextIs(t: TPascalString; const SomeCharsets: TOrdChars): Boolean; overload;
 function TextIs(t: TPascalString; const SomeCharsets: TOrdChars; const SomeChars: TPascalString): Boolean; overload;
 
-function FastHashPSystemString(const s: PSystemString): THash; overload;
-function FastHash64PSystemString(const s: PSystemString): THash64; overload;
-function FastHashSystemString(const s: SystemString): THash; overload;
-function FastHash64SystemString(const s: SystemString): THash64; overload;
+function FastHashSystemString(const s: SystemString): THash;
+function FastHash64SystemString(const s: SystemString): THash64;
 function FastHashPPascalString(const s: PPascalString): THash;
 function FastHash64PPascalString(const s: PPascalString): THash64;
 function PFormat(const Fmt: SystemString; const Args: array of const): SystemString;
@@ -440,54 +438,44 @@ begin
   Result.Bytes := s;
 end;
 
-function FastHashPSystemString(const s: PSystemString): THash;
+function FastHashSystemString(const s: SystemString): THash;
 var
   i: Integer;
   c: SystemChar;
 begin
-  Result := 0;
+  FillPtr(@Result, SizeOf(THash), length(s) mod 2);
 
 {$IFDEF FirstCharInZero}
-  for i := 0 to length(s^) - 1 do
+  for i := 0 to length(s) - 1 do
 {$ELSE FirstCharInZero}
-  for i := 1 to length(s^) do
+  for i := 1 to length(s) do
 {$ENDIF FirstCharInZero}
     begin
-      c := s^[i];
+      c := s[i];
       if CharIn(c, cHiAtoZ) then
           inc(c, 32);
       Result := ((Result shl 7) or (Result shr 25)) + THash(c);
     end;
 end;
 
-function FastHash64PSystemString(const s: PSystemString): THash64;
+function FastHash64SystemString(const s: SystemString): THash64;
 var
   i: Integer;
   c: SystemChar;
 begin
-  Result := 0;
+  FillPtr(@Result, SizeOf(THash64), length(s) mod 2);
 
 {$IFDEF FirstCharInZero}
-  for i := 0 to length(s^) - 1 do
+  for i := 0 to length(s) - 1 do
 {$ELSE FirstCharInZero}
-  for i := 1 to length(s^) do
+  for i := 1 to length(s) do
 {$ENDIF FirstCharInZero}
     begin
-      c := s^[i];
+      c := s[i];
       if CharIn(c, cHiAtoZ) then
           inc(c, 32);
       Result := ((Result shl 7) or (Result shr 57)) + THash64(c);
     end;
-end;
-
-function FastHashSystemString(const s: SystemString): THash;
-begin
-  Result := FastHashPSystemString(@s);
-end;
-
-function FastHash64SystemString(const s: SystemString): THash64;
-begin
-  Result := FastHash64PSystemString(@s);
 end;
 
 function FastHashPPascalString(const s: PPascalString): THash;
@@ -495,8 +483,8 @@ var
   i: Integer;
   c: SystemChar;
 begin
-  Result := 0;
-  for i := 1 to s^.Len do
+  FillPtr(@Result, SizeOf(THash), s^.L mod 2);
+  for i := 1 to s^.L do
     begin
       c := s^[i];
       if CharIn(c, cHiAtoZ) then
@@ -510,8 +498,8 @@ var
   i: Integer;
   c: SystemChar;
 begin
-  Result := 0;
-  for i := 1 to s^.Len do
+  FillPtr(@Result, SizeOf(THash64), s^.L mod 2);
+  for i := 1 to s^.L do
     begin
       c := s^[i];
       if CharIn(c, cHiAtoZ) then

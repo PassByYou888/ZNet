@@ -300,7 +300,7 @@ end;
 constructor TZNet_Server_Synapse.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   FListenTh := TSynapseListenTh.Create(True);
   FListenTh.Server := Self;

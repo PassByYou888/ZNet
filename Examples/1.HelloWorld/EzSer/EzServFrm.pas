@@ -1,6 +1,5 @@
 ﻿unit EzServFrm;
 
-
 interface
 
 uses
@@ -51,7 +50,7 @@ type
     procedure cmd_TestCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
   public
     { Public declarations }
-    server: TZNet_Server_CrossSocket;
+    Server: TZNet_Server_CrossSocket;
   end;
 
 var
@@ -133,36 +132,36 @@ end;
 procedure TEZServerForm.FormCreate(Sender: TObject);
 begin
   AddDoStatusHook(self, DoStatusNear);
-  server := TZNet_Server_CrossSocket.Create;
-  server.PeerClientUserSpecialClass := TMySpecialDefine;
-  server.TimeOutIDLE := 15 * 1000;
+  Server := TZNet_Server_CrossSocket.Create;
+  Server.PeerClientUserSpecialClass := TMySpecialDefine;
+  Server.TimeOutIDLE := 5 * 60 * 1000;
 
   // 更改最大completeBuffer，这里只用于测试，正常运行服务器，这里一般给4M就可以了
-  server.MaxCompleteBufferSize := 128 * 1024 * 1024;
+  Server.MaxCompleteBufferSize := 128 * 1024 * 1024;
 
-  server.RegisterDirectConsole('helloWorld_Console').OnExecute := cmd_helloWorld_Console;
-  server.RegisterDirectStream('helloWorld_Stream').OnExecute := cmd_helloWorld_Stream;
-  server.RegisterStream('helloWorld_Stream_Result').OnExecute := cmd_helloWorld_Stream_Result;
+  Server.RegisterDirectConsole('helloWorld_Console').OnExecute := cmd_helloWorld_Console;
+  Server.RegisterDirectStream('helloWorld_Stream').OnExecute := cmd_helloWorld_Stream;
+  Server.RegisterStream('helloWorld_Stream_Result').OnExecute := cmd_helloWorld_Stream_Result;
 
-  server.RegisterDirectStream('Json_Stream').OnExecute := cmd_Json_Stream;
+  Server.RegisterDirectStream('Json_Stream').OnExecute := cmd_Json_Stream;
 
-  server.RegisterDirectStream('TestMiniStream').OnExecute := cmd_TestMiniStream;
-  server.RegisterBigStream('Test128MBigStream').OnExecute := cmd_Test128MBigStream;
+  Server.RegisterDirectStream('TestMiniStream').OnExecute := cmd_TestMiniStream;
+  Server.RegisterBigStream('Test128MBigStream').OnExecute := cmd_Test128MBigStream;
 
   // 注册Completebuffer指令
-  server.RegisterCompleteBuffer('TestCompleteBuffer').OnExecute := cmd_TestCompleteBuffer;
+  Server.RegisterCompleteBuffer('TestCompleteBuffer').OnExecute := cmd_TestCompleteBuffer;
 end;
 
 procedure TEZServerForm.FormDestroy(Sender: TObject);
 begin
-  disposeObject(server);
+  disposeObject(Server);
   DeleteDoStatusHook(self);
 end;
 
 procedure TEZServerForm.StartServiceButtonClick(Sender: TObject);
 begin
   // 基于CrosssSocket官方文档，绑定字符串如果为空，绑定IPV6+IPV4
-  if server.StartService('', 9818) then
+  if Server.StartService('', 9818) then
       DoStatus('start service success')
   else
       DoStatus('start service failed!')
@@ -170,7 +169,7 @@ end;
 
 procedure TEZServerForm.Timer1Timer(Sender: TObject);
 begin
-  server.Progress;
+  Server.Progress;
 end;
 
 { TMySpecialDefine }

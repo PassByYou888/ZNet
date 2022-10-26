@@ -133,7 +133,7 @@ begin
       FOnAdd(Data);
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CompareData(Data_1, Data_2: T_): Boolean;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CompareData(const Data_1, Data_2: T_): Boolean;
 begin
   Result := CompareMemory(@Data_1, @Data_2, SizeOf(T_));
 end;
@@ -155,7 +155,7 @@ begin
     begin
       while FRecycle_Pool__.Num > 0 do
         begin
-          Remove(FRecycle_Pool__.First^.Data);
+          Remove_P(FRecycle_Pool__.First^.Data);
           FRecycle_Pool__.Next;
         end;
       FRecycle_Pool__.Free;
@@ -199,10 +199,10 @@ end;
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 begin
   if FFirst <> nil then
-      Remove(FFirst);
+      Remove_P(FFirst);
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(Data: T_): PQueueStruct;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(const Data: T_): PQueueStruct;
 var
   p: PQueueStruct;
 begin
@@ -238,12 +238,20 @@ begin
   DoAdd(p^.Data);
 end;
 
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(L_: T___);
+begin
+  if L_.Num > 0 then
+    with L_.Repeat_ do
+      repeat
+          Add(Queue^.Data);
+      until not Next;
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
 var
   p: PQueueStruct;
 begin
   new(p);
-
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;
@@ -261,6 +269,10 @@ begin
     end
   else
     begin
+{$IFDEF DEBUG}
+      if IsDebug and (Num <= 0) then
+          raiseInfo('memory error.');
+{$ENDIF DEBUG}
       FFirst^.Prev := p;
       FLast^.Next := p;
       p^.Next := FFirst;
@@ -274,7 +286,7 @@ begin
   DoAdd(p^.Data);
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
 var
   p: PQueueStruct;
   P_P: PQueueStruct;
@@ -303,7 +315,7 @@ begin
   DoAdd(p^.Data);
 end;
 
-procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove(p: PQueueStruct);
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
 var
   P_P, N_P: PQueueStruct;
 begin
@@ -331,6 +343,11 @@ begin
     end;
   DoInternalFree(p);
   FChanged := True;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
+begin
+  Remove_Data(Data);
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Move_Before(p, To_: PQueueStruct);
@@ -479,7 +496,7 @@ begin
   Result := False;
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data(Data: T_): PQueueStruct;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data(const Data: T_): PQueueStruct;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -499,7 +516,7 @@ begin
     end;
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(Data: T_): TArray_T_;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(const Data: T_): TArray_T_;
 var
   L: TOrder_Data_Pool;
   i: Integer;
@@ -515,7 +532,7 @@ begin
   DisposeObject(L);
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(Data: T_): TOrder_Data_Pool;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(const Data: T_): TOrder_Data_Pool;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -535,7 +552,7 @@ begin
     end;
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(Data: T_): Integer;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(const Data: T_): Integer;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -1035,7 +1052,7 @@ begin
 
   L.Add(3232);
   L.Test_Check__;
-  L.Remove(L.List[0]);
+  L.Remove_P(L.List[0]);
   L.Test_Check__;
   L.Add(32321);
   L.Test_Check__;
@@ -1043,9 +1060,9 @@ begin
   L.Test_Check__;
   L.Insert(2323, L.List[1]);
   L.Test_Check__;
-  L.Remove(L.List[2]);
+  L.Remove_P(L.List[2]);
   L.Test_Check__;
-  L.Remove(L.List[1]);
+  L.Remove_P(L.List[1]);
   L.Test_Check__;
 
   for i := 0 to 10 do
@@ -1222,7 +1239,7 @@ begin
       FOnAdd(Data);
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CompareData(Data_1, Data_2: T_): Boolean;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CompareData(const Data_1, Data_2: T_): Boolean;
 begin
   Result := CompareMemory(@Data_1, @Data_2, SizeOf(T_));
 end;
@@ -1254,7 +1271,7 @@ begin
     begin
       while FRecycle_Pool__.Num > 0 do
         begin
-          Remove(FRecycle_Pool__.First^.Data);
+          Remove_P(FRecycle_Pool__.First^.Data);
           FRecycle_Pool__.Next;
         end;
       FRecycle_Pool__.Free;
@@ -1300,10 +1317,10 @@ end;
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 begin
   if FFirst <> nil then
-      Remove(FFirst);
+      Remove_P(FFirst);
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(Data: T_): PQueueStruct;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(const Data: T_): PQueueStruct;
 var
   p: PQueueStruct;
 begin
@@ -1342,14 +1359,21 @@ begin
   DoAdd(p^.Data);
 end;
 
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(L_: T___);
+begin
+  if L_.Num > 0 then
+    with L_.Repeat_ do
+      repeat
+          Add(Queue^.Data);
+      until not Next;
+end;
+
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
 var
   p: PQueueStruct;
 begin
   FCritical.Lock;
-
   new(p);
-
   if (FFirst = nil) or (FLast = nil) then
     begin
       FFirst := p;
@@ -1367,6 +1391,10 @@ begin
     end
   else
     begin
+{$IFDEF DEBUG}
+      if IsDebug and (Num <= 0) then
+          raiseInfo('memory error.');
+{$ENDIF DEBUG}
       FFirst^.Prev := p;
       FLast^.Next := p;
       p^.Next := FFirst;
@@ -1381,7 +1409,7 @@ begin
   DoAdd(p^.Data);
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(Data: T_; To_: PQueueStruct): PQueueStruct;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
 var
   p: PQueueStruct;
   P_P: PQueueStruct;
@@ -1412,7 +1440,7 @@ begin
   DoAdd(p^.Data);
 end;
 
-procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove(p: PQueueStruct);
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
 var
   P_P, N_P: PQueueStruct;
 begin
@@ -1445,6 +1473,11 @@ begin
 
   FChanged := True;
   FCritical.UnLock;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
+begin
+  Remove_Data(Data);
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Move_Before(p, To_: PQueueStruct);
@@ -1605,7 +1638,7 @@ begin
   end;
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data(Data: T_): PQueueStruct;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data(const Data: T_): PQueueStruct;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -1630,7 +1663,7 @@ begin
   end;
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(Data: T_): TArray_T_;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(const Data: T_): TArray_T_;
 var
   L: TOrder_Data_Pool;
   i: Integer;
@@ -1646,7 +1679,7 @@ begin
   DisposeObject(L);
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(Data: T_): TOrder_Data_Pool;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Order(const Data: T_): TOrder_Data_Pool;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -1671,7 +1704,7 @@ begin
   end;
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(Data: T_): Integer;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_Data(const Data: T_): Integer;
 var
   i: NativeInt;
   p: PQueueStruct;
@@ -2247,7 +2280,7 @@ begin
 
   L.Add(3232);
   L.Test_Check__;
-  L.Remove(L.List[0]);
+  L.Remove_P(L.List[0]);
   L.Test_Check__;
   L.Add(32321);
   L.Test_Check__;
@@ -2255,9 +2288,9 @@ begin
   L.Test_Check__;
   L.Insert(2323, L.List[1]);
   L.Test_Check__;
-  L.Remove(L.List[2]);
+  L.Remove_P(L.List[2]);
   L.Test_Check__;
-  L.Remove(L.List[1]);
+  L.Remove_P(L.List[1]);
   L.Test_Check__;
 
   for i := 0 to 10 do

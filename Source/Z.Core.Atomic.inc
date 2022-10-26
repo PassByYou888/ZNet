@@ -112,7 +112,7 @@ begin
   if p^.LEnter = 0 then
     begin
       p^.Pool_Ptr^.Data := nil;
-      Lock_Pool__.Remove(p^.Pool_Ptr);
+      Lock_Pool__.Remove_P(p^.Pool_Ptr);
       Lock_Pool_Cirtical__.Release;
       p^.Critical.Release;
       p^.Critical.Free;

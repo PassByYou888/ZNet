@@ -42,23 +42,24 @@ end;
 
 // *****************************************************************************************************************
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
 var
   i: integer;
 begin
   Key_Hash_ := Get_Key_Hash(Key_);
-  i := Hash_Key_Mod(Key_Hash_, length(Hash_Buffer));
-  if Hash_Buffer[i] = nil then
+  i := Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count);
+  if FHash_Buffer[i] = nil then
     begin
-      Hash_Buffer[i] := TValue_Pair_Pool__.Create;
-      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
+      FHash_Buffer[i] := TValue_Pair_Pool__.Create;
+      FHash_Buffer[i].L.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
     end;
-  Result := Hash_Buffer[i];
+  Result := FHash_Buffer[i];
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Free_Value_List(Key_Hash_: THash);
 begin
-  DisposeObjectAndNil(Hash_Buffer[Hash_Key_Mod(Key_Hash_, length(Hash_Buffer))]);
+  DisposeObject(FHash_Buffer[Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count)]);
+  FHash_Buffer[Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count)] := nil;
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
@@ -72,7 +73,7 @@ begin
   if Data <> nil then
     begin
       Data^.Data.Third := nil;
-      Data^.Instance___.Remove(Data);
+      Data^.Instance___.Remove_P(Data);
     end;
 end;
 
@@ -81,43 +82,48 @@ begin
   if Data.Third <> nil then
     begin
       TPool_Queue_Ptr___(Data.Third)^.Data := nil;
-      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
+      FQueue_Pool.Remove_P(TPool_Queue_Ptr___(Data.Third));
     end;
   DoFree(Data.Primary, Data.Second);
 end;
 
-constructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: TValue_);
+constructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: TValue_);
+var
+  i: integer;
 begin
   inherited Create;
-  Queue_Pool := TPool___.Create;
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
-  SetLength(Hash_Buffer, HashSize_);
+  FQueue_Pool := TPool___.Create;
+  FQueue_Pool.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
+  FHash_Buffer := TKey_Hash_Buffer.Create;
+  FHash_Buffer.Count := HashSize_;
+  for i := 0 to FHash_Buffer.Count - 1 do
+      FHash_Buffer[i] := nil;
   Null_Value := Null_Value_;
-  OnAdd := nil;
-  OnFree := nil;
+  FOnAdd := nil;
+  FOnFree := nil;
 end;
 
 destructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
-  Queue_Pool.Free;
-  SetLength(Hash_Buffer, 0);
+  FQueue_Pool.Free;
+  DisposeObjectAndNil(FHash_Buffer);
   inherited Destroy;
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Key: TKey_; var Value: TValue_);
 begin
-  if Assigned(OnFree) then
-      OnFree(Key, Value);
+  if Assigned(FOnFree) then
+      FOnFree(Key, Value);
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Key: TKey_; var Value: TValue_);
 begin
-  if Assigned(OnAdd) then
-      OnAdd(Key, Value);
+  if Assigned(FOnAdd) then
+      FOnAdd(Key, Value);
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(Key_: TKey_): THash;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TKey_): THash;
 var
   p: PByte;
   Size: NativeInt;
@@ -126,7 +132,7 @@ begin
   Result := Get_CRC32(p, Size);
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TKey_): Boolean;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TKey_): Boolean;
 var
   p1, p2: PByte;
   s1, s2: NativeInt;
@@ -136,54 +142,23 @@ begin
   Result := CompareMemory(p1, p2, Min(s1, s2));
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Value(Value_1, Value_2: TValue_): Boolean;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Value(const Value_1, Value_2: TValue_): Boolean;
 begin
   Result := CompareMemory(@Value_1, @Value_2, SizeOf(TValue_));
-end;
-
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.SwapInstance(source: T___);
-var
-  tmp_Queue_Pool: TPool___;
-  tmp_HashBuffer: TKey_Hash_Buffer;
-  i: integer;
-  L: TValue_Pair_Pool__;
-begin
-  tmp_Queue_Pool := Queue_Pool;
-  tmp_HashBuffer := Hash_Buffer;
-
-  Queue_Pool := source.Queue_Pool;
-  Hash_Buffer := source.Hash_Buffer;
-
-  source.Queue_Pool := tmp_Queue_Pool;
-  source.Hash_Buffer := tmp_HashBuffer;
-
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-    begin
-      L := Hash_Buffer[i];
-      if L <> nil then
-          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
-    end;
-
-  for i := Low(source.Hash_Buffer) to high(source.Hash_Buffer) do
-    begin
-      L := source.Hash_Buffer[i];
-      if L <> nil then
-          L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Free;
-    end;
-
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
-  source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Queue_Pool_Free;
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Clear;
 var
   i: integer;
 begin
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-      DisposeObjectAndNil(Hash_Buffer[i]);
+  for i := 0 to FHash_Buffer.Count - 1 do
+    begin
+      DisposeObject(FHash_Buffer[i]);
+      FHash_Buffer[i] := nil;
+    end;
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Key(Key: TKey_): Boolean;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Key(const Key: TKey_): Boolean;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -209,16 +184,16 @@ begin
     end;
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Value(Data: TValue_): Boolean;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Value(const Data: TValue_): Boolean;
 var
   L: TValue_Pair_Pool__;
   i, j: NativeInt;
   p: PPair_Pool_Value__;
 begin
   Result := False;
-  for i := low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -234,7 +209,7 @@ begin
     end;
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(Key: TKey_; Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -261,14 +236,14 @@ begin
   p := L.L.Add_Null();
   p^.Data.Primary := Key;
   p^.Data.Second := Value;
-  p^.Data.Third := Queue_Pool.Add(p);
+  p^.Data.Third := FQueue_Pool.Add(p);
   p^.Data.Fourth := Key_Hash_;
   L.L.MoveToFirst(p);
   Result := p;
   DoAdd(p^.Data.Primary, p^.Data.Second);
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Value(Key: TKey_): TValue_;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Value(const Key: TKey_): TValue_;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -297,12 +272,12 @@ begin
   Result := R;
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Key_Value(Key: TKey_; Value: TValue_);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Key_Value(const Key: TKey_; const Value: TValue_);
 begin
   Add(Key, Value, True);
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Delete(Key: TKey_);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Delete(const Key: TKey_);
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -332,14 +307,14 @@ var
   inst_: TValue_Pair_Pool__.TPair_BigList__;
 begin
   inst_ := p^.Instance___;
-  inst_.Remove(p);
+  inst_.Remove_P(p);
   if inst_.Num <= 0 then
       Free_Recycle_Pool();
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Num: NativeInt;
 begin
-  Result := Queue_Pool.Num;
+  Result := FQueue_Pool.Num;
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.GetSum: NativeInt;
@@ -347,17 +322,17 @@ var
   i: integer;
 begin
   Result := 0;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-    if Hash_Buffer[i] <> nil then
-        Inc(Result, Hash_Buffer[i].L.Num);
+  for i := 0 to FHash_Buffer.Count - 1 do
+    if FHash_Buffer[i] <> nil then
+        Inc(Result, FHash_Buffer[i].L.Num);
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(Key: TKey_): PValue;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(const Key: TKey_): PValue;
 begin
   Result := Get_Value_Ptr(Key, Null_Value);
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(Key: TKey_; Default_: TValue_): PValue;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -389,7 +364,7 @@ begin
     end;
 end;
 
-function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Default_Value(Key: TKey_; Default_: TValue_): TValue_;
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Default_Value(const Key: TKey_; const Default_: TValue_): TValue_;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -418,29 +393,29 @@ begin
   Result := R;
 end;
 
-procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Default_Value(Key: TKey_; Default_: TValue_);
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Default_Value(const Key: TKey_; const Default_: TValue_);
 begin
   Add(Key, Default_, True);
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Repeat_(): TRepeat___;
 begin
-  Result := Queue_Pool.Repeat_();
+  Result := FQueue_Pool.Repeat_();
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Repeat_(BI_, EI_: NativeInt): TRepeat___;
 begin
-  Result := Queue_Pool.Repeat_(BI_, EI_);
+  Result := FQueue_Pool.Repeat_(BI_, EI_);
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(): TInvert_Repeat___;
 begin
-  Result := Queue_Pool.Invert_Repeat_();
+  Result := FQueue_Pool.Invert_Repeat_();
 end;
 
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___;
 begin
-  Result := Queue_Pool.Invert_Repeat_(BI_, EI_);
+  Result := FQueue_Pool.Invert_Repeat_(BI_, EI_);
 end;
 
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.For_C(OnFor: TBig_Hash_Pool_For_C);
@@ -452,9 +427,9 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -480,9 +455,9 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -508,9 +483,9 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -537,14 +512,17 @@ var
   i: integer;
   L: TValue_Pair_Pool__;
 begin
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) then
         begin
           L.L.Free_Recycle_Pool();
           if L.L.Num <= 0 then
-              DisposeObjectAndNil(Hash_Buffer[i]);
+            begin
+              DisposeObject(FHash_Buffer[i]);
+              FHash_Buffer[i] := nil;
+            end;
         end;
     end;
 end;
@@ -557,9 +535,9 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := TPool___.Create;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -583,9 +561,9 @@ var
 begin
   k := 0;
   SetLength(Result, Num);
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -609,9 +587,9 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := TOrder_Key.Create;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -635,9 +613,9 @@ var
 begin
   k := 0;
   SetLength(Result, Num);
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -661,9 +639,9 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := TOrder_Value.Create;
-  for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+  for i := 0 to FHash_Buffer.Count - 1 do
     begin
-      L := Hash_Buffer[i];
+      L := FHash_Buffer[i];
       if (L <> nil) and (L.L.Num > 0) then
         begin
           j := 0;
@@ -679,25 +657,71 @@ begin
 end;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // *****************************************************************************************************************
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_List(Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
 var
   i: integer;
 begin
   Key_Hash_ := Get_Key_Hash(Key_);
-  i := Hash_Key_Mod(Key_Hash_, length(Hash_Buffer));
-  if Hash_Buffer[i] = nil then
+  i := Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count);
+  if FHash_Buffer[i] = nil then
     begin
-      Hash_Buffer[i] := TValue_Pair_Pool__.Create;
-      Hash_Buffer[i].L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
+      FHash_Buffer[i] := TValue_Pair_Pool__.Create;
+      FHash_Buffer[i].L.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
     end;
-  Result := Hash_Buffer[i];
+  Result := FHash_Buffer[i];
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Free_Value_List(Key_Hash_: THash);
 begin
-  DisposeObjectAndNil(Hash_Buffer[Hash_Key_Mod(Key_Hash_, length(Hash_Buffer))]);
+  DisposeObject(FHash_Buffer[Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count)]);
+  FHash_Buffer[Hash_Key_Mod(Key_Hash_, FHash_Buffer.Count)] := nil;
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
@@ -711,7 +735,7 @@ begin
   if Data <> nil then
     begin
       Data^.Data.Third := nil;
-      Data^.Instance___.Remove(Data);
+      Data^.Instance___.Remove_P(Data);
     end;
 end;
 
@@ -720,45 +744,50 @@ begin
   if Data.Third <> nil then
     begin
       TPool_Queue_Ptr___(Data.Third)^.Data := nil;
-      Queue_Pool.Remove(TPool_Queue_Ptr___(Data.Third));
+      FQueue_Pool.Remove_P(TPool_Queue_Ptr___(Data.Third));
     end;
   DoFree(Data.Primary, Data.Second);
 end;
 
-constructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: TValue_);
+constructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: TValue_);
+var
+  i: integer;
 begin
   inherited Create;
-  Critical := TCritical.Create;
-  Queue_Pool := TPool___.Create;
-  Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
-  SetLength(Hash_Buffer, HashSize_);
+  FCritical := TCritical.Create;
+  FQueue_Pool := TPool___.Create;
+  FQueue_Pool.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
+  FHash_Buffer := TKey_Hash_Buffer.Create;
+  FHash_Buffer.Count := HashSize_;
+  for i := 0 to FHash_Buffer.Count - 1 do
+      FHash_Buffer[i] := nil;
   Null_Value := Null_Value_;
-  OnAdd := nil;
-  OnFree := nil;
+  FOnAdd := nil;
+  FOnFree := nil;
 end;
 
 destructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
-  Queue_Pool.Free;
-  SetLength(Hash_Buffer, 0);
-  Critical.Free;
+  FQueue_Pool.Free;
+  DisposeObjectAndNil(FHash_Buffer);
+  FCritical.Free;
   inherited Destroy;
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoFree(var Key: TKey_; var Value: TValue_);
 begin
-  if Assigned(OnFree) then
-      OnFree(Key, Value);
+  if Assigned(FOnFree) then
+      FOnFree(Key, Value);
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.DoAdd(var Key: TKey_; var Value: TValue_);
 begin
-  if Assigned(OnAdd) then
-      OnAdd(Key, Value);
+  if Assigned(FOnAdd) then
+      FOnAdd(Key, Value);
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(Key_: TKey_): THash;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TKey_): THash;
 var
   p: PByte;
   Size: NativeInt;
@@ -767,7 +796,7 @@ begin
   Result := Get_CRC32(p, Size);
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TKey_): Boolean;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TKey_): Boolean;
 var
   p1, p2: PByte;
   s1, s2: NativeInt;
@@ -777,64 +806,28 @@ begin
   Result := CompareMemory(p1, p2, Min(s1, s2));
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Value(Value_1, Value_2: TValue_): Boolean;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Value(const Value_1, Value_2: TValue_): Boolean;
 begin
   Result := CompareMemory(@Value_1, @Value_2, SizeOf(TValue_));
-end;
-
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.SwapInstance(source: T___);
-var
-  tmp_Queue_Pool: TPool___;
-  tmp_HashBuffer: TKey_Hash_Buffer;
-  i: integer;
-  L: TValue_Pair_Pool__;
-begin
-  Critical.Lock;
-  try
-    tmp_Queue_Pool := Queue_Pool;
-    tmp_HashBuffer := Hash_Buffer;
-
-    Queue_Pool := source.Queue_Pool;
-    Hash_Buffer := source.Hash_Buffer;
-
-    source.Queue_Pool := tmp_Queue_Pool;
-    source.Hash_Buffer := tmp_HashBuffer;
-
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-      begin
-        L := Hash_Buffer[i];
-        if L <> nil then
-            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Free;
-      end;
-
-    for i := Low(source.Hash_Buffer) to high(source.Hash_Buffer) do
-      begin
-        L := source.Hash_Buffer[i];
-        if L <> nil then
-            L.L.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Free;
-      end;
-
-    Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
-    source.Queue_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}source.Internal_Do_Queue_Pool_Free;
-  finally
-      Critical.UnLock;
-  end;
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Clear;
 var
   i: integer;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-        DisposeObjectAndNil(Hash_Buffer[i]);
+    for i := 0 to FHash_Buffer.Count - 1 do
+      begin
+        DisposeObject(FHash_Buffer[i]);
+        FHash_Buffer[i] := nil;
+      end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Key(Key: TKey_): Boolean;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Key(const Key: TKey_): Boolean;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -842,7 +835,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := False;
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -861,22 +854,22 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Value(Data: TValue_): Boolean;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists_Value(const Data: TValue_): Boolean;
 var
   L: TValue_Pair_Pool__;
   i, j: NativeInt;
   p: PPair_Pool_Value__;
 begin
   Result := False;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -891,18 +884,18 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(Key: TKey_; Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
   i: integer;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
 
@@ -924,17 +917,17 @@ begin
     p := L.L.Add_Null();
     p^.Data.Primary := Key;
     p^.Data.Second := Value;
-    p^.Data.Third := Queue_Pool.Add(p);
+    p^.Data.Third := FQueue_Pool.Add(p);
     p^.Data.Fourth := Key_Hash_;
     L.L.MoveToFirst(p);
     Result := p;
     DoAdd(p^.Data.Primary, p^.Data.Second);
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Value(Key: TKey_): TValue_;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Key_Value(const Key: TKey_): TValue_;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -943,7 +936,7 @@ var
   p: PPair_Pool_Value__;
 begin
   R := Null_Value;
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -963,24 +956,24 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
   Result := R;
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Key_Value(Key: TKey_; Value: TValue_);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Key_Value(const Key: TKey_; const Value: TValue_);
 begin
   Add(Key, Value, True);
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Delete(Key: TKey_);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Delete(const Key: TKey_);
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
   i: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -999,7 +992,7 @@ begin
     if L.L.Num <= 0 then
         Free_Value_List(Key_Hash_);
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1007,12 +1000,12 @@ procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.
 var
   inst_: TValue_Pair_Pool__.TPair_BigList__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     inst_ := p^.Instance___;
-    inst_.Remove(p);
+    inst_.Remove_P(p);
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
   if inst_.Num <= 0 then
       Free_Recycle_Pool();
@@ -1020,7 +1013,7 @@ end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Num: NativeInt;
 begin
-  Result := Queue_Pool.Num;
+  Result := FQueue_Pool.Num;
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.GetSum: NativeInt;
@@ -1028,22 +1021,22 @@ var
   i: integer;
 begin
   Result := 0;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
-      if Hash_Buffer[i] <> nil then
-          Inc(Result, Hash_Buffer[i].L.Num);
+    for i := 0 to FHash_Buffer.Count - 1 do
+      if FHash_Buffer[i] <> nil then
+          Inc(Result, FHash_Buffer[i].L.Num);
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(Key: TKey_): PValue;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(const Key: TKey_): PValue;
 begin
   Result := Get_Value_Ptr(Key, Null_Value);
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(Key: TKey_; Default_: TValue_): PValue;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -1051,7 +1044,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := nil;
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -1076,11 +1069,11 @@ begin
         Result := @p^.Data.Second;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
-function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Default_Value(Key: TKey_; Default_: TValue_): TValue_;
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Default_Value(const Key: TKey_; const Default_: TValue_): TValue_;
 var
   Key_Hash_: THash;
   L: TValue_Pair_Pool__;
@@ -1089,7 +1082,7 @@ var
   p: PPair_Pool_Value__;
 begin
   R := Default_;
-  Critical.Lock;
+  FCritical.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -1109,34 +1102,34 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
   Result := R;
 end;
 
-procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Default_Value(Key: TKey_; Default_: TValue_);
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Set_Default_Value(const Key: TKey_; const Default_: TValue_);
 begin
   Add(Key, Default_, True);
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Repeat_(): TRepeat___;
 begin
-  Result := Queue_Pool.Repeat_();
+  Result := FQueue_Pool.Repeat_();
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Repeat_(BI_, EI_: NativeInt): TRepeat___;
 begin
-  Result := Queue_Pool.Repeat_(BI_, EI_);
+  Result := FQueue_Pool.Repeat_(BI_, EI_);
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(): TInvert_Repeat___;
 begin
-  Result := Queue_Pool.Invert_Repeat_();
+  Result := FQueue_Pool.Invert_Repeat_();
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Invert_Repeat_(BI_, EI_: NativeInt): TInvert_Repeat___;
 begin
-  Result := Queue_Pool.Invert_Repeat_(BI_, EI_);
+  Result := FQueue_Pool.Invert_Repeat_(BI_, EI_);
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.For_C(OnFor: TBig_Hash_Pool_For_C);
@@ -1148,11 +1141,11 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1168,7 +1161,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1181,11 +1174,11 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1201,7 +1194,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1214,11 +1207,11 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1234,7 +1227,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1248,20 +1241,23 @@ var
   i: integer;
   L: TValue_Pair_Pool__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) then
           begin
             L.L.Free_Recycle_Pool();
             if L.L.Num <= 0 then
-                DisposeObjectAndNil(Hash_Buffer[i]);
+              begin
+                DisposeObject(FHash_Buffer[i]);
+                FHash_Buffer[i] := nil;
+              end;
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1273,11 +1269,11 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := TPool___.Create;
-  Critical.Lock;
+  FCritical.Lock;
   try
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1291,7 +1287,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1302,13 +1298,13 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     k := 0;
-    SetLength(Result, Queue_Pool.Num);
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    SetLength(Result, FQueue_Pool.Num);
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1323,7 +1319,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1334,12 +1330,12 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     Result := TOrder_Key.Create;
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1353,7 +1349,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1364,13 +1360,13 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     k := 0;
-    SetLength(Result, Queue_Pool.Num);
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    SetLength(Result, FQueue_Pool.Num);
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1385,7 +1381,7 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;
 
@@ -1396,12 +1392,12 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  Critical.Lock;
+  FCritical.Lock;
   try
     Result := TOrder_Value.Create;
-    for i := Low(Hash_Buffer) to high(Hash_Buffer) do
+    for i := 0 to FHash_Buffer.Count - 1 do
       begin
-        L := Hash_Buffer[i];
+        L := FHash_Buffer[i];
         if (L <> nil) and (L.L.Num > 0) then
           begin
             j := 0;
@@ -1415,6 +1411,6 @@ begin
           end;
       end;
   finally
-      Critical.UnLock;
+      FCritical.UnLock;
   end;
 end;

@@ -285,7 +285,8 @@ function EStrToInt(s: U_String; default: Integer): Integer; overload;
 function EStrToInt(s: U_String): Integer; overload;
 function EStrToInt64(s: U_String; default: Int64): Int64; overload;
 function EStrToInt64(s: U_String): Int64; overload;
-function EStrToFloat(s: U_String; default: Double): Double;
+function EStrToFloat(s: U_String; default: Double): Double; overload;
+function EStrToFloat(s: U_String): Double; overload;
 function EStrToSingle(s: U_String; default: Single): Single; overload;
 function EStrToSingle(s: U_String): Single; overload;
 function EStrToDouble(s: U_String; default: Double): Double; overload;
@@ -3261,6 +3262,11 @@ end;
 function EStrToFloat(s: U_String; default: Double): Double;
 begin
   Result := EStrToDouble(s, default);
+end;
+
+function EStrToFloat(s: U_String): Double;
+begin
+  Result := EStrToFloat(s, 0);
 end;
 
 function EStrToSingle(s: U_String; default: Single): Single;

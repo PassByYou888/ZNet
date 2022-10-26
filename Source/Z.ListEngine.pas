@@ -855,6 +855,9 @@ type
     function GetDefaultValue(const Name: SystemString; Value_: Variant): Variant;
     procedure SetDefaultValue(const Name: SystemString; Value_: Variant);
 
+    function GetDefaultValue_Str(const Name: SystemString; Value_: SystemString): SystemString;
+    procedure SetDefaultValue_Str(const Name: SystemString; Value_: SystemString);
+
     function ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
     function Replace(const Text_: SystemString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): SystemString;
 
@@ -1121,7 +1124,7 @@ type
 
 function HashMod(const h: THash; const m: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 // fast hash support
-function MakeHashS(const S: PSystemString): THash; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function MakeHashS(const S: SystemString): THash; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function MakeHashPas(const S: PPascalString): THash; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function MakeHashI64(const i64: Int64): THash; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function MakeHashU32(const c32: Cardinal): THash; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
@@ -1146,9 +1149,9 @@ begin
       Result := 0;
 end;
 
-function MakeHashS(const S: PSystemString): THash;
+function MakeHashS(const S: SystemString): THash;
 begin
-  Result := FastHashPSystemString(S);
+  Result := FastHashSystemString(S);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
@@ -1227,7 +1230,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
   lst := GetListTable(New_Hash, False);
   if (lst <> nil) and (lst.Count > 0) then
     for i := lst.Count - 1 downto 0 do
@@ -1588,7 +1591,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
   lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
@@ -1637,7 +1640,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
 
   L := Length(Low_Name);
   if Count > 0 then
@@ -1732,7 +1735,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
 
   L := Length(Low_Name);
   if Count > 0 then
@@ -1810,7 +1813,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
 
   L := Length(Low_Name);
   if Count > 0 then
@@ -1930,7 +1933,7 @@ begin
       Low_Name := LowerCase(Name)
   else
       Low_Name := Name;
-  New_Hash := MakeHashS(@Low_Name);
+  New_Hash := MakeHashS(Low_Name);
   lst := GetListTable(New_Hash, False);
   if lst <> nil then
     begin
@@ -6511,16 +6514,7 @@ begin
     pVarData := FHashList.NameValue[Name];
     if pVarData <> nil then
       begin
-        if (VarIsNull(pVarData^.V)) or (VarIsEmpty(pVarData^.V)) or ((VarIsStr(pVarData^.V)) and (VarToStr(pVarData^.V) = '')) then
-          begin
-            Result := Value_;
-            if FAutoUpdateDefaultValue then
-                SetKeyValue(Name, Value_);
-          end
-        else
-          begin
-            Result := pVarData^.V;
-          end;
+        Result := pVarData^.V;
       end
     else
       begin
@@ -7641,6 +7635,16 @@ begin
   SetKeyValue(Name, Value_);
 end;
 
+function THashVariantList.GetDefaultValue_Str(const Name: SystemString; Value_: SystemString): SystemString;
+begin
+  Result := GetDefaultValue(Name, Value_);
+end;
+
+procedure THashVariantList.SetDefaultValue_Str(const Name: SystemString; Value_: SystemString);
+begin
+  SetDefaultValue(Name, Value_);
+end;
+
 function THashVariantList.ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
 var
   sour: U_String;
@@ -8121,7 +8125,7 @@ begin
   with PListStringData(FList[idx])^ do
     begin
       Data := Value;
-      hash := MakeHashS(@Value);
+      hash := MakeHashS(Value);
     end;
 end;
 
@@ -8155,7 +8159,7 @@ begin
   new(p);
   p^.Data := Value;
   p^.Obj := nil;
-  p^.hash := MakeHashS(@Value);
+  p^.hash := MakeHashS(Value);
   Result := FList.Add(p);
 end;
 
@@ -8166,7 +8170,7 @@ begin
   new(p);
   p^.Data := Value;
   p^.Obj := Obj;
-  p^.hash := MakeHashS(@Value);
+  p^.hash := MakeHashS(Value);
   Result := FList.Add(p);
 end;
 
@@ -8187,7 +8191,7 @@ var
   h: THash;
 begin
   i := 0;
-  h := MakeHashS(@Value);
+  h := MakeHashS(Value);
 
   while i < Count do
     begin
@@ -8223,7 +8227,7 @@ var
   i: Integer;
   h: THash;
 begin
-  h := MakeHashS(@Value);
+  h := MakeHashS(Value);
 
   Result := -1;
 

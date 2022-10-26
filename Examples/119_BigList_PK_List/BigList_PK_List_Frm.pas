@@ -134,7 +134,7 @@ begin
     end;
   tk := GetTimeTick();
   while L2.Count > 0 do
-      L2.Remove(L2.First);
+      L2.Remove_P(L2.First);
   DoStatus('10万数据基数，队列拾取，BigList完成时间:%dms', [GetTimeTick - tk]);
   L2.Free;
 end;

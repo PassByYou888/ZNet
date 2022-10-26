@@ -166,7 +166,7 @@ procedure TCore_Dispatch_Order_Thread.Execute;
         else
           begin
             // remove
-            Compute_Dispatch_Queue_Pool__.Remove(Data_.Pool_Queue_Ptr__);
+            Compute_Dispatch_Queue_Pool__.Remove_P(Data_.Pool_Queue_Ptr__);
             Data_.IsPicked__ := nil;
             Compute_Dispatch_Critical__.Release;
           end;
@@ -370,7 +370,7 @@ begin
     end;
 
   Compute_Dispatch_Critical__.Acquire;
-  Core_Thread_Pool__.Remove(Thread_Pool_Queue_Data_Ptr);
+  Core_Thread_Pool__.Remove_P(Thread_Pool_Queue_Data_Ptr);
   Compute_Dispatch_Critical__.Release;
 
   AtomDec(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);

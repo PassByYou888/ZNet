@@ -182,6 +182,15 @@
   // {$DEFINE SoftCritical}
   // {$DEFINE ANTI_DEAD_ATOMIC_LOCK}
 
+  // It only slows down Delphi strings, doesn't help C++Builder migration and is finally gone in XE+
+  {$STRINGCHECKS OFF}
+
+  // All sets only use ASCII chars (<=#127) and the compiler generates the >=#128 check itself
+  {$WARN WIDECHAR_REDUCED OFF}
+
+  // for StrLen/StrLComp
+  {$WARN SYMBOL_DEPRECATED OFF}
+
   {$IFDEF release}
     {$DEFINE INLINE_ASM}
     {$R-} { range check }
@@ -189,6 +198,7 @@
     {$IF Defined(Android) or Defined(IOS)}
       {$O-} { close optimization }
       {$UNDEF INLINE_ASM}
+      {$INLINE OFF} { inline }
     {$ELSE}
       {$O+} { open optimization }
       {$INLINE AUTO} { inline }

@@ -839,8 +839,8 @@ type
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
-    procedure DoLinkSuccess(Trigger_: TCore_Object);
-    procedure DoUserOut(Trigger_: TCore_Object);
+    procedure DoLinkSuccess(Trigger_: TCore_Object); virtual;
+    procedure DoUserOut(Trigger_: TCore_Object); virtual;
   end;
 
   TC40_Custom_VM_Service_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Custom_VM_Service>;

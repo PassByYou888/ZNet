@@ -16,7 +16,7 @@ uses
   Z.Net, Z.Core, Z.Status,
   Z.PascalStrings, Z.MemoryStream, Z.UnicodeMixedLib,
   Z.Net.DataStoreService.VirtualAuth,
-  Z.Net.DoubleTunnelIO.VirtualAuth;
+  Z.Net.DoubleTunnelIO.VirtualAuth, FMX.Memo.Types;
 
 type
   TMyDataStoreClient = class(TDataStoreClient_VirtualAuth)

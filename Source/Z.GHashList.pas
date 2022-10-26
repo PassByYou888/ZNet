@@ -25,10 +25,10 @@ type
   TPascalString_Hash_Pool = class(TBig_Hash_Pair_Pool<TPascalString, TPascalString>)
 {$ENDIF FPC}
   public
-    function Get_Key_Hash(Key_: TPascalString): THash; override;
-    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    function Get_Key_Hash(const Key_: TPascalString): THash; override;
+    function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: TPascalString); override;
-    function Compare_Value(Value_1, Value_2: TPascalString): Boolean; override;
+    function Compare_Value(const Value_1, Value_2: TPascalString): Boolean; override;
   end;
 
 {$IFDEF FPC}
@@ -37,8 +37,8 @@ type
   TString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<SystemString, T_>)
 {$ENDIF FPC}
   public
-    function Get_Key_Hash(Key_: SystemString): THash; override;
-    function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
+    function Get_Key_Hash(const Key_: SystemString): THash; override;
+    function Compare_Key(const Key_1, Key_2: SystemString): Boolean; override;
     procedure DoFree(var Key: SystemString; var Value: T_); override;
   end;
 
@@ -48,8 +48,8 @@ type
   TPascalString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TPascalString, T_>)
 {$ENDIF FPC}
   public
-    function Get_Key_Hash(Key_: TPascalString): THash; override;
-    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    function Get_Key_Hash(const Key_: TPascalString): THash; override;
+    function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: T_); override;
   end;
 
@@ -61,8 +61,8 @@ type
   public
     Epsilon: Single;
     constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
-    function Get_Key_Hash(Key_: Single): THash; override;
-    function Compare_Key(Key_1, Key_2: Single): Boolean; override;
+    function Get_Key_Hash(const Key_: Single): THash; override;
+    function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
 
 {$IFDEF FPC}
@@ -73,8 +73,8 @@ type
   public
     Epsilon: Double;
     constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
-    function Get_Key_Hash(Key_: Double): THash; override;
-    function Compare_Key(Key_1, Key_2: Double): Boolean; override;
+    function Get_Key_Hash(const Key_: Double): THash; override;
+    function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
 
 {$IFDEF FPC}
@@ -127,8 +127,8 @@ type
   TString_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ENDIF FPC}
   public
-    function Get_Key_Hash(Key_: SystemString): THash; override;
-    function Compare_Key(Key_1, Key_2: SystemString): Boolean; override;
+    function Get_Key_Hash(const Key_: SystemString): THash; override;
+    function Compare_Key(const Key_1, Key_2: SystemString): Boolean; override;
     procedure DoFree(var Key: SystemString; var Value: T_); override;
   end;
 
@@ -138,8 +138,8 @@ type
   TPascalString_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
 {$ENDIF FPC}
   public
-    function Get_Key_Hash(Key_: TPascalString): THash; override;
-    function Compare_Key(Key_1, Key_2: TPascalString): Boolean; override;
+    function Get_Key_Hash(const Key_: TPascalString): THash; override;
+    function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: T_); override;
   end;
 
@@ -151,8 +151,8 @@ type
   public
     Epsilon: Single;
     constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
-    function Get_Key_Hash(Key_: Single): THash; override;
-    function Compare_Key(Key_1, Key_2: Single): Boolean; override;
+    function Get_Key_Hash(const Key_: Single): THash; override;
+    function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
 
 {$IFDEF FPC}
@@ -163,8 +163,8 @@ type
   public
     Epsilon: Double;
     constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
-    function Get_Key_Hash(Key_: Double): THash; override;
-    function Compare_Key(Key_1, Key_2: Double): Boolean; override;
+    function Get_Key_Hash(const Key_: Double): THash; override;
+    function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
 
 {$IFDEF FPC}
@@ -330,13 +330,13 @@ begin
   Result := ((-Epsilon_ <= Diff) and (Diff <= Epsilon_));
 end;
 
-function TPascalString_Hash_Pool.Get_Key_Hash(Key_: TPascalString): THash;
+function TPascalString_Hash_Pool.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TPascalString_Hash_Pool.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+function TPascalString_Hash_Pool.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
 begin
   Result := Key_1.Same(@Key_2);
 end;
@@ -347,18 +347,18 @@ begin
   Value := '';
 end;
 
-function TPascalString_Hash_Pool.Compare_Value(Value_1, Value_2: TPascalString): Boolean;
+function TPascalString_Hash_Pool.Compare_Value(const Value_1, Value_2: TPascalString): Boolean;
 begin
   Result := Value_1.Same(@Value_2);
 end;
 
-function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: SystemString): THash;
+function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: SystemString): THash;
 begin
-  Result := FastHashPSystemString(@Key_);
+  Result := FastHashSystemString(Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: SystemString): Boolean;
+function TString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: SystemString): Boolean;
 begin
   Result := SameText(Key_1, Key_2);
 end;
@@ -369,13 +369,13 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: TPascalString): THash;
+function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+function TPascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
 begin
   Result := Key_1.Same(@Key_2);
 end;
@@ -392,7 +392,7 @@ begin
   Epsilon := Epsilon_;
 end;
 
-function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Single): THash;
+function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Single): THash;
 var
   tmp: Int64;
 begin
@@ -400,7 +400,7 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Single): Boolean;
+function TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Single): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
@@ -411,7 +411,7 @@ begin
   Epsilon := Epsilon_;
 end;
 
-function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Double): THash;
+function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Double): THash;
 var
   tmp: Int64;
 begin
@@ -419,20 +419,20 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Double): Boolean;
+function TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Double): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
 // **********************************************************************************************************
 
-function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: SystemString): THash;
+function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: SystemString): THash;
 begin
-  Result := FastHashPSystemString(@Key_);
+  Result := FastHashSystemString(Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: SystemString): Boolean;
+function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: SystemString): Boolean;
 begin
   Result := SameText(Key_1, Key_2);
 end;
@@ -443,13 +443,13 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: TPascalString): THash;
+function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: TPascalString): Boolean;
+function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
 begin
   Result := Key_1.Same(@Key_2);
 end;
@@ -466,7 +466,7 @@ begin
   Epsilon := Epsilon_;
 end;
 
-function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Single): THash;
+function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Single): THash;
 var
   tmp: Int64;
 begin
@@ -474,7 +474,7 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Single): Boolean;
+function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Single): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
@@ -485,7 +485,7 @@ begin
   Epsilon := Epsilon_;
 end;
 
-function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(Key_: Double): THash;
+function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Double): THash;
 var
   tmp: Int64;
 begin
@@ -493,7 +493,7 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(Key_1, Key_2: Double): Boolean;
+function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Double): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;

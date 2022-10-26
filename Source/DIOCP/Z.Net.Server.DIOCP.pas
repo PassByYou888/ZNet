@@ -243,7 +243,7 @@ end;
 constructor TZNet_Server_DIOCP.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   FDIOCPServer := TDiocpTcpServer.Create(nil);
 

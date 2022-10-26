@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * trigger imp                                                                * }
+{ * notify and trigger imp                                                     * }
 { ****************************************************************************** }
 unit Z.Notify;
 
@@ -89,14 +89,17 @@ type
     function PostExecute(DataEng: TDFE): TN_Post_Execute; overload;
     function PostExecute(Delay: Double): TN_Post_Execute; overload;
     function PostExecute(Delay: Double; DataEng: TDFE): TN_Post_Execute; overload;
-    function PostExecuteM(DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
-    function PostExecuteM(Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
-    function PostExecuteM(Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
-    function PostExecuteM_NP(Delay: Double; OnExecute_M: TN_Post_Execute_M_NP): TN_Post_Execute; overload;
+    //
     function PostExecuteC(DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC(Delay: Double; DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC(Delay: Double; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC_NP(Delay: Double; OnExecute_C: TN_Post_Execute_C_NP): TN_Post_Execute; overload;
+    //
+    function PostExecuteM(DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
+    function PostExecuteM(Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
+    function PostExecuteM(Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
+    function PostExecuteM_NP(Delay: Double; OnExecute_M: TN_Post_Execute_M_NP): TN_Post_Execute; overload;
+    //
     function PostExecuteP(DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP(Delay: Double; DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP(Delay: Double; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
@@ -243,7 +246,7 @@ begin
       if FPool_Data_Ptr <> nil then
         begin
           FPool_Data_Ptr^.Data := nil;
-          FOwner.FPostExecuteList.Remove(FPool_Data_Ptr);
+          FOwner.FPostExecuteList.Remove_P(FPool_Data_Ptr);
         end;
       FOwner := nil;
     end;
@@ -389,30 +392,6 @@ begin
       Result.FDFE_Inst.Assign(DataEng);
 end;
 
-function TN_Progress_Tool.PostExecuteM(DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
-begin
-  Result := PostExecute(DataEng);
-  Result.OnExecute_M := OnExecute_M;
-end;
-
-function TN_Progress_Tool.PostExecuteM(Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
-begin
-  Result := PostExecute(Delay, DataEng);
-  Result.OnExecute_M := OnExecute_M;
-end;
-
-function TN_Progress_Tool.PostExecuteM(Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
-begin
-  Result := PostExecute(Delay);
-  Result.OnExecute_M := OnExecute_M;
-end;
-
-function TN_Progress_Tool.PostExecuteM_NP(Delay: Double; OnExecute_M: TN_Post_Execute_M_NP): TN_Post_Execute;
-begin
-  Result := PostExecute(Delay);
-  Result.OnExecute_M_NP := OnExecute_M;
-end;
-
 function TN_Progress_Tool.PostExecuteC(DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute;
 begin
   Result := PostExecute(DataEng);
@@ -435,6 +414,30 @@ function TN_Progress_Tool.PostExecuteC_NP(Delay: Double; OnExecute_C: TN_Post_Ex
 begin
   Result := PostExecute(Delay);
   Result.OnExecute_C_NP := OnExecute_C;
+end;
+
+function TN_Progress_Tool.PostExecuteM(DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
+begin
+  Result := PostExecute(DataEng);
+  Result.OnExecute_M := OnExecute_M;
+end;
+
+function TN_Progress_Tool.PostExecuteM(Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
+begin
+  Result := PostExecute(Delay, DataEng);
+  Result.OnExecute_M := OnExecute_M;
+end;
+
+function TN_Progress_Tool.PostExecuteM(Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute;
+begin
+  Result := PostExecute(Delay);
+  Result.OnExecute_M := OnExecute_M;
+end;
+
+function TN_Progress_Tool.PostExecuteM_NP(Delay: Double; OnExecute_M: TN_Post_Execute_M_NP): TN_Post_Execute;
+begin
+  Result := PostExecute(Delay);
+  Result.OnExecute_M_NP := OnExecute_M;
 end;
 
 function TN_Progress_Tool.PostExecuteP(DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute;

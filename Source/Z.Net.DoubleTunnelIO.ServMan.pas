@@ -149,10 +149,10 @@ type
 function serverType2Str(t: TServerType): SystemString;
 
 const
-  C_RegServer = '__@RegServer';
-  C_Offline = '__@Offline';
-  C_EnabledServer = '__@EnabledServer';
-  C_AntiIdle = '__@AntiIdle';
+  C_RegServer: SystemString = '__@RegServer';
+  C_Offline: SystemString = '__@Offline';
+  C_EnabledServer: SystemString = '__@EnabledServer';
+  C_AntiIdle: SystemString = '__@AntiIdle';
 
 implementation
 
@@ -562,9 +562,9 @@ begin
   cli := UserDefineIO as TServerManager_RecvTunnelData;
 
   UserDefineIO.Owner.Print('%s [n:%s][addr:%s][r:%d][s:%d][w:%d] offline!', [serverType2Str(cli.ServerType),
-    umlCharReplace(cli.Regname, ' ', '_').Text,
-    umlCharReplace(cli.RegAddr, ' ', '_').Text,
-    cli.RegRecvPort, cli.RegSendPort, cli.WorkLoad]);
+      umlCharReplace(cli.Regname, ' ', '_').Text,
+      umlCharReplace(cli.RegAddr, ' ', '_').Text,
+      cli.RegRecvPort, cli.RegSendPort, cli.WorkLoad]);
 
   ServerConfig.Delete(cli.MakeRegName);
 

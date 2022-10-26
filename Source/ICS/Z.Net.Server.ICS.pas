@@ -169,7 +169,7 @@ end;
 constructor TZNet_Server_ICS.Create;
 begin
   inherited Create;
-  FEnabledAtomicLockAndMultiThread := False;
+  EnabledAtomicLockAndMultiThread := False;
 
   Driver := TCustomICS.Create(nil);
   Driver.MultiThreaded := False;

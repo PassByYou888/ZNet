@@ -182,10 +182,8 @@ function UCharIn(c: USystemChar; const SomeCharsets: TUOrdChars; const p: PUPasc
 function TextIs(t: TUPascalString; const SomeCharsets: TUOrdChars): Boolean; overload;
 function TextIs(t: TUPascalString; const SomeCharsets: TUOrdChars; const SomeChars: TUPascalString): Boolean; overload;
 
-function UFastHashPSystemString(const s: PUSystemString): THash; overload;
-function UFastHash64PSystemString(const s: PUSystemString): THash64; overload;
-function UFastHashSystemString(const s: USystemString): THash; overload;
-function UFastHash64SystemString(const s: USystemString): THash64; overload;
+function UFastHashSystemString(const s: USystemString): THash;
+function UFastHash64SystemString(const s: USystemString): THash64;
 function UFastHashPPascalString(const s: PUPascalString): THash;
 function UFastHash64PPascalString(const s: PUPascalString): THash64;
 function UFormat(const Fmt: USystemString; const Args: array of const): USystemString;
@@ -442,54 +440,44 @@ begin
   Result := True;
 end;
 
-function UFastHashPSystemString(const s: PUSystemString): THash;
+function UFastHashSystemString(const s: USystemString): THash;
 var
   i: Integer;
   c: USystemChar;
 begin
-  Result := 0;
+  FillPtr(@Result, SizeOf(THash), length(s) mod 2);
 
 {$IFDEF FirstCharInZero}
-  for i := 0 to length(s^) - 1 do
+  for i := 0 to length(s) - 1 do
 {$ELSE FirstCharInZero}
-  for i := 1 to length(s^) do
+  for i := 1 to length(s) do
 {$ENDIF FirstCharInZero}
     begin
-      c := s^[i];
+      c := s[i];
       if UCharIn(c, ucHiAtoZ) then
           inc(c, 32);
       Result := ((Result shl 7) or (Result shr 25)) + THash(c);
     end;
 end;
 
-function UFastHash64PSystemString(const s: PUSystemString): THash64;
+function UFastHash64SystemString(const s: USystemString): THash64;
 var
   i: Integer;
   c: USystemChar;
 begin
-  Result := 0;
+  FillPtr(@Result, SizeOf(THash64), length(s) mod 2);
 
 {$IFDEF FirstCharInZero}
-  for i := 0 to length(s^) - 1 do
+  for i := 0 to length(s) - 1 do
 {$ELSE FirstCharInZero}
-  for i := 1 to length(s^) do
+  for i := 1 to length(s) do
 {$ENDIF FirstCharInZero}
     begin
-      c := s^[i];
+      c := s[i];
       if UCharIn(c, ucHiAtoZ) then
           inc(c, 32);
       Result := ((Result shl 7) or (Result shr 57)) + THash64(c);
     end;
-end;
-
-function UFastHashSystemString(const s: USystemString): THash;
-begin
-  Result := UFastHashPSystemString(@s);
-end;
-
-function UFastHash64SystemString(const s: USystemString): THash64;
-begin
-  Result := UFastHash64PSystemString(@s);
 end;
 
 function UFastHashPPascalString(const s: PUPascalString): THash;
@@ -497,8 +485,8 @@ var
   i: Integer;
   c: USystemChar;
 begin
-  Result := 0;
-  for i := 1 to s^.Len do
+  FillPtr(@Result, SizeOf(THash), s^.L mod 2);
+  for i := 1 to s^.L do
     begin
       c := s^[i];
       if UCharIn(c, ucHiAtoZ) then
@@ -512,8 +500,8 @@ var
   i: Integer;
   c: USystemChar;
 begin
-  Result := 0;
-  for i := 1 to s^.Len do
+  FillPtr(@Result, SizeOf(THash64), s^.L mod 2);
+  for i := 1 to s^.L do
     begin
       c := s^[i];
       if UCharIn(c, ucHiAtoZ) then

@@ -573,7 +573,7 @@ begin
       if Assigned(On_Done) then
           On_Done(self);
       Pool_Ptr^.Data := nil;
-      OwnerPool.FList.Remove(Pool_Ptr);
+      OwnerPool.FList.Remove_P(Pool_Ptr);
       if (OwnerPool.Task_Num = 0) then
           Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}OwnerPool.Do_All_Done);
     end;

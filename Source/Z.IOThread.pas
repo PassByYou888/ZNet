@@ -740,7 +740,7 @@ begin
     end;
 
   FOwner.FCritical.Lock;
-  FOwner.Remove(FPool_Data_Ptr);
+  FOwner.Remove_P(FPool_Data_Ptr);
   FOwner.FCritical.UnLock;
 
   FBindTh := nil;

@@ -162,6 +162,7 @@ object VMServForm: TVMServForm
       ScrollBars = ssVertical
       TabOrder = 5
       WordWrap = False
+      ExplicitLeft = 132
     end
   end
   object ProgressTimer: TTimer

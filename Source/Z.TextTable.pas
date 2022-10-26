@@ -244,8 +244,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsNormalText;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -269,8 +269,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsPascalText;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -294,8 +294,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsPascalComment;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -319,8 +319,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsCText;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -344,8 +344,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsCComment;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -369,8 +369,8 @@ begin
       p^.index := GetMaxIndexNo + 1;
       p^.DefineText := OriginText_;
       p^.TextStyle := tsDFMText;
-      p^.OriginHash := FastHashPSystemString(@OriginText_);
-      p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+      p^.OriginHash := FastHashSystemString(OriginText_);
+      p^.DefineHash := FastHashSystemString(p^.DefineText);
       p^.RepCount := 1;
       FList.Add(p);
     end
@@ -404,7 +404,7 @@ begin
             else p^.DefineText := newDefine;
           end;
 
-          p^.DefineHash := FastHashPSystemString(@p^.DefineText);
+          p^.DefineHash := FastHashSystemString(p^.DefineText);
         end;
     end;
 end;
@@ -426,7 +426,7 @@ var
   i: Integer;
   p: PTextTableItem;
 begin
-  hash := FastHashPSystemString(@OriginText_);
+  hash := FastHashSystemString(OriginText_);
   for i := 0 to FList.Count - 1 do
     begin
       p := FList[i];
@@ -579,4 +579,3 @@ begin
 end;
 
 end.
-
