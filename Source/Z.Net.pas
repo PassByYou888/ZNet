@@ -294,19 +294,15 @@ type
 {$REGION 'CacheTechnology'}
 
   TFile_Swap_Space_Stream = class;
-  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Swap_Space_Stream>;
+  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TFile_Swap_Space_Stream>;
 
   TFile_Swap_Space_Pool = class(TFile_Swap_Space_Pool_Decl)
-  private
-    FCritical: TCritical;
   public
     WorkPath: U_String;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var data: TFile_Swap_Space_Stream); override;
     function CompareData(const Data_1, Data_2: TFile_Swap_Space_Stream): Boolean; override;
-    procedure Lock;
-    procedure UnLock;
     class function RunTime_Pool(): TFile_Swap_Space_Pool;
   end;
 
@@ -361,6 +357,8 @@ type
     );
 
   TQueueData = record
+    { dest IP }
+    IP: SystemString;
     { queue state }
     State: TQueueState;
     { ID }
@@ -403,10 +401,15 @@ type
 
   PQueueData = ^TQueueData;
   TQueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueData>;
+  TCritical_QueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<PQueueData>;
 {$ENDREGION 'Queue'}
 {$REGION 'IO Decl'}
 
-  TCommandStream = class(TCore_Object)
+  TCommand_base = class(TCore_Object)
+  public
+  end;
+
+  TCommandStream = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandStream_C;
     FOnExecute_M: TOnCommandStream_M;
@@ -422,7 +425,7 @@ type
     property OnExecute_P: TOnCommandStream_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandConsole = class(TCore_Object)
+  TCommandConsole = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandConsole_C;
     FOnExecute_M: TOnCommandConsole_M;
@@ -438,7 +441,7 @@ type
     property OnExecute_P: TOnCommandConsole_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandDirectStream = class(TCore_Object)
+  TCommandDirectStream = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandDirectStream_C;
     FOnExecute_M: TOnCommandDirectStream_M;
@@ -454,7 +457,7 @@ type
     property OnExecute_P: TOnCommandDirectStream_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandDirectConsole = class(TCore_Object)
+  TCommandDirectConsole = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandDirectConsole_C;
     FOnExecute_M: TOnCommandDirectConsole_M;
@@ -470,7 +473,7 @@ type
     property OnExecute_P: TOnCommandDirectConsole_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandBigStream = class(TCore_Object)
+  TCommandBigStream = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandBigStream_C;
     FOnExecute_M: TOnCommandBigStream_M;
@@ -486,7 +489,7 @@ type
     property OnExecute_P: TOnCommandBigStream_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandCompleteBuffer = class(TCore_Object)
+  TCommandCompleteBuffer = class(TCommand_base)
   protected
     FOnExecute_C: TOnCommandCompleteBuffer_C;
     FOnExecute_M: TOnCommandCompleteBuffer_M;
@@ -640,7 +643,7 @@ type
   TZNet_WithP2PVM = class;
 
   TPeerIO = class(TCore_InterfacedObject)
-  protected
+  private
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
     FID: Cardinal;
@@ -691,6 +694,7 @@ type
     FEncryptInstance: TCipher_Base;
     FAllSendProcessing: Boolean;
     FReceiveProcessing: Boolean;
+    FSend_Queue_Critical: TCritical;
     FQueuePool: TQueueData_Pool;
     FLastCommunicationTick: TTimeTick;
     LastCommunicationTick_Received: TTimeTick;
@@ -1202,11 +1206,12 @@ type
     procedure ResetEvent;
   end;
 
-  TPrint_Param_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<Boolean>;
-  TCommand_Tick_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<TTimeTick>;
-  TCommand_Num_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<Integer>;
-  TCommand_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGeneric_String_Object_Hash<TCore_Object>;
-  TPeer_IO_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Cardinal, TPeerIO>;
+  TPrint_Param_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<Boolean>;
+  TCommand_Tick_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TTimeTick>;
+  TCommand_Num_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<Integer>;
+  TCommand_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TCommand_base>;
+  TPeer_IO_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Cardinal, TPeerIO>;
+  TZNet_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZNet>;
 
   TCommand_Tick_Hash_Pool = class(TCommand_Tick_Hash_Pool_Decl)
   public
@@ -1222,10 +1227,16 @@ type
     procedure GetKeyList(output: TPascalStringList);
   end;
 
+  TCommand_Hash_Pool = class(TCommand_Hash_Pool_Decl)
+  public
+    procedure DoFree(var Key: SystemString; var Value: TCommand_base); override;
+  end;
+
   TZNet = class(TCore_InterfacedObject)
   private
     FCritical: TCritical;
-    FCommandList: TCommand_Hash_Pool;
+    FInstance_Ptr_Struct: TZNet_Instance_Pool.PQueueStruct;
+    FCommand_Hash_Pool: TCommand_Hash_Pool;
     FPeerIO_HashPool: TPeer_IO_Hash_Pool;
     FIDSeed: Cardinal;
     FProgress_Pool: TZNet_Progress_Pool;
@@ -1236,6 +1247,7 @@ type
     FIdleTimeOut: TTimeTick;
     FPhysicsFragmentSwapSpaceTechnology: Boolean;
     FPhysicsFragmentSwapSpaceTrigger: NativeInt;
+    FSend_Queue_Swap_Pool: TCritical_QueueData_Pool;
     FSendDataCompressed: Boolean;
     FCompleteBufferCompressed: Boolean;
     FFastEncrypt: Boolean;
@@ -1356,7 +1368,11 @@ type
     procedure CreateAfter; virtual;
     destructor Destroy; override;
 
+    { sequence packet }
     property SequencePacketActivted: Boolean read FSequencePacketActivted write FSequencePacketActivted; { default set True }
+
+    { queue swap technology }
+    procedure Post_Queue_Data_To_Swap_Queue(p: PQueueData);
 
     { progress event pool }
     property Progress_Pool: TZNet_Progress_Pool read FProgress_Pool;
@@ -1627,7 +1643,6 @@ type
     { external service method }
     procedure StopService; virtual;
     function StartService(Host: SystemString; Port: Word): Boolean; virtual;
-    procedure TriggerQueueData(v: PQueueData); virtual;
 
     { service framework support }
     procedure DoIOConnectBefore(Sender: TPeerIO); virtual;
@@ -1760,25 +1775,19 @@ type
   TZNet_Client = class(TZNet)
   protected
     FOnInterface: IZNet_ClientInterface;
-
     FConnectInitWaiting: Boolean;
     FConnectInitWaitingTimeout: TTimeTick;
     FAsyncConnectTimeout: TTimeTick;
     FOnCipherModelDone: TOnCipherModelDone;
-
     FServerState: TZNet_ServerState;
-
     FIgnoreProcessConnectedAndDisconnect: Boolean;
     FLastConnectIsSuccessed: Boolean;
-
     FRequestTime: TTimeTick;
     FReponseTime: TTimeTick;
 
     procedure StreamResult_CipherModel(Sender: TPeerIO; Result_: TDFE);
-
     procedure DoConnected(Sender: TPeerIO); virtual;
     procedure DoDisconnect(Sender: TPeerIO); virtual;
-
     function CanExecuteCommand(Sender: TPeerIO; const Cmd: SystemString): Boolean; override;
     function CanSendCommand(Sender: TPeerIO; const Cmd: SystemString): Boolean; override;
     function CanRegCommand(Sender: TZNet; const Cmd: SystemString): Boolean; override;
@@ -1841,8 +1850,6 @@ type
     property LastConnectIsSuccessed: Boolean read FLastConnectIsSuccessed;
     { external io,intf }
     function ClientIO: TPeerIO; virtual;
-    { external io,intf }
-    procedure TriggerQueueData(v: PQueueData); virtual;
 
     { async connection }
     procedure TriggerDoConnectFailed; virtual;
@@ -2021,9 +2028,6 @@ type
     { mainLoop }
     procedure Progress; override;
 
-    { intf }
-    procedure TriggerQueueData(v: PQueueData); override;
-
     procedure CloseAllClient;
 
     { service method }
@@ -2074,7 +2078,6 @@ type
     function Connected: Boolean; override;
     function ClientIO: TPeerIO; override;
     procedure Progress; override;
-    procedure TriggerQueueData(v: PQueueData); override;
 
     procedure AsyncConnect(addr: SystemString; Port: Word);
     procedure AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C); override;
@@ -2267,7 +2270,6 @@ type
     procedure StopService; override;
 
     procedure Progress; override;
-    procedure TriggerQueueData(v: PQueueData); override;
 
     function WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; Timeout: TTimeTick); override;
@@ -2353,7 +2355,6 @@ type
     function Connected: Boolean; override;
     procedure Disconnect; override;
     function ClientIO: TPeerIO; override;
-    procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
   end;
 
@@ -2564,7 +2565,7 @@ procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
 
 procedure DisposeQueueData(const v: PQueueData);
 procedure InitQueueData(var v: TQueueData);
-function NewQueueData: PQueueData;
+function NewQueueData(IO: TPeerIO): PQueueData;
 
 function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
 procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
@@ -2593,91 +2594,91 @@ procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_
 
 var
   { sequence packet model }
-  C_Sequence_Packet_HeadSize: Byte = $16;
-  C_Sequence_QuietPacket: Byte = $01;
-  C_Sequence_Packet: Byte = $02;
-  C_Sequence_EchoPacket: Byte = $03;
-  C_Sequence_KeepAlive: Byte = $04;
-  C_Sequence_EchoKeepAlive: Byte = $05;
-  C_Sequence_RequestResend: Byte = $06;
+  Sys_Def_V_Sequence_Packet_HeadSize: Byte = $16;
+  Sys_Def_V_Sequence_QuietPacket: Byte = $01;
+  Sys_Def_V_Sequence_Packet: Byte = $02;
+  Sys_Def_V_Sequence_EchoPacket: Byte = $03;
+  Sys_Def_V_Sequence_KeepAlive: Byte = $04;
+  Sys_Def_V_Sequence_EchoKeepAlive: Byte = $05;
+  Sys_Def_V_Sequence_RequestResend: Byte = $06;
 
   { p2pVM }
-  C_p2pVM_echoing: Byte = $01;
-  C_p2pVM_echo: Byte = $02;
-  C_p2pVM_AuthSuccessed: Byte = $09;
-  C_p2pVM_Listen: Byte = $10;
-  C_p2pVM_ListenState: Byte = $11;
-  C_p2pVM_Connecting: Byte = $20;
-  C_p2pVM_ConnectedReponse: Byte = $21;
-  C_p2pVM_Disconnect: Byte = $40;
-  C_p2pVM_LogicFragmentData: Byte = $54;
-  C_p2pVM_OwnerIOFragmentData: Byte = $64;
+  Sys_Def_V_p2pVM_echoing: Byte = $01;
+  Sys_Def_V_p2pVM_echo: Byte = $02;
+  Sys_Def_V_p2pVM_AuthSuccessed: Byte = $09;
+  Sys_Def_V_p2pVM_Listen: Byte = $10;
+  Sys_Def_V_p2pVM_ListenState: Byte = $11;
+  Sys_Def_V_p2pVM_Connecting: Byte = $20;
+  Sys_Def_V_p2pVM_ConnectedReponse: Byte = $21;
+  Sys_Def_V_p2pVM_Disconnect: Byte = $40;
+  Sys_Def_V_p2pVM_LogicFragmentData: Byte = $54;
+  Sys_Def_V_p2pVM_OwnerIOFragmentData: Byte = $64;
 
   { default system head }
-  C_DefaultConsoleToken: Byte = $F1;
-  C_DefaultStreamToken: Byte = $2F;
-  C_DefaultDirectConsoleToken: Byte = $F3;
-  C_DefaultDirectStreamToken: Byte = $4F;
-  C_DefaultBigStreamToken: Byte = $F5;
-  C_DefaultBigStreamReceiveFragmentSignal: Byte = $F6;
-  C_DefaultBigStreamReceiveDoneSignal: Byte = $F7;
-  C_DefaultCompleteBufferToken: Byte = $6F;
+  Sys_Def_V_DefaultConsoleToken: Byte = $F1;
+  Sys_Def_V_DefaultStreamToken: Byte = $2F;
+  Sys_Def_V_DefaultDirectConsoleToken: Byte = $F3;
+  Sys_Def_V_DefaultDirectStreamToken: Byte = $4F;
+  Sys_Def_V_DefaultBigStreamToken: Byte = $F5;
+  Sys_Def_V_DefaultBigStreamReceiveFragmentSignal: Byte = $F6;
+  Sys_Def_V_DefaultBigStreamReceiveDoneSignal: Byte = $F7;
+  Sys_Def_V_DefaultCompleteBufferToken: Byte = $6F;
 
   { user custom header verify token }
-  C_DataHeadToken: Cardinal = $F0F0F0F0;
+  Sys_Def_V_DataHeadToken: Cardinal = $F0F0F0F0;
   { user custom tail verify token }
-  C_DataTailToken: Cardinal = $F1F1F1F1;
+  Sys_Def_V_DataTailToken: Cardinal = $F1F1F1F1;
 
   { send flush buffer }
-  C_SendFlushSize: NativeInt = 32 * 1024; { flush size = 32k byte }
+  Sys_Def_V_SendFlushSize: NativeInt = 32 * 1024; { flush size = 32k byte }
 
   { per progress do extract Physics_Fragment size }
-  C_Extract_Physics_Fragment_Max_Size: Int64 = 1024 * 1024;
+  Sys_Def_V_Extract_Physics_Fragment_Max_Size: Int64 = 1024 * 1024;
   { max loop }
-  C_Per_Progress_Loop_Limit: Integer = 500; { <= 0 is no limit }
+  Sys_Def_V_Per_Progress_Loop_Limit: Integer = 500; { <= 0 is no limit }
 
   { max complete buffer }
-  C_MaxCompleteBufferSize: Cardinal = 64 * 1024 * 1024; { 64M, 0 = infinity }
+  Sys_Def_V_MaxCompleteBufferSize: Cardinal = 64 * 1024 * 1024; { 64M, 0 = infinity }
   { complete buffer compression condition }
-  C_CompleteBufferCompressionCondition: Cardinal = 1024;
+  Sys_Def_V_CompleteBufferCompressionCondition: Cardinal = 1024;
   { complete buffer swap space technology }
-  C_CompleteBuffer_SwapSpace_Activted: Boolean = False;
-  C_CompleteBuffer_SwapSpace_Trigger: Int64 = 1024;
+  Sys_Def_V_CompleteBuffer_SwapSpace_Activted: Boolean = False;
+  Sys_Def_V_CompleteBuffer_SwapSpace_Trigger: Int64 = 1024;
 
   { sequence packet model Packet MTU }
-  C_SequencePacketMTU: Word = 1536;
+  Sys_Def_V_SequencePacketMTU: Word = 1536;
 
   { P2PVM Fragment size }
-  C_P2PVM_MaxVMFragmentSize: Cardinal = 1536;
+  Sys_Def_V_P2PVM_MaxVMFragmentSize: Cardinal = 1536;
 
   { DoStatus ID }
-  C_DoStatusID: Integer = $0FFFFFFF;
+  Sys_Def_V_DoStatusID: Integer = $0FFFFFFF;
 
   { vm auth token size }
-  C_VMAuthSize: Integer = 16;
+  Sys_Def_V_VMAuthSize: Integer = 16;
 
   { BigStream fragment size }
-  C_BigStream_ChunkSize: NativeInt = 1024 * 1024;
+  Sys_Def_V_BigStream_ChunkSize: NativeInt = 1024 * 1024;
 
   { BigStream SwapSpace }
-  C_BigStream_Memory_SwapSpace_Activted: Boolean = False;
-  C_BigStream_SwapSpace_Trigger: Int64 = 1024 * 1024;
+  Sys_Def_V_BigStream_Memory_SwapSpace_Activted: Boolean = False;
+  Sys_Def_V_BigStream_SwapSpace_Trigger: Int64 = 1024 * 1024;
 
   { physics fragment cache technology }
-  C_Physics_Fragment_Cache_Activted: Boolean = False;
-  C_Physics_Fragment_Cache_Trigger: NativeInt = 10000;
+  Sys_Def_V_Physics_Fragment_Cache_Activted: Boolean = False;
+  Sys_Def_V_Physics_Fragment_Cache_Trigger: NativeInt = 10000;
 
   { swap cache technology }
-  C_Swap_Space_Technology_Security_Model: Boolean = True;
-  C_Swap_Space_Technology_Delta: Int64 = 8 * 1024 * 1024;
-  C_Swap_Space_Technology_Block: Word = 1536;
+  Sys_Def_V_Swap_Space_Technology_Security_Model: Boolean = True;
+  Sys_Def_V_Swap_Space_Technology_Delta: Int64 = 8 * 1024 * 1024;
+  Sys_Def_V_Swap_Space_Technology_Block: Word = 1536;
+
+  { random ipv6 seed }
+  Sys_Def_V_IPV6_Seed: UInt64 = 0;
 
   { global progress backcall }
   ProgressBackgroundProc: TOnProgressBackground_C = nil;
   ProgressBackgroundMethod: TOnProgressBackground_M = nil;
-
-  { random ipv6 seed }
-  C_IPV6_Seed: UInt64 = 0;
 
 const
   { system }
@@ -2777,6 +2778,19 @@ const
 implementation
 
 var
+  ZNet_Instance_Pool__: TZNet_Instance_Pool;
+
+procedure Init_ZNet_Instance_Pool;
+begin
+  ZNet_Instance_Pool__ := TZNet_Instance_Pool.Create;
+end;
+
+procedure Free_ZNet_Instance_Pool;
+begin
+  DisposeObjectAndNil(ZNet_Instance_Pool__);
+end;
+
+var
   BigStream_Swap_Space_Pool: TFile_Swap_Space_Pool;
 
 procedure Init_SwapSpace_Tech;
@@ -2801,7 +2815,7 @@ end;
 
 procedure TZDB2_Swap_Space_Technology.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
 begin
-  retry := AppendSpace(C_Swap_Space_Technology_Delta, C_Swap_Space_Technology_Block);
+  retry := AppendSpace(Sys_Def_V_Swap_Space_Technology_Delta, Sys_Def_V_Swap_Space_Technology_Block);
 end;
 
 constructor TZDB2_Swap_Space_Technology.Create();
@@ -2834,7 +2848,7 @@ begin
   InitIOHnd(p^);
   umlFileCreate(tmp_swap_space_file, p^);
   inherited Create(p);
-  if C_Swap_Space_Technology_Security_Model then
+  if Sys_Def_V_Swap_Space_Technology_Security_Model then
       Cipher := TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___;
   Mode := smNormal;
   AutoCloseIOHnd := True;
@@ -3011,6 +3025,7 @@ end;
 
 procedure InitQueueData(var v: TQueueData);
 begin
+  v.IP := '';
   v.State := qsUnknow;
   v.IO_ID := 0;
   v.Cmd := '';
@@ -3039,10 +3054,12 @@ begin
   v.Param2 := nil;
 end;
 
-function NewQueueData: PQueueData;
+function NewQueueData(IO: TPeerIO): PQueueData;
 begin
   New(Result);
   InitQueueData(Result^);
+  Result^.IP := IO.GetPeerIP;
+  Result^.IO_ID := IO.ID;
 end;
 
 function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
@@ -3392,8 +3409,8 @@ begin
   PTimeTick(@tmp[0])^ := GetTimeTick();
   PInt64(@tmp[8])^ := MT19937Rand64($7FFFFFFFFFFFFFFF);
   PDouble(@tmp[16])^ := umlNow();
-  PInt64(@tmp[24])^ := C_IPV6_Seed;
-  AtomInc(C_IPV6_Seed);
+  PInt64(@tmp[24])^ := Sys_Def_V_IPV6_Seed;
+  AtomInc(Sys_Def_V_IPV6_Seed);
   PMD5(@Result)^ := umlMD5(@tmp[0], 32);
 end;
 
@@ -4501,13 +4518,11 @@ end;
 constructor TFile_Swap_Space_Pool.Create;
 begin
   inherited Create;
-  FCritical := TCritical.Create;
   WorkPath := umlCurrentPath;
 end;
 
 destructor TFile_Swap_Space_Pool.Destroy;
 begin
-  DisposeObject(FCritical);
   inherited Destroy;
 end;
 
@@ -4523,16 +4538,6 @@ end;
 function TFile_Swap_Space_Pool.CompareData(const Data_1, Data_2: TFile_Swap_Space_Stream): Boolean;
 begin
   Result := Data_1 = Data_2;
-end;
-
-procedure TFile_Swap_Space_Pool.Lock;
-begin
-  FCritical.Lock;
-end;
-
-procedure TFile_Swap_Space_Pool.UnLock;
-begin
-  FCritical.UnLock;
 end;
 
 class function TFile_Swap_Space_Pool.RunTime_Pool(): TFile_Swap_Space_Pool;
@@ -5015,7 +5020,7 @@ begin
   SequencePacketSendBuffer := TMS64.CustomCreate(MemoryDelta);
   SequencePacketReceivedBuffer := TMS64.CustomCreate(MemoryDelta);
 
-  FSequencePacketMTU := C_SequencePacketMTU;
+  FSequencePacketMTU := Sys_Def_V_SequencePacketMTU;
 
   FSequencePacketLimitPhysicsMemory := 0;
   SequencePacketCloseDone := False;
@@ -5163,7 +5168,7 @@ begin
       exit;
     end;
 
-  FlushBuffSize := umlMax(FSequencePacketMTU, 1024) - (C_Sequence_Packet_HeadSize + 1);
+  FlushBuffSize := umlMax(FSequencePacketMTU, 1024) - (Sys_Def_V_Sequence_Packet_HeadSize + 1);
 
   siz := SequencePacketSendBuffer.Size;
   pBuff := SequencePacketSendBuffer.Memory;
@@ -5230,7 +5235,7 @@ begin
     begin
       IOSendBuffer.Position := IOSendBuffer.Size;
 
-      IOSendBuffer.WriteUInt8(C_Sequence_KeepAlive);
+      IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_KeepAlive);
       IOSendBuffer.WriteUInt16(siz);
       if siz > 0 then
           IOSendBuffer.WritePtr(p, siz);
@@ -5244,9 +5249,9 @@ end;
 procedure TPeerIO.WriteSequencePacket(p: PSequencePacket);
 begin
   if FSequencePacketSignal then
-      IOSendBuffer.WriteUInt8(C_Sequence_Packet)
+      IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_Packet)
   else
-      IOSendBuffer.WriteUInt8(C_Sequence_QuietPacket);
+      IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_QuietPacket);
   IOSendBuffer.WriteUInt16(p^.Size);
   IOSendBuffer.WriteUInt32(p^.SequenceNumber);
   IOSendBuffer.WriteMD5(p^.hash);
@@ -5309,7 +5314,7 @@ begin
 
       head := fastSwap.ReadUInt8;
 
-      if head = C_Sequence_KeepAlive then
+      if head = Sys_Def_V_Sequence_KeepAlive then
         begin
           if fastSwap.Position + 2 > fastSwap.Size then
               Break;
@@ -5319,7 +5324,7 @@ begin
 
           if FSequencePacketSignal then
             begin
-              IOSendBuffer.WriteUInt8(C_Sequence_EchoKeepAlive);
+              IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_EchoKeepAlive);
               IOSendBuffer.WriteUInt16(echoSiz);
               if echoSiz > 0 then
                   IOSendBuffer.CopyFrom(fastSwap, echoSiz);
@@ -5327,7 +5332,7 @@ begin
           else
               fastSwap.Position := fastSwap.Position + echoSiz;
         end
-      else if head = C_Sequence_EchoKeepAlive then
+      else if head = Sys_Def_V_Sequence_EchoKeepAlive then
         begin
           if fastSwap.Position + 2 > fastSwap.Size then
               Break;
@@ -5339,7 +5344,7 @@ begin
           if echoSiz > 0 then
               fastSwap.Position := fastSwap.Position + echoSiz;
         end
-      else if head = C_Sequence_RequestResend then
+      else if head = Sys_Def_V_Sequence_RequestResend then
         begin
           if fastSwap.Position + 4 > fastSwap.Size then
               Break;
@@ -5349,7 +5354,7 @@ begin
               ResendSequencePacket(ResendNumber);
           AtomInc(OwnerFramework.Statistics[TStatisticsType.stSequencePacketRequestResend]);
         end
-      else if head = C_Sequence_EchoPacket then
+      else if head = Sys_Def_V_Sequence_EchoPacket then
         begin
           if fastSwap.Position + 4 > fastSwap.Size then
               Break;
@@ -5358,9 +5363,9 @@ begin
           SendingSequencePacketHistory.Delete(DoneNumber);
           AtomInc(OwnerFramework.Statistics[TStatisticsType.stSequencePacketEcho]);
         end
-      else if head in [C_Sequence_QuietPacket, C_Sequence_Packet] then
+      else if head in [Sys_Def_V_Sequence_QuietPacket, Sys_Def_V_Sequence_Packet] then
         begin
-          if fastSwap.Position + C_Sequence_Packet_HeadSize > fastSwap.Size then
+          if fastSwap.Position + Sys_Def_V_Sequence_Packet_HeadSize > fastSwap.Size then
               Break;
 
           p^.Size := fastSwap.ReadUInt16;
@@ -5374,9 +5379,9 @@ begin
 
           if hashMatched then
             begin
-              if (FSequencePacketSignal) and (head = C_Sequence_Packet) then
+              if (FSequencePacketSignal) and (head = Sys_Def_V_Sequence_Packet) then
                 begin
-                  IOSendBuffer.WriteUInt8(C_Sequence_EchoPacket);
+                  IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_EchoPacket);
                   IOSendBuffer.WriteUInt32(p^.SequenceNumber);
                 end;
 
@@ -5412,7 +5417,7 @@ begin
               fastSwap.Position := fastSwap.Position + p^.Size;
               if FSequencePacketSignal then
                 begin
-                  IOSendBuffer.WriteUInt8(C_Sequence_RequestResend);
+                  IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_RequestResend);
                   IOSendBuffer.WriteUInt32(p^.SequenceNumber);
                 end;
             end;
@@ -5458,7 +5463,7 @@ begin
         begin
           if FSequencePacketSignal then
             begin
-              IOSendBuffer.WriteUInt8(C_Sequence_RequestResend);
+              IOSendBuffer.WriteUInt8(Sys_Def_V_Sequence_RequestResend);
               IOSendBuffer.WriteUInt32(SequenceNumberOnReceivedCounter);
             end;
           Break;
@@ -5692,11 +5697,11 @@ begin
   EndPos := Queue.BigStream.Size;
   tmpPos := StartPos;
   { Calculate number of full chunks that will fit into the buffer }
-  num := (EndPos - StartPos) div C_BigStream_ChunkSize;
+  num := (EndPos - StartPos) div Sys_Def_V_BigStream_ChunkSize;
   { Calculate remaining bytes }
-  Rest := (EndPos - StartPos) mod C_BigStream_ChunkSize;
+  Rest := (EndPos - StartPos) mod Sys_Def_V_BigStream_ChunkSize;
   { init buffer }
-  BigStream_Chunk := GetMemory(C_BigStream_ChunkSize);
+  BigStream_Chunk := GetMemory(Sys_Def_V_BigStream_ChunkSize);
   { Process full chunks }
   j := 0;
   while j < num do
@@ -5705,13 +5710,13 @@ begin
           exit;
 
       Queue.BigStream.Position := tmpPos;
-      Queue.BigStream.read(BigStream_Chunk^, C_BigStream_ChunkSize);
-      inc(tmpPos, C_BigStream_ChunkSize);
+      Queue.BigStream.read(BigStream_Chunk^, Sys_Def_V_BigStream_ChunkSize);
+      inc(tmpPos, Sys_Def_V_BigStream_ChunkSize);
 
-      SendBigStreamMiniPacket(BigStream_Chunk, C_BigStream_ChunkSize);
+      SendBigStreamMiniPacket(BigStream_Chunk, Sys_Def_V_BigStream_ChunkSize);
 
       { peer fragment > C_BigStream_ChunkSize }
-      if Queue.BigStream.Size - tmpPos > C_BigStream_ChunkSize then
+      if Queue.BigStream.Size - tmpPos > Sys_Def_V_BigStream_ChunkSize then
         begin
           FBigStreamSending := Queue.BigStream;
           FBigStreamSendCurrentPos := tmpPos;
@@ -5775,7 +5780,7 @@ begin
           Queue.Buffer_Swap_Memory := nil;
         end
       else
-          RaiseInfo('illegal CompleteBuffer Queue.');
+          PrintError('illegal CompleteBuffer Queue.');
 
       Dest := TMS64.Create;
       ParallelCompressMemory(scmZLIB_Fast, Sour, Dest);
@@ -5797,7 +5802,7 @@ begin
           Queue.Buffer_Swap_Memory := nil;
         end
       else
-          RaiseInfo('illegal CompleteBuffer Queue.');
+          PrintError('illegal CompleteBuffer Queue.');
     end;
   EndSend;
 end;
@@ -6785,7 +6790,7 @@ begin
             { save }
             if (FBigStreamSending <> nil) then
               begin
-                BigStream_RealChunkSize := C_BigStream_ChunkSize;
+                BigStream_RealChunkSize := Sys_Def_V_BigStream_ChunkSize;
 
                 BigStream_SendDone := FBigStreamSending.Size - FBigStreamSendCurrentPos <= BigStream_RealChunkSize;
 
@@ -7078,6 +7083,7 @@ begin
       exit;
     end;
 
+  FSend_Queue_Critical.Lock;
   try
     while FQueuePool.num > 0 do
       begin
@@ -7146,11 +7152,12 @@ begin
               DisposeQueueData(p);
               FQueuePool.Next;
             end;
-          else RaiseInfo('error.');
+          else PrintError('IO Queue state error.');
         end;
       end;
   finally
-      FAllSendProcessing := False;
+    FAllSendProcessing := False;
+    FSend_Queue_Critical.UnLock;
   end;
 end;
 
@@ -7212,17 +7219,17 @@ begin
   FID := OwnerFramework_.MakeID;
   FIO_Create_TimeTick := GetTimeTick();
 
-  FHeadToken := C_DataHeadToken;
-  FTailToken := C_DataTailToken;
+  FHeadToken := Sys_Def_V_DataHeadToken;
+  FTailToken := Sys_Def_V_DataTailToken;
 
-  FConsoleToken := C_DefaultConsoleToken;
-  FStreamToken := C_DefaultStreamToken;
-  FDirectConsoleToken := C_DefaultDirectConsoleToken;
-  FDirectStreamToken := C_DefaultDirectStreamToken;
-  FBigStreamToken := C_DefaultBigStreamToken;
-  FBigStreamReceiveFragmentSignal := C_DefaultBigStreamReceiveFragmentSignal;
-  FBigStreamReceiveDoneSignal := C_DefaultBigStreamReceiveDoneSignal;
-  FCompleteBufferToken := C_DefaultCompleteBufferToken;
+  FConsoleToken := Sys_Def_V_DefaultConsoleToken;
+  FStreamToken := Sys_Def_V_DefaultStreamToken;
+  FDirectConsoleToken := Sys_Def_V_DefaultDirectConsoleToken;
+  FDirectStreamToken := Sys_Def_V_DefaultDirectStreamToken;
+  FBigStreamToken := Sys_Def_V_DefaultBigStreamToken;
+  FBigStreamReceiveFragmentSignal := Sys_Def_V_DefaultBigStreamReceiveFragmentSignal;
+  FBigStreamReceiveDoneSignal := Sys_Def_V_DefaultBigStreamReceiveDoneSignal;
+  FCompleteBufferToken := Sys_Def_V_DefaultCompleteBufferToken;
 
   FReceived_Physics_Critical := TCritical.Create;
   FReceived_Physics_Fragment_Pool := TPhysics_Fragment_Pool.Create;
@@ -7259,6 +7266,8 @@ begin
   FResultDataBuffer := TMS64.Create;
   FSendDataCipherSecurity := OwnerFramework.RandomCipherSecurity;
   FCanPauseResultSend := False;
+
+  FSend_Queue_Critical := TCritical.Create;
   FQueuePool := TQueueData_Pool.Create;
 
   UpdateLastCommunicationTime;
@@ -7371,11 +7380,13 @@ begin
   OwnerFramework.FPeerIO_HashPool.Delete(FID);
   OwnerFramework.UnLock_All_IO;
 
+  FSend_Queue_Critical.Lock;
   while FQueuePool.num > 0 do
     begin
       DisposeQueueData(FQueuePool.current^.data);
       FQueuePool.Next;
     end;
+  FSend_Queue_Critical.UnLock;
 
   if (FUserDefine.FBusy) or (FUserDefine.FBusyNum > 0) then
       TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserDefine.DelayFreeOnBusy)
@@ -7389,6 +7400,7 @@ begin
 
   // free buffer
   DisposeObject(FQueuePool);
+  DisposeObject(FSend_Queue_Critical);
   DisposeObject(FReceived_Physics_Critical);
   DisposeObject(FReceived_Physics_Fragment_Pool);
   DisposeObject(FReceivedBuffer);
@@ -7898,7 +7910,9 @@ end;
 procedure TPeerIO.PostQueueData(p: PQueueData);
 begin
   OwnerFramework.CmdSendStatistics.IncValue(p^.Cmd, 1);
+  FSend_Queue_Critical.Lock;
   FQueuePool.Push(p);
+  FSend_Queue_Critical.UnLock;
 end;
 
 procedure TPeerIO.BeginWriteCustomBuffer;
@@ -8635,6 +8649,12 @@ begin
   until not __repeat__.Next;
 end;
 
+procedure TCommand_Hash_Pool.DoFree(var Key: SystemString; var Value: TCommand_base);
+begin
+  DisposeObjectAndNil(Value);
+  inherited DoFree(Key, Value);
+end;
+
 procedure TZNet.DoPrint(const v: SystemString);
 var
   n1, n2: SystemString;
@@ -8653,7 +8673,7 @@ begin
         end
       else
           n2 := '';
-      DoStatus(n1 + n2 + v, C_DoStatusID);
+      DoStatus(n1 + n2 + v, Sys_Def_V_DoStatusID);
     end;
 end;
 
@@ -8673,7 +8693,7 @@ begin
     end
   else
       n2 := '';
-  DoStatus(n1 + n2 + v, C_DoStatusID);
+  DoStatus(n1 + n2 + v, Sys_Def_V_DoStatusID);
 end;
 
 procedure TZNet.DoWarning(const v: SystemString);
@@ -8692,7 +8712,7 @@ begin
     end
   else
       n2 := '';
-  DoStatus(n1 + n2 + v, C_DoStatusID);
+  DoStatus(n1 + n2 + v, Sys_Def_V_DoStatusID);
 end;
 
 function TZNet.GetIdleTimeOut: TTimeTick;
@@ -8864,11 +8884,11 @@ begin
   p := buff;
 
   { fill fragment }
-  while siz > C_SendFlushSize do
+  while siz > Sys_Def_V_SendFlushSize do
     begin
-      Sender.Write_IO_Buffer(p, C_SendFlushSize);
-      inc(p, C_SendFlushSize);
-      dec(siz, C_SendFlushSize);
+      Sender.Write_IO_Buffer(p, Sys_Def_V_SendFlushSize);
+      inc(p, Sys_Def_V_SendFlushSize);
+      dec(siz, Sys_Def_V_SendFlushSize);
     end;
 
   if siz > 0 then
@@ -8978,7 +8998,7 @@ begin
   { build auth buffer }
   seed := InData.Reader.ReadInteger;
   arr := OutData.WriteArrayInteger;
-  for i := C_VMAuthSize - 1 downto 0 do
+  for i := Sys_Def_V_VMAuthSize - 1 downto 0 do
       arr.Add(TMISC.Ran03(seed));
 
   SetLength(Sender.FP2PAuthToken, arr.Count * 4);
@@ -9290,11 +9310,53 @@ var
   P_IO: TPeerIO;
 begin
   if FPeerIO_HashPool.Count = 0 then
+    begin
+      while FSend_Queue_Swap_Pool.num > 0 do
+        begin
+          PrintError('loss send queue dest ip %s cmd %s', [FSend_Queue_Swap_Pool.First^.data^.IP, FSend_Queue_Swap_Pool.First^.data^.Cmd]);
+          DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
+          FSend_Queue_Swap_Pool.Next;
+        end;
       exit;
+    end;
 
   tk := GetTimeTick();
   if (FProgress_LargeScale_IO_Pool.num = 0) or (FProgressMaxDelay = 0) then
+    begin
+      { queue swap technology }
+      while FSend_Queue_Swap_Pool.num > 0 do
+        begin
+          if self is TZNet_Client then
+            begin
+              if TZNet_Client(self).ClientIO <> nil then
+                  TZNet_Client(self).ClientIO.PostQueueData(FSend_Queue_Swap_Pool.First^.data)
+              else
+                begin
+                  PrintError('loss send queue cmd %s', [FSend_Queue_Swap_Pool.First^.data^.Cmd]);
+                  DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
+                end;
+            end
+          else if self is TZNet_Server then
+            begin
+              P_IO := FPeerIO_HashPool[FSend_Queue_Swap_Pool.First^.data^.IO_ID];
+              if P_IO <> nil then
+                  P_IO.PostQueueData(FSend_Queue_Swap_Pool.First^.data)
+              else
+                begin
+                  PrintError('loss send queue dest ip %s cmd %s', [FSend_Queue_Swap_Pool.First^.data^.IP, FSend_Queue_Swap_Pool.First^.data^.Cmd]);
+                  DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
+                end;
+            end
+          else
+            begin
+              PrintError('illegal ZNet class: %s, loss send queue dest ip %s cmd %s', [ClassName, FSend_Queue_Swap_Pool.First^.data^.IP, FSend_Queue_Swap_Pool.First^.data^.Cmd]);
+              DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
+            end;
+          FSend_Queue_Swap_Pool.Next;
+        end;
+
       GetIO_Order(FProgress_LargeScale_IO_Pool);
+    end;
 
   while FProgress_LargeScale_IO_Pool.num > 0 do
     begin
@@ -9321,7 +9383,8 @@ var
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  FCommandList := TCommand_Hash_Pool.Create(True, $FF, nil);
+  FInstance_Ptr_Struct := ZNet_Instance_Pool__.Add(self);
+  FCommand_Hash_Pool := TCommand_Hash_Pool.Create(1024, nil);
   FIDSeed := 1;
   FPeerIO_HashPool := TPeer_IO_Hash_Pool.Create(HashPoolSize, nil);
   FProgress_Pool := TZNet_Progress_Pool.Create;
@@ -9332,24 +9395,26 @@ begin
   FUsedParallelEncrypt := True;
   FSyncOnResult := False;
   FSyncOnCompleteBuffer := True;
-  FBigStreamMemorySwapSpace := C_BigStream_Memory_SwapSpace_Activted;
-  FBigStreamSwapSpaceTriggerSize := C_BigStream_SwapSpace_Trigger;
+  FBigStreamMemorySwapSpace := Sys_Def_V_BigStream_Memory_SwapSpace_Activted;
+  FBigStreamSwapSpaceTriggerSize := Sys_Def_V_BigStream_SwapSpace_Trigger;
 
   FEnabledAtomicLockAndMultiThread := True;
   FTimeOutKeepAlive := True;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
   SetLength(FCipherSecurityArray, 0);
-  FPhysicsFragmentSwapSpaceTechnology := C_Physics_Fragment_Cache_Activted;
-  FPhysicsFragmentSwapSpaceTrigger := C_Physics_Fragment_Cache_Trigger;
+  FPhysicsFragmentSwapSpaceTechnology := Sys_Def_V_Physics_Fragment_Cache_Activted;
+  FPhysicsFragmentSwapSpaceTrigger := Sys_Def_V_Physics_Fragment_Cache_Trigger;
+
+  FSend_Queue_Swap_Pool := TCritical_QueueData_Pool.Create;
   FSendDataCompressed := False;
   FCompleteBufferCompressed := False;
   FHashSecurity := THashSecurity.hsNone;
-  FPer_Progress_Loop_Limit := C_Per_Progress_Loop_Limit;
-  FExtract_Physics_Fragment_Max_Size := C_Extract_Physics_Fragment_Max_Size;
-  FMaxCompleteBufferSize := C_MaxCompleteBufferSize;
-  FCompleteBufferCompressionCondition := C_CompleteBufferCompressionCondition;
-  FCompleteBufferSwapSpace := C_CompleteBuffer_SwapSpace_Activted;
-  FCompleteBufferSwapSpaceTriggerSize := C_CompleteBuffer_SwapSpace_Trigger;
+  FPer_Progress_Loop_Limit := Sys_Def_V_Per_Progress_Loop_Limit;
+  FExtract_Physics_Fragment_Max_Size := Sys_Def_V_Extract_Physics_Fragment_Max_Size;
+  FMaxCompleteBufferSize := Sys_Def_V_MaxCompleteBufferSize;
+  FCompleteBufferCompressionCondition := Sys_Def_V_CompleteBufferCompressionCondition;
+  FCompleteBufferSwapSpace := Sys_Def_V_CompleteBuffer_SwapSpace_Activted;
+  FCompleteBufferSwapSpaceTriggerSize := Sys_Def_V_CompleteBuffer_SwapSpace_Trigger;
   FPeerIOUserDefineClass := TPeerIOUserDefine;
   FPeerIOUserSpecialClass := TPeerIOUserSpecial;
 
@@ -9411,13 +9476,20 @@ end;
 destructor TZNet.Destroy;
 begin
   try
+    ZNet_Instance_Pool__.Remove_P(FInstance_Ptr_Struct);
+    while FSend_Queue_Swap_Pool.num > 0 do
+      begin
+        DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
+        FSend_Queue_Swap_Pool.Next;
+      end;
+    DisposeObject(FSend_Queue_Swap_Pool);
     DisposeObject(FProgress_Pool);
     FreeAutomatedP2PVM();
     SetLength(FCipherSecurityArray, 0);
     DeleteRegistedCMD(C_BuildP2PAuthToken);
     DeleteRegistedCMD(C_InitP2PTunnel);
     DeleteRegistedCMD(C_CloseP2PTunnel);
-    DisposeObject(FCommandList);
+    DisposeObject(FCommand_Hash_Pool);
     DisposeObject(FPeerIO_HashPool);
     DisposeObject(FPrintParams);
     DisposeObject(FPostProgress);
@@ -9430,6 +9502,11 @@ begin
   except
   end;
   inherited Destroy;
+end;
+
+procedure TZNet.Post_Queue_Data_To_Swap_Queue(p: PQueueData);
+begin
+  FSend_Queue_Swap_Pool.Add(p);
 end;
 
 function TZNet.AddProgresss(Progress_: TZNet_Progress_Class): TZNet_Progress;
@@ -9649,12 +9726,12 @@ end;
 
 procedure TZNet.Lock_All_IO;
 begin
-  FCritical.Acquire; { atomic lock }
+  FCritical.Acquire;
 end;
 
 procedure TZNet.UnLock_All_IO;
 begin
-  FCritical.Release; { atomic lock }
+  FCritical.Release;
 end;
 
 function TZNet.IOBusy: Boolean;
@@ -9723,7 +9800,6 @@ begin
   end;
 
   { progress event pool }
-  i := 0;
   try
     if FProgress_Pool.num > 0 then
       begin
@@ -9875,6 +9951,8 @@ begin
 end;
 
 procedure TZNet.ProgressWaitSend(P_IO: TPeerIO);
+var
+  state_: Boolean;
 begin
   if P_IO = nil then
       exit;
@@ -9882,11 +9960,33 @@ begin
       exit;
 
   FProgressWaitRuning := True;
+
+  state_ := Enabled_Check_Thread_Synchronize_System;
+  Enabled_Check_Thread_Synchronize_System := False;
   try
-    CheckThreadSynchronize;
-    Progress;
+      Progress;
   except
   end;
+  Enabled_Check_Thread_Synchronize_System := state_;
+
+  try
+      CheckThread;
+  except
+  end;
+
+  try
+    if ZNet_Instance_Pool__.num > 0 then
+      with ZNet_Instance_Pool__.Repeat_ do
+        repeat
+          try
+            if (Queue^.data <> self) and (Queue^.data <> nil) then
+                Queue^.data.Progress;
+          except
+          end;
+        until not Next;
+  except
+  end;
+
   FProgressWaitRuning := False;
 end;
 
@@ -9987,14 +10087,13 @@ end;
 
 function TZNet.DeleteRegistedCMD(const Cmd: SystemString): Boolean;
 begin
-  Result := FCommandList.Exists(Cmd);
-  FCommandList.Delete(Cmd);
+  Result := FCommand_Hash_Pool.Exists(Cmd);
+  FCommand_Hash_Pool.Delete(Cmd);
 end;
 
 function TZNet.UnRegisted(const Cmd: SystemString): Boolean;
 begin
-  Result := FCommandList.Exists(Cmd);
-  FCommandList.Delete(Cmd);
+  Result := DeleteRegistedCMD(Cmd);
 end;
 
 function TZNet.RegisterConsole(const Cmd: SystemString): TCommandConsole;
@@ -10006,7 +10105,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10014,7 +10113,7 @@ begin
     end;
 
   Result := TCommandConsole.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10029,7 +10128,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10037,7 +10136,7 @@ begin
     end;
 
   Result := TCommandStream.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10052,7 +10151,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10060,7 +10159,7 @@ begin
     end;
 
   Result := TCommandDirectStream.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10075,7 +10174,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10083,7 +10182,7 @@ begin
     end;
 
   Result := TCommandDirectConsole.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10098,7 +10197,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10106,7 +10205,7 @@ begin
     end;
 
   Result := TCommandBigStream.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10121,7 +10220,7 @@ begin
       exit;
     end;
 
-  if FCommandList.Exists(Cmd) then
+  if FCommand_Hash_Pool.Exists(Cmd) then
     begin
       RaiseInfo(PFormat('exists cmd: %s', [Cmd]));
       Result := nil;
@@ -10129,7 +10228,7 @@ begin
     end;
 
   Result := TCommandCompleteBuffer.Create;
-  FCommandList[Cmd] := Result;
+  FCommand_Hash_Pool[Cmd] := Result;
 
   CmdRecvStatistics.IncValue(Cmd, 0);
   CmdMaxExecuteConsumeStatistics[Cmd] := 0;
@@ -10137,7 +10236,7 @@ end;
 
 function TZNet.ExistsRegistedCmd(const Cmd: SystemString): Boolean;
 begin
-  Result := FCommandList.Exists(Cmd);
+  Result := FCommand_Hash_Pool.Exists(Cmd);
 end;
 
 procedure TZNet.PrintRegistedCMD;
@@ -10146,16 +10245,13 @@ begin
 end;
 
 procedure TZNet.PrintRegistedCMD(prefix: SystemString; incl_internalCMD: Boolean);
-var
-  L: TListPascalString;
-  i: Integer;
 begin
-  L := TListPascalString.Create;
-  FCommandList.GetNameList(L);
-  for i := 0 to L.Count - 1 do
-    if incl_internalCMD or (not umlMultipleMatch('__@*', L[i])) then
-        Print(prefix + L.Objects[i].ClassName + ': ' + L[i]);
-  DisposeObject(L);
+  if FCommand_Hash_Pool.num > 0 then
+    with FCommand_Hash_Pool.Queue_Pool.Repeat_ do
+      repeat
+        if incl_internalCMD or (not umlMultipleMatch('__@*', Queue^.data^.data.Primary)) then
+            Print(prefix + Queue^.data^.data.Second.ClassName + ': ' + Queue^.data^.data.Primary);
+      until not Next;
 end;
 
 procedure TZNet.PrintRegistedCMD(prefix: SystemString);
@@ -10165,140 +10261,140 @@ end;
 
 function TZNet.ExecuteConsole(Sender: TPeerIO; const Cmd: SystemString; const InData: SystemString; var OutData: SystemString): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists console cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandConsole) then
+  if not cmd_instance_.InheritsFrom(TCommandConsole) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
-  Result := TCommandConsole(b).Execute(Sender, InData, OutData);
+  Result := TCommandConsole(cmd_instance_).Execute(Sender, InData, OutData);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
 
 function TZNet.ExecuteStream(Sender: TPeerIO; const Cmd: SystemString; InData, OutData: TDFE): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists stream cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandStream) then
+  if not cmd_instance_.InheritsFrom(TCommandStream) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
   InData.Reader.index := 0;
-  Result := TCommandStream(b).Execute(Sender, InData, OutData);
+  Result := TCommandStream(cmd_instance_).Execute(Sender, InData, OutData);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
 
 function TZNet.ExecuteDirectStream(Sender: TPeerIO; const Cmd: SystemString; InData: TDFE): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists direct stream cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandDirectStream) then
+  if not cmd_instance_.InheritsFrom(TCommandDirectStream) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
   InData.Reader.index := 0;
-  Result := TCommandDirectStream(b).Execute(Sender, InData);
+  Result := TCommandDirectStream(cmd_instance_).Execute(Sender, InData);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
 
 function TZNet.ExecuteDirectConsole(Sender: TPeerIO; const Cmd: SystemString; const InData: SystemString): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists direct console cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandDirectConsole) then
+  if not cmd_instance_.InheritsFrom(TCommandDirectConsole) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
-  Result := TCommandDirectConsole(b).Execute(Sender, InData);
+  Result := TCommandDirectConsole(cmd_instance_).Execute(Sender, InData);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
 
 function TZNet.ExecuteBigStream(Sender: TPeerIO; const Cmd: SystemString; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists Big Stream cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandBigStream) then
+  if not cmd_instance_.InheritsFrom(TCommandBigStream) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
-  Result := TCommandBigStream(b).Execute(Sender, InData, BigStreamTotal, BigStreamCompleteSize);
+  Result := TCommandBigStream(cmd_instance_).Execute(Sender, InData, BigStreamTotal, BigStreamCompleteSize);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
 
 function TZNet.ExecuteCompleteBuffer(Sender: TPeerIO; const Cmd: SystemString; InData: PByte; DataSize: NativeInt): Boolean;
 var
-  b: TCore_Object;
+  cmd_instance_: TCommand_base;
 begin
   Result := False;
   if not CanExecuteCommand(Sender, Cmd) then
       exit;
-  b := FCommandList[Cmd];
-  if b = nil then
+  cmd_instance_ := FCommand_Hash_Pool[Cmd];
+  if cmd_instance_ = nil then
     begin
       ErrorParam('no exists complete buffer cmd: %s', Cmd);
       exit;
     end;
-  if not b.InheritsFrom(TCommandCompleteBuffer) then
+  if not cmd_instance_.InheritsFrom(TCommandCompleteBuffer) then
     begin
       ErrorParam('Illegal interface in cmd: %s', Cmd);
       exit;
     end;
-  Result := TCommandCompleteBuffer(b).Execute(Sender, InData, DataSize);
+  Result := TCommandCompleteBuffer(cmd_instance_).Execute(Sender, InData, DataSize);
   if not Result then
       ErrorParam('exception from cmd: %s', Cmd);
 end;
@@ -10506,6 +10602,12 @@ end;
 
 procedure TZNet_Server.Progress;
 begin
+  if not IsMainThread then
+    begin
+      TCompute.PostM1({$IFDEF FPC}@{$ENDIF FPC}Progress);
+      exit;
+    end;
+
   inherited Progress;
 
   if (FStableIO <> nil) and (not FStableIOProgressing) then
@@ -10595,10 +10697,6 @@ begin
   Result := False;
 end;
 
-procedure TZNet_Server.TriggerQueueData(v: PQueueData);
-begin
-end;
-
 procedure TZNet_Server.DoIOConnectBefore(Sender: TPeerIO);
 begin
 end;
@@ -10620,18 +10718,17 @@ begin
       exit;
   if not CanSendCommand(P_IO, Cmd) then
       exit;
-
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   p^.OnConsoleMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M);
@@ -10647,7 +10744,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10656,7 +10753,7 @@ begin
   p^.OnConsoleParamMethod := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M);
@@ -10672,7 +10769,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10682,7 +10779,7 @@ begin
   p^.OnConsoleFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean);
@@ -10698,7 +10795,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10706,7 +10803,7 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   p^.OnStreamMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M);
@@ -10722,7 +10819,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10734,7 +10831,7 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M);
@@ -10750,7 +10847,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10764,7 +10861,7 @@ begin
   p^.OnStreamParamMethod := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M);
@@ -10780,7 +10877,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10795,7 +10892,7 @@ begin
   p^.OnStreamFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
@@ -10811,14 +10908,14 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   p^.OnConsoleProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
@@ -10834,7 +10931,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10843,7 +10940,7 @@ begin
   p^.OnConsoleParamProc := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
@@ -10859,7 +10956,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Console cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10869,7 +10966,7 @@ begin
   p^.OnConsoleFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean);
@@ -10885,7 +10982,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10893,7 +10990,7 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   p^.OnStreamProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P);
@@ -10909,7 +11006,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10921,7 +11018,7 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P);
@@ -10937,7 +11034,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10951,7 +11048,7 @@ begin
   p^.OnStreamParamProc := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P);
@@ -10967,7 +11064,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -10982,7 +11079,7 @@ begin
   p^.OnStreamFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString);
@@ -10997,13 +11094,13 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send DirectConsole cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendDirectConsoleCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd: SystemString);
@@ -11023,14 +11120,14 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send DirectStream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendDirectStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE);
@@ -11046,7 +11143,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send DirectStream cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendDirectStreamCMD;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -11057,7 +11154,7 @@ begin
       StreamData.FastEncodeTo(p^.StreamData)
   else
       TDFE.BuildEmptyStream(p^.StreamData);
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString);
@@ -11203,7 +11300,7 @@ begin
       exit;
   if not CanSendCommand(P_IO, Cmd) then
       exit;
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendBigStream;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -11232,7 +11329,7 @@ begin
       p^.BigStream := BigStream;
       p^.DoneAutoFree := DoneAutoFree;
     end;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
   if not QuietMode then
       P_IO.PrintCommand('Send BigStream cmd: %s', Cmd);
 end;
@@ -11255,7 +11352,7 @@ begin
   if not QuietMode then
       P_IO.PrintCommand('Send complete buffer cmd: %s', Cmd);
 
-  p := NewQueueData;
+  p := NewQueueData(P_IO);
   p^.State := TQueueState.qsSendCompleteBuffer;
   p^.IO_ID := P_IO.ID;
   p^.Cmd := Cmd;
@@ -11289,7 +11386,7 @@ begin
 
   p^.BufferSize := BuffSize;
   p^.DoneAutoFree := DoneAutoFree;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
@@ -11613,45 +11710,46 @@ begin
       Sender.RemoteExecutedForConnectInit := True;
       CipherModelDone;
       FConnectInitWaiting := False;
-      exit;
-    end;
-
-  FConnectInitWaiting := True;
-  if Protocol = cpZServer then
-    begin
-      FConnectInitWaitingTimeout := GetTimeTick + FAsyncConnectTimeout;
-
-      ClientIO.SendCipherSecurity := TCipherSecurity.csNone;
-      FServerState.Reset();
-      d := TDFE.Create;
-      d.WriteInteger(Integer(CurrentPlatform));
-      SendStreamCmdM(C_CipherModel, d, {$IFDEF FPC}@{$ENDIF FPC}StreamResult_CipherModel);
-      DisposeObject(d);
-
-      if FOnInterface <> nil then
-        begin
-          try
-              FOnInterface.ClientConnected(self);
-          except
-          end;
-        end;
-      FRequestTime := GetTimeTick;
     end
   else
     begin
-      ClientIO.SendCipherSecurity := TCipherSecurity.csNone;
-      if FOnInterface <> nil then
+      FConnectInitWaiting := True;
+      if Protocol = cpZServer then
         begin
-          try
-              FOnInterface.ClientConnected(self);
-          except
-          end;
-        end;
+          FConnectInitWaitingTimeout := GetTimeTick + FAsyncConnectTimeout;
 
-      Sender.RemoteExecutedForConnectInit := True;
-      TriggerDoConnectFinished;
-      CipherModelDone;
-      FConnectInitWaiting := False;
+          ClientIO.SendCipherSecurity := TCipherSecurity.csNone;
+          FServerState.Reset();
+          d := TDFE.Create;
+          d.WriteInteger(Integer(CurrentPlatform));
+          SendStreamCmdM(C_CipherModel, d, {$IFDEF FPC}@{$ENDIF FPC}StreamResult_CipherModel);
+          DisposeObject(d);
+
+          if FOnInterface <> nil then
+            begin
+              try
+                  FOnInterface.ClientConnected(self);
+              except
+              end;
+            end;
+          FRequestTime := GetTimeTick;
+        end
+      else
+        begin
+          ClientIO.SendCipherSecurity := TCipherSecurity.csNone;
+          if FOnInterface <> nil then
+            begin
+              try
+                  FOnInterface.ClientConnected(self);
+              except
+              end;
+            end;
+
+          Sender.RemoteExecutedForConnectInit := True;
+          TriggerDoConnectFinished;
+          CipherModelDone;
+          FConnectInitWaiting := False;
+        end;
     end;
 end;
 
@@ -11872,6 +11970,12 @@ end;
 
 procedure TZNet_Client.Progress;
 begin
+  if not IsMainThread then
+    begin
+      TCompute.PostM1({$IFDEF FPC}@{$ENDIF FPC}Progress);
+      exit;
+    end;
+
   inherited Progress;
 
   if (FConnectInitWaiting) and (GetTimeTick > FConnectInitWaitingTimeout) then
@@ -11943,10 +12047,6 @@ end;
 function TZNet_Client.ClientIO: TPeerIO;
 begin
   Result := nil;
-end;
-
-procedure TZNet_Client.TriggerQueueData(v: PQueueData);
-begin
 end;
 
 procedure TZNet_Client.TriggerDoConnectFailed;
@@ -12146,9 +12246,10 @@ begin
   Result := nil;
   if ClientIO = nil then
       exit;
-  if ClientIO.FQueuePool.num = 0 then
-      exit;
-  Result := PQueueData(ClientIO.FQueuePool.Last^.data);
+  ClientIO.FSend_Queue_Critical.Lock;
+  if ClientIO.FQueuePool.num > 0 then
+      Result := PQueueData(ClientIO.FQueuePool.Last^.data);
+  ClientIO.FSend_Queue_Critical.UnLock;
 end;
 
 function TZNet_Client.LastQueueCmd: SystemString;
@@ -12167,7 +12268,9 @@ begin
   Result := 0;
   if ClientIO = nil then
       exit;
+  ClientIO.FSend_Queue_Critical.Lock;
   Result := ClientIO.FQueuePool.num;
+  ClientIO.FSend_Queue_Critical.UnLock;
 end;
 
 procedure TZNet_Client.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
@@ -12184,14 +12287,14 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   p^.OnConsoleMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M);
@@ -12208,7 +12311,7 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
@@ -12217,7 +12320,7 @@ begin
   p^.OnConsoleParamMethod := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M);
@@ -12234,7 +12337,7 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
@@ -12244,7 +12347,7 @@ begin
   p^.OnConsoleFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdM(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean);
@@ -12261,7 +12364,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12269,7 +12372,7 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   p^.OnStreamMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M);
@@ -12286,7 +12389,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12298,7 +12401,7 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamMethod := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M);
@@ -12315,7 +12418,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12329,7 +12432,7 @@ begin
   p^.OnStreamParamMethod := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M);
@@ -12346,7 +12449,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12361,7 +12464,7 @@ begin
   p^.OnStreamFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
@@ -12378,14 +12481,14 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   p^.OnConsoleProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
@@ -12402,7 +12505,7 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
@@ -12411,7 +12514,7 @@ begin
   p^.OnConsoleParamProc := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
@@ -12428,7 +12531,7 @@ begin
       ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendConsoleCMD;
 
   p^.Cmd := Cmd;
@@ -12438,7 +12541,7 @@ begin
   p^.OnConsoleFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdP(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean);
@@ -12455,7 +12558,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12463,7 +12566,7 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   p^.OnStreamProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdP(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P);
@@ -12480,7 +12583,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12492,7 +12595,7 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamProc := OnResult;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdP(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P);
@@ -12509,7 +12612,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12523,7 +12626,7 @@ begin
   p^.OnStreamParamProc := OnResult;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendStreamCmdP(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P);
@@ -12540,7 +12643,7 @@ begin
       ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12555,7 +12658,7 @@ begin
   p^.OnStreamFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendDirectConsoleCmd(const Cmd, ConsoleData: SystemString);
@@ -12572,13 +12675,13 @@ begin
       ClientIO.PrintCommand('Send DirectConsole cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendDirectConsoleCMD;
 
   p^.Cmd := Cmd;
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendDirectConsoleCmd(const Cmd: SystemString);
@@ -12600,14 +12703,14 @@ begin
       ClientIO.PrintCommand('Send DirectStream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendDirectStreamCMD;
 
   p^.Cmd := Cmd;
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendDirectStreamCmd(const Cmd: SystemString; StreamData: TDFE);
@@ -12624,7 +12727,7 @@ begin
       ClientIO.PrintCommand('Send DirectStream cmd: %s', Cmd);
 
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendDirectStreamCMD;
 
   p^.Cmd := Cmd;
@@ -12635,7 +12738,7 @@ begin
       StreamData.FastEncodeTo(p^.StreamData)
   else
       TDFE.BuildEmptyStream(p^.StreamData);
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
 end;
 
 procedure TZNet_Client.SendDirectStreamCmd(const Cmd: SystemString);
@@ -12798,7 +12901,7 @@ begin
   if not CanSendCommand(ClientIO, Cmd) then
       exit;
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendBigStream;
 
   p^.Cmd := Cmd;
@@ -12829,7 +12932,7 @@ begin
       p^.DoneAutoFree := DoneAutoFree;
     end;
 
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
   if not QuietMode then
       ClientIO.PrintCommand('Send BigStream cmd: %s', Cmd);
 end;
@@ -12851,7 +12954,7 @@ begin
   if not CanSendCommand(ClientIO, Cmd) then
       exit;
   { init queue data }
-  p := NewQueueData;
+  p := NewQueueData(ClientIO);
   p^.State := TQueueState.qsSendCompleteBuffer;
 
   p^.Cmd := Cmd;
@@ -12885,7 +12988,7 @@ begin
 
   p^.BufferSize := BuffSize;
   p^.DoneAutoFree := DoneAutoFree;
-  TriggerQueueData(p);
+  Post_Queue_Data_To_Swap_Queue(p);
   if not QuietMode then
       ClientIO.PrintCommand('Send complete buffer cmd: %s', Cmd);
 end;
@@ -13078,13 +13181,13 @@ begin
       { send fragment }
       while siz > FLinkVM.FMaxVMFragmentSize do
         begin
-          FSendQueue.Push(BuildP2PVMPacket(FLinkVM.FMaxVMFragmentSize, FRemote_frameworkID, FRemote_p2pID, C_p2pVM_LogicFragmentData, p));
+          FSendQueue.Push(BuildP2PVMPacket(FLinkVM.FMaxVMFragmentSize, FRemote_frameworkID, FRemote_p2pID, Sys_Def_V_p2pVM_LogicFragmentData, p));
           inc(p, FLinkVM.FMaxVMFragmentSize);
           dec(siz, FLinkVM.FMaxVMFragmentSize);
         end;
 
       if siz > 0 then
-          FSendQueue.Push(BuildP2PVMPacket(siz, FRemote_frameworkID, FRemote_p2pID, C_p2pVM_LogicFragmentData, p));
+          FSendQueue.Push(BuildP2PVMPacket(siz, FRemote_frameworkID, FRemote_p2pID, Sys_Def_V_p2pVM_LogicFragmentData, p));
     end;
 
   FRealSendBuff.Clear;
@@ -13110,6 +13213,7 @@ end;
 function TP2PVM_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
 var
   p: TP2P_VM_Fragment_Packet_Pool.POrderStruct;
+  i: NativeInt;
 begin
   Result := not WriteBuffer_is_NULL;
   WriteBuffer_Queue_Num := FSendQueue.num;
@@ -13117,11 +13221,17 @@ begin
 
   if FSendQueue.num > 0 then
     begin
+      i := FSendQueue.num;
       p := FSendQueue.First;
-      repeat
-        inc(WriteBuffer_Size, p^.data^.BuffSiz);
-        p := p^.Next;
-      until p <> nil;
+      while True do
+        begin
+          inc(WriteBuffer_Size, p^.data^.BuffSiz);
+          dec(i);
+          if i > 0 then
+              p := p^.Next
+          else
+              Break;
+        end;
     end;
 end;
 
@@ -13300,18 +13410,6 @@ end;
 procedure TZNet_WithP2PVM_Server.Progress;
 begin
   inherited Progress;
-end;
-
-procedure TZNet_WithP2PVM_Server.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-    begin
-      c.PostQueueData(v);
-      c.Process_Send_Buffer();
-    end;
 end;
 
 procedure TZNet_WithP2PVM_Server.CloseAllClient;
@@ -13649,17 +13747,6 @@ begin
       until not __repeat__.Next;
       FP2PVM_ClonePool.Free_Recycle_Pool;
     end;
-end;
-
-procedure TZNet_WithP2PVM_Client.TriggerQueueData(v: PQueueData);
-begin
-  if Connected then
-    begin
-      FVMClientIO.PostQueueData(v);
-      FVMClientIO.Process_Send_Buffer();
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_WithP2PVM_Client.AsyncConnect(addr: SystemString; Port: Word);
@@ -14027,7 +14114,7 @@ begin
       t.BuffSiz := siz;
       t.FrameworkID := 0;
       t.p2pID := 0;
-      t.pkType := C_p2pVM_OwnerIOFragmentData;
+      t.pkType := Sys_Def_V_p2pVM_OwnerIOFragmentData;
       t.buff := buff;
       t.BuildSendBuff(FSendStream);
     end
@@ -14129,11 +14216,11 @@ begin
       if rPos > 0 then
         begin
           { protocol support }
-          if fPk.pkType = C_p2pVM_echoing then
+          if fPk.pkType = Sys_Def_V_p2pVM_echoing then
               ReceivedEchoing(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_echo then
+          else if fPk.pkType = Sys_Def_V_p2pVM_echo then
               ReceivedEcho(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_AuthSuccessed then
+          else if fPk.pkType = Sys_Def_V_p2pVM_AuthSuccessed then
             begin
               if Assigned(OnAuthSuccessOnesNotify) then
                 begin
@@ -14144,19 +14231,19 @@ begin
                   OnAuthSuccessOnesNotify := nil;
                 end;
             end
-          else if fPk.pkType = C_p2pVM_Listen then
+          else if fPk.pkType = Sys_Def_V_p2pVM_Listen then
               ReceivedListen(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_ListenState then
+          else if fPk.pkType = Sys_Def_V_p2pVM_ListenState then
               ReceivedListenState(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_Connecting then
+          else if fPk.pkType = Sys_Def_V_p2pVM_Connecting then
               ReceivedConnecting(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_ConnectedReponse then
+          else if fPk.pkType = Sys_Def_V_p2pVM_ConnectedReponse then
               ReceivedConnectedReponse(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_Disconnect then
+          else if fPk.pkType = Sys_Def_V_p2pVM_Disconnect then
               ReceivedDisconnect(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_LogicFragmentData then
+          else if fPk.pkType = Sys_Def_V_p2pVM_LogicFragmentData then
               ReceivedLogicFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
-          else if fPk.pkType = C_p2pVM_OwnerIOFragmentData then
+          else if fPk.pkType = Sys_Def_V_p2pVM_OwnerIOFragmentData then
               ReceivedOwnerIOFragmentData(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
           else
             begin
@@ -14574,7 +14661,7 @@ begin
   FFrameworkPool.AutoFreeData := False;
   FFrameworkPool.AccessOptimization := False;
   FFrameworkListenPool := TCore_List.Create;
-  FMaxVMFragmentSize := C_P2PVM_MaxVMFragmentSize;
+  FMaxVMFragmentSize := Sys_Def_V_P2PVM_MaxVMFragmentSize;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
   FReceiveStream := TMS64.CustomCreate(16384);
   FSendStream := TMS64.CustomCreate(16384);
@@ -14961,7 +15048,7 @@ procedure TZNet_WithP2PVM.AuthSuccessed;
 var
   p: PP2PVMFragmentPacket;
 begin
-  p := BuildP2PVMPacket(0, 0, 0, C_p2pVM_AuthSuccessed, nil);
+  p := BuildP2PVMPacket(0, 0, 0, Sys_Def_V_p2pVM_AuthSuccessed, nil);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15003,7 +15090,7 @@ begin
     end;
 
   u64ptr := UInt64(OnEchoPtr);
-  p := BuildP2PVMPacket(8, 0, 0, C_p2pVM_echoing, @u64ptr);
+  p := BuildP2PVMPacket(8, 0, 0, Sys_Def_V_p2pVM_echoing, @u64ptr);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15054,7 +15141,7 @@ var
 begin
   if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
-  p := BuildP2PVMPacket(siz, 0, 0, C_p2pVM_echo, buff);
+  p := BuildP2PVMPacket(siz, 0, 0, Sys_Def_V_p2pVM_echo, buff);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15100,7 +15187,7 @@ begin
       PIPV6(@RBuf[0])^ := IPV6;
       PWORD(@RBuf[16])^ := Port;
       PBoolean(@RBuf[18])^ := Listening;
-      p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, C_p2pVM_Listen, @RBuf[0]);
+      p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, Sys_Def_V_p2pVM_Listen, @RBuf[0]);
 
       FSendStream.Position := FSendStream.Size;
       p^.BuildSendBuff(FSendStream);
@@ -15118,7 +15205,7 @@ begin
   PIPV6(@RBuf[0])^ := IPV6;
   PWORD(@RBuf[16])^ := Port;
   PBoolean(@RBuf[18])^ := Listening;
-  p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, C_p2pVM_ListenState, @RBuf[0]);
+  p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, Sys_Def_V_p2pVM_ListenState, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15137,7 +15224,7 @@ begin
   PIPV6(@RBuf[8])^ := IPV6;
   PWORD(@RBuf[24])^ := Port;
 
-  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, 0, C_p2pVM_Connecting, @RBuf[0]);
+  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, 0, Sys_Def_V_p2pVM_Connecting, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15154,7 +15241,7 @@ begin
   PCardinal(@RBuf[0])^ := FrameworkID;
   PCardinal(@RBuf[4])^ := p2pID;
 
-  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, Remote_p2pID, C_p2pVM_ConnectedReponse, @RBuf[0]);
+  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, Remote_p2pID, Sys_Def_V_p2pVM_ConnectedReponse, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15167,7 +15254,7 @@ var
 begin
   if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
-  p := BuildP2PVMPacket(0, Remote_frameworkID, Remote_p2pID, C_p2pVM_Disconnect, nil);
+  p := BuildP2PVMPacket(0, Remote_frameworkID, Remote_p2pID, Sys_Def_V_p2pVM_Disconnect, nil);
 
   FSendStream.Position := FSendStream.Size;
   p^.BuildSendBuff(FSendStream);
@@ -15612,20 +15699,6 @@ begin
       FOwnerIOServer.Progress;
   inherited Progress;
   CustomStableServerProgressing := False;
-end;
-
-procedure TZNet_CustomStableServer.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-    begin
-      c.PostQueueData(v);
-      c.Process_Send_Buffer();
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 function TZNet_CustomStableServer.WaitSendConsoleCmd(P_IO: TPeerIO;
@@ -16177,18 +16250,6 @@ begin
   Result := FStableClientIO;
 end;
 
-procedure TZNet_CustomStableClient.TriggerQueueData(v: PQueueData);
-begin
-  if not Connected then
-    begin
-      DisposeQueueData(v);
-      exit;
-    end;
-
-  ClientIO.PostQueueData(v);
-  ClientIO.Process_Send_Buffer();
-end;
-
 procedure TZNet_CustomStableClient.Progress;
 var
   t: TTimeTick;
@@ -16249,10 +16310,12 @@ initialization
 
 ProgressBackgroundProc := nil;
 ProgressBackgroundMethod := nil;
+Init_ZNet_Instance_Pool();
 Init_SwapSpace_Tech();
 
 finalization
 
 Free_SwapSpace_Tech();
+Free_ZNet_Instance_Pool();
 
 end.

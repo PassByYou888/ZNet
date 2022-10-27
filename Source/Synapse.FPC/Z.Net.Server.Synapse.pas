@@ -76,7 +76,6 @@ type
     function StartService(Host: SystemString; Port: Word): Boolean; override;
     procedure StopService; override;
 
-    procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
 
     procedure CloseAll;
@@ -340,20 +339,6 @@ begin
   CloseAll;
   FListenTh.LSock.SetLinger(False, 0);
   FListenTh.Listen := False;
-end;
-
-procedure TZNet_Server_Synapse.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-    begin
-      c.PostQueueData(v);
-      c.Process_Send_Buffer();
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_Server_Synapse.Progress;

@@ -209,7 +209,6 @@ end;
 
 procedure TIO_Thread.ThRun(Sender: TCompute);
 var
-  i: Integer;
   d: TIO_Thread_Data;
   LTK, L: TTimeTick;
   p: TIO_Thread_Queue.POrderStruct;

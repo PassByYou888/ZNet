@@ -934,22 +934,22 @@ end;
 
 function TZDB2_Th_Queue.CoreSpace_Size: Int64;
 begin
-  CMD_Queue.Critical.Lock;
+  CMD_Queue.Critical__.Lock;
   if CoreSpace <> nil then
       Result := CoreSpace.State^.Physics - CoreSpace.State^.FreeSpace
   else
       Result := 0;
-  CMD_Queue.Critical.UnLock;
+  CMD_Queue.Critical__.UnLock;
 end;
 
 function TZDB2_Th_Queue.CoreSpace_Physics_Size: Int64;
 begin
-  CMD_Queue.Critical.Lock;
+  CMD_Queue.Critical__.Lock;
   if CoreSpace <> nil then
       Result := CoreSpace.State^.Physics
   else
       Result := 0;
-  CMD_Queue.Critical.UnLock;
+  CMD_Queue.Critical__.UnLock;
 end;
 
 function TZDB2_Th_Queue.IsOnlyRead: Boolean;

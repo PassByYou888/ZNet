@@ -63,7 +63,6 @@ type
     destructor Destroy; override;
     function StartService(Host: SystemString; Port: Word): Boolean; override;
     procedure StopService; override;
-    procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
     function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick); override;
@@ -285,20 +284,6 @@ end;
 procedure TZNet_Server_DIOCP.StopService;
 begin
   FDIOCPServer.Active := False;
-end;
-
-procedure TZNet_Server_DIOCP.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-    begin
-      c.PostQueueData(v);
-      c.Process_Send_Buffer();
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_Server_DIOCP.Progress;

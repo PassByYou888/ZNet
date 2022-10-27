@@ -54,7 +54,6 @@ type
 
     function Connected: Boolean; override;
     function ClientIO: TPeerIO; override;
-    procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
 
     function Connect(addr: SystemString; Port: Word): Boolean; overload; override;
@@ -195,18 +194,6 @@ end;
 function TZNet_Client_Synapse.ClientIO: TPeerIO;
 begin
   Result := InternalClient;
-end;
-
-procedure TZNet_Client_Synapse.TriggerQueueData(v: PQueueData);
-begin
-  if not Connected then
-    begin
-      DisposeQueueData(v);
-      Exit;
-    end;
-
-  ClientIO.PostQueueData(v);
-  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_Synapse.Progress;

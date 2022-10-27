@@ -472,16 +472,16 @@ var
   L: TZDB2_List_HashString;
   tk: TTimeTick;
 begin
-  TCompute.Sleep(5000);
+  TCompute.Sleep(1000);
   Cipher_ := TZDB2_Cipher.Create(TCipherSecurity.csRijndael, 'hello world', 1, True, True);
-  M64_1 := TMS64.CustomCreate(16 * 1024 * 1024);
-  M64_2 := TMS64.CustomCreate(16 * 1024 * 1024);
+  M64_1 := TMS64.CustomCreate(1 * 1024 * 1024);
+  M64_2 := TMS64.CustomCreate(1 * 1024 * 1024);
 
   tk := GetTimeTick;
   with TZDB2_List_HashString.Create(TZDB2_HashString, nil, 5000, M64_1, False, 64 * 1048576, 200, Cipher_) do
     begin
       AutoFreeStream := False;
-      for i := 0 to 20000 - 1 do
+      for i := 0 to 2000 - 1 do
         begin
           tmp_HashString := NewData();
           tmp_HashString.Data['a' + umlIntToStr(i).Text] := umlIntToStr(i).Text;
@@ -497,7 +497,7 @@ begin
     repeat
       if Queue^.Data.Data['a' + umlIntToStr(I__).Text] <> umlIntToStr(I__).Text then
           DoStatus('%s - test error.', [L.ClassName]);
-      tmp_HashString.Data['b' + umlIntToStr(I__).Text] := umlIntToStr(I__).Text;
+      Queue^.Data.Data['b' + umlIntToStr(I__).Text] := umlIntToStr(I__).Text;
     until not Next;
   DoStatus('load %d of HashString,time:%dms', [L.List.num, GetTimeTick - tk]);
   L.ExtractTo(M64_2);

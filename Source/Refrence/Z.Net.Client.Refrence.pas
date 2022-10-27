@@ -73,8 +73,6 @@ type
     procedure Disconnect; override;
     { Core interface: returns the TPeerIO instance of the client. }
     function ClientIO: TPeerIO; override;
-    { select: in the kernel post a queue command, it triggers. }
-    procedure TriggerQueueData(v: PQueueData); override;
     { core interface: Kernel main loop }
     procedure Progress; override;
   end;
@@ -190,18 +188,6 @@ end;
 function TCommunicationFramework_Client_Refrence.ClientIO: TPeerIO;
 begin
   Result := nil;
-end;
-
-procedure TCommunicationFramework_Client_Refrence.TriggerQueueData(v: PQueueData);
-begin
-  if not Connected then
-    begin
-      DisposeQueueData(v);
-      Exit;
-    end;
-
-  ClientIO.PostQueueData(v);
-  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TCommunicationFramework_Client_Refrence.Progress;

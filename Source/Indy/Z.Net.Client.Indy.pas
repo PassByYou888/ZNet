@@ -55,7 +55,6 @@ type
     function Connected: Boolean; override;
     function ClientIO: TPeerIO; override;
     procedure Progress; override;
-    procedure TriggerQueueData(v: PQueueData); override;
 
     procedure AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C); overload; override;
     procedure AsyncConnectM(addr: SystemString; Port: Word; const OnResult: TOnState_M); overload; override;
@@ -376,16 +375,6 @@ begin
     end
   else if LastConnectIsSuccessed then
       TriggerDoDisconnect;
-end;
-
-procedure TZNet_Client_Indy.TriggerQueueData(v: PQueueData);
-begin
-  if Connected then
-    begin
-      ClientIntf.PostQueueData(v);
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_Client_Indy.AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C);

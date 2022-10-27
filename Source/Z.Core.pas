@@ -249,7 +249,7 @@ type
     FLast: POrderStruct;
     FNum: NativeInt;
     FOnFreeOrderStruct: TOnFreeOrderStruct;
-    procedure DoInternalFree(p: POrderStruct);
+    procedure DoInternalFree(const p: POrderStruct);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -304,14 +304,14 @@ type
     end;
     TOnFreeCriticalOrderStruct = procedure(var p: T_) of object;
   private
-    FCritical: TCritical;
+    FCritical__: TCritical;
     FFirst: POrderStruct;
     FLast: POrderStruct;
     FNum: NativeInt;
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderStruct;
-    procedure DoInternalFree(p: POrderStruct);
+    procedure DoInternalFree(const p: POrderStruct);
   public
-    property Critical: TCritical read FCritical;
+    property Critical__: TCritical read FCritical__;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
@@ -337,14 +337,14 @@ type
     end;
     TOnFreeCriticalOrderPtrStruct = procedure(p: PT_) of object;
   private
-    FCritical: TCritical;
+    FCritical__: TCritical;
     FFirst: POrderPtrStruct;
     FLast: POrderPtrStruct;
     FNum: NativeInt;
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderPtrStruct;
     procedure DoInternalFree(p: POrderPtrStruct);
   public
-    property Critical: TCritical read FCritical;
+    property Critical__: TCritical read FCritical__;
     constructor Create; virtual;
     destructor Destroy; override;
     procedure DoFree(Data: PT_); virtual;
@@ -459,8 +459,8 @@ type
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
     procedure Next; // queue support
-    function Add(const Data: T_): PQueueStruct; overload;
-    procedure Add(L_: T___); overload;
+    function Add(const Data: T_): PQueueStruct;
+    procedure AddL(L_: T___);
     function Add_Null(): PQueueStruct;
     function Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove_P(p: PQueueStruct);
@@ -586,7 +586,7 @@ type
     TSort_P = reference to function(var Left, Right: T_): ShortInt;
 {$ENDIF FPC}
   private
-    FCritical: TCritical;
+    FCritical__: TCritical;
     FRecycle_Pool__: TRecycle_Pool__;
     FFirst: PQueueStruct;
     FLast: PQueueStruct;
@@ -597,7 +597,7 @@ type
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
   public
-    property Critical: TCritical read FCritical;
+    property Critical__: TCritical read FCritical__;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
@@ -612,8 +612,8 @@ type
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
     procedure Next; // queue support
-    function Add(const Data: T_): PQueueStruct; overload;
-    procedure Add(L_: T___); overload;
+    function Add(const Data: T_): PQueueStruct;
+    procedure AddL(L_: T___);
     function Add_Null(): PQueueStruct;
     function Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
     procedure Remove_P(p: PQueueStruct);
@@ -795,6 +795,7 @@ type
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
+    function Exists(const Key: TKey_): Boolean;
     function Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
     function Get_Key_Value(const Key: TKey_): TValue_;
     procedure Set_Key_Value(const Key: TKey_; const Value: TValue_);
@@ -851,7 +852,7 @@ type
     TBig_Hash_Pool_For_P = reference to procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
 {$ENDIF FPC}
   private
-    FCritical: TCritical;
+    FCritical__: TCritical;
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
     Null_Value: TValue_;
@@ -863,6 +864,7 @@ type
     procedure Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
     procedure Internal_Do_Free(var Data: TPair);
   public
+    property Critical__: TCritical read FCritical__;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
@@ -876,6 +878,7 @@ type
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
+    function Exists(const Key: TKey_): Boolean;
     function Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
     function Get_Key_Value(const Key: TKey_): TValue_;
     procedure Set_Key_Value(const Key: TKey_; const Value: TValue_);
@@ -974,7 +977,7 @@ type
     function Progress(Thread_: TThread): NativeInt; overload;
     function Progress(): Integer; overload;
 
-    // post thread synchronization,Call
+    // post thread
     procedure PostC1(OnSync: TThreadPost_C1); overload;
     procedure PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2); overload;
@@ -983,7 +986,6 @@ type
     procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4); overload;
     procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean); overload;
-    // post thread synchronization,Method
     procedure PostM1(OnSync: TThreadPost_M1); overload;
     procedure PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2); overload;
@@ -992,7 +994,6 @@ type
     procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4); overload;
     procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean); overload;
-    // post thread synchronization,Proc
     procedure PostP1(OnSync: TThreadPost_P1); overload;
     procedure PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2); overload;
@@ -1001,6 +1002,19 @@ type
     procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean); overload;
     procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4); overload;
     procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean); overload;
+    // sync wait
+    procedure Sync_Wait_PostC1(OnSync: TThreadPost_C1);
+    procedure Sync_Wait_PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
+    procedure Sync_Wait_PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+    procedure Sync_Wait_PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+    procedure Sync_Wait_PostM1(OnSync: TThreadPost_M1);
+    procedure Sync_Wait_PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
+    procedure Sync_Wait_PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+    procedure Sync_Wait_PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+    procedure Sync_Wait_PostP1(OnSync: TThreadPost_P1);
+    procedure Sync_Wait_PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
+    procedure Sync_Wait_PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+    procedure Sync_Wait_PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
   end;
 
 {$EndRegion 'ThreadPost'}
@@ -1051,20 +1065,17 @@ type
     class function GetParallelGranularity(): Integer;
     class function GetMaxActivtedParallel(): Integer;
 
-    // build-in synchronization Proc
+    // build-in synchronization
     class procedure Sync(const OnRun_: TRunWithThread_P_NP); overload;
     class procedure Sync(const Thread_: TThread; OnRun_: TRunWithThread_P_NP); overload;
-    // build-in synchronization call
     class procedure SyncC(OnRun_: TRunWithThread_C_NP); overload;
     class procedure SyncC(const Thread_: TThread; OnRun_: TRunWithThread_C_NP); overload;
-    // build-in synchronization method
     class procedure SyncM(OnRun_: TRunWithThread_M_NP); overload;
     class procedure SyncM(const Thread_: TThread; OnRun_: TRunWithThread_M_NP); overload;
-    // build-in synchronization Proc
     class procedure SyncP(const OnRun_: TRunWithThread_P_NP); overload;
     class procedure SyncP(const Thread_: TThread; OnRun_: TRunWithThread_P_NP); overload;
 
-    // build-in asynchronous call
+    // build-in asynchronous thread
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C); overload;
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C); overload;
@@ -1073,7 +1084,6 @@ type
     class procedure RunC(const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunC_NP(const OnRun: TRunWithThread_C_NP); overload;
     class procedure RunC_NP(const OnRun: TRunWithThread_C_NP; IsRuning_, IsExit_: PBoolean); overload;
-    // build-in asynchronous methoc
     class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M); overload;
     class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M); overload;
@@ -1082,7 +1092,6 @@ type
     class procedure RunM(const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunM_NP(const OnRun: TRunWithThread_M_NP); overload;
     class procedure RunM_NP(const OnRun: TRunWithThread_M_NP; IsRuning_, IsExit_: PBoolean); overload;
-    // build-in asynchronous proc
     class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P); overload;
     class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
     class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P); overload;
@@ -1092,9 +1101,10 @@ type
     class procedure RunP_NP(const OnRun: TRunWithThread_P_NP); overload;
     class procedure RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean); overload;
 
-    // main thread
+    // main thread progress
     class procedure ProgressPost();
-    // post main thread synchronization,Call
+
+    // post main thread synchronization
     class procedure PostC1(OnSync: TThreadPost_C1); overload;
     class procedure PostC1(OnSync: TThreadPost_C1; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostC2(Data1: Pointer; OnSync: TThreadPost_C2); overload;
@@ -1103,7 +1113,6 @@ type
     class procedure PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4); overload;
     class procedure PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean); overload;
-    // post main thread synchronization,Method
     class procedure PostM1(OnSync: TThreadPost_M1); overload;
     class procedure PostM1(OnSync: TThreadPost_M1; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostM2(Data1: Pointer; OnSync: TThreadPost_M2); overload;
@@ -1112,7 +1121,6 @@ type
     class procedure PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4); overload;
     class procedure PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean); overload;
-    // post main thread synchronization,Proc
     class procedure PostP1(OnSync: TThreadPost_P1); overload;
     class procedure PostP1(OnSync: TThreadPost_P1; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostP2(Data1: Pointer; OnSync: TThreadPost_P2); overload;
@@ -1121,6 +1129,19 @@ type
     class procedure PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean); overload;
     class procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4); overload;
     class procedure PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean); overload;
+    // main thread sync wait
+    class procedure Sync_Wait_PostC1(OnSync: TThreadPost_C1);
+    class procedure Sync_Wait_PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
+    class procedure Sync_Wait_PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+    class procedure Sync_Wait_PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+    class procedure Sync_Wait_PostM1(OnSync: TThreadPost_M1);
+    class procedure Sync_Wait_PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
+    class procedure Sync_Wait_PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+    class procedure Sync_Wait_PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+    class procedure Sync_Wait_PostP1(OnSync: TThreadPost_P1);
+    class procedure Sync_Wait_PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
+    class procedure Sync_Wait_PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+    class procedure Sync_Wait_PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
   end;
 
   // TCompute alias

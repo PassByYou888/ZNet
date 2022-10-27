@@ -67,8 +67,6 @@ type
 
     procedure Progress; override;
 
-    procedure TriggerQueueData(v: PQueueData); override;
-
     property Port: Word read GetPort write SetPort;
 
     procedure StopService; override;
@@ -262,17 +260,6 @@ end;
 procedure TZNet_Server_Indy.Progress;
 begin
   inherited Progress;
-end;
-
-procedure TZNet_Server_Indy.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-      c.PostQueueData(v)
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_Server_Indy.StopService;

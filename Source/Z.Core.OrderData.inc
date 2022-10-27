@@ -1,4 +1,4 @@
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct);
+procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(const p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -211,7 +211,7 @@ begin
   Result := p;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderStruct);
+procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(const p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -223,7 +223,7 @@ end;
 constructor TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
-  FCritical := TCritical.Create;
+  FCritical__ := TCritical.Create;
   FFirst := nil;
   FLast := nil;
   FNum := 0;
@@ -233,7 +233,7 @@ end;
 destructor TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
-  FCritical.Free;
+  FCritical__.Free;
   inherited Destroy;
 end;
 
@@ -247,7 +247,7 @@ procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
   p, N_P: POrderStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   p := FFirst;
   while p <> nil do
     begin
@@ -258,21 +258,21 @@ begin
   FFirst := nil;
   FLast := nil;
   FNum := 0;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   Result := FFirst;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
   N_P: POrderStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
@@ -282,7 +282,7 @@ begin
           FLast := nil;
       Dec(FNum);
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderStruct;
@@ -293,7 +293,7 @@ begin
   p^.Data := Data;
   p^.Next := nil;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   Inc(FNum);
   if (FFirst = nil) and (FLast = nil) then
     begin
@@ -305,7 +305,7 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
 end;
 
@@ -317,7 +317,7 @@ begin
   FillPtr(p, SizeOf(TOrderStruct_), 0);
   p^.Next := nil;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   Inc(FNum);
   if (FFirst = nil) and (FLast = nil) then
     begin
@@ -329,15 +329,15 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
 end;
 
 function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   Result := FNum;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
@@ -352,7 +352,7 @@ end;
 constructor TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
-  FCritical := TCritical.Create;
+  FCritical__ := TCritical.Create;
   FFirst := nil;
   FLast := nil;
   FNum := 0;
@@ -362,7 +362,7 @@ end;
 destructor TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
-  FCritical.Free;
+  FCritical__.Free;
   inherited Destroy;
 end;
 
@@ -378,7 +378,7 @@ procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
 var
   p, N_P: POrderPtrStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   p := FFirst;
   while p <> nil do
     begin
@@ -389,21 +389,21 @@ begin
   FFirst := nil;
   FLast := nil;
   FNum := 0;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderPtrStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   Result := FFirst;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
 var
   N_P: POrderPtrStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
@@ -413,7 +413,7 @@ begin
           FLast := nil;
       Dec(FNum);
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderPtrStruct;
@@ -425,7 +425,7 @@ begin
   p^.Data^ := Data;
   p^.Next := nil;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   Inc(FNum);
   if (FFirst = nil) and (FLast = nil) then
     begin
@@ -437,7 +437,7 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
 end;
 
@@ -449,7 +449,7 @@ begin
   p^.Data := Data;
   p^.Next := nil;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   Inc(FNum);
   if (FFirst = nil) and (FLast = nil) then
     begin
@@ -461,13 +461,13 @@ begin
       FLast^.Next := p;
       FLast := p;
     end;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
 end;
 
 function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   Result := FNum;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;

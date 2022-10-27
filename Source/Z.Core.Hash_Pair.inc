@@ -209,6 +209,11 @@ begin
     end;
 end;
 
+function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists(const Key: TKey_): Boolean;
+begin
+  Result := Exists_Key(Key);
+end;
+
 function TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
 var
   Key_Hash_: THash;
@@ -754,7 +759,7 @@ var
   i: integer;
 begin
   inherited Create;
-  FCritical := TCritical.Create;
+  FCritical__ := TCritical.Create;
   FQueue_Pool := TPool___.Create;
   FQueue_Pool.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}Internal_Do_Queue_Pool_Free;
   FHash_Buffer := TKey_Hash_Buffer.Create;
@@ -771,7 +776,7 @@ begin
   Clear;
   FQueue_Pool.Free;
   DisposeObjectAndNil(FHash_Buffer);
-  FCritical.Free;
+  FCritical__.Free;
   inherited Destroy;
 end;
 
@@ -815,7 +820,7 @@ procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.
 var
   i: integer;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -823,7 +828,7 @@ begin
         FHash_Buffer[i] := nil;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -835,7 +840,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -854,7 +859,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -865,7 +870,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -884,8 +889,13 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
+end;
+
+function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Exists(const Key: TKey_): Boolean;
+begin
+  Result := Exists_Key(Key);
 end;
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Add(const Key: TKey_; const Value: TValue_; Overwrite_: Boolean): PPair_Pool_Value__;
@@ -895,7 +905,7 @@ var
   i: integer;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
 
@@ -923,7 +933,7 @@ begin
     Result := p;
     DoAdd(p^.Data.Primary, p^.Data.Second);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -936,7 +946,7 @@ var
   p: PPair_Pool_Value__;
 begin
   R := Null_Value;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -956,7 +966,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
   Result := R;
 end;
@@ -973,7 +983,7 @@ var
   i: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -992,7 +1002,7 @@ begin
     if L.L.Num <= 0 then
         Free_Value_List(Key_Hash_);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1000,12 +1010,12 @@ procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.
 var
   inst_: TValue_Pair_Pool__.TPair_BigList__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     inst_ := p^.Instance___;
     inst_.Remove_P(p);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
   if inst_.Num <= 0 then
       Free_Recycle_Pool();
@@ -1021,13 +1031,13 @@ var
   i: integer;
 begin
   Result := 0;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       if FHash_Buffer[i] <> nil then
           Inc(Result, FHash_Buffer[i].L.Num);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1044,7 +1054,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := nil;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -1069,7 +1079,7 @@ begin
         Result := @p^.Data.Second;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1082,7 +1092,7 @@ var
   p: PPair_Pool_Value__;
 begin
   R := Default_;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     L := Get_Value_List(Key, Key_Hash_);
     if L.L.Num > 0 then
@@ -1102,7 +1112,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
   Result := R;
 end;
@@ -1141,7 +1151,7 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -1161,7 +1171,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1174,7 +1184,7 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -1194,7 +1204,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1207,7 +1217,7 @@ var
   Aborted: Boolean;
 begin
   Aborted := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -1227,7 +1237,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1241,7 +1251,7 @@ var
   i: integer;
   L: TValue_Pair_Pool__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -1257,7 +1267,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1269,7 +1279,7 @@ var
   p: PPair_Pool_Value__;
 begin
   Result := TPool___.Create;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     for i := 0 to FHash_Buffer.Count - 1 do
       begin
@@ -1287,7 +1297,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1298,7 +1308,7 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     k := 0;
     SetLength(Result, FQueue_Pool.Num);
@@ -1319,7 +1329,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1330,7 +1340,7 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     Result := TOrder_Key.Create;
     for i := 0 to FHash_Buffer.Count - 1 do
@@ -1349,7 +1359,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1360,7 +1370,7 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     k := 0;
     SetLength(Result, FQueue_Pool.Num);
@@ -1381,7 +1391,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1392,7 +1402,7 @@ var
   j: NativeInt;
   p: PPair_Pool_Value__;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     Result := TOrder_Value.Create;
     for i := 0 to FHash_Buffer.Count - 1 do
@@ -1411,6 +1421,6 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;

@@ -79,7 +79,7 @@ type
     procedure Push_To_Recycle_Pool(obj_: TZDB2_Json; RemoveData_: Boolean); // remove from repeat
     procedure Free_Recycle_Pool;                                            // remove from repeat
     function Count: NativeInt;
-    function Repeat_: TZDB2_Big_List_Json_Decl__.TRepeat___; // flow simulate
+    function Repeat_: TZDB2_Big_List_Json_Decl__.TRepeat___;               // flow simulate
     function Invert_Repeat_: TZDB2_Big_List_Json_Decl__.TInvert_Repeat___; // flow simulate
 
     class procedure Test;
@@ -273,7 +273,7 @@ begin
 
   for ID_ in buff do
     if CoreSpace.Check(ID_) then
-      NewDataFrom(ID_);
+        NewDataFrom(ID_);
   SetLength(buff, 0);
 end;
 
@@ -473,16 +473,16 @@ var
   L: TZDB2_List_Json;
   tk: TTimeTick;
 begin
-  TCompute.Sleep(5000);
+  TCompute.Sleep(1000);
   Cipher_ := TZDB2_Cipher.Create(TCipherSecurity.csRijndael, 'hello world', 1, True, True);
-  M64_1 := TMS64.CustomCreate(16 * 1024 * 1024);
-  M64_2 := TMS64.CustomCreate(16 * 1024 * 1024);
+  M64_1 := TMS64.CustomCreate(1 * 1024 * 1024);
+  M64_2 := TMS64.CustomCreate(1 * 1024 * 1024);
 
   tk := GetTimeTick;
   with TZDB2_List_Json.Create(TZDB2_Json, nil, 5000, M64_1, False, 64 * 1048576, 200, Cipher_) do
     begin
       AutoFreeStream := False;
-      for i := 0 to 20000-1 do
+      for i := 0 to 2000 - 1 do
         begin
           tmp_Json := NewData();
           tmp_Json.Data.S['a' + umlIntToStr(i).Text] := 'abcdefg' + umlIntToStr(i).Text;

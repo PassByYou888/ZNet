@@ -20,7 +20,7 @@ type
   TZDB2_Pair_String_Stream_Tool = class;
   TZDB2_Pair_String_Stream_Data = class;
 
-  TZDB2_Pair_String_Stream_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Critical_Big_Hash_Pair_Pool<TZDB2_Pair_String_Stream_Data>;
+  TZDB2_Pair_String_Stream_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TZDB2_Pair_String_Stream_Data>;
 
   TZDB2_Pair_String_Stream_Pool = class(TZDB2_Pair_String_Stream_Pool__)
   public

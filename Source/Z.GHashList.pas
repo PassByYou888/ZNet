@@ -122,9 +122,9 @@ type
   // **********************************************************************************************************
 
 {$IFDEF FPC}
-  generic TString_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
+  generic TCritical_String_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ELSE FPC}
-  TString_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
+  TCritical_String_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ENDIF FPC}
   public
     function Get_Key_Hash(const Key_: SystemString): THash; override;
@@ -133,9 +133,9 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TPascalString_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
+  generic TCritical_PascalString_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
 {$ELSE FPC}
-  TPascalString_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
+  TCritical_PascalString_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
 {$ENDIF FPC}
   public
     function Get_Key_Hash(const Key_: TPascalString): THash; override;
@@ -144,9 +144,9 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TSingle_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Single, T_>)
+  generic TCritical_Single_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Single, T_>)
 {$ELSE FPC}
-  TSingle_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Single, T_>)
+  TCritical_Single_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Single, T_>)
 {$ENDIF FPC}
   public
     Epsilon: Single;
@@ -156,9 +156,9 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TDouble_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Double, T_>)
+  generic TCritical_Double_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Double, T_>)
 {$ELSE FPC}
-  TDouble_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Double, T_>)
+  TCritical_Double_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Double, T_>)
 {$ENDIF FPC}
   public
     Epsilon: Double;
@@ -168,56 +168,50 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TMD5_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
-{$ELSE FPC}
-  TMD5_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
-  generic TPointer_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
-{$ELSE FPC}
-  TPointer_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
-  generic TInt32_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Integer, T_>)
-{$ELSE FPC}
-  TInt32_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<integer, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
-  generic TInt64_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Int64, T_>)
-{$ELSE FPC}
-  TInt64_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Int64, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
-  generic TUInt32_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
-{$ELSE FPC}
-  TUInt32_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
-  generic TUInt64_Critical_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
-{$ELSE FPC}
-  TUInt64_Critical_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
-{$ENDIF FPC}
-  end;
-
-{$IFDEF FPC}
   generic TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
 {$ELSE FPC}
   TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
 {$ENDIF FPC}
   end;
 
-  // **********************************************************************************************************
+{$IFDEF FPC}
+  generic TCritical_Pointer_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
+{$ELSE FPC}
+  TCritical_Pointer_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
+{$ENDIF FPC}
+  end;
 
+{$IFDEF FPC}
+  generic TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Integer, T_>)
+{$ELSE FPC}
+  TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<integer, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TCritical_Int64_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Int64, T_>)
+{$ELSE FPC}
+  TCritical_Int64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Int64, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TCritical_UInt32_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
+{$ELSE FPC}
+  TCritical_UInt32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
+{$ENDIF FPC}
+  end;
+
+{$IFDEF FPC}
+  generic TCritical_UInt64_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
+{$ELSE FPC}
+  TCritical_UInt64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
+{$ENDIF FPC}
+  end;
+
+  // **********************************************************************************************************
+  // Compatibility Support: "TGeneric_String_Object_Hash" is stop Updates
+  // **********************************************************************************************************
 {$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
@@ -426,47 +420,47 @@ end;
 
 // **********************************************************************************************************
 
-function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: SystemString): THash;
+function TCritical_String_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: SystemString): THash;
 begin
   Result := FastHashSystemString(Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: SystemString): Boolean;
+function TCritical_String_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: SystemString): Boolean;
 begin
   Result := SameText(Key_1, Key_2);
 end;
 
-procedure TString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: SystemString; var Value: T_);
+procedure TCritical_String_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: SystemString; var Value: T_);
 begin
   Key := '';
   inherited DoFree(Key, Value);
 end;
 
-function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TPascalString): THash;
+function TCritical_PascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
 
-function TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
+function TCritical_PascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
 begin
   Result := Key_1.Same(@Key_2);
 end;
 
-procedure TPascalString_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: TPascalString; var Value: T_);
+procedure TCritical_PascalString_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Key: TPascalString; var Value: T_);
 begin
   Key := '';
   inherited DoFree(Key, Value);
 end;
 
-constructor TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+constructor TCritical_Single_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
 end;
 
-function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Single): THash;
+function TCritical_Single_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Single): THash;
 var
   tmp: Int64;
 begin
@@ -474,18 +468,18 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TSingle_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Single): Boolean;
+function TCritical_Single_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Single): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-constructor TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+constructor TCritical_Double_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
 end;
 
-function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Double): THash;
+function TCritical_Double_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: Double): THash;
 var
   tmp: Int64;
 begin
@@ -493,7 +487,7 @@ begin
   Result := Get_CRC32(@tmp, 8);
 end;
 
-function TDouble_Critical_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Double): Boolean;
+function TCritical_Double_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Compare_Key(const Key_1, Key_2: Double): Boolean;
 begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
@@ -1075,3 +1069,4 @@ begin
 end;
 
 end.
+

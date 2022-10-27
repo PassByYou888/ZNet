@@ -80,7 +80,6 @@ type
     function StartService(Host: SystemString; Port: Word): Boolean; override;
     procedure StopService; override;
     procedure Progress; override;
-    procedure TriggerQueueData(v: PQueueData); override;
     function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; Timeout: TTimeTick); override;
   end;
@@ -176,7 +175,7 @@ end;
 
 function TXNAT_MappingOnVirutalService_IO.OwnerVS: TXNAT_MappingOnVirutalService;
 begin
-  Result := FOwnerFramework as TXNAT_MappingOnVirutalService;
+  Result := OwnerFramework as TXNAT_MappingOnVirutalService;
 end;
 
 function TXNAT_MappingOnVirutalService_IO.Connected: Boolean;
@@ -492,17 +491,6 @@ begin
       SendTunnel.Progress;
   if RecvTunnel <> nil then
       RecvTunnel.Progress;
-end;
-
-procedure TXNAT_MappingOnVirutalService.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-      c.PostQueueData(v)
-  else
-      DisposeQueueData(v);
 end;
 
 function TXNAT_MappingOnVirutalService.WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString;

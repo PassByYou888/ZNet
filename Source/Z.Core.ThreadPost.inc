@@ -652,3 +652,196 @@ begin
   FSyncPool.Push(t_);
   FCritical.Release;
 end;
+
+//
+procedure TThreadPost.Sync_Wait_PostC1(OnSync: TThreadPost_C1);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostC1(OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostC2(Data1: Pointer; OnSync: TThreadPost_C2);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostC2(Data1, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostC3(Data1, Data2, Data3, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostC4(Data1, Data2, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostM1(OnSync: TThreadPost_M1);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostM1(OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostM2(Data1: Pointer; OnSync: TThreadPost_M2);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostM2(Data1, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostM3(Data1, Data2, Data3, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostM4(Data1, Data2, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostP1(OnSync: TThreadPost_P1);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostP1(OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostP2(Data1: Pointer; OnSync: TThreadPost_P2);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostP2(Data1, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostP3(Data1, Data2, Data3, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;
+
+procedure TThreadPost.Sync_Wait_PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+var
+  Current_Thread_ID_: TThreadID;
+  IsRuning_, IsExit_: Boolean;
+begin
+  Current_Thread_ID_ := TCore_Thread.CurrentThread.ThreadID;
+  PostP4(Data1, Data2, OnSync, @IsRuning_, @IsExit_);
+  while IsRuning_ do
+    if Current_Thread_ID_ = FThreadID then
+        Progress(Current_Thread_ID_)
+    else if Current_Thread_ID_ = MainThreadID then
+        CheckThread(1)
+    else
+        TCompute.Sleep(1);
+end;

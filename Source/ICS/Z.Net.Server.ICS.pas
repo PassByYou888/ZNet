@@ -50,8 +50,6 @@ type
     procedure StopService; override;
     function StartService(Host: SystemString; Port: Word): Boolean; override;
 
-    procedure TriggerQueueData(v: PQueueData); override;
-
     procedure Progress; override;
 
     function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
@@ -218,17 +216,6 @@ begin
   except
       Result := False;
   end;
-end;
-
-procedure TZNet_Server_ICS.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-      c.PostQueueData(v)
-  else
-      DisposeQueueData(v);
 end;
 
 procedure TZNet_Server_ICS.Progress;

@@ -238,7 +238,7 @@ begin
   DoAdd(p^.Data);
 end;
 
-procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(L_: T___);
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.AddL(L_: T___);
 begin
   if L_.Num > 0 then
     with L_.Repeat_ do
@@ -269,10 +269,6 @@ begin
     end
   else
     begin
-{$IFDEF DEBUG}
-      if IsDebug and (Num <= 0) then
-          raiseInfo('memory error.');
-{$ENDIF DEBUG}
       FFirst^.Prev := p;
       FLast^.Next := p;
       p^.Next := FFirst;
@@ -1209,7 +1205,7 @@ end;
 constructor TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
-  FCritical := TCritical.Create;
+  FCritical__ := TCritical.Create;
   FRecycle_Pool__ := nil;
   FFirst := nil;
   FLast := nil;
@@ -1223,7 +1219,7 @@ end;
 destructor TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
-  FCritical.Free;
+  FCritical__.Free;
   inherited Destroy;
 end;
 
@@ -1246,12 +1242,12 @@ end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Lock;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.UnLock;
 begin
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_To_Recycle_Pool(p: PQueueStruct);
@@ -1289,7 +1285,7 @@ begin
       FRecycle_Pool__.Free;
       FRecycle_Pool__ := nil;
     end;
-  FCritical.Lock;
+  FCritical__.Lock;
   if FNum > 0 then
     begin
       i := 0;
@@ -1311,7 +1307,7 @@ begin
   FFirst := nil;
   FLast := nil;
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
@@ -1324,7 +1320,7 @@ function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(const Data: T_): PQue
 var
   p: PQueueStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
 
   new(p);
   p^.Data := Data;
@@ -1354,12 +1350,12 @@ begin
   p^.Instance___ := Self;
   inc(FNum);
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
   DoAdd(p^.Data);
 end;
 
-procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add(L_: T___);
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.AddL(L_: T___);
 begin
   if L_.Num > 0 then
     with L_.Repeat_ do
@@ -1372,7 +1368,7 @@ function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
 var
   p: PQueueStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   new(p);
   if (FFirst = nil) or (FLast = nil) then
     begin
@@ -1391,10 +1387,6 @@ begin
     end
   else
     begin
-{$IFDEF DEBUG}
-      if IsDebug and (Num <= 0) then
-          raiseInfo('memory error.');
-{$ENDIF DEBUG}
       FFirst^.Prev := p;
       FLast^.Next := p;
       p^.Next := FFirst;
@@ -1404,7 +1396,7 @@ begin
   p^.Instance___ := Self;
   inc(FNum);
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
   DoAdd(p^.Data);
 end;
@@ -1418,7 +1410,7 @@ begin
   if To_^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical.Lock;
+  FCritical__.Lock;
   new(p);
   p^.Data := Data;
 
@@ -1435,7 +1427,7 @@ begin
   p^.Instance___ := Self;
   inc(FNum);
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
   Result := p;
   DoAdd(p^.Data);
 end;
@@ -1448,7 +1440,7 @@ begin
   if p^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical.Lock;
+  FCritical__.Lock;
 
   P_P := p^.Prev;
   N_P := p^.Next;
@@ -1472,7 +1464,7 @@ begin
   DoInternalFree(p);
 
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
@@ -1494,7 +1486,7 @@ begin
   if p = To_ then
       exit;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   // step 1: remove
   P_P := p^.Prev;
   N_P := p^.Next;
@@ -1526,7 +1518,7 @@ begin
   p^.Next := To_;
 
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.MoveToFirst(p: PQueueStruct);
@@ -1546,7 +1538,7 @@ begin
   if p = Last then
       exit;
 
-  FCritical.Lock;
+  FCritical__.Lock;
   // step 1: remove
   P_P := p^.Prev;
   N_P := p^.Next;
@@ -1591,7 +1583,7 @@ begin
     end;
 
   FChanged := True;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Exchange(p1, p2: PQueueStruct);
@@ -1606,11 +1598,11 @@ begin
 {$ENDIF DEBUG}
   if p1 = p2 then
       exit;
-  FCritical.Lock;
+  FCritical__.Lock;
   tmp := p1^.Data;
   p1^.Data := p2^.Data;
   p2^.Data := tmp;
-  FCritical.UnLock;
+  FCritical__.UnLock;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Found(p1: PQueueStruct): Boolean;
@@ -1619,7 +1611,7 @@ var
   p: PQueueStruct;
 begin
   Result := False;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     if FNum > 0 then
       begin
@@ -1634,7 +1626,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1644,7 +1636,7 @@ var
   p: PQueueStruct;
 begin
   Result := nil;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     if FNum > 0 then
       begin
@@ -1659,7 +1651,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1685,7 +1677,7 @@ var
   p: PQueueStruct;
 begin
   Result := TOrder_Data_Pool.Create;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     if FNum > 0 then
       begin
@@ -1700,7 +1692,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1709,7 +1701,7 @@ var
   i: NativeInt;
   p: PQueueStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     if FNum > 0 then
       begin
@@ -1726,7 +1718,7 @@ begin
     Result := FRecycle_Pool__.Num;
     Free_Recycle_Pool();
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1770,7 +1762,7 @@ begin
   if EP_^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     i := 0;
     p := BP_;
@@ -1784,7 +1776,7 @@ begin
     if (p = EP_) and (p <> BP_) then
         OnFor(i, p, Aborted);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1800,7 +1792,7 @@ begin
   if EP_^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     i := 0;
     p := BP_;
@@ -1814,7 +1806,7 @@ begin
     if (p = EP_) and (p <> BP_) then
         OnFor(i, p, Aborted);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1830,7 +1822,7 @@ begin
   if EP_^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     i := 0;
     p := BP_;
@@ -1844,7 +1836,7 @@ begin
     if (p = EP_) and (p <> BP_) then
         OnFor(i, p, Aborted);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1856,7 +1848,7 @@ var
 begin
   if FNum > 0 then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       try
         i := 0;
         p := FFirst;
@@ -1869,7 +1861,7 @@ begin
             inc(i);
           end;
       finally
-          FCritical.UnLock;
+          FCritical__.UnLock;
       end;
     end;
 end;
@@ -1882,7 +1874,7 @@ var
 begin
   if FNum > 0 then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       try
         i := 0;
         p := FFirst;
@@ -1895,7 +1887,7 @@ begin
             inc(i);
           end;
       finally
-          FCritical.UnLock;
+          FCritical__.UnLock;
       end;
     end;
 end;
@@ -1908,7 +1900,7 @@ var
 begin
   if FNum > 0 then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       try
         i := 0;
         p := FFirst;
@@ -1921,7 +1913,7 @@ begin
             inc(i);
           end;
       finally
-          FCritical.UnLock;
+          FCritical__.UnLock;
       end;
     end;
 end;
@@ -1931,7 +1923,7 @@ var
   i: NativeInt;
   p: PQueueStruct;
 begin
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     SetLength(Result, FNum);
     // copy to order buffer
@@ -1947,7 +1939,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -1957,7 +1949,7 @@ var
   p: PQueueStruct;
 begin
   Result := TOrder_Data_Pool.Create;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     // copy to order buffer
     if FNum > 0 then
@@ -1972,7 +1964,7 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -2019,11 +2011,11 @@ var
 begin
   if (Num > 1) and (Assigned(OnSort)) then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       tmp := BuildArrayMemory;
       Sort_C(tmp, 0, Num - 1, OnSort);
       System.FreeMemory(tmp);
-      FCritical.UnLock;
+      FCritical__.UnLock;
     end;
 end;
 
@@ -2061,11 +2053,11 @@ var
 begin
   if (Num > 1) and (Assigned(OnSort)) then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       tmp := BuildArrayMemory;
       Sort_M(tmp, 0, Num - 1, OnSort);
       System.FreeMemory(tmp);
-      FCritical.UnLock;
+      FCritical__.UnLock;
     end;
 end;
 
@@ -2103,11 +2095,11 @@ var
 begin
   if (Num > 1) and (Assigned(OnSort)) then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       tmp := BuildArrayMemory;
       Sort_P(tmp, 0, Num - 1, OnSort);
       System.FreeMemory(tmp);
-      FCritical.UnLock;
+      FCritical__.UnLock;
     end;
 end;
 
@@ -2118,7 +2110,7 @@ var
   tmp: PPQueueStruct;
 begin
   Result := nil;
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     // copy to order buffer
     if FNum > 0 then
@@ -2136,14 +2128,14 @@ begin
           end;
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CheckList: PQueueArrayStruct;
 begin
   // check change
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     if FChanged then
       begin
@@ -2160,7 +2152,7 @@ begin
 
     Result := PQueueArrayStruct(FList);
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
 end;
 
@@ -2168,11 +2160,11 @@ function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetList(const Index: Nati
 begin
   if (index >= 0) and (index < FNum) then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       try
           Result := PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^;
       finally
-          FCritical.UnLock;
+          FCritical__.UnLock;
       end;
     end
   else
@@ -2183,11 +2175,11 @@ procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.SetList(const Index: Nat
 begin
   if (index >= 0) and (index < FNum) then
     begin
-      FCritical.Lock;
+      FCritical__.Lock;
       try
           PPQueueStruct(GetOffset(CheckList(), SizeOf(PQueueStruct) * index))^ := Value;
       finally
-          FCritical.UnLock;
+          FCritical__.UnLock;
       end;
     end
   else
@@ -2228,7 +2220,7 @@ begin
   if Num = 0 then
       exit;
   arry := BuildArrayMemory();
-  FCritical.Lock;
+  FCritical__.Lock;
   try
     F_P := arry^[0];
     L_P := arry^[Num - 1];
@@ -2264,7 +2256,7 @@ begin
             raiseInfo('error.');
       end;
   finally
-      FCritical.UnLock;
+      FCritical__.UnLock;
   end;
   System.FreeMemory(arry);
 end;

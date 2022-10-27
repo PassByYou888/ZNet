@@ -77,7 +77,6 @@ type
 
     function Connected: Boolean; override;
     function ClientIO: TPeerIO; override;
-    procedure TriggerQueueData(v: PQueueData); override;
     procedure Progress; override;
 
     procedure AsyncConnectC(addr: SystemString; Port: Word; const OnResult: TOnState_C); overload; override;
@@ -147,7 +146,7 @@ begin
       Link := nil;
       cintf.Link := nil;
       if CanTriggerDoDisconnect then
-          TZNet_Client_DIOCP(FOwnerFramework).DoDisconnect(Self);
+          TZNet_Client_DIOCP(OwnerFramework).DoDisconnect(Self);
       cintf.Close();
     end;
   DisposeObject(SendingStream);
@@ -169,7 +168,7 @@ begin
       Link := nil;
       cintf.Link := nil;
       if CanTriggerDoDisconnect then
-          TZNet_Client_DIOCP(FOwnerFramework).DoDisconnect(Self);
+          TZNet_Client_DIOCP(OwnerFramework).DoDisconnect(Self);
       cintf.Close();
     end;
   DisposeObject(Self);
@@ -336,18 +335,6 @@ end;
 function TZNet_Client_DIOCP.ClientIO: TPeerIO;
 begin
   Result := DCIntf.Link;
-end;
-
-procedure TZNet_Client_DIOCP.TriggerQueueData(v: PQueueData);
-begin
-  if not Connected then
-    begin
-      DisposeQueueData(v);
-      Exit;
-    end;
-
-  ClientIO.PostQueueData(v);
-  ClientIO.Process_Send_Buffer();
 end;
 
 procedure TZNet_Client_DIOCP.Progress;

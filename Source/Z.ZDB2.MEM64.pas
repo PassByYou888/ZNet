@@ -460,16 +460,16 @@ var
   L: TZDB2_List_Mem64;
   tk: TTimeTick;
 begin
-  TCompute.Sleep(5000);
+  TCompute.Sleep(1000);
   Cipher_ := TZDB2_Cipher.Create(TCipherSecurity.csRijndael, 'hello world', 1, True, True);
-  M64_1 := TMS64.CustomCreate(16 * 1024 * 1024);
-  M64_2 := TMS64.CustomCreate(16 * 1024 * 1024);
+  M64_1 := TMS64.CustomCreate(1 * 1024 * 1024);
+  M64_2 := TMS64.CustomCreate(1 * 1024 * 1024);
 
   tk := GetTimeTick;
   with TZDB2_List_Mem64.Create(TZDB2_Mem64, nil, 5000, M64_1, False, 64 * 1048576, 200, Cipher_) do
     begin
       AutoFreeStream := False;
-      for i := 0 to 20000 - 1 do
+      for i := 0 to 2000 - 1 do
         begin
           tmp_Mem64 := NewData();
           tmp_Mem64.Data.WriteString('a' + umlIntToStr(i).Text);

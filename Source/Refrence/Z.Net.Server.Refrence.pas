@@ -62,9 +62,6 @@ type
     { core interface: Kernel main loop, you can do ignore the interface }
     procedure Progress; override;
 
-    { select: in the kernel post a queue command, it triggers. }
-    procedure TriggerQueueData(v: PQueueData); override;
-
     { select: recommended no used blocking communication calls on the server, unstable!! }
     function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
     { select: recommended no used blocking communication calls on the server, unstable!! }
@@ -149,20 +146,6 @@ end;
 procedure TCommunicationFramework_Server_Refrence.Progress;
 begin
   inherited Progress;
-end;
-
-procedure TCommunicationFramework_Server_Refrence.TriggerQueueData(v: PQueueData);
-var
-  c: TPeerIO;
-begin
-  c := PeerIO[v^.IO_ID];
-  if c <> nil then
-    begin
-      c.PostQueueData(v);
-      c.Process_Send_Buffer();
-    end
-  else
-      DisposeQueueData(v);
 end;
 
 function TCommunicationFramework_Server_Refrence.WaitSendConsoleCmd(p_io: TPeerIO;
