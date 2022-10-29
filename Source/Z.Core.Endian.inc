@@ -580,12 +580,12 @@ begin
       Result := False_;
 end;
 
-function GetOffset(p_: Pointer; offset_: NativeInt): Pointer;
+function GetOffset(const p_: Pointer; const offset_: NativeInt): Pointer;
 begin
   Result := Pointer(NativeUInt(p_) + offset_);
 end;
 
-function GetPtr(p_: Pointer; offset_: NativeInt): Pointer;
+function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer;
 begin
   Result := Pointer(NativeUInt(p_) + offset_);
 end;
