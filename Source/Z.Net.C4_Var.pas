@@ -14,7 +14,7 @@ uses Variants,
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib,
   Z.Geometry2D, Z.DFE, Z.ListEngine,
   Z.Parsing, Z.Expression, Z.OpCode,
-  Z.Json, Z.GHashList, Z.Number,
+  Z.Json, Z.HashList.Templet, Z.Number,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4;

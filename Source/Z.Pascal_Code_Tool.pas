@@ -13,7 +13,7 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Parsing, Z.MemoryStream, Z.ListEngine,
-  Z.GHashList, Z.ZDB2, Z.ZDB2.FileEncoder, Z.Cipher,
+  Z.HashList.Templet, Z.ZDB2, Z.ZDB2.FileEncoder, Z.Cipher,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB;
 
 {$REGION 'BaseDef'}

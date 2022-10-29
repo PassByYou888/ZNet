@@ -13,7 +13,7 @@ uses Z.Core,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Status, Z.MemoryStream, Z.ListEngine,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
-  Z.GHashList, Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
+  Z.HashList.Templet, Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
 
 type
   TZDB2_File_HndList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;

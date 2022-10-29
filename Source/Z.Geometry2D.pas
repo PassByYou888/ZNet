@@ -351,6 +351,8 @@ function RectEdge(const R: TRectV2; const Edge: TVec2): TRectV2; {$IFDEF INLINE_
 function RectCentre(const R: TRectV2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectCentre(const R: TRect): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectCentre(const R: TRectf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectIOU(const r1, r2: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function RectDistance(const r1, r2: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
 function Tri(const v1, v2, v3: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function TriAdd(const t: TTriangle; V: TVec2): TTriangle; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
@@ -629,7 +631,6 @@ type
     FList: TCore_List;
     FUserData: pointer;
     FUserObject: TCore_Object;
-
     function GetPoints(index: TGeoInt): PVec2;
   public
     constructor Create;
@@ -1288,7 +1289,6 @@ type
     class procedure Test2();
   end;
 {$ENDREGION 'Hausdorf'}
-
 
 function ArrayVec2(const V: TArrayVec2): TArrayVec2; overload;
 function ArrayVec2(const R: TRectV2): TArrayVec2; overload;
@@ -2692,6 +2692,21 @@ end;
 function RectCentre(const R: TRectf): TVec2;
 begin
   Result := RectCentre(RectV2(R));
+end;
+
+function RectIOU(const r1, r2: TRectV2): TGeoFloat;
+var
+  r1A, r2A, cA: TGeoFloat;
+begin
+  r1A := RectArea(r1);
+  r2A := RectArea(r2);
+  cA := RectArea(Clip(r1, r2));
+  Result := cA / (r1A + r2A - cA);
+end;
+
+function RectDistance(const r1, r2: TRectV2): TGeoFloat;
+begin
+  Result := Vec2Distance(RectCentre(r1), RectCentre(r2));
 end;
 
 function Tri(const v1, v2, v3: TVec2): TTriangle;

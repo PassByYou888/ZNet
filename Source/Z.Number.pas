@@ -11,7 +11,7 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.GHashList, Z.ListEngine, Z.PascalStrings,
+  Z.Core, Z.HashList.Templet, Z.ListEngine, Z.PascalStrings,
   Z.Parsing, Z.Expression, Z.OpCode;
 
 type

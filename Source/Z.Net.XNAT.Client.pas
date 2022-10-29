@@ -13,7 +13,7 @@ uses
 {$ENDIF FPC}
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine, Z.TextDataEngine,
   Z.Cipher, Z.DFE, Z.MemoryStream, Z.Net, Z.Notify,
-  Z.GHashList, Z.Net.XNAT.Physics;
+  Z.HashList.Templet, Z.Net.XNAT.Physics;
 
 type
   TXNATClient = class;

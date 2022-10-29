@@ -15,7 +15,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2,
-  Z.GHashList,
+  Z.HashList.Templet,
   Z.LinearAction,
   Z.Net, Z.Net.PhysicsIO,
   Z.Net.DoubleTunnelIO.NoAuth,

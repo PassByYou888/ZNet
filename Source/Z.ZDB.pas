@@ -7,7 +7,7 @@ unit Z.ZDB;
 
 interface
 
-uses Z.Core, Z.ZDB.ObjectData_LIB, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.ZDB2, Z.GHashList;
+uses Z.Core, Z.ZDB.ObjectData_LIB, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.ZDB2, Z.HashList.Templet;
 
 type
   TItemHandle = Z.ZDB.ObjectData_LIB.TItemHandle_;

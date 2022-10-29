@@ -15,7 +15,7 @@ uses Classes, SysUtils, Variants,
 {$ELSE FPC}
   System.IOUtils,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.GHashList, Z.ListEngine, Z.UnicodeMixedLib, Z.Status,
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.HashList.Templet, Z.ListEngine, Z.UnicodeMixedLib, Z.Status,
   Z.DFE, Z.MemoryStream, Z.Cipher, Z.Notify, Z.Cadencer, Z.ZDB2;
 
 {$REGION 'base Decl'}
@@ -9309,7 +9309,7 @@ var
   tk: TTimeTick;
   P_IO: TPeerIO;
 begin
-  if FPeerIO_HashPool.Count = 0 then
+  if FPeerIO_HashPool.num <= 0 then
     begin
       while FSend_Queue_Swap_Pool.num > 0 do
         begin
@@ -9321,7 +9321,7 @@ begin
     end;
 
   tk := GetTimeTick();
-  if (FProgress_LargeScale_IO_Pool.num = 0) or (FProgressMaxDelay = 0) then
+  if (FProgress_LargeScale_IO_Pool.num <= 0) or (FProgressMaxDelay = 0) then
     begin
       { queue swap technology }
       while FSend_Queue_Swap_Pool.num > 0 do
@@ -9961,19 +9961,17 @@ begin
 
   FProgressWaitRuning := True;
 
+  // disable thread synchronize state
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
+
+  // progress local instance
   try
       Progress;
   except
   end;
-  Enabled_Check_Thread_Synchronize_System := state_;
 
-  try
-      CheckThread;
-  except
-  end;
-
+  // progress global instance
   try
     if ZNet_Instance_Pool__.num > 0 then
       with ZNet_Instance_Pool__.Repeat_ do
@@ -9984,6 +9982,15 @@ begin
           except
           end;
         until not Next;
+  except
+  end;
+
+  // restore thread synchronize state
+  Enabled_Check_Thread_Synchronize_System := state_;
+
+  // check thread synchronize
+  try
+      CheckThread;
   except
   end;
 

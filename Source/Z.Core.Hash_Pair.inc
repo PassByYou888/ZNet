@@ -12,6 +12,13 @@ begin
   inherited Destroy;
 end;
 
+function TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_): PPair__;
+begin
+  Result := List.Add_Null();
+  Result^.Data.Primary := Primary;
+  Result^.Data.Second := Second;
+end;
+
 // *****************************************************************************************************************
 
 constructor TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.Create;
@@ -26,6 +33,14 @@ begin
   inherited Destroy;
 end;
 
+function TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_; Third: T3_): PPair__;
+begin
+  Result := List.Add_Null();
+  Result^.Data.Primary := Primary;
+  Result^.Data.Second := Second;
+  Result^.Data.Third := Third;
+end;
+
 // *****************************************************************************************************************
 
 constructor TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Create;
@@ -38,6 +53,15 @@ destructor TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Destro
 begin
   List.Free;
   inherited Destroy;
+end;
+
+function TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_): PPair__;
+begin
+  Result := List.Add_Null();
+  Result^.Data.Primary := Primary;
+  Result^.Data.Second := Second;
+  Result^.Data.Third := Third;
+  Result^.Data.Fourth := Fourth;
 end;
 
 // *****************************************************************************************************************

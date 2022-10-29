@@ -12,7 +12,7 @@ uses Z.Core,
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib,
-  Z.MemoryStream, Z.GHashList,
+  Z.MemoryStream, Z.HashList.Templet,
   Z.Status, Z.Cipher, Z.ZDB2, Z.ListEngine, Z.TextDataEngine, Z.Notify, Z.IOThread,
   Z.ZDB2.Thread.Queue, Z.ZDB2.Thread;
 

@@ -16,7 +16,7 @@ uses
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2, Z.ZDB2.ObjectDataManager, Z.ZDB2.DFE,
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
-  Z.GHashList,
+  Z.HashList.Templet,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth,
   Z.Net.C4;
 

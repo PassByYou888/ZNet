@@ -16,7 +16,7 @@ uses Variants,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4, Z.Net.C4.VM,
   Z.TextDataEngine,
-  Z.ZDB2.TE, Z.ZDB2, Z.GHashList;
+  Z.ZDB2.TE, Z.ZDB2, Z.HashList.Templet;
 
 type
   TC40_TEKeyValue_VM_Service_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TString_Big_Hash_Pair_Pool<TZDB2_HashTextEngine>;

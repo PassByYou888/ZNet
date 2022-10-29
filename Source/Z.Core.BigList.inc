@@ -13,6 +13,7 @@ begin
       p___ := p___^.Next;
       inc(I___);
     end;
+  Is_Discard___ := False;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Init_(Instance_: T___; BI_, EI_: NativeInt);
@@ -21,6 +22,9 @@ begin
   BI___ := BI_;
   // End Index
   EI___ := EI_;
+  // check
+  if BI___ > EI___ then
+      Swap(BI___, BI___);
   // Current index
   I___ := 0;
   Instance___ := Instance_;
@@ -30,6 +34,12 @@ begin
       p___ := p___^.Next;
       inc(I___);
     end;
+  Is_Discard___ := False;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Discard;
+begin
+  Is_Discard___ := True;
 end;
 
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Next: Boolean;
@@ -42,7 +52,14 @@ begin
     end;
   p___ := p___^.Next;
   Result := I___ < EI___;
-  inc(I___);
+  if Is_Discard___ then
+    begin
+      Is_Discard___ := False;
+      Instance___.Remove_P(p___^.Prev);
+      Dec(EI___);
+    end
+  else
+      inc(I___);
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Init_(Instance_: T___);
@@ -60,6 +77,7 @@ begin
       p___ := p___^.Prev;
       Dec(I___);
     end;
+  Is_Discard___ := False;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Init_(Instance_: T___; BI_, EI_: NativeInt);
@@ -68,6 +86,9 @@ begin
   BI___ := BI_;
   // End Index
   EI___ := EI_;
+  // check
+  if BI___ < EI___ then
+      Swap(BI___, EI___);
   // Current index
   I___ := Instance_.Num - 1;
   Instance___ := Instance_;
@@ -77,6 +98,12 @@ begin
       p___ := p___^.Prev;
       Dec(I___);
     end;
+  Is_Discard___ := False;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Discard;
+begin
+  Is_Discard___ := True;
 end;
 
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Prev: Boolean;
@@ -89,6 +116,12 @@ begin
     end;
   p___ := p___^.Prev;
   Result := I___ > EI___;
+  if Is_Discard___ then
+    begin
+      Is_Discard___ := False;
+      Instance___.Remove_P(p___^.Next);
+      Dec(BI___);
+    end;
   Dec(I___);
 end;
 
@@ -471,12 +504,11 @@ begin
   p2^.Data := tmp;
 end;
 
-function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Found(p1: PQueueStruct): Boolean;
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Found(p1: PQueueStruct): NativeInt;
 var
   i: NativeInt;
   p: PQueueStruct;
 begin
-  Result := True;
   if FNum > 0 then
     begin
       i := 0;
@@ -484,12 +516,12 @@ begin
       while i < FNum do
         begin
           if p = p1 then
-              exit;
+              exit(i);
           inc(i);
           p := p^.Next;
         end;
     end;
-  Result := False;
+  Result := -1;
 end;
 
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data(const Data: T_): PQueueStruct;
@@ -1113,6 +1145,7 @@ begin
       p___ := p___^.Next;
       inc(I___);
     end;
+  Is_Discard___ := False;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Init_(Instance_: T___; BI_, EI_: NativeInt);
@@ -1121,6 +1154,9 @@ begin
   BI___ := BI_;
   // End Index
   EI___ := EI_;
+  // check
+  if BI___ > EI___ then
+      Swap(BI___, BI___);
   // Current index
   I___ := 0;
   Instance___ := Instance_;
@@ -1130,6 +1166,12 @@ begin
       p___ := p___^.Next;
       inc(I___);
     end;
+  Is_Discard___ := False;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Discard;
+begin
+  Is_Discard___ := True;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TRepeat___.Next: Boolean;
@@ -1142,7 +1184,14 @@ begin
     end;
   p___ := p___^.Next;
   Result := I___ < EI___;
-  inc(I___);
+  if Is_Discard___ then
+    begin
+      Is_Discard___ := False;
+      Instance___.Remove_P(p___^.Prev);
+      Dec(EI___);
+    end
+  else
+      inc(I___);
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Init_(Instance_: T___);
@@ -1160,6 +1209,7 @@ begin
       p___ := p___^.Prev;
       Dec(I___);
     end;
+  Is_Discard___ := False;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Init_(Instance_: T___; BI_, EI_: NativeInt);
@@ -1168,6 +1218,9 @@ begin
   BI___ := BI_;
   // End Index
   EI___ := EI_;
+  // check
+  if BI___ < EI___ then
+      Swap(BI___, EI___);
   // Current index
   I___ := Instance_.Num - 1;
   Instance___ := Instance_;
@@ -1177,6 +1230,12 @@ begin
       p___ := p___^.Prev;
       Dec(I___);
     end;
+  Is_Discard___ := False;
+end;
+
+procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Discard;
+begin
+  Is_Discard___ := True;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.TInvert_Repeat___.Prev: Boolean;
@@ -1189,6 +1248,12 @@ begin
     end;
   p___ := p___^.Prev;
   Result := I___ > EI___;
+  if Is_Discard___ then
+    begin
+      Is_Discard___ := False;
+      Instance___.Remove_P(p___^.Next);
+      Dec(BI___);
+    end;
   Dec(I___);
 end;
 
@@ -1605,12 +1670,12 @@ begin
   FCritical__.UnLock;
 end;
 
-function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Found(p1: PQueueStruct): Boolean;
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Found(p1: PQueueStruct): NativeInt;
 var
   i: NativeInt;
   p: PQueueStruct;
 begin
-  Result := False;
+  Result := -1;
   FCritical__.Lock;
   try
     if FNum > 0 then
@@ -1620,7 +1685,7 @@ begin
         while i < FNum do
           begin
             if p = p1 then
-                exit(True);
+                exit(i);
             inc(i);
             p := p^.Next;
           end;
