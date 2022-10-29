@@ -103,7 +103,7 @@ begin
               end;
           until not p_rep_2.Next;
 
-          // build group
+          // build matched
           if successed then
             begin
               Pair_Pool.Add_Pair(p_rep.queue^.Data, tmp_ptr^.Data); // matched
@@ -180,7 +180,7 @@ begin
               end;
           until not p_rep_2.Next;
 
-          // build group
+          // build matched
           if successed then
             begin
               Pair_Pool.Add_Pair(p_rep.queue^.Data, tmp_ptr^.Data); // matched
