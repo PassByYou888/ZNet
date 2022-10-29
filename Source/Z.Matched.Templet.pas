@@ -21,7 +21,8 @@ type
     reject: Single;
     constructor Create(const reject_: Single);
     destructor Destroy; override;
-    function Diff(const p1, p2: T1_): Single; virtual; abstract;
+    function Diff(const Primary_, Second_: T1_): Single; virtual; abstract;
+    procedure Do_Matched(const Primary_, Second_: T1_); virtual;
     function Compute_Matched(): NativeInt; virtual;
   end;
 
@@ -36,7 +37,8 @@ type
     reject: Double;
     constructor Create(const reject_: Double);
     destructor Destroy; override;
-    function Diff(const p1, p2: T1_): Double; virtual; abstract;
+    function Diff(const Primary_, Second_: T1_): Double; virtual; abstract;
+    procedure Do_Matched(const Primary_, Second_: T1_); virtual;
     function Compute_Matched(): NativeInt; virtual;
   end;
 
@@ -59,6 +61,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TBidirectional_Matched{$IFNDEF FPC}<T1_>{$ENDIF FPC}.Do_Matched(const Primary_, Second_: T1_);
+begin
+  Pair_Pool.Add_Pair(Primary_, Second_);
+end;
+
 function TBidirectional_Matched{$IFNDEF FPC}<T1_>{$ENDIF FPC}.Compute_Matched: NativeInt;
 var
   tmp_ptr: TData_Pool___.PQueueStruct;
@@ -67,10 +74,10 @@ var
   successed: Boolean;
 begin
   Result := 0;
+  Pair_Pool.L.Clear;
 
   if (Primary_Pool.Num <= 0) or (Second_Pool.Num <= 0) then
       exit;
-  Pair_Pool.L.Clear;
 
   // bidirectional matched algorithm
   p_rep := Primary_Pool.Repeat_;
@@ -95,26 +102,20 @@ begin
           successed := True;
           p_rep_2 := Primary_Pool.Repeat_;
           repeat
-            if (p_rep.queue <> p_rep_2.queue) and
-              (Diff(tmp_ptr^.Data, p_rep_2.queue^.Data) < min_d) then
-              begin
+            if (p_rep.queue <> p_rep_2.queue) and (Diff(p_rep_2.queue^.Data, tmp_ptr^.Data) < min_d) then
                 successed := False;
-                break;
-              end;
-          until not p_rep_2.Next;
+          until (not successed) or (not p_rep_2.Next);
 
-          // build matched
           if successed then
             begin
-              Pair_Pool.Add_Pair(p_rep.queue^.Data, tmp_ptr^.Data); // matched
+              Do_Matched(p_rep.queue^.Data, tmp_ptr^.Data); // done
               Second_Pool.Remove_P(tmp_ptr); // optimize pool
               inc(Result);
             end;
         end;
 
       p_rep.Discard; // optimize pool
-      // do next
-      if not p_rep.Next then
+      if not p_rep.Next then // do next
           break;
     end;
 end;
@@ -136,6 +137,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TBidirectional_Matched_D{$IFNDEF FPC}<T1_>{$ENDIF FPC}.Do_Matched(const Primary_, Second_: T1_);
+begin
+  Pair_Pool.Add_Pair(Primary_, Second_);
+end;
+
 function TBidirectional_Matched_D{$IFNDEF FPC}<T1_>{$ENDIF FPC}.Compute_Matched: NativeInt;
 var
   tmp_ptr: TData_Pool___.PQueueStruct;
@@ -144,10 +150,10 @@ var
   successed: Boolean;
 begin
   Result := 0;
+  Pair_Pool.L.Clear;
 
   if (Primary_Pool.Num <= 0) or (Second_Pool.Num <= 0) then
       exit;
-  Pair_Pool.L.Clear;
 
   // bidirectional matched algorithm
   p_rep := Primary_Pool.Repeat_;
@@ -172,29 +178,22 @@ begin
           successed := True;
           p_rep_2 := Primary_Pool.Repeat_;
           repeat
-            if (p_rep.queue <> p_rep_2.queue) and
-              (Diff(tmp_ptr^.Data, p_rep_2.queue^.Data) < min_d) then
-              begin
+            if (p_rep.queue <> p_rep_2.queue) and (Diff(p_rep_2.queue^.Data, tmp_ptr^.Data) < min_d) then
                 successed := False;
-                break;
-              end;
-          until not p_rep_2.Next;
+          until (not successed) or (not p_rep_2.Next);
 
-          // build matched
           if successed then
             begin
-              Pair_Pool.Add_Pair(p_rep.queue^.Data, tmp_ptr^.Data); // matched
+              Do_Matched(p_rep.queue^.Data, tmp_ptr^.Data); // done
               Second_Pool.Remove_P(tmp_ptr); // optimize pool
               inc(Result);
             end;
         end;
 
       p_rep.Discard; // optimize pool
-      // do next
-      if not p_rep.Next then
+      if not p_rep.Next then // do next
           break;
     end;
 end;
 
 end.
-
