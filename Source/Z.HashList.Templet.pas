@@ -60,7 +60,7 @@ type
 {$ENDIF FPC}
   public
     Epsilon: Single;
-    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+    constructor Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Single);
     function Get_Key_Hash(const Key_: Single): THash; override;
     function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
@@ -72,7 +72,7 @@ type
 {$ENDIF FPC}
   public
     Epsilon: Double;
-    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+    constructor Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Double);
     function Get_Key_Hash(const Key_: Double): THash; override;
     function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
@@ -119,7 +119,7 @@ type
 {$ENDIF FPC}
   end;
 
-  // **********************************************************************************************************
+// **********************************************************************************************************
 
 {$IFDEF FPC}
   generic TCritical_String_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
@@ -150,7 +150,7 @@ type
 {$ENDIF FPC}
   public
     Epsilon: Single;
-    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+    constructor Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Single);
     function Get_Key_Hash(const Key_: Single): THash; override;
     function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
@@ -162,7 +162,7 @@ type
 {$ENDIF FPC}
   public
     Epsilon: Double;
-    constructor Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+    constructor Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Double);
     function Get_Key_Hash(const Key_: Double): THash; override;
     function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
@@ -209,9 +209,9 @@ type
 {$ENDIF FPC}
   end;
 
-  // **********************************************************************************************************
-  // Compatibility Support: "TGeneric_String_Object_Hash" is stop Updates
-  // **********************************************************************************************************
+// **********************************************************************************************************
+// Compatibility Support: "TGeneric_String_Object_Hash" is stop Updates
+// **********************************************************************************************************
 {$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
@@ -380,7 +380,7 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-constructor TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+constructor TSingle_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Single);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
@@ -399,7 +399,7 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-constructor TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+constructor TDouble_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Double);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
@@ -454,7 +454,7 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-constructor TCritical_Single_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Single);
+constructor TCritical_Single_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Single);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
@@ -473,7 +473,7 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-constructor TCritical_Double_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(HashSize_: integer; Null_Value_: T_; Epsilon_: Double);
+constructor TCritical_Double_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(const HashSize_: integer; const Null_Value_: T_; const Epsilon_: Double);
 begin
   inherited Create(HashSize_, Null_Value_);
   Epsilon := Epsilon_;
