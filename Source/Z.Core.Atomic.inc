@@ -130,7 +130,7 @@ begin
     end;
 end;
 
-function Get_CRC32(Data: PByte; Size: NativeInt): THash;
+function Get_CRC32(const Data: PByte; const Size: NativeInt): THash;
 var
   p: PByte;
   Count: NativeInt;
@@ -139,12 +139,20 @@ begin
   p := Data;
   Count := Size;
   hash := $FFFFFFFF;
-  while Count > 0 do
-    begin
-      hash := ((hash shr 8) and $00FFFFFF) xor C_CRC32Table[(hash xor p^) and $000000FF];
-      Inc(p);
-      Dec(Count);
-    end;
+  if Size > 0 then
+    while Count > 0 do
+      begin
+        hash := ((hash shr 8) and $00FFFFFF) xor C_CRC32Table[(hash xor p^) and $000000FF];
+        Inc(p);
+        Dec(Count);
+      end
+  else
+    while Count < 0 do
+      begin
+        hash := ((hash shr 8) and $00FFFFFF) xor C_CRC32Table[(hash xor p^) and $000000FF];
+        Dec(p);
+        Inc(Count);
+      end;
   Result := hash xor $FFFFFFFF;
 end;
 
