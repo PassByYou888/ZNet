@@ -18,7 +18,7 @@ uses
 {$IFDEF USE_ZLIB_OBJ}
     Z.OverbyteIcsZLibObj;          {interface to access ZLIB C OBJ files}
 {$ELSE}
-    OverbyteIcsZLibDll;          {interface to access zLib1.dll}
+    Z.OverbyteIcsZLibDll;          {interface to access zLib1.dll}
 {$ENDIF}
 
 type

@@ -11,7 +11,7 @@ uses
   System.IOUtils, System.DateUtils, System.TypInfo,
 
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.Status,
-  Z.ListEngine, Z.GHashList, Z.Expression, Z.OpCode, Z.Parsing, Z.DFE, Z.TextDataEngine,
+  Z.ListEngine, Z.HashList.Templet, Z.Expression, Z.OpCode, Z.Parsing, Z.DFE, Z.TextDataEngine,
   Z.Json, Z.Geometry2D, Z.Geometry3D, Z.Number,
   Z.MemoryStream, Z.Cipher, Z.Notify, Z.IOThread,
   Z.Net,

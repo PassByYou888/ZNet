@@ -24,7 +24,7 @@ uses
   Z.Geometry.Rotation in '..\Source\Z.Geometry.Rotation.pas',
   Z.Geometry2D in '..\Source\Z.Geometry2D.pas',
   Z.Geometry3D in '..\Source\Z.Geometry3D.pas',
-  Z.GHashList in '..\Source\Z.GHashList.pas',
+  Z.HashList.Templet in '..\Source\Z.HashList.Templet.pas',
   Z.IOThread in '..\Source\Z.IOThread.pas',
   Z.Json in '..\Source\Z.Json.pas',
   Z.LinearAction in '..\Source\Z.LinearAction.pas',

@@ -13,7 +13,7 @@ uses
   Z.UnicodeMixedLib,
   Z.Status,
   Z.ListEngine,
-  Z.GHashList,
+  Z.HashList.Templet,
   Z.Expression,
   Z.OpCode,
   Z.Parsing,

@@ -1,4 +1,4 @@
-program fpc_c4_LF_cli;
+﻿program fpc_c4_LF_cli;
 
 {$IFDEF FPC}
 {$MODE objfpc}
@@ -23,7 +23,7 @@ uses
   Z.UnicodeMixedLib,
   Z.Status,
   Z.ListEngine,
-  Z.GHashList,
+  Z.HashList.Templet,
   Z.Expression,
   Z.OpCode,
   Z.Parsing,
@@ -479,4 +479,3 @@ begin
     end;
 
 end.
-

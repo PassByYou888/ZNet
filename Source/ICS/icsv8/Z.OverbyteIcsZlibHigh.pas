@@ -79,7 +79,7 @@ uses
 {$IFDEF USE_ZLIB_OBJ}
     Z.OverbyteIcsZLibObj;             {interface to access ZLIB C OBJ files}
 {$ELSE}
-    OverbyteIcsZLibDll;             {interface to access zLib1.dll} { AG V6.02 }
+    Z.OverbyteIcsZLibDll;             {interface to access zLib1.dll} { AG V6.02 }
 {$ENDIF}
 
 

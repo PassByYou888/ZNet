@@ -1,4 +1,4 @@
-program fpc_c4_LF_serv;
+﻿program fpc_c4_LF_serv;
 
 {$IFDEF FPC}
 {$MODE objfpc}
@@ -23,7 +23,7 @@ uses
   Z.UnicodeMixedLib,
   Z.Status,
   Z.ListEngine,
-  Z.GHashList,
+  Z.HashList.Templet,
   Z.Expression,
   Z.OpCode,
   Z.Parsing,
@@ -77,4 +77,3 @@ begin
   Z.Net.C4.C40Clean;
 
 end.
-

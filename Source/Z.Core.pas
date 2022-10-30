@@ -2197,4 +2197,3 @@ finalization
   GlobalMemoryHook := nil;
   Free_System_Critical_Recycle_Pool();
 end.
-
