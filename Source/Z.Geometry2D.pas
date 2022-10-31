@@ -473,6 +473,7 @@ function MinimumDistanceFromPointToLine(const lb, le, pt: TVec2): TGeoFloat; {$I
 // projection
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectProjection(const sour, dest: TRectV2; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function RectProjection(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM} overload;
 function RectProjectionArrayV2(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
 function RectProjectionRotationDest(const sour, dest: TRectV2; const axis: TVec2; const Angle: TGeoFloat; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -838,7 +839,11 @@ type
     procedure LoadFromStream(stream: TMS64);
   end;
 
-  T2DPolygonGraphList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<T2DPolygonGraph>;
+  T2DPolygonGraphList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<T2DPolygonGraph>;
+
+  T2DPolygonGraphList = class(T2DPolygonGraphList_Decl)
+  end;
+
 {$ENDREGION 'PolygonGraph'}
 {$REGION 'DeflectionPolygon'}
 
@@ -1289,6 +1294,7 @@ type
     class procedure Test2();
   end;
 {$ENDREGION 'Hausdorf'}
+
 
 function ArrayVec2(const V: TArrayVec2): TArrayVec2; overload;
 function ArrayVec2(const R: TRectV2): TArrayVec2; overload;
@@ -4113,6 +4119,11 @@ begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
   Result := RectAdd(RectMul(RectSub(sour_rect, s[0]), Vec2Div(RectSize(dest), RectSize(sour))), d[0]);
+end;
+
+function RectProjection(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;
+begin
+  Result := RectProjectionArrayV2(sour, dest, sour_arry);
 end;
 
 function RectProjectionArrayV2(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;
@@ -7309,7 +7320,7 @@ begin
       DisposeObject(m64);
     end;
 
-  d.EncodeTo(stream, False);
+  d.EncodeTo(stream, True);
   DisposeObject(d);
 end;
 
@@ -7321,7 +7332,7 @@ var
 begin
   Clear;
   d := TDFE.Create;
-  d.DecodeFrom(stream, False);
+  d.DecodeFrom(stream, True);
   c := d.Reader.ReadInteger;
 
   m64 := TMS64.Create;
