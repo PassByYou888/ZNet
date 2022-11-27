@@ -8,8 +8,9 @@
       <Unit0>
         <Filename Value="C40AppTemplet.lpr"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="72" Y="13"/>
+        <CursorPos X="58" Y="13"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -19,7 +20,6 @@
         <ComponentName Value="C40AppTempletForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="164"/>
         <CursorPos X="15" Y="195"/>
         <UsageCount Value="22"/>
@@ -165,7 +165,7 @@
         <UsageCount Value="10"/>
       </Unit20>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="c40apptempletfrm.pas"/>
         <Caret Line="68" Column="53" TopLine="40"/>
@@ -282,6 +282,10 @@
         <Filename Value="c40apptempletfrm.pas"/>
         <Caret Line="173" Column="45" TopLine="150"/>
       </Position29>
+      <Position30>
+        <Filename Value="c40apptempletfrm.pas"/>
+        <Caret Line="195" Column="15" TopLine="164"/>
+      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
