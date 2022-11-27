@@ -7,7 +7,7 @@ unit Z.Core;
 
 interface
 
-uses SysUtils, Classes, Types, Variants, SyncObjs,
+uses SysUtils, Classes, Types, Variants, SyncObjs, TypInfo,
   {$IFDEF FPC}
   Z.FPC.GenericList, fgl,
   {$ELSE FPC}
@@ -139,6 +139,8 @@ type
     procedure Release; virtual;
     procedure Enter; virtual;
     procedure Leave; virtual;
+    procedure Lock; virtual;
+    procedure UnLock; virtual;
   end;
 
 {$IFDEF SoftCritical}
@@ -216,6 +218,7 @@ type
     procedure Lock; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
     procedure UnLock; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
     function IsBusy: Boolean;
+    property IsLock: Boolean read IsBusy;
     property Busy: Boolean read IsBusy;
     // atom
     procedure Inc_(var x: Int64); overload;
@@ -379,6 +382,7 @@ type
       Next: PQueueStruct;
       Prev: PQueueStruct;
       Instance___: T___;
+      Recycle___: Boolean;
     end;
 
     TRepeat___ = record
@@ -435,16 +439,16 @@ type
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
-    TSort_C = function(var Left, Right: T_): ShortInt;
+    TSort_C = function(var L, R: T_): Integer;
     TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TSort_M = function(var Left, Right: T_): ShortInt of object;
+    TSort_M = function(var L, R: T_): Integer of object;
     TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
-    TSort_P = function(var Left, Right: T_): ShortInt is nested;
+    TSort_P = function(var L, R: T_): Integer is nested;
 {$ELSE FPC}
     TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TSort_P = reference to function(var Left, Right: T_): ShortInt;
+    TSort_P = reference to function(var L, R: T_): Integer;
 {$ENDIF FPC}
   private
     FRecycle_Pool__: TRecycle_Pool__;
@@ -473,6 +477,7 @@ type
     procedure AddL(L_: T___);
     function Add_Null(): PQueueStruct;
     function Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
+    function CopyFrom(Source_: T___): NativeInt;
     procedure Remove_P(p: PQueueStruct);
     procedure Remove_T(const Data: T_);
     procedure Move_Before(p, To_: PQueueStruct);
@@ -496,7 +501,6 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
-    class procedure Swap_(var Left, Right: T_);
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
@@ -515,6 +519,7 @@ type
     property Count: NativeInt read FNum;
     property OnFree: TOnStruct_Event read FOnFree write FOnFree;
     property OnAdd: TOnStruct_Event read FOnAdd write FOnAdd;
+    class function Null_Data: T_;
 {$IFDEF DEBUG}
     function Test_Check__: Boolean;
     class procedure Test;
@@ -534,6 +539,7 @@ type
       Next: PQueueStruct;
       Prev: PQueueStruct;
       Instance___: T___;
+      Recycle___: Boolean;
     end;
 
     TRepeat___ = record
@@ -590,16 +596,16 @@ type
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
-    TSort_C = function(var Left, Right: T_): ShortInt;
+    TSort_C = function(var L, R: T_): Integer;
     TQueneStructFor_C = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TSort_M = function(var Left, Right: T_): ShortInt of object;
+    TSort_M = function(var L, R: T_): Integer of object;
     TQueneStructFor_M = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TQueneStructFor_P = procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean) is nested;
-    TSort_P = function(var Left, Right: T_): ShortInt is nested;
+    TSort_P = function(var L, R: T_): Integer is nested;
 {$ELSE FPC}
     TQueneStructFor_P = reference to procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-    TSort_P = reference to function(var Left, Right: T_): ShortInt;
+    TSort_P = reference to function(var L, R: T_): Integer;
 {$ENDIF FPC}
   private
     FCritical__: TCritical;
@@ -632,6 +638,7 @@ type
     procedure AddL(L_: T___);
     function Add_Null(): PQueueStruct;
     function Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
+    function CopyFrom(Source_: T___): NativeInt;
     procedure Remove_P(p: PQueueStruct);
     procedure Remove_T(const Data: T_);
     procedure Move_Before(p, To_: PQueueStruct);
@@ -655,7 +662,6 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
-    class procedure Swap_(var Left, Right: T_);
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
@@ -674,6 +680,7 @@ type
     property Count: NativeInt read FNum;
     property OnFree: TOnStruct_Event read FOnFree write FOnFree;
     property OnAdd: TOnStruct_Event read FOnAdd write FOnAdd;
+    class function Null_Data: T_;
 {$IFDEF DEBUG}
     function Test_Check__: Boolean;
     class procedure Test;
@@ -768,6 +775,29 @@ type
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}
+  TPair_Five_Pool<T1_, T2_, T3_, T4_, T5_> = class(TCore_Object)
+  public type
+
+    TPair = record
+      Primary: T1_;
+      Second: T2_;
+      Third: T3_;
+      Fourth: T4_;
+      Five: T5_;
+    end;
+
+    PPair = ^TPair;
+    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    PPair__ = TPair_BigList__.PQueueStruct;
+  public
+    List: TPair_BigList__;
+    property L: TPair_BigList__ read List;
+    constructor Create;
+    destructor Destroy; override;
+    function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
+  end;
+
+  {$IFDEF FPC}generic{$ENDIF FPC}
   TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
   public type
     PKey_ = ^TKey_;
@@ -796,7 +826,7 @@ type
   private
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
-    Null_Value: TValue_;
+    FNull_Value: TValue_;
     FOnAdd: TOn_Event;
     FOnFree: TOn_Event;
     function Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
@@ -805,6 +835,8 @@ type
     procedure Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
     procedure Internal_Do_Free(var Data: TPair);
   public
+    class function Null_Key: TKey_;
+    class function Null_Value: TValue_;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
@@ -879,7 +911,7 @@ type
     FCritical__: TCritical;
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
-    Null_Value: TValue_;
+    FNull_Value: TValue_;
     FOnAdd: TOn_Event;
     FOnFree: TOn_Event;
     function Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
@@ -888,6 +920,8 @@ type
     procedure Internal_Do_Queue_Pool_Free(var Data: PPair_Pool_Value__);
     procedure Internal_Do_Free(var Data: TPair);
   public
+    class function Null_Key: TKey_;
+    class function Null_Value: TValue_;
     property Critical__: TCritical read FCritical__;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
@@ -1070,14 +1104,16 @@ type
     OnDone_C: TRunWithThread_C;
     OnDone_M: TRunWithThread_M;
     OnDone_P: TRunWithThread_P;
-    IsRuning, IsExit: PBoolean;
     FRndInstance: Pointer;
+    IsRuning, IsExit: PBoolean;
   protected
     procedure Execute; override;
     procedure Done_Sync;
   public
     UserData: Pointer;
     UserObject: TCore_Object;
+    property Runing_Ptr: PBoolean read IsRuning;
+    property Exit_Ptr: PBoolean read IsExit;
 
     constructor Create;
     destructor Destroy; override;
@@ -1464,9 +1500,9 @@ procedure AtomInc(var x: Cardinal; const v:Cardinal); {$IFDEF INLINE_ASM} inline
 procedure AtomDec(var x: Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure AtomDec(var x: Cardinal; const v:Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-procedure FillPtrByte(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-procedure FillPtr(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
-procedure FillByte(const dest:Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FillPtrByte(const dest: Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FillPtr(const dest: Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+procedure FillByte(const dest: Pointer; Size: NativeUInt; const Value: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function CompareMemory(const p1, p2: Pointer; Size: NativeUInt): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 procedure CopyPtr(const sour, dest: Pointer; Size: NativeUInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 

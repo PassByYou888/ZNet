@@ -49,6 +49,17 @@ begin
       Result := 0;
 end;
 
+function CompareUInt64(const Int1, Int2: Uint64): integer;
+begin
+  if Int1 < Int2 then
+      Result := -1
+  else
+    if Int1 > Int2 then
+      Result := 1
+  else
+      Result := 0;
+end;
+
 function ComparePointer(const Item1, Item2: pointer): integer;
 begin
   if NativeUInt(Item1) < NativeUInt(Item2) then
@@ -3633,7 +3644,7 @@ begin
       begin
         T := TQualityTriangle2D_(FBadTriangles[0]);
         DoStatus(PFormat('Current min. angle %5.2f in bad triangles (%d)',
-          [ArcCos_(T.Quality) * 180 / pi, FBadTriangles.Count]));
+            [ArcCos_(T.Quality) * 180 / pi, FBadTriangles.Count]));
         SplitBadTriangle(T, false);
         // Deal with possible updates
         UpdateLists;

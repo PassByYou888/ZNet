@@ -32,7 +32,6 @@ uses
 
 type
   TC40AppTempletForm = class(TForm)
-    logMemo: TMemo;
     botSplitter: TSplitter;
     PGControl: TPageControl;
     BuildNetworkTabSheet: TTabSheet;
@@ -93,6 +92,11 @@ type
     c_RadioButton: TRadioButton;
     ServIPEdit: TLabeledEdit;
     Generate_Console_CmdLineButton: TButton;
+    bot_Panel: TPanel;
+    logMemo: TMemo;
+    cmdPanel: TPanel;
+    cmdEdit: TLabeledEdit;
+    run_Cmd_Button: TButton;
     procedure netTimerTimer(Sender: TObject);
     procedure UpdateStateTimerTimer(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -114,6 +118,8 @@ type
     procedure SaaS_Info_TreeViewKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure GenerateCmdLineButtonClick(Sender: TObject);
     procedure Generate_Console_CmdLineButtonClick(Sender: TObject);
+    procedure cmdEditKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure run_Cmd_ButtonClick(Sender: TObject);
   private
     procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
     procedure ReadConfig;
@@ -130,6 +136,9 @@ type
     procedure UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel; dest: TStrings); overload;
     procedure UpdateSaaSInfo;
     class function GetPathTreeNode(Text_, Path_Split_: U_String; TreeView_: TTreeView; RootNode_: TTreeNode): TTreeNode;
+    procedure DisableAllComp(comp: TComponent);
+    procedure DoDisableAllComp;
+    procedure Do_Init_CmdLine;
   public
     IsCommandLineWorkEnvir: Boolean;
     constructor Create(AOwner: TComponent); override;
@@ -143,6 +152,7 @@ var
   C40AppParsingTextStyle: TTextStyle = TTextStyle.tsPascal;
   On_C40_PhysicsTunnel_Event: IC40_PhysicsTunnel_Event = nil;
   On_C40_PhysicsService_Event: IC40_PhysicsService_Event = nil;
+  C40_Console_Help: TC40_Console_Help;
 
 procedure InitC40AppParamFromSystemCmdLine;
 
@@ -637,11 +647,26 @@ begin
   disposeObject(param);
 end;
 
+procedure TC40AppTempletForm.cmdEditKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_RETURN then
+      run_Cmd_ButtonClick(run_Cmd_Button);
+end;
+
+procedure TC40AppTempletForm.run_Cmd_ButtonClick(Sender: TObject);
+begin
+  C40_Console_Help.Update_opRT;
+  C40_Console_Help.IsExit := False;
+  C40_Console_Help.Run_HelpCmd(cmdEdit.Text);
+  if C40_Console_Help.IsExit then
+      Close;
+end;
+
 procedure TC40AppTempletForm.DoStatus_backcall(Text_: SystemString; const ID: Integer);
 begin
   if logMemo.Lines.Count > 2000 then
       logMemo.Clear;
-  logMemo.Lines.Add(DateTimeToStr(now) + ' ' + Text_);
+  logMemo.Lines.Add(Text_);
 end;
 
 procedure TC40AppTempletForm.ReadConfig;
@@ -1022,14 +1047,14 @@ begin
       phy_tunnel := C40_PhysicsTunnelPool[i];
       dpc_arry := phy_tunnel.DependNetworkClientPool.SearchClass(Z.Net.C4.TC40_Dispatch_Client, True);
       for j := 0 to length(dpc_arry) - 1 do
-          L.MergeAndUpdateWorkload(Z.Net.C4.TC40_Dispatch_Client(dpc_arry[j]).ServiceInfoList);
+          L.MergeAndUpdateWorkload(Z.Net.C4.TC40_Dispatch_Client(dpc_arry[j]).Service_Info_Pool);
     end;
   for i := 0 to C40_PhysicsServicePool.Count - 1 do
     begin
       phy_serv := C40_PhysicsServicePool[i];
       dps_arry := phy_serv.DependNetworkServicePool.GetFromClass(Z.Net.C4.TC40_Dispatch_Service);
       for j := 0 to length(dps_arry) - 1 do
-          L.MergeAndUpdateWorkload(Z.Net.C4.TC40_Dispatch_Service(dps_arry[j]).ServiceInfoList);
+          L.MergeAndUpdateWorkload(Z.Net.C4.TC40_Dispatch_Service(dps_arry[j]).Service_Info_Pool);
     end;
   for i := 0 to L.Count - 1 do
     begin
@@ -1150,6 +1175,60 @@ begin
     end;
 end;
 
+procedure TC40AppTempletForm.DisableAllComp(comp: TComponent);
+var
+  i: Integer;
+begin
+  if (comp is TWinControl) and (TWinControl(comp).Parent = cmd_tool_TabSheet) then
+      exit;
+  if (comp is TWinControl) and (TWinControl(comp).Parent = cmdPanel) then
+      exit;
+  if (comp is TCustomEdit) then
+    begin
+      if not(comp is TCustomMemo) then
+        begin
+          TEdit(comp).Color := clBtnface;
+          TEdit(comp).Enabled := False;
+        end;
+    end
+  else if (comp is TCustomComboBox) then
+    begin
+      TComboBox(comp).Color := clBtnface;
+      TComboBox(comp).Enabled := False;
+    end
+  else if (comp is TCustomCheckBox) then
+    begin
+      TCheckBox(comp).Font.Color := clBtnface;
+      TCheckBox(comp).Enabled := False;
+    end
+  else if (comp is TCustomButton) then
+    begin
+      TButton(comp).Font.Color := clBtnface;
+      TButton(comp).Enabled := False;
+    end;
+
+  for i := 0 to comp.ComponentCount - 1 do
+      DisableAllComp(comp.Components[i]);
+end;
+
+procedure TC40AppTempletForm.DoDisableAllComp;
+begin
+  DisableAllComp(self);
+end;
+
+procedure TC40AppTempletForm.Do_Init_CmdLine;
+begin
+  ExtractAndProcessCmdLine(C40AppParam);
+  ReloadOpt;
+  ReadConfig;
+
+  cmdLineTitleEdit.Text := Caption;
+  cmdLineAppTitleEdit.Text := Application.Title;
+
+  DependNetListView.Height := DependNetListView.Height - 1;
+  ServiceListView.Height := ServiceListView.Height - 1;
+end;
+
 constructor TC40AppTempletForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -1160,18 +1239,7 @@ begin
   RefreshDependReg('DP');
   RefreshServiceReg('DP');
 
-  ExtractAndProcessCmdLine(C40AppParam);
-  ReloadOpt;
-  ReadConfig;
-
-  cmdLineTitleEdit.Text := Caption;
-  cmdLineAppTitleEdit.Text := Application.Title;
-
-  SysProgress.PostP1(procedure
-    begin
-      DependNetListView.Height := DependNetListView.Height - 1;
-      ServiceListView.Height := ServiceListView.Height - 1;
-    end);
+  SysProgress.PostM1(Do_Init_CmdLine);
 end;
 
 destructor TC40AppTempletForm.Destroy;
@@ -1182,45 +1250,6 @@ begin
 end;
 
 function TC40AppTempletForm.ExtractAndProcessCmdLine(param_: U_StringArray): Boolean;
-  procedure DoDisableAllComp(comp: TComponent);
-  var
-    i: Integer;
-  begin
-    if (comp is TWinControl) and (TWinControl(comp).Parent = cmd_tool_TabSheet) then
-        exit;
-    if (comp is TCustomEdit) then
-      begin
-        if not(comp is TCustomMemo) then
-          begin
-            TEdit(comp).Color := clBtnface;
-            TEdit(comp).Enabled := False;
-          end;
-      end
-    else if (comp is TCustomComboBox) then
-      begin
-        TComboBox(comp).Color := clBtnface;
-        TComboBox(comp).Enabled := False;
-      end
-    else if (comp is TCustomListView) then
-      begin
-        TListView(comp).Color := clBtnface;
-        TListView(comp).Enabled := False;
-      end
-    else if (comp is TCustomCheckBox) then
-      begin
-        TCheckBox(comp).Font.Color := clBtnface;
-        TCheckBox(comp).Enabled := False;
-      end
-    else if (comp is TCustomButton) then
-      begin
-        TButton(comp).Font.Color := clBtnface;
-        TButton(comp).Enabled := False;
-      end;
-
-    for i := 0 to comp.ComponentCount - 1 do
-        DoDisableAllComp(comp.Components[i]);
-  end;
-
 var
   error_: Boolean;
   IsInited_: Boolean;
@@ -1295,7 +1324,7 @@ begin
           end;
 
         if DisableUI then
-            DoDisableAllComp(self);
+            SysPost.PostExecuteM_NP(1.0, DoDisableAllComp);
 
         if cs.Service_NetInfo_List.Count > 0 then
           begin
@@ -1351,5 +1380,11 @@ SetLength(C40AppParam, 0);
 C40AppParsingTextStyle := TTextStyle.tsPascal;
 On_C40_PhysicsTunnel_Event := nil;
 On_C40_PhysicsService_Event := nil;
+C40_Console_Help := TC40_Console_Help.Create;
+C40_Console_Help.HelpTextStyle := tsPascal;
+
+finalization
+
+DisposeObjectAndNil(C40_Console_Help);
 
 end.

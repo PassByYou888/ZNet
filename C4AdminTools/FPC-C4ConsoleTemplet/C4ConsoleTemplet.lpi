@@ -40,7 +40,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\Source;..\..\Source\Synapse.FPC;..\..\Source\Synapse.FPC\source;..\..\Source\MM\jemalloc4p\Source"/>
+      <OtherUnitFiles Value="..\..\..;..\..\..\ObjectData;..\..;..\..\..\Server\Synapse.FPC;..\..\..\Server\Synapse.FPC\source;..\..\..\MM\jemalloc4p\Source;..\..\..\ScriptEngine"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
   </CompilerOptions>

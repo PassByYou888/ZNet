@@ -2,9 +2,9 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
-    <Units Count="3">
+    <Units Count="6">
       <Unit0>
         <Filename Value="DTC40_Log_AdminTool.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -21,7 +21,8 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="DTC40_Log_AdminToolFrm"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="68" Y="23"/>
+        <TopLine Value="117"/>
+        <CursorPos X="44" Y="128"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -34,68 +35,153 @@
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="C:\lazarus\lcl\lcltype.pp"/>
+        <UnitName Value="LCLType"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="22"/>
+        <CursorPos X="22" Y="34"/>
+        <UsageCount Value="10"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\Z.PascalStrings.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2"/>
+        <CursorPos X="2" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="C:\lazarus\lcl\interfaces\carbon\agl.pp"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="428"/>
+        <CursorPos X="39" Y="20"/>
+        <UsageCount Value="10"/>
+      </Unit5>
     </Units>
-    <JumpHistory Count="14" HistoryIndex="13">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="12"/>
+        <Caret Line="486" Column="5" TopLine="452"/>
       </Position1>
       <Position2>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="486" Column="5" TopLine="452"/>
+        <Caret Line="45" TopLine="13"/>
       </Position2>
       <Position3>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="45" TopLine="13"/>
+        <Caret Line="86" TopLine="86"/>
       </Position3>
       <Position4>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="86" TopLine="86"/>
+        <Caret Line="521" Column="5" TopLine="487"/>
       </Position4>
       <Position5>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="521" Column="5" TopLine="487"/>
+        <Caret Line="138" Column="42" TopLine="117"/>
       </Position5>
       <Position6>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="138" Column="42" TopLine="117"/>
+        <Caret Line="192" Column="23" TopLine="175"/>
       </Position6>
       <Position7>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="192" Column="23" TopLine="175"/>
+        <Caret Line="336" TopLine="316"/>
       </Position7>
       <Position8>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="336" TopLine="316"/>
+        <Caret Line="369" Column="28" TopLine="352"/>
       </Position8>
       <Position9>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="369" Column="28" TopLine="352"/>
+        <Caret Line="405" TopLine="383"/>
       </Position9>
       <Position10>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="405" TopLine="383"/>
+        <Caret Line="433" TopLine="417"/>
       </Position10>
       <Position11>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="433" TopLine="417"/>
+        <Caret Line="440" TopLine="423"/>
       </Position11>
       <Position12>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="440" TopLine="423"/>
+        <Caret Line="475" TopLine="458"/>
       </Position12>
       <Position13>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="475" TopLine="458"/>
+        <Caret Line="487" TopLine="470"/>
       </Position13>
       <Position14>
         <Filename Value="dtc40_log_admintoolfrm.pas"/>
-        <Caret Line="487" TopLine="470"/>
+        <Caret Line="22" Column="7"/>
       </Position14>
+      <Position15>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="27" Column="18"/>
+      </Position15>
+      <Position16>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="500" Column="36" TopLine="472"/>
+      </Position16>
+      <Position17>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="46" TopLine="18"/>
+      </Position17>
+      <Position18>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="533" Column="5" TopLine="499"/>
+      </Position18>
+      <Position19>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+      </Position19>
+      <Position20>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="193" Column="23" TopLine="176"/>
+      </Position20>
+      <Position21>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="348" TopLine="328"/>
+      </Position21>
+      <Position22>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="381" Column="28" TopLine="364"/>
+      </Position22>
+      <Position23>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="412" Column="19" TopLine="395"/>
+      </Position23>
+      <Position24>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="417" Column="21" TopLine="400"/>
+      </Position24>
+      <Position25>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="445" Column="27" TopLine="429"/>
+      </Position25>
+      <Position26>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="450" Column="97" TopLine="422"/>
+      </Position26>
+      <Position27>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="487" Column="37" TopLine="470"/>
+      </Position27>
+      <Position28>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="499" Column="26" TopLine="482"/>
+      </Position28>
+      <Position29>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="517" Column="34" TopLine="496"/>
+      </Position29>
+      <Position30>
+        <Filename Value="dtc40_log_admintoolfrm.pas"/>
+        <Caret Line="328" Column="36" TopLine="311"/>
+      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode=""/>
+      <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
 </CONFIG>

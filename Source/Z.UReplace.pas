@@ -15,6 +15,9 @@ uses
 
 type
   TU_Batch = record
+  private
+    procedure Swap_(var inst: TU_Batch);
+  public
     sour, dest: TUPascalString;
     sum: Integer;
   end;
@@ -66,6 +69,13 @@ function U_ComputeTextPoint(p: PUPascalString; Pos_: Integer): TPoint;
 implementation
 
 uses Z.MemoryStream, Variants;
+
+procedure TU_Batch.Swap_(var inst: TU_Batch);
+begin
+  sour.SwapInstance(inst.sour);
+  dest.SwapInstance(inst.dest);
+  swap(sum, inst.sum);
+end;
 
 function U_BuildBatch(L: THashStringList): TU_ArrayBatch;
 var
@@ -145,30 +155,47 @@ procedure U_SortBatch(var arry: TU_ArrayBatch);
     i, j: Integer;
     p: TU_Batch;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := arry[(L + r) shr 1];
-      repeat
-        while Compare_(arry[i], p) < 0 do
-            inc(i);
-        while Compare_(arry[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < r then
+      begin
+        repeat
+          if (r - L) = 1 then
+            begin
+              if Compare_(arry[L], arry[r]) > 0 then
+                  arry[L].Swap_(arry[r]);
+              break;
+            end;
+          i := L;
+          j := r;
+          p := arry[(L + r) shr 1];
+          repeat
+            while Compare_(arry[i], p) < 0 do
+                inc(i);
+            while Compare_(arry[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                arry[i].sour.SwapInstance(arry[j].sour);
-                arry[i].dest.SwapInstance(arry[j].dest);
+                if i <> j then
+                  begin
+                    arry[i].Swap_(arry[j]);
+                  end;
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (r - i) then
+            begin
+              if i < r then
+                  fastSort_(i, r);
+              r := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(L, j);
+              L := i;
+            end;
+        until L >= r;
+      end;
   end;
 
 begin
@@ -180,7 +207,7 @@ function U_CharIsSymbol(c: USystemChar): Boolean;
 begin
   Result := UCharIn(c,
     [#13, #10, #9, #32, #46, #44, #43, #45, #42, #47, #40, #41, #59, #58, #61, #35, #64, #94,
-    #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
+      #38, #37, #33, #34, #91, #93, #60, #62, #63, #123, #125, #39, #36, #124]);
 end;
 
 function U_CharIsSymbol(c: USystemChar; const CustomSymbol_: TUArrayChar): Boolean;

@@ -2,15 +2,14 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
-    <Units Count="17">
+    <Units Count="21">
       <Unit0>
         <Filename Value="C40AppTemplet.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="94" Y="24"/>
+        <CursorPos X="72" Y="13"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -20,9 +19,13 @@
         <ComponentName Value="C40AppTempletForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <TopLine Value="127"/>
-        <CursorPos X="62" Y="146"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="164"/>
+        <CursorPos X="15" Y="195"/>
         <UsageCount Value="22"/>
+        <Bookmarks Count="1">
+          <Item0 X="60" Y="566" ID="1"/>
+        </Bookmarks>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -36,7 +39,7 @@
       <Unit3>
         <Filename Value="c40apptempletfrm.lfm"/>
         <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="9"/>
+        <CursorPos X="22" Y="5"/>
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit3>
@@ -88,7 +91,7 @@
         <UnitName Value="Dialogs"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="735"/>
-        <CursorPos X="10" Y="758"/>
+        <CursorPos X="10" Y="754"/>
         <UsageCount Value="10"/>
       </Unit10>
       <Unit11>
@@ -133,128 +136,152 @@
         <CursorPos X="62" Y="23"/>
         <UsageCount Value="10"/>
       </Unit16>
+      <Unit17>
+        <Filename Value="..\..\Z.Net.C4_PascalRewrite_Service.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="63" Y="20"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="C:\lazarus64\lcl\dialogs.pp"/>
+        <UnitName Value="Dialogs"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="734"/>
+        <CursorPos X="10" Y="755"/>
+        <UsageCount Value="10"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="..\..\..\Z.PascalStrings.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1244"/>
+        <CursorPos Y="1247"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="C:\lazarus64\lcl\lcltype.pp"/>
+        <UnitName Value="LCLType"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="23" Y="34"/>
+        <UsageCount Value="10"/>
+      </Unit20>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="20"/>
+        <Caret Line="68" Column="53" TopLine="40"/>
       </Position1>
       <Position2>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="481" TopLine="459"/>
+        <Caret Line="167" Column="29" TopLine="144"/>
       </Position2>
       <Position3>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="463" Column="3" TopLine="436"/>
+        <Caret Line="404" Column="34" TopLine="383"/>
       </Position3>
       <Position4>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="962" TopLine="936"/>
+        <Caret Line="410" Column="29" TopLine="389"/>
       </Position4>
       <Position5>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="983" Column="26" TopLine="960"/>
+        <Caret Line="141" Column="14" TopLine="121"/>
       </Position5>
       <Position6>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="995" TopLine="973"/>
+        <Caret Line="418" Column="27" TopLine="391"/>
       </Position6>
       <Position7>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1131" Column="48" TopLine="1108"/>
+        <Caret Line="417" Column="61" TopLine="396"/>
       </Position7>
       <Position8>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1147" Column="41" TopLine="1118"/>
+        <Caret Line="471" Column="34" TopLine="436"/>
       </Position8>
       <Position9>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="124" TopLine="93"/>
+        <Caret Line="464" Column="76" TopLine="442"/>
       </Position9>
       <Position10>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="474" Column="30" TopLine="457"/>
+        <Caret Line="474" Column="76" TopLine="449"/>
       </Position10>
       <Position11>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="123" Column="18" TopLine="107"/>
+        <Caret Line="496" Column="9" TopLine="475"/>
       </Position11>
       <Position12>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="521" Column="43" TopLine="504"/>
+        <Caret Line="573" Column="70" TopLine="543"/>
       </Position12>
       <Position13>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="48" TopLine="22"/>
+        <Caret Line="496" TopLine="475"/>
       </Position13>
       <Position14>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1204" Column="5" TopLine="1163"/>
+        <Caret Line="494" Column="58" TopLine="475"/>
       </Position14>
       <Position15>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="55" Column="53" TopLine="37"/>
+        <Caret Line="583" Column="44" TopLine="559"/>
       </Position15>
       <Position16>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="54" Column="46" TopLine="37"/>
+        <Caret Line="561" Column="3" TopLine="537"/>
       </Position16>
       <Position17>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="32" Column="91" TopLine="10"/>
+        <Caret Line="603" Column="44" TopLine="581"/>
       </Position17>
       <Position18>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="150" Column="29" TopLine="129"/>
+        <Caret Line="640" Column="31" TopLine="607"/>
       </Position18>
       <Position19>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1204" Column="5" TopLine="1163"/>
+        <Caret Line="662" Column="50" TopLine="641"/>
       </Position19>
       <Position20>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="295" TopLine="260"/>
+        <Caret Line="900" TopLine="880"/>
       </Position20>
       <Position21>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="351" Column="27" TopLine="323"/>
+        <Caret Line="181" TopLine="147"/>
       </Position21>
       <Position22>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="358" Column="27" TopLine="337"/>
+        <Caret Line="1184" Column="108" TopLine="1163"/>
       </Position22>
       <Position23>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="406" Column="34" TopLine="371"/>
+        <Caret Line="1187" Column="123" TopLine="1167"/>
       </Position23>
       <Position24>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="430" Column="60" TopLine="409"/>
+        <Caret Line="1262" Column="26" TopLine="1242"/>
       </Position24>
       <Position25>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="501" Column="49" TopLine="481"/>
+        <Caret Line="1268" Column="23" TopLine="1247"/>
       </Position25>
       <Position26>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="991" Column="60" TopLine="965"/>
+        <Caret Line="1353" Column="43" TopLine="1332"/>
       </Position26>
       <Position27>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1009" Column="26" TopLine="989"/>
+        <Caret Line="1367" Column="48" TopLine="1347"/>
       </Position27>
       <Position28>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1021" TopLine="995"/>
+        <Caret Line="1383" TopLine="1363"/>
       </Position28>
       <Position29>
         <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="1162" Column="48" TopLine="1137"/>
+        <Caret Line="173" Column="45" TopLine="150"/>
       </Position29>
-      <Position30>
-        <Filename Value="c40apptempletfrm.pas"/>
-        <Caret Line="146" Column="62" TopLine="127"/>
-      </Position30>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

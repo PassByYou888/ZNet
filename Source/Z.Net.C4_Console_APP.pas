@@ -25,427 +25,20 @@ uses
   Z.Net.PhysicsIO, Z.Net.C4_NetDisk_Client, Z.Net.C4_NetDisk_Directory,
   Z.Net.C4_NetDisk_Service;
 
-type
-  TC40_Console_Help = class
-  private
-    procedure UpdateServiceInfo; overload;
-    procedure UpdateServiceInfo(phy_serv: TC40_PhysicsService); overload;
-    procedure UpdateTunnelInfo; overload;
-    procedure UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel); overload;
-    function Do_Help(var OP_Param: TOpParam): Variant;
-    function Do_Exit(var OP_Param: TOpParam): Variant;
-    function Do_Service(var OP_Param: TOpParam): Variant;
-    function Do_Tunnel(var OP_Param: TOpParam): Variant;
-    function Do_Reg(var OP_Param: TOpParam): Variant;
-    function Do_Cmd(var OP_Param: TOpParam): Variant;
-    function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-  public
-    opRT: TOpCustomRunTime;
-    HelpTextStyle: TTextStyle;
-    IsExit: Boolean;
-    constructor Create; virtual;
-    destructor Destroy; override;
-    function Run_HelpCmd(Expression: U_String): Boolean;
-  end;
-
 var
   C40AppParam: U_StringArray;
   C40AppParsingTextStyle: TTextStyle;
-  On_C40_PhysicsTunnel_Event: IC40_PhysicsTunnel_Event;
-  On_C40_PhysicsService_Event: IC40_PhysicsService_Event;
+  On_C40_PhysicsTunnel_Event_Console: IC40_PhysicsTunnel_Event;
+  On_C40_PhysicsService_Event_Console: IC40_PhysicsService_Event;
 
 procedure C40_Init_AppParamFromSystemCmdLine;
-function C40_Extract_CmdLine(): Boolean;
+function C40_Extract_CmdLine(): Boolean; overload;
+function C40_Extract_CmdLine(const Param_: U_StringArray): Boolean; overload;
+function C40_Extract_CmdLine(const TextStyle_: TTextStyle; const Param_: U_StringArray): Boolean; overload;
 
 implementation
 
 uses Variants;
-
-procedure TC40_Console_Help.UpdateServiceInfo;
-var
-  i: Integer;
-  phy_serv: TC40_PhysicsService;
-begin
-  for i := 0 to C40_PhysicsServicePool.Count - 1 do
-    begin
-      phy_serv := C40_PhysicsServicePool[i];
-      DoStatus('service "%s" port:%d connection workload:%d send:%s receive:%s',
-        [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort, phy_serv.PhysicsTunnel.Count,
-          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text,
-          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text
-          ]);
-    end;
-end;
-
-procedure TC40_Console_Help.UpdateServiceInfo(phy_serv: TC40_PhysicsService);
-var
-  i, j: Integer;
-  custom_serv: TC40_Custom_Service;
-  s_recv_, s_send_: TZNet_WithP2PVM_Server;
-begin
-  DoStatus('Physics service: "%s" Unit: "%s"', [phy_serv.PhysicsTunnel.ClassName, phy_serv.PhysicsTunnel.UnitName + '.pas']);
-  DoStatus('Physics service workload: %d', [phy_serv.PhysicsTunnel.Count]);
-  DoStatus('Physics service receive:%s, send:%s ', [umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text]);
-  DoStatus('Physcis Listening ip: "%s" Port: %d', [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort]);
-  DoStatus('Listening Successed: %s', [if_(phy_serv.Activted, 'Yes', 'Failed')]);
-  for i := 0 to phy_serv.DependNetworkServicePool.Count - 1 do
-    begin
-      DoStatus('--------------------------------------------', []);
-      custom_serv := phy_serv.DependNetworkServicePool[i];
-      DoStatus('Type: %s', [custom_serv.ServiceInfo.ServiceTyp.Text]);
-      DoStatus('workload: %d / %d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]);
-      if custom_serv.Get_P2PVM_Service(s_recv_, s_send_) then
-          DoStatus('receive:%s send:%s',
-          [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(s_recv_.Statistics[stSendSize]).Text]);
-      DoStatus('Only Instance: %s', [if_(custom_serv.ServiceInfo.OnlyInstance, 'Yes', 'More Instance.')]);
-      DoStatus('Hash: %s', [umlMD5ToStr(custom_serv.ServiceInfo.Hash).Text]);
-      DoStatus('Alias or Hash: %s', [custom_serv.AliasOrHash.Text]);
-      DoStatus('Class: "%s" Unit: "%s"', [custom_serv.ClassName, custom_serv.UnitName + '.pas']);
-      DoStatus('Receive Tunnel IP: %s Port: %d',
-        [custom_serv.ServiceInfo.p2pVM_RecvTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_RecvTunnel_Port]);
-      DoStatus('Send Tunnel IP: %s Port: %d',
-        [custom_serv.ServiceInfo.p2pVM_SendTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_SendTunnel_Port]);
-      DoStatus('Workload: %d/%d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]);
-      DoStatus('Parameter', []);
-      DoStatus('{', []);
-      DoStatus(#9 + umlReplace(custom_serv.ParamList.AsText, #13#10, #13#10#9, False, False));
-      DoStatus('}', []);
-    end;
-  DoStatus('', []);
-end;
-
-procedure TC40_Console_Help.UpdateTunnelInfo;
-var
-  i: Integer;
-  phy_tunnel: TC40_PhysicsTunnel;
-begin
-  for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-    begin
-      phy_tunnel := C40_PhysicsTunnelPool[i];
-      DoStatus('tunnel "%s" port:%d send:%s receive:%s',
-        [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort,
-          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text,
-          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text
-          ]);
-    end;
-end;
-
-procedure TC40_Console_Help.UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel);
-var
-  i: Integer;
-  custom_client: TC40_Custom_Client;
-  c_recv_, c_send_: TZNet_WithP2PVM_Client;
-begin
-  DoStatus('Physics tunnel: "%s" Unit: "%s"', [phy_tunnel.PhysicsTunnel.ClassName, phy_tunnel.PhysicsTunnel.UnitName + '.pas']);
-  DoStatus('Physcis ip: "%s" Port: %d', [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort]);
-  DoStatus('Physcis Connected: %s', [if_(phy_tunnel.PhysicsTunnel.Connected, 'Yes', 'Failed')]);
-  DoStatus('Physics receive:%s, send:%s ', [umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text]);
-  for i := 0 to phy_tunnel.DependNetworkClientPool.Count - 1 do
-    begin
-      DoStatus('--------------------------------------------', []);
-      custom_client := phy_tunnel.DependNetworkClientPool[i];
-      DoStatus('Type: %s', [custom_client.ClientInfo.ServiceTyp.Text]);
-      DoStatus('Connected: %s', [if_(custom_client.Connected, 'Yes', 'Failed')]);
-      if custom_client.Get_P2PVM_Tunnel(c_recv_, c_send_) then
-          DoStatus('receive:%s send:%s',
-          [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(c_recv_.Statistics[stSendSize]).Text]);
-      DoStatus('Only Instance: %s', [if_(custom_client.ClientInfo.OnlyInstance, 'Yes', 'More Instance.')]);
-      DoStatus('Hash: %s', [umlMD5ToStr(custom_client.ClientInfo.Hash).Text]);
-      DoStatus('Alias or Hash: %s', [custom_client.AliasOrHash.Text]);
-      DoStatus('Class: "%s" Unit: "%s"', [custom_client.ClassName, custom_client.UnitName + '.pas']);
-      DoStatus('Receive Tunnel IP: %s Port: %d',
-        [custom_client.ClientInfo.p2pVM_RecvTunnel_Addr.Text, custom_client.ClientInfo.p2pVM_RecvTunnel_Port]);
-      DoStatus('Send Tunnel IP: %s Port: %d',
-        [custom_client.ClientInfo.p2pVM_SendTunnel_Addr.Text, custom_client.ClientInfo.p2pVM_SendTunnel_Port]);
-      DoStatus('Workload: %d/%d', [custom_client.ClientInfo.Workload, custom_client.ClientInfo.MaxWorkload]);
-      DoStatus('Parameter', []);
-      DoStatus('{', []);
-      DoStatus(#9 + umlReplace(custom_client.ParamList.AsText, #13#10, #13#10#9, False, False));
-      DoStatus('}', []);
-    end;
-  DoStatus('', []);
-end;
-
-function TC40_Console_Help.Do_Help(var OP_Param: TOpParam): Variant;
-var
-  i: Integer;
-  L: TPascalStringList;
-begin
-  L := opRT.GetAllProcDescription(True, '*');
-  for i := 0 to L.Count - 1 do
-      DoStatus(L[i]);
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Exit(var OP_Param: TOpParam): Variant;
-begin
-  IsExit := True;
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Service(var OP_Param: TOpParam): Variant;
-var
-  i: Integer;
-  ip: U_String;
-  port: word;
-begin
-  if length(OP_Param) = 1 then
-    begin
-      ip := VarToStr(OP_Param[0]);
-      for i := 0 to C40_PhysicsServicePool.Count - 1 do
-        begin
-          if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
-              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) then
-              UpdateServiceInfo(C40_PhysicsServicePool[i]);
-        end;
-    end
-  else if length(OP_Param) = 2 then
-    begin
-      ip := VarToStr(OP_Param[0]);
-      port := OP_Param[1];
-      for i := 0 to C40_PhysicsServicePool.Count - 1 do
-        begin
-          if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
-              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) and (port = C40_PhysicsServicePool[i].PhysicsPort) then
-              UpdateServiceInfo(C40_PhysicsServicePool[i]);
-        end;
-    end
-  else
-    begin
-      UpdateServiceInfo();
-    end;
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Tunnel(var OP_Param: TOpParam): Variant;
-var
-  i: Integer;
-  ip: U_String;
-  port: word;
-begin
-  if length(OP_Param) = 1 then
-    begin
-      ip := VarToStr(OP_Param[0]);
-      for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-        begin
-          if umlMultipleMatch(ip, C40_PhysicsTunnelPool[i].PhysicsAddr) then
-              UpdateTunnelInfo(C40_PhysicsTunnelPool[i]);
-        end;
-    end
-  else if length(OP_Param) = 2 then
-    begin
-      ip := VarToStr(OP_Param[0]);
-      port := OP_Param[1];
-      for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-        begin
-          if umlMultipleMatch(ip, C40_PhysicsTunnelPool[i].PhysicsAddr)
-            and (port = C40_PhysicsTunnelPool[i].PhysicsPort) then
-              UpdateTunnelInfo(C40_PhysicsTunnelPool[i]);
-        end;
-    end
-  else
-    begin
-      UpdateTunnelInfo();
-    end;
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Reg(var OP_Param: TOpParam): Variant;
-begin
-  C40_Registed.Print;
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Cmd(var OP_Param: TOpParam): Variant;
-var
-  i: Integer;
-begin
-  for i := low(C40AppParam) to high(C40AppParam) do
-      DoStatus(C40AppParam[i]);
-  Result := True;
-end;
-
-function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-var
-  tk: TTimeTick;
-  LName: U_String;
-  i: Integer;
-  cc: TC4_Help_Console_Command;
-  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
-  rData: TC4_Help_Console_Command_Data;
-begin
-  tk := GetTimeTick;
-  LName := Sender.Trigger^.Name;
-  for i := 0 to C40_ServicePool.Count - 1 do
-    begin
-      cc := C40_ServicePool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if LName.Same(rData.Cmd) then
-              begin
-                rData.DoExecute(OP_Param);
-                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ServicePool[i].ClassName, C40_ServicePool[i].ServiceInfo.ServiceTyp.Text]);
-              end;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_ClientPool.Count - 1 do
-    begin
-      cc := C40_ClientPool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if LName.Same(rData.Cmd) then
-              begin
-                rData.DoExecute(OP_Param);
-                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ClientPool[i].ClassName, C40_ClientPool[i].ClientInfo.ServiceTyp.Text]);
-              end;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_VM_Service_Pool.Count - 1 do
-    begin
-      cc := C40_VM_Service_Pool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if LName.Same(rData.Cmd) then
-              begin
-                rData.DoExecute(OP_Param);
-                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Service_Pool[i].ClassName]);
-              end;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_VM_Client_Pool.Count - 1 do
-    begin
-      cc := C40_VM_Client_Pool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if LName.Same(rData.Cmd) then
-              begin
-                rData.DoExecute(OP_Param);
-                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Client_Pool[i].ClassName]);
-              end;
-          until not __repeat__.Next;
-        end;
-    end;
-  DoStatus('request reopen.');
-  Result := GetTimeTick - tk;
-end;
-
-constructor TC40_Console_Help.Create;
-var
-  i: Integer;
-  cc: TC4_Help_Console_Command;
-  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
-  rData: TC4_Help_Console_Command_Data;
-begin
-  inherited Create;
-  opRT := TOpCustomRunTime.Create;
-  HelpTextStyle := C40AppParsingTextStyle;
-  IsExit := False;
-
-  opRT.RegOpM('Help', {$IFDEF FPC}@{$ENDIF FPC}Do_Help)^.Description := 'help info.';
-  opRT.RegOpM('Exit', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Description := 'safe close this console.';
-  opRT.RegOpM('Close', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Description := 'safe close this console.';
-  opRT.RegOpM('service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
-  opRT.RegOpM('server', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
-  opRT.RegOpM('serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Description := 'local service report.';
-  opRT.RegOpM('tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
-  opRT.RegOpM('client', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
-  opRT.RegOpM('cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel)^.Description := 'tunnel report.';
-  opRT.RegOpM('RegInfo', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg)^.Description := 'C4 registed info.';
-  opRT.RegOpM('cmd', {$IFDEF FPC}@{$ENDIF FPC}Do_Cmd)^.Description := 'current command line.';
-
-  for i := 0 to C40_ServicePool.Count - 1 do
-    begin
-      cc := C40_ServicePool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_ClientPool.Count - 1 do
-    begin
-      cc := C40_ClientPool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_VM_Service_Pool.Count - 1 do
-    begin
-      cc := C40_VM_Service_Pool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
-          until not __repeat__.Next;
-        end;
-    end;
-  for i := 0 to C40_VM_Client_Pool.Count - 1 do
-    begin
-      cc := C40_VM_Client_Pool[i].ConsoleCommand;
-      if cc.Num > 0 then
-        begin
-          __repeat__ := cc.Repeat_;
-          repeat
-            rData := __repeat__.Queue^.Data;
-            if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd)^.Description := rData.Desc;
-          until not __repeat__.Next;
-        end;
-    end;
-end;
-
-destructor TC40_Console_Help.Destroy;
-begin
-  disposeObject(opRT);
-  inherited Destroy;
-end;
-
-function TC40_Console_Help.Run_HelpCmd(Expression: U_String): Boolean;
-var
-  r: Variant;
-  r_arry: TExpressionValueVector;
-begin
-  if IsSymbolVectorExpression(Expression, HelpTextStyle) then
-    begin
-      r_arry := EvaluateExpressionVector(False, False, nil, HelpTextStyle, Expression, opRT, nil);
-      Result := not ExpressionValueVectorIsError(r_arry);
-      DoStatus('%s result: %s', [Expression.Text, ExpressionValueVectorToStr(r_arry).Text]);
-    end
-  else
-    begin
-      r := EvaluateExpressionValue(False, HelpTextStyle, Expression, opRT);
-      Result := not ExpressionValueIsError(r);
-      DoStatus('%s result: %s', [Expression.Text, VarToStr(r)]);
-    end;
-end;
 
 type
   TCmd_Net_Info_ = record
@@ -589,34 +182,34 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
     begin
-      opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config);
+      opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config)^.Category := 'C4 Param variant';
     end;
   disposeObject(L);
 
-  opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.RegOpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.RegOpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
-  opRT.RegOpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
+  opRT.RegOpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep)^.Category := 'C4 Param Command';
 end;
 
 procedure TCommand_Script.Parsing(Expression: U_String);
@@ -641,6 +234,7 @@ var
   i, j: Integer;
   net_info_: TCmd_Net_Info_;
   arry: TC40_DependNetworkInfoArray;
+  c4_opt: THashStringList;
 begin
   Result := False;
   if length(C40AppParam) = 0 then
@@ -700,6 +294,7 @@ begin
 
         if cmd_script_.Service_NetInfo_List.Count > 0 then
           begin
+            IsInited_ := True;
             for i := 0 to cmd_script_.Service_NetInfo_List.Count - 1 do
               begin
                 net_info_ := cmd_script_.Service_NetInfo_List[i];
@@ -709,43 +304,79 @@ begin
                   begin
                     AutoFreePhysicsTunnel := True;
                     BuildDependNetwork(net_info_.depend);
-                    OnEvent := On_C40_PhysicsService_Event;
+                    OnEvent := On_C40_PhysicsService_Event_Console;
                     StartService;
+                    IsInited_ := IsInited_ or Activted;
                   end;
-
-                IsInited_ := True;
               end;
           end;
 
         if cmd_script_.Client_NetInfo_List.Count > 0 then
           begin
+            IsInited_ := True;
             for i := 0 to cmd_script_.Client_NetInfo_List.Count - 1 do
               begin
                 net_info_ := cmd_script_.Client_NetInfo_List[i];
 
                 if net_info_.isAuto then
                     Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(
-                    net_info_.ip, net_info_.port, not net_info_.Min_Workload, net_info_.depend, On_C40_PhysicsTunnel_Event)
+                    net_info_.ip, net_info_.port, not net_info_.Min_Workload, net_info_.depend, On_C40_PhysicsTunnel_Event_Console)
                 else
                     Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(
-                    net_info_.ip, net_info_.port, net_info_.depend, On_C40_PhysicsTunnel_Event);
-
-                IsInited_ := True;
+                    net_info_.ip, net_info_.port, net_info_.depend, On_C40_PhysicsTunnel_Event_Console);
               end;
           end;
       end;
 
     cmd_script_.Free;
+
+{$IFDEF DEBUG}
+    if IsInited_ then
+      begin
+        c4_opt := THashStringList.Create;
+        C40WriteConfig(c4_opt);
+        DoStatus('');
+        DoStatus('C40 Network Options');
+        DoStatus(c4_opt.AsText);
+        disposeObject(c4_opt);
+        DoStatus('');
+      end;
+{$ENDIF DEBUG}
   except
   end;
   Result := IsInited_;
+  if not Result then
+    begin
+      C40_Registed.Print;
+    end;
+end;
+
+function C40_Extract_CmdLine(const Param_: U_StringArray): Boolean;
+begin
+  C40AppParam := Param_;
+  Result := C40_Extract_CmdLine();
+end;
+
+function C40_Extract_CmdLine(const TextStyle_: TTextStyle; const Param_: U_StringArray): Boolean;
+begin
+  C40AppParsingTextStyle := TextStyle_;
+  C40AppParam := Param_;
+  Result := C40_Extract_CmdLine();
 end;
 
 initialization
 
 SetLength(C40AppParam, 0);
 C40AppParsingTextStyle := TTextStyle.tsPascal;
-On_C40_PhysicsTunnel_Event := nil;
-On_C40_PhysicsService_Event := nil;
+On_C40_PhysicsTunnel_Event_Console := nil;
+On_C40_PhysicsService_Event_Console := nil;
+
+finalization
+
+try
+  On_C40_PhysicsTunnel_Event_Console := nil;
+  On_C40_PhysicsService_Event_Console := nil;
+except
+end;
 
 end.

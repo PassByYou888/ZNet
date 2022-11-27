@@ -106,54 +106,54 @@ type
     function CompareCommentGetEndPos(const cOffset: Integer): Integer;
     function CompareTextDeclGetEndPos(const cOffset: Integer): Integer;
 
-    { rebuild support }
+    { rebuild }
     procedure RebuildParsingCache;
     procedure RebuildText;
     procedure RebuildToken;
     function FastRebuildTokenTo(): TP_String;
 
-    { automated context on pick: TokenCache }
+    { context }
     function GetContextBeginPos(const cOffset: Integer): Integer;
     function GetContextEndPos(const cOffset: Integer): Integer;
 
-    { special symbol support: TokenCache }
+    { special symbol }
     function isSpecialSymbol(const cOffset: Integer): Boolean; overload;
     function isSpecialSymbol(const cOffset: Integer; var speicalSymbolEndPos: Integer): Boolean; overload;
     function GetSpecialSymbolEndPos(const cOffset: Integer): Integer;
 
-    { number decl support: TokenCache }
+    { number decl }
     function isNumber(const cOffset: Integer): Boolean; overload;
     function isNumber(const cOffset: Integer; var NumberBegin: Integer; var IsHex: Boolean): Boolean; overload;
     function GetNumberEndPos(const cOffset: Integer): Integer;
 
-    { text support: TokenCache }
+    { text }
     function isTextDecl(const cOffset: Integer): Boolean;
     function GetTextDeclEndPos(const cOffset: Integer): Integer;
     function GetTextDeclBeginPos(const cOffset: Integer): Integer;
     function GetTextBody(const Text_: TP_String): TP_String;
     function GetTextDeclPos(const cOffset: Integer; var charBeginPos, charEndPos: Integer): Boolean;
 
-    { symbol support: TokenCache }
+    { symbol }
     function isSymbol(const cOffset: Integer): Boolean;
     function GetSymbolEndPos(const cOffset: Integer): Integer;
 
-    { ascii support: TokenCache }
+    { ascii }
     function isAscii(const cOffset: Integer): Boolean;
     function GetAsciiBeginPos(const cOffset: Integer): Integer;
     function GetAsciiEndPos(const cOffset: Integer): Integer;
 
-    { comment support: TokenCache }
+    { comment }
     function isComment(const cOffset: Integer): Boolean;
     function GetCommentEndPos(const cOffset: Integer): Integer;
     function GetCommentBeginPos(const cOffset: Integer): Integer;
     function GetCommentPos(const cOffset: Integer; var charBeginPos, charEndPos: Integer): Boolean;
     function GetDeletedCommentText: TP_String;
 
-    { text support: TokenCache }
+    { text }
     function isTextOrComment(const cOffset: Integer): Boolean;
     function isCommentOrText(const cOffset: Integer): Boolean;
 
-    { word support: TokenCache no used }
+    { word }
     class function isWordSplitChar(const c: TP_Char; SplitTokenC: TP_String): Boolean; overload;
     class function isWordSplitChar(const c: TP_Char): Boolean; overload;
     class function isWordSplitChar(const c: TP_Char; DefaultChar: Boolean; SplitTokenC: TP_String): Boolean; overload;
@@ -171,15 +171,13 @@ type
     function SniffingNextChar(const cOffset: Integer; declChar: TP_String): Boolean; overload;
     function SniffingNextChar(const cOffset: Integer; declChar: TP_String; out OutPos: Integer): Boolean; overload;
 
-    { split char }
+    { split }
     function SplitChar(const cOffset: Integer; var LastPos: Integer; const SplitTokenC, SplitEndTokenC: TP_String; var SplitOutput: TSymbolVector): Integer; overload;
     function SplitChar(const cOffset: Integer; const SplitTokenC, SplitEndTokenC: TP_String; var SplitOutput: TSymbolVector): Integer; overload;
-
-    { split string }
     function SplitString(const cOffset: Integer; var LastPos: Integer; const SplitTokenS, SplitEndTokenS: TP_String; var SplitOutput: TSymbolVector): Integer; overload;
     function SplitString(const cOffset: Integer; const SplitTokenS, SplitEndTokenS: TP_String; var SplitOutput: TSymbolVector): Integer; overload;
 
-    { token operation }
+    { token }
     function CompareTokenText(const cOffset: Integer; t: TP_String): Boolean;
     function CompareTokenChar(const cOffset: Integer; const c: array of TP_Char): Boolean;
     function GetToken(const cOffset: Integer): PTokenData;
@@ -202,7 +200,7 @@ type
     function Combine(const bTokenI, eTokenI: Integer; const acceptT: TTokenTypes): TP_String; overload;
     function Combine(const bTokenI, eTokenI: Integer): TP_String; overload;
 
-    { token probe StartI->Left }
+    { token probe Left }
     function TokenProbeL(startI: Integer; const acceptT: TTokenTypes): PTokenData; overload;
     function TokenProbeL(startI: Integer; const t: TP_String): PTokenData; overload;
     function TokenProbeL(startI: Integer; const acceptT: TTokenTypes; const t: TP_String): PTokenData; overload;
@@ -211,7 +209,7 @@ type
     function TokenProbeL(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4: TP_String): PTokenData; overload;
     function TokenProbeL(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4, t5: TP_String): PTokenData; overload;
 
-    { token probe StartI->Right }
+    { token probe Right }
     function TokenProbeR(startI: Integer; const acceptT: TTokenTypes): PTokenData; overload;
     function TokenProbeR(startI: Integer; const t: TP_String): PTokenData; overload;
     function TokenProbeR(startI: Integer; const acceptT: TTokenTypes; const t: TP_String): PTokenData; overload;
@@ -220,7 +218,7 @@ type
     function TokenProbeR(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4: TP_String): PTokenData; overload;
     function TokenProbeR(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4, t5: TP_String): PTokenData; overload;
 
-    { token probe alias StartI->Left }
+    { probe Left }
     function ProbeL(startI: Integer; const acceptT: TTokenTypes): PTokenData; overload;
     function ProbeL(startI: Integer; const t: TP_String): PTokenData; overload;
     function ProbeL(startI: Integer; const acceptT: TTokenTypes; const t: TP_String): PTokenData; overload;
@@ -236,7 +234,7 @@ type
     function LProbe(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4: TP_String): PTokenData; overload;
     function LProbe(startI: Integer; const acceptT: TTokenTypes; const t1, t2, t3, t4, t5: TP_String): PTokenData; overload;
 
-    { token probe alias StartI->Right }
+    { token Right }
     function ProbeR(startI: Integer; const acceptT: TTokenTypes): PTokenData; overload;
     function ProbeR(startI: Integer; const t: TP_String): PTokenData; overload;
     function ProbeR(startI: Integer; const acceptT: TTokenTypes; const t: TP_String): PTokenData; overload;
@@ -331,9 +329,6 @@ implementation
 
 uses Z.Status, Z.UnicodeMixedLib, TypInfo;
 
-const
-  NullTokenStatistics: TTokenStatistics = (0, 0, 0, 0, 0, 0, 0);
-
 type
   TCTranslateStruct = record
     s: TP_Char;
@@ -341,6 +336,7 @@ type
   end;
 
 const
+  NullTokenStatistics: TTokenStatistics = (0, 0, 0, 0, 0, 0, 0);
   CTranslateTable: array [0 .. 11] of TCTranslateStruct = (
     (s: #007; c: '\a'),
     (s: #008; c: '\b'),

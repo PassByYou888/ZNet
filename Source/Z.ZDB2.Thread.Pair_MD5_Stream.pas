@@ -46,11 +46,20 @@ type
     constructor Create(hash_size_: Integer);
     destructor Destroy; override;
     function BuildMemory(): TZDB2_Th_Engine;
-    function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine;
-    procedure Extract_MD5_Pool(ThNum_, Max_Queue_: Integer);
+    function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine; overload;
+    function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean; cfg: THashStringList): TZDB2_Th_Engine; overload;
+    function Begin_Custom_Build: TZDB2_Th_Engine;
+    function End_Custom_Build(Eng_: TZDB2_Th_Engine): Boolean;
+    procedure Extract_MD5_Pool(ThNum_: Integer);
     procedure Clear(Delete_Data_: Boolean);
     procedure Delete(Key_: TMD5; Delete_Data_: Boolean);
     function Exists_MD5_Fragment(Key_: TMD5): Boolean;
+    procedure Async_Get_String_Fragment_C(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_C); overload;
+    procedure Async_Get_String_Fragment_M(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_M); overload;
+    procedure Async_Get_String_Fragment_P(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_P); overload;
+    procedure Async_Get_String_Fragment_C(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_C); overload;
+    procedure Async_Get_String_Fragment_M(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_M); overload;
+    procedure Async_Get_String_Fragment_P(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_P); overload;
     function Get_MD5_Fragment(Key_: TMD5; IO_: TMS64): Boolean;
     procedure Set_MD5_Fragment(buff: Pointer; buff_size: Int64); overload;
     procedure Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean); overload;
@@ -170,10 +179,43 @@ begin
     end;
 end;
 
-procedure TZDB2_Pair_MD5_Stream_Tool.Extract_MD5_Pool(ThNum_, Max_Queue_: Integer);
+function TZDB2_Pair_MD5_Stream_Tool.BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean; cfg: THashStringList): TZDB2_Th_Engine;
+begin
+  Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
+  Result.Mode := smNormal;
+  Result.Database_File := FileName_;
+  Result.OnlyRead := OnlyRead_;
+  if cfg <> nil then
+      Result.ReadConfig(FileName_, cfg);
+
+  if Encrypt_ then
+      Result.Cipher_Security := TCipherSecurity.csRijndael
+  else
+      Result.Cipher_Security := TCipherSecurity.csNone;
+
+  Result.Build(ZDB2_Marshal.Current_Data_Class);
+  if not Result.Ready then
+    begin
+      DisposeObjectAndNil(Result);
+      Result := BuildMemory();
+    end;
+end;
+
+function TZDB2_Pair_MD5_Stream_Tool.Begin_Custom_Build: TZDB2_Th_Engine;
+begin
+  Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
+end;
+
+function TZDB2_Pair_MD5_Stream_Tool.End_Custom_Build(Eng_: TZDB2_Th_Engine): Boolean;
+begin
+  Eng_.Build(ZDB2_Marshal.Current_Data_Class);
+  Result := Eng_.Ready;
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Extract_MD5_Pool(ThNum_: Integer);
 begin
   MD5_Pool.Clear;
-  ZDB2_Marshal.Parallel_Load_M(ThNum_, Max_Queue_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Data_Loaded, nil);
+  ZDB2_Marshal.Parallel_Load_M(ThNum_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Data_Loaded, nil);
 end;
 
 procedure TZDB2_Pair_MD5_Stream_Tool.Clear(Delete_Data_: Boolean);
@@ -209,6 +251,102 @@ end;
 function TZDB2_Pair_MD5_Stream_Tool.Exists_MD5_Fragment(Key_: TMD5): Boolean;
 begin
   Result := MD5_Pool.Exists_Key(Key_);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_C(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_C);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Stream_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Stream := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_C(Source, OnResult);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_M(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_M);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Stream_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Stream := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_M(Source, OnResult);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_P(Key_: TMD5; Source: TMS64; OnResult: TOn_Stream_And_State_Event_P);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Stream_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Stream := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_P(Source, OnResult);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_C(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_C);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Mem64_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Mem64 := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_C(Source, OnResult);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_M(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_M);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Mem64_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Mem64 := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_M(Source, OnResult);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Async_Get_String_Fragment_P(Key_: TMD5; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_P);
+var
+  data_: TZDB2_Pair_MD5_Stream_Data;
+  tmp: TZDB2_Th_CMD_Mem64_And_State;
+begin
+  data_ := MD5_Pool[Key_];
+  if data_ = nil then
+    begin
+      tmp.Mem64 := Source;
+      tmp.State := TCMD_State.csError;
+      OnResult(tmp);
+      exit;
+    end;
+  data_.Async_Load_Data_P(Source, OnResult);
 end;
 
 function TZDB2_Pair_MD5_Stream_Tool.Get_MD5_Fragment(Key_: TMD5; IO_: TMS64): Boolean;
@@ -306,7 +444,7 @@ begin
   inst_ := TZDB2_Pair_MD5_Stream_Tool.Create($FF);
   // inst_.BuildOrOpen('c:\temp\1.ox2', False, False);
   inst_.BuildOrOpen('', False, False);
-  inst_.Extract_MD5_Pool(4, 100);
+  inst_.Extract_MD5_Pool(4);
   data_List := TMD5_Big_Pool.Create;
 
   if inst_.ZDB2_Marshal.Data_Marshal.Num > 0 then

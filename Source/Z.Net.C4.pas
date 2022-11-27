@@ -13,7 +13,7 @@ uses
 {$ELSE FPC}
   System.IOUtils,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine, Z.Parsing,
   Z.Geometry2D, Z.DFE, Z.Json,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.Expression, Z.OpCode,
@@ -170,7 +170,6 @@ type
     procedure Do_Notify_All_Disconnect;
   public
     PhysicsAddr: U_String;
-
     PhysicsPort: Word;
     PhysicsTunnel: TZNet_Client;
     DependNetworkInfoArray: TC40_DependNetworkInfoArray;
@@ -537,7 +536,7 @@ type
     procedure DoRun; virtual;
   end;
 
-  TOnServiceInfoChange = procedure(Sender: TCore_Object; ServiceInfoList: TC40_InfoList) of object;
+  TOnServiceInfoChange = procedure(Sender: TCore_Object; Service_Info_Pool: TC40_InfoList) of object;
 
   { dispatch service }
   TC40_Dispatch_Service = class(TC40_Custom_Service)
@@ -559,7 +558,7 @@ type
     procedure DoDelayCheckLocalServiceInfo;
   public
     Service: TDT_P2PVM_NoAuth_Custom_Service;
-    ServiceInfoList: TC40_InfoList;
+    Service_Info_Pool: TC40_InfoList;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
@@ -584,7 +583,7 @@ type
     procedure DoDelayCheckLocalServiceInfo;
   public
     Client: TDT_P2PVM_NoAuth_Custom_Client;
-    ServiceInfoList: TC40_InfoList;
+    Service_Info_Pool: TC40_InfoList;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
@@ -883,6 +882,32 @@ type
     procedure Progress;
   end;
 {$ENDREGION 'VM_Templet_Define'}
+{$REGION 'C40-Console'}
+
+  TC40_Console_Help = class
+  private
+    procedure UpdateServiceInfo; overload;
+    procedure UpdateServiceInfo(phy_serv: TC40_PhysicsService); overload;
+    procedure UpdateTunnelInfo; overload;
+    procedure UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel); overload;
+    function Do_Help(var OP_Param: TOpParam): Variant;
+    function Do_Exit(var OP_Param: TOpParam): Variant;
+    function Do_Service(var OP_Param: TOpParam): Variant;
+    function Do_Tunnel(var OP_Param: TOpParam): Variant;
+    function Do_Reg(var OP_Param: TOpParam): Variant;
+    function Do_KillNet(var OP_Param: TOpParam): Variant;
+    function Do_SetQuiet(var OP_Param: TOpParam): Variant;
+    function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+  public
+    opRT: TOpCustomRunTime;
+    HelpTextStyle: TTextStyle;
+    IsExit: Boolean;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure Update_opRT;
+    procedure Run_HelpCmd(exp_: U_String);
+  end;
+{$ENDREGION 'C40-Console'}
 
 
 var
@@ -900,12 +925,12 @@ var
   C40_PhysicsTunnelTimeout: TTimeTick;
   { kill dead physics connection timeout, default is 5 seconds }
   C40_KillDeadPhysicsConnectionTimeout: TTimeTick;
-  { kill IDC fault timeout, default is 1 hour }
+  { kill IDC fault timeout, default is 10 minute }
   C40_KillIDCFaultTimeout: TTimeTick;
   { root path, default is current Directory }
   C40_RootPath: U_String;
-  { p2pVM default password }
-  C40_Password: SystemString = 'DTC40@ZSERVER';
+  { p2pVM default password, default is DTC40@ZSERVER }
+  C40_Password: SystemString;
   { PhysicsTunnel interface }
   C40_PhysicsClientClass: TZNet_ClientClass;
   { automated matched }
@@ -1266,7 +1291,7 @@ begin
         { remove client }
         i := 0;
         while i < C40_ClientPool.Count do
-          if PhysicsAddr.Same(@C40_ClientPool[i].ClientInfo.PhysicsAddr) and (PhysicsPort = C40_ClientPool[i].ClientInfo.PhysicsPort) then
+          if PhysicsAddr.Same(@C40_ClientPool[i].ClientInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_ClientPool[i].ClientInfo.PhysicsPort)) then
             begin
               disposeObject(C40_ClientPool[i]);
               i := 0;
@@ -1280,7 +1305,7 @@ begin
   { remove dispatch info }
   for i := 0 to C40_ClientPool.Count - 1 do
     if C40_ClientPool[i] is TC40_Dispatch_Client then
-        TC40_Dispatch_Client(C40_ClientPool[i]).ServiceInfoList.RemovePhysicsAddr(PhysicsAddr, PhysicsPort);
+        TC40_Dispatch_Client(C40_ClientPool[i]).Service_Info_Pool.RemovePhysicsAddr(PhysicsAddr, PhysicsPort);
 
   if Remove_Physics_Client_ then
     begin
@@ -1289,7 +1314,7 @@ begin
         i := 0;
         while i < C40_PhysicsTunnelPool.Count do
           begin
-            if PhysicsAddr.Same(@C40_PhysicsTunnelPool[i].PhysicsAddr) and (PhysicsPort = C40_PhysicsTunnelPool[i].PhysicsPort) then
+            if PhysicsAddr.Same(@C40_PhysicsTunnelPool[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_PhysicsTunnelPool[i].PhysicsPort)) then
               begin
                 disposeObject(C40_PhysicsTunnelPool[i]);
                 i := 0;
@@ -1307,7 +1332,7 @@ begin
         { remove service }
         i := 0;
         while i < C40_ServicePool.Count do
-          if PhysicsAddr.Same(@C40_ServicePool[i].ServiceInfo.PhysicsAddr) and (PhysicsPort = C40_ServicePool[i].ServiceInfo.PhysicsPort) then
+          if PhysicsAddr.Same(@C40_ServicePool[i].ServiceInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_ServicePool[i].ServiceInfo.PhysicsPort)) then
             begin
               disposeObject(C40_ServicePool[i]);
               i := 0;
@@ -1321,7 +1346,7 @@ begin
   { remove service info }
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i] is TC40_Dispatch_Service then
-        TC40_Dispatch_Service(C40_ServicePool[i]).ServiceInfoList.RemovePhysicsAddr(PhysicsAddr, PhysicsPort);
+        TC40_Dispatch_Service(C40_ServicePool[i]).Service_Info_Pool.RemovePhysicsAddr(PhysicsAddr, PhysicsPort);
 
   if Remove_Physcis_Service_ then
     begin
@@ -1330,7 +1355,7 @@ begin
         i := 0;
         while i < C40_PhysicsServicePool.Count do
           begin
-            if PhysicsAddr.Same(@C40_PhysicsServicePool[i].PhysicsAddr) and (PhysicsPort = C40_PhysicsServicePool[i].PhysicsPort) then
+            if PhysicsAddr.Same(@C40_PhysicsServicePool[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_PhysicsServicePool[i].PhysicsPort)) then
               begin
                 disposeObject(C40_PhysicsServicePool[i]);
                 i := 0;
@@ -1567,13 +1592,13 @@ begin
             L.Add(C40_ServicePool[i].ServiceInfo.Clone);
         { dispatch service }
         if C40_ServicePool[i] is TC40_Dispatch_Service then
-            L.MergeAndUpdateWorkload(TC40_Dispatch_Service(C40_ServicePool[i]).ServiceInfoList);
+            L.MergeAndUpdateWorkload(TC40_Dispatch_Service(C40_ServicePool[i]).Service_Info_Pool);
       end;
 
   { search all DP client }
   for i := 0 to C40_ClientPool.Count - 1 do
     if C40_ClientPool[i] is TC40_Dispatch_Client then
-        L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).ServiceInfoList);
+        L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).Service_Info_Pool);
 
   L.SaveToDF(OutData);
   disposeObject(L);
@@ -1611,6 +1636,12 @@ begin
       StopService;
   except
   end;
+
+  try
+      OnEvent := nil;
+  except
+  end;
+
   C40_PhysicsServicePool.Remove(Self);
   PhysicsTunnel.DeleteRegistedCMD('QueryInfo');
   disposeObject(DependNetworkServicePool);
@@ -1742,7 +1773,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and (PhysicsPort = Items[i].PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -2050,7 +2081,11 @@ begin
       end;
   except
   end;
-  OnEvent := nil;
+
+  try
+      OnEvent := nil;
+  except
+  end;
 
   // remove children
   i := 0;
@@ -2529,7 +2564,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and (PhysicsPort = Items[i].PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -2540,7 +2575,7 @@ var
 begin
   Result := nil;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and (PhysicsPort = Items[i].PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].PhysicsPort)) then
       begin
         Result := Items[i];
         exit;
@@ -2695,14 +2730,20 @@ begin
 end;
 
 procedure TC40_Custom_ClientPool_Wait.DoRun;
+var
+  error_: Boolean;
   function ExistsClientFromStatesDone(c_: TC40_Custom_Client): Boolean;
   var
     i: Integer;
   begin
     Result := True;
-    for i := 0 to length(States_) - 1 do
-      if States_[i].Client_ = c_ then
-          exit;
+    try
+      for i := 0 to length(States_) - 1 do
+        if States_[i].Client_ = c_ then
+            exit;
+    except
+        error_ := True;
+    end;
     Result := False;
   end;
 
@@ -2711,14 +2752,18 @@ procedure TC40_Custom_ClientPool_Wait.DoRun;
     i: Integer;
   begin
     Result := True;
-    for i := 0 to Pool_.Count - 1 do
-      begin
-        if Pool_[i].Connected and d_.ServiceTyp_.Same(@Pool_[i].ClientInfo.ServiceTyp) and (not ExistsClientFromStatesDone(Pool_[i])) then
-          begin
-            d_.Client_ := Pool_[i];
-            exit;
-          end;
-      end;
+    try
+      for i := 0 to Pool_.Count - 1 do
+        begin
+          if Pool_[i].Connected and d_.ServiceTyp_.Same(@Pool_[i].ClientInfo.ServiceTyp) and (not ExistsClientFromStatesDone(Pool_[i])) then
+            begin
+              d_.Client_ := Pool_[i];
+              exit;
+            end;
+        end;
+    except
+        error_ := True;
+    end;
     Result := False;
   end;
 
@@ -2727,19 +2772,29 @@ procedure TC40_Custom_ClientPool_Wait.DoRun;
     i: Integer;
   begin
     Result := False;
-    for i := 0 to length(States_) - 1 do
-      if States_[i].Client_ = nil then
-          exit;
+    try
+      for i := 0 to length(States_) - 1 do
+        if States_[i].Client_ = nil then
+            exit;
+    except
+        error_ := True;
+    end;
     Result := True;
   end;
 
 var
   i: Integer;
 begin
+  error_ := False;
   for i := 0 to length(States_) - 1 do
       MatchServiceTypForPool(States_[i]);
 
-  if IsAllDone then
+  if error_ then
+    begin
+      DoStatus('TC40_Custom_ClientPool_Wait error!');
+      DelayFreeObject(0.5, Self, nil);
+    end
+  else if IsAllDone then
     begin
       try
         if Assigned(On_C) then
@@ -2780,6 +2835,10 @@ end;
 destructor TC40_Custom_ClientPool_Wait.Destroy;
 begin
   SetLength(States_, 0);
+  Pool_ := nil;
+  On_C := nil;
+  On_M := nil;
+  On_P := nil;
   inherited Destroy;
 end;
 
@@ -3342,7 +3401,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and (PhysicsPort = Items[i].PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -3353,7 +3412,7 @@ var
 begin
   i := 0;
   while i < Count do
-    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and (PhysicsPort = Items[i].PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].PhysicsPort)) then
         Delete(i)
     else
         inc(i);
@@ -3599,7 +3658,7 @@ begin
       if C40_ServicePool[i] <> Self then
         begin
           dps := TC40_Dispatch_Service(C40_ServicePool[i]);
-          if dps.ServiceInfoList.OverwriteInfo(ServiceInfo) then
+          if dps.Service_Info_Pool.OverwriteInfo(ServiceInfo) then
               dps.Prepare_UpdateServerInfoToAllClient;
         end;
 
@@ -3607,7 +3666,7 @@ begin
     if C40_ClientPool[i] is TC40_Dispatch_Client then
       begin
         dpc := TC40_Dispatch_Client(C40_ClientPool[i]);
-        if dpc.ServiceInfoList.OverwriteInfo(ServiceInfo) and dpc.Connected then
+        if dpc.Service_Info_Pool.OverwriteInfo(ServiceInfo) and dpc.Connected then
             dpc.PostLocalServiceInfo(True);
       end;
 end;
@@ -3789,7 +3848,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].ServiceInfo.PhysicsAddr) and (PhysicsPort = Items[i].ServiceInfo.PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].ServiceInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].ServiceInfo.PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -3844,7 +3903,7 @@ var
 begin
   L := TC40_Custom_ServicePool.Create;
   for i := 0 to Count - 1 do
-    if (PhysicsPort = Items[i].ServiceInfo.PhysicsPort) and PhysicsAddr.Same(@Items[i].ServiceInfo.PhysicsAddr) then
+    if ((PhysicsPort = 0) or (PhysicsPort = Items[i].ServiceInfo.PhysicsPort)) and PhysicsAddr.Same(@Items[i].ServiceInfo.PhysicsAddr) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
   disposeObject(L);
@@ -4092,7 +4151,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) and (PhysicsPort = Items[i].ClientInfo.PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].ClientInfo.PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -4182,7 +4241,7 @@ var
 begin
   Result := True;
   for i := 0 to Count - 1 do
-    if PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) and (PhysicsPort = Items[i].ClientInfo.PhysicsPort) then
+    if PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = Items[i].ClientInfo.PhysicsPort)) then
         exit;
   Result := False;
 end;
@@ -4356,7 +4415,7 @@ var
 begin
   L := TC40_Custom_ClientPool.Create;
   for i := 0 to Count - 1 do
-    if (PhysicsPort = Items[i].ClientInfo.PhysicsPort) and PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) then
+    if ((PhysicsPort = 0) or (PhysicsPort = Items[i].ClientInfo.PhysicsPort)) and PhysicsAddr.Same(@Items[i].ClientInfo.PhysicsAddr) then
       if (not isConnected) or (isConnected and Items[i].Connected) then
           L.Add(Items[i]);
   SortWorkLoad(L);
@@ -4433,12 +4492,12 @@ end;
 
 procedure TC40_Dispatch_Service.cmd_UpdateServiceInfo(Sender: TPeerIO; InData: TDFE);
 begin
-  if ServiceInfoList.MergeFromDF(InData) then
+  if Service_Info_Pool.MergeFromDF(InData) then
     begin
       Prepare_UpdateServerInfoToAllClient;
 
       if Assigned(FOnServiceInfoChange) then
-          FOnServiceInfoChange(Self, ServiceInfoList);
+          FOnServiceInfoChange(Self, Service_Info_Pool);
     end;
 end;
 
@@ -4462,7 +4521,7 @@ begin
       Hash__ := D.R.ReadMD5;
       Workload := D.R.ReadInteger;
       MaxWorkload := D.R.ReadInteger;
-      info_ := ServiceInfoList.FindHash(Hash__);
+      info_ := Service_Info_Pool.FindHash(Hash__);
       if (info_ <> nil) then
         begin
           if (info_.Workload <> Workload) or (info_.MaxWorkload <> MaxWorkload) then
@@ -4475,7 +4534,7 @@ begin
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
-      info_ := ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo);
+      info_ := Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo);
       if info_ <> nil then
           info_.Assign(C40_ServicePool[i].ServiceInfo);
     end;
@@ -4504,7 +4563,7 @@ var
 begin
   Hash__ := InData.R.ReadMD5;
   Ignored := InData.R.ReadBool;
-  info_ := ServiceInfoList.FindHash(Hash__);
+  info_ := Service_Info_Pool.FindHash(Hash__);
   if (info_ <> nil) and (info_.Ignored <> Ignored) then
     begin
       info_.Ignored := Ignored;
@@ -4559,7 +4618,7 @@ var
   IO_: TPeerIO;
 begin
   D := TDFE.Create;
-  ServiceInfoList.SaveToDF(D);
+  Service_Info_Pool.SaveToDF(D);
   Service.SendTunnel.GetIO_Array(arry_);
   for ID_ in arry_ do
     begin
@@ -4591,10 +4650,10 @@ begin
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
       begin
-        info_ := ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo);
+        info_ := Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo);
         if info_ = nil then
           begin
-            ServiceInfoList.Add(C40_ServicePool[i].ServiceInfo.Clone);
+            Service_Info_Pool.Add(C40_ServicePool[i].ServiceInfo.Clone);
             isChange_ := True;
           end
         else
@@ -4649,11 +4708,11 @@ begin
   Service.SendTunnel.PrintParams['RequestUpdate'] := False;
 
   { register local service. }
-  ServiceInfoList := TC40_InfoList.Create(True);
+  Service_Info_Pool := TC40_InfoList.Create(True);
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
-      if ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo) = nil then
-          ServiceInfoList.Add(C40_ServicePool[i].ServiceInfo.Clone);
+      if Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo) = nil then
+          Service_Info_Pool.Add(C40_ServicePool[i].ServiceInfo.Clone);
 
   UpdateToGlobalDispatch;
 end;
@@ -4661,7 +4720,7 @@ end;
 destructor TC40_Dispatch_Service.Destroy;
 begin
   disposeObject(Service);
-  disposeObject(ServiceInfoList);
+  disposeObject(Service_Info_Pool);
   inherited Destroy;
 end;
 
@@ -4743,10 +4802,10 @@ var
   arry_: TC40_Custom_Client_Array;
   cc: TC40_Custom_Client;
 begin
-  if ServiceInfoList.MergeFromDF(InData) then
+  if Service_Info_Pool.MergeFromDF(InData) then
     begin
       if Assigned(FOnServiceInfoChange) then
-          FOnServiceInfoChange(Self, ServiceInfoList);
+          FOnServiceInfoChange(Self, Service_Info_Pool);
 
       { broadcast to all service }
       arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
@@ -4771,7 +4830,7 @@ begin
       Hash__ := D.R.ReadMD5;
       Workload := D.R.ReadInteger;
       MaxWorkload := D.R.ReadInteger;
-      info_ := ServiceInfoList.FindHash(Hash__);
+      info_ := Service_Info_Pool.FindHash(Hash__);
       if (info_ <> nil) then
         begin
           info_.Workload := Workload;
@@ -4785,7 +4844,7 @@ begin
       for i := 0 to C40_ServicePool.Count - 1 do
         if (C40_ServicePool[i] is TC40_Dispatch_Service) then
           begin
-            info_ := TC40_Dispatch_Service(C40_ServicePool[i]).ServiceInfoList.FindHash(Hash__);
+            info_ := TC40_Dispatch_Service(C40_ServicePool[i]).Service_Info_Pool.FindHash(Hash__);
             if (info_ <> nil) then
               begin
                 info_.Workload := Workload;
@@ -4797,7 +4856,7 @@ begin
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
-      info_ := ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo);
+      info_ := Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo);
       if info_ <> nil then
           info_.Assign(C40_ServicePool[i].ServiceInfo);
     end;
@@ -4814,7 +4873,7 @@ var
 begin
   Hash__ := InData.R.ReadMD5;
   Ignored := InData.R.ReadBool;
-  info_ := ServiceInfoList.FindHash(Hash__);
+  info_ := Service_Info_Pool.FindHash(Hash__);
   if (info_ <> nil) then
     begin
       info_.Ignored := Ignored;
@@ -4868,9 +4927,9 @@ begin
   UpdateLocalServiceState;
 
   { check and build network }
-  for i := 0 to ServiceInfoList.Count - 1 do
-    if ServiceInfoList[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
-        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
+  for i := 0 to Service_Info_Pool.Count - 1 do
+    if Service_Info_Pool[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
+        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(Service_Info_Pool[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
 end;
 
 constructor TC40_Dispatch_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -4905,22 +4964,22 @@ begin
   Client.SendTunnel.PrintParams['RequestUpdate'] := False;
 
   { register local service. }
-  ServiceInfoList := TC40_InfoList.Create(True);
+  Service_Info_Pool := TC40_InfoList.Create(True);
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
-      if ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo) = nil then
-          ServiceInfoList.Add(C40_ServicePool[i].ServiceInfo.Clone);
+      if Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo) = nil then
+          Service_Info_Pool.Add(C40_ServicePool[i].ServiceInfo.Clone);
 
   { check and build network }
-  for i := 0 to ServiceInfoList.Count - 1 do
-    if ServiceInfoList[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
-        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(ServiceInfoList[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
+  for i := 0 to Service_Info_Pool.Count - 1 do
+    if Service_Info_Pool[i].FoundServiceTyp(C40PhysicsTunnel.DependNetworkInfoArray) then
+        C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(Service_Info_Pool[i], C40PhysicsTunnel.DependNetworkInfoArray, C40PhysicsTunnel.OnEvent);
 end;
 
 destructor TC40_Dispatch_Client.Destroy;
 begin
   disposeObject(Client);
-  disposeObject(ServiceInfoList);
+  disposeObject(Service_Info_Pool);
   inherited Destroy;
 end;
 
@@ -4963,10 +5022,10 @@ begin
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
       begin
-        info := ServiceInfoList.FindSame(C40_ServicePool[i].ServiceInfo);
+        info := Service_Info_Pool.FindSame(C40_ServicePool[i].ServiceInfo);
         if info = nil then
           begin
-            ServiceInfoList.Add(C40_ServicePool[i].ServiceInfo.Clone);
+            Service_Info_Pool.Add(C40_ServicePool[i].ServiceInfo.Clone);
             isChange_ := True;
           end
         else
@@ -4976,7 +5035,7 @@ begin
   if isChange_ or forcePost_ then
     begin
       D := TDFE.Create;
-      ServiceInfoList.SaveToDF(D);
+      Service_Info_Pool.SaveToDF(D);
       Client.SendTunnel.SendDirectStreamCmd('UpdateServiceInfo', D);
       disposeObject(D);
     end;
@@ -5917,6 +5976,409 @@ begin
     end;
 end;
 
+procedure TC40_Console_Help.UpdateServiceInfo;
+var
+  i: Integer;
+  phy_serv: TC40_PhysicsService;
+begin
+  for i := 0 to C40_PhysicsServicePool.Count - 1 do
+    begin
+      phy_serv := C40_PhysicsServicePool[i];
+      DoStatus('service "%s" port:%d connection workload:%d send:%s receive:%s',
+        [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort, phy_serv.PhysicsTunnel.Count,
+          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text,
+          umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text
+          ]);
+    end;
+end;
+
+procedure TC40_Console_Help.UpdateServiceInfo(phy_serv: TC40_PhysicsService);
+var
+  i, j: Integer;
+  custom_serv: TC40_Custom_Service;
+  s_recv_, s_send_: TZNet_WithP2PVM_Server;
+begin
+  DoStatus('Physics service: "%s" Unit: "%s"', [phy_serv.PhysicsTunnel.ClassName, phy_serv.PhysicsTunnel.UnitName + '.pas']);
+  DoStatus('Physics service workload: %d', [phy_serv.PhysicsTunnel.Count]);
+  DoStatus('Physics service receive:%s, send:%s ', [umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_serv.PhysicsTunnel.Statistics[stSendSize]).Text]);
+  DoStatus('Physcis Listening ip: "%s" Port: %d', [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort]);
+  DoStatus('Listening Successed: %s', [if_(phy_serv.Activted, 'Yes', 'Failed')]);
+  for i := 0 to phy_serv.DependNetworkServicePool.Count - 1 do
+    begin
+      DoStatus('--------------------------------------------', []);
+      custom_serv := phy_serv.DependNetworkServicePool[i];
+      DoStatus('Type: %s', [custom_serv.ServiceInfo.ServiceTyp.Text]);
+      DoStatus('workload: %d / %d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]);
+      if custom_serv.Get_P2PVM_Service(s_recv_, s_send_) then
+          DoStatus('receive:%s send:%s',
+          [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(s_recv_.Statistics[stSendSize]).Text]);
+      DoStatus('Only Instance: %s', [if_(custom_serv.ServiceInfo.OnlyInstance, 'Yes', 'More Instance.')]);
+      DoStatus('Hash: %s', [umlMD5ToStr(custom_serv.ServiceInfo.Hash).Text]);
+      DoStatus('Alias or Hash: %s', [custom_serv.AliasOrHash.Text]);
+      DoStatus('Class: "%s" Unit: "%s"', [custom_serv.ClassName, custom_serv.UnitName + '.pas']);
+      DoStatus('Receive Tunnel IP: %s Port: %d',
+        [custom_serv.ServiceInfo.p2pVM_RecvTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_RecvTunnel_Port]);
+      DoStatus('Send Tunnel IP: %s Port: %d',
+        [custom_serv.ServiceInfo.p2pVM_SendTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_SendTunnel_Port]);
+      DoStatus('Workload: %d/%d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]);
+      DoStatus('Parameter', []);
+      DoStatus('{', []);
+      DoStatus(#9 + umlReplace(custom_serv.ParamList.AsText, #13#10, #13#10#9, False, False));
+      DoStatus('}', []);
+    end;
+  DoStatus('', []);
+end;
+
+procedure TC40_Console_Help.UpdateTunnelInfo;
+var
+  i: Integer;
+  phy_tunnel: TC40_PhysicsTunnel;
+begin
+  for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+    begin
+      phy_tunnel := C40_PhysicsTunnelPool[i];
+      DoStatus('tunnel "%s" port:%d send:%s receive:%s',
+        [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort,
+          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text,
+          umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text
+          ]);
+    end;
+end;
+
+procedure TC40_Console_Help.UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel);
+var
+  i: Integer;
+  custom_client: TC40_Custom_Client;
+  c_recv_, c_send_: TZNet_WithP2PVM_Client;
+begin
+  DoStatus('Physics tunnel: "%s" Unit: "%s"', [phy_tunnel.PhysicsTunnel.ClassName, phy_tunnel.PhysicsTunnel.UnitName + '.pas']);
+  DoStatus('Physcis ip: "%s" Port: %d', [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort]);
+  DoStatus('Physcis Connected: %s', [if_(phy_tunnel.PhysicsTunnel.Connected, 'Yes', 'Failed')]);
+  DoStatus('Physics receive:%s, send:%s ', [umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stReceiveSize]).Text, umlSizeToStr(phy_tunnel.PhysicsTunnel.Statistics[stSendSize]).Text]);
+  for i := 0 to phy_tunnel.DependNetworkClientPool.Count - 1 do
+    begin
+      DoStatus('--------------------------------------------', []);
+      custom_client := phy_tunnel.DependNetworkClientPool[i];
+      DoStatus('Type: %s', [custom_client.ClientInfo.ServiceTyp.Text]);
+      DoStatus('Connected: %s', [if_(custom_client.Connected, 'Yes', 'Failed')]);
+      if custom_client.Get_P2PVM_Tunnel(c_recv_, c_send_) then
+          DoStatus('receive:%s send:%s',
+          [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text, umlSizeToStr(c_recv_.Statistics[stSendSize]).Text]);
+      DoStatus('Only Instance: %s', [if_(custom_client.ClientInfo.OnlyInstance, 'Yes', 'More Instance.')]);
+      DoStatus('Hash: %s', [umlMD5ToStr(custom_client.ClientInfo.Hash).Text]);
+      DoStatus('Alias or Hash: %s', [custom_client.AliasOrHash.Text]);
+      DoStatus('Class: "%s" Unit: "%s"', [custom_client.ClassName, custom_client.UnitName + '.pas']);
+      DoStatus('Receive Tunnel IP: %s Port: %d',
+        [custom_client.ClientInfo.p2pVM_RecvTunnel_Addr.Text, custom_client.ClientInfo.p2pVM_RecvTunnel_Port]);
+      DoStatus('Send Tunnel IP: %s Port: %d',
+        [custom_client.ClientInfo.p2pVM_SendTunnel_Addr.Text, custom_client.ClientInfo.p2pVM_SendTunnel_Port]);
+      DoStatus('Workload: %d/%d', [custom_client.ClientInfo.Workload, custom_client.ClientInfo.MaxWorkload]);
+      DoStatus('Parameter', []);
+      DoStatus('{', []);
+      DoStatus(#9 + umlReplace(custom_client.ParamList.AsText, #13#10, #13#10#9, False, False));
+      DoStatus('}', []);
+    end;
+  DoStatus('', []);
+end;
+
+function TC40_Console_Help.Do_Help(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  L: TPascalStringList;
+begin
+  L := opRT.GetAllProcDescription(False, '*');
+  for i := 0 to L.Count - 1 do
+      DoStatus(L[i]);
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Exit(var OP_Param: TOpParam): Variant;
+begin
+  IsExit := True;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Service(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  ip: U_String;
+  port: Word;
+begin
+  if length(OP_Param) = 1 then
+    begin
+      ip := umlVarToStr(OP_Param[0], False);
+      for i := 0 to C40_PhysicsServicePool.Count - 1 do
+        begin
+          if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
+              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) then
+              UpdateServiceInfo(C40_PhysicsServicePool[i]);
+        end;
+    end
+  else if length(OP_Param) = 2 then
+    begin
+      ip := umlVarToStr(OP_Param[0], False);
+      port := OP_Param[1];
+      for i := 0 to C40_PhysicsServicePool.Count - 1 do
+        begin
+          if (umlMultipleMatch(ip, C40_PhysicsServicePool[i].ListeningAddr)
+              or umlMultipleMatch(ip, C40_PhysicsServicePool[i].PhysicsAddr)) and (port = C40_PhysicsServicePool[i].PhysicsPort) then
+              UpdateServiceInfo(C40_PhysicsServicePool[i]);
+        end;
+    end
+  else
+    begin
+      UpdateServiceInfo();
+    end;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Tunnel(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  ip: U_String;
+  port: Word;
+begin
+  if length(OP_Param) = 1 then
+    begin
+      ip := umlVarToStr(OP_Param[0], False);
+      for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+        begin
+          if umlMultipleMatch(ip, C40_PhysicsTunnelPool[i].PhysicsAddr) then
+              UpdateTunnelInfo(C40_PhysicsTunnelPool[i]);
+        end;
+    end
+  else if length(OP_Param) = 2 then
+    begin
+      ip := umlVarToStr(OP_Param[0], False);
+      port := OP_Param[1];
+      for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+        begin
+          if umlMultipleMatch(ip, C40_PhysicsTunnelPool[i].PhysicsAddr)
+            and (port = C40_PhysicsTunnelPool[i].PhysicsPort) then
+              UpdateTunnelInfo(C40_PhysicsTunnelPool[i]);
+        end;
+    end
+  else
+    begin
+      UpdateTunnelInfo();
+    end;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Reg(var OP_Param: TOpParam): Variant;
+begin
+  C40_Registed.Print;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_KillNet(var OP_Param: TOpParam): Variant;
+var
+  PhysicsAddr: U_String;
+  PhysicsPort: Word;
+begin
+  PhysicsPort := 0;
+  PhysicsAddr := umlVarToStr(OP_Param[0], False);
+  if length(OP_Param) > 0 then
+      PhysicsPort := OP_Param[1];
+  C40RemovePhysics(PhysicsAddr, PhysicsPort, True, True, True, True);
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_SetQuiet(var OP_Param: TOpParam): Variant;
+begin
+  C40SetQuietMode(OP_Param[0]);
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+var
+  tk: TTimeTick;
+  LName: U_String;
+  i: Integer;
+  cc: TC4_Help_Console_Command;
+  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
+  rData: TC4_Help_Console_Command_Data;
+begin
+  tk := GetTimeTick;
+  LName := Sender.Trigger^.Name;
+  for i := 0 to C40_ServicePool.Count - 1 do
+    begin
+      cc := C40_ServicePool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+              begin
+                rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ServicePool[i].ClassName, C40_ServicePool[i].ServiceInfo.ServiceTyp.Text]);
+              end;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_ClientPool.Count - 1 do
+    begin
+      cc := C40_ClientPool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+              begin
+                rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s(%s)', [rData.Cmd, C40_ClientPool[i].ClassName, C40_ClientPool[i].ClientInfo.ServiceTyp.Text]);
+              end;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Service_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+              begin
+                rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Service_Pool[i].ClassName]);
+              end;
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Client_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if LName.Same(rData.Cmd) then
+              begin
+                rData.DoExecute(OP_Param);
+                DoStatus('execute %s from %s', [rData.Cmd, C40_VM_Client_Pool[i].ClassName]);
+              end;
+          until not __repeat__.Next;
+        end;
+    end;
+  Result := PFormat('time:%dms', [GetTimeTick - tk]);
+end;
+
+constructor TC40_Console_Help.Create;
+begin
+  inherited Create;
+  HelpTextStyle := tsPascal;
+  IsExit := False;
+  opRT := nil;
+  Update_opRT;
+end;
+
+destructor TC40_Console_Help.Destroy;
+begin
+  DisposeObjectAndNil(opRT);
+  inherited Destroy;
+end;
+
+procedure TC40_Console_Help.Update_opRT;
+var
+  i: Integer;
+  cc: TC4_Help_Console_Command;
+  __repeat__: TC4_Help_Console_Command_Decl.TRepeat___;
+  rData: TC4_Help_Console_Command_Data;
+begin
+  DisposeObjectAndNil(opRT);
+  opRT := TOpCustomRunTime.Create;
+
+  opRT.RegOpM('Help', 'help info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Help)^.Category := 'C4 help';
+  opRT.RegOpM('Exit', 'safe close this console.', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Category := 'C4 help';
+  opRT.RegOpM('Close', 'safe close this console.', {$IFDEF FPC}@{$ENDIF FPC}Do_Exit)^.Category := 'C4 help';
+  opRT.RegOpM('service', 'service(ip, port), local service report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('server', 'server(ip, port), local service report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('serv', 'serv(ip, port), local service report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('tunnel', 'tunnel(ip, port), tunnel report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('client', 'client(ip, port), tunnel report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('cli', 'cli(ip, port), tunnel report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('RegInfo', 'C4 registed info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
+
+  for i := 0 to C40_ServicePool.Count - 1 do
+    begin
+      cc := C40_ServicePool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_ClientPool.Count - 1 do
+    begin
+      cc := C40_ClientPool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Service_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Service_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+          until not __repeat__.Next;
+        end;
+    end;
+  for i := 0 to C40_VM_Client_Pool.Count - 1 do
+    begin
+      cc := C40_VM_Client_Pool[i].ConsoleCommand;
+      if cc.Num > 0 then
+        begin
+          __repeat__ := cc.Repeat_;
+          repeat
+            rData := __repeat__.Queue^.Data;
+            if not opRT.ProcList.Exists(rData.Cmd) then
+                opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+          until not __repeat__.Next;
+        end;
+    end;
+end;
+
+procedure TC40_Console_Help.Run_HelpCmd(exp_: U_String);
+var
+  R: Variant;
+  r_arry: TExpressionValueVector;
+begin
+  if IsSymbolVectorExpression(exp_, HelpTextStyle) then
+    begin
+      r_arry := EvaluateExpressionVector(False, False, nil, HelpTextStyle, exp_, opRT, nil);
+      ExpressionValueVectorIsError(r_arry);
+      DoStatus('%s result: %s', [exp_.Text, ExpressionValueVectorToStr(r_arry).Text]);
+    end
+  else
+    begin
+      R := EvaluateExpressionValue(False, HelpTextStyle, exp_, opRT);
+      ExpressionValueIsError(R);
+      DoStatus('%s result: %s', [exp_.Text, umlVarToStr(R, False).Text]);
+    end;
+end;
+
 initialization
 
 { init }
@@ -5929,13 +6391,14 @@ C40_UpdateServiceInfoDelayTime := 1000 * 1;
 C40_PhysicsServiceTimeout := 1000 * 60 * 5;
 C40_PhysicsTunnelTimeout := 1000 * 60 * 5;
 C40_KillDeadPhysicsConnectionTimeout := 1000 * 5;
-C40_KillIDCFaultTimeout := 1000 * 60 * 60;
+C40_KillIDCFaultTimeout := 1000 * 60 * 10;
 
 {$IFDEF FPC}
 C40_RootPath := umlCurrentPath;
 {$ELSE FPC}
 C40_RootPath := TPath.GetLibraryPath;
 {$ENDIF FPC}
+C40_Password := 'DTC40@ZSERVER';
 
 C40_PhysicsClientClass := Z.Net.PhysicsIO.TPhysicsClient;
 C40_Registed := TC40_RegistedDataList.Create;

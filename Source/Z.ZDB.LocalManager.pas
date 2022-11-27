@@ -79,13 +79,13 @@ type
 
     // query options
     WriteResultToOutputDB: Boolean; // result write to output
-    AutoDestroyDB: Boolean;         // complete time destroy DB
-    FragmentWaitTime: Double;       // fragment time,realtime send to client
-    MaxWaitTime: Double;            // max wait complete time,query to abort from out time
-    MaxQueryCompare: Int64;         // max query compare
-    MaxQueryResult: Int64;          // max query result
+    AutoDestroyDB: Boolean; // complete time destroy DB
+    FragmentWaitTime: Double; // fragment time,realtime send to client
+    MaxWaitTime: Double; // max wait complete time,query to abort from out time
+    MaxQueryCompare: Int64; // max query compare
+    MaxQueryResult: Int64; // max query result
     QueryDoneFreeDelayTime: Double; // delay free query pipeline
-    WriteFragmentBuffer: Boolean;   // write fragment buffer
+    WriteFragmentBuffer: Boolean; // write fragment buffer
 
     OnDataFilter_C: TZDBPipelineFilter_C;
     OnDataFilter_M: TZDBPipelineFilter_M;
@@ -939,13 +939,13 @@ begin
 
   // data query options
   WriteResultToOutputDB := True; // query result write to output
-  AutoDestroyDB := True;         // complete time destroy Database_
-  FragmentWaitTime := 0.5;       // fragment time,realtime send to client
-  MaxWaitTime := 0;              // max wait complete time,query to abort from out time
-  MaxQueryCompare := 0;          // max query compare
-  MaxQueryResult := 0;           // max query result
-  QueryDoneFreeDelayTime := 60;  // query done free delay time
-  WriteFragmentBuffer := True;   // write fragment
+  AutoDestroyDB := True; // complete time destroy Database_
+  FragmentWaitTime := 0.5; // fragment time,realtime send to client
+  MaxWaitTime := 0; // max wait complete time,query to abort from out time
+  MaxQueryCompare := 0; // max query compare
+  MaxQueryResult := 0; // max query result
+  QueryDoneFreeDelayTime := 60; // query done free delay time
+  WriteFragmentBuffer := True; // write fragment
 
   OnDataFilter_C := nil;
   OnDataFilter_M := nil;
@@ -2207,7 +2207,7 @@ begin
   LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0, @do_fpc_Query, @do_fpc_Query_Done);
 {$ELSE FPC}
   LM.QueryDBP(True, True, False, 'test', 'test_output', True, 1.0, 1, 0, 0, 0,
-    procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
+      procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
     begin
       if qState.IsString then
         begin

@@ -1753,6 +1753,7 @@ begin
   DTNoAuthClient.RecvTunnel.RegisterDirectStream('FS_State').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_State;
   FRemote_FS_DB_Size := 0;
   FRemote_FS_Num := 0;
+
   C40_FS2_Cache_FileName := umlCombineFileName({$IFDEF FPC}C40_RootPath{$ELSE FPC}TPath.GetTempPath{$ENDIF FPC},
     PFormat('DTC40_FS2_Cache_%s_%s.tmp', [source_.ServiceTyp.Text, umlMD5ToStr(source_.Hash).Text]));
   i := 1;

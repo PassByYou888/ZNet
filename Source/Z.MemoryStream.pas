@@ -83,6 +83,7 @@ type
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64; override;
     property Memory: Pointer read FMemory;
 
+    function CopyMem64(const source: TMem64; Count: Int64): Int64;
     function CopyFrom(const source: TCore_Stream; Count: Int64): Int64; virtual;
 
     // Serialized writer
@@ -920,6 +921,15 @@ begin
     TSeekOrigin.soEnd: FPosition := FSize + Offset;
   end;
   Result := FPosition;
+end;
+
+function TMS64.CopyMem64(const source: TMem64; Count: Int64): Int64;
+begin
+  if FProtectedMode then
+      RaiseInfo('protected mode');
+  WritePtr(source.PositionAsPtr, Count);
+  source.Position := source.FPosition + Count;
+  Result := Count;
 end;
 
 function TMS64.CopyFrom(const source: TCore_Stream; Count: Int64): Int64;

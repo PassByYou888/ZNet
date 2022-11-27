@@ -34,9 +34,10 @@ type
   TOnOp_P = reference to function(var OP_Param: TOpParam): Variant;
   TOnObjectOp_P = reference to function(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
 {$ENDIF FPC}
+  TOpRT_Mode = (rtmDirect, rtmSync, rtmPost);
 
   TOpRTData = record
-    Param: TOpParam;
+  public
     Name, Description, Category: SystemString;
     OnOp_C: TOnOp_C;
     OnOp_M: TOnOp_M;
@@ -44,10 +45,20 @@ type
     OnObjectOp_C: TOnObjectOp_C;
     OnObjectOp_M: TOnObjectOp_M;
     OnObjectOp_P: TOnObjectOp_P;
+    Mode: TOpRT_Mode;
     procedure Init;
   end;
 
   POpRTData = ^TOpRTData;
+
+  TOpRT_Sync_Bridge = class
+  public
+    opRT: TOpCustomRunTime;
+    OC: TOpCode;
+    OD: POpRTData;
+    R_: Variant;
+    procedure Do_Sync_Run;
+  end;
 
   TOpSystemAPI = class(TCore_Object)
   private
@@ -142,18 +153,26 @@ type
     function GetAllProcDescription(): TPascalStringList; overload;
     function GetAllProcDescription(Category: U_String): TPascalStringList; overload;
     function GetAllProcDescription(InclSys_: Boolean; Category: U_String): TPascalStringList; overload;
+    function GetProc(const ProcName: SystemString): POpRTData;
+    property Proc_[const ProcName: SystemString]: POpRTData read GetProc;
     function RegOpC(ProcName: SystemString; On_P: TOnOp_C): POpRTData; overload;
     function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C): POpRTData; overload;
+    function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C; Mode: TOpRT_Mode): POpRTData; overload;
     function RegOpM(ProcName: SystemString; On_P: TOnOp_M): POpRTData; overload;
     function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M): POpRTData; overload;
-    function RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
-    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
-    function RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
-    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
+    function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M; Mode: TOpRT_Mode): POpRTData; overload;
     function RegOpP(ProcName: SystemString; On_P: TOnOp_P): POpRTData; overload;
     function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P): POpRTData; overload;
+    function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
+    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
+    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
+    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
+    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M; Mode: TOpRT_Mode): POpRTData; overload;
     function RegObjectOpP(ProcName: SystemString; On_P: TOnObjectOp_P): POpRTData; overload;
     function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P): POpRTData; overload;
+    function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P; Mode: TOpRT_Mode): POpRTData; overload;
   end;
 
   opClass = class of TOpCode;
@@ -364,7 +383,6 @@ var
 
 procedure TOpRTData.Init;
 begin
-  SetLength(Param, 0);
   Name := '';
   Description := '';
   Category := '';
@@ -374,6 +392,42 @@ begin
   OnObjectOp_C := nil;
   OnObjectOp_M := nil;
   OnObjectOp_P := nil;
+  Mode := rtmDirect;
+end;
+
+procedure TOpRT_Sync_Bridge.Do_Sync_Run;
+var
+  i: Integer;
+  tmp_Param: TOpParam;
+begin
+  if OC.Count > 1 then
+    begin
+      // copy param
+      SetLength(tmp_Param, OC.Count - 1);
+      for i := 1 to OC.Count - 1 do
+          tmp_Param[i - 1] := OC.Param[i]^.Value;
+    end
+  else
+      SetLength(tmp_Param, 0);
+
+  opRT.Trigger := OD;
+  R_ := NULL;
+  try
+    if Assigned(OD^.OnOp_C) then
+        R_ := OD^.OnOp_C(tmp_Param);
+    if Assigned(OD^.OnOp_M) then
+        R_ := OD^.OnOp_M(tmp_Param);
+    if Assigned(OD^.OnOp_P) then
+        R_ := OD^.OnOp_P(tmp_Param);
+    if Assigned(OD^.OnObjectOp_C) then
+        R_ := OD^.OnObjectOp_C(opRT, tmp_Param);
+    if Assigned(OD^.OnObjectOp_M) then
+        R_ := OD^.OnObjectOp_M(opRT, tmp_Param);
+    if Assigned(OD^.OnObjectOp_P) then
+        R_ := OD^.OnObjectOp_P(opRT, tmp_Param);
+  except
+  end;
+  SetLength(tmp_Param, 0);
 end;
 
 function GetRegistedOp(Name_P: PPascalString): POpRegData; overload;
@@ -1292,7 +1346,7 @@ begin
 
   arry := ProcList.GetHashDataArray();
 
-  hl := THashObjectList.CustomCreate(True, 256);
+  hl := THashObjectList.CustomCreate(True, $FF);
   for i := Low(arry) to High(arry) do
     begin
       p := arry[i]^.Data;
@@ -1302,7 +1356,7 @@ begin
 
       if p^.Description <> '' then
         begin
-          if umlReplaceSum(p^.Description, p^.Name, True, True, 0, 0, nil) > 0 then
+          if umlReplaceSum(' ' + p^.Description, ' ' + p^.Name + '(', False, True, 0, 0, nil) > 0 then
               n := p^.Description
           else
               n := p^.Name + '(): ' + p^.Description;
@@ -1330,6 +1384,11 @@ begin
   DisposeObject(hl);
 end;
 
+function TOpCustomRunTime.GetProc(const ProcName: SystemString): POpRTData;
+begin
+  Result := ProcList[ProcName];
+end;
+
 function TOpCustomRunTime.RegOpC(ProcName: SystemString; On_P: TOnOp_C): POpRTData;
 var
   p: POpRTData;
@@ -1343,16 +1402,15 @@ begin
 end;
 
 function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C): POpRTData;
-var
-  p: POpRTData;
 begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnOp_C := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
+  Result := RegOpC(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := RegOpC(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
 end;
 
 function TOpCustomRunTime.RegOpM(ProcName: SystemString; On_P: TOnOp_M): POpRTData;
@@ -1368,66 +1426,15 @@ begin
 end;
 
 function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M): POpRTData;
-var
-  p: POpRTData;
 begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnOp_M := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
+  Result := RegOpM(ProcName, On_P);
+  Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData;
-var
-  p: POpRTData;
+function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M; Mode: TOpRT_Mode): POpRTData;
 begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.OnObjectOp_C := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
-end;
-
-function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData;
-var
-  p: POpRTData;
-begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnObjectOp_C := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
-end;
-
-function TOpCustomRunTime.RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData;
-var
-  p: POpRTData;
-begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.OnObjectOp_M := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
-end;
-
-function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData;
-var
-  p: POpRTData;
-begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnObjectOp_M := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
+  Result := RegOpM(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
 end;
 
 function TOpCustomRunTime.RegOpP(ProcName: SystemString; On_P: TOnOp_P): POpRTData;
@@ -1443,16 +1450,63 @@ begin
 end;
 
 function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P): POpRTData;
+begin
+  Result := RegOpP(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := RegOpP(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
+end;
+
+function TOpCustomRunTime.RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnOp_P := On_P;
+  p^.OnObjectOp_C := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
+end;
+
+function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData;
+begin
+  Result := RegObjectOpC(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := RegObjectOpC(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.OnObjectOp_M := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData;
+begin
+  Result := RegObjectOpM(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := RegObjectOpM(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
 end;
 
 function TOpCustomRunTime.RegObjectOpP(ProcName: SystemString; On_P: TOnObjectOp_P): POpRTData;
@@ -1468,16 +1522,15 @@ begin
 end;
 
 function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P): POpRTData;
-var
-  p: POpRTData;
 begin
-  new(p);
-  p^.Init;
-  p^.Name := ProcName;
-  p^.Description := ProcDescription;
-  p^.OnObjectOp_P := On_P;
-  ProcList.Add(ProcName, p, True);
-  Result := p;
+  Result := RegObjectOpP(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := RegObjectOpP(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
 end;
 
 function TOpCode.DoExecute(opRT: TOpCustomRunTime): Variant;
@@ -1727,6 +1780,8 @@ function op_Proc.DoExecute(opRT: TOpCustomRunTime): Variant;
 var
   p: POpRTData;
   i: Integer;
+  tmp_Param: TOpParam;
+  bridge_: TOpRT_Sync_Bridge;
 begin
   Result := NULL;
   if (opRT = nil) then
@@ -1742,25 +1797,47 @@ begin
           Exit;
     end;
 
-  if length(p^.Param) <> Count - 1 then
-      SetLength(p^.Param, Count - 1);
+  if p^.Mode = rtmDirect then
+    begin
+      if Count > 1 then
+        begin
+          SetLength(tmp_Param, Count - 1);
+          for i := 1 to Count - 1 do
+              tmp_Param[i - 1] := Param[i]^.Value;
+        end
+      else
+          SetLength(tmp_Param, 0);
 
-  for i := 1 to Count - 1 do
-      p^.Param[i - 1] := Param[i]^.Value;
+      opRT.Trigger := p;
+      if Assigned(p^.OnOp_C) then
+          Result := p^.OnOp_C(tmp_Param);
+      if Assigned(p^.OnOp_M) then
+          Result := p^.OnOp_M(tmp_Param);
+      if Assigned(p^.OnOp_P) then
+          Result := p^.OnOp_P(tmp_Param);
+      if Assigned(p^.OnObjectOp_C) then
+          Result := p^.OnObjectOp_C(opRT, tmp_Param);
+      if Assigned(p^.OnObjectOp_M) then
+          Result := p^.OnObjectOp_M(opRT, tmp_Param);
+      if Assigned(p^.OnObjectOp_P) then
+          Result := p^.OnObjectOp_P(opRT, tmp_Param);
 
-  opRT.Trigger := p;
-  if Assigned(p^.OnOp_C) then
-      Result := p^.OnOp_C(p^.Param);
-  if Assigned(p^.OnOp_M) then
-      Result := p^.OnOp_M(p^.Param);
-  if Assigned(p^.OnOp_P) then
-      Result := p^.OnOp_P(p^.Param);
-  if Assigned(p^.OnObjectOp_C) then
-      Result := p^.OnObjectOp_C(opRT, p^.Param);
-  if Assigned(p^.OnObjectOp_M) then
-      Result := p^.OnObjectOp_M(opRT, p^.Param);
-  if Assigned(p^.OnObjectOp_P) then
-      Result := p^.OnObjectOp_P(opRT, p^.Param);
+      SetLength(tmp_Param, 0);
+    end
+  else
+    begin
+      bridge_ := TOpRT_Sync_Bridge.Create;
+      bridge_.opRT := opRT;
+      bridge_.OC := self;
+      bridge_.OD := p;
+      bridge_.R_ := Result;
+      if p^.Mode = rtmPost then
+          TCompute.Sync_Wait_PostM1({$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Sync_Run)
+      else
+          TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Sync_Run);
+      Result := bridge_.R_;
+      DisposeObject(bridge_);
+    end;
 end;
 
 { op_Add_Prefix }

@@ -2,7 +2,7 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
     <Units Count="4">
       <Unit0>
@@ -21,7 +21,8 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="DTC40_FS_AdminToolFrm"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="95" Y="24"/>
+        <TopLine Value="446"/>
+        <CursorPos X="44" Y="462"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -42,7 +43,7 @@
         <UsageCount Value="10"/>
       </Unit3>
     </Units>
-    <JumpHistory Count="13" HistoryIndex="12">
+    <JumpHistory Count="16" HistoryIndex="15">
       <Position1>
         <Filename Value="dtc40_fs_admintoolfrm.pas"/>
         <Caret Line="46" TopLine="28"/>
@@ -95,10 +96,22 @@
         <Filename Value="dtc40_fs_admintoolfrm.pas"/>
         <Caret Line="443" Column="56" TopLine="428"/>
       </Position13>
+      <Position14>
+        <Filename Value="dtc40_fs_admintoolfrm.pas"/>
+        <Caret Line="19" Column="40"/>
+      </Position14>
+      <Position15>
+        <Filename Value="dtc40_fs_admintoolfrm.pas"/>
+        <Caret Line="103" Column="59" TopLine="82"/>
+      </Position15>
+      <Position16>
+        <Filename Value="dtc40_fs_admintoolfrm.pas"/>
+        <Caret Line="405" Column="58" TopLine="383"/>
+      </Position16>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode=""/>
+      <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
 </CONFIG>

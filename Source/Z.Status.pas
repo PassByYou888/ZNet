@@ -472,7 +472,7 @@ begin
     begin
       new(pSS);
       if StatusThreadID then
-          pSS^.S := '[' + IntToStr(Th.ThreadID) + '] ' + Text_
+          pSS^.S := '[' + IntToStr(Th.ThreadID) + '] ' + umlReplace(Text_, #10, #10 + '[' + IntToStr(Th.ThreadID) + '] ', False, False)
       else
           pSS^.S := Text_;
       pSS^.Th := Th;

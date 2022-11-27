@@ -323,7 +323,7 @@ type
     function GetBuffer: TCore_Stream;
     procedure SetBuffer(Value_: TCore_Stream);
     property Buffer: TCore_Stream read GetBuffer write SetBuffer;
-    property InstanceBuffer: TMS64 read FBuffer write FBuffer;
+    property Buffer64: TMS64 read FBuffer;
   end;
 
   TDFVariant = class sealed(TDFBase)
@@ -406,6 +406,7 @@ type
     function ReadArraySingle: TDFArraySingle;
     function ReadArrayDouble: TDFArrayDouble;
     function ReadArrayInt64: TDFArrayInt64;
+    procedure ReadMem64(output: TMem64);
     procedure ReadStream(output: TCore_Stream);
     function ReadVariant: Variant;
     function ReadInt64: Int64;
@@ -511,8 +512,8 @@ type
     function WriteArraySingle: TDFArraySingle;
     function WriteArrayDouble: TDFArrayDouble;
     function WriteArrayInt64: TDFArrayInt64;
+    procedure WriteMem64(v: TMem64);
     procedure WriteStream(v: TCore_Stream);
-    procedure WriteInstanceStream(v: TMS64);
     procedure WriteVariant(v: Variant);
     procedure WriteInt64(v: Int64);
     procedure WriteUInt64(v: UInt64);
@@ -571,6 +572,7 @@ type
     function ReadArraySingle(index_: Integer): TDFArraySingle;
     function ReadArrayDouble(index_: Integer): TDFArrayDouble;
     function ReadArrayInt64(index_: Integer): TDFArrayInt64;
+    procedure ReadMem64(index_: Integer; output: TMem64);
     procedure ReadStream(index_: Integer; output: TCore_Stream);
     function ReadVariant(index_: Integer): Variant;
     function ReadInt64(index_: Integer): Int64;
@@ -647,6 +649,7 @@ type
     // state
     function IsCompressed(source: TCore_Stream): Boolean;
     // decoder
+    function DecodeFrom(source: TCore_Stream; const FastMode: Boolean; const Max_Limit_Decode: Integer): Integer; overload;
     function DecodeFrom(source: TCore_Stream; const FastMode: Boolean): Integer; overload;
     function DecodeFrom(source: TCore_Stream): Integer; overload;
     procedure EncodeToBytes(const Compressed, FastMode: Boolean; var output: TBytes);
@@ -2017,6 +2020,12 @@ begin
   inc(FIndex);
 end;
 
+procedure TDFEReader.ReadMem64(output: TMem64);
+begin
+  FOwner.ReadMem64(FIndex, output);
+  inc(FIndex);
+end;
+
 procedure TDFEReader.ReadStream(output: TCore_Stream);
 begin
   FOwner.ReadStream(FIndex, output);
@@ -2607,21 +2616,22 @@ begin
   FDataList.Add_DFBase(Result);
 end;
 
+procedure TDFE.WriteMem64(v: TMem64);
+var
+  Obj_: TDFStream;
+begin
+  Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
+  v.Position := 0;
+  Obj_.Buffer64.CopyMem64(v, v.Size);
+  FDataList.Add_DFBase(Obj_);
+end;
+
 procedure TDFE.WriteStream(v: TCore_Stream);
 var
   Obj_: TDFStream;
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   Obj_.Buffer := v;
-  FDataList.Add_DFBase(Obj_);
-end;
-
-procedure TDFE.WriteInstanceStream(v: TMS64);
-var
-  Obj_: TDFStream;
-begin
-  Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
-  Obj_.InstanceBuffer := v;
   FDataList.Add_DFBase(Obj_);
 end;
 
@@ -3353,6 +3363,28 @@ begin
       Result := nil;
 end;
 
+procedure TDFE.ReadMem64(index_: Integer; output: TMem64);
+var
+  Obj_: TDFBase;
+  LNeedResetPos: Boolean;
+begin
+  Obj_ := Data[index_];
+  LNeedResetPos := output.Size = 0;
+  if Obj_ is TDFStream then
+    begin
+      with TDFStream(Obj_) do
+        begin
+          Buffer64.Position := 0;
+          output.CopyFrom(Buffer64, Buffer64.Size);
+          Buffer64.Position := 0;
+        end;
+    end
+  else
+      RaiseInfo('no support');
+  if LNeedResetPos then
+      output.Position := 0;
+end;
+
 procedure TDFE.ReadStream(index_: Integer; output: TCore_Stream);
 var
   Obj_: TDFBase;
@@ -3369,9 +3401,9 @@ begin
               output.Size := Buffer.Size;
               output.Position := 0;
             end;
-          InstanceBuffer.Position := 0;
-          output.CopyFrom(InstanceBuffer, InstanceBuffer.Size);
-          InstanceBuffer.Position := 0;
+          Buffer64.Position := 0;
+          output.CopyFrom(Buffer64, Buffer64.Size);
+          Buffer64.Position := 0;
         end;
     end
   else if output is TMS64 then
@@ -4662,7 +4694,7 @@ begin
   source.Position := bakPos;
 end;
 
-function TDFE.DecodeFrom(source: TCore_Stream; const FastMode: Boolean): Integer;
+function TDFE.DecodeFrom(source: TCore_Stream; const FastMode: Boolean; const Max_Limit_Decode: Integer): Integer;
 var
   i, num_: Integer;
   ID: Byte;
@@ -4832,6 +4864,10 @@ begin
       StoreStream.Position := 0;
 
       StoreStream.Read64(num_, C_Integer_Size);
+
+      if Max_Limit_Decode > 0 then
+          num_ := umlMin(num_ - 1, Max_Limit_Decode);
+
       for i := 0 to num_ - 1 do
         begin
           StoreStream.Read64(ID, C_Byte_Size);
@@ -4847,6 +4883,11 @@ begin
       DisposeObject(StoreStream);
       exit;
     end;
+end;
+
+function TDFE.DecodeFrom(source: TCore_Stream; const FastMode: Boolean): Integer;
+begin
+  Result := DecodeFrom(source, FastMode, 0);
 end;
 
 function TDFE.DecodeFrom(source: TCore_Stream): Integer;

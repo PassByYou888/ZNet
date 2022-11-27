@@ -2,9 +2,9 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
-    <Units Count="5">
+    <Units Count="6">
       <Unit0>
         <Filename Value="DTC40_Var_AdminTool.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -20,9 +20,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="DTC40_Var_AdminToolFrm"/>
-        <IsVisibleTab Value="True"/>
-        <TopLine Value="215"/>
-        <CursorPos X="86" Y="235"/>
+        <TopLine Value="451"/>
+        <CursorPos X="58" Y="464"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -33,9 +32,10 @@
         <ComponentName Value="DTC40_Var_AdminToolNewNMForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="48"/>
-        <CursorPos X="31" Y="63"/>
+        <TopLine Value="70"/>
+        <CursorPos X="35" Y="80"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -55,8 +55,15 @@
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="..\..\Z.Net.C4_Var.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="91"/>
+        <CursorPos X="102" Y="103"/>
+        <UsageCount Value="10"/>
+      </Unit5>
     </Units>
-    <JumpHistory Count="20" HistoryIndex="19">
+    <JumpHistory Count="25" HistoryIndex="24">
       <Position1>
         <Filename Value="dtc40_var_admintoolfrm.pas"/>
         <Caret Line="11"/>
@@ -137,10 +144,30 @@
         <Filename Value="dtc40_var_admintoolfrm.pas"/>
         <Caret Line="96" Column="22" TopLine="79"/>
       </Position20>
+      <Position21>
+        <Filename Value="dtc40_var_admintoolfrm.pas"/>
+        <Caret Line="223" Column="43" TopLine="215"/>
+      </Position21>
+      <Position22>
+        <Filename Value="dtc40_var_admintoolfrm.pas"/>
+        <Caret Line="120" Column="66" TopLine="107"/>
+      </Position22>
+      <Position23>
+        <Filename Value="dtc40_var_admintoolfrm.pas"/>
+        <Caret Line="117" Column="72" TopLine="107"/>
+      </Position23>
+      <Position24>
+        <Filename Value="dtc40_var_admintoolfrm.pas"/>
+        <Caret Line="464" Column="58" TopLine="451"/>
+      </Position24>
+      <Position25>
+        <Filename Value="dtc40_var_admintoolnewnmfrm.pas"/>
+        <Caret Line="80" Column="30" TopLine="70"/>
+      </Position25>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode=""/>
+      <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
 </CONFIG>

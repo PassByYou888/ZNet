@@ -1,6 +1,5 @@
 unit FMXBatchDataClientFrm;
 
-
 interface
 
 uses
@@ -127,7 +126,7 @@ begin
     0,                       // 最大匹配查询的反馈条目数
     vl,                      // 发送给MyCustomQuery用的KeyValue参数
     nil,
-    procedure(dbN, outN, pipeN: string; TotalResult: Int64)
+      procedure(dbN, outN, pipeN: string; TotalResult: Int64)
     begin
       // 服务器查询完成时，触发这里的事件
       DoStatus('统计 %s 完成 总共输出有 %d 条在数据库%s中', [dbN, TotalResult, outN]);
@@ -137,7 +136,7 @@ begin
       // 我们在改事件中可以反复对改数据库进行再次统计，再次查询，以得到我们需要的结果
       // 但是这里不做多次查询了，直接将统计结果下载到本地并且显示
       DBClient.DownloadDBP(False, outN,
-        procedure(dbN, pipeN: SystemString; StorePos: Int64; ID: Cardinal; DataSour: TMemoryStream64)
+          procedure(dbN, pipeN: SystemString; StorePos: Int64; ID: Cardinal; DataSour: TMemoryStream64)
         var
           ns: TStringList;
         begin
@@ -193,7 +192,7 @@ begin
 end;
 
 procedure TFMXBatchDataClientForm.DisconnectCheckTimerTimer(
-  Sender: TObject);
+Sender: TObject);
 begin
   // 因为跨平台的问题，indy在ios和安卓平台底层都不支持断线事件
   // 必须手动检查断线状态
@@ -251,26 +250,33 @@ begin
 end;
 
 procedure TFMXBatchDataClientForm.Gen100kJsonButtonClick(Sender: TObject);
-var
-  i: Integer;
-  j: TDBEngineJson;
 begin
   TabControl.Enabled := False;
   // InitDB的第一个参数是内存数据库，我们设置成false是创建一个文件数据库
   DBClient.InitDB(False, JsonDestDBEdit.Text);
 
-  // 产生100000个json对象到实体文件库
-  // value从11开始计数，注意，这里value我们使用字符串
-  for i := 10 + 1 to 100000 + 10 do
+  // ZNet新版本可以支持线程发送，这里用线程可以避免卡顿，同时保证流畅发送
+  TCompute.RunP_NP(procedure
+    var
+      i: Integer;
+      j: TDBEngineJson;
     begin
-      j := TDBEngineJson.Create;
-      j.S['myKey'] := IntToStr(i);
-      // randomValue用于演示统计和分析功能
-      j.i['RandomValue'] := umlRandomRange(1, 10);
-      DBClient.FastPostCompleteBuffer(JsonDestDBEdit.Text, j);
-      DisposeObject(j);
-    end;
-  TabControl.Enabled := True;
+      // 产生100000个json对象到实体文件库
+      // value从11开始计数，注意，这里value我们使用字符串
+      for i := 10 + 1 to 100000 + 10 do
+        begin
+          j := TDBEngineJson.Create;
+          j.S['myKey'] := IntToStr(i);
+          // randomValue用于演示统计和分析功能
+          j.i['RandomValue'] := umlRandomRange(1, 10);
+          DBClient.FastPostCompleteBuffer(JsonDestDBEdit.Text, j);
+          DisposeObject(j);
+        end;
+      TCompute.PostP1(procedure
+        begin
+          TabControl.Enabled := True;
+        end);
+    end);
 end;
 
 procedure TFMXBatchDataClientForm.LoginBtnClick(Sender: TObject);
@@ -282,13 +288,13 @@ begin
           begin
             if rState then
                 DBClient.UserLoginP(UserIDEdit.Text, PasswdEdit.Text,
-                procedure(const State: Boolean)
+                  procedure(const State: Boolean)
                 begin
                   if State then
                     begin
                       DoStatus('登录成功');
                       DBClient.TunnelLinkP(
-                        procedure(const State: Boolean)
+                          procedure(const State: Boolean)
                         begin
                           if State then
                             begin
@@ -324,7 +330,7 @@ begin
   ResultMemo.Lines.Clear;
 
   DBClient.QueryDBP(
-    'MyCustomQuery',   // MyCustomQuery在服务器注册和实现
+  'MyCustomQuery',     // MyCustomQuery在服务器注册和实现
   True,                // 缓冲碎片是否同步到客户端
   False,               // 是否将查询结果写入到Output数据库，这个Output相当于是select到视图，但是Output会Copy
   True,                // output数据为内存数据库，如果是False，查询的output会以一个实体文件进行存储
@@ -346,7 +352,7 @@ begin
       ResultMemo.Lines.AddStrings(ns);
       DisposeObject(ns);
     end,
-    procedure(dbN, outN, pipeN: string; TotalResult: Int64)
+      procedure(dbN, outN, pipeN: string; TotalResult: Int64)
     begin
       // 服务器查询完成时，触发这里的事件
       ResultMemo.EndUpdate;
@@ -366,6 +372,7 @@ end;
 procedure TFMXBatchDataClientForm.Timer1Timer(Sender: TObject);
 begin
   DBClient.Progress;
+  CheckThread;
 end;
 
 end.

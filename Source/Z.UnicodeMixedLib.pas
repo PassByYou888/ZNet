@@ -8,6 +8,7 @@ unit Z.UnicodeMixedLib;
 interface
 
 uses
+  Dateutils,
 {$IFDEF FPC}
   Dynlibs,
   Z.FPC.GenericList,
@@ -376,6 +377,8 @@ function umlMBPSToStr(Size: Int64): TPascalString;
 function umlSizeToStr(Parameter: Int64): TPascalString;
 function umlStrToDateTime(s: TPascalString): TDateTime;
 function umlDateTimeToStr(t: TDateTime): TPascalString;
+function umlDT(t: TDateTime): TPascalString; overload;
+function umlDT(s: TPascalString): TDateTime; overload;
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
 function umlTimeToStr(t: TDateTime): TPascalString;
 function umlDateToStr(t: TDateTime): TPascalString;
@@ -406,9 +409,13 @@ function umlMatchFileInfo(const exp_, sour_, dest_: TPascalString): Boolean;
 function umlGetDateTimeStr(NowDateTime: TDateTime): TPascalString;
 function umlDecodeTimeToStr(NowDateTime: TDateTime): TPascalString;
 function umlMakeRanName: TPascalString;
+function umlDecodeDateTimeToInt64(NowDateTime: TDateTime): Int64;
 
 type
   TBatch = record
+  private
+    procedure Swap_(var inst: TBatch);
+  public
     sour, dest: TPascalString;
     sum: Integer;
   end;
@@ -3965,6 +3972,16 @@ begin
   Result.text := DateTimeToStr(t, Lib_DateTimeFormatSettings);
 end;
 
+function umlDT(t: TDateTime): TPascalString;
+begin
+  Result := umlDateTimeToStr(t);
+end;
+
+function umlDT(s: TPascalString): TDateTime;
+begin
+  Result := umlStrToDateTime(s);
+end;
+
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
 var
   tmp, d, h, m, s: TTimeTick;
@@ -4474,7 +4491,7 @@ end;
 
 function umlMakeRanName: TPascalString;
 type
-  TRanData = packed record
+  TDecode_Data_ = packed record
     Year, Month, Day: Word;
     Hour, min_, Sec, MSec: Word;
     i64: Int64;
@@ -4482,7 +4499,7 @@ type
   end;
 var
   d: TDateTime;
-  r: TRanData;
+  r: TDecode_Data_;
 begin
   d := umlNow();
   with r do
@@ -4492,7 +4509,19 @@ begin
       i64 := TMT19937.Rand64;
       i32 := TMT19937.Rand32;
     end;
-  Result := umlMD5String(@r, SizeOf(TRanData));
+  Result := umlMD5String(@r, SizeOf(TDecode_Data_));
+end;
+
+function umlDecodeDateTimeToInt64(NowDateTime: TDateTime): Int64;
+begin
+  Result := DateTimeToUnix(NowDateTime, True);
+end;
+
+procedure TBatch.Swap_(var inst: TBatch);
+begin
+  sour.SwapInstance(inst.sour);
+  dest.SwapInstance(inst.dest);
+  swap(sum, inst.sum);
 end;
 
 function umlBuildBatch(L: THashStringList): TArrayBatch;
@@ -4573,30 +4602,45 @@ procedure umlSortBatch(var arry: TArrayBatch);
     i, j: Integer;
     p: TBatch;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := arry[(L + r) shr 1];
-      repeat
-        while Compare_(arry[i], p) < 0 do
-            inc(i);
-        while Compare_(arry[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < r then
+      begin
+        repeat
+          if (r - L) = 1 then
+            begin
+              if Compare_(arry[L], arry[r]) > 0 then
+                  arry[L].Swap_(arry[r]);
+              break;
+            end;
+          i := L;
+          j := r;
+          p := arry[(L + r) shr 1];
+          repeat
+            while Compare_(arry[i], p) < 0 do
+                inc(i);
+            while Compare_(arry[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                arry[i].sour.SwapInstance(arry[j].sour);
-                arry[i].dest.SwapInstance(arry[j].dest);
+                if i <> j then
+                    arry[i].Swap_(arry[j]);
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (r - i) then
+            begin
+              if i < r then
+                  fastSort_(i, r);
+              r := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(L, j);
+              L := i;
+            end;
+        until L >= r;
+      end;
   end;
 
 begin
@@ -6193,7 +6237,7 @@ var
   ChunkBuff: array [0 .. 63] of Byte;
 begin
   if StartPos > EndPos then
-      Swap(StartPos, EndPos);
+      swap(StartPos, EndPos);
   StartPos := umlClamp(StartPos, 0, stream.Size);
   EndPos := umlClamp(EndPos, 0, stream.Size);
   if EndPos - StartPos <= 0 then

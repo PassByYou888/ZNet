@@ -89,6 +89,7 @@ type
     procedure SetAsText(const Value: SystemString);
     property AsText: SystemString read GetAsText write SetAsText;
 
+    function GetSectionNameArry: U_StringArray;
     procedure GetSectionList(dest: TCore_Strings); overload;
     procedure GetSectionList(dest: TListString); overload;
     procedure GetSectionList(dest: TPascalStringList); overload;
@@ -870,6 +871,19 @@ begin
   DataImport(ns);
   DisposeObject(ns);
   FIsChanged := True;
+end;
+
+function THashTextEngine.GetSectionNameArry: U_StringArray;
+var
+  L: TPascalStringList;
+  i: Integer;
+begin
+  L := TPascalStringList.Create;
+  GetSectionList(L);
+  SetLength(Result, L.Count);
+  for i := 0 to L.Count - 1 do
+      Result[i] := L[i];
+  DisposeObject(L);
 end;
 
 procedure THashTextEngine.GetSectionList(dest: TCore_Strings);

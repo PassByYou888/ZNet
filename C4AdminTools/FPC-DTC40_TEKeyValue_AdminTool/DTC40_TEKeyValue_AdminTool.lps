@@ -2,9 +2,9 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
-    <Units Count="8">
+    <Units Count="7">
       <Unit0>
         <Filename Value="DTC40_TEKeyValue_AdminTool.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -20,8 +20,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="24"/>
-        <CursorPos X="35" Y="45"/>
+        <TopLine Value="162"/>
+        <CursorPos X="47" Y="181"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -63,13 +63,8 @@
         <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit6>
-      <Unit7>
-        <Filename Value="..\..\Source\Z.Net.C4_TEKeyValue.pas"/>
-        <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
-      </Unit7>
     </Units>
-    <JumpHistory Count="15" HistoryIndex="14">
+    <JumpHistory Count="25" HistoryIndex="24">
       <Position1>
         <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
         <Caret Line="53" Column="52" TopLine="33"/>
@@ -128,12 +123,52 @@
       </Position14>
       <Position15>
         <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
-        <Caret Line="43" Column="15" TopLine="24"/>
+        <Caret Line="35" Column="38" TopLine="24"/>
       </Position15>
+      <Position16>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="168" TopLine="157"/>
+      </Position16>
+      <Position17>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="167" Column="35" TopLine="157"/>
+      </Position17>
+      <Position18>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="166" Column="35" TopLine="156"/>
+      </Position18>
+      <Position19>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="165" Column="35" TopLine="155"/>
+      </Position19>
+      <Position20>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="164" Column="35" TopLine="154"/>
+      </Position20>
+      <Position21>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="172" Column="35" TopLine="162"/>
+      </Position21>
+      <Position22>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="171" Column="37" TopLine="162"/>
+      </Position22>
+      <Position23>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="173" TopLine="162"/>
+      </Position23>
+      <Position24>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="94" TopLine="84"/>
+      </Position24>
+      <Position25>
+        <Filename Value="dtc40_tekeyvalue_admintoolfrm.pas"/>
+        <Caret Line="271" TopLine="270"/>
+      </Position25>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode=""/>
+      <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
 </CONFIG>

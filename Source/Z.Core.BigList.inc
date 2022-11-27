@@ -179,7 +179,12 @@ begin
 {$ENDIF DEBUG}
   if FRecycle_Pool__ = nil then
       FRecycle_Pool__ := TRecycle_Pool__.Create;
-  FRecycle_Pool__.Push(p);
+
+  if not p^.Recycle___ then
+    begin
+      p^.Recycle___ := True;
+      FRecycle_Pool__.Push(p);
+    end;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Free_Recycle_Pool;
@@ -265,6 +270,7 @@ begin
       FLast := p;
     end;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   Result := p;
@@ -309,6 +315,7 @@ begin
       FLast := p;
     end;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   Result := p;
@@ -338,10 +345,21 @@ begin
   p^.Prev := P_P;
   p^.Next := To_;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   Result := p;
   DoAdd(p^.Data);
+end;
+
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CopyFrom(Source_: T___): NativeInt;
+begin
+  Result := Source_.Num;
+  if Result > 0 then
+    with Source_.Repeat_ do
+      repeat
+          Add(Queue^.Data);
+      until not Next;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
@@ -370,8 +388,8 @@ begin
       N_P^.Prev := P_P;
       Dec(FNum);
     end;
-  DoInternalFree(p);
   FChanged := True;
+  DoInternalFree(p);
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
@@ -807,41 +825,58 @@ begin
     end;
 end;
 
-class procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Swap_(var Left, Right: T_);
-var
-  tmp: T_;
-begin
-  tmp := Left;
-  Left := Right;
-  Right := tmp;
-end;
-
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_C(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_C(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_C(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C);
@@ -859,29 +894,55 @@ end;
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_M(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_M(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_M(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M);
@@ -899,29 +960,55 @@ end;
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_P(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_P(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_P(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P);
@@ -1017,6 +1104,11 @@ begin
     end
   else
       raiseInfo('error');
+end;
+
+class function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Null_Data: T_;
+begin
+  FillPtr(@Result, SizeOf(T_), 0);
 end;
 
 {$IFDEF DEBUG}
@@ -1323,7 +1415,12 @@ begin
 {$ENDIF DEBUG}
   if FRecycle_Pool__ = nil then
       FRecycle_Pool__ := TRecycle_Pool__.Create;
-  FRecycle_Pool__.Push(p);
+
+  if not p^.Recycle___ then
+    begin
+      p^.Recycle___ := True;
+      FRecycle_Pool__.Push(p);
+    end;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Free_Recycle_Pool;
@@ -1413,6 +1510,7 @@ begin
       FLast := p;
     end;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   FCritical__.UnLock;
@@ -1422,11 +1520,13 @@ end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.AddL(L_: T___);
 begin
+  L_.Lock;
   if L_.Num > 0 then
     with L_.Repeat_ do
       repeat
           Add(Queue^.Data);
       until not Next;
+  L_.UnLock;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
@@ -1459,6 +1559,7 @@ begin
       FLast := p;
     end;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   FCritical__.UnLock;
@@ -1490,11 +1591,22 @@ begin
   p^.Prev := P_P;
   p^.Next := To_;
   p^.Instance___ := Self;
+  p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
   FCritical__.UnLock;
   Result := p;
   DoAdd(p^.Data);
+end;
+
+function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CopyFrom(Source_: T___): NativeInt;
+begin
+  Result := Source_.Num;
+  if Result > 0 then
+    with Source_.Repeat_ do
+      repeat
+          Add(Queue^.Data);
+      until not Next;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
@@ -1525,11 +1637,10 @@ begin
       N_P^.Prev := P_P;
       Dec(FNum);
     end;
-
-  DoInternalFree(p);
-
   FChanged := True;
   FCritical__.UnLock;
+
+  DoInternalFree(p);
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
@@ -2033,41 +2144,58 @@ begin
   end;
 end;
 
-class procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Swap_(var Left, Right: T_);
-var
-  tmp: T_;
-begin
-  tmp := Left;
-  Left := Right;
-  Right := tmp;
-end;
-
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_C(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_C(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_C(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C);
@@ -2087,29 +2215,55 @@ end;
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_M(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_M(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_M(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M);
@@ -2129,29 +2283,55 @@ end;
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
 var
   i, j: NativeInt;
-  p: PQueueStruct;
+  p, tmp: T_;
 begin
-  repeat
-    i := L;
-    j := R;
-    p := Arry_^[(L + R) shr 1];
-    repeat
-      while OnSort(Arry_^[i]^.Data, p^.Data) < 0 do
-          inc(i);
-      while OnSort(Arry_^[j]^.Data, p^.Data) > 0 do
-          Dec(j);
-      if i <= j then
-        begin
-          if i <> j then
-              Swap_(Arry_^[i]^.Data, Arry_^[j]^.Data);
-          inc(i);
-          Dec(j);
-        end;
-    until i > j;
-    if L < j then
-        Sort_P(Arry_, L, j, OnSort);
-    L := i;
-  until i >= R;
+  if L < R then
+    begin
+      repeat
+        if (R - L) = 1 then
+          begin
+            if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
+              begin
+                tmp := Arry_^[L]^.Data;
+                Arry_^[L]^.Data := Arry_^[R]^.Data;
+                Arry_^[R]^.Data := tmp;
+              end;
+            break;
+          end;
+        i := L;
+        j := R;
+        p := Arry_^[(L + R) shr 1]^.Data;
+        repeat
+          while OnSort(Arry_^[i]^.Data, p) < 0 do
+              inc(i);
+          while OnSort(Arry_^[j]^.Data, p) > 0 do
+              Dec(j);
+          if i <= j then
+            begin
+              if i <> j then
+                begin
+                  tmp := Arry_^[i]^.Data;
+                  Arry_^[i]^.Data := Arry_^[j]^.Data;
+                  Arry_^[j]^.Data := tmp;
+                end;
+              inc(i);
+              Dec(j);
+            end;
+        until i > j;
+        if (j - L) > (R - i) then
+          begin
+            if i < R then
+                Sort_P(Arry_, i, R, OnSort);
+            R := j;
+          end
+        else
+          begin
+            if L < j then
+                Sort_P(Arry_, L, j, OnSort);
+            L := i;
+          end;
+      until L >= R;
+    end;
 end;
 
 procedure TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P);
@@ -2175,26 +2355,21 @@ var
   tmp: PPQueueStruct;
 begin
   Result := nil;
-  FCritical__.Lock;
-  try
-    // copy to order buffer
-    if FNum > 0 then
-      begin
-        Result := System.GetMemory(DeltaStep(SizeOf(PQueueStruct) * FNum, 8));
-        i := 0;
-        p := FFirst;
-        tmp := PPQueueStruct(Result);
-        while i < FNum do
-          begin
-            tmp^ := p;
-            inc(tmp);
-            inc(i);
-            p := p^.Next;
-          end;
-      end;
-  finally
-      FCritical__.UnLock;
-  end;
+  // copy to order buffer
+  if FNum > 0 then
+    begin
+      Result := System.GetMemory(DeltaStep(SizeOf(PQueueStruct) * FNum, 8));
+      i := 0;
+      p := FFirst;
+      tmp := PPQueueStruct(Result);
+      while i < FNum do
+        begin
+          tmp^ := p;
+          inc(tmp);
+          inc(i);
+          p := p^.Next;
+        end;
+    end;
 end;
 
 function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CheckList: PQueueArrayStruct;
@@ -2269,6 +2444,11 @@ begin
     end
   else
       raiseInfo('error');
+end;
+
+class function TCriticalBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Null_Data: T_;
+begin
+  FillPtr(@Result, SizeOf(T_), 0);
 end;
 
 {$IFDEF DEBUG}

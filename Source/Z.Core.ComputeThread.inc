@@ -408,11 +408,11 @@ begin
   OnDone_C := nil;
   OnDone_M := nil;
   OnDone_P := nil;
-  UserData := nil;
-  UserObject := nil;
+  FRndInstance := nil;
   IsRuning := nil;
   IsExit := nil;
-  FRndInstance := nil;
+  UserData := nil;
+  UserObject := nil;
 end;
 
 destructor TCompute.Destroy;

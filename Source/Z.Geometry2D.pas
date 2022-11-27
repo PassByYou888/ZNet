@@ -100,6 +100,7 @@ function Rectf(Left, Top, Right, Bottom: TGeoFloat): TRectf;
 function CompareCardinal(const C1, C2: Cardinal): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareInteger(const Int1, Int2: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareInt64(const Int1, Int2: int64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareUInt64(const Int1, Int2: Uint64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function ComparePointer(const Item1, Item2: pointer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareBool(const Bool1, Bool2: boolean): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareDouble(const Double1, Double2: Double): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
@@ -6414,29 +6415,55 @@ procedure TVec2List.SortOfNear(const lb, le: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: pointer;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := R;
-      p := Arry_[(L + R) shr 1];
-      repeat
-        while Compare_(Arry_[i], p) < 0 do
-            inc(i);
-        while Compare_(Arry_[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
-                Swap(Arry_[i], Arry_[j]);
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(Arry_, L, j);
-      L := i;
-    until i >= R;
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if Compare_(Arry_[L], Arry_[R]) > 0 then
+                begin
+                  tmp := Arry_[L];
+                  Arry_[L] := Arry_[R];
+                  Arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := Arry_[(L + R) shr 1];
+          repeat
+            while Compare_(Arry_[i], p) < 0 do
+                inc(i);
+            while Compare_(Arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                  begin
+                    tmp := Arry_[i];
+                    Arry_[i] := Arry_[j];
+                    Arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  fastSort_(Arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(Arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 begin
@@ -6458,29 +6485,55 @@ procedure TVec2List.SortOfNear(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: pointer;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := R;
-      p := Arry_[(L + R) shr 1];
-      repeat
-        while Compare_(Arry_[i], p) < 0 do
-            inc(i);
-        while Compare_(Arry_[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
-                Swap(Arry_[i], Arry_[j]);
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(Arry_, L, j);
-      L := i;
-    until i >= R;
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if Compare_(Arry_[L], Arry_[R]) > 0 then
+                begin
+                  tmp := Arry_[L];
+                  Arry_[L] := Arry_[R];
+                  Arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := Arry_[(L + R) shr 1];
+          repeat
+            while Compare_(Arry_[i], p) < 0 do
+                inc(i);
+            while Compare_(Arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                  begin
+                    tmp := Arry_[i];
+                    Arry_[i] := Arry_[j];
+                    Arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  fastSort_(Arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(Arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 begin
@@ -9270,29 +9323,55 @@ procedure TDeflectionPolygonLines.SortOfNear(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: pointer;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := R;
-      p := Arry_[(L + R) shr 1];
-      repeat
-        while Compare_(Arry_[i], p) < 0 do
-            inc(i);
-        while Compare_(Arry_[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
-                Swap(Arry_[i], Arry_[j]);
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(Arry_, L, j);
-      L := i;
-    until i >= R;
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if Compare_(Arry_[L], Arry_[R]) > 0 then
+                begin
+                  tmp := Arry_[L];
+                  Arry_[L] := Arry_[R];
+                  Arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := Arry_[(L + R) shr 1];
+          repeat
+            while Compare_(Arry_[i], p) < 0 do
+                inc(i);
+            while Compare_(Arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                  begin
+                    tmp := Arry_[i];
+                    Arry_[i] := Arry_[j];
+                    Arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  fastSort_(Arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(Arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var
@@ -9318,29 +9397,55 @@ procedure TDeflectionPolygonLines.SortOfFar(const pt: TVec2);
   procedure fastSort_(var Arry_: TCore_PointerList; L, R: TGeoInt);
   var
     i, j: TGeoInt;
-    p: pointer;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := R;
-      p := Arry_[(L + R) shr 1];
-      repeat
-        while Compare_(Arry_[i], p) < 0 do
-            inc(i);
-        while Compare_(Arry_[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
-                Swap(Arry_[i], Arry_[j]);
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          fastSort_(Arry_, L, j);
-      L := i;
-    until i >= R;
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if Compare_(Arry_[L], Arry_[R]) > 0 then
+                begin
+                  tmp := Arry_[L];
+                  Arry_[L] := Arry_[R];
+                  Arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := Arry_[(L + R) shr 1];
+          repeat
+            while Compare_(Arry_[i], p) < 0 do
+                inc(i);
+            while Compare_(Arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                  begin
+                    tmp := Arry_[i];
+                    Arry_[i] := Arry_[j];
+                    Arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  fastSort_(Arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  fastSort_(Arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var

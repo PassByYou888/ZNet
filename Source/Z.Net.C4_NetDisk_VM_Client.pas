@@ -886,7 +886,7 @@ var
 procedure Fragment_Cache_Load_Th();
 begin
   Fragment_Cache__.BuildOrOpen(umlCombineFileName(C40_RootPath, Fragment_Cache_FileName), False, False);
-  Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity, Max_Thread_Supported);
+  Fragment_Cache__.Extract_MD5_Pool(Get_Parallel_Granularity);
   Fragment_Cache_Loading__ := False;
 end;
 

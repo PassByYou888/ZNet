@@ -45,6 +45,16 @@ begin
   Release;
 end;
 
+procedure TSoftCritical.Lock;
+begin
+  Acquire;
+end;
+
+procedure TSoftCritical.UnLock;
+begin
+  Release;
+end;
+
 type
   TSystem_Critical_Recycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TSystem_Critical>;
 

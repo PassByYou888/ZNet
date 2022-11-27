@@ -53,7 +53,7 @@ type
   TON_GetAliasP = reference to procedure(Sender: TC40_Alias_Client; NameKey_: THashStringList);
 {$ENDIF FPC}
 
-  TON_Temp_GetAliasC = class(TOnResultBridge)
+  TON_Temp_GetAlias = class(TOnResultBridge)
   public
     Client: TC40_Alias_Client;
     OnResultC: TON_GetAliasC;
@@ -239,7 +239,7 @@ begin
   Alias_DB.Progress;
 end;
 
-constructor TON_Temp_GetAliasC.Create;
+constructor TON_Temp_GetAlias.Create;
 begin
   inherited Create;
   Client := nil;
@@ -248,7 +248,7 @@ begin
   OnResultP := nil;
 end;
 
-procedure TON_Temp_GetAliasC.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
+procedure TON_Temp_GetAlias.DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 var
   NameKey_: THashStringList;
   N_, Hash_: U_String;
@@ -273,7 +273,7 @@ begin
   DelayFreeObject(1.0, self, NameKey_);
 end;
 
-procedure TON_Temp_GetAliasC.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
+procedure TON_Temp_GetAlias.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
 var
   NameKey_: THashStringList;
 begin
@@ -323,11 +323,11 @@ end;
 
 procedure TC40_Alias_Client.GetAlias_C(arry: U_ArrayString; OnResult: TON_GetAliasC);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -340,11 +340,11 @@ end;
 
 procedure TC40_Alias_Client.GetAlias_M(arry: U_ArrayString; OnResult: TON_GetAliasM);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -357,11 +357,11 @@ end;
 
 procedure TC40_Alias_Client.GetAlias_P(arry: U_ArrayString; OnResult: TON_GetAliasP);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
   i: Integer;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;
@@ -384,10 +384,10 @@ end;
 
 procedure TC40_Alias_Client.SearchAlias_C(Filter_: U_String; OnResult: TON_GetAliasC);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   d := TDFE.Create;
@@ -399,10 +399,10 @@ end;
 
 procedure TC40_Alias_Client.SearchAlias_M(Filter_: U_String; OnResult: TON_GetAliasM);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   d := TDFE.Create;
@@ -414,10 +414,10 @@ end;
 
 procedure TC40_Alias_Client.SearchAlias_P(Filter_: U_String; OnResult: TON_GetAliasP);
 var
-  tmp: TON_Temp_GetAliasC;
+  tmp: TON_Temp_GetAlias;
   d: TDFE;
 begin
-  tmp := TON_Temp_GetAliasC.Create;
+  tmp := TON_Temp_GetAlias.Create;
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   d := TDFE.Create;

@@ -272,6 +272,8 @@
   {$WARNINGS ON}
   // JPEG support can output debug info
   {$UNDEF JPEG_Debug}
+  // Enabled ZDB2 Load Thread
+  {$UNDEF Enabled_ZDB2_Load_Thread}
 {$ELSE DEBUG}
   // initialization status prompt
   {$UNDEF initializationStatus}
@@ -283,6 +285,7 @@
   {$ENDIF FPC}
   // JPEG support can output debug info
   {$UNDEF JPEG_Debug}
+  {$DEFINE Enabled_ZDB2_Load_Thread}
 {$ENDIF DEBUG}
 
 {$IFDEF Parallel}
