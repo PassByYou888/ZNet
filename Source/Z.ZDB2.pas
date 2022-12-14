@@ -208,6 +208,7 @@ type
     class function Combine_Handle(L1, L2: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
     class function Get_Handle(Hnd: TZDB2_BlockHandle): TZDB2_BlockHandle; overload; static;
     class function Get_Handle(L: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
+    class function Get_Handle(L: TZDB2_ID_Pool): TZDB2_BlockHandle; overload; static;
 
     // space
     procedure Save();
@@ -1435,6 +1436,16 @@ begin
   SetLength(Result, L.Count);
   for i := 0 to L.Count - 1 do
       Result[i] := L[i];
+end;
+
+class function TZDB2_Core_Space.Get_Handle(L: TZDB2_ID_Pool): TZDB2_BlockHandle;
+begin
+  SetLength(Result, L.num);
+  if L.num > 0 then
+    with L.Repeat_ do
+      repeat
+          Result[I__] := queue^.Data;
+      until not Next;
 end;
 
 procedure TZDB2_Core_Space.Save;
@@ -2736,7 +2747,7 @@ end;
 class procedure TZDB2_Core_Space.Test;
 type
   TTest_ = record
-    data: TMS64;
+    Data: TMS64;
     sMD5: TMD5;
     db1hnd, db2hnd: TZDB2_BlockHandle;
   end;
@@ -2787,17 +2798,17 @@ begin
   for i := 0 to Length(TestArry) - 1 do
     begin
       SetMT19937Seed(i);
-      TestArry[i].data := TMS64.Create;
-      TestArry[i].data.Size := 1024 * 16 + 1024 * 1024;
-      MT19937Rand32(MaxInt, TestArry[i].data.Memory, TestArry[i].data.Size div 4);
-      TestArry[i].sMD5 := umlStreamMD5(TestArry[i].data);
+      TestArry[i].Data := TMS64.Create;
+      TestArry[i].Data.Size := 1024 * 16 + 1024 * 1024;
+      MT19937Rand32(MaxInt, TestArry[i].Data.Memory, TestArry[i].Data.Size div 4);
+      TestArry[i].sMD5 := umlStreamMD5(TestArry[i].Data);
 
-      if db1_place.WriteStream(TestArry[i].data, 1024, TestArry[i].db1hnd) then
+      if db1_place.WriteStream(TestArry[i].Data, 1024, TestArry[i].db1hnd) then
           DoStatus('write TestArry[%d] ok', [i])
       else
           DoStatus('write TestArry[%d] failed', [i]);
 
-      if db2.WriteStream(TestArry[i].data, TestArry[i].db2hnd) then
+      if db2.WriteStream(TestArry[i].Data, TestArry[i].db2hnd) then
           DoStatus('write TestArry[%d] ok', [i])
       else
           DoStatus('write TestArry[%d] failed', [i]);
@@ -2865,14 +2876,14 @@ begin
   for i := 0 to testList.Count - 1 do
     begin
       p := testList[i];
-      p^.data.Clear;
+      p^.Data.Clear;
 
-      if db1.ReadStream(p^.data, p^.db1hnd[0]) then
+      if db1.ReadStream(p^.Data, p^.db1hnd[0]) then
           DoStatus('read test ok')
       else
           DoStatus('read test failed');
 
-      if umlCompareMD5(umlStreamMD5(p^.data), p^.sMD5) then
+      if umlCompareMD5(umlStreamMD5(p^.Data), p^.sMD5) then
           DoStatus('md5 verify ok')
       else
           DoStatus('md5 verify failed');
@@ -2882,13 +2893,13 @@ begin
       else
           DoStatus('remove test failed');
 
-      p^.data.Clear;
-      if db2.ReadStream(p^.data, p^.db2hnd) then
+      p^.Data.Clear;
+      if db2.ReadStream(p^.Data, p^.db2hnd) then
           DoStatus('read test ok')
       else
           DoStatus('read test failed');
 
-      if umlCompareMD5(umlStreamMD5(p^.data), p^.sMD5) then
+      if umlCompareMD5(umlStreamMD5(p^.Data), p^.sMD5) then
           DoStatus('md5 verify ok')
       else
           DoStatus('md5 verify failed');
@@ -2902,13 +2913,13 @@ begin
   for i := 0 to testList.Count - 1 do
     begin
       p := testList[i];
-      p^.data.Clear;
-      if db1_1.ReadStream(p^.data, p^.db1hnd) then
+      p^.Data.Clear;
+      if db1_1.ReadStream(p^.Data, p^.db1hnd) then
           DoStatus('read test ok')
       else
           DoStatus('read test failed');
 
-      if umlCompareMD5(umlStreamMD5(p^.data), p^.sMD5) then
+      if umlCompareMD5(umlStreamMD5(p^.Data), p^.sMD5) then
           DoStatus('md5 verify ok')
       else
           DoStatus('md5 verify failed');
@@ -2918,13 +2929,13 @@ begin
       else
           DoStatus('remove test failed');
 
-      p^.data.Clear;
-      if db2_2.ReadStream(p^.data, p^.db2hnd) then
+      p^.Data.Clear;
+      if db2_2.ReadStream(p^.Data, p^.db2hnd) then
           DoStatus('read test ok')
       else
           DoStatus('read test failed');
 
-      if umlCompareMD5(umlStreamMD5(p^.data), p^.sMD5) then
+      if umlCompareMD5(umlStreamMD5(p^.Data), p^.sMD5) then
           DoStatus('md5 verify ok')
       else
           DoStatus('md5 verify failed');
@@ -2938,7 +2949,7 @@ begin
   DisposeObject([db1, db2, db1_1, db2_2]);
   for i := 0 to Length(TestArry) - 1 do
     begin
-      TestArry[i].data.Free;
+      TestArry[i].Data.Free;
       SetLength(TestArry[i].db1hnd, 0);
       SetLength(TestArry[i].db2hnd, 0);
     end;

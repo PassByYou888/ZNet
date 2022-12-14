@@ -130,6 +130,11 @@ type
     procedure FillToArry(var Output_: U_StringArray);
   end;
 
+  TStringBigList_Helper_ = class helper for TStringBigList
+  public
+    procedure InputArray(arry: U_StringArray);
+  end;
+
 function umlBytesOf(const s: TPascalString): TBytes;
 function umlStringOf(const s: TBytes): TPascalString; overload;
 
@@ -923,6 +928,14 @@ begin
   SetLength(Output_, Count);
   for i := 0 to Count - 1 do
       Output_[i] := Items[i];
+end;
+
+procedure TStringBigList_Helper_.InputArray(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      add(arry[i]);
 end;
 
 function umlBytesOf(const s: TPascalString): TBytes;
@@ -1746,7 +1759,7 @@ begin
   if umlFindFirstFile(umlCombineFileName(FullPath, '*'), _SR) then
     begin
       repeat
-        AsLst.Add(_SR.Name);
+        AsLst.add(_SR.Name);
         inc(Result);
       until not umlFindNextFile(_SR);
     end;
@@ -1761,7 +1774,7 @@ begin
   if umlFindFirstDir(umlCombineFileName(FullPath, '*'), _SR) then
     begin
       repeat
-        AsLst.Add(_SR.Name);
+        AsLst.add(_SR.Name);
         inc(Result);
       until not umlFindNextDir(_SR);
     end;
@@ -1776,7 +1789,7 @@ begin
   if umlFindFirstFile(umlCombineFileName(FullPath, '*'), _SR) then
     begin
       repeat
-        AsLst.Add(_SR.Name);
+        AsLst.add(_SR.Name);
         inc(Result);
       until not umlFindNextFile(_SR);
     end;
@@ -1791,7 +1804,7 @@ begin
   if umlFindFirstDir(umlCombineFileName(FullPath, '*'), _SR) then
     begin
       repeat
-        AsLst.Add(_SR.Name);
+        AsLst.add(_SR.Name);
         inc(Result);
       until not umlFindNextDir(_SR);
     end;
@@ -4863,7 +4876,7 @@ begin
                   BatchInfo.sour_ePos := i + arry[r].sour.L - 1;
                   BatchInfo.dest_bPos := BatchInfo.sour_bPos;
                   BatchInfo.dest_ePos := BatchInfo.sour_ePos;
-                  Info.Add(BatchInfo);
+                  Info.add(BatchInfo);
                 end;
               inc(i, arry[r].sour.L);
               inc(arry[r].sum);
@@ -4944,7 +4957,7 @@ begin
                   BatchInfo.sour_ePos := i + (arry[r].sour.L - 1);
                   BatchInfo.dest_bPos := m64.Size div SystemCharSize + 1;
                   BatchInfo.dest_ePos := BatchInfo.dest_bPos + (arry[r].dest.L - 1);
-                  Info.Add(BatchInfo);
+                  Info.add(BatchInfo);
                 end;
               m64.Write64(arry[r].dest.buff[0], SystemCharSize * arry[r].dest.L);
               inc(arry[r].sum);
@@ -5016,7 +5029,7 @@ begin
                   BatchInfo.sour_ePos := BatchInfo.sour_bPos + (Pattern.L - 1);
                   BatchInfo.dest_bPos := BatchInfo.sour_bPos;
                   BatchInfo.dest_ePos := BatchInfo.sour_ePos;
-                  Info.Add(BatchInfo);
+                  Info.add(BatchInfo);
                 end;
               inc(i, Pattern.L);
               inc(Result);
@@ -5081,7 +5094,7 @@ begin
                   BatchInfo.sour_ePos := i + (OldPattern.L - 1);
                   BatchInfo.dest_bPos := m64.Size div SystemCharSize + 1;
                   BatchInfo.dest_ePos := BatchInfo.dest_bPos + (NewPattern.L - 1);
-                  Info.Add(BatchInfo);
+                  Info.add(BatchInfo);
                 end;
               m64.Write64(NewPattern.buff[0], SystemCharSize * NewPattern.L);
               inc(i, OldPattern.L);
@@ -6001,7 +6014,7 @@ procedure TMD5_Pair_Pool.LoadFromStream(stream: TCore_Stream);
 begin
   Clear;
   while stream.Position + 32 <= stream.Size do
-      Add(StreamReadMD5(stream), StreamReadMD5(stream), False);
+      add(StreamReadMD5(stream), StreamReadMD5(stream), False);
 end;
 
 procedure TMD5_Pair_Pool.SaveToStream(stream: TCore_Stream);
@@ -6780,7 +6793,7 @@ begin
       SeparatorText_ := umlGetFirstStr(NewText_, SeparatorChar);
       while (SeparatorText_.L > 0) and (NewText_.L > 0) do
         begin
-          dest.Add(SeparatorText_.text);
+          dest.add(SeparatorText_.text);
           inc(Result);
           NewText_ := umlDeleteFirstStr(NewText_, SeparatorChar);
           SeparatorText_ := umlGetFirstStr(NewText_, SeparatorChar);
@@ -6818,7 +6831,7 @@ begin
       SeparatorText_ := umlGetFirstStr(NewText_, SeparatorChar);
       while (SeparatorText_.L > 0) and (NewText_.L > 0) do
         begin
-          dest.Add(SeparatorText_);
+          dest.add(SeparatorText_);
           inc(Result);
           NewText_ := umlDeleteFirstStr(NewText_, SeparatorChar);
           SeparatorText_ := umlGetFirstStr(NewText_, SeparatorChar);
@@ -7760,7 +7773,7 @@ begin
 {$ELSE FPC}
         Result := LoadLibrary(PChar(LibName));
 {$ENDIF FPC}
-        ExLibs.Add(LibName, Result);
+        ExLibs.add(LibName, Result);
       except
         FreeExtLib(LibName);
         Result := 0;
@@ -7930,7 +7943,7 @@ begin
       except
           p^.md5 := Null_Buff_MD5;
       end;
-      FHash.Add(FileName, p, False);
+      FHash.add(FileName, p, False);
       Result := p^.md5;
     end
   else

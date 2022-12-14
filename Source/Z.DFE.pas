@@ -8,7 +8,8 @@ unit Z.DFE;
 
 interface
 
-uses SysUtils, Z.Core, Types, Variants,
+uses Types,
+  Z.Core, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings,
   Z.ListEngine, Z.MemoryStream, Z.Cipher,
   Z.Status, Z.Geometry.Low, Z.TextDataEngine, Z.Geometry2D, Z.Geometry3D,
   Z.Json, Z.Number,
@@ -17,7 +18,7 @@ uses SysUtils, Z.Core, Types, Variants,
 {$ELSE FPC}
   Z.Delphi.JsonDataObjects,
 {$ENDIF FPC}
-  Z.Compress, Z.UnicodeMixedLib, Z.PascalStrings, Z.UPascalStrings;
+  Z.Compress;
 
 type
   TDFE = class;
@@ -26,7 +27,7 @@ type
   TDF = TDFE;
   TDataFrame = TDFE;
 
-  TDFBase = class(TCore_Object)
+  TDFBase = class
   protected
     FID: Byte;
   public
@@ -39,7 +40,7 @@ type
     function ComputeEncodeSize: Int64; virtual; abstract;
   end;
 
-  TDFString = class sealed(TDFBase)
+  TDFString = class(TDFBase)
   public
     Buffer: TBytes;
 
@@ -53,7 +54,7 @@ type
     function ComputeEncodeSize: Int64; override;
   end;
 
-  TDFInteger = class sealed(TDFBase)
+  TDFInteger = class(TDFBase)
   private
   protected
     FBuffer: Integer;
@@ -70,7 +71,7 @@ type
     property Buffer: Integer read FBuffer write FBuffer;
   end;
 
-  TDFCardinal = class sealed(TDFBase)
+  TDFCardinal = class(TDFBase)
   private
   protected
     FBuffer: Cardinal;
@@ -87,7 +88,7 @@ type
     property Buffer: Cardinal read FBuffer write FBuffer;
   end;
 
-  TDFWord = class sealed(TDFBase)
+  TDFWord = class(TDFBase)
   private
   protected
     FBuffer: Word;
@@ -104,7 +105,7 @@ type
     property Buffer: Word read FBuffer write FBuffer;
   end;
 
-  TDFByte = class sealed(TDFBase)
+  TDFByte = class(TDFBase)
   private
   protected
     FBuffer: Byte;
@@ -121,7 +122,7 @@ type
     property Buffer: Byte read FBuffer write FBuffer;
   end;
 
-  TDFSingle = class sealed(TDFBase)
+  TDFSingle = class(TDFBase)
   private
   protected
     FBuffer: Single;
@@ -138,7 +139,7 @@ type
     property Buffer: Single read FBuffer write FBuffer;
   end;
 
-  TDFDouble = class sealed(TDFBase)
+  TDFDouble = class(TDFBase)
   private
   protected
     FBuffer: Double;
@@ -155,7 +156,7 @@ type
     property Buffer: Double read FBuffer write FBuffer;
   end;
 
-  TDFArrayInteger = class sealed(TDFBase)
+  TDFArrayInteger = class(TDFBase)
   protected
     FBuffer: TMS64;
   public
@@ -178,7 +179,7 @@ type
     property Buffer[index_: Integer]: Integer read GetBuffer write SetBuffer; default;
   end;
 
-  TDFArrayShortInt = class sealed(TDFBase)
+  TDFArrayShortInt = class(TDFBase)
   protected
     FBuffer: TMS64;
   public
@@ -201,7 +202,7 @@ type
     property Buffer[index_: Integer]: ShortInt read GetBuffer write SetBuffer; default;
   end;
 
-  TDFArrayByte = class sealed(TDFBase)
+  TDFArrayByte = class(TDFBase)
   protected
     FBuffer: TMS64;
   public
@@ -233,7 +234,7 @@ type
     property Buffer[index_: Integer]: Byte read GetBuffer write SetBuffer; default;
   end;
 
-  TDFArraySingle = class sealed(TDFBase)
+  TDFArraySingle = class(TDFBase)
   protected
     FBuffer: TMS64;
   public
@@ -256,7 +257,7 @@ type
     property Buffer[index_: Integer]: Single read GetBuffer write SetBuffer; default;
   end;
 
-  TDFArrayDouble = class sealed(TDFBase)
+  TDFArrayDouble = class(TDFBase)
   private
   protected
     FBuffer: TMS64;
@@ -280,7 +281,7 @@ type
     property Buffer[index_: Integer]: Double read GetBuffer write SetBuffer; default;
   end;
 
-  TDFArrayInt64 = class sealed(TDFBase)
+  TDFArrayInt64 = class(TDFBase)
   private
   protected
     FBuffer: TMS64;
@@ -304,7 +305,7 @@ type
     property Buffer[index_: Integer]: Int64 read GetBuffer write SetBuffer; default;
   end;
 
-  TDFStream = class sealed(TDFBase)
+  TDFStream = class(TDFBase)
   private
   protected
     FBuffer: TMS64;
@@ -326,7 +327,7 @@ type
     property Buffer64: TMS64 read FBuffer;
   end;
 
-  TDFVariant = class sealed(TDFBase)
+  TDFVariant = class(TDFBase)
   private
   protected
     FBuffer: Variant;
@@ -343,7 +344,7 @@ type
     property Buffer: Variant read FBuffer write FBuffer;
   end;
 
-  TDFInt64 = class sealed(TDFBase)
+  TDFInt64 = class(TDFBase)
   private
   protected
     FBuffer: Int64;
@@ -360,7 +361,7 @@ type
     property Buffer: Int64 read FBuffer write FBuffer;
   end;
 
-  TDFUInt64 = class sealed(TDFBase)
+  TDFUInt64 = class(TDFBase)
   private
   protected
     FBuffer: UInt64;
@@ -377,7 +378,7 @@ type
     property Buffer: UInt64 read FBuffer write FBuffer;
   end;
 
-  TDFEReader = class(TCore_Object)
+  TDFEReader = class
   private
     FOwner: TDFE;
     FIndex: Integer;
@@ -460,14 +461,13 @@ type
     procedure Clear;
   end;
 
-  TDFE = class(TCore_Object)
+  TDFE = class
   private
     FDataList: TDFE_DataList;
     FReader: TDFEReader;
     FCompressorDeflate: TCompressorDeflate;
     FCompressorBRRC: TCompressorBRRC;
     FIsChanged: Boolean;
-  protected
     function DataTypeToByte(v: TRunTimeDataType): Byte;
     function ByteToDataType(v: Byte): TRunTimeDataType;
   public
@@ -668,8 +668,8 @@ type
     property List: TDFE_DataList read FDataList;
   end;
 
-  TDataWriter = class(TCore_Object)
-  protected
+  TDataWriter = class
+  private
     FEngine: TDFE;
     FStream: TCore_Stream;
   public
@@ -706,9 +706,7 @@ type
     procedure WriteVariantList(v: THashVariantList);
     procedure WriteSectionText(v: TSectionTextData);
     procedure WriteJson(v: TZ_JsonObject); overload;
-{$IFDEF DELPHI}
-    procedure WriteJson(v: TJsonObject); overload;
-{$ENDIF DELPHI}
+{$IFDEF DELPHI} procedure WriteJson(v: TJsonObject); overload; {$ENDIF DELPHI}
     procedure WriteRect(v: TRect);
     procedure WriteRectf(v: TRectf);
     procedure WritePoint(v: TPoint);
@@ -730,8 +728,8 @@ type
     procedure write(const Buf_; Count_: Int64);
   end;
 
-  TDataReader = class(TCore_Object)
-  protected
+  TDataReader = class
+  private
     FEngine: TDFE;
   public
     constructor Create(Stream_: TCore_Stream);
@@ -764,9 +762,7 @@ type
     procedure ReadVariantList(output: THashVariantList);
     procedure ReadSectionText(output: TSectionTextData);
     procedure ReadJson(output: TZ_JsonObject); overload;
-{$IFDEF DELPHI}
-    procedure ReadJson(output: TJsonObject); overload;
-{$ENDIF DELPHI}
+{$IFDEF DELPHI} procedure ReadJson(output: TJsonObject); overload; {$ENDIF DELPHI}
     function ReadRect: TRect;
     function ReadRectf: TRectf;
     function ReadPoint: TPoint;
@@ -789,6 +785,8 @@ type
   end;
 
 implementation
+
+uses SysUtils, Variants;
 
 constructor TDFBase.Create(ID: Byte);
 begin
@@ -5615,4 +5613,8 @@ begin
   FEngine.Reader.Read(Buf_, Count_);
 end;
 
+initialization
+finalization
 end.
+
+

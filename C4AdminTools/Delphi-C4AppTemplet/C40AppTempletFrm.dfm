@@ -690,7 +690,6 @@ object C40AppTempletForm: TC40AppTempletForm
       ScrollBars = ssVertical
       TabOrder = 0
       WordWrap = False
-      ExplicitTop = -2
     end
     object cmdPanel: TPanel
       Left = 392

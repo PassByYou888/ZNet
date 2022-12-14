@@ -9,6 +9,10 @@
 {******************************************************************************}
 unit Z.Net.CrossSocket.Epoll;
 
+// winddriver是个喜欢把程序模型写死的家伙，这并不是一个好习惯，cross的代码一旦出问题，非常难改
+// 编译符号全局定义可以有效统一和优化参数，建议所有的库，包括用户自己在工程建的库都引用一下全局定义
+{$I ..\..\Z.Define.inc}
+
 interface
 
 uses
@@ -60,7 +64,7 @@ type
 
   TEpollConnection = class(TAbstractCrossConnection)
   private
-    FLock: TObject;
+    FLock: TObject; // epoll作者用的monitor锁，他很喜欢依赖runtime库，我建议编程时尽量使用Z.Core库里面的TCritical来锁，by.qq600585
     FSendQueue: TSendQueue;
     FIoEvents: TIoEvents;
     FConnectCallback: TProc<ICrossConnection, Boolean>; // 用于 Connect 回调
@@ -966,7 +970,17 @@ begin
     begin
       // epoll的读写事件同一时间可能两个同时触发
       if (LEvent.Events and EPOLLIN <> 0) then
-        _HandleRead(LConnection);
+        begin
+          // 在密集型并发调用中，使用局部锁不是一个好策略：非常容易出现序列问题
+          // 正确的做法是统一锁住，这里epoll已经形成程序模型，只能往正确模型强制靠
+          // by.qq600585
+          TEpollConnection(LConnection)._Lock;
+          // 这里面响应处理必须低延迟，否则影响整体epoll性能
+          // 在早期框架，这样写会影响性能，但是，在后续版本的Z.Net内核中，所有的接收处理均是池化数据队列，已经没有响应延迟问题了
+          // by.qq600585
+          _HandleRead(LConnection);
+          TEpollConnection(LConnection)._Unlock;
+        end;
 
       if (LEvent.Events and EPOLLOUT <> 0) then
       begin

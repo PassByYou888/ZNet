@@ -195,7 +195,7 @@
     {$DEFINE INLINE_ASM}
     {$R-} { range check }
     {$I-} { Input output checking }
-    {$IF Defined(Android) or Defined(IOS)}
+    {$IF Defined(Android) or Defined(IOS) or Defined(Linux)}
       {$O-} { close optimization }
       {$UNDEF INLINE_ASM}
       {$INLINE OFF} { inline }

@@ -7,13 +7,17 @@ unit Z.ZDB2.Thread;
 
 interface
 
-uses Z.Core,
+uses DateUtils, SysUtils,
+  Z.Core,
 {$IFDEF FPC}
   Z.FPC.GenericList,
+{$ELSE FPC}
+  System.IOUtils,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib,
   Z.MemoryStream,
   Z.Status, Z.Cipher, Z.ZDB2, Z.ListEngine, Z.TextDataEngine, Z.IOThread,
+  Z.HashList.Templet,
   Z.Notify, Z.ZDB2.Thread.Queue;
 
 type
@@ -78,7 +82,7 @@ type
     // position
     procedure MoveToLast;
     procedure MoveToFirst;
-    // assync delete and delay free, file is only do remove memory
+    // async delete and delay free, file is only do remove memory
     procedure Remove(Delete_Data_: Boolean); overload;
     procedure Remove(); overload;
     // sync load.
@@ -105,6 +109,18 @@ type
 
   TZDB2_Th_Engine_Data_Class = class of TZDB2_Th_Engine_Data;
 
+  TZDB2_Th_Engine_Backup = class
+  public
+    Owner: TZDB2_Th_Engine;
+    Queue_ID_List_: TZDB2_ID_List;
+    backup_file: U_String;
+    constructor Create(Owner_: TZDB2_Th_Engine);
+    destructor Destroy; override;
+    procedure Do_Run(Sender: TCompute);
+  end;
+
+  // this multithreaded model.
+  // Try to avoid calling the methods here at the application
   TZDB2_Th_Engine = class(TCore_InterfacedObject)
   private
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
@@ -126,6 +142,7 @@ type
     Engine: TZDB2_Th_Queue;
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___;
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
+    Backup_Is_Busy: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
     procedure ReadConfig(Name_: U_String; cfg: THashStringList); overload;
@@ -134,9 +151,10 @@ type
     procedure Update_Engine_Data_Ptr(); // reset FTh_Engine and FTh_Engine_Data_Ptr
     procedure Clear;
     procedure Format_Database;
+    procedure Backup(Reserve_: Word);
     function Ready: Boolean;
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
-    procedure Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
+    procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
     function Flush: Boolean;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
@@ -217,6 +235,8 @@ type
   TZDB2_Th_Engine_Marshal_For_P = reference to procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean);
 {$ENDIF FPC}
 
+  // TZDB2_Th_Engine_Marshal is a parallel marshal manager.
+  // TZDB2_Th_Engine_Marshal all methods is thread safe
   TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject)
   private
     FCritical: TCritical;
@@ -263,6 +283,8 @@ type
     procedure Check_Recycle_Pool;
     // progress
     function Progress: Boolean;
+    // backup
+    procedure Backup(Reserve_: Word);
     // flush
     procedure Flush;
     // remove and rebuild datgabase
@@ -281,6 +303,7 @@ type
     property RemoveDatabaseOnDestroy: Boolean read GetRemoveDatabaseOnDestroy write SetRemoveDatabaseOnDestroy;
     // test
     class procedure Test();
+    class procedure Test_Backup_Support();
   end;
 
 var
@@ -803,6 +826,32 @@ begin
   FLoad_Data_Error := True;
 end;
 
+constructor TZDB2_Th_Engine_Backup.Create(Owner_: TZDB2_Th_Engine);
+begin
+  inherited Create;
+  Owner := Owner_;
+  Queue_ID_List_ := TZDB2_ID_List.Create;
+  backup_file := '';
+end;
+
+destructor TZDB2_Th_Engine_Backup.Destroy;
+begin
+  DisposeObject(Queue_ID_List_);
+  backup_file := '';
+  inherited Destroy;
+end;
+
+procedure TZDB2_Th_Engine_Backup.Do_Run(Sender: TCompute);
+var
+  hnd: TZDB2_BlockHandle;
+begin
+  hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
+  Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
+  DoStatus('backup to "%s" done', [backup_file.Text]);
+  SetLength(hnd, 0);
+  Owner.Backup_Is_Busy := False;
+end;
+
 procedure TZDB2_Th_Engine.DoFree(var Data: TZDB2_Th_Engine_Data);
 begin
   if Data = nil then
@@ -845,6 +894,7 @@ begin
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
   Owner.Engine_Pool.Add(self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
+  Backup_Is_Busy := False;
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -929,6 +979,116 @@ begin
       umlDeleteFile(Database_File);
 end;
 
+procedure TZDB2_Th_Engine.Backup(Reserve_: Word);
+type
+  TFile_Time_Info = record
+    FileName: SystemString;
+    FileTime_: TDateTime;
+  end;
+
+  TFileTime_Sorted_List = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+
+var
+  db_full_file: U_String;
+  db_path: U_String;
+  db_file: U_String;
+  arry: U_StringArray;
+  n: U_SystemString;
+  L: TFileTime_Sorted_List;
+  backup_inst: TZDB2_Th_Engine_Backup;
+  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
+
+  function Make_backup_File_Name: U_String;
+  var
+    now_: TDateTime;
+    Year, Month, Day, Hour, min_, Sec, MSec: Word;
+  begin
+    repeat
+      TCompute.Sleep(100);
+      now_ := Now();
+      DecodeDate(now_, Year, Month, Day);
+      DecodeTime(now_, Hour, min_, Sec, MSec);
+      Result := PFormat('%s.backup(%d_%d_%d_%d_%d_%d_%d)', [db_full_file.Text, Year, Month, Day, Hour, min_, Sec, MSec]);
+    until not umlFileExists(Result);
+  end;
+
+{$IFDEF FPC}
+  function do_fpc_sort(var L, R: TFile_Time_Info): Integer;
+  begin
+    Result := CompareDateTime(L.FileTime_, R.FileTime_);
+  end;
+{$ENDIF FPC}
+
+
+begin
+  if Engine = nil then
+      exit;
+  if Engine.Is_Memory_Data then
+      exit;
+  if Backup_Is_Busy then
+      exit;
+
+  db_full_file := Engine.Get_Database_FileName;
+  if not umlFileExists(db_full_file) then
+      exit;
+  db_path := umlGetFilePath(db_full_file);
+  db_file := umlGetFileName(db_full_file);
+
+  Backup_Is_Busy := True;
+
+  arry := umlGetFileListPath(db_path);
+  L := TFileTime_Sorted_List.Create;
+  for n in arry do
+    if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+      with L.Add_Null^ do
+        begin
+          Data.FileName := n;
+          Data.FileTime_ := umlGetFileTime(umlCombineFileName(db_path, n));
+        end;
+
+  // sort backup file by time
+{$IFDEF FPC}
+  L.Sort_P(@do_fpc_sort);
+{$ELSE FPC}
+  L.Sort_P(function(var L, R: TFile_Time_Info): Integer
+    begin
+      Result := CompareDateTime(L.FileTime_, R.FileTime_);
+    end);
+{$ENDIF FPC}
+  // remove old backup
+  while L.Num > Reserve_ do
+    begin
+      umlDeleteFile(L.First^.Data.FileName);
+      L.Next;
+    end;
+  DisposeObject(L); // free pool
+
+  // backup instance
+  backup_inst := TZDB2_Th_Engine_Backup.Create(self);
+  // check busy queue
+  while Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
+  Th_Engine_Data_Pool.Lock; // safe lock
+  try
+    // rebuild sequece
+    if Th_Engine_Data_Pool.Num > 0 then
+      begin
+        __repeat__ := Th_Engine_Data_Pool.Repeat_;
+        repeat
+          if __repeat__.Queue^.Data <> nil then
+            begin
+              if __repeat__.Queue^.Data.FID >= 0 then
+                  backup_inst.Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
+            end;
+        until not __repeat__.Next;
+      end;
+  finally
+      Th_Engine_Data_Pool.UnLock; // safe unlock
+  end;
+  backup_inst.backup_file := Make_backup_File_Name();
+  TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}backup_inst.Do_Run); // run backup thread
+end;
+
 function TZDB2_Th_Engine.Ready: Boolean;
 begin
   Result := (Engine <> nil);
@@ -948,7 +1108,7 @@ begin
       WriteConfig(Hash_L);
       DoStatus('ZDB2.Thread Build %s', [Data_Class.ClassName]);
       DoStatus(Hash_L.AsText);
-      disposeObject(Hash_L);
+      DisposeObject(Hash_L);
       DoStatus('');
     end;
 
@@ -1005,7 +1165,7 @@ begin
   Last_Build_Class := Data_Class;
 end;
 
-procedure TZDB2_Th_Engine.Rebuild_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
+procedure TZDB2_Th_Engine.Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class);
 var
   Queue_Table_: TZDB2_BlockHandle;
   ID: Integer;
@@ -1014,7 +1174,7 @@ begin
       exit;
   Th_Engine_Data_Pool.Clear;
 
-  if Engine.Sync_Rebuild_Sequence_Table(Queue_Table_) then
+  if Engine.Sync_Rebuild_And_Get_Sequence_Table(Queue_Table_) then
     begin
       for ID in Queue_Table_ do
           Add(Data_Class, ID);
@@ -1054,7 +1214,7 @@ begin
         Th_Engine_Data_Pool.Free_Recycle_Pool;
       end;
     Result := Engine.Sync_Flush_Sequence_Table(Queue_ID_List_);
-    disposeObject(Queue_ID_List_);
+    DisposeObject(Queue_ID_List_);
   except
       Engine.Async_Flush;
   end;
@@ -1201,7 +1361,7 @@ begin
   else
     begin
       FLoad_Processor.Load_Task_Num.UnLock(FLoad_Processor.Load_Task_Num.LockP^ - 1);
-      disposeObject(self);
+      DisposeObject(self);
     end;
 end;
 
@@ -1218,7 +1378,7 @@ end;
 
 destructor TZDB2_Th_Engine_Data_Load_Instance.Destroy;
 begin
-  disposeObject(FStream);
+  DisposeObject(FStream);
   inherited Destroy;
 end;
 
@@ -1284,10 +1444,10 @@ end;
 
 destructor TZDB2_Th_Engine_Load_Processor.Destroy;
 begin
-  disposeObject(FTh_Pool);
+  DisposeObject(FTh_Pool);
   if buff <> nil then
       System.FreeMemory(buff);
-  disposeObject(Load_Task_Num);
+  DisposeObject(Load_Task_Num);
   inherited Destroy;
 end;
 
@@ -1305,7 +1465,7 @@ begin
     begin
       Load_Inst_ := TZDB2_Th_Engine_Data_Load_Instance(FTh_Pool.Dequeue);
       if Load_Inst_ <> nil then
-          disposeObject(Load_Inst_)
+          DisposeObject(Load_Inst_)
       else
           TCompute.Sleep(1);
     end;
@@ -1321,7 +1481,7 @@ begin
       if Assigned(On_Wait) then
           On_Wait(Load_Inst_);
       if Load_Inst_ <> nil then
-          disposeObject(Load_Inst_)
+          DisposeObject(Load_Inst_)
       else
           TCompute.Sleep(1);
     end;
@@ -1337,7 +1497,7 @@ begin
       if Assigned(On_Wait) then
           On_Wait(Load_Inst_);
       if Load_Inst_ <> nil then
-          disposeObject(Load_Inst_)
+          DisposeObject(Load_Inst_)
       else
           TCompute.Sleep(1);
     end;
@@ -1353,7 +1513,7 @@ begin
       if Assigned(On_Wait) then
           On_Wait(Load_Inst_);
       if Load_Inst_ <> nil then
-          disposeObject(Load_Inst_)
+          DisposeObject(Load_Inst_)
       else
           TCompute.Sleep(1);
     end;
@@ -1736,7 +1896,7 @@ begin
                 else if Queue^.Data.Can_Free then
                   begin
                     Queue^.Data.FPost_Free_Runing := True;
-                    disposeObject(Queue^.Data);
+                    DisposeObject(Queue^.Data);
                     Queue^.Data := nil;
                     Instance_Recycle_Tool.Push_To_Recycle_Pool(Queue);
                   end;
@@ -1770,6 +1930,29 @@ begin
       Result := True;
     end;
   UnLock;
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Backup(Reserve_: Word);
+begin
+  Wait_Busy_Task;
+  Check_Recycle_Pool;
+  if Engine_Pool.Num > 0 then
+    begin
+      Lock;
+      try
+        with Engine_Pool.Repeat_ do
+          repeat
+            try
+                Queue^.Data.Backup(Reserve_);
+            except
+            end;
+          until not Next;
+      except
+      end;
+      UnLock;
+    end;
+  Wait_Busy_Task;
   Check_Recycle_Pool;
 end;
 
@@ -1836,7 +2019,7 @@ begin
   try
     Load_Inst_.Run();
     Load_Inst_.Wait_C(On_Wait);
-    disposeObject(Load_Inst_);
+    DisposeObject(Load_Inst_);
   except
   end;
   AtomDec(FLong_Loop_Num);
@@ -1863,7 +2046,7 @@ begin
   try
     Load_Inst_.Run();
     Load_Inst_.Wait_M(On_Wait);
-    disposeObject(Load_Inst_);
+    DisposeObject(Load_Inst_);
   except
   end;
   AtomDec(FLong_Loop_Num);
@@ -1891,7 +2074,7 @@ begin
   try
     Load_Inst_.Run();
     Load_Inst_.Wait_P(On_Wait);
-    disposeObject(Load_Inst_);
+    DisposeObject(Load_Inst_);
   except
   end;
   AtomDec(FLong_Loop_Num);
@@ -2296,7 +2479,7 @@ begin
       Eng_ := TZDB2_Th_Engine.Create(DM);
       Eng_.ReadConfig(L[i], TE.HStringList[L[i]]);
     end;
-  disposeObject(L);
+  DisposeObject(L);
   TE.Free;
   DM.Build;
 
@@ -2316,7 +2499,105 @@ begin
 
   DoStatus('db total:%d', [DM.Total]);
 
-  disposeObject(DM);
+  DisposeObject(DM);
+end;
+
+class procedure TZDB2_Th_Engine_Marshal.Test_Backup_Support;
+const
+  C_cfg = '[1]'#13#10 +
+    'database=%temp%db1.ox2'#13#10 +
+    'OnlyRead=False'#13#10 +
+    'Delta=100*1024*1024'#13#10 +
+    'BlockSize=1536'#13#10 +
+    'Security=None'#13#10 +
+    'Password=ZDB_2.0'#13#10 +
+    'Level=1'#13#10 +
+    'Tail=True'#13#10 +
+    'CBC=True'#13#10 +
+    #13#10 +
+    '[2]'#13#10 +
+    'database=%temp%db2.ox2'#13#10 +
+    'OnlyRead=False'#13#10 +
+    'Delta=100*1024*1024'#13#10 +
+    'BlockSize=1536'#13#10 +
+    'Security=None'#13#10 +
+    'Password=ZDB_2.0'#13#10 +
+    'Level=1'#13#10 +
+    'Tail=True'#13#10 +
+    'CBC=True'#13#10 +
+    #13#10 +
+    '[3]'#13#10 +
+    'database=%temp%db3.ox2'#13#10 +
+    'OnlyRead=False'#13#10 +
+    'Delta=100*1024*1024'#13#10 +
+    'BlockSize=1536'#13#10 +
+    'Security=None'#13#10 +
+    'Password=ZDB_2.0'#13#10 +
+    'Level=1'#13#10 +
+    'Tail=True'#13#10 +
+    'CBC=True'#13#10 +
+    #13#10 +
+    '[4]'#13#10 +
+    'database=%temp%db4.ox2'#13#10 +
+    'OnlyRead=False'#13#10 +
+    'Delta=100*1024*1024'#13#10 +
+    'BlockSize=1536'#13#10 +
+    'Security=None'#13#10 +
+    'Password=ZDB_2.0'#13#10 +
+    'Level=1'#13#10 +
+    'Tail=True'#13#10 +
+    'CBC=True'#13#10;
+
+var
+  DM: TZDB2_Th_Engine_Marshal;
+  TE: THashTextEngine;
+  L: TListPascalString;
+  Eng_: TZDB2_Th_Engine;
+  i: Integer;
+  tmp: TMem64;
+begin
+  DM := TZDB2_Th_Engine_Marshal.Create;
+  TE := THashTextEngine.Create;
+  TE.AsText := umlReplace(C_cfg, '%temp%', umlCurrentPath, False, True);
+
+  L := TListPascalString.Create;
+  TE.GetSectionList(L);
+  for i := 0 to L.Count - 1 do
+    begin
+      Eng_ := TZDB2_Th_Engine.Create(DM);
+      Eng_.ReadConfig(L[i], TE.HStringList[L[i]]);
+    end;
+  DisposeObject(L);
+  TE.Free;
+  DM.Build;
+  DM.RemoveDatabaseOnDestroy := True;
+
+  DM.Engine_Pool.Get_Minimize_Size_Engine;
+
+  for i := 0 to 10000 do
+    begin
+      tmp := TMem64.Create;
+      tmp.Size := umlRandomRange(1192, 8192);
+      MT19937Rand32(MaxInt, tmp.Memory, tmp.Size shr 2);
+      DM.Add_Data_To_Minimize_Workload_Engine.Async_Save_And_Free_Data(tmp);
+      while DM.QueueNum > 1000 do
+          TCompute.Sleep(1);
+    end;
+
+  DM.Wait_Busy_Task;
+  DM.Parallel_Load_C(4, nil, nil);
+  DM.Wait_Busy_Task;
+
+  for i := 0 to 10 do
+    begin
+      DM.Backup(3);
+      DM.Wait_Busy_Task;
+      TCompute.Sleep(1000);
+    end;
+
+  DoStatus('db total:%d', [DM.Total]);
+
+  DisposeObject(DM);
 end;
 
 initialization

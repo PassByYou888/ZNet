@@ -6,10 +6,10 @@ program EZLinuxServ;
 
 
 uses
+  Threading,
   System.SysUtils,
   System.Classes,
   Z.Net,
-  Z.Net.Server.Indy,
   Z.Net.Server.CrossSocket,
   Z.Status, Z.Core,
   Z.DFE, Z.UnicodeMixedLib, Z.MemoryStream;
@@ -108,32 +108,34 @@ end;
 
 // 主循环
 var
-  server: TMyServer;
+  Server: TMyServer;
 
 begin
-  server := TMyServer.Create;
-  server.PeerClientUserSpecialClass := TMySpecialDefine;
+  IDEOutput := True;
+  ConsoleOutput := True;
+  Server := TMyServer.Create;
+  Server.PeerClientUserSpecialClass := TMySpecialDefine;
 
   // 更改最大completeBuffer，这里只用于测试，正常运行服务器，这里一般给4M就可以了
-  server.MaxCompleteBufferSize := 128 * 1024 * 1024;
+  Server.MaxCompleteBufferSize := 128 * 1024 * 1024;
 
-  server.RegisterDirectConsole('helloWorld_Console').OnExecute := server.cmd_helloWorld_Console;
-  server.RegisterDirectStream('helloWorld_Stream').OnExecute := server.cmd_helloWorld_Stream;
-  server.RegisterStream('helloWorld_Stream_Result').OnExecute := server.cmd_helloWorld_Stream_Result;
-  server.RegisterDirectStream('TestMiniStream').OnExecute := server.cmd_TestMiniStream;
-  server.RegisterBigStream('Test128MBigStream').OnExecute := server.cmd_Test128MBigStream;
+  Server.RegisterDirectConsole('helloWorld_Console').OnExecute := Server.cmd_helloWorld_Console;
+  Server.RegisterDirectStream('helloWorld_Stream').OnExecute := Server.cmd_helloWorld_Stream;
+  Server.RegisterStream('helloWorld_Stream_Result').OnExecute := Server.cmd_helloWorld_Stream_Result;
+  Server.RegisterDirectStream('TestMiniStream').OnExecute := Server.cmd_TestMiniStream;
+  Server.RegisterBigStream('Test128MBigStream').OnExecute := Server.cmd_Test128MBigStream;
   // 注册Completebuffer指令
-  server.RegisterCompleteBuffer('TestCompleteBuffer').OnExecute := server.cmd_TestCompleteBuffer;
+  Server.RegisterCompleteBuffer('TestCompleteBuffer').OnExecute := Server.cmd_TestCompleteBuffer;
 
-  if server.StartService('0.0.0.0', 9818) then
+  if Server.StartService('0.0.0.0', 9818) then
       DoStatus('start service success')
   else
       DoStatus('start service failed!');
 
   // 进入主循环
-  while true do
+  while True do
     begin
-      server.Progress;
+      Server.Progress;
 
       // 延迟同步检查
       try

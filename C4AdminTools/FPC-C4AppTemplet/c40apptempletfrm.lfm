@@ -15,6 +15,7 @@ object C40AppTempletForm: TC40AppTempletForm
   Font.Name = 'Tahoma'
   OnClose = FormClose
   Position = poScreenCenter
+  LCLVersion = '2.2.4.0'
   object botSplitter: TSplitter
     Cursor = crVSplit
     Left = 0

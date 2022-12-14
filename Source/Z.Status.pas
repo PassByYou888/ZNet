@@ -41,6 +41,8 @@ procedure DisableStatus;
 procedure EnabledStatus;
 function Is_EnabledStatus: Boolean;
 function Is_DisableStatus: Boolean;
+function Get_DoStatus_Queue_Num: NativeInt;
+procedure Wait_DoStatus_Queue;
 
 procedure DoStatus(Text_: SystemString; const ID: Integer); overload;
 procedure DoStatus(const v: Pointer; siz, width: NativeInt); overload;
@@ -564,6 +566,28 @@ end;
 function Is_DisableStatus: Boolean;
 begin
   Result := not Status_Active__;
+end;
+
+function Get_DoStatus_Queue_Num: NativeInt;
+begin
+  Result := Text_Queue_Data_Pool__.Num;
+end;
+
+procedure Wait_DoStatus_Queue;
+begin
+  if TCompute.CurrentThread.ThreadID <> MainThreadID then
+    begin
+      while Get_DoStatus_Queue_Num > 0 do
+          TCompute.Sleep(1);
+    end
+  else
+    begin
+      while Get_DoStatus_Queue_Num > 0 do
+        begin
+          DoStatus;
+          TCompute.Sleep(1);
+        end;
+    end;
 end;
 
 procedure DoCheckThreadSynchronize;

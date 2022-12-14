@@ -320,12 +320,12 @@ function MovementDistance(const sour, dest: TVector3; Distance: TGeoFloat): TVec
 
 function MovementDistanceDeltaTime(const s, d: TVec2; Speed_: TGeoFloat): Double; overload;
 function MovementDistanceDeltaTime(const s, d: TRectV2; Speed_: TGeoFloat): Double; overload;
-function AngleRollDistanceDeltaTime(const s, d: TGeoFloat; ARollSpeed: TGeoFloat): Double; overload;
+function AngleRollDistanceDeltaTime(const s, d: TGeoFloat; RollSpeed_: TGeoFloat): Double; overload;
 
-function BounceVector(const Current: TVector4; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector4; var EndFlag: Boolean): TVector4; overload;
-function BounceVector(const Current: TVector3; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector3; var EndFlag: Boolean): TVector3; overload;
-function BounceVector(const Current: TVector2; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector2; var EndFlag: Boolean): TVector2; overload;
-function BounceFloat(const CurrentVal, DeltaVal, StartVal, OverVal: TGeoFloat; var EndFlag: Boolean): TGeoFloat; overload;
+function BounceVector(const Current: TVector4; Dist: TGeoFloat; const bVec, eVec: TVector4; var eFlag: Boolean): TVector4; overload;
+function BounceVector(const Current: TVector3; Dist: TGeoFloat; const bVec, eVec: TVector3; var eFlag: Boolean): TVector3; overload;
+function BounceVector(const Current: TVector2; Dist: TGeoFloat; const bVec, eVec: TVector2; var eFlag: Boolean): TVector2; overload;
+function BounceFloat(const CurrentVal, dist, bFloat, eFloat: TGeoFloat; var eFlag: Boolean): TGeoFloat; overload;
 
 implementation
 
@@ -853,81 +853,81 @@ begin
       Result := d2;
 end;
 
-function AngleRollDistanceDeltaTime(const s, d: TGeoFloat; ARollSpeed: TGeoFloat): Double;
+function AngleRollDistanceDeltaTime(const s, d: TGeoFloat; RollSpeed_: TGeoFloat): Double;
 begin
-  Result := AngleDistance(s, d) / ARollSpeed;
+  Result := AngleDistance(s, d) / RollSpeed_;
 end;
 
-function BounceVector(const Current: TVector4; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector4; var EndFlag: Boolean): TVector4;
+function BounceVector(const Current: TVector4; Dist: TGeoFloat; const bVec, eVec: TVector4; var eFlag: Boolean): TVector4;
   function ToVector: TVector4;
   begin
-    if EndFlag then
-        Result := EndVector
+    if eFlag then
+        Result := eVec
     else
-        Result := BeginVector;
+        Result := bVec;
   end;
 
 var
   k: TGeoFloat;
 begin
   k := Current.Distance4D(ToVector);
-  if k >= DeltaDistance then
-      Result := MovementDistance(Current, ToVector, DeltaDistance)
+  if k >= Dist then
+      Result := MovementDistance(Current, ToVector, Dist)
   else
     begin
       Result := ToVector;
-      EndFlag := not EndFlag;
-      Result := MovementDistance(Result, ToVector, DeltaDistance - k);
+      eFlag := not eFlag;
+      Result := MovementDistance(Result, ToVector, Dist - k);
     end;
 end;
 
-function BounceVector(const Current: TVector3; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector3; var EndFlag: Boolean): TVector3;
+function BounceVector(const Current: TVector3; Dist: TGeoFloat; const bVec, eVec: TVector3; var eFlag: Boolean): TVector3;
   function ToVector: TVector3;
   begin
-    if EndFlag then
-        Result := EndVector
+    if eFlag then
+        Result := eVec
     else
-        Result := BeginVector;
+        Result := bVec;
   end;
 
 var
   k: TGeoFloat;
 begin
   k := Current.Distance3D(ToVector);
-  if k >= DeltaDistance then
-      Result := MovementDistance(Current, ToVector, DeltaDistance)
+  if k >= Dist then
+      Result := MovementDistance(Current, ToVector, Dist)
   else
     begin
       Result := ToVector;
-      EndFlag := not EndFlag;
-      Result := MovementDistance(Result, ToVector, DeltaDistance - k);
+      eFlag := not eFlag;
+      Result := MovementDistance(Result, ToVector, Dist - k);
     end;
 end;
 
-function BounceVector(const Current: TVector2; DeltaDistance: TGeoFloat; const BeginVector, EndVector: TVector2; var EndFlag: Boolean): TVector2;
+function BounceVector(const Current: TVector2; Dist: TGeoFloat; const bVec, eVec: TVector2; var eFlag: Boolean): TVector2;
   function ToVector: TVector2;
   begin
-    if EndFlag then
-        Result := EndVector
+    if eFlag then
+        Result := eVec
     else
-        Result := BeginVector;
+        Result := bVec;
   end;
 
 var
   k: TGeoFloat;
 begin
   k := Vec2Distance(Current.Buff, ToVector.Buff);
-  if k >= DeltaDistance then
-      Result := Vec2LerpTo(Current.Buff, ToVector.Buff, DeltaDistance)
+  if k >= Dist then
+      Result := Vec2LerpTo(Current.Buff, ToVector.Buff, Dist)
   else
     begin
       Result := ToVector;
-      EndFlag := not EndFlag;
-      Result := Vec2LerpTo(Result.Buff, ToVector.Buff, DeltaDistance - k);
+      eFlag := not eFlag;
+      Result := Vec2LerpTo(Result.Buff, ToVector.Buff, Dist - k);
     end;
 end;
 
-function BounceFloat(const CurrentVal, DeltaVal, StartVal, OverVal: TGeoFloat; var EndFlag: Boolean): TGeoFloat;
+function BounceFloat(const CurrentVal, dist, bFloat, eFloat: TGeoFloat; var eFlag: Boolean): TGeoFloat;
   function IfOut(Cur, Delta, dest: TGeoFloat): Boolean;
   begin
     if Cur > dest then
@@ -958,27 +958,27 @@ function BounceFloat(const CurrentVal, DeltaVal, StartVal, OverVal: TGeoFloat; v
   end;
 
 begin
-  if (DeltaVal > 0) and (StartVal <> OverVal) then
+  if (dist > 0) and (bFloat <> eFloat) then
     begin
-      if EndFlag then
+      if eFlag then
         begin
-          if IfOut(CurrentVal, DeltaVal, OverVal) then
+          if IfOut(CurrentVal, dist, eFloat) then
             begin
-              EndFlag := False;
-              Result := umlProcessCycleValue(OverVal, GetOutValue(CurrentVal, DeltaVal, OverVal), StartVal, OverVal, EndFlag);
+              eFlag := False;
+              Result := umlProcessCycleValue(eFloat, GetOutValue(CurrentVal, dist, eFloat), bFloat, eFloat, eFlag);
             end
           else
-              Result := GetDeltaValue(CurrentVal, DeltaVal, OverVal);
+              Result := GetDeltaValue(CurrentVal, dist, eFloat);
         end
       else
         begin
-          if IfOut(CurrentVal, DeltaVal, StartVal) then
+          if IfOut(CurrentVal, dist, bFloat) then
             begin
-              EndFlag := True;
-              Result := umlProcessCycleValue(StartVal, GetOutValue(CurrentVal, DeltaVal, StartVal), StartVal, OverVal, EndFlag);
+              eFlag := True;
+              Result := umlProcessCycleValue(bFloat, GetOutValue(CurrentVal, dist, bFloat), bFloat, eFloat, eFlag);
             end
           else
-              Result := GetDeltaValue(CurrentVal, DeltaVal, StartVal);
+              Result := GetDeltaValue(CurrentVal, dist, bFloat);
         end
     end
   else

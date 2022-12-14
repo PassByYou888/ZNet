@@ -2123,9 +2123,13 @@ function IsDebuging: Boolean;
 begin
   Result := False;
 {$IFDEF DELPHI}
-{$IFDEF MSWINDOWS}
-  Result := DebugHook > 0;
-{$ENDIF MSWINDOWS}
+  {$IFDEF MSWINDOWS}
+    Result := DebugHook > 0;
+  {$ELSE MSWINDOWS}
+    {$IFDEF DEBUG}
+      Result := True;
+    {$ENDIF DEBUG}
+  {$ENDIF MSWINDOWS}
 {$ENDIF DELPHI}
 end;
 
