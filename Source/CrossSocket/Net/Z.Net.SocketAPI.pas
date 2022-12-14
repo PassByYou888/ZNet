@@ -148,10 +148,6 @@ type
     /// </summary>
     class function SetReUseAddr(const ASocket: THandle; const AReUseAddr: Boolean = True): Integer; static;
     /// <summary>
-    ///   设置端口重用模式(POSIX)
-    /// </summary>
-    class function SetReUsePort(const ASocket: THandle; const AReUsePort: Boolean = True): Integer; static;
-    /// <summary>
     ///   设置心跳参数
     /// </summary>
     class function SetKeepAlive(const ASocket: THandle; const AIdleSeconds, AInterval, ACount: Integer): Integer; static;
@@ -653,22 +649,6 @@ begin
   else
     LOptVal := 0;
   Result := TSocketAPI.SetSockOpt(ASocket, SOL_SOCKET, SO_REUSEADDR, LOptVal, SizeOf(Integer));
-end;
-
-class function TSocketAPI.SetReUsePort(const ASocket: THandle;
-  const AReUsePort: Boolean): Integer;
-var
-  LOptVal: Integer;
-begin
-  if AReUsePort then
-    LOptVal := 1
-  else
-    LOptVal := 0;
-  {$IFDEF POSIX}
-  Result := TSocketAPI.SetSockOpt(ASocket, SOL_SOCKET, SO_REUSEPORT, LOptVal, SizeOf(Integer));
-  {$ELSE}
-  Result := -1;
-  {$ENDIF}
 end;
 
 class function TSocketAPI.SetRcvBuf(const ASocket: THandle;
