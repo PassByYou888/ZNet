@@ -21,42 +21,25 @@ object C40AppTempletForm: TC40AppTempletForm
   TextHeight = 13
   object botSplitter: TSplitter
     Left = 0
-    Top = 324
+    Top = 328
     Width = 684
     Height = 8
     Cursor = crVSplit
     Align = alBottom
     AutoSnap = False
-    Color = clBlue
     MinSize = 120
-    ParentColor = False
     ResizeStyle = rsUpdate
     ExplicitTop = 229
     ExplicitWidth = 791
-  end
-  object logMemo: TMemo
-    Left = 0
-    Top = 332
-    Width = 684
-    Height = 129
-    Align = alBottom
-    BevelInner = bvNone
-    BevelOuter = bvNone
-    BorderStyle = bsNone
-    DoubleBuffered = True
-    ParentDoubleBuffered = False
-    ScrollBars = ssVertical
-    TabOrder = 0
-    WordWrap = False
   end
   object PGControl: TPageControl
     Left = 0
     Top = 0
     Width = 684
-    Height = 324
+    Height = 328
     ActivePage = BuildNetworkTabSheet
     Align = alClient
-    TabOrder = 1
+    TabOrder = 0
     object BuildNetworkTabSheet: TTabSheet
       Caption = 'Build Network'
       ImageIndex = -1
@@ -68,9 +51,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Cursor = crVSplit
         Align = alTop
         AutoSnap = False
-        Color = clBlue
         MinSize = 100
-        ParentColor = False
         ResizeStyle = rsUpdate
         ExplicitTop = 226
         ExplicitWidth = 841
@@ -92,6 +73,7 @@ object C40AppTempletForm: TC40AppTempletForm
           Align = alTop
           BevelOuter = bvNone
           DoubleBuffered = True
+          ParentColor = True
           ParentDoubleBuffered = False
           TabOrder = 0
           DesignSize = (
@@ -178,9 +160,6 @@ object C40AppTempletForm: TC40AppTempletForm
           Width = 676
           Height = 115
           Align = alClient
-          BevelInner = bvNone
-          BevelOuter = bvNone
-          BorderStyle = bsNone
           Checkboxes = True
           Columns = <
             item
@@ -208,7 +187,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 0
         Top = 155
         Width = 676
-        Height = 141
+        Height = 145
         Align = alClient
         BevelOuter = bvNone
         TabOrder = 1
@@ -220,6 +199,7 @@ object C40AppTempletForm: TC40AppTempletForm
           Align = alTop
           BevelOuter = bvNone
           DoubleBuffered = True
+          ParentColor = True
           ParentDoubleBuffered = False
           TabOrder = 0
           DesignSize = (
@@ -297,11 +277,8 @@ object C40AppTempletForm: TC40AppTempletForm
           Left = 0
           Top = 30
           Width = 676
-          Height = 111
+          Height = 115
           Align = alClient
-          BevelInner = bvNone
-          BevelOuter = bvNone
-          BorderStyle = bsNone
           Checkboxes = True
           Columns = <
             item
@@ -460,17 +437,18 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 200
         Top = 0
         Width = 8
-        Height = 296
+        Height = 300
         AutoSnap = False
         MinSize = 120
         ResizeStyle = rsUpdate
         ExplicitLeft = 158
+        ExplicitHeight = 296
       end
       object ServiceInfoMemo: TMemo
         Left = 208
         Top = 0
         Width = 468
-        Height = 296
+        Height = 300
         Align = alClient
         BevelInner = bvNone
         BevelOuter = bvNone
@@ -487,7 +465,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 0
         Top = 0
         Width = 200
-        Height = 296
+        Height = 300
         Align = alLeft
         BevelInner = bvNone
         BevelOuter = bvNone
@@ -506,17 +484,18 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 200
         Top = 0
         Width = 8
-        Height = 296
+        Height = 300
         AutoSnap = False
         MinSize = 120
         ResizeStyle = rsUpdate
         ExplicitLeft = 174
+        ExplicitHeight = 296
       end
       object TunnelInfoMemo: TMemo
         Left = 208
         Top = 0
         Width = 468
-        Height = 296
+        Height = 300
         Align = alClient
         BevelInner = bvNone
         BevelOuter = bvNone
@@ -531,7 +510,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 0
         Top = 0
         Width = 200
-        Height = 296
+        Height = 300
         Align = alLeft
         BevelInner = bvNone
         BevelOuter = bvNone
@@ -550,7 +529,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Left = 0
         Top = 0
         Width = 676
-        Height = 296
+        Height = 300
         Align = alClient
         BevelInner = bvNone
         BevelOuter = bvNone
@@ -571,7 +550,7 @@ object C40AppTempletForm: TC40AppTempletForm
       ImageIndex = 5
       DesignSize = (
         676
-        296)
+        300)
       object ArryParamLabel: TLabel
         Left = 98
         Top = 126
@@ -683,6 +662,62 @@ object C40AppTempletForm: TC40AppTempletForm
         Caption = 'Generate Console '
         TabOrder = 9
         OnClick = Generate_Console_CmdLineButtonClick
+      end
+    end
+  end
+  object bot_Panel: TPanel
+    Left = 0
+    Top = 336
+    Width = 684
+    Height = 125
+    Align = alBottom
+    BevelOuter = bvNone
+    TabOrder = 1
+    DesignSize = (
+      684
+      125)
+    object logMemo: TMemo
+      Left = 0
+      Top = 0
+      Width = 684
+      Height = 125
+      Align = alClient
+      BevelInner = bvNone
+      BevelOuter = bvNone
+      BorderStyle = bsNone
+      DoubleBuffered = True
+      ParentDoubleBuffered = False
+      ScrollBars = ssVertical
+      TabOrder = 0
+      WordWrap = False
+    end
+    object cmdPanel: TPanel
+      Left = 392
+      Top = 86
+      Width = 265
+      Height = 35
+      Anchors = [akRight, akBottom]
+      TabOrder = 1
+      object cmdEdit: TLabeledEdit
+        Left = 64
+        Top = 8
+        Width = 154
+        Height = 21
+        EditLabel.Width = 49
+        EditLabel.Height = 13
+        EditLabel.Caption = 'command:'
+        LabelPosition = lpLeft
+        TabOrder = 0
+        OnKeyUp = cmdEditKeyUp
+      end
+      object run_Cmd_Button: TButton
+        Left = 224
+        Top = 6
+        Width = 35
+        Height = 25
+        Caption = 'Run'
+        TabOrder = 1
+        OnClick = run_Cmd_ButtonClick
       end
     end
   end

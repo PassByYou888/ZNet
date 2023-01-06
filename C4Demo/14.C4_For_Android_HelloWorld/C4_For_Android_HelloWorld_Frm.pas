@@ -53,7 +53,7 @@ var
   C4_For_Android_HelloWorld_Form: TC4_For_Android_HelloWorld_Form;
 
 const
-  Internet_DP_Addr_ = '192.168.2.33';
+  Internet_DP_Addr_ = '192.168.2.32';
   Internet_DP_Port_ = 8387;
 
 implementation

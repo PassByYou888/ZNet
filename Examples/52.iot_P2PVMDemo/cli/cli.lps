@@ -2,7 +2,7 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <BuildModes Active="Default"/>
     <Units Count="63">
       <Unit0>
@@ -22,8 +22,7 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="cliFrm"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="74"/>
-        <CursorPos X="57" Y="96"/>
+        <CursorPos X="68" Y="86"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -40,11 +39,10 @@
       <Unit3>
         <Filename Value="..\zserver4d\Source\CommunicationFramework.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="39"/>
         <CursorPos X="75" Y="57"/>
         <UsageCount Value="21"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\zserver4d\Source\CommunicationFrameworkDataStoreService.pas"/>
@@ -577,7 +575,7 @@
         <UsageCount Value="21"/>
       </Unit62>
     </Units>
-    <JumpHistory Count="24" HistoryIndex="23">
+    <JumpHistory Count="23" HistoryIndex="22">
       <Position1>
         <Filename Value="clifrm.pas"/>
         <Caret Line="22"/>
@@ -659,25 +657,21 @@
         <Caret Line="99" Column="20" TopLine="69"/>
       </Position20>
       <Position21>
-        <Filename Value="..\zserver4d\Source\CommunicationFramework.pas"/>
-        <Caret Line="13488" Column="46" TopLine="13476"/>
+        <Filename Value="clifrm.pas"/>
+        <Caret Line="41" Column="29" TopLine="13"/>
       </Position21>
       <Position22>
         <Filename Value="clifrm.pas"/>
-        <Caret Line="41" Column="29" TopLine="13"/>
+        <Caret Line="94" TopLine="68"/>
       </Position22>
       <Position23>
         <Filename Value="clifrm.pas"/>
-        <Caret Line="94" TopLine="68"/>
-      </Position23>
-      <Position24>
-        <Filename Value="clifrm.pas"/>
         <Caret Line="32" Column="27" TopLine="19"/>
-      </Position24>
+      </Position23>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0" ActiveMode=""/>
+      <Modes ActiveMode=""/>
     </RunParams>
   </ProjectSession>
 </CONFIG>

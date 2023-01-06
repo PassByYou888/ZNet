@@ -96,7 +96,6 @@ uses
   Z.ZDB.LocalManager in '..\Source\Z.ZDB.LocalManager.pas',
   Z.ZDB.ObjectData_LIB in '..\Source\Z.ZDB.ObjectData_LIB.pas',
   Z.ZDB in '..\Source\Z.ZDB.pas',
-  Z.ZDB2.Custom in '..\Source\Z.ZDB2.Custom.pas',
   Z.ZDB2.DFE in '..\Source\Z.ZDB2.DFE.pas',
   Z.ZDB2.FileEncoder in '..\Source\Z.ZDB2.FileEncoder.pas',
   Z.ZDB2.HS in '..\Source\Z.ZDB2.HS.pas',

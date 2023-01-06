@@ -184,7 +184,7 @@
         <DCCReference Include="..\Source\Z.Geometry.Rotation.pas"/>
         <DCCReference Include="..\Source\Z.Geometry2D.pas"/>
         <DCCReference Include="..\Source\Z.Geometry3D.pas"/>
-        <DCCReference Include="..\Source\Z.GHashList.pas"/>
+        <DCCReference Include="..\Source\Z.HashList.Templet.pas"/>
         <DCCReference Include="..\Source\Z.IOThread.pas"/>
         <DCCReference Include="..\Source\Z.Json.pas"/>
         <DCCReference Include="..\Source\Z.LinearAction.pas"/>
@@ -256,7 +256,6 @@
         <DCCReference Include="..\Source\Z.ZDB.LocalManager.pas"/>
         <DCCReference Include="..\Source\Z.ZDB.ObjectData_LIB.pas"/>
         <DCCReference Include="..\Source\Z.ZDB.pas"/>
-        <DCCReference Include="..\Source\Z.ZDB2.Custom.pas"/>
         <DCCReference Include="..\Source\Z.ZDB2.DFE.pas"/>
         <DCCReference Include="..\Source\Z.ZDB2.FileEncoder.pas"/>
         <DCCReference Include="..\Source\Z.ZDB2.HS.pas"/>
