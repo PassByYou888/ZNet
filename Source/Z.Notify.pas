@@ -30,7 +30,7 @@ type
   TN_Post_Execute_P = reference to procedure(Sender: TN_Post_Execute);
   TN_Post_Execute_P_NP = reference to procedure();
 {$ENDIF FPC}
-  TN_Post_Execute_List_Struct = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TN_Post_Execute>;
+  TN_Post_Execute_List_Struct = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TN_Post_Execute>;
   TN_Post_Execute_Temp_Order_Struct = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TN_Post_Execute>;
 
   TN_Post_Execute = class(TCore_Object)

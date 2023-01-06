@@ -243,36 +243,58 @@ procedure FastPYSort(const inverse: Boolean; const inBuff: PArrayPascalString; v
       end;
   end;
 
-  procedure FastSortList_(var SortList: TArrayPascalStringPtr; L, r: Integer);
+  procedure FastSortList_(var arry_: TArrayPascalStringPtr; L, R: Integer);
   var
     i, j: Integer;
-    p, t: PPascalString;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := SortList[(L + r) shr 1];
-      repeat
-        while CompText(SortList[i], p) < 0 do
-            inc(i);
-        while CompText(SortList[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if CompText(arry_[L], arry_[R]) > 0 then
+                begin
+                  tmp := arry_[L];
+                  arry_[L] := arry_[R];
+                  arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := arry_[(L + R) shr 1];
+          repeat
+            while CompText(arry_[i], p) < 0 do
+                inc(i);
+            while CompText(arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                t := SortList[i];
-                SortList[i] := SortList[j];
-                SortList[j] := t;
+                if i <> j then
+                  begin
+                    tmp := arry_[i];
+                    arry_[i] := arry_[j];
+                    arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          FastSortList_(SortList, L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  FastSortList_(arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  FastSortList_(arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var
@@ -287,36 +309,58 @@ begin
 end;
 
 procedure FastCustomSort(const inBuff: PArrayPascalString; var OutBuff: TArrayPascalStringPtr; const OnCompare: TFastCompareFuncCall);
-  procedure FastSortList_(var SortList: TArrayPascalStringPtr; L, r: Integer);
+  procedure FastSortList_(var arry_: TArrayPascalStringPtr; L, R: Integer);
   var
     i, j: Integer;
-    p, t: PPascalString;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := SortList[(L + r) shr 1];
-      repeat
-        while OnCompare(SortList[i], p) < 0 do
-            inc(i);
-        while OnCompare(SortList[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnCompare(arry_[L], arry_[R]) > 0 then
+                begin
+                  tmp := arry_[L];
+                  arry_[L] := arry_[R];
+                  arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := arry_[(L + R) shr 1];
+          repeat
+            while OnCompare(arry_[i], p) < 0 do
+                inc(i);
+            while OnCompare(arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                t := SortList[i];
-                SortList[i] := SortList[j];
-                SortList[j] := t;
+                if i <> j then
+                  begin
+                    tmp := arry_[i];
+                    arry_[i] := arry_[j];
+                    arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          FastSortList_(SortList, L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  FastSortList_(arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  FastSortList_(arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var
@@ -331,36 +375,58 @@ begin
 end;
 
 procedure FastCustomSort(const inBuff: PArrayPascalString; var OutBuff: TArrayPascalStringPtr; const OnCompare: TFastCompareFuncMethod);
-  procedure FastSortList_(var SortList: TArrayPascalStringPtr; L, r: Integer);
+  procedure FastSortList_(var arry_: TArrayPascalStringPtr; L, R: Integer);
   var
     i, j: Integer;
-    p, t: PPascalString;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := SortList[(L + r) shr 1];
-      repeat
-        while OnCompare(SortList[i], p) < 0 do
-            inc(i);
-        while OnCompare(SortList[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnCompare(arry_[L], arry_[R]) > 0 then
+                begin
+                  tmp := arry_[L];
+                  arry_[L] := arry_[R];
+                  arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := arry_[(L + R) shr 1];
+          repeat
+            while OnCompare(arry_[i], p) < 0 do
+                inc(i);
+            while OnCompare(arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                t := SortList[i];
-                SortList[i] := SortList[j];
-                SortList[j] := t;
+                if i <> j then
+                  begin
+                    tmp := arry_[i];
+                    arry_[i] := arry_[j];
+                    arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          FastSortList_(SortList, L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  FastSortList_(arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  FastSortList_(arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var
@@ -375,36 +441,58 @@ begin
 end;
 
 procedure FastCustomSort(const inBuff: PArrayPascalString; var OutBuff: TArrayPascalStringPtr; const OnCompare: TFastCompareFuncProc);
-  procedure FastSortList_(var SortList: TArrayPascalStringPtr; L, r: Integer);
+  procedure FastSortList_(var arry_: TArrayPascalStringPtr; L, R: Integer);
   var
     i, j: Integer;
-    p, t: PPascalString;
+    p, tmp: pointer;
   begin
-    repeat
-      i := L;
-      j := r;
-      p := SortList[(L + r) shr 1];
-      repeat
-        while OnCompare(SortList[i], p) < 0 do
-            inc(i);
-        while OnCompare(SortList[j], p) > 0 do
-            dec(j);
-        if i <= j then
-          begin
-            if i <> j then
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnCompare(arry_[L], arry_[R]) > 0 then
+                begin
+                  tmp := arry_[L];
+                  arry_[L] := arry_[R];
+                  arry_[R] := tmp;
+                end;
+              break;
+            end;
+          i := L;
+          j := R;
+          p := arry_[(L + R) shr 1];
+          repeat
+            while OnCompare(arry_[i], p) < 0 do
+                inc(i);
+            while OnCompare(arry_[j], p) > 0 do
+                dec(j);
+            if i <= j then
               begin
-                t := SortList[i];
-                SortList[i] := SortList[j];
-                SortList[j] := t;
+                if i <> j then
+                  begin
+                    tmp := arry_[i];
+                    arry_[i] := arry_[j];
+                    arry_[j] := tmp;
+                  end;
+                inc(i);
+                dec(j);
               end;
-            inc(i);
-            dec(j);
-          end;
-      until i > j;
-      if L < j then
-          FastSortList_(SortList, L, j);
-      L := i;
-    until i >= r;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  FastSortList_(arry_, i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  FastSortList_(arry_, L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
   end;
 
 var

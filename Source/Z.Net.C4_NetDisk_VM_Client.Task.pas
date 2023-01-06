@@ -31,7 +31,7 @@ type
   TC40_NetDisk_VM_Client_Task_Auto_Get_File = class;
   TC40_NetDisk_VM_Client_Task_Auto_Get_Directory = class;
   TC40_NetDisk_VM_Client_Task_Auto_Post_Directory = class;
-  TC40_NetDisk_VM_Client_Task_List = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TC40_NetDisk_VM_Client_Task>;
+  TC40_NetDisk_VM_Client_Task_List = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TC40_NetDisk_VM_Client_Task>;
 
   TC40_NetDisk_VM_Client_Task_Tool = class;
   TC40_NetDisk_VM_Client_Task_Pool_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Tool) of object;

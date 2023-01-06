@@ -24,10 +24,10 @@ type
   TZDB2_Th_Engine_Marshal = class;
   TZDB2_Th_Engine_Data = class;
   TZDB2_Th_Engine = class;
-  TZDB2_Th_Engine_Data_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Marshal_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Data_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Marshal_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
 
   TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge = class
   public
@@ -161,7 +161,7 @@ type
     procedure Progress();
   end;
 
-  TZDB2_Th_Engine_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine>;
+  TZDB2_Th_Engine_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine>;
 
   TZDB2_Th_Engine_Pool = class(TZDB2_Th_Engine_Pool_Decl)
   public
@@ -225,7 +225,7 @@ type
     procedure Wait_P(On_Wait: TOn_Wait_P);
   end;
 
-  TZDB2_Th_Engine_Marshal_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZDB2_Th_Engine_Marshal>;
+  TZDB2_Th_Engine_Marshal_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Marshal>;
 
   TZDB2_Th_Engine_Marshal_For_C = procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean);
   TZDB2_Th_Engine_Marshal_For_M = procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean) of object;

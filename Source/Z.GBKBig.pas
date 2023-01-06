@@ -55,7 +55,7 @@ begin
   while i <= n.L do
     begin
       Successed := False;
-      j := umlMin(bigKeyDict.HashList.MaxNameSize, n.L - i + 1);
+      j := umlMin(bigKeyDict.HashList.MaxKeySize, n.L - i + 1);
       while j > 1 do
         begin
           tmp := n.Copy(i, j);
@@ -137,7 +137,7 @@ begin
   while i <= n.L do
     begin
       Successed := False;
-      j := umlMin(bigWordDict.MaxNameSize, n.L - i + 1);
+      j := umlMin(bigWordDict.MaxKeySize, n.L - i + 1);
       while j > 1 do
         begin
           tmp := n.Copy(i, j);

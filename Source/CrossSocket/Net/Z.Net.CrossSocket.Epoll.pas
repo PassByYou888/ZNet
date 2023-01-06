@@ -972,7 +972,7 @@ begin
       if (LEvent.Events and EPOLLIN <> 0) then
         begin
           // 在密集型并发调用中，使用局部锁不是一个好策略：非常容易出现序列问题
-          // 正确的做法是统一锁住，这里epoll已经形成程序模型，只能往正确模型强制靠
+          // 正确的做法是统一锁住，这里epoll已经形成程序模型，只能往正确方向强制靠
           // by.qq600585
           TEpollConnection(LConnection)._Lock;
           // 这里面响应处理必须低延迟，否则影响整体epoll性能

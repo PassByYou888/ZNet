@@ -118,7 +118,6 @@ type
 {$ELSE FPC}
   TOnDeclValue_P = reference to procedure(const Decl: SystemString; var ValType: TExpressionDeclType; var Value: Variant);
 {$ENDIF FPC}
-  { }
   { text parse support }
   TExpressionParsingState = set of (esFirst, esWaitOp, esWaitIndentEnd, esWaitPropParamIndentEnd, esWaitValue);
   PExpressionParsingState = ^TExpressionParsingState;
@@ -1544,7 +1543,7 @@ var
 begin
   Result := nil;
 
-  if ParsingTool_.ParsingData.L < 1 then
+  if ParsingTool_.Len < 1 then
       Exit;
   if ParsingTool_.TokenCountT([ttTextDecl, ttNumber, ttAscii]) = 0 then
       Exit;
@@ -1636,9 +1635,9 @@ begin
                 nttInt64: Container.AddInt64(StrToInt64(Decl), bPos);
 {$IFDEF FPC}
                 nttUInt64: Container.AddUInt64(StrToQWord(Decl), bPos);
-{$ELSE}
+{$ELSE FPC}
                 nttUInt64: Container.AddUInt64(StrToUInt64(Decl), bPos);
-{$ENDIF}
+{$ENDIF FPC}
                 nttWord: Container.AddWord(StrToInt(Decl), bPos);
                 nttByte: Container.AddByte(StrToInt(Decl), bPos);
                 nttSmallInt: Container.AddSmallInt(StrToInt(Decl), bPos);

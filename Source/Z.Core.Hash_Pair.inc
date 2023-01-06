@@ -205,6 +205,15 @@ begin
   Result := CompareMemory(@Value_1, @Value_2, SizeOf(TValue_));
 end;
 
+procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Extract_Queue_Pool_Third;
+begin
+  if FQueue_Pool.Num > 0 then
+    with FQueue_Pool.Repeat_ do
+      repeat
+          Queue^.Data^.Data.Third := Queue;
+      until not Next;
+end;
+
 procedure TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Clear;
 var
   i: integer;
@@ -882,6 +891,15 @@ end;
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Compare_Value(const Value_1, Value_2: TValue_): Boolean;
 begin
   Result := CompareMemory(@Value_1, @Value_2, SizeOf(TValue_));
+end;
+
+procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Extract_Queue_Pool_Third;
+begin
+  if FQueue_Pool.Num > 0 then
+    with FQueue_Pool.Repeat_ do
+      repeat
+          Queue^.Data^.Data.Third := Queue;
+      until not Next;
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Clear;

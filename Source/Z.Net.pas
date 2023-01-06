@@ -141,27 +141,27 @@ type
 
   POnStateStruct = ^TOnStateStruct;
 
-  // tool: client - bridge templet
+  { tool: client - bridge templet }
   TOnResultBridge_Templet = class
   public
-    // console event
+    { console event }
     procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual;
     procedure DoConsoleParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString); virtual;
     procedure DoConsoleFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: SystemString); virtual;
-    // stream event
+    { stream event }
     procedure DoStreamEvent(Sender: TPeerIO; Result_: TDFE); virtual;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE); virtual;
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); virtual;
   end;
 
-  // tool: client - bridge
+  { tool: client - bridge }
   TOnResultBridge = class(TOnResultBridge_Templet)
   public
     constructor Create;
     destructor Destroy; override;
   end;
 
-  // tool: client and service - free bridge
+  { tool: client and service - free bridge }
   TProgress_Bridge = class
   private
     procedure DoFree(Sender: TZNet_Progress);
@@ -173,7 +173,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
-  // tool: state bridge
+  { tool: state bridge }
   TStateParamBridge = class
   public
     OnNotifyC: TOnParamState_C;
@@ -187,7 +187,7 @@ type
     procedure DoStateResult(const State: Boolean);
   end;
 
-  // tool: Service - free bridge
+  { tool: Service - free bridge }
   TCustomEventBridge = class
   private
     procedure DoFree(Sender: TZNet_Progress);
@@ -202,7 +202,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
-  // tool: Service - stream bridge
+  { tool: Service - stream bridge }
   TStreamEventBridge = class
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
@@ -227,7 +227,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
-  // tool: Service - console bridge
+  { tool: Service - console bridge }
   TConsoleEventBridge = class
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
@@ -252,7 +252,7 @@ type
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
 
-  // tool: p2pVM bridge
+  { tool: p2pVM bridge }
   TP2PVM_CloneConnectEventBridge = class
   private
     OnResultC: TOnP2PVM_CloneConnectEvent_C;
@@ -282,7 +282,7 @@ type
 {$REGION 'CacheTechnology'}
 
   TFile_Swap_Space_Stream = class;
-  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TFile_Swap_Space_Stream>;
+  TFile_Swap_Space_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TFile_Swap_Space_Stream>;
 
   TFile_Swap_Space_Pool = class(TFile_Swap_Space_Pool_Decl)
   public
@@ -389,7 +389,7 @@ type
 
   PQueueData = ^TQueueData;
   TQueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueData>;
-  TCritical_QueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<PQueueData>;
+  TCritical_QueueData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<PQueueData>;
 {$ENDREGION 'Queue'}
 {$REGION 'IO Decl'}
 
@@ -543,12 +543,12 @@ type
     procedure Progress; virtual;
     property Owner: TPeerIO read FOwner;
     property WorkPlatform: TExecutePlatform read FWorkPlatform write FWorkPlatform;
-    // Stream Batch support
+    { Stream Batch support }
     property BigStreamBatchList: TBigStreamBatch read FBigStreamBatch;
     property BigStreamBatch: TBigStreamBatch read FBigStreamBatch;
     property BatchStream: TBigStreamBatch read FBigStreamBatch;
     property BatchList: TBigStreamBatch read FBigStreamBatch;
-    property Busy: Boolean read FBusy write FBusy; // default is false, if busy is true do delayed destruction.
+    property Busy: Boolean read FBusy write FBusy; { default is false, if busy is true do delayed destruction. }
     function BusyNum: PInteger;
   end;
 
@@ -565,7 +565,7 @@ type
     destructor Destroy; override;
     procedure Progress; virtual;
     property Owner: TPeerIO read FOwner;
-    property Busy: Boolean read FBusy write FBusy; // default is false, if busy is true do delayed destruction.
+    property Busy: Boolean read FBusy write FBusy; { default is false, if busy is true do delayed destruction. }
     function BusyNum: PInteger;
   end;
 
@@ -860,7 +860,7 @@ type
     procedure CreateAfter; virtual;
     destructor Destroy; override;
 
-    // check IO state
+    { check IO state }
     function IOBusy: Boolean;
     property IO_Create_TimeTick: TTimeTick read FIO_Create_TimeTick;
 
@@ -1199,7 +1199,7 @@ type
   TCommand_Num_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<Integer>;
   TCommand_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TCommand_base>;
   TPeer_IO_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Cardinal, TPeerIO>;
-  TZNet_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<TZNet>;
+  TZNet_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZNet>;
 
   TCommand_Tick_Hash_Pool = class(TCommand_Tick_Hash_Pool_Decl)
   public
@@ -6140,7 +6140,7 @@ begin
   BeginSend;
   buff := TPascalString(FOutText).Bytes;
 
-  // safe check. fixed by qq600585,2022-4-19
+  { safe check. fixed by qq600585,2022-4-19 }
   if Length(buff) = 0 then
     begin
       SetLength(buff, 1);
@@ -6568,7 +6568,7 @@ begin
     Assigned(FCurrentQueueData^.OnConsoleProc) or
     Assigned(FCurrentQueueData^.OnConsoleParamProc) then
     begin
-      // safe check. fixed by qq600585,2022-4-19
+      { safe check. fixed by qq600585,2022-4-19 }
       if (Length(buff) = 1) and (buff[0] = 0) then
         begin
           ResultText := '';
@@ -7408,7 +7408,7 @@ begin
   else
       DisposeObject(FUserSpecial);
 
-  // free buffer
+  { free buffer }
   DisposeObject(FQueuePool);
   DisposeObject(FSend_Queue_Critical);
   DisposeObject(FReceived_Physics_Critical);
@@ -7421,7 +7421,7 @@ begin
   DisposeObject(FOutDataFrame);
   DisposeObject(ResultDataFrame);
 
-  // free cipher instance
+  { free cipher instance }
   DisposeObjectAndNil(FDecryptInstance);
   DisposeObjectAndNil(FEncryptInstance);
 
@@ -7797,7 +7797,7 @@ begin
 
   FProgressRunning := True;
 
-  // optimize physics model
+  { optimize physics model }
   try
     if not FLast_Process_Receive_Buffer_CPU_Is_Full then
         Extract_Physics_Fragment_To_Receive_Buffer;
@@ -7805,7 +7805,7 @@ begin
   except
   end;
 
-  // sequence packet model
+  { sequence packet model }
   try
       ProcessSequencePacketModel();
   except
@@ -8019,7 +8019,7 @@ begin
       if FCurrentPauseResultSend_CommDataType = FConsoleToken then
         begin
           console_buff := TPascalString(FOutText).Bytes;
-          // safe check. fixed by qq600585,2022-4-19
+          { safe check. fixed by qq600585,2022-4-19 }
           if Length(console_buff) = 0 then
             begin
               SetLength(console_buff, 1);
@@ -9971,17 +9971,17 @@ begin
 
   FProgressWaitRuning := True;
 
-  // disable thread synchronize state
+  { disable thread synchronize state }
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
 
-  // progress local instance
+  { progress local instance }
   try
       Progress;
   except
   end;
 
-  // progress global instance
+  { progress global instance }
   try
     if ZNet_Instance_Pool__.num > 0 then
       with ZNet_Instance_Pool__.Repeat_ do
@@ -9995,10 +9995,10 @@ begin
   except
   end;
 
-  // restore thread synchronize state
+  { restore thread synchronize state }
   Enabled_Check_Thread_Synchronize_System := state_;
 
-  // check thread synchronize
+  { check thread synchronize }
   try
       CheckThread;
   except
@@ -10471,21 +10471,21 @@ end;
 
 procedure TZNet.SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
 begin
-  // safe
+  { safe }
   if FPeerIOUserDefineClass <> nil then
     if (not Value.InheritsFrom(FPeerIOUserDefineClass)) and (Value <> TPeerIOUserDefine) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserDefineClass.ClassName]);
-  // update
+  { update }
   FPeerIOUserDefineClass := Value;
 end;
 
 procedure TZNet.SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
 begin
-  // safe
+  { safe }
   if FPeerIOUserSpecialClass <> nil then
     if (not Value.InheritsFrom(FPeerIOUserSpecialClass)) and (Value <> TPeerIOUserSpecial) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserSpecialClass.ClassName]);
-  // update
+  { update }
   FPeerIOUserSpecialClass := Value;
 end;
 
@@ -10521,7 +10521,7 @@ begin
   OutData.WriteByte(Byte(Sender.FSendDataCipherSecurity));
   OutData.WriteArrayByte.SetBuff(@Sender.FCipherKey[0], Length(Sender.FCipherKey));
   OutData.WriteMD5(FInitedTimeMD5);
-  // service state
+  { service state }
   OutData.WriteBool(UsedParallelEncrypt);
   OutData.WriteBool(SyncOnResult);
   OutData.WriteBool(SyncOnCompleteBuffer);
@@ -13599,10 +13599,10 @@ begin
       exit;
   bridge_ := TP2PVM_CloneConnectEventBridge.Create(self);
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
-  // copy parameter
+  { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
   bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
-  // init event
+  { init event }
   bridge_.OnResultC := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);
@@ -13622,10 +13622,10 @@ begin
       exit;
   bridge_ := TP2PVM_CloneConnectEventBridge.Create(self);
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
-  // copy parameter
+  { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
   bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
-  // init event
+  { init event }
   bridge_.OnResultM := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);
@@ -13645,10 +13645,10 @@ begin
       exit;
   bridge_ := TP2PVM_CloneConnectEventBridge.Create(self);
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
-  // copy parameter
+  { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
   bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
-  // init event
+  { init event }
   bridge_.OnResultP := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
   LinkVM.InstallLogicFramework(bridge_.NewClient);

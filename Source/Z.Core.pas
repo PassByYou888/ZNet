@@ -527,12 +527,12 @@ type
   end;
 
   {$IFDEF FPC}generic{$ENDIF FPC}
-  TCriticalBigList<T_> = class(TCore_Object)
+  TCritical_BigList<T_> = class(TCore_Object)
   public type
 
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
-    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalBigList<T_>;
+    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<T_>;
 
     TQueueStruct = record
       Data: T_;
@@ -699,9 +699,9 @@ type
   end;
 
 {$IFDEF FPC}
-  generic TCritical_Big_Object_List<T_: TCore_Object> = class(specialize TCriticalBigList<T_>)
+  generic TCritical_Big_Object_List<T_: TCore_Object> = class(specialize TCritical_BigList<T_>)
 {$ELSE FPC}
-  TCritical_Big_Object_List<T_: class> = class(TCriticalBigList<T_>)
+  TCritical_Big_Object_List<T_: class> = class(TCritical_BigList<T_>)
 {$ENDIF FPC}
   public
     AutoFreeObject: Boolean;
@@ -847,6 +847,7 @@ type
     function Get_Key_Hash(const Key_: TKey_): THash; virtual;
     function Compare_Key(const Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(const Value_1, Value_2: TValue_): Boolean; virtual;
+    procedure Extract_Queue_Pool_Third;
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
@@ -933,6 +934,7 @@ type
     function Get_Key_Hash(const Key_: TKey_): THash; virtual;
     function Compare_Key(const Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(const Value_1, Value_2: TValue_): Boolean; virtual;
+    procedure Extract_Queue_Pool_Third;
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
@@ -1424,6 +1426,7 @@ procedure CheckThreadSync; overload;
 function CheckThreadSync(Timeout: Integer): Boolean; overload;
 procedure CheckThread; overload;
 function CheckThread(Timeout: Integer): Boolean; overload;
+function Get_Compiler_Version: string;
 
 // core thread pool
 procedure FreeCoreThreadPool;
@@ -2200,6 +2203,51 @@ end;
 function CheckThread(Timeout: Integer): Boolean;
 begin
   Result := CheckThreadSynchronize(Timeout);
+end;
+
+function Get_Compiler_Version: string;
+begin
+  Result :=
+  {$IFDEF FPC} 'FPC'
+    {$IFDEF VER2_6_4} + ' 2.6.4'{$ENDIF}
+    {$IFDEF VER3_0_0} + ' 3.0.0'{$ENDIF}
+    {$IFDEF VER3_0_1} + ' 3.0.1'{$ENDIF}
+    {$IFDEF VER3_0_2} + ' 3.0.2'{$ENDIF}
+    {$IFDEF VER3_1_1} + ' 3.1.1'{$ENDIF}
+    {$IFDEF VER3_2} + ' 3.2' {$ENDIF}
+    {$IFDEF VER3_3_1} + ' 3.3.1'{$ENDIF}
+  {$ELSE FPC}
+    {$IFDEF CONDITIONALEXPRESSIONS}  // Delphi 6 or newer
+      {$IF defined(KYLIX3)}'Kylix 3'
+      {$ELSEIF defined(VER140)}'Delphi 6'
+      {$ELSEIF defined(VER150)}'Delphi 7'
+      {$ELSEIF defined(VER160)}'Delphi 8'
+      {$ELSEIF defined(VER170)}'Delphi 2005'
+      {$ELSEIF defined(VER185)}'Delphi 2007'
+      {$ELSEIF defined(VER180)}'Delphi 2006'
+      {$ELSEIF defined(VER200)}'Delphi 2009'
+      {$ELSEIF defined(VER210)}'Delphi 2010'
+      {$ELSEIF defined(VER220)}'Delphi XE'
+      {$ELSEIF defined(VER230)}'Delphi XE2'
+      {$ELSEIF defined(VER240)}'Delphi XE3'
+      {$ELSEIF defined(VER250)}'Delphi XE4'
+      {$ELSEIF defined(VER260)}'Delphi XE5'
+      {$ELSEIF defined(VER265)}'AppMethod 1'
+      {$ELSEIF defined(VER270)}'Delphi XE6'
+      {$ELSEIF defined(VER280)}'Delphi XE7'
+      {$ELSEIF defined(VER290)}'Delphi XE8'
+      {$ELSEIF defined(VER300)}'Delphi 10 Seattle'
+      {$ELSEIF defined(VER310)}'Delphi 10.1 Berlin'
+      {$ELSEIF defined(VER320)}'Delphi 10.2 Tokyo'
+      {$ELSEIF defined(VER330)}'Delphi 10.3 Rio'
+      {$ELSEIF defined(VER340)}'Delphi 10.4'
+      {$ELSEIF defined(VER350)}'Delphi 11'
+      {$ELSEIF defined(VER360)}'Delphi 12'
+      {$ELSE}'Unknow Delphi Compiler'
+      {$IFEND}
+    {$ENDIF CONDITIONALEXPRESSIONS}
+  {$ENDIF FPC}
+  {$IFDEF CPU64} + ' 64 bit' {$ELSE CPU64} + ' 32 bit' {$ENDIF CPU64};
 end;
 
 {$I Z.Core.OrderData.inc}
