@@ -377,9 +377,10 @@ type
   end;
 
   POpRegData = ^opRegData;
+  TOpList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<POpRegData>;
 
 var
-  OpList: TCore_List;
+  OpList: TOpList;
 
 procedure TOpRTData.Init;
 begin
@@ -430,7 +431,7 @@ begin
   SetLength(tmp_Param, 0);
 end;
 
-function GetRegistedOp(Name_P: PPascalString): POpRegData; overload;
+function GetRegistedOp(Name_P: PPascalString): POpRegData;
 var
   i: Integer;
   p: POpRegData;
@@ -438,18 +439,11 @@ var
 begin
   Result := nil;
   hash := FastHashPPascalString(Name_P);
-  for i := OpList.Count - 1 downto 0 do
+  for i := 0 to OpList.Count - 1 do
     begin
       p := OpList[i];
       if (p^.hash = hash) and Name_P^.Same(@p^.OpName) then
-        begin
-          if i < OpList.Count - 1 then
-            begin
-              OpList.Delete(i);
-              OpList.Add(p);
-            end;
           Exit(p);
-        end;
     end;
 end;
 
@@ -2143,7 +2137,7 @@ OpSystemAPI := TOpSystemAPI.Create;
 SystemOpRunTime := TOpCustomRunTime.Create;
 OpSystemAPI.RegistationSystemAPI(SystemOpRunTime);
 OleVariantInt64AsDouble := True;
-OpList := TCore_List.Create;
+OpList := TOpList.Create;
 
 RegisterOp(op_Value);
 RegisterOp(op_Proc);

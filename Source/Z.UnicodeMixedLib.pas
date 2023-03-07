@@ -4512,17 +4512,17 @@ type
   end;
 var
   d: TDateTime;
-  r: TDecode_Data_;
+  R: TDecode_Data_;
 begin
   d := umlNow();
-  with r do
+  with R do
     begin
       DecodeDate(d, Year, Month, Day);
       DecodeTime(d, Hour, min_, Sec, MSec);
       i64 := TMT19937.Rand64;
       i32 := TMT19937.Rand32;
     end;
-  Result := umlMD5String(@r, SizeOf(TDecode_Data_));
+  Result := umlMD5String(@R, SizeOf(TDecode_Data_));
 end;
 
 function umlDecodeDateTimeToInt64(NowDateTime: TDateTime): Int64;
@@ -4610,23 +4610,23 @@ procedure umlSortBatch(var arry: TArrayBatch);
     Result := CompareInt_(Right.sour.L, Left.sour.L);
   end;
 
-  procedure fastSort_(L, r: Integer);
+  procedure fastSort_(L, R: Integer);
   var
     i, j: Integer;
     p: TBatch;
   begin
-    if L < r then
+    if L < R then
       begin
         repeat
-          if (r - L) = 1 then
+          if (R - L) = 1 then
             begin
-              if Compare_(arry[L], arry[r]) > 0 then
-                  arry[L].Swap_(arry[r]);
+              if Compare_(arry[L], arry[R]) > 0 then
+                  arry[L].Swap_(arry[R]);
               break;
             end;
           i := L;
-          j := r;
-          p := arry[(L + r) shr 1];
+          j := R;
+          p := arry[(L + R) shr 1];
           repeat
             while Compare_(arry[i], p) < 0 do
                 inc(i);
@@ -4640,11 +4640,11 @@ procedure umlSortBatch(var arry: TArrayBatch);
                 dec(j);
               end;
           until i > j;
-          if (j - L) > (r - i) then
+          if (j - L) > (R - i) then
             begin
-              if i < r then
-                  fastSort_(i, r);
-              r := j;
+              if i < R then
+                  fastSort_(i, R);
+              R := j;
             end
           else
             begin
@@ -4652,7 +4652,7 @@ procedure umlSortBatch(var arry: TArrayBatch);
                   fastSort_(L, j);
               L := i;
             end;
-        until L >= r;
+        until L >= R;
       end;
   end;
 
@@ -4836,7 +4836,7 @@ function umlBatchSum(p: PPascalString; var arry: TArrayBatch; OnlyWord, IgnoreCa
   end;
 
 var
-  i, r, BP, EP: Integer;
+  i, R, BP, EP: Integer;
   found_: Boolean;
   BatchInfo: TBatchInfo;
 begin
@@ -4865,21 +4865,21 @@ begin
       found_ := False;
       if (i >= BP) and (i <= EP) then
         begin
-          r := Match_(i);
-          found_ := r >= 0;
+          R := Match_(i);
+          found_ := R >= 0;
           if found_ then
             begin
               if Info <> nil then
                 begin
-                  BatchInfo.Batch := r;
+                  BatchInfo.Batch := R;
                   BatchInfo.sour_bPos := i;
-                  BatchInfo.sour_ePos := i + arry[r].sour.L - 1;
+                  BatchInfo.sour_ePos := i + arry[R].sour.L - 1;
                   BatchInfo.dest_bPos := BatchInfo.sour_bPos;
                   BatchInfo.dest_ePos := BatchInfo.sour_ePos;
                   Info.add(BatchInfo);
                 end;
-              inc(i, arry[r].sour.L);
-              inc(arry[r].sum);
+              inc(i, arry[R].sour.L);
+              inc(arry[R].sum);
               inc(Result);
             end;
         end;
@@ -4913,7 +4913,7 @@ function umlBatchReplace(p: PPascalString; var arry: TArrayBatch; OnlyWord, Igno
   end;
 
 var
-  i, r, BP, EP: Integer;
+  i, R, BP, EP: Integer;
   found_: Boolean;
   m64: TMem64;
   BatchInfo: TBatchInfo;
@@ -4944,24 +4944,24 @@ begin
       found_ := False;
       if (i >= BP) and (i <= EP) then
         begin
-          r := Match_(i);
-          found_ := r >= 0;
+          R := Match_(i);
+          found_ := R >= 0;
           if found_ and Assigned(On_P) then
-              On_P(i, i + (arry[r].sour.L - 1), @arry[r].sour, @arry[r].dest, found_);
+              On_P(i, i + (arry[R].sour.L - 1), @arry[R].sour, @arry[R].dest, found_);
           if found_ then
             begin
               if Info <> nil then
                 begin
-                  BatchInfo.Batch := r;
+                  BatchInfo.Batch := R;
                   BatchInfo.sour_bPos := i;
-                  BatchInfo.sour_ePos := i + (arry[r].sour.L - 1);
+                  BatchInfo.sour_ePos := i + (arry[R].sour.L - 1);
                   BatchInfo.dest_bPos := m64.Size div SystemCharSize + 1;
-                  BatchInfo.dest_ePos := BatchInfo.dest_bPos + (arry[r].dest.L - 1);
+                  BatchInfo.dest_ePos := BatchInfo.dest_bPos + (arry[R].dest.L - 1);
                   Info.add(BatchInfo);
                 end;
-              m64.Write64(arry[r].dest.buff[0], SystemCharSize * arry[r].dest.L);
-              inc(arry[r].sum);
-              inc(i, arry[r].sour.L);
+              m64.Write64(arry[R].dest.buff[0], SystemCharSize * arry[R].dest.L);
+              inc(arry[R].sum);
+              inc(i, arry[R].sour.L);
             end;
         end;
       if not found_ then
@@ -5124,7 +5124,7 @@ end;
 
 function umlReplace(p: PPascalString; OldPattern, NewPattern: TPascalString; OnlyWord, IgnoreCase: Boolean): TPascalString;
 var
-  i, r: Integer;
+  i, R: Integer;
   m64: TMem64;
 begin
   Result := '';
@@ -7290,19 +7290,19 @@ end;
 
 procedure umlReadComponent(stream: TCore_Stream; comp: TCore_Component);
 var
-  r: TCore_Reader;
+  R: TCore_Reader;
   needClearName: Boolean;
 begin
-  r := TCore_Reader.Create(stream, 4096);
-  r.IgnoreChildren := True;
+  R := TCore_Reader.Create(stream, 4096);
+  R.IgnoreChildren := True;
   try
     needClearName := (comp.Name = '');
-    r.ReadRootComponent(comp);
+    R.ReadRootComponent(comp);
     if needClearName then
         comp.Name := '';
   except
   end;
-  DisposeObject(r);
+  DisposeObject(R);
 end;
 
 procedure umlWriteComponent(stream: TCore_Stream; comp: TCore_Component);

@@ -88,7 +88,7 @@ destructor TCommunicationTestIntf.Destroy;
 begin
   DisposeObject(FPrepareSendDataFrame);
   DisposeObject(FPrepareResultDataFrame);
-  inherited;
+  inherited Destroy;
 end;
 
 procedure TCommunicationTestIntf.Cmd_TestStream(Sender: TPeerIO; InData, OutData: TDFE);

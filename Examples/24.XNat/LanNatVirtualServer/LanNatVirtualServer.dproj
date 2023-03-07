@@ -302,7 +302,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="VirtualServFrm.pas">
-            <Form>Form2</Form>
+            <Form>VirtualServForm</Form>
             <FormType>fmx</FormType>
         </DCCReference>
         <BuildConfiguration Include="Release">

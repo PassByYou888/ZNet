@@ -216,24 +216,31 @@ type
     // api
     procedure NM_Init(Name_: U_String; Open_: Boolean; NMPool_: TNumberModulePool);
     procedure NM_InitAsTemp(Name_: U_String; TimeOut_: TTimeTick; Open_: Boolean; NMPool_: TNumberModulePool);
+
     procedure NM_Remove(Name_: U_String; RemoveLocal: Boolean);
     procedure NM_RemoveKey(Name_, KeyName_: U_String; RemoveLocal: Boolean);
+
     procedure NM_Get_Bridge(arry: U_StringArray; Bridge_IO_: TPeerIO);
     procedure NM_GetC(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetC);
     procedure NM_GetM(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetM);
     procedure NM_GetP(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetP);
+
     procedure NM_GetValue_Bridge(NMName_: U_String; ValueNames_: U_StringArray; Bridge_IO_: TPeerIO);
     procedure NM_GetValueC(NMName_: U_String; ValueNames_: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetValueC);
     procedure NM_GetValueM(NMName_: U_String; ValueNames_: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetValueM);
     procedure NM_GetValueP(NMName_: U_String; ValueNames_: U_StringArray; OnResult: TC40_Var_VM_Client_NM_GetValueP);
+
     procedure NM_Open_Bridge(arry: U_StringArray; Bridge_IO_: TPeerIO);
     procedure NM_OpenC(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_OpenC);
     procedure NM_OpenM(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_OpenM);
     procedure NM_OpenP(arry: U_StringArray; OnResult: TC40_Var_VM_Client_NM_OpenP);
+
     procedure NM_Close(arry: U_StringArray; RemoveLocal: Boolean);
     procedure NM_CloseAll(RemoveLocal: Boolean);
+
     procedure NM_Change(NMName_, ValueName_: U_String; Variant_: Variant);
     procedure NM_Keep(NMName_: U_String);
+
     procedure NM_Script_Bridge(NMName_: U_String; ExpressionTexts_: U_StringArray; Bridge_IO_: TPeerIO);
     procedure NM_ScriptC(NMName_: U_String; ExpressionTexts_: U_StringArray; OnResult: TC40_Var_VM_Client_NM_ScriptC);
     procedure NM_ScriptM(NMName_: U_String; ExpressionTexts_: U_StringArray; OnResult: TC40_Var_VM_Client_NM_ScriptM);

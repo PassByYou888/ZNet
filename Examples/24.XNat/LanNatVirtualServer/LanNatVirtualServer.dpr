@@ -3,12 +3,14 @@ program LanNatVirtualServer;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  VirtualServFrm in 'VirtualServFrm.pas' {Form2};
+  VirtualServFrm in 'VirtualServFrm.pas' {VirtualServForm};
 
 {$R *.res}
 
+
 begin
+  System.ReportMemoryLeaksOnShutdown := True;
   Application.Initialize;
-  Application.CreateForm(TForm2, Form2);
+  Application.CreateForm(TVirtualServForm, VirtualServForm);
   Application.Run;
 end.

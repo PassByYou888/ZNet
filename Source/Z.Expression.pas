@@ -2452,7 +2452,7 @@ var
                                   end
                                 else
                                   begin
-                                    PrintError('logical operotion Illegal');
+                                    PrintError('logical operation Illegal');
                                     Break;
                                   end;
                                 Continue;
@@ -2626,11 +2626,9 @@ begin
           if DebugMode then
               NewSymbExps.PrintDebug(True);
 
-          if NewSymbExps.GetSymbolCount([soBlockIndentBegin, soPropIndentBegin]) =
-            NewSymbExps.GetSymbolCount([soBlockIndentEnd, soPropIndentEnd]) then
+          if NewSymbExps.GetSymbolCount([soBlockIndentBegin, soPropIndentBegin]) = NewSymbExps.GetSymbolCount([soBlockIndentEnd, soPropIndentEnd]) then
             begin
               OpContainer := TCore_ListForObj.Create;
-
               SymbolIndex := 0;
               BuildAborted := False;
               Result := ProcessIndent(soUnknow);
@@ -2889,6 +2887,7 @@ end;
 
 type
   TExpression_ConstVL = class
+  public
     VL: THashVariantList;
     procedure GetValue(const Decl: SystemString; var ValType: TExpressionDeclType; var Value: Variant);
   end;

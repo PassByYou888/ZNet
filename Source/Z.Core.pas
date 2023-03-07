@@ -1721,27 +1721,27 @@ end;
 
 procedure LockObject(Obj: TObject);
 {$IFNDEF CriticalSimulateAtomic}
-{$IFDEF ANTI_DEAD_ATOMIC_LOCK}
-var
-  d: TTimeTick;
-{$ENDIF ANTI_DEAD_ATOMIC_LOCK}
+  {$IFDEF ANTI_DEAD_ATOMIC_LOCK}
+  var
+    d: TTimeTick;
+  {$ENDIF ANTI_DEAD_ATOMIC_LOCK}
 {$ENDIF CriticalSimulateAtomic}
 begin
 {$IFDEF FPC}
   Lock_Critical_Obj__(Obj);
 {$ELSE FPC}
-{$IFDEF CriticalSimulateAtomic}
-  Lock_Critical_Obj__(Obj);
-{$ELSE CriticalSimulateAtomic}
-  {$IFDEF ANTI_DEAD_ATOMIC_LOCK}
-  d := GetTimeTick;
-  TMonitor.Enter(Obj, 5000);
-  if GetTimeTick - d >= 5000 then
-      RaiseInfo('dead');
-  {$ELSE ANTI_DEAD_ATOMIC_LOCK}
-  TMonitor.Enter(Obj);
-  {$ENDIF ANTI_DEAD_ATOMIC_LOCK}
-{$ENDIF CriticalSimulateAtomic}
+  {$IFDEF CriticalSimulateAtomic}
+    Lock_Critical_Obj__(Obj);
+  {$ELSE CriticalSimulateAtomic}
+    {$IFDEF ANTI_DEAD_ATOMIC_LOCK}
+    d := GetTimeTick;
+    TMonitor.Enter(Obj, 5000);
+    if GetTimeTick - d >= 5000 then
+        RaiseInfo('dead');
+    {$ELSE ANTI_DEAD_ATOMIC_LOCK}
+    TMonitor.Enter(Obj);
+    {$ENDIF ANTI_DEAD_ATOMIC_LOCK}
+  {$ENDIF CriticalSimulateAtomic}
 {$ENDIF FPC}
 end;
 
@@ -2112,10 +2112,11 @@ end;
 {$I Z.Core.ComputeThread.inc}
 
 {$IFDEF FPC}
-{$I Z.Core.FPCParallelFor.inc}
+  {$I Z.Core.FPCParallelFor.inc}
 {$ELSE FPC}
-{$I Z.Core.DelphiParallelFor.inc}
+  {$I Z.Core.DelphiParallelFor.inc}
 {$ENDIF FPC}
+
 {$I Z.Core.AtomVar.inc}
 
 procedure Nop;

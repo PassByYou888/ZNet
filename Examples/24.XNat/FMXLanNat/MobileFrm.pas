@@ -7,15 +7,15 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo,
   Z.Core, Z.PascalStrings, Z.UnicodeMixedLib, Z.Net,
-  Z.Net.XNAT.Physics, Z.Net.XNAT.Client, Z.Status;
+  Z.Net.XNAT.Physics, Z.Net.XNAT.Client, Z.Status, FMX.Memo.Types;
 
 type
-  TForm1 = class(TForm)
+  TMobileForm = class(TForm)
     Memo1: TMemo;
-    Timer1: TTimer;
+    netTimer: TTimer;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
+    procedure netTimerTimer(Sender: TObject);
   private
     { Private declarations }
   public
@@ -25,14 +25,14 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MobileForm: TMobileForm;
 
 implementation
 
 {$R *.fmx}
 
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMobileForm.FormCreate(Sender: TObject);
 begin
   AddDoStatusHook(Self, DoStatusIntf);
 
@@ -53,18 +53,18 @@ begin
   XCli.OpenTunnel;                                    // Æô¶¯ÄÚÍø´©Í¸
 end;
 
-procedure TForm1.DoStatusIntf(AText: SystemString; const ID: Integer);
+procedure TMobileForm.DoStatusIntf(AText: SystemString; const ID: Integer);
 begin
   Memo1.Lines.Add(AText);
   Memo1.GoToLineEnd;
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TMobileForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   DisposeObject(XCli);
 end;
 
-procedure TForm1.Timer1Timer(Sender: TObject);
+procedure TMobileForm.netTimerTimer(Sender: TObject);
 begin
   if XCli <> nil then
       XCli.Progress;

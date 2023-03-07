@@ -1,7 +1,7 @@
-object Form1: TForm1
+object MobileForm: TMobileForm
   Left = 0
   Top = 0
-  Caption = 'Form1'
+  Caption = 'MobileForm'
   ClientHeight = 480
   ClientWidth = 640
   FormFactor.Width = 320
@@ -21,9 +21,9 @@ object Form1: TForm1
     Viewport.Width = 636.000000000000000000
     Viewport.Height = 476.000000000000000000
   end
-  object Timer1: TTimer
+  object netTimer: TTimer
     Interval = 10
-    OnTimer = Timer1Timer
+    OnTimer = netTimerTimer
     Left = 280
     Top = 152
   end

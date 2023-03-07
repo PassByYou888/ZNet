@@ -1,7 +1,7 @@
-object Form2: TForm2
+object VirtualServForm: TVirtualServForm
   Left = 0
   Top = 0
-  Caption = 'Form2'
+  Caption = 'VirtualServForm'
   ClientHeight = 280
   ClientWidth = 640
   FormFactor.Width = 320
@@ -32,12 +32,12 @@ object Form2: TForm2
     Size.Height = 280.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
-    Viewport.Width = 541.000000000000000000
-    Viewport.Height = 276.000000000000000000
+    Viewport.Width = 545.000000000000000000
+    Viewport.Height = 280.000000000000000000
   end
-  object Timer1: TTimer
+  object netTimer: TTimer
     Interval = 10
-    OnTimer = Timer1Timer
+    OnTimer = netTimerTimer
     Left = 184
     Top = 48
   end

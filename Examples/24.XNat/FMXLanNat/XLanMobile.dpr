@@ -3,12 +3,12 @@ program XLanMobile;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  MobileFrm in 'MobileFrm.pas' {Form1};
+  MobileFrm in 'MobileFrm.pas' {MobileForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMobileForm, MobileForm);
   Application.Run;
 end.

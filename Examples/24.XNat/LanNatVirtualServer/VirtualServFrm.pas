@@ -11,16 +11,16 @@ uses
   FMX.Memo.Types;
 
 type
-  TForm2 = class(TForm)
+  TVirtualServForm = class(TForm)
     Memo1: TMemo;
-    Timer1: TTimer;
+    netTimer: TTimer;
     TestButton: TButton;
     OpenButton: TButton;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure OpenButtonClick(Sender: TObject);
     procedure TestButtonClick(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
+    procedure netTimerTimer(Sender: TObject);
   private
     { Private declarations }
   public
@@ -37,14 +37,14 @@ type
   end;
 
 var
-  Form2: TForm2;
+  VirtualServForm: TVirtualServForm;
 
 implementation
 
 {$R *.fmx}
 
 
-procedure TForm2.FormCreate(Sender: TObject);
+procedure TVirtualServForm.FormCreate(Sender: TObject);
 begin
   AddDoStatusHook(Self, DoStatusIntf);
 
@@ -58,8 +58,8 @@ begin
   }
   XCli.ProtocolCompressed := True;
 
-  XCli.Host := '127.0.0.1';       // 公网服务器的IP
-  XCli.Port := '7890';                  // 公网服务器的端口号
+  XCli.Host := '127.0.0.1';                         // 公网服务器的IP
+  XCli.Port := '7890';                              // 公网服务器的端口号
   XCli.AuthToken := '123456';                       // 协议验证字符串
   server := XCli.AddMappingServer('web8000', 1000); // 将公网服务器的8000端口反向代理到成为本地服务器
 
@@ -71,46 +71,66 @@ begin
   client_test.RegCmd(client);
 end;
 
-procedure TForm2.DoStatusIntf(AText: SystemString; const ID: Integer);
+procedure TVirtualServForm.DoStatusIntf(AText: SystemString; const ID: Integer);
 begin
   Memo1.Lines.Add(AText);
   Memo1.GoToTextEnd;
 end;
 
-procedure TForm2.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TVirtualServForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
+  // 先客户端物理断开
+  client.Disconnect;
+  while client.RemoteInited do
+      client.Progress;
+
+  // 注意阅读一下主循环的嵌套关系
+  // 凡是XCli里面做过progress,那么它会自动调用vs服务器成员progress
+  server.StopService;
+  while server.Count > 0 do
+      XCli.Progress;
+
+  DisposeObject(client);
   DisposeObject(XCli);
+  DisposeObject(server_test);
+  DisposeObject(client_test);
+  DeleteDoStatusHook(Self);
 end;
 
-procedure TForm2.OpenButtonClick(Sender: TObject);
+procedure TVirtualServForm.OpenButtonClick(Sender: TObject);
 begin
   // 启动内网穿透
   // 在启动了内网穿透服务器后，本地服务器会自动StartService，本地服务器不会侦听任何端口
   XCli.OpenTunnel;
 end;
 
-procedure TForm2.TestButtonClick(Sender: TObject);
+procedure TVirtualServForm.TestButtonClick(Sender: TObject);
 begin
   // 模拟测试：连接到公网服务器
-
-  // 这是内置的客户端访问内置的服务器，客户端有阻塞机制，注意死循环
-  // 避开死循环的方法直接使用异步方式
-  client.AsyncConnectP('127.0.0.1', 8000, procedure(const cState: Boolean)
+  if client.RemoteInited then // 如果已连接 直接开测试函数
+      client_test.ExecuteAsyncTestWithBigStream(client.ClientIO)
+  else
     begin
-      if cState then
+      // 未连接,这时候创建一个新的物理
+      // 这是内置的客户端访问内置的服务器，客户端有阻塞机制，注意死循环
+      // 避开死循环的方法直接使用异步方式
+      client.AsyncConnectP('127.0.0.1', 8000, procedure(const cState: Boolean)
         begin
-          client_test.ExecuteAsyncTestWithBigStream(client.ClientIO);
-        end;
-    end);
+          if cState then
+            begin
+              client_test.ExecuteAsyncTestWithBigStream(client.ClientIO);
+            end;
+        end);
+    end;
 end;
 
-procedure TForm2.Timer1Timer(Sender: TObject);
+procedure TVirtualServForm.netTimerTimer(Sender: TObject);
 begin
   if XCli <> nil then
     begin
       XCli.Progress;
-      client.Progress;
     end;
+  client.Progress;
 end;
 
 end.
