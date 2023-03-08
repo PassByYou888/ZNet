@@ -11,7 +11,7 @@ uses
   Z.Cadencer, Z.DFE, Z.UnicodeMixedLib, Z.Net.Test;
 
 type
-  TForm2 = class(TForm)
+  TUserClientForm = class(TForm)
     Timer1: TTimer;
     clientLayout: TLayout;
     connectionButton: TButton;
@@ -36,7 +36,7 @@ type
   end;
 
 var
-  Form2: TForm2;
+  UserClientForm: TUserClientForm;
 
 const
   MaxConn = 10;
@@ -45,7 +45,7 @@ implementation
 
 {$R *.fmx}
 
-procedure TForm2.Button1Click(Sender: TObject);
+procedure TUserClientForm.Button1Click(Sender: TObject);
 var
   i: Integer;
 begin
@@ -53,7 +53,7 @@ begin
       client[i].Disconnect;
 end;
 
-procedure TForm2.connectionButtonClick(Sender: TObject);
+procedure TUserClientForm.connectionButtonClick(Sender: TObject);
 var
   i: Integer;
 begin
@@ -61,12 +61,12 @@ begin
       client[i].AsyncConnectM(HostEdit.Text, 18888, nil);
 end;
 
-procedure TForm2.DoStatusNear(AText: string; const ID: Integer);
+procedure TUserClientForm.DoStatusNear(AText: string; const ID: Integer);
 begin
 
 end;
 
-procedure TForm2.FormCreate(Sender: TObject);
+procedure TUserClientForm.FormCreate(Sender: TObject);
 var
   i: Integer;
 begin
@@ -83,7 +83,7 @@ begin
     end;
 end;
 
-procedure TForm2.TestButtonClick(Sender: TObject);
+procedure TUserClientForm.TestButtonClick(Sender: TObject);
 var
   i: Integer;
 begin
@@ -93,7 +93,7 @@ begin
     end;
 end;
 
-procedure TForm2.Timer1Timer(Sender: TObject);
+procedure TUserClientForm.Timer1Timer(Sender: TObject);
   procedure PrintServerState;
   var
     buff: array [TStatisticsType] of Int64;

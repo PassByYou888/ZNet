@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
 
-  Z.Core, Z.PascalStrings, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream;
+  Z.Core, Z.PascalStrings, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream, Z.Expression;
 
 type
   TRealtimeDataFrameEncoderForm = class(TForm)
@@ -17,6 +17,7 @@ type
     perfTimer: TTimer;
     dePerfButton: TButton;
     DecStateLabel: TLabel;
+    ThNumEdit: TLabeledEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure enPerfButtonClick(Sender: TObject);
@@ -41,22 +42,6 @@ implementation
 
 {$R *.dfm}
 
-
-procedure TRealtimeDataFrameEncoderForm.dePerfButtonClick(Sender: TObject);
-begin
-  if DecTestActivted.V then
-    begin
-      DecTestActivted.V := False;
-      DecStateLabel.Caption := '..';
-      dePerfButton.Caption := 'Decoder Performance';
-    end
-  else
-    begin
-      dePerfButton.Caption := 'stop';
-      DecTestActivted.V := True;
-      TCompute.RunM_NP(DoTestDFDecoder);
-    end;
-end;
 
 procedure TRealtimeDataFrameEncoderForm.FormCreate(Sender: TObject);
 var
@@ -93,6 +78,8 @@ begin
 end;
 
 procedure TRealtimeDataFrameEncoderForm.enPerfButtonClick(Sender: TObject);
+var
+  i, thNum: Integer;
 begin
   if EncTestActivted.V then
     begin
@@ -104,7 +91,29 @@ begin
     begin
       enPerfButton.Caption := 'stop';
       EncTestActivted.V := True;
-      TCompute.RunM_NP(DoTestDFEncoder);
+      thNum := EStrToInt(ThNumEdit.Text);
+      for i := 0 to thNum - 1 do
+          TCompute.RunM_NP(DoTestDFEncoder);
+    end;
+end;
+
+procedure TRealtimeDataFrameEncoderForm.dePerfButtonClick(Sender: TObject);
+var
+  i, thNum: Integer;
+begin
+  if DecTestActivted.V then
+    begin
+      DecTestActivted.V := False;
+      DecStateLabel.Caption := '..';
+      dePerfButton.Caption := 'Decoder Performance';
+    end
+  else
+    begin
+      dePerfButton.Caption := 'stop';
+      DecTestActivted.V := True;
+      thNum := EStrToInt(ThNumEdit.Text);
+      for i := 0 to thNum - 1 do
+          TCompute.RunM_NP(DoTestDFDecoder);
     end;
 end;
 
@@ -180,4 +189,3 @@ begin
 end;
 
 end.
- 

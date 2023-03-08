@@ -12,7 +12,7 @@ uses
   FMX.Memo.Types;
 
 type
-  TForm1 = class(TForm)
+  TXNATMobileDeviceForm = class(TForm)
     Timer1: TTimer;
     OpenButton: TButton;
     InfoLabel: TLabel;
@@ -40,14 +40,14 @@ type
   end;
 
 var
-  Form1: TForm1;
+  XNATMobileDeviceForm: TXNATMobileDeviceForm;
 
 implementation
 
 {$R *.fmx}
 
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TXNATMobileDeviceForm.FormCreate(Sender: TObject);
 begin
   AddDoStatusHook(Self, DoStatusIntf);
 
@@ -63,8 +63,8 @@ begin
 
   server := XCli.AddMappingServer('my18888', 5); // 将公网服务器的18888端口反向代理到成为本地服务器，物理连接只有1个
 
-//  server.OfflineTimeout := 3 * 60 * 1000;        // 离线重连技术，在离线后3分钟就断开stableIO的实例
-//  server.PhysicsServer.TimeOutIDLE := 60 * 1000; // 物理客户端60秒无响应就是离线状态
+  // server.OfflineTimeout := 3 * 60 * 1000;        // 离线重连技术，在离线后3分钟就断开stableIO的实例
+  // server.PhysicsServer.TimeOutIDLE := 60 * 1000; // 物理客户端60秒无响应就是离线状态
 
   server.QuietMode := False;
 
@@ -72,7 +72,7 @@ begin
   server_test.RegCmd(server);
 end;
 
-procedure TForm1.DoStatusIntf(AText: SystemString; const ID: Integer);
+procedure TXNATMobileDeviceForm.DoStatusIntf(AText: SystemString; const ID: Integer);
 begin
   if not LogCheckBox.IsChecked then
       exit;
@@ -80,24 +80,24 @@ begin
   LogMemo.GoToTextEnd;
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TXNATMobileDeviceForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   while server.Count > 0 do
       DisposeObject(server.FirstIO);
   DisposeObject(XCli);
 end;
 
-procedure TForm1.OpenButtonClick(Sender: TObject);
+procedure TXNATMobileDeviceForm.OpenButtonClick(Sender: TObject);
 begin
   XCli.Host := HostEdit.Text; // 公网服务器的IP
   XCli.Port := '7890';        // 公网服务器的端口号
-  XCli.AuthToken := '123456';             // 协议验证字符串
+  XCli.AuthToken := '123456'; // 协议验证字符串
   // 启动内网穿透
   // 在启动了内网穿透服务器后，本地服务器会自动StartService，本地服务器不会侦听任何端口
   XCli.OpenTunnel;
 end;
 
-procedure TForm1.Timer1Timer(Sender: TObject);
+procedure TXNATMobileDeviceForm.Timer1Timer(Sender: TObject);
   procedure PrintServerState(const arry: array of TZNet);
   var
     buff: array [TStatisticsType] of Int64;
@@ -126,6 +126,7 @@ procedure TForm1.Timer1Timer(Sender: TObject);
         InfoListBox.ListItems[Ord(st)].Text := GetEnumName(TypeInfo(TStatisticsType), Ord(st)) + ' : ' + n;
       end;
   end;
+
 begin
   if XCli <> nil then
     begin

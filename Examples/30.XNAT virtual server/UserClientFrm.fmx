@@ -1,7 +1,7 @@
-object Form2: TForm2
+object UserClientForm: TUserClientForm
   Left = 0
   Top = 0
-  Caption = 'Form2'
+  Caption = 'UserClientForm'
   ClientHeight = 427
   ClientWidth = 823
   FormFactor.Width = 320
@@ -95,8 +95,8 @@ object Form2: TForm2
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 619.000000000000000000
-      Viewport.Height = 423.000000000000000000
+      Viewport.Width = 623.000000000000000000
+      Viewport.Height = 427.000000000000000000
     end
   end
 end

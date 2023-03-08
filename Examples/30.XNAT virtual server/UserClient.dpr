@@ -3,12 +3,12 @@ program UserClient;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  UserClientFrm in 'UserClientFrm.pas' {Form2};
+  UserClientFrm in 'UserClientFrm.pas' {UserClientForm};
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm2, Form2);
+  Application.CreateForm(TUserClientForm, UserClientForm);
   Application.Run;
 end.
