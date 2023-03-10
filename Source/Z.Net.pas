@@ -8924,13 +8924,16 @@ var
 begin
   if FProtocol = cpCustom then
     begin
-      FillDone := True;
-      FillCustomBuffer(Sender, Sender.FReceivedBuffer.Memory, Sender.FReceivedBuffer.Size, FillDone);
+      if Sender.FReceivedBuffer.Size > 0 then
+        begin
+          FillDone := True;
+          FillCustomBuffer(Sender, Sender.FReceivedBuffer.Memory, Sender.FReceivedBuffer.Size, FillDone);
 
-      if FillDone then
-          Sender.FReceivedBuffer.Clear
-      else
-          Sender.Internal_Process_Receive_Buffer();
+          if FillDone then
+              Sender.FReceivedBuffer.Clear
+          else
+              Sender.Internal_Process_Receive_Buffer();
+        end;
     end
   else
       Sender.Internal_Process_Receive_Buffer();
@@ -10563,7 +10566,7 @@ end;
 
 procedure TZNet_Server.FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
-  if Protocol = cpCustom then
+  if (Protocol = cpCustom) then
     begin
       if Assigned(FOnServerCustomProtocolReceiveBufferNotify) then
         begin
@@ -11786,7 +11789,7 @@ end;
 
 procedure TZNet_Client.FillCustomBuffer(Sender: TPeerIO; const Buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 begin
-  if Protocol = cpCustom then
+  if (Protocol = cpCustom) then
     begin
       if Assigned(FOnClientCustomProtocolReceiveBufferNotify) then
         begin
