@@ -728,52 +728,6 @@ begin
     end;
 end;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // *****************************************************************************************************************
 
 function TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
