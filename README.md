@@ -66,6 +66,12 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-3-10,修复custom protocol支持机制bug**
+
+- custom protocol支持机制流程无bug,但是泄露了收到0字节数据的ignore逻辑,某些迷之事件出发接收逻辑流程,数据长度为0,这时候,custom protocol支持机制认为有数据,然后往里面迭代
+- 该bug非常不易发现,出现于"Z.Net.pas"核心库,导火索由群友qq346373实测xnat跑sql server发现不能连接
+
+
 **2023-1-6，新年开门红小更**
 - 简单更新一些库命名
 - 修复编译时error
