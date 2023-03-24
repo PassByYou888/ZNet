@@ -1865,7 +1865,7 @@ begin
   s := NativeUInt(sour);
   d := NativeUInt(dest);
   // overlap solve
-  // thanks,qq122742470,wang
+  // thanks,qq122742470,laowang
   // thanks,qq4700653,LOK
   if d > s then
     begin

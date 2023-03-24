@@ -265,6 +265,11 @@
 // Core_Synchronize_Technology is Use TThreadPost technology override for TThread.Synchronize
 {$DEFINE Core_Synchronize_Technology}
 
+// core Limit Maximum TCompute Threads, Some CPU cores are few, which may cause TCompute to stop
+// maybe resident threads consume a large number of threads,include,Z.AI(DNN-Thread Tech),ZDB2(Thread-Queue Tech))
+// MaxComputeThread default limit parameter = CpuCount*20
+{$UNDEF LimitMaxComputeThread}
+
 {$IFDEF DEBUG}
   // initialization status prompt
   {$DEFINE initializationStatus}

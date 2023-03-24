@@ -132,7 +132,11 @@ procedure TCore_Dispatch_Order_Thread.Execute;
     Th: TCompute;
   begin
     // check for idle thread, and again run.
-    while (IDLE_Compute_Thread_Sum.V > 0) or (Compute_Thread_Task_Running__.V > Max_Thread_Supported) do
+    while (IDLE_Compute_Thread_Sum.V > 0)
+{$IFDEF LimitMaxComputeThread}
+      or (Compute_Thread_Task_Running__.V > Max_Thread_Supported)
+{$ENDIF LimitMaxComputeThread}
+      do
       begin
         // init atom
         IsPicked_ := False;
@@ -265,7 +269,14 @@ begin
   Th.Start();
 {$IFDEF DEBUG}
   if IsConsole then
-      WriteLn(Format('CPU_Thread=%d, Max_Thread=%d, IDLE_Thread_Time=%dms', [Thread_Num, Max_Thread_Supported, IDLE_Compute_Wait_Time_Tick]));
+      WriteLn(Format('CPU_Thread=%d, Max_Thread=%s, IDLE_Thread_Time=%dms',
+        [Thread_Num,
+{$IFDEF LimitMaxComputeThread}
+          IntToStr(Max_Thread_Supported),
+{$ELSE LimitMaxComputeThread}
+          'infinite',
+{$ENDIF LimitMaxComputeThread}
+          IDLE_Compute_Wait_Time_Tick]));
 {$ENDIF DEBUG}
 end;
 
