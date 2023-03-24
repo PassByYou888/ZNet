@@ -162,6 +162,7 @@ type
     property Backup_Is_Busy: Boolean read FBackup_Is_Busy;
     function Get_Backup_Directory: U_String;
     procedure Backup(Reserve_: Word);
+    function Found_Backup(): Boolean;
     function Revert_Backup(remove_backup_, Build_: Boolean): Boolean;
     function Revert_Backup_From(FileName: U_String; Build_: Boolean): Boolean;
     // create or open
@@ -1142,6 +1143,33 @@ begin
   TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}backup_inst.Do_Run); // run backup thread
 end;
 
+function TZDB2_Th_Engine.Found_Backup(): Boolean;
+var
+  db_path: U_String;
+  db_file: U_String;
+  arry: U_StringArray;
+begin
+  Result := False;
+
+  if umlTrimSpace(Database_File) = '' then
+      exit;
+
+  while FBackup_Is_Busy do
+      TCompute.Sleep(100);
+
+  db_path := Get_Backup_Directory();
+  db_file := umlGetFileName(Database_File);
+
+  DoStatus('scan Backup for "%s"', [Database_File.Text]);
+  arry := umlGetFileListPath(db_path);
+
+  Result := length(arry) > 0;
+
+  db_path := '';
+  db_file := '';
+  SetLength(arry, 0);
+end;
+
 function TZDB2_Th_Engine.Revert_Backup(remove_backup_, Build_: Boolean): Boolean;
 type
   TFile_Time_Info = record
@@ -1308,7 +1336,7 @@ begin
         // check stream
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
       end
-    else if TZDB2_Core_Space.CheckStream(Stream, Cipher, True) then // check open from cipher and check Fault Shutdown
+    else if TZDB2_Core_Space.CheckStream(Stream, Cipher, Found_Backup()) then // check open from cipher and check Fault Shutdown
       begin
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
         // init sequence
