@@ -1,6 +1,5 @@
 ﻿unit asyncCliFrm;
 
-
 interface
 
 uses
@@ -103,7 +102,7 @@ begin
           SendDe := TDataFrameEngine.Create;
           SendDe.WriteString('123456');
           client.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-            procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+              procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
             begin
               if ResultData.Count > 0 then
                   DoStatus('server response:%s', [ResultData.Reader.ReadString]);
