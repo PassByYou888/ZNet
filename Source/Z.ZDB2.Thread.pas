@@ -51,16 +51,17 @@ type
 
   TZDB2_Th_Engine_Data = class(TCore_Object)
   private
-    FOwner: TZDB2_Th_Engine_Marshal;                                   // marshal
-    FOwner_Data_Ptr: TZDB2_Th_Engine_Marshal_BigList___.PQueueStruct;  // marshal data ptr
-    FTh_Engine: TZDB2_Th_Engine;                                       // engine
+    FOwner: TZDB2_Th_Engine_Marshal; // marshal
+    FOwner_Data_Ptr: TZDB2_Th_Engine_Marshal_BigList___.PQueueStruct; // marshal data ptr
+    FTh_Engine: TZDB2_Th_Engine; // engine
     FTh_Engine_Data_Ptr: TZDB2_Th_Engine_Data_BigList___.PQueueStruct; // engine data ptr
-    FID: Integer;                                                      // FTh_Engine data ID
-    FLocked: Boolean;                                                  // lock
-    FAsync_Load_Num: Integer;                                          // async Load number
-    FAsync_Save_Num: Integer;                                          // async save number
-    FPost_Free_Runing: Boolean;                                        // free check
-    FLoad_Data_Error: Boolean;                                         // last load state
+    FID: Integer; // FTh_Engine data ID
+    FInstance_Busy: Integer; // instance user support
+    FLocked: Boolean; // lock
+    FAsync_Load_Num: Integer; // async Load number
+    FAsync_Save_Num: Integer; // async save number
+    FPost_Free_Runing: Boolean; // free check
+    FLoad_Data_Error: Boolean; // last load state
     procedure Wait_Unlock(timeOut: TTimeTick); overload;
     procedure Do_Async_Save_Result(var Sender: TZDB2_Th_CMD_ID_And_State);
   public
@@ -72,6 +73,9 @@ type
     procedure UnLock; virtual;
     property is_Locked: Boolean read FLocked;
     function is_UnLocked: Boolean;
+    procedure Update_Instance_As_Busy();
+    procedure Update_Instance_As_Free();
+    procedure Reset_Instance_As_Free();
     // state
     function IsOnlyRead: Boolean;
     function Engine: TZDB2_Th_Queue;
@@ -123,6 +127,8 @@ type
   // Try to avoid calling the methods here at the application
   TZDB2_Th_Engine = class(TCore_InterfacedObject)
   private
+    FBackup_Is_Busy: Boolean;
+    FBackup_Directory: U_String; // the current database directory will be used if the backup directory is empty
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
   public
     Name: U_String;
@@ -139,10 +145,9 @@ type
     Cipher_Level: Integer;
     Cipher_Tail: Boolean;
     Cipher_CBC: Boolean;
-    Engine: TZDB2_Th_Queue;
+    Engine: TZDB2_Th_Queue; // th-queue-engine
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___;
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
-    Backup_Is_Busy: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
     procedure ReadConfig(Name_: U_String; cfg: THashStringList); overload;
@@ -151,8 +156,15 @@ type
     procedure Update_Engine_Data_Ptr(); // reset FTh_Engine and FTh_Engine_Data_Ptr
     procedure Clear;
     procedure Format_Database;
-    procedure Backup(Reserve_: Word);
     function Ready: Boolean;
+    // backup
+    property Backup_Directory: U_String read FBackup_Directory write FBackup_Directory;
+    property Backup_Is_Busy: Boolean read FBackup_Is_Busy;
+    function Get_Backup_Directory: U_String;
+    procedure Backup(Reserve_: Word);
+    function Revert_Backup(remove_backup_, Build_: Boolean): Boolean;
+    function Revert_Backup_From(FileName: U_String; Build_: Boolean): Boolean;
+    // create or open
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
     function Flush: Boolean;
@@ -391,6 +403,7 @@ begin
   FTh_Engine := nil;
   FTh_Engine_Data_Ptr := nil;
   FID := -1;
+  FInstance_Busy := 0;
   FLocked := False;
   FAsync_Load_Num := 0;
   FAsync_Save_Num := 0;
@@ -426,6 +439,27 @@ begin
   Result := not FLocked;
 end;
 
+procedure TZDB2_Th_Engine_Data.Update_Instance_As_Busy;
+begin
+  Lock;
+  Inc(FInstance_Busy);
+  UnLock;
+end;
+
+procedure TZDB2_Th_Engine_Data.Update_Instance_As_Free;
+begin
+  Lock;
+  Dec(FInstance_Busy);
+  UnLock;
+end;
+
+procedure TZDB2_Th_Engine_Data.Reset_Instance_As_Free();
+begin
+  Lock;
+  FInstance_Busy := 0;
+  UnLock;
+end;
+
 function TZDB2_Th_Engine_Data.IsOnlyRead: Boolean;
 begin
   if Engine <> nil then
@@ -454,7 +488,7 @@ end;
 
 function TZDB2_Th_Engine_Data.Can_Free: Boolean;
 begin
-  Result := (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0);
+  Result := (FInstance_Busy <= 0) and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0);
 end;
 
 procedure TZDB2_Th_Engine_Data.MoveToLast;
@@ -849,7 +883,7 @@ begin
   Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
   DoStatus('backup to "%s" done', [backup_file.Text]);
   SetLength(hnd, 0);
-  Owner.Backup_Is_Busy := False;
+  Owner.FBackup_Is_Busy := False;
 end;
 
 procedure TZDB2_Th_Engine.DoFree(var Data: TZDB2_Th_Engine_Data);
@@ -875,10 +909,12 @@ end;
 constructor TZDB2_Th_Engine.Create(Owner_: TZDB2_Th_Engine_Marshal);
 begin
   inherited Create;
+  FBackup_Is_Busy := False;
+  FBackup_Directory := '';
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
-  Mode := smNormal;
+  Mode := smBigData;
   Database_File := '';
   OnlyRead := False;
   Delta := 16 * 1024 * 1024;
@@ -894,7 +930,6 @@ begin
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
   Owner.Engine_Pool.Add(self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
-  Backup_Is_Busy := False;
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -979,6 +1014,24 @@ begin
       umlDeleteFile(Database_File);
 end;
 
+function TZDB2_Th_Engine.Ready: Boolean;
+begin
+  Result := (Engine <> nil);
+end;
+
+function TZDB2_Th_Engine.Get_Backup_Directory: U_String;
+begin
+  if umlTrimSpace(FBackup_Directory) = '' then
+    begin
+      if umlTrimSpace(Database_File) = '' then
+          Result := ''
+      else
+          Result := umlGetFilePath(Database_File);
+    end
+  else
+      Result := FBackup_Directory;
+end;
+
 procedure TZDB2_Th_Engine.Backup(Reserve_: Word);
 type
   TFile_Time_Info = record
@@ -986,15 +1039,14 @@ type
     FileTime_: TDateTime;
   end;
 
-  TFileTime_Sorted_List = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+  TFileTime_Sorted = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
 
 var
-  db_full_file: U_String;
   db_path: U_String;
   db_file: U_String;
   arry: U_StringArray;
   n: U_SystemString;
-  L: TFileTime_Sorted_List;
+  L: TFileTime_Sorted;
   backup_inst: TZDB2_Th_Engine_Backup;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
 
@@ -1008,7 +1060,7 @@ var
       now_ := Now();
       DecodeDate(now_, Year, Month, Day);
       DecodeTime(now_, Hour, min_, Sec, MSec);
-      Result := PFormat('%s.backup(%d_%d_%d_%d_%d_%d_%d)', [db_full_file.Text, Year, Month, Day, Hour, min_, Sec, MSec]);
+      Result := umlCombineFileName(db_path, PFormat('%s.backup(%d_%d_%d_%d_%d_%d_%d)', [db_file.Text, Year, Month, Day, Hour, min_, Sec, MSec]));
     until not umlFileExists(Result);
   end;
 
@@ -1025,19 +1077,19 @@ begin
       exit;
   if Engine.Is_Memory_Data then
       exit;
-  if Backup_Is_Busy then
+  if FBackup_Is_Busy then
       exit;
 
-  db_full_file := Engine.Get_Database_FileName;
-  if not umlFileExists(db_full_file) then
+  if not umlFileExists(Engine.Get_Database_FileName) then
       exit;
-  db_path := umlGetFilePath(db_full_file);
-  db_file := umlGetFileName(db_full_file);
+  db_path := Get_Backup_Directory();
+  db_file := umlGetFileName(Engine.Get_Database_FileName);
 
-  Backup_Is_Busy := True;
+  FBackup_Is_Busy := True;
 
+  DoStatus('scan backup file:' + db_file + '.backup(*)');
   arry := umlGetFileListPath(db_path);
-  L := TFileTime_Sorted_List.Create;
+  L := TFileTime_Sorted.Create;
   for n in arry do
     if umlMultipleMatch(True, db_file + '.backup(*)', n) then
       with L.Add_Null^ do
@@ -1058,6 +1110,7 @@ begin
   // remove old backup
   while L.Num > Reserve_ do
     begin
+      DoStatus('remove old backup "%s"', [L.First^.Data.FileName]);
       umlDeleteFile(L.First^.Data.FileName);
       L.Next;
     end;
@@ -1089,9 +1142,121 @@ begin
   TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}backup_inst.Do_Run); // run backup thread
 end;
 
-function TZDB2_Th_Engine.Ready: Boolean;
+function TZDB2_Th_Engine.Revert_Backup(remove_backup_, Build_: Boolean): Boolean;
+type
+  TFile_Time_Info = record
+    FileName: SystemString;
+    FileTime_: TDateTime;
+  end;
+
+  TFileTime_Sorted = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+
+var
+  db_path: U_String;
+  db_file: U_String;
+  arry: U_StringArray;
+  n: U_SystemString;
+  L: TFileTime_Sorted;
+
+{$IFDEF FPC}
+  function do_fpc_sort(var L, R: TFile_Time_Info): Integer;
+  begin
+    Result := CompareDateTime(L.FileTime_, R.FileTime_);
+  end;
+{$ENDIF FPC}
+
+
 begin
-  Result := (Engine <> nil);
+  Result := False;
+
+  if umlTrimSpace(Database_File) = '' then
+      exit;
+
+  while FBackup_Is_Busy do
+      TCompute.Sleep(100);
+
+  FBackup_Is_Busy := True;
+  try
+    Th_Engine_Data_Pool.Clear;
+    disposeObjectAndNil(Engine);
+    disposeObjectAndNil(Cipher);
+
+    db_path := Get_Backup_Directory();
+    db_file := umlGetFileName(Database_File);
+
+    DoStatus('scan Backup for "%s"', [Database_File.Text]);
+    arry := umlGetFileListPath(db_path);
+    L := TFileTime_Sorted.Create;
+    for n in arry do
+      if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+        with L.Add_Null^ do
+          begin
+            Data.FileName := n;
+            Data.FileTime_ := umlGetFileTime(umlCombineFileName(db_path, n));
+          end;
+
+    // sort backup file by time
+{$IFDEF FPC}
+    L.Sort_P(@do_fpc_sort);
+{$ELSE FPC}
+    L.Sort_P(function(var L, R: TFile_Time_Info): Integer
+      begin
+        Result := CompareDateTime(L.FileTime_, R.FileTime_);
+      end);
+{$ENDIF FPC}
+    if L.Num > 0 then
+      begin
+        umlDeleteFile(Database_File);
+        Result := umlCopyFile(L.Last^.Data.FileName, Database_File);
+        if Result then
+          begin
+            DoStatus('Done Revert %s -> %s', [L.Last^.Data.FileName, Database_File.Text]);
+            if remove_backup_ then
+              begin
+                umlDeleteFile(L.Last^.Data.FileName);
+                DoStatus('Remove Backup %s', [L.Last^.Data.FileName]);
+              end;
+            if Build_ then
+                Build(Last_Build_Class);
+          end;
+      end
+    else
+      begin
+        DoStatus('no found Backup file for "%s"', [Database_File.Text]);
+      end;
+    DisposeObject(L);
+  finally
+      FBackup_Is_Busy := True;
+  end;
+end;
+
+function TZDB2_Th_Engine.Revert_Backup_From(FileName: U_String; Build_: Boolean): Boolean;
+begin
+  Result := False;
+
+  if umlTrimSpace(Database_File) = '' then
+      exit;
+  if not umlFileExists(FileName) then
+      exit;
+
+  while FBackup_Is_Busy do
+      TCompute.Sleep(100);
+
+  FBackup_Is_Busy := True;
+  try
+    Th_Engine_Data_Pool.Clear;
+    disposeObjectAndNil(Engine);
+    disposeObjectAndNil(Cipher);
+
+    umlDeleteFile(Database_File);
+    Result := umlCopyFile(FileName, Database_File);
+    if Result then
+      if Build_ then
+          Build(Last_Build_Class);
+    DoStatus('Done Revert %s -> %s', [FileName.Text, Database_File.Text]);
+  finally
+      FBackup_Is_Busy := False;
+  end;
 end;
 
 procedure TZDB2_Th_Engine.Build(Data_Class: TZDB2_Th_Engine_Data_Class);
@@ -1101,12 +1266,13 @@ var
   Queue_Table_: TZDB2_BlockHandle;
   ID: Integer;
 begin
-  if isDebug then
+  if isDebug and IsConsole then
     begin
       DoStatus('');
       Hash_L := THashStringList.Create;
       WriteConfig(Hash_L);
       DoStatus('ZDB2.Thread Build %s', [Data_Class.ClassName]);
+      Hash_L['Password'] := '(hide)';
       DoStatus(Hash_L.AsText);
       DisposeObject(Hash_L);
       DoStatus('');
@@ -1142,7 +1308,7 @@ begin
         // check stream
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
       end
-    else if TZDB2_Core_Space.CheckStream(Stream, Cipher) then // check open from cipher
+    else if TZDB2_Core_Space.CheckStream(Stream, Cipher, True) then // check open from cipher and check Fault Shutdown
       begin
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
         // init sequence
@@ -1155,6 +1321,17 @@ begin
       end
     else
       begin
+        // Automated Backup Restore
+        disposeObjectAndNil(Stream);
+        if umlFileExists(Database_File) then // check backup
+          begin
+            DoStatus('Execute Automated Backup Restore for "%s"', [Database_File.Text]);
+            if Revert_Backup(True, False) then
+              begin
+                Build(Data_Class);
+                exit;
+              end;
+          end;
         DoStatus('"%s" password error or data corruption.', [Database_File.Text]);
       end;
   except
@@ -1417,7 +1594,7 @@ begin
           end;
       except
       end;
-      inc(i);
+      Inc(i);
     end;
   while (Load_Task_Num.V + FTh_Pool.Count > 0) do
       TCompute.Sleep(10);
@@ -1658,7 +1835,7 @@ begin
       with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
-              inc(ready_num);
+              Inc(ready_num);
         until not Next;
     end;
   Result := (Engine_Pool.Num > 0) and (Engine_Pool.Num = ready_num);
@@ -1742,7 +1919,7 @@ begin
       with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
-              inc(Result, Queue^.Data.Engine.CoreSpace_Size);
+              Inc(Result, Queue^.Data.Engine.CoreSpace_Size);
         until not Next;
     end;
 end;
@@ -1755,7 +1932,7 @@ begin
       with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
-              inc(Result, Queue^.Data.Engine.CoreSpace_Physics_Size);
+              Inc(Result, Queue^.Data.Engine.CoreSpace_Physics_Size);
         until not Next;
     end;
 end;
@@ -1773,7 +1950,7 @@ begin
       with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
-              inc(Result, Queue^.Data.Engine.QueueNum);
+              Inc(Result, Queue^.Data.Engine.QueueNum);
         until not Next;
     end;
 end;
