@@ -1148,6 +1148,7 @@ var
   db_path: U_String;
   db_file: U_String;
   arry: U_StringArray;
+  n: U_SystemString;
 begin
   Result := False;
 
@@ -1162,8 +1163,12 @@ begin
 
   DoStatus('scan Backup for "%s"', [Database_File.Text]);
   arry := umlGetFileListPath(db_path);
-
-  Result := length(arry) > 0;
+  for n in arry do
+    if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+      begin
+        Result := True;
+        break;
+      end;
 
   db_path := '';
   db_file := '';
