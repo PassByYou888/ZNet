@@ -46,7 +46,9 @@ type
     constructor Create(hash_size_: Integer);
     destructor Destroy; override;
     function BuildMemory(): TZDB2_Th_Engine;
+    // if encrypt=true defualt password 'DTC40@ZSERVER'
     function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine; overload;
+    // if encrypt=true defualt password 'DTC40@ZSERVER'
     function BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean; cfg: THashStringList): TZDB2_Th_Engine; overload;
     function Begin_Custom_Build: TZDB2_Th_Engine;
     function End_Custom_Build(Eng_: TZDB2_Th_Engine): Boolean;
