@@ -334,6 +334,7 @@ type
     property Auto_Append_Space: Boolean read FCoreSpace_Auto_Append_Space write FCoreSpace_Auto_Append_Space; // default is true
 
     // queue state
+    function Last_Modification: TTimeTick;
     function QueueNum: NativeInt;
     function CoreSpace_Size: Int64;
     function CoreSpace_Physics_Size: Int64;
@@ -1084,6 +1085,16 @@ end;
 function TZDB2_Th_Queue.CoreSpace_IOHnd: PIOHnd;
 begin
   Result := @FCoreSpace_IOHnd;
+end;
+
+function TZDB2_Th_Queue.Last_Modification: TTimeTick;
+begin
+  FCMD_Queue.Critical__.Lock;
+  if CoreSpace__ <> nil then
+      Result := CoreSpace__.Last_Modification
+  else
+      Result := GetTimeTick();
+  FCMD_Queue.Critical__.UnLock;
 end;
 
 function TZDB2_Th_Queue.QueueNum: NativeInt;
