@@ -66,6 +66,12 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-3-24 小更内核和zdb2数据引擎底层**
+
+- 内核新增编译开关:LimitMaxComputeThread,这项开关影响深远,在内核中最大线程=cpuCount x 20,当线程数量超过以后,启动新线程将会做排队,等待前面的线程结束.这时,会出现一种挂起线程的情况,例如**Z-AI的DNN-Thread**技术,**Learn+IO-Thread**技术,**ZDB2的Thread-Queue**技术,线程启动后会等待,不会结束,当服务器配置不高,线程刚好沾满cpuCount*20触发LimitMaxComputeThread,新线程执行而是一直等前面的线程结束建了,从而出现卡机现象.**当LimitMaxComputeThread,默认为关闭,就不会出现沾满cpuCount*20现象了**
+- 针对ZDB2新增自动化的备份还原机制,同时对ZDB2底层内核新增非正常关闭状态:数据库被打开时发现上次操作数据库是非正常关闭,将会直接触发备份还原机制,该机制只针对ZDB-Thread这一层以及上面构建的体系生效,不会对zdb2的api层生效
+
+
 **2023-3-10,修复custom protocol支持机制bug**
 
 - custom protocol支持机制流程无bug,但是泄露了收到0字节数据的ignore逻辑,某些迷之事件接收逻辑流程时数据长度为0,这时候,custom protocol支持机制认为有数据,然后往里面迭代
