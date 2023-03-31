@@ -375,6 +375,8 @@ function umlIntToStr(Parameter: Single): TPascalString; overload;
 function umlIntToStr(Parameter: Double): TPascalString; overload;
 function umlIntToStr(Parameter: Int64): TPascalString; overload;
 function umlIntToStr(Parameter: UInt64): TPascalString; overload;
+function umlIntToStr(Parameter: Integer): TPascalString; overload;
+function umlIntToStr(Parameter: Cardinal): TPascalString; overload;
 
 function umlPointerToStr(param: Pointer): TPascalString;
 
@@ -3951,6 +3953,16 @@ begin
   Result := UIntToStr(Parameter);
 end;
 
+function umlIntToStr(Parameter: Integer): TPascalString;
+begin
+  Result := IntToStr(Parameter);
+end;
+
+function umlIntToStr(Parameter: Cardinal): TPascalString;
+begin
+  Result := UIntToStr(Parameter);
+end;
+
 function umlPointerToStr(param: Pointer): TPascalString;
 begin
   Result := '0x' + IntToHex(NativeUInt(param), SizeOf(Pointer) * 2);
@@ -6086,70 +6098,70 @@ begin
   c := TDigestCardinal(Accu)[2];
   d := TDigestCardinal(Accu)[3];
 
-  A := FF(A, B, c, d, TCardinalBuf(Buf)[0], 7, $D76AA478);   { 1 }
-  d := FF(d, A, B, c, TCardinalBuf(Buf)[1], 12, $E8C7B756);  { 2 }
-  c := FF(c, d, A, B, TCardinalBuf(Buf)[2], 17, $242070DB);  { 3 }
-  B := FF(B, c, d, A, TCardinalBuf(Buf)[3], 22, $C1BDCEEE);  { 4 }
-  A := FF(A, B, c, d, TCardinalBuf(Buf)[4], 7, $F57C0FAF);   { 5 }
-  d := FF(d, A, B, c, TCardinalBuf(Buf)[5], 12, $4787C62A);  { 6 }
-  c := FF(c, d, A, B, TCardinalBuf(Buf)[6], 17, $A8304613);  { 7 }
-  B := FF(B, c, d, A, TCardinalBuf(Buf)[7], 22, $FD469501);  { 8 }
-  A := FF(A, B, c, d, TCardinalBuf(Buf)[8], 7, $698098D8);   { 9 }
-  d := FF(d, A, B, c, TCardinalBuf(Buf)[9], 12, $8B44F7AF);  { 10 }
+  A := FF(A, B, c, d, TCardinalBuf(Buf)[0], 7, $D76AA478); { 1 }
+  d := FF(d, A, B, c, TCardinalBuf(Buf)[1], 12, $E8C7B756); { 2 }
+  c := FF(c, d, A, B, TCardinalBuf(Buf)[2], 17, $242070DB); { 3 }
+  B := FF(B, c, d, A, TCardinalBuf(Buf)[3], 22, $C1BDCEEE); { 4 }
+  A := FF(A, B, c, d, TCardinalBuf(Buf)[4], 7, $F57C0FAF); { 5 }
+  d := FF(d, A, B, c, TCardinalBuf(Buf)[5], 12, $4787C62A); { 6 }
+  c := FF(c, d, A, B, TCardinalBuf(Buf)[6], 17, $A8304613); { 7 }
+  B := FF(B, c, d, A, TCardinalBuf(Buf)[7], 22, $FD469501); { 8 }
+  A := FF(A, B, c, d, TCardinalBuf(Buf)[8], 7, $698098D8); { 9 }
+  d := FF(d, A, B, c, TCardinalBuf(Buf)[9], 12, $8B44F7AF); { 10 }
   c := FF(c, d, A, B, TCardinalBuf(Buf)[10], 17, $FFFF5BB1); { 11 }
   B := FF(B, c, d, A, TCardinalBuf(Buf)[11], 22, $895CD7BE); { 12 }
-  A := FF(A, B, c, d, TCardinalBuf(Buf)[12], 7, $6B901122);  { 13 }
+  A := FF(A, B, c, d, TCardinalBuf(Buf)[12], 7, $6B901122); { 13 }
   d := FF(d, A, B, c, TCardinalBuf(Buf)[13], 12, $FD987193); { 14 }
   c := FF(c, d, A, B, TCardinalBuf(Buf)[14], 17, $A679438E); { 15 }
   B := FF(B, c, d, A, TCardinalBuf(Buf)[15], 22, $49B40821); { 16 }
-  A := GG(A, B, c, d, TCardinalBuf(Buf)[1], 5, $F61E2562);   { 17 }
-  d := GG(d, A, B, c, TCardinalBuf(Buf)[6], 9, $C040B340);   { 18 }
+  A := GG(A, B, c, d, TCardinalBuf(Buf)[1], 5, $F61E2562); { 17 }
+  d := GG(d, A, B, c, TCardinalBuf(Buf)[6], 9, $C040B340); { 18 }
   c := GG(c, d, A, B, TCardinalBuf(Buf)[11], 14, $265E5A51); { 19 }
-  B := GG(B, c, d, A, TCardinalBuf(Buf)[0], 20, $E9B6C7AA);  { 20 }
-  A := GG(A, B, c, d, TCardinalBuf(Buf)[5], 5, $D62F105D);   { 21 }
-  d := GG(d, A, B, c, TCardinalBuf(Buf)[10], 9, $02441453);  { 22 }
+  B := GG(B, c, d, A, TCardinalBuf(Buf)[0], 20, $E9B6C7AA); { 20 }
+  A := GG(A, B, c, d, TCardinalBuf(Buf)[5], 5, $D62F105D); { 21 }
+  d := GG(d, A, B, c, TCardinalBuf(Buf)[10], 9, $02441453); { 22 }
   c := GG(c, d, A, B, TCardinalBuf(Buf)[15], 14, $D8A1E681); { 23 }
-  B := GG(B, c, d, A, TCardinalBuf(Buf)[4], 20, $E7D3FBC8);  { 24 }
-  A := GG(A, B, c, d, TCardinalBuf(Buf)[9], 5, $21E1CDE6);   { 25 }
-  d := GG(d, A, B, c, TCardinalBuf(Buf)[14], 9, $C33707D6);  { 26 }
-  c := GG(c, d, A, B, TCardinalBuf(Buf)[3], 14, $F4D50D87);  { 27 }
-  B := GG(B, c, d, A, TCardinalBuf(Buf)[8], 20, $455A14ED);  { 28 }
-  A := GG(A, B, c, d, TCardinalBuf(Buf)[13], 5, $A9E3E905);  { 29 }
-  d := GG(d, A, B, c, TCardinalBuf(Buf)[2], 9, $FCEFA3F8);   { 30 }
-  c := GG(c, d, A, B, TCardinalBuf(Buf)[7], 14, $676F02D9);  { 31 }
+  B := GG(B, c, d, A, TCardinalBuf(Buf)[4], 20, $E7D3FBC8); { 24 }
+  A := GG(A, B, c, d, TCardinalBuf(Buf)[9], 5, $21E1CDE6); { 25 }
+  d := GG(d, A, B, c, TCardinalBuf(Buf)[14], 9, $C33707D6); { 26 }
+  c := GG(c, d, A, B, TCardinalBuf(Buf)[3], 14, $F4D50D87); { 27 }
+  B := GG(B, c, d, A, TCardinalBuf(Buf)[8], 20, $455A14ED); { 28 }
+  A := GG(A, B, c, d, TCardinalBuf(Buf)[13], 5, $A9E3E905); { 29 }
+  d := GG(d, A, B, c, TCardinalBuf(Buf)[2], 9, $FCEFA3F8); { 30 }
+  c := GG(c, d, A, B, TCardinalBuf(Buf)[7], 14, $676F02D9); { 31 }
   B := GG(B, c, d, A, TCardinalBuf(Buf)[12], 20, $8D2A4C8A); { 32 }
-  A := HH(A, B, c, d, TCardinalBuf(Buf)[5], 4, $FFFA3942);   { 33 }
-  d := HH(d, A, B, c, TCardinalBuf(Buf)[8], 11, $8771F681);  { 34 }
+  A := HH(A, B, c, d, TCardinalBuf(Buf)[5], 4, $FFFA3942); { 33 }
+  d := HH(d, A, B, c, TCardinalBuf(Buf)[8], 11, $8771F681); { 34 }
   c := HH(c, d, A, B, TCardinalBuf(Buf)[11], 16, $6D9D6122); { 35 }
   B := HH(B, c, d, A, TCardinalBuf(Buf)[14], 23, $FDE5380C); { 36 }
-  A := HH(A, B, c, d, TCardinalBuf(Buf)[1], 4, $A4BEEA44);   { 37 }
-  d := HH(d, A, B, c, TCardinalBuf(Buf)[4], 11, $4BDECFA9);  { 38 }
-  c := HH(c, d, A, B, TCardinalBuf(Buf)[7], 16, $F6BB4B60);  { 39 }
+  A := HH(A, B, c, d, TCardinalBuf(Buf)[1], 4, $A4BEEA44); { 37 }
+  d := HH(d, A, B, c, TCardinalBuf(Buf)[4], 11, $4BDECFA9); { 38 }
+  c := HH(c, d, A, B, TCardinalBuf(Buf)[7], 16, $F6BB4B60); { 39 }
   B := HH(B, c, d, A, TCardinalBuf(Buf)[10], 23, $BEBFBC70); { 40 }
-  A := HH(A, B, c, d, TCardinalBuf(Buf)[13], 4, $289B7EC6);  { 41 }
-  d := HH(d, A, B, c, TCardinalBuf(Buf)[0], 11, $EAA127FA);  { 42 }
-  c := HH(c, d, A, B, TCardinalBuf(Buf)[3], 16, $D4EF3085);  { 43 }
-  B := HH(B, c, d, A, TCardinalBuf(Buf)[6], 23, $04881D05);  { 44 }
-  A := HH(A, B, c, d, TCardinalBuf(Buf)[9], 4, $D9D4D039);   { 45 }
+  A := HH(A, B, c, d, TCardinalBuf(Buf)[13], 4, $289B7EC6); { 41 }
+  d := HH(d, A, B, c, TCardinalBuf(Buf)[0], 11, $EAA127FA); { 42 }
+  c := HH(c, d, A, B, TCardinalBuf(Buf)[3], 16, $D4EF3085); { 43 }
+  B := HH(B, c, d, A, TCardinalBuf(Buf)[6], 23, $04881D05); { 44 }
+  A := HH(A, B, c, d, TCardinalBuf(Buf)[9], 4, $D9D4D039); { 45 }
   d := HH(d, A, B, c, TCardinalBuf(Buf)[12], 11, $E6DB99E5); { 46 }
   c := HH(c, d, A, B, TCardinalBuf(Buf)[15], 16, $1FA27CF8); { 47 }
-  B := HH(B, c, d, A, TCardinalBuf(Buf)[2], 23, $C4AC5665);  { 48 }
-  A := II(A, B, c, d, TCardinalBuf(Buf)[0], 6, $F4292244);   { 49 }
-  d := II(d, A, B, c, TCardinalBuf(Buf)[7], 10, $432AFF97);  { 50 }
+  B := HH(B, c, d, A, TCardinalBuf(Buf)[2], 23, $C4AC5665); { 48 }
+  A := II(A, B, c, d, TCardinalBuf(Buf)[0], 6, $F4292244); { 49 }
+  d := II(d, A, B, c, TCardinalBuf(Buf)[7], 10, $432AFF97); { 50 }
   c := II(c, d, A, B, TCardinalBuf(Buf)[14], 15, $AB9423A7); { 51 }
-  B := II(B, c, d, A, TCardinalBuf(Buf)[5], 21, $FC93A039);  { 52 }
-  A := II(A, B, c, d, TCardinalBuf(Buf)[12], 6, $655B59C3);  { 53 }
-  d := II(d, A, B, c, TCardinalBuf(Buf)[3], 10, $8F0CCC92);  { 54 }
+  B := II(B, c, d, A, TCardinalBuf(Buf)[5], 21, $FC93A039); { 52 }
+  A := II(A, B, c, d, TCardinalBuf(Buf)[12], 6, $655B59C3); { 53 }
+  d := II(d, A, B, c, TCardinalBuf(Buf)[3], 10, $8F0CCC92); { 54 }
   c := II(c, d, A, B, TCardinalBuf(Buf)[10], 15, $FFEFF47D); { 55 }
-  B := II(B, c, d, A, TCardinalBuf(Buf)[1], 21, $85845DD1);  { 56 }
-  A := II(A, B, c, d, TCardinalBuf(Buf)[8], 6, $6FA87E4F);   { 57 }
+  B := II(B, c, d, A, TCardinalBuf(Buf)[1], 21, $85845DD1); { 56 }
+  A := II(A, B, c, d, TCardinalBuf(Buf)[8], 6, $6FA87E4F); { 57 }
   d := II(d, A, B, c, TCardinalBuf(Buf)[15], 10, $FE2CE6E0); { 58 }
-  c := II(c, d, A, B, TCardinalBuf(Buf)[6], 15, $A3014314);  { 59 }
+  c := II(c, d, A, B, TCardinalBuf(Buf)[6], 15, $A3014314); { 59 }
   B := II(B, c, d, A, TCardinalBuf(Buf)[13], 21, $4E0811A1); { 60 }
-  A := II(A, B, c, d, TCardinalBuf(Buf)[4], 6, $F7537E82);   { 61 }
+  A := II(A, B, c, d, TCardinalBuf(Buf)[4], 6, $F7537E82); { 61 }
   d := II(d, A, B, c, TCardinalBuf(Buf)[11], 10, $BD3AF235); { 62 }
-  c := II(c, d, A, B, TCardinalBuf(Buf)[2], 15, $2AD7D2BB);  { 63 }
-  B := II(B, c, d, A, TCardinalBuf(Buf)[9], 21, $EB86D391);  { 64 }
+  c := II(c, d, A, B, TCardinalBuf(Buf)[2], 15, $2AD7D2BB); { 63 }
+  B := II(B, c, d, A, TCardinalBuf(Buf)[9], 21, $EB86D391); { 64 }
 
   inc(TDigestCardinal(Accu)[0], A);
   inc(TDigestCardinal(Accu)[1], B);
