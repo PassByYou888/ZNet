@@ -260,7 +260,7 @@ end;
 
 constructor TIO_Thread.Create(ThNum_: Integer);
 var
-  i: Integer;
+  i, n: Integer;
 begin
   inherited Create;
   FCritical := TCritical.Create;
@@ -269,9 +269,11 @@ begin
   FQueue := TIO_Thread_Queue.Create;
   FDoneQueue := TIO_Thread_Queue.Create;
 
-  for i := 0 to ThNum_ - 1 do
+  n := if_(ThNum_ <= 0, 1, ThNum_);
+
+  for i := 0 to n - 1 do
       TCompute.RunM({$IFDEF FPC}@{$ENDIF FPC}ThRun);
-  while FThNum < ThNum_ do
+  while FThNum < n do
       TCompute.Sleep(1);
 end;
 
