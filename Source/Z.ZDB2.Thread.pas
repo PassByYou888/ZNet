@@ -87,7 +87,7 @@ type
     procedure MoveToLast;
     procedure MoveToFirst;
     // async delete and delay free, file is only do remove memory
-    procedure Remove(Delete_Data_: Boolean); overload;
+    function Remove(Delete_Data_: Boolean): Boolean; overload;
     procedure Remove(); overload;
     // sync load.
     function Load_Data(Source: TMS64): Boolean; overload;
@@ -310,6 +310,8 @@ type
     procedure For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_Marshal_For_C);
     procedure For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_Marshal_For_M);
     procedure For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_Marshal_For_P);
+    // remove first data
+    procedure Remove_First(Num_: Int64; remove_data_: Boolean);
     // RemoveDatabaseOnDestroy
     function GetRemoveDatabaseOnDestroy: Boolean;
     procedure SetRemoveDatabaseOnDestroy(const Value: Boolean);
@@ -516,11 +518,12 @@ begin
     end;
 end;
 
-procedure TZDB2_Th_Engine_Data.Remove(Delete_Data_: Boolean);
+function TZDB2_Th_Engine_Data.Remove(Delete_Data_: Boolean): Boolean;
 var
   Engine__: TZDB2_Th_Engine;
   Eng_Marshal__: TZDB2_Th_Engine_Marshal;
 begin
+  Result := False;
   Lock;
   if not FPost_Free_Runing then
     begin
@@ -531,6 +534,7 @@ begin
           if (FID >= 0) then
               Engine.Async_Remove(FID);
           FID := -1;
+          Result := True;
         end;
 
       if (FOwner <> nil) and (FOwner.FLong_Loop_Num > 0) then
@@ -882,7 +886,7 @@ var
 begin
   hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
   Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
-  DoStatus('backup to "%s" done', [backup_file.Text]);
+  DoStatus('backup to %s', [umlGetFileName(backup_file).Text]);
   SetLength(hnd, 0);
   Owner.FBackup_Is_Busy := False;
 end;
@@ -1040,14 +1044,14 @@ type
     FileTime_: TDateTime;
   end;
 
-  TFileTime_Sorted = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+  TFileTime_Sort_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
 
 var
   db_path: U_String;
   db_file: U_String;
   arry: U_StringArray;
   n: U_SystemString;
-  L: TFileTime_Sorted;
+  L: TFileTime_Sort_Tool;
   backup_inst: TZDB2_Th_Engine_Backup;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
 
@@ -1090,13 +1094,13 @@ begin
 
   DoStatus('scan backup file:' + db_file + '.backup(*)');
   arry := umlGetFileListPath(db_path);
-  L := TFileTime_Sorted.Create;
+  L := TFileTime_Sort_Tool.Create;
   for n in arry do
     if umlMultipleMatch(True, db_file + '.backup(*)', n) then
       with L.Add_Null^ do
         begin
-          Data.FileName := n;
-          Data.FileTime_ := umlGetFileTime(umlCombineFileName(db_path, n));
+          Data.FileName := umlCombineFileName(db_path, n);
+          Data.FileTime_ := umlGetFileTime(Data.FileName);
         end;
 
   // sort backup file by time
@@ -1111,7 +1115,7 @@ begin
   // remove old backup
   while L.Num > Reserve_ do
     begin
-      DoStatus('remove old backup "%s"', [L.First^.Data.FileName]);
+      DoStatus('remove old backup "%s"', [umlGetFileName(L.First^.Data.FileName).Text]);
       umlDeleteFile(L.First^.Data.FileName);
       L.Next;
     end;
@@ -1161,7 +1165,6 @@ begin
   db_path := Get_Backup_Directory();
   db_file := umlGetFileName(Database_File);
 
-  DoStatus('scan Backup for "%s"', [Database_File.Text]);
   arry := umlGetFileListPath(db_path);
   for n in arry do
     if umlMultipleMatch(True, db_file + '.backup(*)', n) then
@@ -1182,14 +1185,14 @@ type
     FileTime_: TDateTime;
   end;
 
-  TFileTime_Sorted = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+  TFileTime_Sort_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
 
 var
   db_path: U_String;
   db_file: U_String;
   arry: U_StringArray;
   n: U_SystemString;
-  L: TFileTime_Sorted;
+  L: TFileTime_Sort_Tool;
 
 {$IFDEF FPC}
   function do_fpc_sort(var L, R: TFile_Time_Info): Integer;
@@ -1217,15 +1220,15 @@ begin
     db_path := Get_Backup_Directory();
     db_file := umlGetFileName(Database_File);
 
-    DoStatus('scan Backup for "%s"', [Database_File.Text]);
+    DoStatus('scan Backup-Revert for "%s"', [umlGetFileName(Database_File).Text]);
     arry := umlGetFileListPath(db_path);
-    L := TFileTime_Sorted.Create;
+    L := TFileTime_Sort_Tool.Create;
     for n in arry do
       if umlMultipleMatch(True, db_file + '.backup(*)', n) then
         with L.Add_Null^ do
           begin
-            Data.FileName := n;
-            Data.FileTime_ := umlGetFileTime(umlCombineFileName(db_path, n));
+            Data.FileName := umlCombineFileName(db_path, n);
+            Data.FileTime_ := umlGetFileTime(Data.FileName);
           end;
 
     // sort backup file by time
@@ -1243,11 +1246,11 @@ begin
         Result := umlCopyFile(L.Last^.Data.FileName, Database_File);
         if Result then
           begin
-            DoStatus('Done Revert %s -> %s', [L.Last^.Data.FileName, Database_File.Text]);
+            DoStatus('Done Revert %s -> %s', [umlGetFileName(L.Last^.Data.FileName).Text, umlGetFileName(Database_File).Text]);
             if remove_backup_ then
               begin
                 umlDeleteFile(L.Last^.Data.FileName);
-                DoStatus('Remove Backup %s', [L.Last^.Data.FileName]);
+                DoStatus('Remove Backup %s', [umlGetFileName(L.Last^.Data.FileName).Text]);
               end;
             if Build_ then
                 Build(Last_Build_Class);
@@ -1259,7 +1262,7 @@ begin
       end;
     DisposeObject(L);
   finally
-      FBackup_Is_Busy := True;
+      FBackup_Is_Busy := False;
   end;
 end;
 
@@ -1299,6 +1302,7 @@ var
   Queue_Table_: TZDB2_BlockHandle;
   ID: Integer;
 begin
+{$IFDEF SHOW_ZDB2_THREAD_BUILD_LOG}
   if isDebug and IsConsole then
     begin
       DoStatus('');
@@ -1310,7 +1314,7 @@ begin
       DisposeObject(Hash_L);
       DoStatus('');
     end;
-
+{$ENDIF SHOW_ZDB2_THREAD_BUILD_LOG}
   Th_Engine_Data_Pool.Clear;
   disposeObjectAndNil(Engine);
   disposeObjectAndNil(Cipher);
@@ -1330,6 +1334,7 @@ begin
         if RemoveDatabaseOnDestroy then
             umlDeleteFile(Database_File);
         Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
+        DoStatus('Open ZDB2 DB %s', [Database_File.Text]);
       end;
   except
       exit;
@@ -1646,7 +1651,10 @@ begin
   OnRun_P := nil;
 
 {$IFDEF Enabled_ZDB2_Load_Thread}
-  FTh_Pool := TIO_Thread.Create(ThNum_);
+  if ThNum_ <= 0 then
+      FTh_Pool := TIO_Direct.Create()
+  else
+      FTh_Pool := TIO_Thread.Create(ThNum_);
 {$ELSE Enabled_ZDB2_Load_Thread}
   FTh_Pool := TIO_Direct.Create();
 {$ENDIF Enabled_ZDB2_Load_Thread}
@@ -2586,6 +2594,47 @@ begin
       end;
     end);
 {$ENDIF FPC}
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Remove_First(Num_: Int64; remove_data_: Boolean);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  i, j: Int64;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.Num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.Num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+
+  i := 0;
+  j := 0;
+  while (i < tatal_data_num_) and (j < Num_) do
+    begin
+      try
+        if buff^[i]^.Data <> nil then
+          begin
+            buff^[i]^.Data.Lock;
+            Can_Load := buff^[i]^.Data.Can_Load;
+            buff^[i]^.Data.UnLock;
+            if Can_Load and buff^[i]^.Data.Remove(remove_data_) then
+                Inc(j);
+          end;
+      except
+      end;
+      Inc(i);
+    end;
+
   AtomDec(FLong_Loop_Num);
   System.FreeMemory(buff);
   Check_Recycle_Pool;
