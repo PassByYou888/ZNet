@@ -66,6 +66,10 @@ type
     procedure Set_MD5_Fragment(buff: Pointer; buff_size: Int64); overload;
     procedure Set_MD5_Fragment(IO_: TMS64; Done_Free_IO_: Boolean); overload;
     procedure Set_MD5_Fragment(Key_: TMD5; IO_: TMS64; Done_Free_IO_: Boolean); overload;
+    // progress
+    function Progress: Boolean;
+    // backup
+    procedure Backup(Reserve_: Word);
     // flush
     procedure Flush;
     // fragment number
@@ -394,6 +398,16 @@ begin
       obj_.Async_Save_And_Free_Data(IO_)
   else
       obj_.Async_Save_And_Free_Data(IO_.Clone);
+end;
+
+function TZDB2_Pair_MD5_Stream_Tool.Progress: Boolean;
+begin
+  Result := ZDB2_Marshal.Progress;
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Backup(Reserve_: Word);
+begin
+  ZDB2_Marshal.Backup(Reserve_);
 end;
 
 procedure TZDB2_Pair_MD5_Stream_Tool.Flush;
