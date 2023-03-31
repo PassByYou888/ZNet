@@ -222,15 +222,12 @@ type
 
     // Last_Modification=0 indicates no write IO operations, else it is the last TimeTick
     property Last_Modification: TTimeTick read FLast_Modification;
-
     // error
     property Last_Error_Info: TZDB2_Core_Space_Error_Info read FLast_Error_Info;
     procedure ErrorInfo(const Text_: SystemString);
-
     // warning
     property Last_Warning_Info: TZDB2_Core_Space_Warning_Info read FLast_Warning_Info;
     procedure WarningInfo(const Text_: SystemString);
-
     // space
     procedure Save();
     function Open(): Boolean;
@@ -239,7 +236,6 @@ type
     function BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
     function AppendSpace(NewSpaceSize_: Int64; DestBlockSize_: WORD): Boolean;
     function OptimizedSpaceTo(var Dest_IOHnd: TIOHnd): Boolean;
-
     // data
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
@@ -279,7 +275,6 @@ type
     function GetDataPhysics(SpaceHnd: TZDB2_BlockHandle): Int64; overload;
     function GetDataPhysics(ID: Integer): Int64; overload;
     function BuildTableID: TZDB2_BlockHandle;
-
     // hnd
     property AutoCloseIOHnd: Boolean read FAutoCloseIOHnd write FAutoCloseIOHnd;
     property AutoFreeIOHnd: Boolean read FAutoFreeIOHnd write FAutoFreeIOHnd;
@@ -302,14 +297,12 @@ type
     procedure DoProgress(Total_, current_: Integer);
     property OnProgress: TZDB2_OnProgress read FOnProgress write FOnProgress;
     property OnNoSpace: TZDB2_OnNoSpace read FOnNoSpace write FOnNoSpace;
-
     // public
     class function Combine_Handle(hnd1, hnd2: TZDB2_BlockHandle): TZDB2_BlockHandle; overload; static;
     class function Combine_Handle(L1, L2: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
     class function Get_Handle(Hnd: TZDB2_BlockHandle): TZDB2_BlockHandle; overload; static;
     class function Get_Handle(L: TZDB2_ID_List): TZDB2_BlockHandle; overload; static;
     class function Get_Handle(L: TZDB2_ID_Pool): TZDB2_BlockHandle; overload; static;
-
     // test
     class procedure Test();
     class procedure Test_Cache();
