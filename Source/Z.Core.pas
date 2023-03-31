@@ -2243,7 +2243,7 @@ begin
       {$ELSEIF defined(VER330)}'Delphi 10.3 Rio'
       {$ELSEIF defined(VER340)}'Delphi 10.4'
       {$ELSEIF defined(VER350)}'Delphi 11'
-      {$ELSEIF defined(VER360)}'Delphi 12'
+      {$ELSEIF defined(VER360)}'Delphi 11.x or 12 last...'
       {$ELSE}'Unknow Delphi Compiler'
       {$IFEND}
     {$ENDIF CONDITIONALEXPRESSIONS}
