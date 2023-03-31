@@ -244,10 +244,10 @@
 
 // Using fillchar replace of FillPtr
 // Maybe fillchar works on MMX / SSE2,
-// {$Define FillPtr_Used_FillChar}
+{$UNDEF FillPtr_Used_FillChar}
 
 // Using Move replace of CopyPtr
-// {$Define CopyPtr_Used_Move}
+{$UNDEF CopyPtr_Used_Move}
 
 // Sequence packets default are opened in Physics-IO
 // Sequence package can support multi platform keep-alive mode
@@ -269,6 +269,9 @@
 // maybe resident threads consume a large number of threads,include,Z.AI(DNN-Thread Tech),ZDB2(Thread-Queue Tech))
 // MaxComputeThread default limit parameter = CpuCount*20
 {$UNDEF LimitMaxComputeThread}
+
+// show TZDB2_Th_Engine.Build() options
+{$UNDEF SHOW_ZDB2_THREAD_BUILD_LOG}
 
 {$IFDEF DEBUG}
   // initialization status prompt
