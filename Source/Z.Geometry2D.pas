@@ -471,6 +471,8 @@ function MinimumDistanceFromPointToLine(const pt: TVec2; const L: TLineV2): TGeo
 function MinimumDistanceFromPointToLine(const L: TLineV2; const pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function MinimumDistanceFromPointToLine(const lb, le, pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
+function Compute_Scale_Position(bk: TRectV2; size, sPos: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+
 // projection
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectProjection(const sour, dest: TRectV2; const sour_rect: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -4104,6 +4106,12 @@ begin
   Result := MinimumDistanceFromPointToLine(LineV2(lb, le), pt);
 end;
 
+function Compute_Scale_Position(bk: TRectV2; size, sPos: TVec2): TRectV2;
+begin
+  Result[0] := Vec2Add(bk[0], Vec2Mul(Vec2Sub(RectSize(bk), size), sPos));
+  Result[1] := Vec2Add(Result[0], size);
+end;
+
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2;
 var
   s, d: TRectV2;
@@ -5699,7 +5707,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Points[i];
-      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or  // an upward crossing
+      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or // an upward crossing
         ((pj^[1] <= pt[1]) and (pt[1] < pi^[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -8258,7 +8266,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := GetPoint(i);
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -8283,7 +8291,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Expands[i, ExpandDistance_];
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
