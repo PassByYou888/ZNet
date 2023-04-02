@@ -169,6 +169,18 @@ type
     constructor Create(const ThEng_: TZDB2_Th_Queue; var Table_: TZDB2_BlockHandle);
   end;
 
+  TSequence_Table_ID_Size_Buffer = array of Int64;
+  PSequence_Table_ID_Size_Buffer = ^TSequence_Table_ID_Size_Buffer;
+
+  TZDB2_Th_CMD_Get_ID_Size_From_Sequence_Table = class(TZDB2_Th_CMD)
+  private
+    Table_Ptr: PZDB2_BlockHandle;
+    ID_Size_Buffer_Ptr: PSequence_Table_ID_Size_Buffer;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; var Table_: TZDB2_BlockHandle; var ID_Size_Buffer: TSequence_Table_ID_Size_Buffer);
+  end;
+
   TZDB2_Th_CMD_Flush_Sequence_Table = class(TZDB2_Th_CMD)
   private
     Table_Ptr: PZDB2_BlockHandle;
@@ -309,6 +321,7 @@ type
   private
     FCMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
+    FCoreSpace_Max_File_Size: Int64; // <=0=infinite >0=space limit
     FCoreSpace_Auto_Append_Space: Boolean;
     FCoreSpace_Mode: TZDB2_SpaceMode;
     FCoreSpace_Delta: Int64;
@@ -331,11 +344,13 @@ type
     function CoreSpace_IOHnd: PIOHnd;
 
     // auto space
+    property CoreSpace_Max_File_Size: Int64 read FCoreSpace_Max_File_Size write FCoreSpace_Max_File_Size; // <=0=infinite >0=space limit
     property Auto_Append_Space: Boolean read FCoreSpace_Auto_Append_Space write FCoreSpace_Auto_Append_Space; // default is true
 
     // queue state
     function Last_Modification: TTimeTick;
     function QueueNum: NativeInt;
+    function CoreSpace_File_Size: Int64;
     function CoreSpace_Size: Int64;
     function CoreSpace_Physics_Size: Int64;
     function CoreSpace_Free_Space_Size: Int64;
@@ -343,6 +358,7 @@ type
     function IsOnlyRead: Boolean;
     function Is_Memory_Data: Boolean;
     function Get_Database_FileName: U_String;
+    function Get_CoreSpace_State(): TZDB2_SpaceState;
     procedure Wait_Queue;
 
     // sync
@@ -356,6 +372,7 @@ type
     function Sync_Flush(): Boolean;
     function Sync_Rebuild_And_Get_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean;
     function Sync_Get_And_Clean_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean;
+    function Sync_Get_ID_Size_From_Sequence_Table(var Table_: TZDB2_BlockHandle; var ID_Size_Buffer: TSequence_Table_ID_Size_Buffer): Boolean;
     function Sync_Flush_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_List): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_Pool): Boolean; overload;
@@ -678,6 +695,26 @@ constructor TZDB2_Th_CMD_Get_And_Clean_Sequence_Table.Create(const ThEng_: TZDB2
 begin
   inherited Create(ThEng_);
   Table_Ptr := @Table_;
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_Get_ID_Size_From_Sequence_Table.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+var
+  R_: TCMD_State;
+  i: Integer;
+begin
+  R_ := TCMD_State.csDone;
+  for i := Low(Table_Ptr^) to high(Table_Ptr^) do
+      ID_Size_Buffer_Ptr^[i] := CoreSpace__.GetDataSize(Table_Ptr^[i]);
+  State^ := R_;
+end;
+
+constructor TZDB2_Th_CMD_Get_ID_Size_From_Sequence_Table.Create(const ThEng_: TZDB2_Th_Queue; var Table_: TZDB2_BlockHandle; var ID_Size_Buffer: TSequence_Table_ID_Size_Buffer);
+begin
+  inherited Create(ThEng_);
+  Table_Ptr := @Table_;
+  SetLength(ID_Size_Buffer, length(Table_));
+  ID_Size_Buffer_Ptr := @ID_Size_Buffer;
   Init();
 end;
 
@@ -1015,11 +1052,7 @@ begin
         end;
     end;
 
-  try
-      CoreSpace__.Free;
-  except
-  end;
-
+  DisposeObjectAndNil(CoreSpace__);
   FCMD_Execute_Thread_Is_Runing := False;
   FCMD_Execute_Thread_Is_Exit := True;
 end;
@@ -1031,7 +1064,7 @@ end;
 
 procedure TZDB2_Th_Queue.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
 begin
-  if FCoreSpace_Auto_Append_Space then
+  if FCoreSpace_Auto_Append_Space and ((FCoreSpace_Max_File_Size <= 0) or (FCoreSpace_Max_File_Size < CoreSpace_File_Size() + FCoreSpace_Delta)) then
       retry := Trigger.AppendSpace(FCoreSpace_Delta, CoreSpace_BlockSize)
   else
       retry := False;
@@ -1050,6 +1083,7 @@ begin
   FCMD_Queue.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free_CMD;
   FCMD_Execute_Thread_Is_Runing := False;
   FCMD_Execute_Thread_Is_Exit := False;
+  FCoreSpace_Max_File_Size := 0;
   FCoreSpace_Auto_Append_Space := True;
   FCoreSpace_Mode := Mode_;
   FCoreSpace_Delta := Delta_;
@@ -1103,6 +1137,16 @@ begin
       Result := FCMD_Queue.Num
   else
       Result := 0;
+end;
+
+function TZDB2_Th_Queue.CoreSpace_File_Size: Int64;
+begin
+  FCMD_Queue.Critical__.Lock;
+  if CoreSpace__ <> nil then
+      Result := FCoreSpace_IOHnd.Size
+  else
+      Result := 0;
+  FCMD_Queue.Critical__.UnLock;
 end;
 
 function TZDB2_Th_Queue.CoreSpace_Size: Int64;
@@ -1164,6 +1208,16 @@ begin
       Result := TCore_FileStream(FCoreSpace_IOHnd.Handle).FileName
   else if FCoreSpace_IOHnd.Handle is TReliableFileStream then
       Result := TReliableFileStream(FCoreSpace_IOHnd.Handle).FileName;
+  FCMD_Queue.Critical__.UnLock;
+end;
+
+function TZDB2_Th_Queue.Get_CoreSpace_State(): TZDB2_SpaceState;
+begin
+  FCMD_Queue.Critical__.Lock;
+  if CoreSpace__ <> nil then
+      Result := CoreSpace__.State^
+  else
+      FillPtr(@Result, SizeOf(TZDB2_SpaceState), 0);
   FCMD_Queue.Critical__.UnLock;
 end;
 
@@ -1272,6 +1326,16 @@ var
   tmp: TCMD_State;
 begin
   TZDB2_Th_CMD_Get_And_Clean_Sequence_Table.Create(self, Table_).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
+function TZDB2_Th_Queue.Sync_Get_ID_Size_From_Sequence_Table(var Table_: TZDB2_BlockHandle; var ID_Size_Buffer: TSequence_Table_ID_Size_Buffer): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_Get_ID_Size_From_Sequence_Table.Create(self, Table_, ID_Size_Buffer).Ready(tmp);
   while tmp = TCMD_State.csDefault do
       TCompute.Sleep(1);
   Result := tmp = TCMD_State.csDone;
