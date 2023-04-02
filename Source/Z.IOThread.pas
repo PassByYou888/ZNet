@@ -260,7 +260,7 @@ end;
 
 constructor TIO_Thread.Create(ThNum_: Integer);
 var
-  i, n: Integer;
+  n, i: Integer;
 begin
   inherited Create;
   FCritical := TCritical.Create;
@@ -269,7 +269,7 @@ begin
   FQueue := TIO_Thread_Queue.Create;
   FDoneQueue := TIO_Thread_Queue.Create;
 
-  n := if_(ThNum_ <= 0, 1, ThNum_);
+  n := if_(ThNum_ < 2, 1, ThNum_);
 
   for i := 0 to n - 1 do
       TCompute.RunM({$IFDEF FPC}@{$ENDIF FPC}ThRun);
