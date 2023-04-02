@@ -66,6 +66,12 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-4-2 新增ZDB2数据集滚动存储支持**
+
+- ZDB2的数据集由多个分散的小数据库组成,滚动存储支持机制为限制单库物理尺寸,达到以后做删头处理
+- 新增ZDB2数据集原子条目的物理size属性,只针对数据集,zdb2底层无改
+- Z.Net.pas核心库的机制无改
+
 **2023-3-24 小更内核和zdb2数据引擎底层**
 
 - 内核新增编译开关:LimitMaxComputeThread,这项开关影响深远,在内核中最大线程=cpuCount x 20,当线程数量超过以后,启动新线程将会做排队,等待前面的线程结束.这时,会出现一种挂起线程的情况,例如**Z-AI的DNN-Thread**技术,**Learn+IO-Thread**技术,**ZDB2的Thread-Queue**技术,线程启动后会等待,不会结束,当服务器配置不高,线程刚好沾满cpuCount x 20触发LimitMaxComputeThread,新线程执行而是一直等前面的线程结束,从而出现卡机现象.**当LimitMaxComputeThread,默认为关闭,就不会出现沾满cpuCount x 20现象了**
