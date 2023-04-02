@@ -63,6 +63,8 @@ type
     procedure Async_Get_String_Fragment_P(Key_: SystemString; Source: TMem64; OnResult: TOn_Mem64_And_State_Event_P); overload;
     function Get_String_Fragment(Key_: SystemString; IO_: TMS64): Boolean; // sync load fragment
     procedure Set_String_Fragment(Key_: SystemString; IO_: TMS64; Done_Free_IO_: Boolean); // async save fragment
+    // check recycle pool
+    procedure Check_Recycle_Pool;
     // progress
     function Progress: Boolean;
     // backup
@@ -391,6 +393,11 @@ begin
   obj_.Owner_String_Fragment_Tool := self;
   obj_.String_Fragment_Pool_Ptr := String_Pool.Add(Key_, obj_, True);
   obj_.Async_Save_And_Free_Data(tmp);
+end;
+
+procedure TZDB2_Pair_String_Stream_Tool.Check_Recycle_Pool;
+begin
+  ZDB2_Marshal.Check_Recycle_Pool;
 end;
 
 function TZDB2_Pair_String_Stream_Tool.Progress: Boolean;
