@@ -1383,8 +1383,10 @@ begin
       begin
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
         // init sequence
+        DoStatus('"%s" Get and Clean sequence table', [umlGetFileName(Database_File).Text]);
         if Engine.Sync_Get_And_Clean_Sequence_Table(Queue_Table_) then
           begin
+            DoStatus('"%s" compute sequence space', [umlGetFileName(Database_File).Text]);
             if Engine.Sync_Get_ID_Size_From_Sequence_Table(Queue_Table_, ID_Size_Buffer) then
               begin
                 for i := Low(Queue_Table_) to high(Queue_Table_) do
@@ -1392,6 +1394,7 @@ begin
               end;
             SetLength(Queue_Table_, 0);
             SetLength(ID_Size_Buffer, 0);
+            DoStatus('"%s" open done.', [umlGetFileName(Database_File).Text]);
           end;
       end
     else
