@@ -4,12 +4,22 @@ constructor TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
   List := TPair_BigList__.Create;
+  List.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  List.FOnAdd := {$IFDEF FPC}@{$ENDIF FPC}DoAdd;
 end;
 
 destructor TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.Destroy;
 begin
   List.Free;
   inherited Destroy;
+end;
+
+procedure TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.DoFree(var Data: TPair);
+begin
+end;
+
+procedure TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+begin
 end;
 
 function TPair_Pool{$IFNDEF FPC}<T1_, T2_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_): PPair__;
@@ -25,12 +35,22 @@ constructor TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
   List := TPair_BigList__.Create;
+  List.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  List.FOnAdd := {$IFDEF FPC}@{$ENDIF FPC}DoAdd;
 end;
 
 destructor TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.Destroy;
 begin
   List.Free;
   inherited Destroy;
+end;
+
+procedure TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.DoFree(var Data: TPair);
+begin
+end;
+
+procedure TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+begin
 end;
 
 function TPair_Third_Pool{$IFNDEF FPC}<T1_, T2_, T3_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_; Third: T3_): PPair__;
@@ -47,12 +67,22 @@ constructor TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Creat
 begin
   inherited Create;
   List := TPair_BigList__.Create;
+  List.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  List.FOnAdd := {$IFDEF FPC}@{$ENDIF FPC}DoAdd;
 end;
 
 destructor TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Destroy;
 begin
   List.Free;
   inherited Destroy;
+end;
+
+procedure TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.DoFree(var Data: TPair);
+begin
+end;
+
+procedure TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+begin
 end;
 
 function TPair_Fourth_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_): PPair__;
@@ -70,12 +100,22 @@ constructor TPair_Five_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_, T5_>{$ENDIF FPC}.Cr
 begin
   inherited Create;
   List := TPair_BigList__.Create;
+  List.FOnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  List.FOnAdd := {$IFDEF FPC}@{$ENDIF FPC}DoAdd;
 end;
 
 destructor TPair_Five_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_, T5_>{$ENDIF FPC}.Destroy;
 begin
   List.Free;
   inherited Destroy;
+end;
+
+procedure TPair_Five_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_, T5_>{$ENDIF FPC}.DoFree(var Data: TPair);
+begin
+end;
+
+procedure TPair_Five_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_, T5_>{$ENDIF FPC}.DoAdd(var Data: TPair);
+begin
 end;
 
 function TPair_Five_Pool{$IFNDEF FPC}<T1_, T2_, T3_, T4_, T5_>{$ENDIF FPC}.Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
