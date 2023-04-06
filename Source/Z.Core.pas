@@ -728,6 +728,8 @@ type
     property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_): PPair__;
   end;
 
@@ -749,6 +751,8 @@ type
     property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_): PPair__;
   end;
 
@@ -771,6 +775,8 @@ type
     property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_): PPair__;
   end;
 
@@ -794,6 +800,8 @@ type
     property L: TPair_BigList__ read List;
     constructor Create;
     destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
   end;
 
