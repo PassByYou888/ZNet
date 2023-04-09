@@ -16,24 +16,25 @@ uses SysUtils, Variants,
 
 type
 {$REGION 'internal define'}
-  TSymbolOperation = (soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor, { math }
-    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual,  { logic }
-    soShl, soShr,                                                                             { bit }
-    soBlockIndentBegin, soBlockIndentEnd,                                                     { block indent }
-    soPropIndentBegin, soPropIndentEnd,                                                       { property indent }
-    soDotSymbol, soCommaSymbol,                                                               { dot and comma }
-    soEolSymbol,                                                                              { eol }
-    soProc, soParameter,                                                                      { proc }
+  TSymbolOperation = (
+    soAdd, soSub, soMul, soDiv, soMod, soIntDiv, soPow, soOr, soAnd, soXor, { math }
+    soEqual, soLessThan, soEqualOrLessThan, soGreaterThan, soEqualOrGreaterThan, soNotEqual, { logic }
+    soShl, soShr, { bit }
+    soBlockIndentBegin, soBlockIndentEnd, { block indent }
+    soPropIndentBegin, soPropIndentEnd, { property indent }
+    soDotSymbol, soCommaSymbol, { dot and comma }
+    soEolSymbol, { eol }
+    soProc, soParameter, { proc }
     soUnknow);
   TSymbolOperations = set of TSymbolOperation;
 
   TExpressionDeclType = (
-    edtSymbol,                                                                                 { symbol }
+    edtSymbol, { symbol }
     edtBool, edtInt, edtInt64, edtUInt64, edtWord, edtByte, edtSmallInt, edtShortInt, edtUInt, { build-in byte type }
-    edtSingle, edtDouble, edtCurrency,                                                         { build-in float type }
-    edtString,                                                                                 { string }
-    edtProcExp,                                                                                { proc }
-    edtExpressionAsValue,                                                                      { expression }
+    edtSingle, edtDouble, edtCurrency, { build-in float type }
+    edtString, { string }
+    edtProcExp, { proc }
+    edtExpressionAsValue, { expression }
     edtUnknow);
 
   TExpressionDeclTypes = set of TExpressionDeclType;
@@ -41,12 +42,12 @@ type
   TSymbolExpression = class;
 
   TExpressionListData = record
-    dType: TExpressionDeclType;    { declaration }
-    cPos: Integer;                 { char pos }
-    Symbol: TSymbolOperation;      { symbol }
-    Value: Variant;                { value }
+    dType: TExpressionDeclType; { declaration }
+    cPos: Integer; { char pos }
+    Symbol: TSymbolOperation; { symbol }
+    Value: Variant; { value }
     Expression: TSymbolExpression; { expression }
-    ExpressionAutoFree: Boolean;   { autofree }
+    ExpressionAutoFree: Boolean; { autofree }
   end;
 
   PExpressionListData = ^TExpressionListData;

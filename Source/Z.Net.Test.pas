@@ -150,7 +150,11 @@ end;
 
 procedure TCommunicationTestIntf.Cmd_RunTestReponse(Sender: TPeerIO; InData: TDFE);
 begin
-  Sender.OwnerFramework.PostProgress.PostExecuteM(3, {$IFDEF FPC}@{$ENDIF FPC}Delay_RunTestReponse).Data1 := Sender;
+  with Sender.OwnerFramework.PostProgress.PostExecuteM(False, 3, {$IFDEF FPC}@{$ENDIF FPC}Delay_RunTestReponse) do
+    begin
+      Data1 := Sender;
+      ready();
+    end;
 end;
 
 procedure TCommunicationTestIntf.CmdResult_TestConsole(Sender: TPeerIO; ResultData: SystemString);

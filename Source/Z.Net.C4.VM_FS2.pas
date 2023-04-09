@@ -1210,8 +1210,8 @@ begin
       tmp.OnResultM := OnResultM;
       tmp.OnResultP := OnResultP;
       tmp.Stream.WriteString(File_Name); // name
-      tmp.Stream.WriteDouble(umlNow);    // file time
-      tmp.Stream.WriteInt32(0);          // ref
+      tmp.Stream.WriteDouble(umlNow); // file time
+      tmp.Stream.WriteInt32(0); // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
 
@@ -1986,8 +1986,8 @@ begin
       tmp.Client := Self;
       tmp.File_Name := File_Name;
       tmp.Stream.WriteString(File_Name); // name
-      tmp.Stream.WriteDouble(umlNow);    // file time
-      tmp.Stream.WriteInt32(0);          // ref
+      tmp.Stream.WriteDouble(umlNow); // file time
+      tmp.Stream.WriteInt32(0); // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
       if P2PVM_Recycle_Pool.Num > 0 then
@@ -2030,8 +2030,8 @@ begin
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResult;
       tmp.Stream.WriteString(File_Name); // name
-      tmp.Stream.WriteDouble(umlNow);    // file time
-      tmp.Stream.WriteInt32(0);          // ref
+      tmp.Stream.WriteDouble(umlNow); // file time
+      tmp.Stream.WriteInt32(0); // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
       if P2PVM_Recycle_Pool.Num > 0 then
@@ -2074,8 +2074,8 @@ begin
       tmp.File_Name := File_Name;
       tmp.OnResultM := OnResult;
       tmp.Stream.WriteString(File_Name); // name
-      tmp.Stream.WriteDouble(umlNow);    // file time
-      tmp.Stream.WriteInt32(0);          // ref
+      tmp.Stream.WriteDouble(umlNow); // file time
+      tmp.Stream.WriteInt32(0); // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
       if P2PVM_Recycle_Pool.Num > 0 then
@@ -2118,8 +2118,8 @@ begin
       tmp.File_Name := File_Name;
       tmp.OnResultP := OnResult;
       tmp.Stream.WriteString(File_Name); // name
-      tmp.Stream.WriteDouble(umlNow);    // file time
-      tmp.Stream.WriteInt32(0);          // ref
+      tmp.Stream.WriteDouble(umlNow); // file time
+      tmp.Stream.WriteInt32(0); // ref
       Stream.Position := 0;
       tmp.Stream.CopyFrom(Stream, Stream.Size);
       if P2PVM_Recycle_Pool.Num > 0 then

@@ -168,10 +168,11 @@ var
   procedure fpc_rewrite_status(const Fmt: SystemString; const Args: array of const);
   begin
     Current_Status.Add(TimeToStr(Now) + ' ' + PFormat(Fmt, Args));
-    with DTNoAuth.PostProgress.PostExecuteM(0, @Do_Sync_Rewrite_Status) do
+    with DTNoAuth.PostProgress.PostExecuteM(False, 0, @Do_Sync_Rewrite_Status) do
       begin
         Data3 := ThSender.id;
         Data4 := PFormat(Fmt, Args);
+        Ready();
       end;
   end;
 {$ENDIF FPC}
@@ -208,18 +209,20 @@ begin
         RewritePascal_Process_Code(Code, uHash, symHash, '', procedure(const Fmt: SystemString; const Args: array of const)
           begin
             Current_Status.Add(TimeToStr(Now) + ' ' + PFormat(Fmt, Args));
-            with DTNoAuth.PostProgress.PostExecuteM(0, Do_Sync_Rewrite_Status) do
+            with DTNoAuth.PostProgress.PostExecuteM(False, 0, Do_Sync_Rewrite_Status) do
               begin
                 Data3 := ThSender.id;
                 Data4 := PFormat(Fmt, Args);
+                Ready();
               end;
           end);
 {$ENDIF FPC}
         Current_Status.Add(TimeToStr(Now) + ' ' + PFormat('%s rewrite done.', [umlGetFileName(fn).Text]));
-        with DTNoAuth.PostProgress.PostExecuteM(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Sync_Rewrite_Status) do
+        with DTNoAuth.PostProgress.PostExecuteM(False, 0, {$IFDEF FPC}@{$ENDIF FPC}Do_Sync_Rewrite_Status) do
           begin
             Data3 := ThSender.id;
             Data4 := PFormat('%s rewrite done.', [umlGetFileName(fn).Text]);
+            Ready();
           end;
         ThOutData.WriteString(fn);
         ThOutData.WritePascalStrings(Current_Status);

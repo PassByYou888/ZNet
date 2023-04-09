@@ -3662,14 +3662,14 @@ begin
 
   // Calculate -(transpose(A) / s*s) C
   Result[3][0] := -(Result[0][0] * mat[3][0]
-    + Result[1][0] * mat[3][1]
-    + Result[2][0] * mat[3][2]);
+      + Result[1][0] * mat[3][1]
+      + Result[2][0] * mat[3][2]);
   Result[3][1] := -(Result[0][1] * mat[3][0]
-    + Result[1][1] * mat[3][1]
-    + Result[2][1] * mat[3][2]);
+      + Result[1][1] * mat[3][1]
+      + Result[2][1] * mat[3][2]);
   Result[3][2] := -(Result[0][2] * mat[3][0]
-    + Result[1][2] * mat[3][1]
-    + Result[2][2] * mat[3][2]);
+      + Result[1][2] * mat[3][1]
+      + Result[2][2] * mat[3][2]);
 end;
 
 // MatrixDecompose
@@ -3890,9 +3890,9 @@ begin
     end;
   // Translate and scale the picked region to the entire window
   Result := CreateTranslationMatrix(AffineVectorMake(
-    (viewport[2] - 2 * (x - viewport[0])) / deltax,
-    (viewport[3] - 2 * (y - viewport[1])) / deltay,
-    0.0));
+      (viewport[2] - 2 * (x - viewport[0])) / deltax,
+      (viewport[3] - 2 * (y - viewport[1])) / deltay,
+      0.0));
   Result[0][0] := viewport[2] / deltax;
   Result[1][1] := viewport[3] / deltay;
 end;
@@ -4496,8 +4496,8 @@ var
   det: TGeoFloat;
 begin
   det := Abs((linePt1[0] - linePt0[0]) * (lineDir0[1] * lineDir1[2] - lineDir1[1] * lineDir0[2]) -
-    (linePt1[1] - linePt0[1]) * (lineDir0[0] * lineDir1[2] - lineDir1[0] * lineDir0[2]) +
-    (linePt1[2] - linePt0[2]) * (lineDir0[0] * lineDir1[1] - lineDir1[0] * lineDir0[1]));
+      (linePt1[1] - linePt0[1]) * (lineDir0[0] * lineDir1[2] - lineDir1[0] * lineDir0[2]) +
+      (linePt1[2] - linePt0[2]) * (lineDir0[0] * lineDir1[1] - lineDir1[0] * lineDir0[1]));
   if det < cBIAS then
       Result := PointLineDistance(linePt0, linePt1, lineDir1)
   else
@@ -5928,7 +5928,7 @@ begin
       j := high(xp);
       for i := 0 to high(xp) do begin
           if ((((yp[i] <= y) and (y < yp[j])) or ((yp[j] <= y) and (y < yp[i])))
-            and (x < (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) then
+              and (x < (xp[j] - xp[i]) * (y - yp[i]) / (yp[j] - yp[i]) + xp[i])) then
               Result := not Result;
           j := i;
         end;
@@ -6070,9 +6070,9 @@ end;
 //
 function QuaternionSlerp(const QStart, QEnd: TQuaternion; Spin: Integer; t: TGeoFloat): TQuaternion;
 var
-  beta,           // complementary interp parameter
-  Theta,          // Angle between A and B
-  sint, cost,     // sine, cosine of theta
+  beta, // complementary interp parameter
+  Theta, // Angle between A and B
+  sint, cost, // sine, cosine of theta
   Phi: TGeoFloat; // theta plus spins
   bflip: Boolean; // use negativ t?
 begin
@@ -6451,8 +6451,8 @@ var
   t: TGeoFloat;
 begin
   a := VectorDotProduct(plane, direction); // direction projected to plane normal
-  b := PlaneEvaluatePoint(plane, Point);   // distance to plane
-  if a = 0 then begin                      // direction is Parallel to plane
+  b := PlaneEvaluatePoint(plane, Point); // distance to plane
+  if a = 0 then begin // direction is Parallel to plane
       if b = 0 then
           Result := -1 // line is inside plane
       else
@@ -6787,8 +6787,8 @@ var
 begin
   // Find the last coefficient by back substitutions
   planeNormal3 := -(planeNormal[0] * planePoint[0]
-    + planeNormal[1] * planePoint[1]
-    + planeNormal[2] * planePoint[2]);
+      + planeNormal[1] * planePoint[1]
+      + planeNormal[2] * planePoint[2]);
   // Dot product of plane and light position
   dot := planeNormal[0] * lightPos[0]
     + planeNormal[1] * lightPos[1]
@@ -7213,7 +7213,7 @@ begin
   // 0 is looking down and PI is looking up
   pitchNow := ArcCos_(VectorDotProduct(MovingObjectUp_, normalT2C));
   pitchNow := ClampValue(pitchNow + DegToRad_(pitchDelta), 0 + 0.025, pi -
-    0.025);
+      0.025);
   // create a new vector pointing up and then rotate it down
   // into the new position
   SetVector(normalT2C, MovingObjectUp_);
@@ -7221,23 +7221,23 @@ begin
   RotateVector(normalT2C, MovingObjectUp_, -DegToRad_(turnDelta));
   ScaleVector(normalT2C, Dist);
   Result := VectorAdd(MovingObjectPosition_, VectorSubtract(normalT2C,
-    originalT2C));
+      originalT2C));
 end;
 
 { Calcualtes Angle between 2 Vectors: (A-CenterPoint) and (B-CenterPoint). In radians. }
 function AngleBetweenVectors(const a, b, ACenterPoint: TVector): TGeoFloat;
 begin
   Result := ArcCos_(VectorAngleCosine(
-    VectorNormalize(VectorSubtract(a, ACenterPoint)),
-    VectorNormalize(VectorSubtract(b, ACenterPoint))));
+      VectorNormalize(VectorSubtract(a, ACenterPoint)),
+      VectorNormalize(VectorSubtract(b, ACenterPoint))));
 end;
 
 { Calcualtes Angle between 2 Vectors: (A-CenterPoint) and (B-CenterPoint). In radians. }
 function AngleBetweenVectors(const a, b, ACenterPoint: TAffineVector): TGeoFloat;
 begin
   Result := ArcCos_(VectorAngleCosine(
-    VectorNormalize(VectorSubtract(a, ACenterPoint)),
-    VectorNormalize(VectorSubtract(b, ACenterPoint))));
+      VectorNormalize(VectorSubtract(a, ACenterPoint)),
+      VectorNormalize(VectorSubtract(b, ACenterPoint))));
 end;
 
 { OriginalPosition_ - Object initial position.

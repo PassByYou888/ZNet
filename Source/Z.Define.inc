@@ -203,13 +203,13 @@
       {$O+} { open optimization }
       {$INLINE AUTO} { inline }
     {$IFEND}
-  {$ELSE}
+  {$ELSE release}
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
     {$R-} { range check }
     {$I-} { Input output checking }
     {$D+} { debug information }
-  {$ENDIF}
+  {$ENDIF release}
 
   {$IF Defined(Android)}
     {$DEFINE SMALL_RASTER_FONT_Build_In}
@@ -270,9 +270,6 @@
 // MaxComputeThread default limit parameter = CpuCount*20
 {$UNDEF LimitMaxComputeThread}
 
-// show TZDB2_Th_Engine.Build() options
-{$UNDEF SHOW_ZDB2_THREAD_BUILD_LOG}
-
 {$IFDEF DEBUG}
   // initialization status prompt
   {$DEFINE initializationStatus}
@@ -282,6 +279,10 @@
   {$UNDEF JPEG_Debug}
   // Enabled ZDB2 Load Thread
   {$UNDEF Enabled_ZDB2_Load_Thread}
+  // show TZDB2_Th_Engine.Build() options
+  {$UNDEF SHOW_ZDB2_THREAD_BUILD_LOG}
+  // show DisposeObject_PrintInfo class log
+  {$DEFINE SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
 {$ELSE DEBUG}
   // initialization status prompt
   {$UNDEF initializationStatus}
@@ -293,7 +294,12 @@
   {$ENDIF FPC}
   // JPEG support can output debug info
   {$UNDEF JPEG_Debug}
+  // Enabled ZDB2 Load Thread
   {$DEFINE Enabled_ZDB2_Load_Thread}
+  // show TZDB2_Th_Engine.Build() options
+  {$UNDEF SHOW_ZDB2_THREAD_BUILD_LOG}
+  // show DisposeObject_PrintInfo class log
+  {$UNDEF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
 {$ENDIF DEBUG}
 
 {$IFDEF Parallel}

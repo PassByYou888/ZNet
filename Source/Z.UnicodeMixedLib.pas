@@ -216,6 +216,8 @@ function umlRandomRangeF(const min_, max_: Double): Double; overload;
 
 function umlDefaultTime: Double;
 function umlNow: Double;
+function umlTime: Double;
+function umlDate: Double;
 function umlDefaultAttrib: Integer;
 function umlBoolToStr(const Value: Boolean): TPascalString;
 function umlStrToBool(const Value: TPascalString): Boolean;
@@ -382,12 +384,15 @@ function umlPointerToStr(param: Pointer): TPascalString;
 
 function umlMBPSToStr(Size: Int64): TPascalString;
 function umlSizeToStr(Parameter: Int64): TPascalString;
+
+function umlStrToTime(s: TPascalString): TDateTime;
+function umlTimeToStr(t: TDateTime): TPascalString;
 function umlStrToDateTime(s: TPascalString): TDateTime;
 function umlDateTimeToStr(t: TDateTime): TPascalString;
 function umlDT(t: TDateTime): TPascalString; overload;
 function umlDT(s: TPascalString): TDateTime; overload;
+
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
-function umlTimeToStr(t: TDateTime): TPascalString;
 function umlDateToStr(t: TDateTime): TPascalString;
 function umlFloatToStr(const f: Double): TPascalString;
 function umlShortFloatToStr(const f: Double): TPascalString;
@@ -1564,6 +1569,16 @@ end;
 function umlNow: Double;
 begin
   Result := Now();
+end;
+
+function umlTime: Double;
+begin
+  Result := Time();
+end;
+
+function umlDate: Double;
+begin
+  Result := Date();
 end;
 
 function umlDefaultAttrib: Integer;
@@ -3987,6 +4002,16 @@ begin
   end;
 end;
 
+function umlStrToTime(s: TPascalString): TDateTime;
+begin
+  Result := StrToTime(s.text, Lib_DateTimeFormatSettings);
+end;
+
+function umlTimeToStr(t: TDateTime): TPascalString;
+begin
+  Result.text := TimeToStr(t, Lib_DateTimeFormatSettings);
+end;
+
 function umlStrToDateTime(s: TPascalString): TDateTime;
 begin
   Result := StrToDateTime(s.text, Lib_DateTimeFormatSettings);
@@ -4041,11 +4066,6 @@ begin
       Result.Append(PFormat('%2.2f', [s + tmp / 1000]))
   else
       Result.Append('0');
-end;
-
-function umlTimeToStr(t: TDateTime): TPascalString;
-begin
-  Result := TimeToStr(t, Lib_DateTimeFormatSettings);
 end;
 
 function umlDateToStr(t: TDateTime): TPascalString;

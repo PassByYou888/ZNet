@@ -72,6 +72,7 @@ type
     function Progress: Boolean;
     // backup
     procedure Backup(Reserve_: Word);
+    procedure Backup_If_No_Exists();
     // flush
     procedure Flush;
     // fragment number
@@ -415,6 +416,11 @@ end;
 procedure TZDB2_Pair_MD5_Stream_Tool.Backup(Reserve_: Word);
 begin
   ZDB2_Marshal.Backup(Reserve_);
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Backup_If_No_Exists;
+begin
+  ZDB2_Marshal.Backup_If_No_Exists();
 end;
 
 procedure TZDB2_Pair_MD5_Stream_Tool.Flush;

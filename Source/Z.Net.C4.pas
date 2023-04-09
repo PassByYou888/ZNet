@@ -478,7 +478,7 @@ type
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
-    procedure DoNetworkOnline; virtual;  { trigger: connected }
+    procedure DoNetworkOnline; virtual; { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
   end;
 
@@ -871,7 +871,7 @@ type
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
-    procedure DoNetworkOnline; virtual;  { trigger: connected }
+    procedure DoNetworkOnline; virtual; { trigger: connected }
     procedure DoNetworkOffline; virtual; { trigger: offline }
   end;
 
@@ -951,8 +951,8 @@ var
   C40_DefaultConfig: THashStringList;
 
 procedure C40Progress(sleep_: Integer); overload; { C4 main progress }
-procedure C40Progress; overload;                  { C4 main progress }
-function C40_Online_DP: TC40_Dispatch_Client;     { System Online-DP }
+procedure C40Progress; overload; { C4 main progress }
+function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
 
 { quiet }
 procedure C40SetQuietMode(QuietMode_: Boolean);
@@ -1214,18 +1214,18 @@ begin
       C40_VM_Service_Pool[i].StopService;
 
   while C40_ClientPool.Count > 0 do
-      disposeObject(C40_ClientPool[0]);
+      DisposeObject_PrintInfo(C40_ClientPool[0]);
   while C40_ServicePool.Count > 0 do
-      disposeObject(C40_ServicePool[0]);
+      DisposeObject_PrintInfo(C40_ServicePool[0]);
   C40_ServicePool.FIPV6_Seed := 1;
   while C40_PhysicsTunnelPool.Count > 0 do
-      disposeObject(C40_PhysicsTunnelPool[0]);
+      DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
   while C40_PhysicsServicePool.Count > 0 do
-      disposeObject(C40_PhysicsServicePool[0]);
+      DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
   while C40_VM_Client_Pool.Count > 0 do
-      disposeObject(C40_VM_Client_Pool[0]);
+      DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
   while C40_VM_Service_Pool.Count > 0 do
-      disposeObject(C40_VM_Service_Pool[0]);
+      DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
 end;
 
 procedure C40Clean_Service;
@@ -1238,12 +1238,12 @@ begin
       C40_VM_Service_Pool[i].StopService;
 
   while C40_ServicePool.Count > 0 do
-      disposeObject(C40_ServicePool[0]);
+      DisposeObject_PrintInfo(C40_ServicePool[0]);
   C40_ServicePool.FIPV6_Seed := 1;
   while C40_PhysicsServicePool.Count > 0 do
-      disposeObject(C40_PhysicsServicePool[0]);
+      DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
   while C40_VM_Service_Pool.Count > 0 do
-      disposeObject(C40_VM_Service_Pool[0]);
+      DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
 end;
 
 procedure C40Clean_Client;
@@ -1256,11 +1256,11 @@ begin
       C40_VM_Client_Pool[i].Disconnect;
 
   while C40_ClientPool.Count > 0 do
-      disposeObject(C40_ClientPool[0]);
+      DisposeObject_PrintInfo(C40_ClientPool[0]);
   while C40_PhysicsTunnelPool.Count > 0 do
-      disposeObject(C40_PhysicsTunnelPool[0]);
+      DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
   while C40_VM_Client_Pool.Count > 0 do
-      disposeObject(C40_VM_Client_Pool[0]);
+      DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
 end;
 
 procedure C40PrintRegistation;
@@ -1293,7 +1293,7 @@ begin
         while i < C40_ClientPool.Count do
           if PhysicsAddr.Same(@C40_ClientPool[i].ClientInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_ClientPool[i].ClientInfo.PhysicsPort)) then
             begin
-              disposeObject(C40_ClientPool[i]);
+              DisposeObject(C40_ClientPool[i]);
               i := 0;
             end
           else
@@ -1316,7 +1316,7 @@ begin
           begin
             if PhysicsAddr.Same(@C40_PhysicsTunnelPool[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_PhysicsTunnelPool[i].PhysicsPort)) then
               begin
-                disposeObject(C40_PhysicsTunnelPool[i]);
+                DisposeObject(C40_PhysicsTunnelPool[i]);
                 i := 0;
               end
             else
@@ -1334,7 +1334,7 @@ begin
         while i < C40_ServicePool.Count do
           if PhysicsAddr.Same(@C40_ServicePool[i].ServiceInfo.PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_ServicePool[i].ServiceInfo.PhysicsPort)) then
             begin
-              disposeObject(C40_ServicePool[i]);
+              DisposeObject(C40_ServicePool[i]);
               i := 0;
             end
           else
@@ -1357,7 +1357,7 @@ begin
           begin
             if PhysicsAddr.Same(@C40_PhysicsServicePool[i].PhysicsAddr) and ((PhysicsPort = 0) or (PhysicsPort = C40_PhysicsServicePool[i].PhysicsPort)) then
               begin
-                disposeObject(C40_PhysicsServicePool[i]);
+                DisposeObject(C40_PhysicsServicePool[i]);
                 i := 0;
               end
             else
@@ -1601,7 +1601,7 @@ begin
         L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).Service_Info_Pool);
 
   L.SaveToDF(OutData);
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 constructor TC40_PhysicsService.Create(ListeningAddr_, PhysicsAddr_: U_String; PhysicsPort_: Word; PhysicsTunnel_: TZNet_Server);
@@ -1644,9 +1644,9 @@ begin
 
   C40_PhysicsServicePool.Remove(Self);
   PhysicsTunnel.DeleteRegistedCMD('QueryInfo');
-  disposeObject(DependNetworkServicePool);
+  DisposeObject(DependNetworkServicePool);
   if AutoFreePhysicsTunnel then
-      disposeObject(PhysicsTunnel);
+      DisposeObject(PhysicsTunnel);
   inherited Destroy;
 end;
 
@@ -1815,7 +1815,7 @@ end;
 
 destructor TDCT40_QueryResultData.Destroy;
 begin
-  disposeObject(L);
+  DisposeObject(L);
   inherited Destroy;
 end;
 
@@ -2092,7 +2092,7 @@ begin
   while i < C40_ClientPool.Count do
     begin
       if C40_ClientPool[i].C40PhysicsTunnel = Self then
-          disposeObject(C40_ClientPool[i])
+          DisposeObject(C40_ClientPool[i])
       else
           inc(i);
     end;
@@ -2100,8 +2100,8 @@ begin
   C40_PhysicsTunnelPool.Remove(Self);
   PhysicsAddr := '';
   SetLength(DependNetworkInfoArray, 0);
-  disposeObject(DependNetworkClientPool);
-  disposeObject(PhysicsTunnel);
+  DisposeObject(DependNetworkClientPool);
+  DisposeObject(PhysicsTunnel);
   inherited Destroy;
 end;
 
@@ -2858,7 +2858,7 @@ end;
 
 destructor TSearchServiceAndBuildConnection_Bridge.Destroy;
 begin
-  disposeObject(Done_ClientPool);
+  DisposeObject(Done_ClientPool);
   inherited Destroy;
 end;
 
@@ -3013,7 +3013,7 @@ begin
   MaxWorkload := D.R.ReadInteger;
   Hash := D.R.ReadMD5;
 
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Info.Save(stream: TCore_Stream);
@@ -3035,7 +3035,7 @@ begin
   D.WriteMD5(Hash);
 
   D.FastEncodeTo(stream);
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 function TC40_Info.Same(Data_: TC40_Info): Boolean;
@@ -3180,14 +3180,14 @@ end;
 procedure TC40_InfoList.Remove(obj: TC40_Info);
 begin
   if AutoFree then
-      disposeObject(obj);
+      DisposeObject(obj);
   inherited Remove(obj);
 end;
 
 procedure TC40_InfoList.Delete(index: Integer);
 begin
   if AutoFree then
-      disposeObject(Items[index]);
+      DisposeObject(Items[index]);
   inherited Delete(index);
 end;
 
@@ -3197,7 +3197,7 @@ var
 begin
   if AutoFree then
     for i := 0 to Count - 1 do
-        disposeObject(Items[i]);
+        DisposeObject(Items[i]);
   inherited Clear;
 end;
 
@@ -3297,10 +3297,10 @@ begin
       tmp := Do_SearchService_(arry[i].Typ);
       if tmp.Count > 0 then
           L.Add(tmp.First);
-      disposeObject(tmp);
+      DisposeObject(tmp);
     end;
   Result := L.GetInfoArray;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 function TC40_InfoList.SearchMinWorkload(ServiceTyp: U_String): TC40_Info_Array;
@@ -3332,7 +3332,7 @@ begin
   { sort }
   TC40_InfoList.SortWorkLoad(L);
   Result := L.GetInfoArray;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 function TC40_InfoList.SearchService(arry: TC40_DependNetworkInfoArray): TC40_Info_Array;
@@ -3482,11 +3482,11 @@ begin
       m64.Position := 0;
       tmp := TC40_Info.Create;
       tmp.Load(m64);
-      disposeObject(m64);
+      DisposeObject(m64);
       found_ := FindSame(tmp);
       if found_ <> nil then
         begin
-          disposeObject(tmp);
+          DisposeObject(tmp);
         end
       else
         begin
@@ -3524,7 +3524,7 @@ begin
         D.WriteStream(m64);
         m64.Clear;
       end;
-  disposeObject(m64);
+  DisposeObject(m64);
 end;
 
 constructor TC4_Help_Console_Command_Data.Create;
@@ -3582,7 +3582,7 @@ begin
     tmp := TPascalStringList.Create;
     umlSeparatorText(Param, tmp, ',;' + #13#10);
     ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
+    DisposeObject(tmp);
   except
   end;
 
@@ -3616,11 +3616,11 @@ end;
 
 destructor TC40_Custom_Service.Destroy;
 begin
-  disposeObject(ConsoleCommand);
+  DisposeObject(ConsoleCommand);
   C40PhysicsService.DependNetworkServicePool.Remove(Self);
   C40_ServicePool.Remove(Self);
-  disposeObject(ServiceInfo);
-  disposeObject(ParamList);
+  DisposeObject(ServiceInfo);
+  DisposeObject(ParamList);
   inherited Destroy;
 end;
 
@@ -3892,7 +3892,7 @@ begin
     if Items[i].ServiceInfo.FoundServiceTyp(arry_) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
   ResetDependInfoBuff(arry_);
 end;
 
@@ -3906,7 +3906,7 @@ begin
     if ((PhysicsPort = 0) or (PhysicsPort = Items[i].ServiceInfo.PhysicsPort)) and PhysicsAddr.Same(@Items[i].ServiceInfo.PhysicsAddr) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 function TC40_Custom_ServicePool.GetFromClass(Class_: TC40_Custom_Service_Class): TC40_Custom_Service_Array;
@@ -3919,7 +3919,7 @@ begin
     if Items[i].InheritsFrom(Class_) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 constructor TC40_Custom_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
@@ -3937,7 +3937,7 @@ begin
     tmp := TPascalStringList.Create;
     umlSeparatorText(Param, tmp, ',;' + #13#10);
     ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
+    DisposeObject(tmp);
   except
   end;
 
@@ -3958,11 +3958,11 @@ end;
 
 destructor TC40_Custom_Client.Destroy;
 begin
-  disposeObject(ConsoleCommand);
+  DisposeObject(ConsoleCommand);
   C40_ClientPool.Remove(Self);
   C40PhysicsTunnel.DependNetworkClientPool.Remove(Self);
-  disposeObject(ClientInfo);
-  disposeObject(ParamList);
+  DisposeObject(ClientInfo);
+  DisposeObject(ParamList);
   inherited Destroy;
 end;
 
@@ -4399,7 +4399,7 @@ begin
           L.Add(Items[i]);
   SortWorkLoad(L);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
   ResetDependInfoBuff(arry_);
 end;
 
@@ -4420,7 +4420,7 @@ begin
           L.Add(Items[i]);
   SortWorkLoad(L);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 function TC40_Custom_ClientPool.SearchPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): TC40_Custom_Client_Array;
@@ -4440,7 +4440,7 @@ begin
           L.Add(Items[i]);
   SortWorkLoad(L);
   Result := L.GetC40Array;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 function TC40_Custom_ClientPool.SearchClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client_Array;
@@ -4530,7 +4530,7 @@ begin
           info_.MaxWorkload := MaxWorkload;
         end;
     end;
-  disposeObject(D);
+  DisposeObject(D);
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
@@ -4552,7 +4552,7 @@ begin
               IO_.SendDirectStreamCmd('UpdateServiceState', ND);
         end;
     end;
-  disposeObject(ND);
+  DisposeObject(ND);
 end;
 
 procedure TC40_Dispatch_Service.cmd_IgnoreChange(Sender: TPeerIO; InData: TDFE);
@@ -4626,7 +4626,7 @@ begin
       if (IO_ <> nil) and TPeerClientUserDefineForSendTunnel_NoAuth(IO_.UserDefine).LinkOk then
           IO_.SendDirectStreamCmd('UpdateServiceInfo', D);
     end;
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Dispatch_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
@@ -4719,8 +4719,8 @@ end;
 
 destructor TC40_Dispatch_Service.Destroy;
 begin
-  disposeObject(Service);
-  disposeObject(Service_Info_Pool);
+  DisposeObject(Service);
+  DisposeObject(Service_Info_Pool);
   inherited Destroy;
 end;
 
@@ -4761,7 +4761,7 @@ begin
       if (IO_ <> nil) and TPeerClientUserDefineForSendTunnel_NoAuth(IO_.UserDefine).LinkOk then
           IO_.SendDirectStreamCmd('IgnoreChange', D);
     end;
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Dispatch_Service.UpdateServiceStateToAllClient;
@@ -4783,7 +4783,7 @@ begin
         tmp.WriteInteger(info_.Workload);
         tmp.WriteInteger(info_.MaxWorkload);
         D.WriteDataFrame(tmp);
-        disposeObject(tmp);
+        DisposeObject(tmp);
       end;
 
   Service.SendTunnel.GetIO_Array(arry_);
@@ -4793,7 +4793,7 @@ begin
       if (IO_ <> nil) and TPeerClientUserDefineForSendTunnel_NoAuth(IO_.UserDefine).LinkOk then
           IO_.SendDirectStreamCmd('UpdateServiceState', D);
     end;
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Dispatch_Client.cmd_UpdateServiceInfo(Sender: TPeerIO; InData: TDFE);
@@ -4852,7 +4852,7 @@ begin
               end;
           end;
     end;
-  disposeObject(D);
+  DisposeObject(D);
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
@@ -4978,8 +4978,8 @@ end;
 
 destructor TC40_Dispatch_Client.Destroy;
 begin
-  disposeObject(Client);
-  disposeObject(Service_Info_Pool);
+  DisposeObject(Client);
+  DisposeObject(Service_Info_Pool);
   inherited Destroy;
 end;
 
@@ -5037,7 +5037,7 @@ begin
       D := TDFE.Create;
       Service_Info_Pool.SaveToDF(D);
       Client.SendTunnel.SendDirectStreamCmd('UpdateServiceInfo', D);
-      disposeObject(D);
+      DisposeObject(D);
     end;
 end;
 
@@ -5054,7 +5054,7 @@ begin
   D.WriteMD5(Hash__);
   D.WriteBool(Ignored);
   Client.SendTunnel.SendDirectStreamCmd('IgnoreChange', D);
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Dispatch_Client.UpdateLocalServiceState;
@@ -5073,10 +5073,10 @@ begin
         tmp.WriteInteger(info_.Workload);
         tmp.WriteInteger(info_.MaxWorkload);
         D.WriteDataFrame(tmp);
-        disposeObject(tmp);
+        DisposeObject(tmp);
       end;
   Client.SendTunnel.SendDirectStreamCmd('UpdateServiceState', D);
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 procedure TC40_Dispatch_Client.RemovePhysicsNetwork(PhysicsAddr: U_String; PhysicsPort: Word);
@@ -5087,7 +5087,7 @@ begin
   D.WriteString(PhysicsAddr);
   D.WriteWord(PhysicsPort);
   Client.SendTunnel.SendDirectStreamCmd('RemovePhysicsNetwork', D);
-  disposeObject(D);
+  DisposeObject(D);
 end;
 
 destructor TC40_RegistedDataList.Destroy;
@@ -5156,7 +5156,7 @@ end;
 
 destructor TC40_Base_NoAuth_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5187,7 +5187,7 @@ end;
 
 destructor TC40_Base_NoAuth_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5244,7 +5244,7 @@ end;
 
 destructor TC40_Base_DataStoreNoAuth_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5275,7 +5275,7 @@ end;
 
 destructor TC40_Base_DataStoreNoAuth_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5344,7 +5344,7 @@ end;
 
 destructor TC40_Base_VirtualAuth_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5386,7 +5386,7 @@ end;
 
 destructor TC40_Base_VirtualAuth_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5464,7 +5464,7 @@ end;
 
 destructor TC40_Base_DataStoreVirtualAuth_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5506,7 +5506,7 @@ end;
 
 destructor TC40_Base_DataStoreVirtualAuth_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5575,7 +5575,7 @@ end;
 
 destructor TC40_Base_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5623,7 +5623,7 @@ end;
 
 destructor TC40_Base_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5693,7 +5693,7 @@ end;
 
 destructor TC40_Base_DataStore_Service.Destroy;
 begin
-  disposeObject(Service);
+  DisposeObject(Service);
   inherited Destroy;
 end;
 
@@ -5741,7 +5741,7 @@ end;
 
 destructor TC40_Base_DataStore_Client.Destroy;
 begin
-  disposeObject(Client);
+  DisposeObject(Client);
   inherited Destroy;
 end;
 
@@ -5791,7 +5791,7 @@ begin
     tmp := TPascalStringList.Create;
     umlSeparatorText(Param, tmp, ',;' + #13#10);
     ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
+    DisposeObject(tmp);
   except
   end;
 
@@ -5803,9 +5803,9 @@ end;
 
 destructor TC40_Custom_VM_Service.Destroy;
 begin
-  disposeObject(ConsoleCommand);
+  DisposeObject(ConsoleCommand);
   C40_VM_Service_Pool.Remove(Self);
-  disposeObject(ParamList);
+  DisposeObject(ParamList);
   inherited Destroy;
 end;
 
@@ -5872,7 +5872,7 @@ begin
     tmp := TPascalStringList.Create;
     umlSeparatorText(Param, tmp, ',;' + #13#10);
     ParamList.ImportFromStrings(tmp);
-    disposeObject(tmp);
+    DisposeObject(tmp);
   except
   end;
 
@@ -5886,9 +5886,9 @@ end;
 
 destructor TC40_Custom_VM_Client.Destroy;
 begin
-  disposeObject(ConsoleCommand);
+  DisposeObject(ConsoleCommand);
   C40_VM_Client_Pool.Remove(Self);
-  disposeObject(ParamList);
+  DisposeObject(ParamList);
   inherited Destroy;
 end;
 
@@ -6430,14 +6430,14 @@ finalization
 
 C40Clean;
 
-disposeObject(C40_PhysicsServicePool);
-disposeObject(C40_ServicePool);
-disposeObject(C40_PhysicsTunnelPool);
-disposeObject(C40_ClientPool);
-disposeObject(C40_VM_Service_Pool);
-disposeObject(C40_VM_Client_Pool);
-disposeObject(C40_Registed);
-disposeObject(C40_DefaultConfig);
+DisposeObject(C40_PhysicsServicePool);
+DisposeObject(C40_ServicePool);
+DisposeObject(C40_PhysicsTunnelPool);
+DisposeObject(C40_ClientPool);
+DisposeObject(C40_VM_Service_Pool);
+DisposeObject(C40_VM_Client_Pool);
+DisposeObject(C40_Registed);
+DisposeObject(C40_DefaultConfig);
 
 Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
 

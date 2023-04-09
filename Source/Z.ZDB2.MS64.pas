@@ -77,9 +77,9 @@ type
     procedure ExtractTo(Stream_: TCore_Stream);
     procedure Progress;
     procedure Push_To_Recycle_Pool(obj_: TZDB2_MS64; RemoveData_: Boolean); // remove from repeat
-    procedure Free_Recycle_Pool;                                            // remove from repeat
+    procedure Free_Recycle_Pool; // remove from repeat
     function Count: NativeInt;
-    function Repeat_: TZDB2_Big_List_MS64_Decl__.TRepeat___;               // flow simulate
+    function Repeat_: TZDB2_Big_List_MS64_Decl__.TRepeat___; // flow simulate
     function Invert_Repeat_: TZDB2_Big_List_MS64_Decl__.TInvert_Repeat___; // flow simulate
 
     class procedure Test;

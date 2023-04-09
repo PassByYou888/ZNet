@@ -65,6 +65,10 @@ procedure DoStatusNoLn(const v: TPascalString); overload;
 procedure DoStatusNoLn(const v: SystemString; const Args: array of const); overload;
 procedure DoStatusNoLn; overload;
 
+// dispose object and print info
+function DisposeObject_PrintInfo(const Obj: TObject): Boolean;
+function DisposeObjectAndNil_PrintInfo(var Obj): Boolean;
+
 var
   LastDoStatus: SystemString;
   IDEOutput: Boolean;
@@ -390,6 +394,42 @@ begin
   Status_Critical__.Release;
   if Length(S) > 0 then
       DoStatus(S);
+end;
+
+function DisposeObject_PrintInfo(const Obj: TObject): Boolean;
+{$IFDEF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+var
+  n: SystemString;
+{$ENDIF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+begin
+{$IFDEF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+  Result := False;
+  if Obj = nil then
+      exit;
+  n := Obj.ClassName;
+  Result := DisposeObject(Obj);
+  DoStatus('free %s', [n]);
+{$ELSE SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+  Result := DisposeObject(Obj);
+{$ENDIF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+end;
+
+function DisposeObjectAndNil_PrintInfo(var Obj): Boolean;
+{$IFDEF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+var
+  n: SystemString;
+{$ENDIF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+begin
+{$IFDEF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+  Result := False;
+  if TObject(Obj) = nil then
+      exit;
+  n := TObject(Obj).ClassName;
+  Result := DisposeObjectAndNil(Obj);
+  DoStatus('free and nil %s', [n]);
+{$ELSE SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
+  Result := DisposeObjectAndNil(Obj);
+{$ENDIF SHOW_DISPOSEOBJECT_PRINTINFO_LOG}
 end;
 
 procedure _InternalOutput(const Text_: U_String; const ID: Integer);

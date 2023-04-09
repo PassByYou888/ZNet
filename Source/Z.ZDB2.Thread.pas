@@ -24,10 +24,12 @@ type
   TZDB2_Th_Engine_Marshal = class;
   TZDB2_Th_Engine_Data = class;
   TZDB2_Th_Engine = class;
+  TZDB2_Th_Engine_Backup = class;
   TZDB2_Th_Engine_Data_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Marshal_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Backup_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Backup>;
 
   TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge = class
   public
@@ -118,6 +120,8 @@ type
   TZDB2_Th_Engine_Data_Class = class of TZDB2_Th_Engine_Data;
 
   TZDB2_Th_Engine_Backup = class
+  private
+    Instance_Ptr: TZDB2_Th_Engine_Backup_Instance_Pool.PQueueStruct;
   public
     Owner: TZDB2_Th_Engine;
     Queue_ID_List_: TZDB2_ID_List;
@@ -302,6 +306,7 @@ type
     function Progress: Boolean;
     // backup
     procedure Backup(Reserve_: Word);
+    procedure Backup_If_No_Exists();
     // flush
     procedure Flush;
     // remove and rebuild datgabase
@@ -330,6 +335,7 @@ type
 
 var
   Th_Engine_Marshal_Pool__: TZDB2_Th_Engine_Marshal_Pool;
+  Backup_Instance_Pool__: TZDB2_Th_Engine_Backup_Instance_Pool;
 
 implementation
 
@@ -900,6 +906,7 @@ end;
 constructor TZDB2_Th_Engine_Backup.Create(Owner_: TZDB2_Th_Engine);
 begin
   inherited Create;
+  Instance_Ptr := Backup_Instance_Pool__.Add(self);
   Owner := Owner_;
   Queue_ID_List_ := TZDB2_ID_List.Create;
   backup_file := '';
@@ -907,6 +914,11 @@ end;
 
 destructor TZDB2_Th_Engine_Backup.Destroy;
 begin
+  if Instance_Ptr <> nil then
+    begin
+      Backup_Instance_Pool__.Remove_P(Instance_Ptr);
+      Instance_Ptr := nil;
+    end;
   DisposeObject(Queue_ID_List_);
   backup_file := '';
   inherited Destroy;
@@ -921,6 +933,7 @@ begin
   DoStatus('backup to %s', [umlGetFileName(backup_file).Text]);
   SetLength(hnd, 0);
   Owner.FBackup_Is_Busy := False;
+  DelayFreeObj(1.0, self);
 end;
 
 procedure TZDB2_Th_Engine.DoFree(var Data: TZDB2_Th_Engine_Data);
@@ -977,6 +990,10 @@ begin
     disposeObjectAndNil(Cipher);
     if RemoveDatabaseOnDestroy and umlFileExists(Database_File) then
         umlDeleteFile(Database_File);
+    if Database_File <> '' then
+        DoStatus('Close file %s', [Database_File.Text])
+    else
+        DoStatus('free memory %s', [self.ClassName]);
   except
   end;
   inherited Destroy;
@@ -2216,6 +2233,30 @@ begin
   Check_Recycle_Pool;
 end;
 
+procedure TZDB2_Th_Engine_Marshal.Backup_If_No_Exists;
+begin
+  Wait_Busy_Task;
+  Check_Recycle_Pool;
+  if Engine_Pool.Num > 0 then
+    begin
+      Lock;
+      try
+        with Engine_Pool.Repeat_ do
+          repeat
+            try
+              if not Queue^.Data.Found_Backup then
+                  Queue^.Data.Backup(1);
+            except
+            end;
+          until not Next;
+      except
+      end;
+      UnLock;
+    end;
+  Wait_Busy_Task;
+  Check_Recycle_Pool;
+end;
+
 procedure TZDB2_Th_Engine_Marshal.Flush;
 begin
   Wait_Busy_Task;
@@ -3070,9 +3111,11 @@ end;
 initialization
 
 Th_Engine_Marshal_Pool__ := TZDB2_Th_Engine_Marshal_Pool.Create;
+Backup_Instance_Pool__ := TZDB2_Th_Engine_Backup_Instance_Pool.Create;
 
 finalization
 
 disposeObjectAndNil(Th_Engine_Marshal_Pool__);
+disposeObjectAndNil(Backup_Instance_Pool__);
 
 end.

@@ -1196,8 +1196,11 @@ begin
   except
   end;
 
-  with ProgressPost.PostExecuteM(pipe.QueryDoneFreeDelayTime, {$IFDEF FPC}@{$ENDIF FPC}DelayFreePipe) do
+  with ProgressPost.PostExecuteM(False, pipe.QueryDoneFreeDelayTime, {$IFDEF FPC}@{$ENDIF FPC}DelayFreePipe) do
+    begin
       Data1 := pipe;
+      Ready();
+    end;
 end;
 
 procedure TZDBLocalManager.DelayFreePipe(Sender: TN_Post_Execute);
@@ -1213,8 +1216,11 @@ begin
         pl := TZDBPipeline(FQueryPipelineList[i]);
         if (pl.SourceDB = sour.OutputDB) and (pl.Activted) then
           begin
-            with ProgressPost.PostExecuteM(1.0, {$IFDEF FPC}@{$ENDIF FPC}DelayFreePipe) do
+            with ProgressPost.PostExecuteM(False, 1.0, {$IFDEF FPC}@{$ENDIF FPC}DelayFreePipe) do
+              begin
                 Data1 := sour;
+                Ready();
+              end;
             Exit;
           end;
       end;
@@ -1267,11 +1273,12 @@ begin
 
   SourceDatabaseName_ := dPipe.SourceDB.Name;
   replaceN := dPipe.UserVariant;
-  with ProgressPost.PostExecuteM(2.0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
+  with ProgressPost.PostExecuteM(False, 2.0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
     begin
       Data3 := SourceDatabaseName_;
       Data4 := replaceN;
       Data5 := Done_Ptr;
+      Ready();
     end;
 end;
 
@@ -1308,11 +1315,12 @@ begin
 
   if dbBusy then
     begin
-      with ProgressPost.PostExecuteM(1.0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
+      with ProgressPost.PostExecuteM(False, 1.0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
         begin
           Data3 := SourceDatabaseName_;
           Data4 := replaceN;
           Data5 := Done_Ptr;
+          Ready();
         end;
       Exit;
     end;
@@ -1661,10 +1669,11 @@ end;
 
 procedure TZDBLocalManager.ReplaceDB(dataBaseName_, replaceN: SystemString);
 begin
-  with ProgressPost.PostExecuteM(0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
+  with ProgressPost.PostExecuteM(False, 0, {$IFDEF FPC}@{$ENDIF FPC}DelayReplaceDB) do
     begin
       Data3 := dataBaseName_;
       Data4 := replaceN;
+      Ready();
     end;
 end;
 

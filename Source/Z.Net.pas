@@ -5525,7 +5525,11 @@ end;
 
 procedure TPeerIO.P2PVMAuthSuccess(Sender: TZNet_WithP2PVM);
 begin
-  OwnerFramework.ProgressPost.PostExecuteM(0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthSuccessDelayExecute).Data3 := ID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthSuccessDelayExecute) do
+    begin
+      Data3 := ID;
+      Ready();
+    end;
 end;
 
 function TPeerIO.GetUserVariants: THashVariantList;
@@ -6393,12 +6397,13 @@ begin
   else
     begin
       FCompleteBufferReceivedStream.Position := 0;
-      with OwnerFramework.ProgressPost.PostExecute() do
+      with OwnerFramework.ProgressPost.PostExecute(False) do
         begin
           Data3 := FID;
           Data4 := FCompleteBufferCmd;
           Data1 := FCompleteBufferReceivedStream;
           OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayExecuteOnCompleteBufferState;
+          Ready();
         end;
 
       FCompleteBufferReceivedStream := TMS64.Create
@@ -6461,13 +6466,14 @@ begin
       exit;
     end;
 
-  with OwnerFramework.ProgressPost.PostExecute() do
+  with OwnerFramework.ProgressPost.PostExecute(False) do
     begin
       DataEng.Assign(ResultDataFrame);
       Data4 := FID;
       Data5 := FCurrentQueueData;
       Data3 := ResultText;
       OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayExecuteOnResultState;
+      Ready();
     end;
   FCurrentQueueData := nil;
 end;
@@ -7466,7 +7472,11 @@ begin
   p^.OnNotifyC := OnNotify;
   p^.OnNotifyM := nil;
   p^.OnNotifyP := nil;
-  OwnerFramework.ProgressEngine.PostExecuteM(0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute).Data5 := p;
+  with OwnerFramework.ProgressEngine.PostExecuteM(False, 0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute) do
+    begin
+      Data5 := p;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.IO_IDLE_TraceM(data: TCore_Object; OnNotify: TOnDataNotify_M);
@@ -7485,7 +7495,11 @@ begin
   p^.OnNotifyC := nil;
   p^.OnNotifyM := OnNotify;
   p^.OnNotifyP := nil;
-  OwnerFramework.ProgressEngine.PostExecuteM(0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute).Data5 := p;
+  with OwnerFramework.ProgressEngine.PostExecuteM(False, 0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute) do
+    begin
+      Data5 := p;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.IO_IDLE_TraceP(data: TCore_Object; OnNotify: TOnDataNotify_P);
@@ -7504,7 +7518,11 @@ begin
   p^.OnNotifyC := nil;
   p^.OnNotifyM := nil;
   p^.OnNotifyP := OnNotify;
-  OwnerFramework.ProgressEngine.PostExecuteM(0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute).Data5 := p;
+  with OwnerFramework.ProgressEngine.PostExecuteM(False, 0.1, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.IDLE_Trace_Execute) do
+    begin
+      Data5 := p;
+      Ready();
+    end;
 end;
 
 function TPeerIO.p2pVMTunnelReadyOk: Boolean;
@@ -7617,84 +7635,132 @@ procedure TPeerIO.OpenP2PVMTunnelC(SendRemoteRequest: Boolean; const AuthToken: 
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResult_C := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelM(SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnState_M);
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResult_M := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelP(SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnState_P);
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResult_P := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelC(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnState_C);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResult_C := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelM(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnState_M);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResult_M := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelP(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnState_P);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResult_P := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_C(SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_C);
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_C := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_M(SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_M);
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_M := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_P(SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_P);
 begin
   OpenP2PVMTunnel(SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_P := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_C(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_C);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_C := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_M(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_M);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_M := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnelIO_P(vmHashPoolSize: Integer; SendRemoteRequest: Boolean; const AuthToken: SystemString; const OnResult: TOnIOState_P);
 begin
   OpenP2PVMTunnel(vmHashPoolSize, SendRemoteRequest, AuthToken);
   OnVMAuthResultIO_P := OnResult;
-  OwnerFramework.ProgressPost.PostExecuteM(10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute).Data3 := FID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, 10.0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthFailedDelayExecute) do
+    begin
+      Data3 := FID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.OpenP2PVMTunnel;
@@ -7855,7 +7921,11 @@ end;
 
 procedure TPeerIO.DelayClose(const t: Double);
 begin
-  OwnerFramework.ProgressPost.PostExecuteM(t, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayClose).Data3 := ID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, t, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayClose) do
+    begin
+      Data3 := ID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.DelayFree;
@@ -7865,7 +7935,11 @@ end;
 
 procedure TPeerIO.DelayFree(const t: Double);
 begin
-  OwnerFramework.ProgressPost.PostExecuteM(t, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayFree).Data3 := ID;
+  with OwnerFramework.ProgressPost.PostExecuteM(False, t, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.DelayFree) do
+    begin
+      Data3 := ID;
+      Ready();
+    end;
 end;
 
 procedure TPeerIO.Write_Physics_Fragment(const p: Pointer; siz: Int64);
@@ -8847,10 +8921,11 @@ begin
     begin
       if P_IO.IOBusy then
         begin
-          with ProgressEngine.PostExecuteM(0.1, {$IFDEF FPC}@{$ENDIF FPC}IDLE_Trace_Execute) do
+          with ProgressEngine.PostExecuteM(False, 0.1, {$IFDEF FPC}@{$ENDIF FPC}IDLE_Trace_Execute) do
             begin
               Data4 := p_id;
               Data5 := p;
+              Ready();
             end;
         end
       else
@@ -9086,7 +9161,11 @@ begin
   if P_IO = nil then
       exit;
 
-  ProgressPost.PostExecuteM(0.5, {$IFDEF FPC}@{$ENDIF FPC}VMAuthSuccessAfterDelayExecute).Data3 := P_IO.FID;
+  with ProgressPost.PostExecuteM(False, 0.5, {$IFDEF FPC}@{$ENDIF FPC}VMAuthSuccessAfterDelayExecute) do
+    begin
+      Data3 := P_IO.FID;
+      Ready();
+    end;
   p2pVMTunnelOpen(P_IO, P_IO.p2pVMTunnel);
 end;
 
@@ -9303,7 +9382,11 @@ end;
 
 procedure TZNet.AutomatedP2PVMClient_Done(P_IO: TPeerIO);
 begin
-  FPostProgress.PostExecuteM(0, {$IFDEF FPC}@{$ENDIF FPC}AutomatedP2PVMClient_Delay_Done).Data3 := P_IO.ID;
+  with FPostProgress.PostExecuteM(False, 0, {$IFDEF FPC}@{$ENDIF FPC}AutomatedP2PVMClient_Delay_Done) do
+    begin
+      Data3 := P_IO.ID;
+      Ready();
+    end;
 end;
 
 procedure TZNet.InitLargeScaleIOPool;
@@ -9484,10 +9567,16 @@ end;
 
 procedure TZNet.CreateAfter;
 begin
+{$IFDEF DEBUG}
+  Print('%s Create', [ClassName]);
+{$ENDIF DEBUG}
 end;
 
 destructor TZNet.Destroy;
 begin
+{$IFDEF DEBUG}
+  Print('%s.%s(%s) destroy', [FPrefixName, FName, ClassName]);
+{$ENDIF DEBUG}
   try
     ZNet_Instance_Pool__.Remove_P(FInstance_Ptr_Struct);
     while FSend_Queue_Swap_Pool.num > 0 do
@@ -9620,7 +9709,11 @@ end;
 
 procedure TZNet.AutomatedP2PVM_Open(P_IO: TPeerIO);
 begin
-  FPostProgress.PostExecuteM(FAutomatedP2PVMClientDelayBoot, {$IFDEF FPC}@{$ENDIF FPC}DoAutomatedP2PVMClient_DelayRequest).Data3 := P_IO.ID;
+  with FPostProgress.PostExecuteM(False, FAutomatedP2PVMClientDelayBoot, {$IFDEF FPC}@{$ENDIF FPC}DoAutomatedP2PVMClient_DelayRequest) do
+    begin
+      Data3 := P_IO.ID;
+      Ready();
+    end;
 end;
 
 procedure TZNet.AutomatedP2PVM_Open();

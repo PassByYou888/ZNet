@@ -179,11 +179,12 @@ begin
   te := TSectionTextData.Create;
   InData.Reader.ReadSectionText(te);
   Owner.ServerConfig.Merge(te);
-  with ProgressEngine.PostExecute(nil) do
+  with ProgressEngine.PostExecute(False, nil) do
     begin
       Data1 := Sender;
       Data2 := te;
       OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}PostExecute_RegServer;
+      Ready();
     end;
 end;
 
@@ -568,11 +569,12 @@ begin
 
   ServerConfig.Delete(cli.MakeRegName);
 
-  with ProgressEngine.PostExecute do
+  with ProgressEngine.PostExecute(False) do
     begin
       DataEng.WriteString(cli.RegAddr);
       DataEng.WriteByte(Byte(cli.ServerType));
       OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}PostExecute_ServerOffline;
+      Ready();
     end;
 
   if cli.ServerType = TServerType.stManager then
@@ -687,10 +689,11 @@ begin
     begin
       OutData.WriteBool(False);
       OutData.WriteString(Format('exists %s same server configure!!', [cli.MakeRegName]));
-      with ProgressEngine.PostExecuteM(InData, {$IFDEF FPC}@{$ENDIF FPC}PostExecute_Disconnect) do
+      with ProgressEngine.PostExecuteM(False, InData, {$IFDEF FPC}@{$ENDIF FPC}PostExecute_Disconnect) do
         begin
           Data1 := Sender;
           Data2 := cli;
+          Ready();
         end;
       exit;
     end;
