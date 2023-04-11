@@ -5,7 +5,7 @@
 unit Z.Cipher;
 
 {$I Z.Define.inc}
-{$O+}
+{$O-} // compiler optimization
 
 interface
 
@@ -14,7 +14,9 @@ uses
 {$IFDEF FastMD5}
   Z.MD5,
 {$ENDIF}
-  Z.Core, Z.UnicodeMixedLib, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine;
+  Z.Core,
+  Z.AES,
+  Z.UnicodeMixedLib, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine;
 
 {$REGION 'BaseDefine'}
 
@@ -211,10 +213,10 @@ type
 
   PMD5Context = ^TMD5Context;
 
-  TMD5Context = packed record       { MD5 }
+  TMD5Context = packed record { MD5 }
     Count: array [0 .. 1] of DWORD; { number of bits handled mod 2^64 }
-    State: TTransformOutput;        { scratch buffer }
-    Buf: array [0 .. 63] of Byte;   { input buffer }
+    State: TTransformOutput; { scratch buffer }
+    Buf: array [0 .. 63] of Byte; { input buffer }
   end;
 
   TSHA1Context = packed record { SHA-1 }
@@ -235,7 +237,9 @@ type
     // mini cipher
     csXXTea512,
     // NIST cipher
-    csRC6, csSerpent, csMars, csRijndael, csTwoFish);
+    csRC6, csSerpent, csMars, csRijndael, csTwoFish,
+    // AES cipher
+    csAES128, csAES192, csAES256);
 
   TCipherSecuritys = set of TCipherSecurity;
 
@@ -272,29 +276,36 @@ type
       'DES64', 'DES128', 'DES192',
       'Blowfish', 'LBC', 'LQC', 'RNG32', 'RNG64', 'LSC',
       'XXTea512',
-      'RC6', 'Serpent', 'Mars', 'Rijndael', 'TwoFish');
+      'RC6', 'Serpent', 'Mars', 'Rijndael', 'TwoFish',
+      'AES128', 'AES192', 'AES256'
+      );
 
     cCipherKeyStyle: array [TCipherSecurity] of TCipherKeyStyle =
       (
-      cksNone,       // csNone
-      cksKey64,      // csDES64
-      cksKey128,     // csDES128
-      cks3Key64,     // csDES192
-      cksKey128,     // csBlowfish
-      cksKey128,     // csLBC
-      cksKey128,     // csLQC
-      cksIntKey,     // csRNG32
-      cks2IntKey,    // csRNG64
+      cksNone, // csNone
+      cksKey64, // csDES64
+      cksKey128, // csDES128
+      cks3Key64, // csDES192
+      cksKey128, // csBlowfish
+      cksKey128, // csLBC
+      cksKey128, // csLQC
+      cksIntKey, // csRNG32
+      cks2IntKey, // csRNG64
       ckyDynamicKey, // csLSC
-      cksKey128,     // csXXTea512
+      cksKey128, // csXXTea512
       ckyDynamicKey, // csRC6
       ckyDynamicKey, // csSerpent
       ckyDynamicKey, // csMars
       ckyDynamicKey, // csRijndael
-      ckyDynamicKey  // csTwoFish
+      ckyDynamicKey, // csTwoFish
+      ckyDynamicKey, // csAES128
+      ckyDynamicKey, // csAES192
+      ckyDynamicKey // csAES256
       );
   public
     class function AllCipher: TCipherSecurityArray;
+
+    class function Random_Select_Cipher(const arry: TCipherSecurityArray): TCipherSecurity;
 
     class function NameToHashSecurity(n: SystemString; var hash: THashSecurity): Boolean;
 
@@ -399,6 +410,9 @@ type
     class function Mars(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
     class function Rijndael(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
     class function TwoFish(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    class function AES128(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    class function AES192(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    class function AES256(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
     class procedure BlockCBC(sour: Pointer; Size: NativeInt; boxBuff: Pointer; boxSiz: NativeInt);
 
     class function EncryptBuffer(cs: TCipherSecurity; sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
@@ -407,37 +421,40 @@ type
 
 {$IFDEF Parallel}
 
+  TParallelCipherFunc = procedure(Job, buff, key: Pointer; Size: NativeInt) of object;
+
+  PParallelCipherJobData = ^TParallelCipherJobData;
+
+  TParallelCipherJobData = record
+    cipherFunc: TParallelCipherFunc;
+    KeyBuffer: Pointer;
+    OriginBuffer: Pointer;
+    L: NativeInt;
+    TotalBlock: NativeInt;
+    CompletedBlock: NativeInt;
+    Encrypt: Boolean;
+  end;
+
   TParallelCipher = class(TCore_Object)
-  private type
-    TParallelCipherFunc = procedure(Job, buff, key: Pointer; Size: NativeInt) of object;
-
-    PParallelCipherJobData = ^TParallelCipherJobData;
-
-    TParallelCipherJobData = record
-      cipherFunc: TParallelCipherFunc;
-      KeyBuffer: Pointer;
-      OriginBuffer: Pointer;
-      L: NativeInt;
-      TotalBlock: NativeInt;
-      CompletedBlock: NativeInt;
-      Encrypt: Boolean;
-    end;
-  protected
+  private
     procedure DES64_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure DES128_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure DES192_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure Blowfish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure LBC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure LQC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
-    procedure TwoFish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure XXTea512_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure RC6_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure Serpent_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure Mars_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure Rijndael_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+    procedure TwoFish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+    procedure AES128_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+    procedure AES192_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+    procedure AES256_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure BlockCBC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
-    procedure ParallelCipher_C(const JobData: PParallelCipherJobData; const FromIndex, ToIndex: Integer);
-    procedure RunParallel(const JobData: PParallelCipherJobData; const Total, Depth: Integer);
+    procedure ParallelCipher_C(const JobData: PParallelCipherJobData; const FromIndex, ToIndex: NativeInt);
+    procedure RunParallel(const JobData: PParallelCipherJobData; const Total, Depth: NativeInt);
   public
     BlockDepth: Integer;
 
@@ -456,6 +473,10 @@ type
     function Mars(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
     function Rijndael(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
     function TwoFish(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    function AES128(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    function AES192(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+    function AES256(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+
     procedure BlockCBC(sour: Pointer; Size: NativeInt; boxBuff: Pointer; boxSiz: NativeInt);
 
     function EncryptBuffer(cs: TCipherSecurity; sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
@@ -470,7 +491,7 @@ var
   SystemCBC: TBytes;
 {$IFDEF Parallel}
   { system default Parallel depth }
-  DefaultParallelDepth: Integer;     // default cpucount * 2
+  DefaultParallelDepth: Integer; // default cpucount * 2
   ParallelTriggerCondition: Integer; // default 1024
 {$ENDIF}
 
@@ -1889,11 +1910,39 @@ type
     procedure Decrypt(sour: Pointer; Size: NativeInt); override;
   end;
 
+  TCipher_AES128 = class(TCipher_Base)
+  private
+    FDKey, FEkey: TAESExpandedKey128;
+  public
+    constructor Create(KeyBuffer_: TCipherKeyBuffer); override;
+    procedure Encrypt(sour: Pointer; Size: NativeInt); override;
+    procedure Decrypt(sour: Pointer; Size: NativeInt); override;
+  end;
+
+  TCipher_AES192 = class(TCipher_Base)
+  private
+    FDKey, FEkey: TAESExpandedKey192;
+  public
+    constructor Create(KeyBuffer_: TCipherKeyBuffer); override;
+    procedure Encrypt(sour: Pointer; Size: NativeInt); override;
+    procedure Decrypt(sour: Pointer; Size: NativeInt); override;
+  end;
+
+  TCipher_AES256 = class(TCipher_Base)
+  private
+    FDKey, FEkey: TAESExpandedKey256;
+  public
+    constructor Create(KeyBuffer_: TCipherKeyBuffer); override;
+    procedure Encrypt(sour: Pointer; Size: NativeInt); override;
+    procedure Decrypt(sour: Pointer; Size: NativeInt); override;
+  end;
+
 function CreateCipherClass(cs: TCipherSecurity; KeyBuffer_: TCipherKeyBuffer): TCipher_Base;
 function CreateCipherClassFromPassword(cs: TCipherSecurity; password_: TPascalString): TCipher_Base;
 // compatible SequEncryptCBC
 function CreateCipherClassFromBuffer(cs: TCipherSecurity; key: TCipherKeyBuffer): TCipher_Base; overload;
 function CreateCipherClassFromBuffer(cs: TCipherSecurity; buffPtr: Pointer; Size: NativeInt): TCipher_Base; overload;
+// test
 procedure TestCoreCipher;
 
 implementation
@@ -2424,6 +2473,11 @@ begin
   SetLength(Result, Integer(high(TCipherSecurity)) + 1);
   for cs := low(TCipherSecurity) to high(TCipherSecurity) do
       Result[Integer(cs)] := cs;
+end;
+
+class function TCipher.Random_Select_Cipher(const arry: TCipherSecurityArray): TCipherSecurity;
+begin
+  Result := arry[umlRandomRange(Low(arry), High(arry))];
 end;
 
 class function TCipher.NameToHashSecurity(n: SystemString; var hash: THashSecurity): Boolean;
@@ -3588,6 +3642,138 @@ begin
   Result := True;
 end;
 
+class function TCipher.AES128(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  k: TBytes;
+  k128: TAESKey128;
+  d: TAESExpandedKey128;
+  p: NativeUInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+  if Size >= 16 then
+    begin
+      if not GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k128[0])^, 16, k);
+
+      if Encrypt then
+        begin
+          ExpandAESKeyForEncryption(k128, d);
+          p := 0;
+          repeat
+            EncryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end
+      else
+        begin
+          ExpandAESKeyForDecryption(k128, d);
+          p := 0;
+          repeat
+            DecryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end;
+    end
+  else
+      p := 0;
+
+  if (ProcessTail) and (Size - p > 0) then
+      EncryptTail(Pointer(NativeUInt(sour) + p), Size - p);
+  Result := True;
+end;
+
+class function TCipher.AES192(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  k: TBytes;
+  k192: TAESKey192;
+  d: TAESExpandedKey192;
+  p: NativeUInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+  if Size >= 16 then
+    begin
+      if not GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k192[0])^, 24, k);
+
+      if Encrypt then
+        begin
+          ExpandAESKeyForEncryption(k192, d);
+          p := 0;
+          repeat
+            EncryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end
+      else
+        begin
+          ExpandAESKeyForDecryption(k192, d);
+          p := 0;
+          repeat
+            DecryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end;
+    end
+  else
+      p := 0;
+
+  if (ProcessTail) and (Size - p > 0) then
+      EncryptTail(Pointer(NativeUInt(sour) + p), Size - p);
+  Result := True;
+end;
+
+class function TCipher.AES256(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  k: TBytes;
+  k256: TAESKey256;
+  d: TAESExpandedKey256;
+  p: NativeUInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+  if Size >= 16 then
+    begin
+      if not GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k256[0])^, 32, k);
+
+      if Encrypt then
+        begin
+          ExpandAESKeyForEncryption(k256, d);
+          p := 0;
+          repeat
+            EncryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end
+      else
+        begin
+          ExpandAESKeyForDecryption(k256, d);
+          p := 0;
+          repeat
+            DecryptAES(PAESBuffer(NativeUInt(sour) + p)^, d, PAESBuffer(NativeUInt(sour) + p)^);
+            p := p + 16;
+          until p + 16 > Size;
+        end;
+    end
+  else
+      p := 0;
+
+  if (ProcessTail) and (Size - p > 0) then
+      EncryptTail(Pointer(NativeUInt(sour) + p), Size - p);
+  Result := True;
+end;
+
 class procedure TCipher.BlockCBC(sour: Pointer; Size: NativeInt; boxBuff: Pointer; boxSiz: NativeInt);
 var
   p: NativeUInt;
@@ -3630,6 +3816,10 @@ begin
     csSerpent: Result := Serpent(sour, Size, KeyBuff, Encrypt, ProcessTail);
     csMars: Result := Mars(sour, Size, KeyBuff, Encrypt, ProcessTail);
     csRijndael: Result := Rijndael(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES128: Result := AES128(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES192: Result := AES192(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES256: Result := AES256(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    else raiseInfo('error');
   end;
 end;
 
@@ -3721,28 +3911,6 @@ begin
     TLBC.EncryptLQC(PKey128(key)^, PLQCBlock(GetOffset(buff, p))^, PParallelCipherJobData(Job)^.Encrypt);
     p := p + PParallelCipherJobData(Job)^.L;
   until p + PParallelCipherJobData(Job)^.L > Size;
-end;
-
-procedure TParallelCipher.TwoFish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
-var
-  p: NativeInt;
-begin
-  if PParallelCipherJobData(Job)^.Encrypt then
-    begin
-      p := 0;
-      repeat
-        TTwofish.Encrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
-        p := p + PParallelCipherJobData(Job)^.L;
-      until p + PParallelCipherJobData(Job)^.L > Size;
-    end
-  else
-    begin
-      p := 0;
-      repeat
-        TTwofish.Decrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
-        p := p + PParallelCipherJobData(Job)^.L;
-      until p + PParallelCipherJobData(Job)^.L > Size;
-    end;
 end;
 
 procedure TParallelCipher.XXTea512_Parallel(Job, buff, key: Pointer; Size: NativeInt);
@@ -3855,12 +4023,100 @@ begin
     end;
 end;
 
+procedure TParallelCipher.TwoFish_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+var
+  p: NativeInt;
+begin
+  if PParallelCipherJobData(Job)^.Encrypt then
+    begin
+      p := 0;
+      repeat
+        TTwofish.Encrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end
+  else
+    begin
+      p := 0;
+      repeat
+        TTwofish.Decrypt(PTwofishKey(key)^, PTwofishBlock(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end;
+end;
+
+procedure TParallelCipher.AES128_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+var
+  p: NativeInt;
+begin
+  if PParallelCipherJobData(Job)^.Encrypt then
+    begin
+      p := 0;
+      repeat
+        EncryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey128(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end
+  else
+    begin
+      p := 0;
+      repeat
+        DecryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey128(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end;
+end;
+
+procedure TParallelCipher.AES192_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+var
+  p: NativeInt;
+begin
+  if PParallelCipherJobData(Job)^.Encrypt then
+    begin
+      p := 0;
+      repeat
+        EncryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey192(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end
+  else
+    begin
+      p := 0;
+      repeat
+        DecryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey192(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end;
+end;
+
+procedure TParallelCipher.AES256_Parallel(Job, buff, key: Pointer; Size: NativeInt);
+var
+  p: NativeInt;
+begin
+  if PParallelCipherJobData(Job)^.Encrypt then
+    begin
+      p := 0;
+      repeat
+        EncryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey256(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end
+  else
+    begin
+      p := 0;
+      repeat
+        DecryptAES(PAESBuffer(GetOffset(buff, p))^, PAESExpandedKey256(key)^, PAESBuffer(GetOffset(buff, p))^);
+        p := p + PParallelCipherJobData(Job)^.L;
+      until p + PParallelCipherJobData(Job)^.L > Size;
+    end;
+end;
+
 procedure TParallelCipher.BlockCBC_Parallel(Job, buff, key: Pointer; Size: NativeInt);
 begin
   TCipher.BlockCBC(buff, Size, key, PParallelCipherJobData(Job)^.L);
 end;
 
-procedure TParallelCipher.ParallelCipher_C(const JobData: PParallelCipherJobData; const FromIndex, ToIndex: Integer);
+procedure TParallelCipher.ParallelCipher_C(const JobData: PParallelCipherJobData; const FromIndex, ToIndex: NativeInt);
 var
   newBuffPtr: Pointer;
   newBuffSiz: NativeUInt;
@@ -3876,13 +4132,13 @@ begin
   inc(JobData^.CompletedBlock, (ToIndex - FromIndex));
 end;
 
-procedure TParallelCipher.RunParallel(const JobData: PParallelCipherJobData; const Total, Depth: Integer);
+procedure TParallelCipher.RunParallel(const JobData: PParallelCipherJobData; const Total, Depth: NativeInt);
 var
-  StepTotal, stepW: Integer;
+  StepTotal, stepW: NativeInt;
 {$IFDEF FPC}
-  procedure Nested_ParallelFor(pass: Integer);
+  procedure Nested_ParallelFor(pass: Int64);
   var
-    w: Integer;
+    w: Int64;
   begin
     w := stepW * pass;
     if w + stepW <= Total then
@@ -3909,9 +4165,9 @@ begin
 {$IFDEF FPC}
   FPCParallelFor(@Nested_ParallelFor, 0, StepTotal - 1);
 {$ELSE FPC}
-  DelphiParallelFor(0, StepTotal - 1, procedure(pass: Integer)
+  DelphiParallelFor(0, StepTotal - 1, procedure(pass: Int64)
     var
-      w: Integer;
+      w: Int64;
     begin
       w := stepW * pass;
       if w + stepW <= Total then
@@ -4415,6 +4671,144 @@ begin
   Result := True;
 end;
 
+function TParallelCipher.AES128(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  JobData: TParallelCipherJobData;
+  k: TBytes;
+  k128: TAESKey128;
+  Context: TAESExpandedKey128;
+  tailSiz: NativeInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+
+  if Size >= 16 then
+    begin
+      if not TCipher.GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k128[0])^, 16, k);
+
+      if Encrypt then
+          ExpandAESKeyForEncryption(k128, Context)
+      else
+          ExpandAESKeyForDecryption(k128, Context);
+
+      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES128_Parallel;
+      JobData.KeyBuffer := @Context;
+      JobData.OriginBuffer := sour;
+      JobData.L := 16;
+      JobData.TotalBlock := Size div JobData.L;
+      JobData.CompletedBlock := 0;
+      JobData.Encrypt := Encrypt;
+
+      RunParallel(@JobData, JobData.TotalBlock, BlockDepth);
+    end;
+
+  if ProcessTail then
+    begin
+      tailSiz := Size mod JobData.L;
+
+      if tailSiz > 0 then
+          TCipher.EncryptTail(Pointer(NativeUInt(sour) + Size - tailSiz), tailSiz);
+    end;
+
+  Result := True;
+end;
+
+function TParallelCipher.AES192(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  JobData: TParallelCipherJobData;
+  k: TBytes;
+  k192: TAESKey192;
+  Context: TAESExpandedKey192;
+  tailSiz: NativeInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+
+  if Size >= 16 then
+    begin
+      if not TCipher.GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k192[0])^, 24, k);
+
+      if Encrypt then
+          ExpandAESKeyForEncryption(k192, Context)
+      else
+          ExpandAESKeyForDecryption(k192, Context);
+
+      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES192_Parallel;
+      JobData.KeyBuffer := @Context;
+      JobData.OriginBuffer := sour;
+      JobData.L := 16;
+      JobData.TotalBlock := Size div JobData.L;
+      JobData.CompletedBlock := 0;
+      JobData.Encrypt := Encrypt;
+
+      RunParallel(@JobData, JobData.TotalBlock, BlockDepth);
+    end;
+
+  if ProcessTail then
+    begin
+      tailSiz := Size mod JobData.L;
+
+      if tailSiz > 0 then
+          TCipher.EncryptTail(Pointer(NativeUInt(sour) + Size - tailSiz), tailSiz);
+    end;
+
+  Result := True;
+end;
+
+function TParallelCipher.AES256(sour: Pointer; Size: NativeInt; KeyBuff: PCipherKeyBuffer; Encrypt, ProcessTail: Boolean): Boolean;
+var
+  JobData: TParallelCipherJobData;
+  k: TBytes;
+  k256: TAESKey256;
+  Context: TAESExpandedKey256;
+  tailSiz: NativeInt;
+begin
+  Result := False;
+  if Size <= 0 then
+      Exit;
+
+  if Size >= 16 then
+    begin
+      if not TCipher.GetKey(KeyBuff, k) then
+          Exit;
+
+      THashMD.GenerateLMDKey((@k256[0])^, 32, k);
+
+      if Encrypt then
+          ExpandAESKeyForEncryption(k256, Context)
+      else
+          ExpandAESKeyForDecryption(k256, Context);
+
+      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES256_Parallel;
+      JobData.KeyBuffer := @Context;
+      JobData.OriginBuffer := sour;
+      JobData.L := 16;
+      JobData.TotalBlock := Size div JobData.L;
+      JobData.CompletedBlock := 0;
+      JobData.Encrypt := Encrypt;
+
+      RunParallel(@JobData, JobData.TotalBlock, BlockDepth);
+    end;
+
+  if ProcessTail then
+    begin
+      tailSiz := Size mod JobData.L;
+
+      if tailSiz > 0 then
+          TCipher.EncryptTail(Pointer(NativeUInt(sour) + Size - tailSiz), tailSiz);
+    end;
+
+  Result := True;
+end;
+
 procedure TParallelCipher.BlockCBC(sour: Pointer; Size: NativeInt; boxBuff: Pointer; boxSiz: NativeInt);
 var
   JobData: TParallelCipherJobData;
@@ -4467,6 +4861,10 @@ begin
     csSerpent: Result := Serpent(sour, Size, KeyBuff, Encrypt, ProcessTail);
     csMars: Result := Mars(sour, Size, KeyBuff, Encrypt, ProcessTail);
     csRijndael: Result := Rijndael(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES128: Result := AES128(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES192: Result := AES192(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    csAES256: Result := AES256(sour, Size, KeyBuff, Encrypt, ProcessTail);
+    else raiseInfo('error');
   end;
 end;
 
@@ -6775,7 +7173,7 @@ const
     ((3, 2, 0), (1, 0, 2), (2, 1, 3), (0, 3, 1)));
 var
   KeyInts: array [0 .. 3] of Integer; { !!.01 }
-  Blocks: array [0 .. 1] of Integer;  { !!.01 }
+  Blocks: array [0 .. 1] of Integer; { !!.01 }
   Work: Integer;
   Right: Integer;
   Left: Integer;
@@ -7467,16 +7865,16 @@ begin
   d := OutputBuffer[3];
 
   { round 1 }
-  FF(a, b, c, d, InBuf[0], S11, $D76AA478);  { 1 }
-  FF(d, a, b, c, InBuf[1], S12, $E8C7B756);  { 2 }
-  FF(c, d, a, b, InBuf[2], S13, $242070DB);  { 3 }
-  FF(b, c, d, a, InBuf[3], S14, $C1BDCEEE);  { 4 }
-  FF(a, b, c, d, InBuf[4], S11, $F57C0FAF);  { 5 }
-  FF(d, a, b, c, InBuf[5], S12, $4787C62A);  { 6 }
-  FF(c, d, a, b, InBuf[6], S13, $A8304613);  { 7 }
-  FF(b, c, d, a, InBuf[7], S14, $FD469501);  { 8 }
-  FF(a, b, c, d, InBuf[8], S11, $698098D8);  { 9 }
-  FF(d, a, b, c, InBuf[9], S12, $8B44F7AF);  { 10 }
+  FF(a, b, c, d, InBuf[0], S11, $D76AA478); { 1 }
+  FF(d, a, b, c, InBuf[1], S12, $E8C7B756); { 2 }
+  FF(c, d, a, b, InBuf[2], S13, $242070DB); { 3 }
+  FF(b, c, d, a, InBuf[3], S14, $C1BDCEEE); { 4 }
+  FF(a, b, c, d, InBuf[4], S11, $F57C0FAF); { 5 }
+  FF(d, a, b, c, InBuf[5], S12, $4787C62A); { 6 }
+  FF(c, d, a, b, InBuf[6], S13, $A8304613); { 7 }
+  FF(b, c, d, a, InBuf[7], S14, $FD469501); { 8 }
+  FF(a, b, c, d, InBuf[8], S11, $698098D8); { 9 }
+  FF(d, a, b, c, InBuf[9], S12, $8B44F7AF); { 10 }
   FF(c, d, a, b, InBuf[10], S13, $FFFF5BB1); { 11 }
   FF(b, c, d, a, InBuf[11], S14, $895CD7BE); { 12 }
   FF(a, b, c, d, InBuf[12], S11, $6B901122); { 13 }
@@ -7485,58 +7883,58 @@ begin
   FF(b, c, d, a, InBuf[15], S14, $49B40821); { 16 }
 
   { round 2 }
-  GG(a, b, c, d, InBuf[1], S21, $F61E2562);  { 17 }
-  GG(d, a, b, c, InBuf[6], S22, $C040B340);  { 18 }
+  GG(a, b, c, d, InBuf[1], S21, $F61E2562); { 17 }
+  GG(d, a, b, c, InBuf[6], S22, $C040B340); { 18 }
   GG(c, d, a, b, InBuf[11], S23, $265E5A51); { 19 }
-  GG(b, c, d, a, InBuf[0], S24, $E9B6C7AA);  { 20 }
-  GG(a, b, c, d, InBuf[5], S21, $D62F105D);  { 21 }
+  GG(b, c, d, a, InBuf[0], S24, $E9B6C7AA); { 20 }
+  GG(a, b, c, d, InBuf[5], S21, $D62F105D); { 21 }
   GG(d, a, b, c, InBuf[10], S22, $02441453); { 22 }
   GG(c, d, a, b, InBuf[15], S23, $D8A1E681); { 23 }
-  GG(b, c, d, a, InBuf[4], S24, $E7D3FBC8);  { 24 }
-  GG(a, b, c, d, InBuf[9], S21, $21E1CDE6);  { 25 }
+  GG(b, c, d, a, InBuf[4], S24, $E7D3FBC8); { 24 }
+  GG(a, b, c, d, InBuf[9], S21, $21E1CDE6); { 25 }
   GG(d, a, b, c, InBuf[14], S22, $C33707D6); { 26 }
-  GG(c, d, a, b, InBuf[3], S23, $F4D50D87);  { 27 }
-  GG(b, c, d, a, InBuf[8], S24, $455A14ED);  { 28 }
+  GG(c, d, a, b, InBuf[3], S23, $F4D50D87); { 27 }
+  GG(b, c, d, a, InBuf[8], S24, $455A14ED); { 28 }
   GG(a, b, c, d, InBuf[13], S21, $A9E3E905); { 29 }
-  GG(d, a, b, c, InBuf[2], S22, $FCEFA3F8);  { 30 }
-  GG(c, d, a, b, InBuf[7], S23, $676F02D9);  { 31 }
+  GG(d, a, b, c, InBuf[2], S22, $FCEFA3F8); { 30 }
+  GG(c, d, a, b, InBuf[7], S23, $676F02D9); { 31 }
   GG(b, c, d, a, InBuf[12], S24, $8D2A4C8A); { 32 }
 
   { round 3 }
-  hh(a, b, c, d, InBuf[5], S31, $FFFA3942);  { 33 }
-  hh(d, a, b, c, InBuf[8], S32, $8771F681);  { 34 }
+  hh(a, b, c, d, InBuf[5], S31, $FFFA3942); { 33 }
+  hh(d, a, b, c, InBuf[8], S32, $8771F681); { 34 }
   hh(c, d, a, b, InBuf[11], S33, $6D9D6122); { 35 }
   hh(b, c, d, a, InBuf[14], S34, $FDE5380C); { 36 }
-  hh(a, b, c, d, InBuf[1], S31, $A4BEEA44);  { 37 }
-  hh(d, a, b, c, InBuf[4], S32, $4BDECFA9);  { 38 }
-  hh(c, d, a, b, InBuf[7], S33, $F6BB4B60);  { 39 }
+  hh(a, b, c, d, InBuf[1], S31, $A4BEEA44); { 37 }
+  hh(d, a, b, c, InBuf[4], S32, $4BDECFA9); { 38 }
+  hh(c, d, a, b, InBuf[7], S33, $F6BB4B60); { 39 }
   hh(b, c, d, a, InBuf[10], S34, $BEBFBC70); { 40 }
   hh(a, b, c, d, InBuf[13], S31, $289B7EC6); { 41 }
-  hh(d, a, b, c, InBuf[0], S32, $EAA127FA);  { 42 }
-  hh(c, d, a, b, InBuf[3], S33, $D4EF3085);  { 43 }
-  hh(b, c, d, a, InBuf[6], S34, $4881D05);   { 44 }
-  hh(a, b, c, d, InBuf[9], S31, $D9D4D039);  { 45 }
+  hh(d, a, b, c, InBuf[0], S32, $EAA127FA); { 42 }
+  hh(c, d, a, b, InBuf[3], S33, $D4EF3085); { 43 }
+  hh(b, c, d, a, InBuf[6], S34, $4881D05); { 44 }
+  hh(a, b, c, d, InBuf[9], S31, $D9D4D039); { 45 }
   hh(d, a, b, c, InBuf[12], S32, $E6DB99E5); { 46 }
   hh(c, d, a, b, InBuf[15], S33, $1FA27CF8); { 47 }
-  hh(b, c, d, a, InBuf[2], S34, $C4AC5665);  { 48 }
+  hh(b, c, d, a, InBuf[2], S34, $C4AC5665); { 48 }
 
   { round 4 }
-  II(a, b, c, d, InBuf[0], S41, $F4292244);  { 49 }
-  II(d, a, b, c, InBuf[7], S42, $432AFF97);  { 50 }
+  II(a, b, c, d, InBuf[0], S41, $F4292244); { 49 }
+  II(d, a, b, c, InBuf[7], S42, $432AFF97); { 50 }
   II(c, d, a, b, InBuf[14], S43, $AB9423A7); { 51 }
-  II(b, c, d, a, InBuf[5], S44, $FC93A039);  { 52 }
+  II(b, c, d, a, InBuf[5], S44, $FC93A039); { 52 }
   II(a, b, c, d, InBuf[12], S41, $655B59C3); { 53 }
-  II(d, a, b, c, InBuf[3], S42, $8F0CCC92);  { 54 }
+  II(d, a, b, c, InBuf[3], S42, $8F0CCC92); { 54 }
   II(c, d, a, b, InBuf[10], S43, $FFEFF47D); { 55 }
-  II(b, c, d, a, InBuf[1], S44, $85845DD1);  { 56 }
-  II(a, b, c, d, InBuf[8], S41, $6FA87E4F);  { 57 }
+  II(b, c, d, a, InBuf[1], S44, $85845DD1); { 56 }
+  II(a, b, c, d, InBuf[8], S41, $6FA87E4F); { 57 }
   II(d, a, b, c, InBuf[15], S42, $FE2CE6E0); { 58 }
-  II(c, d, a, b, InBuf[6], S43, $A3014314);  { 59 }
+  II(c, d, a, b, InBuf[6], S43, $A3014314); { 59 }
   II(b, c, d, a, InBuf[13], S44, $4E0811A1); { 60 }
-  II(a, b, c, d, InBuf[4], S41, $F7537E82);  { 61 }
+  II(a, b, c, d, InBuf[4], S41, $F7537E82); { 61 }
   II(d, a, b, c, InBuf[11], S42, $BD3AF235); { 62 }
-  II(c, d, a, b, InBuf[2], S43, $2AD7D2BB);  { 63 }
-  II(b, c, d, a, InBuf[9], S44, $EB86D391);  { 64 }
+  II(c, d, a, b, InBuf[2], S43, $2AD7D2BB); { 63 }
+  II(b, c, d, a, InBuf[9], S44, $EB86D391); { 64 }
 
   inc(OutputBuffer[0], a);
   inc(OutputBuffer[1], b);
@@ -10917,6 +11315,174 @@ begin
       TCipher.EncryptTail(GetOffset(sour, p), Size - p);
 end;
 
+constructor TCipher_AES128.Create(KeyBuffer_: TCipherKeyBuffer);
+var
+  k: TBytes;
+  k128: TAESKey128;
+begin
+  inherited Create(KeyBuffer_);
+  TCipher.GetKey(@KeyBuffer_, k);
+  THashMD.GenerateLMDKey((@k128[0])^, 16, k);
+  ExpandAESKeyForDecryption(k128, FDKey);
+  ExpandAESKeyForEncryption(k128, FEkey);
+end;
+
+procedure TCipher_AES128.Encrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          EncryptAES(PAESBuffer(GetOffset(sour, p))^, FEkey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+end;
+
+procedure TCipher_AES128.Decrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          DecryptAES(PAESBuffer(GetOffset(sour, p))^, FDKey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+end;
+
+constructor TCipher_AES192.Create(KeyBuffer_: TCipherKeyBuffer);
+var
+  k: TBytes;
+  k192: TAESKey192;
+begin
+  inherited Create(KeyBuffer_);
+  TCipher.GetKey(@KeyBuffer_, k);
+  THashMD.GenerateLMDKey((@k192[0])^, 24, k);
+  ExpandAESKeyForDecryption(k192, FDKey);
+  ExpandAESKeyForEncryption(k192, FEkey);
+end;
+
+procedure TCipher_AES192.Encrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          EncryptAES(PAESBuffer(GetOffset(sour, p))^, FEkey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+end;
+
+procedure TCipher_AES192.Decrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          DecryptAES(PAESBuffer(GetOffset(sour, p))^, FDKey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+end;
+
+constructor TCipher_AES256.Create(KeyBuffer_: TCipherKeyBuffer);
+var
+  k: TBytes;
+  k256: TAESKey256;
+begin
+  inherited Create(KeyBuffer_);
+  TCipher.GetKey(@KeyBuffer_, k);
+  THashMD.GenerateLMDKey((@k256[0])^, 32, k);
+  ExpandAESKeyForDecryption(k256, FDKey);
+  ExpandAESKeyForEncryption(k256, FEkey);
+end;
+
+procedure TCipher_AES256.Encrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          EncryptAES(PAESBuffer(GetOffset(sour, p))^, FEkey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+end;
+
+procedure TCipher_AES256.Decrypt(sour: Pointer; Size: NativeInt);
+var
+  i: Integer;
+  p: NativeInt;
+begin
+  if Size = 0 then
+      Exit;
+  if FCBC then
+      TCipher.BlockCBC(sour, Size, @SystemCBC[0], length(SystemCBC));
+  for i := 0 to FLevel - 1 do
+    begin
+      p := 0;
+      while p + 16 <= Size do
+        begin
+          DecryptAES(PAESBuffer(GetOffset(sour, p))^, FDKey, PAESBuffer(GetOffset(sour, p))^);
+          inc(p, 16);
+        end;
+    end;
+  if FProcessTail and (p < Size) then
+      TCipher.EncryptTail(GetOffset(sour, p), Size - p);
+end;
+
 function CreateCipherClass(cs: TCipherSecurity; KeyBuffer_: TCipherKeyBuffer): TCipher_Base;
 begin
   case cs of
@@ -10936,6 +11502,9 @@ begin
     csSerpent: Result := TCipher_Serpent.Create(KeyBuffer_);
     csMars: Result := TCipher_Mars.Create(KeyBuffer_);
     csRijndael: Result := TCipher_Rijndael.Create(KeyBuffer_);
+    csAES128: Result := TCipher_AES128.Create(KeyBuffer_);
+    csAES192: Result := TCipher_AES192.Create(KeyBuffer_);
+    csAES256: Result := TCipher_AES256.Create(KeyBuffer_);
     else Result := TCipher_Base.Create(KeyBuffer_);
   end;
   Result.FCipherSecurity := cs;
@@ -10987,7 +11556,7 @@ var
 
 {$IFDEF Parallel}
   Parallel: TParallelCipher;
-{$ENDIF}
+{$ENDIF Parallel}
   ps: TListPascalString;
   cBase: TCipher_Base;
 
@@ -11158,7 +11727,7 @@ begin
 
       disposeObject(Parallel);
     end;
-{$ENDIF}
+{$ENDIF Parallel}
   DoStatus(#13#10'normal cipher performance test');
 
   for cs in TCipher.AllCipher do
