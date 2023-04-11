@@ -212,7 +212,7 @@ var
 begin
   if SendingStream.Size > 0 then
     begin
-      BuildBuff(SendingStream.Memory, SendingStream.Size, ID, Remote_ID, nSiz, nBuff);
+      Build_XNAT_Buff(SendingStream.Memory, SendingStream.Size, ID, Remote_ID, nSiz, nBuff);
       OwnerVS.SendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
       SendingStream.Clear;
     end;
@@ -413,7 +413,7 @@ var
   destBuff: PByte;
   x_io: TXNAT_MappingOnVirutalService_IO;
 begin
-  ExtractBuff(InData, DataSize, Remote_ID, local_id, destSiz, destBuff);
+  Extract_XNAT_Buff(InData, DataSize, Remote_ID, local_id, destSiz, destBuff);
   x_io := TXNAT_MappingOnVirutalService_IO(PeerIO[local_id]);
   if x_io <> nil then
     begin
