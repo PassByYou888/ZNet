@@ -332,7 +332,7 @@ var
   destBuff: PByte;
   phy_io: TXClientCustomProtocol;
 begin
-  ExtractBuff(InData, DataSize, Remote_id, local_id, destSiz, destBuff);
+  Extract_XNAT_Buff(InData, DataSize, Remote_id, local_id, destSiz, destBuff);
 
   phy_io := TXClientCustomProtocol(ProtocolHash[local_id]);
   if phy_io <> nil then
@@ -432,7 +432,7 @@ var
 begin
   if Activted then
     begin
-      BuildBuff(buffer, Size, LocalProtocol_ID, RemoteProtocol_ID, nSiz, nBuff);
+      Build_XNAT_Buff(buffer, Size, LocalProtocol_ID, RemoteProtocol_ID, nSiz, nBuff);
       Mapping.SendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
     end
   else
@@ -459,7 +459,7 @@ begin
       Activted := True;
       if RequestBuffer.Size > 0 then
         begin
-          BuildBuff(RequestBuffer.Memory, RequestBuffer.Size, LocalProtocol_ID, RemoteProtocol_ID, nSiz, nBuff);
+          Build_XNAT_Buff(RequestBuffer.Memory, RequestBuffer.Size, LocalProtocol_ID, RemoteProtocol_ID, nSiz, nBuff);
           Mapping.SendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
           RequestBuffer.Clear;
         end;
