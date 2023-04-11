@@ -18,8 +18,8 @@ type
 
   TXNAT_PHYSICS_MODEL = (XNAT_PHYSICS_SERVICE, XNAT_PHYSICS_CLIENT);
 
-procedure BuildBuff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; var NewSiz: NativeInt; var NewBuff: PByte);
-procedure ExtractBuff(sour: PByte; siz: NativeInt; var local_id, remote_id: Cardinal; var destSiz: NativeInt; var destBuff: PByte);
+procedure Build_XNAT_Buff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; var NewSiz: NativeInt; var NewBuff: PByte);
+procedure Extract_XNAT_Buff(sour: PByte; siz: NativeInt; var local_id, remote_id: Cardinal; var destSiz: NativeInt; var destBuff: PByte);
 
 const
   C_RequestListen: SystemString = '__@RequestListen';
@@ -33,7 +33,7 @@ const
 
 implementation
 
-procedure BuildBuff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; var NewSiz: NativeInt; var NewBuff: PByte);
+procedure Build_XNAT_Buff(buff: PByte; siz: NativeInt; local_id, remote_id: Cardinal; var NewSiz: NativeInt; var NewBuff: PByte);
 var
   nb: PByte;
 begin
@@ -47,7 +47,7 @@ begin
   CopyPtr(buff, nb, siz);
 end;
 
-procedure ExtractBuff(sour: PByte; siz: NativeInt; var local_id, remote_id: Cardinal; var destSiz: NativeInt; var destBuff: PByte);
+procedure Extract_XNAT_Buff(sour: PByte; siz: NativeInt; var local_id, remote_id: Cardinal; var destSiz: NativeInt; var destBuff: PByte);
 begin
   destSiz := siz - 8;
   local_id := PCardinal(sour)^;
