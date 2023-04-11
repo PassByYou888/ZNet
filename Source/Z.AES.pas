@@ -10,6 +10,7 @@
 unit Z.AES;
 
 {$I Z.Define.inc}
+{$O+} // compiler optimization
 
 interface
 
@@ -90,7 +91,7 @@ procedure DecryptAESStreamCBC(Source: TCore_Stream; Count: Cardinal; const Expan
 implementation
 
 
-function Min__(A, B: Integer): Integer;
+function Min__(A, B: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 begin
   if A < B then
       Result := A
