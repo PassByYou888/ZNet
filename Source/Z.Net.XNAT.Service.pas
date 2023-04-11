@@ -501,7 +501,7 @@ begin
           s_io := SendTunnel.PeerIO[xUserSpec.s_id];
           if s_io <> nil then
             begin
-              BuildBuff(xUserSpec.RequestBuffer.Memory, xUserSpec.RequestBuffer.Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
+              Build_XNAT_Buff(xUserSpec.RequestBuffer.Memory, xUserSpec.RequestBuffer.Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
               s_io.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
             end;
           xUserSpec.RequestBuffer.Clear;
@@ -533,7 +533,7 @@ var
   destBuff: PByte;
   phy_io: TPeerIO;
 begin
-  ExtractBuff(InData, DataSize, remote_id, local_id, destSiz, destBuff);
+  Extract_XNAT_Buff(InData, DataSize, remote_id, local_id, destSiz, destBuff);
   phy_io := Protocol.PeerIO[local_id];
 
   if phy_io <> nil then
@@ -627,7 +627,7 @@ begin
   s_io := ShareListen.SendTunnel.PeerIO[xUserSpec.s_id];
   if s_io <> nil then
     begin
-      BuildBuff(buffer, Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
+      Build_XNAT_Buff(buffer, Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
       s_io.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
     end
   else
