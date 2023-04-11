@@ -396,6 +396,7 @@ type
     FLastSafeCheckTime: TTimeTick;
   public
     Param: U_String;
+    Param_File: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
     Alias_or_Hash___: U_String;
@@ -414,6 +415,8 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    function Find_File(fileName, ServiceTyp: U_String): U_String; overload;
+    function Find_File(fileName: U_String): U_String; overload;
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
@@ -455,6 +458,7 @@ type
     FLastSafeCheckTime: TTimeTick;
   public
     Param: U_String;
+    Param_File: U_String;
     ParamList: THashStringList;
     SafeCheckTime: TTimeTick;
     Alias_or_Hash___: U_String;
@@ -475,6 +479,7 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
+    function Find_File(fileName: U_String): U_String;
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
@@ -3574,6 +3579,7 @@ begin
   inherited Create;
 
   Param := Param_;
+  Param_File := '';
   C40PhysicsService := PhysicsService_;
 
   ParamList := THashStringList.Create;
@@ -3585,6 +3591,13 @@ begin
     DisposeObject(tmp);
   except
   end;
+
+  Param_File := Find_File(ParamList.GetDefaultValue('Param_File', PFormat('S_%s.conf', [ServiceTyp.Text])), ServiceTyp);
+  if umlFileExists(Param_File) then
+    begin
+      DoStatus('(%s) "%s" found configure file: %s', [ClassName, ServiceTyp.Text, Param_File.Text]);
+      ParamList.LoadFromFile(Param_File);
+    end;
 
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
@@ -3735,6 +3748,29 @@ end;
 function TC40_Custom_Service.Get_DB_FileName_Config(source_: U_String): U_String;
 begin
   Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
+function TC40_Custom_Service.Find_File(fileName, ServiceTyp: U_String): U_String;
+var
+  tmp: U_String;
+begin
+  Result := '';
+  if fileName = '' then
+      exit;
+  tmp := umlCombineFileName(umlCurrentPath, fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
+  tmp := umlCombineFileName(umlCombinePath(C40_RootPath, ServiceTyp.Text), fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
+  tmp := umlCombineFileName(C40_RootPath, fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
+end;
+
+function TC40_Custom_Service.Find_File(fileName: U_String): U_String;
+begin
+  Result := Find_File(fileName, ServiceInfo.ServiceTyp);
 end;
 
 function TC40_Custom_Service.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
@@ -3941,6 +3977,13 @@ begin
   except
   end;
 
+  Param_File := Find_File(ParamList.GetDefaultValue('Param_File', PFormat('C_%s.conf', [ClientInfo.ServiceTyp.Text])));
+  if umlFileExists(Param_File) then
+    begin
+      DoStatus('(%s) "%s" found configure file: %s', [ClassName, ClientInfo.ServiceTyp.Text, Param_File.Text]);
+      ParamList.LoadFromFile(Param_File);
+    end;
+
   FLastSafeCheckTime := GetTimeTick;
   SafeCheckTime := EStrToInt64(ParamList.GetDefaultValue('SafeCheckTime', umlIntToStr(C40_SafeCheckTime)), C40_SafeCheckTime);
   Alias_or_Hash___ := ParamList.GetDefaultValue('Alias', C40_ClientPool.MakeAlias(source_.ServiceTyp));
@@ -4062,6 +4105,24 @@ end;
 function TC40_Custom_Client.Get_DB_FileName_Config(source_: U_String): U_String;
 begin
   Result := ParamList.GetDefaultValue(source_, source_);
+end;
+
+function TC40_Custom_Client.Find_File(fileName: U_String): U_String;
+var
+  tmp: U_String;
+begin
+  Result := '';
+  if fileName = '' then
+      exit;
+  tmp := umlCombineFileName(umlCurrentPath, fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
+  tmp := umlCombineFileName(umlCombinePath(C40_RootPath, ClientInfo.ServiceTyp.Text), fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
+  tmp := umlCombineFileName(C40_RootPath, fileName);
+  if umlFileExists(tmp) then
+      exit(tmp);
 end;
 
 function TC40_Custom_Client.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
