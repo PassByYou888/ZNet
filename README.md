@@ -66,6 +66,15 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-4-11 新增p2pVM的底层加密机制**
+
+- Z.Cipher库新增AES128,192,256,加密接口,完整集成,新增的AES体系可适用于ZDB2-Thread,ZNet,ZInstaller2,ZDB2-Encoder/Decoder等等技术
+- 在Z.Net库p2pVM内核中新增Encrypt p2pVM Packet机制,可以避免p2pVM的明文数据暴露于公网,该更新从整体提升使用p2pVM体系项目的数据安全性
+- Encrypt p2pVM Packet机制默认为关闭状态,建议通过修改Z.Define.inc中的Encrypt_P2PVM_Packet构建开关来启动p2pVM安全机制
+- 提示:**Encrypt p2pVM Packet机制一旦启用,将会失去万兆网的支持能力**
+- 在C4网络的启动脚本中新增文件替代功能:C4服务器的启动参数一旦多了,例如达到了2000字符长度的命令行,这是非常反人类的,因此c4给出了配置文件指向功能,当遇上长参数时,以配置文件来代替即可.
+
+
 **2023-4-2 新增ZDB2数据集滚动存储支持**
 
 - ZDB2的数据集由多个分散的小数据库组成,滚动存储支持机制为限制单库物理尺寸,达到以后做删头处理
