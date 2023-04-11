@@ -259,6 +259,9 @@
 // Sequence packets default are closed in P2PVM-IO
 {$UNDEF UsedSequencePacketOnP2PVM}
 
+// P2PVM packet encryption, if need to be compatible old versions of ZNet, do not used Encrypt_P2PVM_Packet
+{$UNDEF Encrypt_P2PVM_Packet}
+
 // CommunicationFramework used QuietMode
 {$UNDEF Communication_QuietMode}
 
