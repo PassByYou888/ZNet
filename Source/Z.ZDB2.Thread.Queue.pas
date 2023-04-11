@@ -413,6 +413,7 @@ type
     procedure Async_Flush_Sequence_Table_M(const L: TZDB2_ID_List; OnResult: TOn_State_Event_M); overload;
     procedure Async_Flush_Sequence_Table_P(const Table_: TZDB2_BlockHandle; OnResult: TOn_State_Event_P); overload;
     procedure Async_Flush_Sequence_Table_P(const L: TZDB2_ID_List; OnResult: TOn_State_Event_P); overload;
+    procedure Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
 
     // misc
     class function Get_Handle(var buff: TZDB2_Th_CMD_ID_And_State_Array): TZDB2_BlockHandle;
@@ -1876,6 +1877,17 @@ end;
 procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table_P(const L: TZDB2_ID_List; OnResult: TOn_State_Event_P);
 begin
   Async_Flush_Sequence_Table_P(TZDB2_Core_Space.Get_Handle(L), OnResult);
+end;
+
+procedure TZDB2_Th_Queue.Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
+var
+  tmp: TZDB2_Th_CMD_Bridge_State;
+  Inst_: TZDB2_Th_CMD_Append_Custom_Space;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_State.Create;
+  Inst_ := TZDB2_Th_CMD_Append_Custom_Space.Create(self, Space_, Block_, nil);
+  tmp.Init(Inst_);
+  tmp.Ready;
 end;
 
 class function TZDB2_Th_Queue.Get_Handle(var buff: TZDB2_Th_CMD_ID_And_State_Array): TZDB2_BlockHandle;
