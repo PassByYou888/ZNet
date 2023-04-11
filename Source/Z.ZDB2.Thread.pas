@@ -928,10 +928,13 @@ procedure TZDB2_Th_Engine_Backup.Do_Run(Sender: TCompute);
 var
   hnd: TZDB2_BlockHandle;
 begin
-  hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
-  Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
-  DoStatus('backup to %s', [umlGetFileName(backup_file).Text]);
-  SetLength(hnd, 0);
+  try
+    hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
+    Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
+    DoStatus('backup to %s', [umlGetFileName(backup_file).Text]);
+    SetLength(hnd, 0);
+  except
+  end;
   Owner.FBackup_Is_Busy := False;
   DelayFreeObj(1.0, self);
 end;
