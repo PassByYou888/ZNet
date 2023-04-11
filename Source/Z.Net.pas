@@ -594,9 +594,11 @@ type
     OnNotifyP: TOnDataNotify_P;
   end;
 
-  POnEcho = ^TOnEcho;
+  PP2PVM_ECHO = ^TP2PVM_ECHO;
 
-  TOnEcho = record
+  TP2PVM_ECHO_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PP2PVM_ECHO>;
+
+  TP2PVM_ECHO = record
     OnEcho_C: TOnState_C;
     OnEcho_M: TOnState_M;
     OnEcho_P: TOnState_P;
@@ -616,7 +618,7 @@ type
   TInternalSaveReceiveBuffer = procedure(const Sender: TPeerIO; const buff: Pointer; siz: Int64) of object;
   TInternalProcessReceiveBuffer = procedure(const Sender: TPeerIO) of object;
   TInternalProcessSendBuffer = procedure(const Sender: TPeerIO) of object;
-  TInternalIOCreate = procedure(const Sender: TPeerIO) of object;
+  TInternal_IO_Create = procedure(const Sender: TPeerIO) of object;
   TInternal_IO_Destory = procedure(const Sender: TPeerIO) of object;
 
   TSequence_Packet_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Cardinal, PSequencePacket>;
@@ -651,6 +653,7 @@ type
     FReceivedAbort: Boolean;
     FReceivedBuffer: TMS64;
     FReceivedBuffer_Busy: TMS64;
+    // BigStream
     FBigStreamReceiveProcessing: Boolean;
     FBigStreamTotal: Int64;
     FBigStreamCompleted: Int64;
@@ -661,6 +664,7 @@ type
     FBigStreamSendCurrentPos: Int64;
     FBigStreamSendDoneTimeFree: Boolean;
     FWaitBigStreamReceiveDoneSignal: Boolean;
+    // CompleteBuffer
     FCompleteBufferReceiveProcessing: Boolean;
     FCompleteBufferTotal: Cardinal;
     FCompleteBufferCompressedSize: Cardinal;
@@ -668,6 +672,7 @@ type
     FCompleteBufferCmd: SystemString;
     FCompleteBufferReceivedStream: TMS64;
     FCompleteBuffer_Current_Trigger: TMS64;
+    // other
     FCurrentQueueData: PQueueData;
     FWaitOnResult: Boolean;
     FCurrentPauseResultSend_CommDataType: Byte;
@@ -755,13 +760,15 @@ type
     { private vm and protocol stack support }
     FP2PVMTunnel: TZNet_WithP2PVM;
     { vm auth token buffer }
-    FP2PAuthToken: TBytes;
+    FP2PVM_Auth_Token: TBytes;
+    FP2PVM_Cipher_Key: TCipherKeyBuffer;
+    FP2PVM_Cipher: TCipher_Base;
     { vm hook }
     On_Internal_Send_Byte_Buffer: TInternalSendByteBuffer;
     On_Internal_Save_Receive_Buffer: TInternalSaveReceiveBuffer;
     On_Internal_Process_Receive_Buffer: TInternalProcessReceiveBuffer;
     On_Internal_Process_Send_Buffer: TInternalProcessSendBuffer;
-    OnCreate: TInternalIOCreate;
+    OnCreate: TInternal_IO_Create;
     OnDestroy: TInternal_IO_Destory;
   protected
     { p2p vm: auth model result }
@@ -1255,6 +1262,7 @@ type
     FCompleteBufferCompressionCondition: Cardinal;
     FCompleteBufferSwapSpace: Boolean;
     FCompleteBufferSwapSpaceTriggerSize: Int64;
+    FEncrypt_P2PVM_Packet: Boolean;
     FPrintParams: TPrint_Param_Hash_Pool;
     FPostProgress: TN_Progress_ToolWithCadencer;
     FFrameworkIsServer: Boolean;
@@ -1305,15 +1313,15 @@ type
     procedure Framework_Internal_Save_Receive_Buffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
     procedure Framework_Internal_Process_Receive_Buffer(const Sender: TPeerIO);
     procedure Framework_Internal_Process_Send_Buffer(const Sender: TPeerIO);
-    procedure Framework_InternalIOCreate(const Sender: TPeerIO); virtual;
+    procedure Framework_Internal_IO_Create(const Sender: TPeerIO); virtual;
     procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); virtual;
 
     { private vm and protocol stack support }
-    procedure BuildP2PAuthTokenResult_OnIOIDLE(Sender: TCore_Object);
-    procedure CommandResult_BuildP2PAuthToken(Sender: TPeerIO; Result_: TDFE);
-    procedure Command_BuildP2PAuthToken(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure Command_InitP2PTunnel(Sender: TPeerIO; InData: SystemString);
-    procedure Command_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
+    procedure Build_P2PAuth_Token_Result_On_IO_IDLE(Sender: TCore_Object);
+    procedure Do_CMD_Result_BuildP2PAuthToken(Sender: TPeerIO; Result_: TDFE);
+    procedure CMD_BuildP2PAuthToken(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure CMD_InitP2PTunnel(Sender: TPeerIO; InData: SystemString);
+    procedure CMD_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
 
     procedure VMAuthSuccessAfterDelayExecute(Sender: TN_Post_Execute);
     procedure VMAuthSuccessDelayExecute(Sender: TN_Post_Execute);
@@ -1536,6 +1544,7 @@ type
     property CompleteBufferCompressionCondition: Cardinal read FCompleteBufferCompressionCondition write FCompleteBufferCompressionCondition;
     property CompleteBufferSwapSpace: Boolean read FCompleteBufferSwapSpace write FCompleteBufferSwapSpace;
     property CompleteBufferSwapSpaceTriggerSize: Int64 read FCompleteBufferSwapSpaceTriggerSize write FCompleteBufferSwapSpaceTriggerSize;
+    property Encrypt_P2PVM_Packet: Boolean read FEncrypt_P2PVM_Packet write FEncrypt_P2PVM_Packet;
     property ProgressMaxDelay: TTimeTick read FProgressMaxDelay write FProgressMaxDelay; { large-scale IO support }
     procedure CopyParamFrom(Source: TZNet);
     procedure CopyParamTo(Dest: TZNet);
@@ -1595,7 +1604,7 @@ type
     procedure Command_CipherModel(Sender: TPeerIO; InData, OutData: TDFE); virtual;
     procedure Command_Wait(Sender: TPeerIO; InData: SystemString; var OutData: SystemString); virtual;
 
-    procedure Framework_InternalIOCreate(const Sender: TPeerIO); override;
+    procedure Framework_Internal_IO_Create(const Sender: TPeerIO); override;
     procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); override;
   protected
     FOnServerCustomProtocolReceiveBufferNotify: TOnServerCustomProtocolReceiveBufferNotify;
@@ -1773,7 +1782,7 @@ type
     FRequestTime: TTimeTick;
     FReponseTime: TTimeTick;
 
-    procedure StreamResult_CipherModel(Sender: TPeerIO; Result_: TDFE);
+    procedure Do_CipherModel_Result(Sender: TPeerIO; Result_: TDFE);
     procedure DoConnected(Sender: TPeerIO); virtual;
     procedure DoDisconnect(Sender: TPeerIO); virtual;
     function CanExecuteCommand(Sender: TPeerIO; const Cmd: SystemString): Boolean; override;
@@ -1945,8 +1954,7 @@ type
     pkType: Byte;
     buff: PByte;
     procedure Init;
-    function FillReceiveBuff(Stream: TMS64): Integer;
-    procedure BuildSendBuff(Stream: TMS64);
+    procedure Build_P2PVM_Send_Buffer(Stream: TMS64);
   end;
 
   TP2P_VM_Fragment_Packet_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PP2PVMFragmentPacket>;
@@ -1981,9 +1989,10 @@ type
   end;
 
   { p2p VM listen service }
-  Pp2pVMListen = ^Tp2pVMListen;
+  PP2PVMListen = ^TP2PVMListen;
+  TP2PVM_Listen_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PP2PVMListen>;
 
-  Tp2pVMListen = record
+  TP2PVMListen = record
     FrameworkID: Cardinal;
     ListenHost: TIPV6;
     ListenPort: Word;
@@ -2003,9 +2012,9 @@ type
     procedure ProgressDisconnectClient(P_IO: TPeerIO);
     { internal Listen state }
     function ListenCount: Integer;
-    function GetListen(const index: Integer): Pp2pVMListen;
-    function FindListen(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
-    function FindListening(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+    function GetListen(const index: Integer): PP2PVMListen;
+    function FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
+    function FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
     procedure DeleteListen(const IPV6: TIPV6; const Port: Word);
     procedure ClearListen;
   public
@@ -2032,7 +2041,7 @@ type
 
   TZNet_WithP2PVM_Client = class(TZNet_Client)
   protected
-    procedure Framework_InternalIOCreate(const Sender: TPeerIO); override;
+    procedure Framework_Internal_IO_Create(const Sender: TPeerIO); override;
     procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); override;
     procedure VMConnectSuccessed(SenderVM: TZNet_WithP2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal); virtual;
     procedure VMDisconnect(SenderVM: TZNet_WithP2PVM); virtual;
@@ -2104,12 +2113,12 @@ type
     FAuthed: Boolean;
     FAuthSending: Boolean;
     FFrameworkPool: TUInt32HashObjectList;
-    FFrameworkListenPool: TCore_List;
+    FFrameworkListenPool: TP2PVM_Listen_List;
     FMaxVMFragmentSize: Cardinal;
     FQuietMode: Boolean;
     FReceiveStream: TMS64;
     FSendStream: TMS64;
-    FWaitEchoList: TCore_List;
+    FWaitEchoList: TP2PVM_ECHO_List;
     FVMID: Cardinal;
     OnAuthSuccessOnesNotify: TP2PVMAuthSuccessMethod;
   protected
@@ -2135,6 +2144,9 @@ type
   public
     constructor Create(HashPoolSize: Integer);
     destructor Destroy; override;
+
+    function Build_P2PVM_Packet(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
+    class procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
 
     { owner physical IO, maybe virtual IO }
     property Owner_IO: TPeerIO read FOwner_IO;
@@ -2165,7 +2177,7 @@ type
     procedure AuthSuccessed;
 
     { p2p VM echo support and keepalive }
-    procedure echoing(const OnEchoPtr: POnEcho; Timeout: TTimeTick);
+    procedure echoing(const OnEchoPtr: PP2PVM_ECHO; Timeout: TTimeTick);
     procedure echoingC(const OnResult: TOnState_C; Timeout: TTimeTick);
     procedure echoingM(const OnResult: TOnState_M; Timeout: TTimeTick);
     procedure echoingP(const OnResult: TOnState_P; Timeout: TTimeTick);
@@ -2182,9 +2194,9 @@ type
 
     { p2p VM Listen Query }
     function ListenCount: Integer;
-    function GetListen(const index: Integer): Pp2pVMListen;
-    function FindListen(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
-    function FindListening(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+    function GetListen(const index: Integer): PP2PVMListen;
+    function FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
+    function FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
     procedure DeleteListen(const IPV6: TIPV6; const Port: Word);
     procedure ClearListen;
 
@@ -2740,9 +2752,6 @@ procedure DisposeQueueData(const v: PQueueData);
 procedure InitQueueData(var v: TQueueData);
 function NewQueueData(IO: TPeerIO): PQueueData;
 
-function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
-procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
-
 function IsSystemCMD(const Cmd: U_String): Boolean;
 
 function StrToIPv4(const S: U_String; var Success: Boolean): TIPV4;
@@ -3049,33 +3058,6 @@ begin
   InitQueueData(Result^);
   Result^.IP := IO.GetPeerIP;
   Result^.IO_ID := IO.ID;
-end;
-
-function BuildP2PVMPacket(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
-var
-  p: PP2PVMFragmentPacket;
-begin
-  New(p);
-  p^.BuffSiz := BuffSiz;
-  p^.FrameworkID := FrameworkID;
-  p^.p2pID := p2pID;
-  p^.pkType := pkType;
-  if (buff <> nil) and (p^.BuffSiz > 0) then
-    begin
-      p^.buff := GetMemory(p^.BuffSiz);
-      CopyPtr(buff, p^.buff, p^.BuffSiz);
-    end
-  else
-      p^.buff := nil;
-
-  Result := p;
-end;
-
-procedure FreeP2PVMPacket(p: PP2PVMFragmentPacket);
-begin
-  if (p^.buff <> nil) and (p^.BuffSiz > 0) then
-      FreeMem(p^.buff, p^.BuffSiz);
-  Dispose(p);
 end;
 
 function IsSystemCMD(const Cmd: U_String): Boolean;
@@ -7215,10 +7197,11 @@ begin
     begin
       OwnerFramework.p2pVMTunnelClose(self, FP2PVMTunnel);
       FP2PVMTunnel.CloseP2PVMTunnel;
-      DisposeObject(FP2PVMTunnel);
-      FP2PVMTunnel := nil;
-      SetLength(FP2PAuthToken, 0);
+      DisposeObjectAndNil(FP2PVMTunnel);
     end;
+  SetLength(FP2PVM_Auth_Token, 0);
+  SetLength(FP2PVM_Cipher_Key, 0);
+  DisposeObjectAndNil(FP2PVM_Cipher);
 end;
 
 constructor TPeerIO.Create(OwnerFramework_: TZNet; IOInterface_: TCore_Object);
@@ -7323,13 +7306,15 @@ begin
   InitSequencePacketModel(64, $FFFF);
 
   FP2PVMTunnel := nil;
-  SetLength(FP2PAuthToken, 0);
+  SetLength(FP2PVM_Auth_Token, 0);
+  SetLength(FP2PVM_Cipher_Key, 0);
+  FP2PVM_Cipher := nil;
 
   On_Internal_Send_Byte_Buffer := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_Send_Byte_Buffer;
   On_Internal_Save_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_Save_Receive_Buffer;
   On_Internal_Process_Receive_Buffer := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_Process_Receive_Buffer;
   On_Internal_Process_Send_Buffer := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_Process_Send_Buffer;
-  OnCreate := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_InternalIOCreate;
+  OnCreate := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_IO_Create;
   OnDestroy := {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Framework_Internal_IO_Destroy;
 
   OnVMBuildAuthModelResult_C := nil;
@@ -7539,7 +7524,7 @@ begin
 
   d := TDFE.Create;
   d.WriteInteger(umlRandomRange64(-MaxInt, MaxInt));
-  SendStreamCmdM(C_BuildP2PAuthToken, d, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.CommandResult_BuildP2PAuthToken);
+  SendStreamCmdM(C_BuildP2PAuthToken, d, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.Do_CMD_Result_BuildP2PAuthToken);
   DisposeObject(d);
   Internal_Process_Send_Buffer();
 
@@ -9019,7 +9004,7 @@ begin
   Sender.Internal_Process_Send_Buffer();
 end;
 
-procedure TZNet.Framework_InternalIOCreate(const Sender: TPeerIO);
+procedure TZNet.Framework_Internal_IO_Create(const Sender: TPeerIO);
 begin
   if FIOInterface <> nil then
       FIOInterface.PeerIO_Create(Sender);
@@ -9031,7 +9016,7 @@ begin
       FIOInterface.PeerIO_Destroy(Sender);
 end;
 
-procedure TZNet.BuildP2PAuthTokenResult_OnIOIDLE(Sender: TCore_Object);
+procedure TZNet.Build_P2PAuth_Token_Result_On_IO_IDLE(Sender: TCore_Object);
 var
   P_IO: TPeerIO;
 begin
@@ -9061,40 +9046,69 @@ begin
   P_IO.OnVMBuildAuthModelResultIO_P := nil;
 end;
 
-procedure TZNet.CommandResult_BuildP2PAuthToken(Sender: TPeerIO; Result_: TDFE);
+procedure TZNet.Do_CMD_Result_BuildP2PAuthToken(Sender: TPeerIO; Result_: TDFE);
 var
   i: Integer;
-  arr: TDFArrayInteger;
+  arr32: TDFArrayInteger;
+  CS: TCipherSecurity;
+  arr8: TDFArrayByte;
 begin
-  arr := Result_.ReadArrayInteger(0);
-  SetLength(Sender.FP2PAuthToken, arr.Count * 4);
-  for i := 0 to arr.Count - 1 do
-      PInteger(@Sender.FP2PAuthToken[i * 4])^ := arr[i];
+  { read auth buffer }
+  arr32 := Result_.R.ReadArrayInteger;
+  SetLength(Sender.FP2PVM_Auth_Token, arr32.Count * 4);
+  for i := 0 to arr32.Count - 1 do
+      PInteger(@Sender.FP2PVM_Auth_Token[i * 4])^ := arr32[i];
 
-  Sender.IO_IDLE_TraceM(Sender, {$IFDEF FPC}@{$ENDIF FPC}BuildP2PAuthTokenResult_OnIOIDLE);
+  { read p2pVM cipher style }
+  CS := TCipherSecurity(Result_.R.ReadByte);
+
+  { read p2pVM cipher key }
+  arr8 := Result_.R.ReadArrayByte;
+  SetLength(Sender.FP2PVM_Cipher_Key, arr8.Count);
+  arr8.GetBuff(@Sender.FP2PVM_Cipher_Key[0]);
+
+  { build p2pVM cipher instance }
+  Sender.FP2PVM_Cipher := CreateCipherClassFromBuffer(CS, Sender.FP2PVM_Cipher_Key);
+
+  Sender.IO_IDLE_TraceM(Sender, {$IFDEF FPC}@{$ENDIF FPC}Build_P2PAuth_Token_Result_On_IO_IDLE);
 end;
 
-procedure TZNet.Command_BuildP2PAuthToken(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TZNet.CMD_BuildP2PAuthToken(Sender: TPeerIO; InData, OutData: TDFE);
 var
   i: Integer;
   seed: Integer;
-  arr: TDFArrayInteger;
+  arry32: TDFArrayInteger;
+  CS: TCipherSecurity;
 begin
   Sender.ResetSequencePacketBuffer;
   Sender.FSequencePacketSignal := False;
 
   { build auth buffer }
   seed := InData.Reader.ReadInteger;
-  arr := OutData.WriteArrayInteger;
+  arry32 := OutData.WriteArrayInteger;
   for i := ZNet_Def_VMAuthSize - 1 downto 0 do
-      arr.Add(TMISC.Ran03(seed));
+      arry32.Add(TMISC.Ran03(seed));
+  SetLength(Sender.FP2PVM_Auth_Token, arry32.Count * 4);
+  for i := 0 to arry32.Count - 1 do
+      PInteger(@Sender.FP2PVM_Auth_Token[i * 4])^ := arry32[i];
 
-  SetLength(Sender.FP2PAuthToken, arr.Count * 4);
-  for i := 0 to arr.Count - 1 do
-      PInteger(@Sender.FP2PAuthToken[i * 4])^ := arr[i];
+  { build p2pVM cipher style }
+  if FEncrypt_P2PVM_Packet then
+      CS := TCipher.Random_Select_Cipher([csRC6, csSerpent, csMars, csRijndael, csTwoFish, csAES128])
+  else
+      CS := csNone;
+  OutData.WriteByte(Byte(CS));
+
+  { build p2pVM cipher key }
+  SetLength(Sender.FP2PVM_Cipher_Key, 256);
+  TMT19937.Rand32(MaxInt, @Sender.FP2PVM_Cipher_Key[0], 256 div 4);
+  OutData.WriteArrayByte.SetBuff(@Sender.FP2PVM_Cipher_Key[0], 256);
+
+  { build p2pVM cipher instance }
+  Sender.FP2PVM_Cipher := CreateCipherClassFromBuffer(CS, Sender.FP2PVM_Cipher_Key);
 end;
 
-procedure TZNet.Command_InitP2PTunnel(Sender: TPeerIO; InData: SystemString);
+procedure TZNet.CMD_InitP2PTunnel(Sender: TPeerIO; InData: SystemString);
 var
   Accept: Boolean;
 begin
@@ -9114,7 +9128,7 @@ begin
   p2pVMTunnelOpenBefore(Sender, Sender.p2pVMTunnel);
 end;
 
-procedure TZNet.Command_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
+procedure TZNet.CMD_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
 begin
   Sender.Internal_Close_P2PVMTunnel;
   Sender.ResetSequencePacketBuffer;
@@ -9489,7 +9503,7 @@ begin
   FIdleTimeOut := 0;
   FFastEncrypt := True;
   FUsedParallelEncrypt := True;
-  FSyncOnResult := False;
+  FSyncOnResult := True;
   FSyncOnCompleteBuffer := True;
   FBigStreamMemorySwapSpace := ZNet_Def_BigStream_Memory_SwapSpace_Activted;
   FBigStreamSwapSpaceTriggerSize := ZNet_Def_BigStream_SwapSpace_Trigger;
@@ -9511,6 +9525,11 @@ begin
   FCompleteBufferCompressionCondition := ZNet_Def_CompleteBufferCompressionCondition;
   FCompleteBufferSwapSpace := ZNet_Def_CompleteBuffer_SwapSpace_Activted;
   FCompleteBufferSwapSpaceTriggerSize := ZNet_Def_CompleteBuffer_SwapSpace_Trigger;
+{$IFDEF Encrypt_P2PVM_Packet}
+  FEncrypt_P2PVM_Packet := True;
+{$ELSE Encrypt_P2PVM_Packet}
+  FEncrypt_P2PVM_Packet := False;
+{$ENDIF Encrypt_P2PVM_Packet}
   FPeerIOUserDefineClass := TPeerIOUserDefine;
   FPeerIOUserSpecialClass := TPeerIOUserSpecial;
 
@@ -9553,9 +9572,9 @@ begin
   CmdSendStatistics := TCommand_Num_Hash_Pool.Create(128, 0);
   CmdMaxExecuteConsumeStatistics := TCommand_Tick_Hash_Pool.Create(128, 0);
 
-  RegisterStream(C_BuildP2PAuthToken).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_BuildP2PAuthToken;
-  RegisterDirectConsole(C_InitP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_InitP2PTunnel;
-  RegisterDirectConsole(C_CloseP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CloseP2PTunnel;
+  RegisterStream(C_BuildP2PAuthToken).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_BuildP2PAuthToken;
+  RegisterDirectConsole(C_InitP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_InitP2PTunnel;
+  RegisterDirectConsole(C_CloseP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_CloseP2PTunnel;
 
   FPrintParams := TPrint_Param_Hash_Pool.Create(100, False);
   FPrintParams.Add(C_CipherModel, False, False);
@@ -9799,7 +9818,7 @@ end;
 
 procedure TZNet.SwitchMaxSecurity;
 const
-  C_CipherSecurity: array [0 .. 4] of TCipherSecurity = (csRC6, csSerpent, csMars, csRijndael, csTwoFish);
+  C_CipherSecurity: array [0 .. 7] of TCipherSecurity = (csRC6, csSerpent, csMars, csRijndael, csTwoFish, csAES128, csAES192, csAES256);
 var
   i: Integer;
 begin
@@ -9815,8 +9834,8 @@ end;
 
 procedure TZNet.SwitchDefaultPerformance;
 const
-  C_CipherSecurity: array [0 .. 11] of TCipherSecurity =
-    (csDES64, csDES128, csDES192, csBlowfish, csLBC, csLQC, csXXTea512, csRC6, csSerpent, csMars, csRijndael, csTwoFish);
+  C_CipherSecurity: array [0 .. 14] of TCipherSecurity =
+    (csDES64, csDES128, csDES192, csBlowfish, csLBC, csLQC, csXXTea512, csRC6, csSerpent, csMars, csRijndael, csTwoFish, csAES128, csAES192, csAES256);
 var
   i: Integer;
 begin
@@ -10534,7 +10553,7 @@ end;
 function TZNet.GetRandomCipherSecurity: TCipherSecurity;
 begin
   if Length(FCipherSecurityArray) > 0 then
-      Result := FCipherSecurityArray[umlRandomRange(low(FCipherSecurityArray), high(FCipherSecurityArray))]
+      Result := TCipher.Random_Select_Cipher(FCipherSecurityArray)
   else
       Result := csNone;
 end;
@@ -10643,10 +10662,10 @@ begin
   OutData := IntToHex(GetTimeTick, SizeOf(TTimeTick) * 2);
 end;
 
-procedure TZNet_Server.Framework_InternalIOCreate(const Sender: TPeerIO);
+procedure TZNet_Server.Framework_Internal_IO_Create(const Sender: TPeerIO);
 begin
   DoIOConnectBefore(Sender);
-  inherited Framework_InternalIOCreate(Sender);
+  inherited Framework_Internal_IO_Create(Sender);
   if FProtocol = cpCustom then
       DoIOConnectAfter(Sender);
 end;
@@ -11719,7 +11738,7 @@ begin
   ProgressMaxDelay := 0;
 end;
 
-procedure TZNet_Client.StreamResult_CipherModel(Sender: TPeerIO; Result_: TDFE);
+procedure TZNet_Client.Do_CipherModel_Result(Sender: TPeerIO; Result_: TDFE);
 var
   arr: TDFArrayByte;
 begin
@@ -11816,7 +11835,7 @@ begin
           FServerState.Reset();
           d := TDFE.Create;
           d.WriteInteger(Integer(CurrentPlatform));
-          SendStreamCmdM(C_CipherModel, d, {$IFDEF FPC}@{$ENDIF FPC}StreamResult_CipherModel);
+          SendStreamCmdM(C_CipherModel, d, {$IFDEF FPC}@{$ENDIF FPC}Do_CipherModel_Result);
           DisposeObject(d);
 
           if FOnInterface <> nil then
@@ -13118,31 +13137,7 @@ begin
   buff := nil;
 end;
 
-function TP2PVMFragmentPacket.FillReceiveBuff(Stream: TMS64): Integer;
-begin
-  Result := 0;
-  if Stream.Size < 13 then
-    begin
-      Init;
-      exit;
-    end;
-  if Stream.Size < PCardinal(Stream.PositionAsPtr(0))^ + 13 then
-    begin
-      Init;
-      exit;
-    end;
-  BuffSiz := PCardinal(Stream.PositionAsPtr(0))^;
-  FrameworkID := PCardinal(Stream.PositionAsPtr(4))^;
-  p2pID := PCardinal(Stream.PositionAsPtr(8))^;
-  pkType := PByte(Stream.PositionAsPtr(12))^;
-  if BuffSiz > 0 then
-      buff := Stream.PositionAsPtr(13)
-  else
-      buff := nil;
-  Result := BuffSiz + 13;
-end;
-
-procedure TP2PVMFragmentPacket.BuildSendBuff(Stream: TMS64);
+procedure TP2PVMFragmentPacket.Build_P2PVM_Send_Buffer(Stream: TMS64);
 begin
   Stream.WritePtr(@BuffSiz, 4);
   Stream.WritePtr(@FrameworkID, 4);
@@ -13199,7 +13194,7 @@ begin
 
   while FSendQueue.num > 0 do
     begin
-      FreeP2PVMPacket(FSendQueue.current^.data);
+      TZNet_WithP2PVM.FreeP2PVMPacket(FSendQueue.current^.data);
       FSendQueue.Next;
     end;
   DisposeObject(FSendQueue);
@@ -13256,13 +13251,13 @@ begin
       { send fragment }
       while siz > FLinkVM.FMaxVMFragmentSize do
         begin
-          FSendQueue.Push(BuildP2PVMPacket(FLinkVM.FMaxVMFragmentSize, FRemote_frameworkID, FRemote_p2pID, ZNet_Def_p2pVM_LogicFragmentData, p));
+          FSendQueue.Push(FLinkVM.Build_P2PVM_Packet(FLinkVM.FMaxVMFragmentSize, FRemote_frameworkID, FRemote_p2pID, ZNet_Def_p2pVM_LogicFragmentData, p));
           inc(p, FLinkVM.FMaxVMFragmentSize);
           dec(siz, FLinkVM.FMaxVMFragmentSize);
         end;
 
       if siz > 0 then
-          FSendQueue.Push(BuildP2PVMPacket(siz, FRemote_frameworkID, FRemote_p2pID, ZNet_Def_p2pVM_LogicFragmentData, p));
+          FSendQueue.Push(FLinkVM.Build_P2PVM_Packet(siz, FRemote_frameworkID, FRemote_p2pID, ZNet_Def_p2pVM_LogicFragmentData, p));
     end;
 
   FRealSendBuff.Clear;
@@ -13319,7 +13314,7 @@ end;
 procedure TZNet_WithP2PVM_Server.Connecting(SenderVM: TZNet_WithP2PVM;
   const Remote_frameworkID, FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; var Allowed: Boolean);
 var
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
   LocalVMc: TP2PVM_PeerIO;
 begin
   if FLinkVMPool.Count = 0 then
@@ -13370,15 +13365,15 @@ begin
   Result := FFrameworkListenPool.Count;
 end;
 
-function TZNet_WithP2PVM_Server.GetListen(const index: Integer): Pp2pVMListen;
+function TZNet_WithP2PVM_Server.GetListen(const index: Integer): PP2PVMListen;
 begin
   Result := FFrameworkListenPool[index];
 end;
 
-function TZNet_WithP2PVM_Server.FindListen(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+function TZNet_WithP2PVM_Server.FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
     begin
@@ -13392,10 +13387,10 @@ begin
   Result := nil;
 end;
 
-function TZNet_WithP2PVM_Server.FindListening(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+function TZNet_WithP2PVM_Server.FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
     begin
@@ -13412,7 +13407,7 @@ end;
 procedure TZNet_WithP2PVM_Server.DeleteListen(const IPV6: TIPV6; const Port: Word);
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   i := 0;
   while i < FFrameworkListenPool.Count do
@@ -13433,7 +13428,7 @@ var
   i: Integer;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
-      Dispose(Pp2pVMListen(FFrameworkListenPool[i]));
+      Dispose(PP2PVMListen(FFrameworkListenPool[i]));
   FFrameworkListenPool.Clear;
 end;
 
@@ -13495,7 +13490,7 @@ end;
 procedure TZNet_WithP2PVM_Server.ProgressStopServiceWithPerVM(SenderVM: TZNet_WithP2PVM);
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
   lst: TCore_List;
 begin
   lst := TCore_List.Create;
@@ -13546,7 +13541,7 @@ var
   SI: Cardinal;
   i: Integer;
   p: PUInt32HashListObjectStruct;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
 begin
   Result := False;
 
@@ -13604,9 +13599,9 @@ begin
   RaiseInfo('WaitSend no Suppport VM server');
 end;
 
-procedure TZNet_WithP2PVM_Client.Framework_InternalIOCreate(const Sender: TPeerIO);
+procedure TZNet_WithP2PVM_Client.Framework_Internal_IO_Create(const Sender: TPeerIO);
 begin
-  inherited Framework_InternalIOCreate(Sender);
+  inherited Framework_Internal_IO_Create(Sender);
 end;
 
 procedure TZNet_WithP2PVM_Client.Framework_Internal_IO_Destroy(const Sender: TPeerIO);
@@ -13828,7 +13823,7 @@ procedure TZNet_WithP2PVM_Client.AsyncConnect(addr: SystemString; Port: Word);
 var
   R: Boolean;
   IPV6: TIPV6;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   Disconnect;
   if FLinkVM = nil then
@@ -13882,7 +13877,7 @@ procedure TZNet_WithP2PVM_Client.AsyncConnectC(addr: SystemString; Port: Word; c
 var
   R: Boolean;
   IPV6: TIPV6;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   Disconnect;
   if FLinkVM = nil then
@@ -13936,7 +13931,7 @@ procedure TZNet_WithP2PVM_Client.AsyncConnectM(addr: SystemString; Port: Word; c
 var
   R: Boolean;
   IPV6: TIPV6;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   Disconnect;
   if FLinkVM = nil then
@@ -13991,7 +13986,7 @@ procedure TZNet_WithP2PVM_Client.AsyncConnectP(addr: SystemString; Port: Word; c
 var
   R: Boolean;
   IPV6: TIPV6;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   Disconnect;
   if FLinkVM = nil then
@@ -14045,7 +14040,7 @@ end;
 function TZNet_WithP2PVM_Client.Connect(addr: SystemString; Port: Word): Boolean;
 var
   IPV6: TIPV6;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
   t: TTimeTick;
 begin
   Disconnect;
@@ -14178,20 +14173,16 @@ end;
 
 procedure TZNet_WithP2PVM.Hook_SendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
 var
-  t: TP2PVMFragmentPacket;
+  p: PP2PVMFragmentPacket;
 begin
   if siz <= 0 then
       exit;
 
   if FAuthed then
     begin
-      t.Init;
-      t.BuffSiz := siz;
-      t.FrameworkID := 0;
-      t.p2pID := 0;
-      t.pkType := ZNet_Def_p2pVM_OwnerIOFragmentData;
-      t.buff := buff;
-      t.BuildSendBuff(FSendStream);
+      p := Build_P2PVM_Packet(siz, 0, 0, ZNet_Def_p2pVM_OwnerIOFragmentData, buff);
+      p^.Build_P2PVM_Send_Buffer(FSendStream);
+      FreeP2PVMPacket(p);
     end
   else
       FSendStream.WritePtr(buff, siz);
@@ -14207,9 +14198,33 @@ begin
 end;
 
 procedure TZNet_WithP2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
+  function Extract_P2PVM_Receive_Buffer(var fPk: TP2PVMFragmentPacket; const Stream: TMS64): Integer;
+  begin
+    Result := 0;
+    if Stream.Size < 13 then
+      begin
+        fPk.Init;
+        exit;
+      end;
+    if Stream.Size < PCardinal(Stream.PositionAsPtr(0))^ + 13 then
+      begin
+        fPk.Init;
+        exit;
+      end;
+    fPk.BuffSiz := PCardinal(Stream.PositionAsPtr(0))^;
+    fPk.FrameworkID := PCardinal(Stream.PositionAsPtr(4))^;
+    fPk.p2pID := PCardinal(Stream.PositionAsPtr(8))^;
+    fPk.pkType := PByte(Stream.PositionAsPtr(12))^;
+    if fPk.BuffSiz > 0 then
+        fPk.buff := Stream.PositionAsPtr(13)
+    else
+        fPk.buff := nil;
+    Result := fPk.BuffSiz + 13;
+  end;
+
 var
   i: Integer;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
   p64: Int64;
   sourStream: TMS64;
   fPk: TP2PVMFragmentPacket;
@@ -14228,8 +14243,8 @@ begin
   { p2p auth }
   if not FAuthed then
     begin
-      if (FAuthWaiting) and (FReceiveStream.Size >= Length(FOwner_IO.FP2PAuthToken)) and
-        (CompareMemory(@FOwner_IO.FP2PAuthToken[0], FReceiveStream.Memory, Length(FOwner_IO.FP2PAuthToken))) then
+      if (FAuthWaiting) and (FReceiveStream.Size >= Length(FOwner_IO.FP2PVM_Auth_Token)) and
+        (CompareMemory(@FOwner_IO.FP2PVM_Auth_Token[0], FReceiveStream.Memory, Length(FOwner_IO.FP2PVM_Auth_Token))) then
         begin
           FSendStream.Clear;
 
@@ -14251,7 +14266,7 @@ begin
           AuthSuccessed;
 
           { fill fragment buffer }
-          p64 := Length(FOwner_IO.FP2PAuthToken);
+          p64 := Length(FOwner_IO.FP2PVM_Auth_Token);
           sourStream := TMS64.Create;
           FReceiveStream.Position := p64;
           if FReceiveStream.Size - FReceiveStream.Position > 0 then
@@ -14267,7 +14282,7 @@ begin
       else
         begin
           { safe process fragment }
-          if FReceiveStream.Size >= Length(FOwner_IO.FP2PAuthToken) then
+          if FReceiveStream.Size >= Length(FOwner_IO.FP2PVM_Auth_Token) then
             begin
               FOwner_IO.OwnerFramework.Framework_Internal_Save_Receive_Buffer(FOwner_IO, FReceiveStream.Memory, FReceiveStream.Size);
               FReceiveStream.Clear;
@@ -14287,9 +14302,12 @@ begin
   while sourStream.Size > 0 do
     begin
       fPk.Init;
-      rPos := fPk.FillReceiveBuff(sourStream);
+      rPos := Extract_P2PVM_Receive_Buffer(fPk, sourStream);
       if rPos > 0 then
         begin
+          { decrypt p2pVM packet data }
+          if fPk.BuffSiz > 0 then
+              FOwner_IO.FP2PVM_Cipher.Decrypt(fPk.buff, fPk.BuffSiz);
           { protocol support }
           if fPk.pkType = ZNet_Def_p2pVM_echoing then
               ReceivedEchoing(fPk.FrameworkID, fPk.p2pID, fPk.buff, fPk.BuffSiz)
@@ -14329,9 +14347,7 @@ begin
           { fill buffer }
           inc(p64, rPos);
           if FReceiveStream.Size - p64 >= 13 then
-            begin
-              sourStream.SetPointerWithProtectedMode(FReceiveStream.PositionAsPtr(p64), FReceiveStream.Size - p64);
-            end
+              sourStream.SetPointerWithProtectedMode(FReceiveStream.PositionAsPtr(p64), FReceiveStream.Size - p64)
           else
               Break;
         end
@@ -14378,7 +14394,7 @@ type
 var
   p: PBuf;
   u64ptr: UInt64;
-  echoPtr: POnEcho;
+  echoPtr: PP2PVM_ECHO;
   i: Integer;
 begin
   if siz <> SizeOf(TBuf) then
@@ -14430,7 +14446,7 @@ var
   IPV6: TIPV6;
   Port: Word;
   Listening: Boolean;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
 begin
   if siz <> SizeOf(TBuf) then
     begin
@@ -14487,7 +14503,7 @@ var
   IPV6: TIPV6;
   Port: Word;
   Listening: Boolean;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
 begin
   if siz <> SizeOf(TBuf) then
     begin
@@ -14712,7 +14728,7 @@ begin
     begin
       p := TP2PVM_PeerIO(P_IO).FSendQueue.current^.data;
       TP2PVM_PeerIO(P_IO).FSendQueue.Next;
-      p^.BuildSendBuff(FSendStream);
+      p^.Build_P2PVM_Send_Buffer(FSendStream);
       FreeP2PVMPacket(p);
     end;
 end;
@@ -14735,12 +14751,12 @@ begin
   FFrameworkPool := TUInt32HashObjectList.CustomCreate(HashPoolSize);
   FFrameworkPool.AutoFreeData := False;
   FFrameworkPool.AccessOptimization := False;
-  FFrameworkListenPool := TCore_List.Create;
+  FFrameworkListenPool := TP2PVM_Listen_List.Create;
   FMaxVMFragmentSize := ZNet_Def_P2PVM_MaxVMFragmentSize;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
   FReceiveStream := TMS64.CustomCreate(16384);
   FSendStream := TMS64.CustomCreate(16384);
-  FWaitEchoList := TCore_List.Create;
+  FWaitEchoList := TP2PVM_ECHO_List.Create;
   FVMID := 0;
   OnAuthSuccessOnesNotify := nil;
 end;
@@ -14748,7 +14764,7 @@ end;
 destructor TZNet_WithP2PVM.Destroy;
 var
   i: Integer;
-  OnEchoPtr: POnEcho;
+  OnEchoPtr: PP2PVM_ECHO;
 begin
   for i := 0 to FWaitEchoList.Count - 1 do
     begin
@@ -14767,12 +14783,42 @@ begin
   inherited Destroy;
 end;
 
+function TZNet_WithP2PVM.Build_P2PVM_Packet(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
+var
+  p: PP2PVMFragmentPacket;
+begin
+  New(p);
+  p^.BuffSiz := BuffSiz;
+  p^.FrameworkID := FrameworkID;
+  p^.p2pID := p2pID;
+  p^.pkType := pkType;
+  if (buff <> nil) and (p^.BuffSiz > 0) then
+    begin
+      p^.buff := System.GetMemory(p^.BuffSiz);
+      CopyPtr(buff, p^.buff, p^.BuffSiz);
+      { encrypt p2pVM packet data }
+      if p^.BuffSiz > 0 then
+          FOwner_IO.FP2PVM_Cipher.Encrypt(p^.buff, p^.BuffSiz);
+    end
+  else
+      p^.buff := nil;
+
+  Result := p;
+end;
+
+class procedure TZNet_WithP2PVM.FreeP2PVMPacket(p: PP2PVMFragmentPacket);
+begin
+  if (p^.buff <> nil) and (p^.BuffSiz > 0) then
+      System.FreeMemory(p^.buff);
+  Dispose(p);
+end;
+
 procedure TZNet_WithP2PVM.Progress;
 var
   i: Integer;
   p: PUInt32HashListObjectStruct;
   lsiz: Int64;
-  OnEchoPtr: POnEcho;
+  OnEchoPtr: PP2PVM_ECHO;
 begin
   if FOwner_IO = nil then
       exit;
@@ -14937,7 +14983,7 @@ end;
 procedure TZNet_WithP2PVM.CloseP2PVMTunnel;
 var
   i: Integer;
-  OnEchoPtr: POnEcho;
+  OnEchoPtr: PP2PVM_ECHO;
   p: PUInt32HashListObjectStruct;
 begin
   for i := 0 to FWaitEchoList.Count - 1 do
@@ -14993,7 +15039,7 @@ end;
 procedure TZNet_WithP2PVM.InstallLogicFramework(c: TZNet);
 var
   i: Integer;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
 begin
   if (c is TZNet_CustomStableServer) then
     begin
@@ -15058,7 +15104,7 @@ end;
 procedure TZNet_WithP2PVM.UninstallLogicFramework(c: TZNet);
 var
   i: Integer;
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
 begin
   if (c is TZNet_CustomStableServer) then
     begin
@@ -15113,7 +15159,7 @@ begin
   if not FAuthed then
     if not FAuthSending then
       begin
-        FSendStream.WritePtr(@FOwner_IO.FP2PAuthToken[0], Length(FOwner_IO.FP2PAuthToken));
+        FSendStream.WritePtr(@FOwner_IO.FP2PVM_Auth_Token[0], Length(FOwner_IO.FP2PVM_Auth_Token));
         FAuthSending := True;
         FAuthWaiting := True;
       end;
@@ -15123,14 +15169,14 @@ procedure TZNet_WithP2PVM.AuthSuccessed;
 var
   p: PP2PVMFragmentPacket;
 begin
-  p := BuildP2PVMPacket(0, 0, 0, ZNet_Def_p2pVM_AuthSuccessed, nil);
+  p := Build_P2PVM_Packet(0, 0, 0, ZNet_Def_p2pVM_AuthSuccessed, nil);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.echoing(const OnEchoPtr: POnEcho; Timeout: TTimeTick);
+procedure TZNet_WithP2PVM.echoing(const OnEchoPtr: PP2PVM_ECHO; Timeout: TTimeTick);
 var
   u64ptr: UInt64;
   p: PP2PVMFragmentPacket;
@@ -15165,10 +15211,10 @@ begin
     end;
 
   u64ptr := UInt64(OnEchoPtr);
-  p := BuildP2PVMPacket(8, 0, 0, ZNet_Def_p2pVM_echoing, @u64ptr);
+  p := Build_P2PVM_Packet(8, 0, 0, ZNet_Def_p2pVM_echoing, @u64ptr);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 
   FWaitEchoList.Add(OnEchoPtr);
@@ -15176,7 +15222,7 @@ end;
 
 procedure TZNet_WithP2PVM.echoingC(const OnResult: TOnState_C; Timeout: TTimeTick);
 var
-  p: POnEcho;
+  p: PP2PVM_ECHO;
 begin
   New(p);
   p^.OnEcho_C := OnResult;
@@ -15188,7 +15234,7 @@ end;
 
 procedure TZNet_WithP2PVM.echoingM(const OnResult: TOnState_M; Timeout: TTimeTick);
 var
-  p: POnEcho;
+  p: PP2PVM_ECHO;
 begin
   New(p);
   p^.OnEcho_C := nil;
@@ -15200,7 +15246,7 @@ end;
 
 procedure TZNet_WithP2PVM.echoingP(const OnResult: TOnState_P; Timeout: TTimeTick);
 var
-  p: POnEcho;
+  p: PP2PVM_ECHO;
 begin
   New(p);
   p^.OnEcho_C := nil;
@@ -15216,16 +15262,16 @@ var
 begin
   if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
-  p := BuildP2PVMPacket(siz, 0, 0, ZNet_Def_p2pVM_echo, buff);
+  p := Build_P2PVM_Packet(siz, 0, 0, ZNet_Def_p2pVM_echo, buff);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
 procedure TZNet_WithP2PVM.SendListen(const FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; const Listening: Boolean);
 var
-  LP: Pp2pVMListen;
+  LP: PP2PVMListen;
   c: TZNet;
   RBuf: array [0 .. 18] of Byte;
   p: PP2PVMFragmentPacket;
@@ -15262,10 +15308,10 @@ begin
       PIPV6(@RBuf[0])^ := IPV6;
       PWORD(@RBuf[16])^ := Port;
       PBoolean(@RBuf[18])^ := Listening;
-      p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, ZNet_Def_p2pVM_Listen, @RBuf[0]);
+      p := Build_P2PVM_Packet(SizeOf(RBuf), FrameworkID, 0, ZNet_Def_p2pVM_Listen, @RBuf[0]);
 
       FSendStream.Position := FSendStream.Size;
-      p^.BuildSendBuff(FSendStream);
+      p^.Build_P2PVM_Send_Buffer(FSendStream);
       FreeP2PVMPacket(p);
     end;
 end;
@@ -15280,10 +15326,10 @@ begin
   PIPV6(@RBuf[0])^ := IPV6;
   PWORD(@RBuf[16])^ := Port;
   PBoolean(@RBuf[18])^ := Listening;
-  p := BuildP2PVMPacket(SizeOf(RBuf), FrameworkID, 0, ZNet_Def_p2pVM_ListenState, @RBuf[0]);
+  p := Build_P2PVM_Packet(SizeOf(RBuf), FrameworkID, 0, ZNet_Def_p2pVM_ListenState, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
@@ -15299,10 +15345,10 @@ begin
   PIPV6(@RBuf[8])^ := IPV6;
   PWORD(@RBuf[24])^ := Port;
 
-  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, 0, ZNet_Def_p2pVM_Connecting, @RBuf[0]);
+  p := Build_P2PVM_Packet(SizeOf(RBuf), Remote_frameworkID, 0, ZNet_Def_p2pVM_Connecting, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
@@ -15316,10 +15362,10 @@ begin
   PCardinal(@RBuf[0])^ := FrameworkID;
   PCardinal(@RBuf[4])^ := p2pID;
 
-  p := BuildP2PVMPacket(SizeOf(RBuf), Remote_frameworkID, Remote_p2pID, ZNet_Def_p2pVM_ConnectedReponse, @RBuf[0]);
+  p := Build_P2PVM_Packet(SizeOf(RBuf), Remote_frameworkID, Remote_p2pID, ZNet_Def_p2pVM_ConnectedReponse, @RBuf[0]);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
@@ -15329,10 +15375,10 @@ var
 begin
   if (FOwner_IO = nil) or (not WasAuthed) then
       exit;
-  p := BuildP2PVMPacket(0, Remote_frameworkID, Remote_p2pID, ZNet_Def_p2pVM_Disconnect, nil);
+  p := Build_P2PVM_Packet(0, Remote_frameworkID, Remote_p2pID, ZNet_Def_p2pVM_Disconnect, nil);
 
   FSendStream.Position := FSendStream.Size;
-  p^.BuildSendBuff(FSendStream);
+  p^.Build_P2PVM_Send_Buffer(FSendStream);
   FreeP2PVMPacket(p);
 end;
 
@@ -15341,15 +15387,15 @@ begin
   Result := FFrameworkListenPool.Count;
 end;
 
-function TZNet_WithP2PVM.GetListen(const index: Integer): Pp2pVMListen;
+function TZNet_WithP2PVM.GetListen(const index: Integer): PP2PVMListen;
 begin
   Result := FFrameworkListenPool[index];
 end;
 
-function TZNet_WithP2PVM.FindListen(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+function TZNet_WithP2PVM.FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
     begin
@@ -15363,10 +15409,10 @@ begin
   Result := nil;
 end;
 
-function TZNet_WithP2PVM.FindListening(const IPV6: TIPV6; const Port: Word): Pp2pVMListen;
+function TZNet_WithP2PVM.FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
     begin
@@ -15383,7 +15429,7 @@ end;
 procedure TZNet_WithP2PVM.DeleteListen(const IPV6: TIPV6; const Port: Word);
 var
   i: Integer;
-  p: Pp2pVMListen;
+  p: PP2PVMListen;
 begin
   i := 0;
   while i < FFrameworkListenPool.Count do
@@ -15404,7 +15450,7 @@ var
   i: Integer;
 begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
-      Dispose(Pp2pVMListen(FFrameworkListenPool[i]));
+      Dispose(PP2PVMListen(FFrameworkListenPool[i]));
   FFrameworkListenPool.Clear;
 end;
 
