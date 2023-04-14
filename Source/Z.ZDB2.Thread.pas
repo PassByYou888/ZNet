@@ -138,6 +138,7 @@ type
     FBackup_Is_Busy: Boolean;
     FBackup_Directory: U_String; // the current database directory will be used if the backup directory is empty
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
+    procedure Do_Start_Backup_Thread(thSender: TCompute);
   public
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
@@ -176,7 +177,7 @@ type
     // create or open
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
-    function Flush: Boolean;
+    procedure Flush(WaitQueue_: Boolean);
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
     procedure Progress();
@@ -308,7 +309,8 @@ type
     procedure Backup(Reserve_: Word);
     procedure Backup_If_No_Exists();
     // flush
-    procedure Flush;
+    procedure Flush; overload;
+    procedure Flush(WaitQueue_: Boolean); overload;
     // remove and rebuild datgabase
     procedure Format_Database;
     // parallel load
@@ -959,6 +961,109 @@ begin
     end;
 end;
 
+procedure TZDB2_Th_Engine.Do_Start_Backup_Thread(thSender: TCompute);
+type
+  TFile_Time_Info = record
+    FileName: SystemString;
+    FileTime_: TDateTime;
+  end;
+
+  TFileTime_Sort_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
+
+var
+  Reserve_: Word;
+  db_path: U_String;
+  db_file: U_String;
+  arry: U_StringArray;
+  n: U_SystemString;
+  L: TFileTime_Sort_Tool;
+  backup_inst: TZDB2_Th_Engine_Backup;
+  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
+
+  function Make_backup_File_Name: U_String;
+  var
+    now_: TDateTime;
+    Year, Month, Day, Hour, min_, Sec, MSec: Word;
+  begin
+    repeat
+      TCompute.Sleep(100);
+      now_ := Now();
+      DecodeDate(now_, Year, Month, Day);
+      DecodeTime(now_, Hour, min_, Sec, MSec);
+      Result := umlCombineFileName(db_path, PFormat('%s.backup(%d_%d_%d_%d_%d_%d_%d)', [db_file.Text, Year, Month, Day, Hour, min_, Sec, MSec]));
+    until not umlFileExists(Result);
+  end;
+
+{$IFDEF FPC}
+  function do_fpc_sort(var L, R: TFile_Time_Info): Integer;
+  begin
+    Result := CompareDateTime(L.FileTime_, R.FileTime_);
+  end;
+{$ENDIF FPC}
+
+
+begin
+  Reserve_ := PWORD(thSender.UserData)^;
+  Dispose(PWORD(thSender.UserData));
+
+  db_path := Get_Backup_Directory();
+  db_file := umlGetFileName(Engine.Get_Database_FileName);
+
+  DoStatus('scan backup file:' + db_file + '.backup(*)');
+  arry := umlGetFileListPath(db_path);
+  L := TFileTime_Sort_Tool.Create;
+  for n in arry do
+    if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+      with L.Add_Null^ do
+        begin
+          Data.FileName := umlCombineFileName(db_path, n);
+          Data.FileTime_ := umlGetFileTime(Data.FileName);
+        end;
+
+  // sort backup file by time
+{$IFDEF FPC}
+  L.Sort_P(@do_fpc_sort);
+{$ELSE FPC}
+  L.Sort_P(function(var L, R: TFile_Time_Info): Integer
+    begin
+      Result := CompareDateTime(L.FileTime_, R.FileTime_);
+    end);
+{$ENDIF FPC}
+  // remove old backup
+  while L.Num > Reserve_ do
+    begin
+      DoStatus('remove old backup "%s"', [umlGetFileName(L.First^.Data.FileName).Text]);
+      umlDeleteFile(L.First^.Data.FileName);
+      L.Next;
+    end;
+  DisposeObject(L); // free pool
+
+  // backup instance
+  backup_inst := TZDB2_Th_Engine_Backup.Create(self);
+  // check busy queue
+  while Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
+  Th_Engine_Data_Pool.Lock; // safe lock
+  try
+    // rebuild sequece
+    if Th_Engine_Data_Pool.Num > 0 then
+      begin
+        __repeat__ := Th_Engine_Data_Pool.Repeat_;
+        repeat
+          if __repeat__.Queue^.Data <> nil then
+            begin
+              if __repeat__.Queue^.Data.FID >= 0 then
+                  backup_inst.Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
+            end;
+        until not __repeat__.Next;
+      end;
+  finally
+      Th_Engine_Data_Pool.UnLock; // safe unlock
+  end;
+  backup_inst.backup_file := Make_backup_File_Name();
+  TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}backup_inst.Do_Run); // run backup thread
+end;
+
 constructor TZDB2_Th_Engine.Create(Owner_: TZDB2_Th_Engine_Marshal);
 begin
   inherited Create;
@@ -988,6 +1093,16 @@ end;
 destructor TZDB2_Th_Engine.Destroy;
 begin
   try
+    if FBackup_Is_Busy then
+      begin
+        if Database_File <> '' then
+            DoStatus('"%s" wait backup task...', [Database_File.Text])
+        else
+            DoStatus('wait backup task...');
+        while FBackup_Is_Busy do
+            TCompute.Sleep(100);
+      end;
+
     disposeObjectAndNil(Th_Engine_Data_Pool);
     disposeObjectAndNil(Engine);
     disposeObjectAndNil(Cipher);
@@ -1052,7 +1167,7 @@ end;
 
 procedure TZDB2_Th_Engine.Clear;
 begin
-  Flush;
+  Flush(True);
   Th_Engine_Data_Pool.Clear;
 end;
 
@@ -1090,113 +1205,21 @@ begin
 end;
 
 procedure TZDB2_Th_Engine.Backup(Reserve_: Word);
-type
-  TFile_Time_Info = record
-    FileName: SystemString;
-    FileTime_: TDateTime;
-  end;
-
-  TFileTime_Sort_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TFile_Time_Info>;
-
 var
-  db_path: U_String;
-  db_file: U_String;
-  arry: U_StringArray;
-  n: U_SystemString;
-  L: TFileTime_Sort_Tool;
-  backup_inst: TZDB2_Th_Engine_Backup;
-  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
-
-  function Make_backup_File_Name: U_String;
-  var
-    now_: TDateTime;
-    Year, Month, Day, Hour, min_, Sec, MSec: Word;
-  begin
-    repeat
-      TCompute.Sleep(100);
-      now_ := Now();
-      DecodeDate(now_, Year, Month, Day);
-      DecodeTime(now_, Hour, min_, Sec, MSec);
-      Result := umlCombineFileName(db_path, PFormat('%s.backup(%d_%d_%d_%d_%d_%d_%d)', [db_file.Text, Year, Month, Day, Hour, min_, Sec, MSec]));
-    until not umlFileExists(Result);
-  end;
-
-{$IFDEF FPC}
-  function do_fpc_sort(var L, R: TFile_Time_Info): Integer;
-  begin
-    Result := CompareDateTime(L.FileTime_, R.FileTime_);
-  end;
-{$ENDIF FPC}
-
-
+  p: PWORD;
 begin
   if Engine = nil then
       exit;
   if Engine.Is_Memory_Data then
       exit;
-  if FBackup_Is_Busy then
-      exit;
-
   if not umlFileExists(Engine.Get_Database_FileName) then
       exit;
-  db_path := Get_Backup_Directory();
-  db_file := umlGetFileName(Engine.Get_Database_FileName);
-
+  if FBackup_Is_Busy then
+      exit;
   FBackup_Is_Busy := True;
-
-  DoStatus('scan backup file:' + db_file + '.backup(*)');
-  arry := umlGetFileListPath(db_path);
-  L := TFileTime_Sort_Tool.Create;
-  for n in arry do
-    if umlMultipleMatch(True, db_file + '.backup(*)', n) then
-      with L.Add_Null^ do
-        begin
-          Data.FileName := umlCombineFileName(db_path, n);
-          Data.FileTime_ := umlGetFileTime(Data.FileName);
-        end;
-
-  // sort backup file by time
-{$IFDEF FPC}
-  L.Sort_P(@do_fpc_sort);
-{$ELSE FPC}
-  L.Sort_P(function(var L, R: TFile_Time_Info): Integer
-    begin
-      Result := CompareDateTime(L.FileTime_, R.FileTime_);
-    end);
-{$ENDIF FPC}
-  // remove old backup
-  while L.Num > Reserve_ do
-    begin
-      DoStatus('remove old backup "%s"', [umlGetFileName(L.First^.Data.FileName).Text]);
-      umlDeleteFile(L.First^.Data.FileName);
-      L.Next;
-    end;
-  DisposeObject(L); // free pool
-
-  // backup instance
-  backup_inst := TZDB2_Th_Engine_Backup.Create(self);
-  // check busy queue
-  while Engine.QueueNum > 0 do
-      TCompute.Sleep(1);
-  Th_Engine_Data_Pool.Lock; // safe lock
-  try
-    // rebuild sequece
-    if Th_Engine_Data_Pool.Num > 0 then
-      begin
-        __repeat__ := Th_Engine_Data_Pool.Repeat_;
-        repeat
-          if __repeat__.Queue^.Data <> nil then
-            begin
-              if __repeat__.Queue^.Data.FID >= 0 then
-                  backup_inst.Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
-            end;
-        until not __repeat__.Next;
-      end;
-  finally
-      Th_Engine_Data_Pool.UnLock; // safe unlock
-  end;
-  backup_inst.backup_file := Make_backup_File_Name();
-  TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}backup_inst.Do_Run); // run backup thread
+  new(p);
+  p^ := Reserve_;
+  TCompute.RunM(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_Start_Backup_Thread);
 end;
 
 function TZDB2_Th_Engine.Found_Backup(): Boolean;
@@ -1262,8 +1285,8 @@ begin
 
   while FBackup_Is_Busy do
       TCompute.Sleep(100);
-
   FBackup_Is_Busy := True;
+
   try
     Th_Engine_Data_Pool.Clear;
     disposeObjectAndNil(Engine);
@@ -1329,8 +1352,8 @@ begin
 
   while FBackup_Is_Busy do
       TCompute.Sleep(100);
-
   FBackup_Is_Busy := True;
+
   try
     Th_Engine_Data_Pool.Clear;
     disposeObjectAndNil(Engine);
@@ -1398,6 +1421,7 @@ begin
       begin
         // check stream
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+        Engine.Async_Append_Custom_Space(Delta, BlockSize);
       end
     else if TZDB2_Core_Space.CheckStream(Stream, Cipher, Found_Backup()) then // check open from cipher and check Fault Shutdown
       begin
@@ -1463,20 +1487,23 @@ begin
   Last_Build_Class := Data_Class;
 end;
 
-function TZDB2_Th_Engine.Flush: Boolean;
+procedure TZDB2_Th_Engine.Flush(WaitQueue_: Boolean);
 var
   Queue_ID_List_: TZDB2_ID_List;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
 begin
   if Engine = nil then
-      exit(False);
+      exit;
 
   if Engine.IsOnlyRead then
       exit;
 
-  while Engine.QueueNum > 0 do
-      TCompute.Sleep(1);
+  if WaitQueue_ then
+    while Engine.QueueNum > 0 do
+        TCompute.Sleep(1);
+
   Th_Engine_Data_Pool.Free_Recycle_Pool;
+  Th_Engine_Data_Pool.Lock;
   try
     Queue_ID_List_ := TZDB2_ID_List.Create;
     if Th_Engine_Data_Pool.Num > 0 then
@@ -1493,11 +1520,12 @@ begin
         until not __repeat__.Next;
         Th_Engine_Data_Pool.Free_Recycle_Pool;
       end;
-    Result := Engine.Sync_Flush_Sequence_Table(Queue_ID_List_);
+    Engine.Async_Flush_Sequence_Table(Queue_ID_List_);
     DisposeObject(Queue_ID_List_);
   except
       Engine.Async_Flush;
   end;
+  Th_Engine_Data_Pool.UnLock;
 end;
 
 function TZDB2_Th_Engine.Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data;
@@ -1835,8 +1863,7 @@ end;
 destructor TZDB2_Th_Engine_Marshal.Destroy;
 begin
   try
-    Check_Recycle_Pool;
-    Flush;
+    Flush(True);
     // free link
     if Data_Link_Recycle_Tool.Num > 0 then
       begin
@@ -2004,7 +2031,7 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Clear;
 begin
-  Flush;
+  Flush(True);
   Lock;
   try
       Data_Marshal.Clear;
@@ -2215,8 +2242,6 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Backup(Reserve_: Word);
 begin
-  Wait_Busy_Task;
-  Check_Recycle_Pool;
   if Engine_Pool.Num > 0 then
     begin
       Lock;
@@ -2232,14 +2257,10 @@ begin
       end;
       UnLock;
     end;
-  Wait_Busy_Task;
-  Check_Recycle_Pool;
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Backup_If_No_Exists;
 begin
-  Wait_Busy_Task;
-  Check_Recycle_Pool;
   if Engine_Pool.Num > 0 then
     begin
       Lock;
@@ -2247,7 +2268,7 @@ begin
         with Engine_Pool.Repeat_ do
           repeat
             try
-              if not Queue^.Data.Found_Backup then
+              if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FBackup_Is_Busy) then
                   Queue^.Data.Backup(1);
             except
             end;
@@ -2256,13 +2277,17 @@ begin
       end;
       UnLock;
     end;
-  Wait_Busy_Task;
-  Check_Recycle_Pool;
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Flush;
 begin
-  Wait_Busy_Task;
+  Flush(False);
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Flush(WaitQueue_: Boolean);
+begin
+  if WaitQueue_ then
+      Wait_Busy_Task;
   Check_Recycle_Pool;
   if Engine_Pool.Num > 0 then
     begin
@@ -2271,7 +2296,7 @@ begin
         with Engine_Pool.Repeat_ do
           repeat
             try
-                Queue^.Data.Flush;
+                Queue^.Data.Flush(WaitQueue_);
             except
             end;
           until not Next;
@@ -2279,7 +2304,8 @@ begin
       end;
       UnLock;
     end;
-  Wait_Busy_Task;
+  if WaitQueue_ then
+      Wait_Busy_Task;
   Check_Recycle_Pool;
 end;
 
