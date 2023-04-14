@@ -407,6 +407,8 @@ type
     procedure Async_Append_P(Stream: TCore_Stream; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_P); overload;
     procedure Async_Remove(ID: Integer);
     procedure Async_Flush();
+    procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
+    procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
     procedure Async_Flush_Sequence_Table_C(const Table_: TZDB2_BlockHandle; OnResult: TOn_State_Event_C); overload;
     procedure Async_Flush_Sequence_Table_C(const L: TZDB2_ID_List; OnResult: TOn_State_Event_C); overload;
     procedure Async_Flush_Sequence_Table_M(const Table_: TZDB2_BlockHandle; OnResult: TOn_State_Event_M); overload;
@@ -1418,6 +1420,7 @@ begin
   try
     fs := TCore_FileStream.Create(Dest, fmCreate);
     th := TZDB2_Th_Queue.Create(FCoreSpace_Mode, fs, True, False, FCoreSpace_Delta, CoreSpace_BlockSize, Cipher_);
+    th.Sync_Format_Custom_Space(umlMax(CoreSpace_Size, FCoreSpace_Delta), CoreSpace_BlockSize, nil);
     if Sync_Extract_To(Input_, th, Output_) then
       begin
         tmp := TZDB2_ID_Pool.Create;
@@ -1805,6 +1808,29 @@ begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.Init(TZDB2_Th_CMD_Flush.Create(self));
   tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle);
+var
+  Table_Ptr: PZDB2_BlockHandle;
+  i: Integer;
+  Inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
+  tmp: TZDB2_Th_CMD_Bridge_State;
+begin
+  New(Table_Ptr);
+  SetLength(Table_Ptr^, length(Table_));
+  for i := 0 to length(Table_) - 1 do
+      Table_Ptr^[i] := Table_[i];
+  Inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);;
+  Inst_.AutoFree_Data := True;
+  tmp := TZDB2_Th_CMD_Bridge_State.Create;
+  tmp.Init(Inst_);
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table(const L: TZDB2_ID_List);
+begin
+  Async_Flush_Sequence_Table(TZDB2_Core_Space.Get_Handle(L));
 end;
 
 procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table_C(const Table_: TZDB2_BlockHandle; OnResult: TOn_State_Event_C);
