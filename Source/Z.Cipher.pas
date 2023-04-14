@@ -5,7 +5,7 @@
 unit Z.Cipher;
 
 {$I Z.Define.inc}
-{$O-} // compiler optimization
+{$O+} // compiler optimization
 
 interface
 
