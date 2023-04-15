@@ -933,7 +933,7 @@ begin
     EStrToInt64(ParamList.GetDefaultValue('MD5_HashPool', '4*1024*1024'), 4 * 1024 * 1024),
     nil);
 
-  DoStatus('extract %s', [C40_FS2_FileName.Text]);
+  DoStatus('extract %s', [C40_FS2_VM_FileName.Text]);
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_FS2_VM_FileName) then
       FS := TCore_FileStream.Create(C40_FS2_VM_FileName, fmOpenReadWrite)
