@@ -359,14 +359,18 @@ end;
 
 procedure TZ_JsonObject.LoadFromLines(L_: TCore_Strings);
 var
+  bak: Boolean;
   m64: TMS64;
 begin
+  bak := L_.WriteBOM;
+  L_.WriteBOM := False;
   m64 := TMS64.Create;
 {$IFDEF FPC}
   L_.SaveToStream(m64);
 {$ELSE}
   L_.SaveToStream(m64, TEncoding.UTF8);
 {$ENDIF}
+  L_.WriteBOM := bak;
   m64.Position := 0;
   LoadFromStream(m64);
   m64.Free;
