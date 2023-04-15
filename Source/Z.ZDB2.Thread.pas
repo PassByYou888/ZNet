@@ -1234,9 +1234,6 @@ begin
   if umlTrimSpace(Database_File) = '' then
       exit;
 
-  while FBackup_Is_Busy do
-      TCompute.Sleep(100);
-
   db_path := Get_Backup_Directory();
   db_file := umlGetFileName(Database_File);
 
