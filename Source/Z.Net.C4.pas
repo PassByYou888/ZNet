@@ -103,6 +103,7 @@ type
   public
     procedure Progress;
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
+    procedure GetRS(var recv, send: Int64);
   end;
 {$ENDREGION 'PhysicsService'}
 {$REGION 'PhysicsTunnel'}
@@ -204,6 +205,7 @@ type
 
   TC40_PhysicsTunnelPool = class(TC40_PhysicsTunnelPool_Decl)
   public
+    procedure GetRS(var recv, send: Int64);
     { find addr }
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
     function GetPhysicsTunnel(PhysicsAddr: U_String; PhysicsPort: Word): TC40_PhysicsTunnel;
@@ -1783,6 +1785,19 @@ begin
   Result := False;
 end;
 
+procedure TC40_PhysicsServicePool.GetRS(var recv, send: Int64);
+var
+  i: Integer;
+  s: TC40_PhysicsService;
+begin
+  for i := 0 to Count - 1 do
+    begin
+      s := Items[i];
+      inc(recv, s.PhysicsTunnel.Statistics[stReceiveSize]);
+      inc(send, s.PhysicsTunnel.Statistics[stSendSize]);
+    end;
+end;
+
 procedure TDCT40_QueryResultData.DoStreamParam(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
 begin
   L.MergeFromDF(Result_);
@@ -2561,6 +2576,19 @@ procedure TC40_PhysicsTunnel.DoNetworkOnline(Custom_Client_: TC40_Custom_Client)
 begin
   if Assigned(OnEvent) then
       OnEvent.C40_PhysicsTunnel_Client_Connected(Self, Custom_Client_);
+end;
+
+procedure TC40_PhysicsTunnelPool.GetRS(var recv, send: Int64);
+var
+  i: Integer;
+  c: TC40_PhysicsTunnel;
+begin
+  for i := 0 to Count - 1 do
+    begin
+      c := Items[i];
+      inc(recv, c.PhysicsTunnel.Statistics[stReceiveSize]);
+      inc(send, c.PhysicsTunnel.Statistics[stSendSize]);
+    end;
 end;
 
 function TC40_PhysicsTunnelPool.ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
