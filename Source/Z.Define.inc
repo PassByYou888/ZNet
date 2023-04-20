@@ -280,6 +280,8 @@
   {$WARNINGS ON}
   // JPEG support can output debug info
   {$UNDEF JPEG_Debug}
+  // show ZDB2 free log in progress
+  {$UNDEF SHOW_ZDB2_Data_Free_LOG}
   // Enabled ZDB2 Load Thread
   {$UNDEF Enabled_ZDB2_Load_Thread}
   // show TZDB2_Th_Engine.Build() options
@@ -297,6 +299,8 @@
   {$ENDIF FPC}
   // JPEG support can output debug info
   {$UNDEF JPEG_Debug}
+  // show ZDB2 free log in progress
+  {$UNDEF SHOW_ZDB2_Data_Free_LOG}
   // Enabled ZDB2 Load Thread
   {$DEFINE Enabled_ZDB2_Load_Thread}
   // show TZDB2_Th_Engine.Build() options

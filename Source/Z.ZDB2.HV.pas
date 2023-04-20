@@ -120,9 +120,9 @@ begin
   if (Keep <= 0) and (GetTimeTick - FAlive > FTimeOut) then
     begin
       Save;
-{$IFDEF DEBUG}
+{$IFDEF SHOW_ZDB2_Data_Free_LOG}
       DoStatus('%s -> %s Space Recycle ID %s size:%d', [UnitName, ClassName, CoreSpace.GetSpaceHndAsText(FID).Text, CoreSpace.GetDataSize(FID)]);
-{$ENDIF DEBUG}
+{$ENDIF SHOW_ZDB2_Data_Free_LOG}
     end;
 end;
 

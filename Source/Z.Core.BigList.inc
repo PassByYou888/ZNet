@@ -131,8 +131,11 @@ begin
   if p^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  DoFree(p^.Data);
-  Dispose(p);
+  try
+    DoFree(p^.Data);
+    Dispose(p);
+  except
+  end;
 end;
 
 constructor TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
@@ -1355,8 +1358,11 @@ begin
   if p^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  DoFree(p^.Data);
-  Dispose(p);
+  try
+    DoFree(p^.Data);
+    Dispose(p);
+  except
+  end;
 end;
 
 constructor TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;

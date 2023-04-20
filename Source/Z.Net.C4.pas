@@ -932,7 +932,7 @@ var
   C40_PhysicsTunnelTimeout: TTimeTick;
   { kill dead physics connection timeout, default is 5 seconds }
   C40_KillDeadPhysicsConnectionTimeout: TTimeTick;
-  { kill IDC fault timeout, default is 10 minute }
+  { kill IDC fault timeout, default is 5 hour }
   C40_KillIDCFaultTimeout: TTimeTick;
   { root path, default is current Directory }
   C40_RootPath: U_String;
@@ -6480,7 +6480,7 @@ C40_UpdateServiceInfoDelayTime := 1000 * 1;
 C40_PhysicsServiceTimeout := 1000 * 60 * 5;
 C40_PhysicsTunnelTimeout := 1000 * 60 * 5;
 C40_KillDeadPhysicsConnectionTimeout := 1000 * 5;
-C40_KillIDCFaultTimeout := 1000 * 60 * 10;
+C40_KillIDCFaultTimeout := C_Tick_Hour * 5;
 
 {$IFDEF FPC}
 C40_RootPath := umlCurrentPath;

@@ -10137,7 +10137,7 @@ begin
   { 1 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[10]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[11]);
 
@@ -10148,7 +10148,7 @@ begin
   { 2 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[12]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[13]);
 
@@ -10159,7 +10159,7 @@ begin
   { 3 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[14]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[15]);
 
@@ -10170,7 +10170,7 @@ begin
   { 4 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[16]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[17]);
 
@@ -10181,7 +10181,7 @@ begin
   { 5 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[18]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[19]);
 
@@ -10192,7 +10192,7 @@ begin
   { 6 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[20]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[21]);
 
@@ -10203,7 +10203,7 @@ begin
   { 7 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[22]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[23]);
 
@@ -10214,7 +10214,7 @@ begin
   { 8 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[24]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[25]);
 
@@ -10225,7 +10225,7 @@ begin
   { 9 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[26]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[27]);
 
@@ -10236,7 +10236,7 @@ begin
   { 10 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[28]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[29]);
 
@@ -10247,7 +10247,7 @@ begin
   { 11 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[30]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[31]);
 
@@ -10258,7 +10258,7 @@ begin
   { 12 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[32]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[33]);
 
@@ -10269,7 +10269,7 @@ begin
   { 13 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[34]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[35]);
 
@@ -10280,7 +10280,7 @@ begin
   { 14 round }
   t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[36]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[37]);
 
@@ -10291,7 +10291,7 @@ begin
   { 15 round }
   t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[38]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[39]);
 
@@ -10319,9 +10319,9 @@ begin
   { R0,R1 and R2,R3 are replaced from round to round - small optimization }
 
   { 15 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[38]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[39]);
 
@@ -10330,9 +10330,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 14 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[36]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[37]);
 
@@ -10341,9 +10341,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 13 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[34]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[35]);
 
@@ -10352,9 +10352,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 12 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[32]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[33]);
 
@@ -10363,9 +10363,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 11 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[30]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[31]);
 
@@ -10374,9 +10374,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 10 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[28]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[29]);
 
@@ -10385,9 +10385,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 9 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[26]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[27]);
 
@@ -10396,9 +10396,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 8 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[24]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[25]);
 
@@ -10418,9 +10418,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 6 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[20]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[21]);
 
@@ -10429,9 +10429,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 5 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[18]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[19]);
 
@@ -10440,9 +10440,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 4 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[16]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[17]);
 
@@ -10451,9 +10451,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 3 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[14]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[15]);
 
@@ -10462,9 +10462,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 2 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[12]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[13]);
 
@@ -10473,9 +10473,9 @@ begin
   R1 := DWORD(R1 shr 1) or (R1 shl 31);
 
   { 1 round }
-  t0 := TwofishH(R0, KeyContext);;
+  t0 := TwofishH(R0, KeyContext);
   T1 := DWORD(R1 shl 8) or (R1 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[10]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[11]);
 
@@ -10484,9 +10484,9 @@ begin
   R3 := DWORD(R3 shr 1) or (R3 shl 31);
 
   { 0 round }
-  t0 := TwofishH(R2, KeyContext);;
+  t0 := TwofishH(R2, KeyContext);
   T1 := DWORD(R3 shl 8) or (R3 shr 24);
-  T1 := TwofishH(T1, KeyContext);;
+  T1 := TwofishH(T1, KeyContext);
   F0 := DWORD(t0 + T1 + KeyContext.ExpandedKey[8]);
   F1 := DWORD(t0 + T1 shl 1 + KeyContext.ExpandedKey[9]);
 

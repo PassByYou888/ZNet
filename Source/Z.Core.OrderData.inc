@@ -36,7 +36,10 @@ begin
   while p <> nil do
     begin
       N_P := p^.Next;
-      DoInternalFree(p);
+      try
+          DoInternalFree(p);
+      except
+      end;
       p := N_P;
     end;
   FFirst := nil;
@@ -51,7 +54,10 @@ begin
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
-      DoInternalFree(FFirst);
+      try
+          DoInternalFree(FFirst);
+      except
+      end;
       FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
@@ -143,7 +149,10 @@ begin
   while p <> nil do
     begin
       N_P := p^.Next;
-      DoInternalFree(p);
+      try
+          DoInternalFree(p);
+      except
+      end;
       p := N_P;
     end;
   FFirst := nil;
@@ -158,7 +167,10 @@ begin
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
-      DoInternalFree(FFirst);
+      try
+          DoInternalFree(FFirst);
+      except
+      end;
       FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
@@ -252,7 +264,10 @@ begin
   while p <> nil do
     begin
       N_P := p^.Next;
-      DoInternalFree(p);
+      try
+          DoInternalFree(p);
+      except
+      end;
       p := N_P;
     end;
   FFirst := nil;
@@ -276,7 +291,10 @@ begin
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
-      DoInternalFree(FFirst);
+      try
+          DoInternalFree(FFirst);
+      except
+      end;
       FFirst := N_P;
       if FFirst = nil then
           FLast := nil;
@@ -383,7 +401,10 @@ begin
   while p <> nil do
     begin
       N_P := p^.Next;
-      DoInternalFree(p);
+      try
+          DoInternalFree(p);
+      except
+      end;
       p := N_P;
     end;
   FFirst := nil;
@@ -407,7 +428,10 @@ begin
   if FFirst <> nil then
     begin
       N_P := FFirst^.Next;
-      DoInternalFree(FFirst);
+      try
+          DoInternalFree(FFirst);
+      except
+      end;
       FFirst := N_P;
       if FFirst = nil then
           FLast := nil;

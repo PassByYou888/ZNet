@@ -799,7 +799,7 @@ begin
       if umlMD5Compare(umlStreamMD5(Cache.Stream.Data), MD5_) then
         begin
           Cache.LastAccess := GetTimeTick();
-          Sender.DTNoAuth.RecvTunnel.Print('get file "%s" from cache', [File_Name.Text]);;
+          Sender.DTNoAuth.RecvTunnel.Print('get file "%s" from cache', [File_Name.Text]);
           try
             Cache.Stream.Data.Position := 0;
             if Assigned(OnResultC) then

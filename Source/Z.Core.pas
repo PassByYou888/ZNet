@@ -1268,68 +1268,6 @@ type
     class procedure LoadFromStream(stream: TCore_Stream); static;
   end;
 {$EndRegion 'MT19937Random'}
-{$Region 'core-const'}
-const
-  {$IF Defined(WIN32)}
-  CurrentPlatform: TExecutePlatform = epWin32;
-  {$ELSEIF Defined(WIN64)}
-  CurrentPlatform: TExecutePlatform = epWin64;
-  {$ELSEIF Defined(OSX)}
-    {$IFDEF CPU64}
-      CurrentPlatform: TExecutePlatform = epOSX64;
-    {$ELSE CPU64}
-      CurrentPlatform: TExecutePlatform = epOSX32;
-    {$IFEND CPU64}
-  {$ELSEIF Defined(IOS)}
-    {$IFDEF CPUARM}
-    CurrentPlatform: TExecutePlatform = epIOS;
-    {$ELSE CPUARM}
-    CurrentPlatform: TExecutePlatform = epIOSSIM;
-    {$ENDIF CPUARM}
-  {$ELSEIF Defined(ANDROID)}
-    {$IFDEF CPU64}
-    CurrentPlatform: TExecutePlatform = epANDROID64;
-    {$ELSE CPU64}
-    CurrentPlatform: TExecutePlatform = epANDROID32;
-    {$IFEND CPU64}
-  {$ELSEIF Defined(Linux)}
-    {$IFDEF CPU64}
-      CurrentPlatform: TExecutePlatform = epLinux64;
-    {$ELSE CPU64}
-      CurrentPlatform: TExecutePlatform = epLinux32;
-    {$IFEND CPU64}
-  {$ELSE}
-  CurrentPlatform: TExecutePlatform = epUnknow;
-  {$IFEND}
-
-  CPU64 = {$IFDEF CPU64}True{$ELSE CPU64}False{$ENDIF CPU64};
-  X64 = CPU64;
-
-  IsDebug = {$IFDEF DEBUG}True{$ELSE DEBUG}False{$ENDIF DEBUG};
-
-  // timetick define
-  C_Tick_Second = TTimeTick(1000);
-  C_Tick_Minute = TTimeTick(C_Tick_Second) * 60;
-  C_Tick_Hour   = TTimeTick(C_Tick_Minute) * 60;
-  C_Tick_Day    = TTimeTick(C_Tick_Hour) * 24;
-  C_Tick_Week   = TTimeTick(C_Tick_Day) * 7;
-  C_Tick_Year   = TTimeTick(C_Tick_Day) * 365;
-
-  // memory align
-  C_MH_MemoryDelta = 0;
-
-  // file mode
-  fmCreate         = Classes.fmCreate;
-  soFromBeginning  = Classes.soFromBeginning;
-  soFromCurrent    = Classes.soFromCurrent;
-  soFromEnd        = Classes.soFromEnd;
-  fmOpenRead       = SysUtils.fmOpenRead;
-  fmOpenWrite      = SysUtils.fmOpenWrite;
-  fmOpenReadWrite  = SysUtils.fmOpenReadWrite;
-  fmShareExclusive = SysUtils.fmShareExclusive;
-  fmShareDenyWrite = SysUtils.fmShareDenyWrite;
-  fmShareDenyNone  = SysUtils.fmShareDenyNone;
-{$EndRegion 'core-const'}
 {$Region 'Parallel-API'}
 
 function Max_Thread_Supported: Integer;
@@ -1635,6 +1573,68 @@ function GetOffset(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDE
 function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 {$EndRegion 'core api'}
+{$Region 'core-const'}
+const
+  {$IF Defined(WIN32)}
+  CurrentPlatform: TExecutePlatform = epWin32;
+  {$ELSEIF Defined(WIN64)}
+  CurrentPlatform: TExecutePlatform = epWin64;
+  {$ELSEIF Defined(OSX)}
+    {$IFDEF CPU64}
+      CurrentPlatform: TExecutePlatform = epOSX64;
+    {$ELSE CPU64}
+      CurrentPlatform: TExecutePlatform = epOSX32;
+    {$IFEND CPU64}
+  {$ELSEIF Defined(IOS)}
+    {$IFDEF CPUARM}
+    CurrentPlatform: TExecutePlatform = epIOS;
+    {$ELSE CPUARM}
+    CurrentPlatform: TExecutePlatform = epIOSSIM;
+    {$ENDIF CPUARM}
+  {$ELSEIF Defined(ANDROID)}
+    {$IFDEF CPU64}
+    CurrentPlatform: TExecutePlatform = epANDROID64;
+    {$ELSE CPU64}
+    CurrentPlatform: TExecutePlatform = epANDROID32;
+    {$IFEND CPU64}
+  {$ELSEIF Defined(Linux)}
+    {$IFDEF CPU64}
+      CurrentPlatform: TExecutePlatform = epLinux64;
+    {$ELSE CPU64}
+      CurrentPlatform: TExecutePlatform = epLinux32;
+    {$IFEND CPU64}
+  {$ELSE}
+  CurrentPlatform: TExecutePlatform = epUnknow;
+  {$IFEND}
+
+  CPU64 = {$IFDEF CPU64}True{$ELSE CPU64}False{$ENDIF CPU64};
+  X64 = CPU64;
+
+  IsDebug = {$IFDEF DEBUG}True{$ELSE DEBUG}False{$ENDIF DEBUG};
+
+  // timetick define
+  C_Tick_Second = TTimeTick(1000);
+  C_Tick_Minute = TTimeTick(C_Tick_Second) * 60;
+  C_Tick_Hour   = TTimeTick(C_Tick_Minute) * 60;
+  C_Tick_Day    = TTimeTick(C_Tick_Hour) * 24;
+  C_Tick_Week   = TTimeTick(C_Tick_Day) * 7;
+  C_Tick_Year   = TTimeTick(C_Tick_Day) * 365;
+
+  // memory align
+  C_MH_MemoryDelta = 0;
+
+  // file mode
+  fmCreate         = Classes.fmCreate;
+  soFromBeginning  = Classes.soFromBeginning;
+  soFromCurrent    = Classes.soFromCurrent;
+  soFromEnd        = Classes.soFromEnd;
+  fmOpenRead       = SysUtils.fmOpenRead;
+  fmOpenWrite      = SysUtils.fmOpenWrite;
+  fmOpenReadWrite  = SysUtils.fmOpenReadWrite;
+  fmShareExclusive = SysUtils.fmShareExclusive;
+  fmShareDenyWrite = SysUtils.fmShareDenyWrite;
+  fmShareDenyNone  = SysUtils.fmShareDenyNone;
+{$EndRegion 'core-const'}
 {$Region 'core var'}
 
 type TOnCheckThreadSynchronize = procedure();

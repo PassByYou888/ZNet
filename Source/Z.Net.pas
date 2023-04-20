@@ -637,7 +637,9 @@ type
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
     FID: Cardinal;
+    // io or connection create time
     FIO_Create_TimeTick: TTimeTick;
+    // token
     FHeadToken, FTailToken: Cardinal;
     FConsoleToken: Byte;
     FStreamToken: Byte;
@@ -647,11 +649,14 @@ type
     FBigStreamReceiveFragmentSignal: Byte;
     FBigStreamReceiveDoneSignal: Byte;
     FCompleteBufferToken: Byte;
+    // physics fragment pool
     FReceived_Physics_Critical: TCritical;
     FReceived_Physics_Fragment_Pool: TPhysics_Fragment_Pool;
+    // cpu state
     FLast_Process_Receive_Buffer_CPU_Is_Full: Boolean;
+    // receive state
     FReceivedAbort: Boolean;
-    FReceivedBuffer: TMS64;
+    FReceivedBuffer: TMS64; // receive buffer
     FReceivedBuffer_Busy: TMS64;
     // BigStream
     FBigStreamReceiveProcessing: Boolean;
@@ -705,6 +710,8 @@ type
     FReceiveResultRuning: Boolean;
     FProgressRunning: Boolean;
     FTimeOutProcessDone: Boolean;
+    FLast_IO_Is_IDLE: Boolean;
+    FLast_IO_IDLE_Time: TTimeTick;
   public
     { external interface }
     function Connected: Boolean; virtual;
@@ -867,10 +874,9 @@ type
     procedure CreateAfter; virtual;
     destructor Destroy; override;
 
-    { check IO state }
+    { IO state }
     function IOBusy: Boolean;
     property IO_Create_TimeTick: TTimeTick read FIO_Create_TimeTick;
-
     procedure IO_IDLE_TraceC(data: TCore_Object; OnNotify: TOnDataNotify_C);
     procedure IO_IDLE_TraceM(data: TCore_Object; OnNotify: TOnDataNotify_M);
     procedure IO_IDLE_TraceP(data: TCore_Object; OnNotify: TOnDataNotify_P);
@@ -887,8 +893,11 @@ type
     property SequencePacketState: SystemString read GetSequencePacketState;
 
     { p2pVM Tunnel support }
-    property p2pVM: TZNet_WithP2PVM read FP2PVMTunnel;
-    property p2pVMTunnel: TZNet_WithP2PVM read FP2PVMTunnel;
+    property P2PVM: TZNet_WithP2PVM read FP2PVMTunnel;
+    property P2PVMTunnel: TZNet_WithP2PVM read FP2PVMTunnel;
+    property P2PVM_Auth_Token: TBytes read FP2PVM_Auth_Token;
+    property P2PVM_Cipher_Key: TCipherKeyBuffer read FP2PVM_Cipher_Key;
+    property P2PVM_Cipher: TCipher_Base read FP2PVM_Cipher;
     function p2pVMTunnelReadyOk: Boolean;
     { p2pVM build safe Auth token }
     procedure BuildP2PAuthToken; overload;
@@ -995,6 +1004,8 @@ type
     property BigStreamBatch: TBigStreamBatch read GetBigStreamBatch;
     property CompleteBufferReceivedStream: TMS64 read FCompleteBufferReceivedStream;
     property CompleteBuffer_Current_Trigger: TMS64 read FCompleteBuffer_Current_Trigger;
+    function Get_Last_IO_IDLE_Time: TTimeTick;
+    property Last_IO_IDLE_Time: TTimeTick read Get_Last_IO_IDLE_Time;
 
     { framework }
     property OwnerFramework: TZNet read FOwnerFramework;
@@ -1125,10 +1136,10 @@ type
 
   IZNet_VMInterface = interface
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean);
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
   end;
 
   IOnBigStreamInterface = interface
@@ -1393,10 +1404,10 @@ type
     property OnVM: IZNet_VMInterface read FVMInterface write FVMInterface;
     { p2pVM trigger }
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean); virtual;
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM); virtual;
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
+    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
 
     { automated P2PVM service support }
     property AutomatedP2PVMServiceBind: TAutomatedP2PVMServiceBind read FAutomatedP2PVMServiceBind;
@@ -1883,11 +1894,12 @@ type
     function WaitM(TimeOut_: TTimeTick; const OnResult: TOnState_M): Boolean;
     function WaitP(TimeOut_: TTimeTick; const OnResult: TOnState_P): Boolean;
 
-    { command queue state }
+    { IO state }
     function WaitSendBusy: Boolean;
     function LastQueueData: PQueueData;
     function LastQueueCmd: SystemString;
     function QueueCmdCount: Integer;
+    function Last_IO_IDLE_Time: TTimeTick;
 
     { send console cmd method }
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
@@ -7300,6 +7312,8 @@ begin
 
   FProgressRunning := False;
   FTimeOutProcessDone := False;
+  FLast_IO_Is_IDLE := True;
+  FLast_IO_IDLE_Time := FIO_Create_TimeTick;
 
   AtomInc(OwnerFramework.Statistics[TStatisticsType.stConnected]);
 
@@ -7426,6 +7440,8 @@ begin
 end;
 
 function TPeerIO.IOBusy: Boolean;
+var
+  io_idle_: Boolean;
 begin
   Result :=
     (IOSendBuffer.Size > 0) or
@@ -7438,7 +7454,23 @@ begin
     (FBigStreamReceiveProcessing) or
     (FCompleteBufferReceiveProcessing) or
     (FPauseResultSend) or
-    (FReceiveTriggerRuning);
+    (FReceiveTriggerRuning) or
+    (FReceived_Physics_Fragment_Pool.num > 0);
+  if not Result then
+    begin
+      if FOwnerFramework.InheritsFrom(TZNet_Client) then
+        begin
+          FReceived_Physics_Critical.Lock;
+          Result := FOwnerFramework.FSend_Queue_Swap_Pool.num > 0;
+          FReceived_Physics_Critical.UnLock;
+        end;
+    end;
+
+  { update io state }
+  io_idle_ := not Result;
+  if io_idle_ and (io_idle_ <> FLast_IO_Is_IDLE) then
+      FLast_IO_IDLE_Time := GetTimeTick;
+  FLast_IO_Is_IDLE := io_idle_;
 end;
 
 procedure TPeerIO.IO_IDLE_TraceC(data: TCore_Object; OnNotify: TOnDataNotify_C);
@@ -7848,6 +7880,8 @@ begin
 
   FProgressRunning := True;
 
+  IOBusy();
+
   { optimize physics model }
   try
     if not FLast_Process_Receive_Buffer_CPU_Is_Full then
@@ -8182,6 +8216,14 @@ end;
 function TPeerIO.GetBigStreamBatch: TBigStreamBatch;
 begin
   Result := FUserDefine.FBigStreamBatch;
+end;
+
+function TPeerIO.Get_Last_IO_IDLE_Time: TTimeTick;
+begin
+  if not IOBusy() then
+      Result := FLast_IO_IDLE_Time
+  else
+      Result := GetTimeTick();
 end;
 
 procedure TPeerIO.SetID(const Value: Cardinal);
@@ -9124,8 +9166,8 @@ begin
   Sender.FSequencePacketSignal := False;
 
   Sender.OpenP2PVMTunnel(16, False, '');
-  Sender.p2pVMTunnel.AuthVM;
-  p2pVMTunnelOpenBefore(Sender, Sender.p2pVMTunnel);
+  Sender.P2PVMTunnel.AuthVM;
+  p2pVMTunnelOpenBefore(Sender, Sender.P2PVMTunnel);
 end;
 
 procedure TZNet.CMD_CloseP2PTunnel(Sender: TPeerIO; InData: SystemString);
@@ -9164,7 +9206,7 @@ begin
   P_IO.OnVMAuthResultIO_C := nil;
   P_IO.OnVMAuthResultIO_M := nil;
   P_IO.OnVMAuthResultIO_P := nil;
-  p2pVMTunnelOpenAfter(P_IO, P_IO.p2pVMTunnel);
+  p2pVMTunnelOpenAfter(P_IO, P_IO.P2PVMTunnel);
 end;
 
 procedure TZNet.VMAuthSuccessDelayExecute(Sender: TN_Post_Execute);
@@ -9180,7 +9222,7 @@ begin
       Data3 := P_IO.FID;
       Ready();
     end;
-  p2pVMTunnelOpen(P_IO, P_IO.p2pVMTunnel);
+  p2pVMTunnelOpen(P_IO, P_IO.P2PVMTunnel);
 end;
 
 procedure TZNet.VMAuthFailedDelayExecute(Sender: TN_Post_Execute);
@@ -9289,7 +9331,7 @@ begin
     end;
 
   for i := 0 to FAutomatedP2PVMClientBind.Count - 1 do
-      P_IO.p2pVMTunnel.InstallLogicFramework(FAutomatedP2PVMClientBind[i]^.Client);
+      P_IO.P2PVMTunnel.InstallLogicFramework(FAutomatedP2PVMClientBind[i]^.Client);
 
   for i := 0 to FAutomatedP2PVMClientBind.Count - 1 do
     begin
@@ -9665,37 +9707,37 @@ begin
       Accept := CompareQuantumCryptographyPassword(FAutomatedP2PVMAuthToken, Token);
 end;
 
-procedure TZNet.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
 var
   i: Integer;
 begin
   if FVMInterface <> nil then
-      FVMInterface.p2pVMTunnelOpenBefore(Sender, p2pVMTunnel);
+      FVMInterface.p2pVMTunnelOpenBefore(Sender, P2PVMTunnel);
 
   if FAutomatedP2PVMService then
     for i := 0 to FAutomatedP2PVMServiceBind.Count - 1 do
-        p2pVMTunnel.InstallLogicFramework(FAutomatedP2PVMServiceBind[i]^.Service);
+        P2PVMTunnel.InstallLogicFramework(FAutomatedP2PVMServiceBind[i]^.Service);
 end;
 
-procedure TZNet.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
 begin
   if FVMInterface <> nil then
-      FVMInterface.p2pVMTunnelOpen(Sender, p2pVMTunnel);
+      FVMInterface.p2pVMTunnelOpen(Sender, P2PVMTunnel);
 end;
 
-procedure TZNet.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
 begin
   Sender.ResetSequencePacketBuffer;
   Sender.FSequencePacketSignal := True;
   Sender.SequencePacketVerifyTick := GetTimeTick;
   if FVMInterface <> nil then
-      FVMInterface.p2pVMTunnelOpenAfter(Sender, p2pVMTunnel);
+      FVMInterface.p2pVMTunnelOpenAfter(Sender, P2PVMTunnel);
 end;
 
-procedure TZNet.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
 begin
   if FVMInterface <> nil then
-      FVMInterface.p2pVMTunnelClose(Sender, p2pVMTunnel);
+      FVMInterface.p2pVMTunnelClose(Sender, P2PVMTunnel);
 end;
 
 function TZNet.AutomatedP2PVMClientConnectionDone(P_IO: TPeerIO): Boolean;
@@ -9780,7 +9822,7 @@ begin
         if p^.Client.Connected then
           begin
             p^.Client.Disconnect;
-            P_IO.p2pVMTunnel.UninstallLogicFramework(p^.Client);
+            P_IO.P2PVMTunnel.UninstallLogicFramework(p^.Client);
           end;
       end;
   P_IO.CloseP2PVMTunnel;
@@ -12384,6 +12426,14 @@ begin
   ClientIO.FSend_Queue_Critical.Lock;
   Result := ClientIO.FQueuePool.num;
   ClientIO.FSend_Queue_Critical.UnLock;
+end;
+
+function TZNet_Client.Last_IO_IDLE_Time: TTimeTick;
+begin
+  if ClientIO = nil then
+      Result := GetTimeTick()
+  else
+      Result := ClientIO.Last_IO_IDLE_Time;
 end;
 
 procedure TZNet_Client.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
