@@ -66,6 +66,26 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-4-21 ZDB2解决PB级备份**
+
+- ZDB2的备份技术分为静态备份,动态备份,自动化备份,三种模式,均为api调用方式触发,日常使用不会触发备份,下面的具体细节摘录来自代码
+```pascal
+  TZDB2_Backup_Mode =
+    (
+    // bmStatic is High speed IO backup, but there may be read-write data waiting for the backup queue to complete.
+    // If the physical media is m2, nvme, ssd, they can be directly used
+    bmStatic,
+    // bmDynamicis is Slow and secure backup mode,
+    // supporting level is TB/PB large-scale backup, suitable for hard drives with storage is HDD Group/Pool,
+    bmDynamic,
+    // bmAuto: When the data size > Static_Backup_Tech_Physics_Limit, use bmDynamicis, normal is bmStatic
+    // TZDB2_Th_Engine.Backup_Mode default is bmAuto
+    bmAuto
+    );
+```
+- 近期忙于一个数据中心项目,数据量单日pb级,堆了3个hdd分组阵列,试运行第一天备份系统出现内存过载,直接宕机,第二天跟踪观察了一天,终于找到过载问题,修复!
+
+
 **2023-4-11 新增p2pVM的底层加密机制**
 
 - Z.Cipher库新增AES128,192,256,加密接口,完整集成,新增的AES体系可适用于ZDB2-Thread,ZNet,ZInstaller2,ZDB2-Encoder/Decoder等等技术
