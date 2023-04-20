@@ -317,9 +317,11 @@ type
   TZDB2_Th_CMD_Queue = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TZDB2_Th_CMD>;
 {$ENDREGION 'Command_Queue'}
 {$REGION 'Command_Dispatch'}
+  TZDB2_Th_Queue_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Queue>;
 
   TZDB2_Th_Queue = class
   private
+    FInstance_Pool_Ptr: TZDB2_Th_Queue_Instance_Pool.PQueueStruct;
     FCMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
     FCoreSpace_Max_File_Size: Int64; // <=0=infinite >0=space limit
@@ -431,6 +433,10 @@ type
     class procedure Test;
   end;
 {$ENDREGION 'Command_Dispatch'}
+
+
+var
+  ZDB2_Th_Queue_Instance_Pool__: TZDB2_Th_Queue_Instance_Pool;
 
 implementation
 
@@ -834,7 +840,7 @@ begin
   Input_Ptr := Input_;
   Dest_Th_Engine := Dest_Th_Engine_;
   Output_Ptr := Output_;
-  Max_Queue := 1000;
+  Max_Queue := 100;
   Wait_Queue := True;
   AutoFree_Data := False;
   Init();
@@ -1099,6 +1105,7 @@ constructor TZDB2_Th_Queue.Create(Mode_: TZDB2_SpaceMode;
   Stream_: TCore_Stream; AutoFree_, OnlyRead_: Boolean; Delta_: Int64; BlockSize_: Word; Cipher_: IZDB2_Cipher);
 begin
   inherited Create;
+  FInstance_Pool_Ptr := ZDB2_Th_Queue_Instance_Pool__.Add(self);
   FCMD_Queue := TZDB2_Th_CMD_Queue.Create;
   FCMD_Queue.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free_CMD;
   FCMD_Execute_Thread_Is_Runing := False;
@@ -1128,6 +1135,7 @@ destructor TZDB2_Th_Queue.Destroy;
 var
   tmp: TCMD_State;
 begin
+  ZDB2_Th_Queue_Instance_Pool__.Remove_P(FInstance_Pool_Ptr);
   Async_Flush;
   TZDB2_Th_CMD_Exit.Create(self).Ready(tmp);
   while not FCMD_Execute_Thread_Is_Exit do
@@ -2046,5 +2054,13 @@ begin
   tmp_inst3.Free;
   tmp_inst4.Free;
 end;
+
+initialization
+
+ZDB2_Th_Queue_Instance_Pool__ := TZDB2_Th_Queue_Instance_Pool.Create;
+
+finalization
+
+DisposeObjectAndNil(ZDB2_Th_Queue_Instance_Pool__);
 
 end.
