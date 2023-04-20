@@ -153,12 +153,24 @@ type
     tatal_data_num_: Int64;
     buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
     backup_file: U_String;
+    Dynamic_Backup_Max_Queue: Integer; // default 1000
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
   end;
 
-  TZDB2_Backup_Mode = (bmStatic, bmDynamic, bmAuto);
+  TZDB2_Backup_Mode =
+    (
+    // bmStatic is High speed IO backup, but there may be read-write data waiting for the backup queue to complete.
+    // If the physical media is m2, nvme, ssd, they can be directly used
+    bmStatic,
+    // bmDynamicis is Slow and secure backup mode,
+    // supporting level is TB/PB large-scale backup, suitable for hard drives with storage is HDD Group/Pool,
+    bmDynamic,
+    // bmAuto: When the data size > Static_Backup_Tech_Physics_Limit, use bmDynamicis, normal is bmStatic
+    // TZDB2_Th_Engine.Backup_Mode default is bmAuto
+    bmAuto
+    );
 
   // this multithreaded model.
   // Try to avoid calling the methods here at the application
@@ -173,7 +185,7 @@ type
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
     RemoveDatabaseOnDestroy: Boolean;
-    Mode: TZDB2_SpaceMode;
+    Mode: TZDB2_SpaceMode; // default is smBigData
     Database_File: U_String;
     OnlyRead: Boolean;
     Delta: Int64;
@@ -186,12 +198,13 @@ type
     Cipher_CBC: Boolean;
     Backup_Mode: TZDB2_Backup_Mode;
     Static_Backup_Tech_Physics_Limit: Int64; // this value is exceeded, dynamic-backup tech will be used
+    Dynamic_Backup_Max_Queue: Integer; // default 1000
     Engine: TZDB2_Th_Queue; // th-queue-engine
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___;
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
-    procedure ReadConfig(Name_: U_String; cfg: THashStringList); overload;
+    procedure ReadConfig(const Name_: U_String; cfg: THashStringList); overload;
     procedure ReadConfig(cfg: THashStringList); overload;
     procedure WriteConfig(cfg: THashStringList);
     procedure Update_Engine_Data_Ptr(); // reset FTh_Engine and FTh_Engine_Data_Ptr
@@ -362,6 +375,8 @@ type
     function GetRemoveDatabaseOnDestroy: Boolean;
     procedure SetRemoveDatabaseOnDestroy(const Value: Boolean);
     property RemoveDatabaseOnDestroy: Boolean read GetRemoveDatabaseOnDestroy write SetRemoveDatabaseOnDestroy;
+    // state info
+    function Get_State_Info(): U_String;
     // test
     class procedure Test();
     class procedure Test_Backup_Support();
@@ -984,6 +999,7 @@ begin
   tatal_data_num_ := 0;
   buff := nil;
   backup_file := '';
+  Dynamic_Backup_Max_Queue := 1000;
 end;
 
 destructor TZDB2_Th_Engine_Dynamic_Backup.Destroy;
@@ -1033,7 +1049,7 @@ begin
           p^.Data.ID := buff^[i]^.Data.ID;
           Owner.Engine.Async_GetData_AsMem64(p^.Data.ID, p^.Data.Mem64, @p^.Data.State);
         end;
-      if sour.Num > 1000 then
+      if sour.Num > Dynamic_Backup_Max_Queue then
         begin
           repeat
             while sour.First^.Data.State = TCMD_State.csDefault do
@@ -1045,7 +1061,10 @@ begin
                 disposeObjectAndNil(sour.First^.Data.Mem64);
 
             sour.Next;
-          until sour.Num < 500;
+          until sour.Num <= 0;
+          if th.QueueNum > Dynamic_Backup_Max_Queue then
+            while th.QueueNum > 0 do
+                TCompute.Sleep(1);
         end;
       Inc(i);
     end;
@@ -1229,6 +1248,7 @@ begin
       AtomInc(Owner.FLong_Loop_Num);
       dynamic_backup_inst.tatal_data_num_ := Th_Engine_Data_Pool.Num;
       dynamic_backup_inst.buff := Th_Engine_Data_Pool.BuildArrayMemory();
+      dynamic_backup_inst.Dynamic_Backup_Max_Queue := Dynamic_Backup_Max_Queue;
       Th_Engine_Data_Pool.UnLock;
 
       dynamic_backup_inst.backup_file := Make_backup_File_Name();
@@ -1258,6 +1278,7 @@ begin
   Cipher_CBC := True;
   Backup_Mode := TZDB2_Backup_Mode.bmAuto;
   Static_Backup_Tech_Physics_Limit := 1024 * 1024 * 1024;
+  Dynamic_Backup_Max_Queue := 1000;
   Engine := nil;
   Th_Engine_Data_Pool := TZDB2_Th_Engine_Data_BigList___.Create;
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
@@ -1292,7 +1313,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TZDB2_Th_Engine.ReadConfig(Name_: U_String; cfg: THashStringList);
+procedure TZDB2_Th_Engine.ReadConfig(const Name_: U_String; cfg: THashStringList);
 var
   n: U_String;
 begin
@@ -1318,6 +1339,7 @@ begin
       Backup_Mode := TZDB2_Backup_Mode.bmDynamic;
 
   Static_Backup_Tech_Physics_Limit := EStrToInt64(cfg.GetDefaultValue('Static_Backup_Tech_Physics_Limit', umlIntToStr(Static_Backup_Tech_Physics_Limit)), Static_Backup_Tech_Physics_Limit);
+  Dynamic_Backup_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Backup_Max_Queue', umlIntToStr(Dynamic_Backup_Max_Queue)), Dynamic_Backup_Max_Queue);
 end;
 
 procedure TZDB2_Th_Engine.ReadConfig(cfg: THashStringList);
@@ -1343,6 +1365,7 @@ begin
     else cfg.SetDefaultValue('Backup_Mode', 'Auto');
   end;
   cfg.SetDefaultValue('Static_Backup_Tech_Physics_Limit', umlIntToStr(Static_Backup_Tech_Physics_Limit));
+  cfg.SetDefaultValue('Dynamic_Backup_Max_Queue', umlIntToStr(Dynamic_Backup_Max_Queue));
 end;
 
 procedure TZDB2_Th_Engine.Update_Engine_Data_Ptr();
@@ -3234,6 +3257,8 @@ var
   i, j: Int64;
   Can_Load: Boolean;
 begin
+  if FLong_Loop_Num > 0 then
+      exit;
   Check_Recycle_Pool;
   if Data_Marshal.Num <= 0 then
       exit;
@@ -3275,6 +3300,8 @@ var
   i, removed_Size, tmp: Int64;
   Can_Load: Boolean;
 begin
+  if FLong_Loop_Num > 0 then
+      exit;
   if eng.Owner <> self then
       exit;
   if Recycle_Space_Size <= 0 then
@@ -3320,6 +3347,8 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
 begin
+  if FLong_Loop_Num > 0 then
+      exit;
   if Engine_Pool.Num > 0 then
     begin
       AtomInc(FLong_Loop_Num);
@@ -3376,6 +3405,24 @@ begin
           UnLock;
       end;
     end;
+end;
+
+function TZDB2_Th_Engine_Marshal.Get_State_Info: U_String;
+begin
+  Result := '';
+  if Engine_Pool.Num > 0 then
+    with Engine_Pool.Repeat_ do
+      repeat
+        if Queue^.Data.Engine <> nil then
+            Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s' + #13#10,
+            [I__ + 1, umlGetFileName(Queue^.Data.Database_File).Text,
+            Queue^.Data.Th_Engine_Data_Pool.Num,
+            Queue^.Data.Engine.QueueNum,
+            umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text,
+            umlSizeToStr(Queue^.Data.Engine.CoreSpace_Physics_Size).Text]);
+      until not Next;
+
+  Result.Append('Total Data/Queue:%d/%d'#13#10, [Total, QueueNum]);
 end;
 
 class procedure TZDB2_Th_Engine_Marshal.Test;
