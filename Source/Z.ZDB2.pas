@@ -1416,7 +1416,7 @@ begin
   FState.WriteNum := 0;
   FState.WriteSize := 0;
 
-  FLast_Modification := 0;
+  FLast_Modification := GetTimeTick();
   FLast_Error_Info := TZDB2_Core_Space_Error_Info.Create;
   FLast_Warning_Info := TZDB2_Core_Space_Warning_Info.Create;
   FOnProgress := nil;
