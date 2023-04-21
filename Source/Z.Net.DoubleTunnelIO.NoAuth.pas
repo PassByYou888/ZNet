@@ -630,7 +630,7 @@ begin
         OnDownloadDoneP(UserData, UserObject, stream, fileName);
   except
   end;
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedDownloadFile_Struct_NoAuth.DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object;
@@ -655,7 +655,7 @@ begin
   else
     begin
       DoStatus('no found remote file: "%s" ', [remoteFile]);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -726,13 +726,13 @@ begin
       else
         begin
           Client.PostFile(localFile);
-          Free;
+          DelayFreeObj(1.0, Self);
         end;
     end
   else
     begin
       Client.PostFile(localFile);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -752,7 +752,7 @@ begin
     end
   else
       Client.PostFile(localFile);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedUploadFile_Struct_NoAuth.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
