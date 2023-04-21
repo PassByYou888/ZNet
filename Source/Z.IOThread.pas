@@ -175,6 +175,8 @@ procedure Test_IOData__C(Sender: TIO_Thread_Data);
 
 implementation
 
+uses Z.Notify;
+
 procedure Test_IOData__C(Sender: TIO_Thread_Data);
 begin
 end;
@@ -747,7 +749,7 @@ begin
   FBindTh := nil;
   DisposeObjectAndNil(FPost);
   DisposeObjectAndNil(FActivted);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 constructor TThread_Event_Pool__.Create(Owner_: TThread_Pool);
