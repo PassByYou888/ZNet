@@ -123,7 +123,7 @@ type
     procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_: TCore_Object); overload;
     procedure PostDelayFreeObject(Delay: Double; Obj1_: TCore_Object); overload;
     procedure Remove(Inst_: TN_Post_Execute); overload; virtual;
-    procedure Progress(deltaTime: Double);
+    procedure Progress(deltaTime: Double); overload;
     property Paused: Boolean read FPaused write FPaused;
     property Busy: Boolean read FBusy;
     property CurrentExecute: TN_Post_Execute read FCurrentExecute;
@@ -137,7 +137,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure Progress;
+    procedure Progress; overload;
     property CadencerEngine: TCadencer read FCadencerEngine;
   end;
 
@@ -719,6 +719,7 @@ SystemPostProgress := TCadencer_N_Progress_Tool.Create;
 finalization
 
 Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
+SystemPostProgress.Progress(10);
 DisposeObject(SystemPostProgress);
 
 end.
