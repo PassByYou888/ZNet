@@ -3597,7 +3597,7 @@ begin
       end;
   except
   end;
-  DisposeObject(self);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor THPC_Stream.Create;
@@ -3877,7 +3877,7 @@ begin
       end;
   except
   end;
-  DisposeObject(self);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor THPC_Console.Create;
@@ -4194,7 +4194,7 @@ begin
       OnNotifyM(Param1, Param2, State);
   if Assigned(OnNotifyP) then
       OnNotifyP(Param1, Param2, State);
-  DisposeObject(self);
+  DelayFreeObj(1.0, self);
 end;
 
 procedure TCustomEventBridge.DoFree(Sender: TZNet_Progress);
@@ -4492,7 +4492,7 @@ begin
   except
   end;
 
-  Free;
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TP2PVM_CloneConnectEventBridge.Create(Source_: TZNet_WithP2PVM_Client);
@@ -4897,7 +4897,7 @@ begin
   while FBusy or (FBusyNum > 0) do
       TCore_Thread.Sleep(1);
 
-  DisposeObject(self);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TPeerIOUserDefine.Create(Owner_: TPeerIO);
@@ -4929,7 +4929,7 @@ begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
       TCore_Thread.Sleep(1);
-  DisposeObject(self);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TPeerIOUserSpecial.Create(Owner_: TPeerIO);
