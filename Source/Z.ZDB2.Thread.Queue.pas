@@ -226,6 +226,7 @@ type
     constructor Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word; const OnProgress: TZDB2_OnProgress);
   end;
 
+  // bridge **********************************************************************************
   TOn_Mem64_And_State_Event_C = procedure(var Sender: TZDB2_Th_CMD_Mem64_And_State);
   TOn_Mem64_And_State_Event_M = procedure(var Sender: TZDB2_Th_CMD_Mem64_And_State) of object;
 {$IFDEF FPC}
@@ -313,6 +314,7 @@ type
     procedure Init(CMD_: TZDB2_Th_CMD);
     procedure Ready;
   end;
+  // bridge **********************************************************************************
 
   TZDB2_Th_CMD_Queue = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TZDB2_Th_CMD>;
 {$ENDREGION 'Command_Queue'}
@@ -379,9 +381,12 @@ type
     function Sync_Flush_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_List): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_Pool): Boolean; overload;
+    // extract to
     function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array): Boolean;
     function Sync_Extract_To_Stream(var Input_: TZDB2_BlockHandle; const Dest: TCore_Stream; const Cipher_: IZDB2_Cipher): Integer;
     function Sync_Extract_To_File(var Input_: TZDB2_BlockHandle; const Dest: U_String; const Cipher_: IZDB2_Cipher): Integer;
+    function Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue): Integer;
+    // core-space
     function Sync_Format_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
     function Sync_Append_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
 
@@ -900,7 +905,7 @@ begin
       OnResult_M(Mem64_And_State);
   if Assigned(OnResult_P) then
       OnResult_P(Mem64_And_State);
-  Free;
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TZDB2_Th_CMD_Bridge_Mem64_And_State.Create;
@@ -933,7 +938,7 @@ begin
       OnResult_M(Stream_And_State);
   if Assigned(OnResult_P) then
       OnResult_P(Stream_And_State);
-  Free;
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TZDB2_Th_CMD_Bridge_Stream_And_State.Create;
@@ -966,7 +971,7 @@ begin
       OnResult_M(ID_And_State);
   if Assigned(OnResult_P) then
       OnResult_P(ID_And_State);
-  Free;
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TZDB2_Th_CMD_Bridge_ID_And_State.Create;
@@ -999,7 +1004,7 @@ begin
       OnResult_M(State);
   if Assigned(OnResult_P) then
       OnResult_P(State);
-  Free;
+  DelayFreeObj(1.0, self);
 end;
 
 constructor TZDB2_Th_CMD_Bridge_State.Create;
@@ -1152,7 +1157,7 @@ end;
 function TZDB2_Th_Queue.Last_Modification: TTimeTick;
 begin
   FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
+  if (CoreSpace__ <> nil) then
       Result := CoreSpace__.Last_Modification
   else
       Result := GetTimeTick();
@@ -1417,6 +1422,7 @@ var
 begin
   Result := 0;
   th := TZDB2_Th_Queue.Create(FCoreSpace_Mode, Dest, False, False, FCoreSpace_Delta, CoreSpace_BlockSize, Cipher_);
+  th.Sync_Format_Custom_Space(umlMax(CoreSpace_Size, FCoreSpace_Delta), CoreSpace_BlockSize, nil);
   if Sync_Extract_To(Input_, th, Output_) then
     begin
       tmp := TZDB2_ID_Pool.Create;
@@ -1460,6 +1466,31 @@ begin
         disposeObject(tmp);
       end;
     disposeObject(th);
+  except
+  end;
+end;
+
+function TZDB2_Th_Queue.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue): Integer;
+var
+  Output_: TZDB2_Th_CMD_ID_And_State_Array;
+  i: Integer;
+  tmp: TZDB2_ID_Pool;
+begin
+  Result := 0;
+  try
+    if Sync_Extract_To(Input_, Dest_Th_Engine_, Output_) then
+      begin
+        tmp := TZDB2_ID_Pool.Create;
+        for i := 0 to length(Output_) - 1 do
+          begin
+            if Output_[i].State = TCMD_State.csDone then
+                tmp.Add(Output_[i].ID);
+          end;
+        SetLength(Output_, 0);
+        Result := tmp.Num;
+        Dest_Th_Engine_.Sync_Flush_Sequence_Table(tmp);
+        disposeObject(tmp);
+      end;
   except
   end;
 end;
