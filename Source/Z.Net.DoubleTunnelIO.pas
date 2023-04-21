@@ -902,7 +902,7 @@ begin
         OnDownloadDoneP(UserData, UserObject, stream, fileName);
   except
   end;
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedDownloadPublicFile_Struct.DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object;
@@ -925,7 +925,7 @@ begin
   else
     begin
       DoStatus('no found remote file: "%s" ', [remoteFile]);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -991,7 +991,7 @@ begin
         OnDownloadDoneP(UserData, UserObject, stream, fileName);
   except
   end;
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedDownloadPrivateFile_Struct.DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object;
@@ -1011,7 +1011,7 @@ begin
   else
     begin
       DoStatus('no found remote file: "%s" ', [remoteFile]);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -1082,13 +1082,13 @@ begin
       else
         begin
           Client.PostFileToPublic(localFile);
-          Free;
+          DelayFreeObj(1.0, Self);
         end;
     end
   else
     begin
       Client.PostFileToPublic(localFile);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -1108,7 +1108,7 @@ begin
     end
   else
       Client.PostFileToPublic(localFile);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedUploadPublicFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
@@ -1156,13 +1156,13 @@ begin
       else
         begin
           Client.PostFileToPrivate(localFile, RemoteDirectory);
-          Free;
+          DelayFreeObj(1.0, Self);
         end;
     end
   else
     begin
       Client.PostFileToPrivate(localFile, RemoteDirectory);
-      Free;
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
@@ -1182,7 +1182,7 @@ begin
     end
   else
       Client.PostFileToPrivate(localFile, RemoteDirectory);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TAutomatedUploadPrivateFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
