@@ -150,10 +150,8 @@ type
     Instance_Ptr: TZDB2_Th_Engine_Dynamic_Backup_Instance_Pool.PQueueStruct;
   public
     Owner: TZDB2_Th_Engine;
-    tatal_data_num_: Int64;
-    buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
     backup_file: U_String;
-    Dynamic_Backup_Max_Queue: Integer; // default 1000
+    Dynamic_Backup_Max_Queue: Integer; // default 500
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
@@ -198,7 +196,7 @@ type
     Cipher_CBC: Boolean;
     Backup_Mode: TZDB2_Backup_Mode;
     Static_Backup_Tech_Physics_Limit: Int64; // this value is exceeded, dynamic-backup tech will be used
-    Dynamic_Backup_Max_Queue: Integer; // default 1000
+    Dynamic_Backup_Max_Queue: Integer; // default 500
     Engine: TZDB2_Th_Queue; // th-queue-engine
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___;
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
@@ -414,7 +412,7 @@ begin
   except
   end;
   AtomDec(Source.FAsync_Load_Num);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 constructor TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Create;
@@ -439,7 +437,7 @@ begin
   except
   end;
   AtomDec(Source.FAsync_Load_Num);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TZDB2_Th_Engine_Data.Wait_Unlock(timeOut: TTimeTick);
@@ -977,17 +975,48 @@ end;
 
 procedure TZDB2_Th_Engine_Static_Backup.Do_Run(Sender: TCompute);
 var
+  fs: TCore_FileStream;
+  th: TZDB2_Th_Queue;
+  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
   hnd: TZDB2_BlockHandle;
 begin
   DoStatus('static-backup to %s', [umlGetFileName(backup_file).Text]);
+
+  fs := TCore_FileStream.Create(backup_file, fmCreate);
+  th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, Owner.Cipher);
+  th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
+
+  // check busy queue
+  while Owner.Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
+  Owner.Th_Engine_Data_Pool.Lock; // safe lock
+  AtomInc(Owner.Owner.FLong_Loop_Num); // lock loop
+  try
+    // rebuild sequece
+    if Owner.Th_Engine_Data_Pool.Num > 0 then
+      begin
+        __repeat__ := Owner.Th_Engine_Data_Pool.Repeat_;
+        repeat
+          if __repeat__.Queue^.Data <> nil then
+            begin
+              if __repeat__.Queue^.Data.Can_Load then
+                  Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
+            end;
+        until not __repeat__.Next;
+      end;
+  finally
+      Owner.Th_Engine_Data_Pool.UnLock; // safe unlock
+  end;
   try
     hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
-    Owner.Engine.Sync_Extract_To_File(hnd, backup_file, nil);
+    Owner.Engine.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(hnd, th);
     SetLength(hnd, 0);
   except
   end;
+  disposeObjectAndNil(th);
   Owner.FLast_Backup_Execute_Time := GetTimeTick();
   Owner.FBackup_Is_Busy := False;
+  AtomDec(Owner.Owner.FLong_Loop_Num); // unlock loop
   DelayFreeObj(1.0, self);
 end;
 
@@ -996,10 +1025,8 @@ begin
   inherited Create;
   Instance_Ptr := Dynamic_Backup_Instance_Pool__.Add(self);
   Owner := Owner_;
-  tatal_data_num_ := 0;
-  buff := nil;
   backup_file := '';
-  Dynamic_Backup_Max_Queue := 1000;
+  Dynamic_Backup_Max_Queue := 500;
 end;
 
 destructor TZDB2_Th_Engine_Dynamic_Backup.Destroy;
@@ -1027,6 +1054,8 @@ type
 var
   fs: TCore_FileStream;
   th: TZDB2_Th_Queue;
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
   sour: TDynamic_Backup_Tech_Data_State_Order_;
   i: Int64;
   p: PData_State_;
@@ -1037,6 +1066,16 @@ begin
   fs := TCore_FileStream.Create(backup_file, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, nil);
   th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
+
+  // check busy queue
+  while Owner.Engine.QueueNum > 0 do
+      TCompute.Sleep(1);
+  Owner.Th_Engine_Data_Pool.Lock;
+  AtomInc(Owner.Owner.FLong_Loop_Num);
+  tatal_data_num_ := Owner.Th_Engine_Data_Pool.Num;
+  buff := Owner.Th_Engine_Data_Pool.BuildArrayMemory();
+  Owner.Th_Engine_Data_Pool.UnLock;
+
   sour := TDynamic_Backup_Tech_Data_State_Order_.Create;
   i := 0;
   while i < tatal_data_num_ do
@@ -1061,11 +1100,11 @@ begin
                 disposeObjectAndNil(sour.First^.Data.Mem64);
 
             sour.Next;
-          until sour.Num <= 0;
-          if th.QueueNum > Dynamic_Backup_Max_Queue then
-            while th.QueueNum > 0 do
-                TCompute.Sleep(1);
+          until sour.Num <= umlMax(0, Dynamic_Backup_Max_Queue shr 1);
         end;
+      if th.QueueNum > Dynamic_Backup_Max_Queue then
+        while th.QueueNum >= umlMax(0, Dynamic_Backup_Max_Queue shr 1) do
+            TCompute.Sleep(1);
       Inc(i);
     end;
   while sour.Num > 0 do
@@ -1143,7 +1182,6 @@ var
 
   // static backup technology
   static_backup_inst: TZDB2_Th_Engine_Static_Backup;
-  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
   // dynamic backup technology
   dynamic_backup_inst: TZDB2_Th_Engine_Dynamic_Backup;
 
@@ -1211,26 +1249,7 @@ begin
     begin
       // backup instance
       static_backup_inst := TZDB2_Th_Engine_Static_Backup.Create(self);
-      // check busy queue
-      while Engine.QueueNum > 0 do
-          TCompute.Sleep(1);
-      Th_Engine_Data_Pool.Lock; // safe lock
-      try
-        // rebuild sequece
-        if Th_Engine_Data_Pool.Num > 0 then
-          begin
-            __repeat__ := Th_Engine_Data_Pool.Repeat_;
-            repeat
-              if __repeat__.Queue^.Data <> nil then
-                begin
-                  if __repeat__.Queue^.Data.FID >= 0 then
-                      static_backup_inst.Queue_ID_List_.Add(__repeat__.Queue^.Data.FID)
-                end;
-            until not __repeat__.Next;
-          end;
-      finally
-          Th_Engine_Data_Pool.UnLock; // safe unlock
-      end;
+      Owner.Check_Recycle_Pool;
       static_backup_inst.backup_file := Make_backup_File_Name();
       TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}static_backup_inst.Do_Run); // run static-backup thread
     end
@@ -1238,19 +1257,8 @@ begin
     begin
       // dynamic backup technology
       dynamic_backup_inst := TZDB2_Th_Engine_Dynamic_Backup.Create(self);
-      // check busy queue
-      while Engine.QueueNum > 0 do
-          TCompute.Sleep(1);
-
       Owner.Check_Recycle_Pool;
-
-      Th_Engine_Data_Pool.Lock;
-      AtomInc(Owner.FLong_Loop_Num);
-      dynamic_backup_inst.tatal_data_num_ := Th_Engine_Data_Pool.Num;
-      dynamic_backup_inst.buff := Th_Engine_Data_Pool.BuildArrayMemory();
       dynamic_backup_inst.Dynamic_Backup_Max_Queue := Dynamic_Backup_Max_Queue;
-      Th_Engine_Data_Pool.UnLock;
-
       dynamic_backup_inst.backup_file := Make_backup_File_Name();
       TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}dynamic_backup_inst.Do_Run); // run dynamic-backup thread
     end;
@@ -1278,7 +1286,7 @@ begin
   Cipher_CBC := True;
   Backup_Mode := TZDB2_Backup_Mode.bmAuto;
   Static_Backup_Tech_Physics_Limit := 1024 * 1024 * 1024;
-  Dynamic_Backup_Max_Queue := 1000;
+  Dynamic_Backup_Max_Queue := 500;
   Engine := nil;
   Th_Engine_Data_Pool := TZDB2_Th_Engine_Data_BigList___.Create;
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
@@ -2185,7 +2193,7 @@ begin
   else
     begin
       FLoad_Processor.Load_Task_Num.UnLock(FLoad_Processor.Load_Task_Num.LockP^ - 1);
-      DisposeObject(self);
+      DelayFreeObj(1.0, Self);
     end;
 end;
 
