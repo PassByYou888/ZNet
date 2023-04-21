@@ -1820,7 +1820,7 @@ begin
         OnResultP(C40_PhysicsTunnel, L);
   except
   end;
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 constructor TDCT40_QueryResultData.Create;
@@ -1938,7 +1938,7 @@ begin
       On_M(state);
   if Assigned(On_P) then
       On_P(state);
-  Free;
+  DelayFreeObj(1.0, Self);
 end;
 
 constructor TDCT40_QueryResultAndDependProcessor.Create;
