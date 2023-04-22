@@ -139,6 +139,7 @@ type
     Owner: TZDB2_Th_Engine;
     Queue_ID_List_: TZDB2_ID_List;
     backup_file: U_String;
+    Aborted: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
@@ -152,6 +153,7 @@ type
     Owner: TZDB2_Th_Engine;
     backup_file: U_String;
     Dynamic_Backup_Max_Queue: Integer; // default 500
+    Aborted: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
@@ -188,6 +190,7 @@ type
     OnlyRead: Boolean;
     Delta: Int64;
     BlockSize: Word;
+    First_Init_Size: Int64;
     Cipher: TZDB2_Cipher;
     Cipher_Security: TCipherSecurity;
     Cipher_password: U_String;
@@ -305,12 +308,14 @@ type
     FLong_Loop_Num: Integer;
     Pool_Ptr: TZDB2_Th_Engine_Marshal_Pool.PQueueStruct;
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
+    procedure Do_Remove_First_Data_From_ThEngine(eng: TZDB2_Th_Engine; Recycle_Space_Size: Int64);
   public
     Data_Marshal: TZDB2_Th_Engine_Marshal_BigList___;
     Engine_Pool: TZDB2_Th_Engine_Pool;
     Instance_Recycle_Tool: TZDB2_Th_Engine_Data_Instance_Recycle_Tool___;
     Data_Link_Recycle_Tool: TZDB2_Th_Engine_Data_Link_Recycle_Tool___;
     Current_Data_Class: TZDB2_Th_Engine_Data_Class;
+    property Long_Loop_Num: Integer read FLong_Loop_Num;
     constructor Create();
     destructor Destroy; override;
     // thread
@@ -364,7 +369,6 @@ type
     procedure For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_P);
     // remove first data, Scrolling storage support
     procedure Remove_First_Data(Num_: Int64; remove_data_: Boolean);
-    procedure Remove_First_Data_From_ThEngine(eng: TZDB2_Th_Engine; Recycle_Space_Size: Int64);
     procedure Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
     // custom loop
     procedure Begin_Loop;
@@ -381,6 +385,8 @@ type
     class procedure Test_Remove_First_Data_Support();
   end;
 
+procedure Stop_All_ZDB2_Thread_Backup_Task;
+
 var
   Th_Engine_Marshal_Pool__: TZDB2_Th_Engine_Marshal_Pool;
   Static_Backup_Instance_Pool__: TZDB2_Th_Engine_Static_Backup_Instance_Pool;
@@ -389,6 +395,35 @@ var
 implementation
 
 uses Z.Expression;
+
+procedure Stop_All_ZDB2_Thread_Backup_Task;
+begin
+  Static_Backup_Instance_Pool__.Lock;
+  try
+    if Static_Backup_Instance_Pool__.num > 0 then
+      begin
+        with Static_Backup_Instance_Pool__.repeat_ do
+          repeat
+              Queue^.Data.Aborted := True;
+          until not Next;
+      end;
+  finally
+      Static_Backup_Instance_Pool__.UnLock;
+  end;
+
+  Dynamic_Backup_Instance_Pool__.Lock;
+  try
+    if Dynamic_Backup_Instance_Pool__.num > 0 then
+      begin
+        with Dynamic_Backup_Instance_Pool__.repeat_ do
+          repeat
+              Queue^.Data.Aborted := True;
+          until not Next;
+      end;
+  finally
+      Dynamic_Backup_Instance_Pool__.UnLock;
+  end;
+end;
 
 constructor TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Create;
 begin
@@ -614,7 +649,7 @@ begin
 
       if (FOwner <> nil) and (FOwner.FLong_Loop_Num > 0) then
         begin
-          FOwner.Data_Link_Recycle_Tool.Add(self); // post link to recycle pool
+          FOwner.Data_Link_Recycle_Tool.Add(Self); // post link to recycle pool
         end
       else if (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil) then
         begin
@@ -695,7 +730,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_C := OnResult;
       Engine.Async_GetData_AsStream_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -724,7 +759,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_C := OnResult;
       Engine.Async_GetData_AsMem64_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -753,7 +788,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_M := OnResult;
       Engine.Async_GetData_AsStream_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -782,7 +817,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_M := OnResult;
       Engine.Async_GetData_AsMem64_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -811,7 +846,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_P := OnResult;
       Engine.Async_GetData_AsStream_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -840,7 +875,7 @@ begin
     begin
       AtomInc(FAsync_Load_Num);
       bridge_ := TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Create;
-      bridge_.Source := self;
+      bridge_.Source := Self;
       bridge_.OnResult_P := OnResult;
       Engine.Async_GetData_AsMem64_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
     end
@@ -955,10 +990,11 @@ end;
 constructor TZDB2_Th_Engine_Static_Backup.Create(Owner_: TZDB2_Th_Engine);
 begin
   inherited Create;
-  Instance_Ptr := Static_Backup_Instance_Pool__.Add(self);
+  Instance_Ptr := Static_Backup_Instance_Pool__.Add(Self);
   Owner := Owner_;
   Queue_ID_List_ := TZDB2_ID_List.Create;
   backup_file := '';
+  Aborted := False;
 end;
 
 destructor TZDB2_Th_Engine_Static_Backup.Destroy;
@@ -989,13 +1025,14 @@ begin
   // check busy queue
   while Owner.Engine.QueueNum > 0 do
       TCompute.Sleep(1);
+  Owner.Owner.Check_Recycle_Pool;
   Owner.Th_Engine_Data_Pool.Lock; // safe lock
   AtomInc(Owner.Owner.FLong_Loop_Num); // lock loop
   try
     // rebuild sequece
-    if Owner.Th_Engine_Data_Pool.Num > 0 then
+    if Owner.Th_Engine_Data_Pool.num > 0 then
       begin
-        __repeat__ := Owner.Th_Engine_Data_Pool.Repeat_;
+        __repeat__ := Owner.Th_Engine_Data_Pool.repeat_;
         repeat
           if __repeat__.Queue^.Data <> nil then
             begin
@@ -1009,7 +1046,7 @@ begin
   end;
   try
     hnd := TZDB2_Core_Space.Get_Handle(Queue_ID_List_);
-    Owner.Engine.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(hnd, th);
+    Owner.Engine.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(hnd, th, @Aborted);
     SetLength(hnd, 0);
   except
   end;
@@ -1017,16 +1054,21 @@ begin
   Owner.FLast_Backup_Execute_Time := GetTimeTick();
   Owner.FBackup_Is_Busy := False;
   AtomDec(Owner.Owner.FLong_Loop_Num); // unlock loop
-  DelayFreeObj(1.0, self);
+
+  // check aborted state
+  if Aborted then
+      umlDeleteFile(backup_file);
+  DelayFreeObj(1.0, Self);
 end;
 
 constructor TZDB2_Th_Engine_Dynamic_Backup.Create(Owner_: TZDB2_Th_Engine);
 begin
   inherited Create;
-  Instance_Ptr := Dynamic_Backup_Instance_Pool__.Add(self);
+  Instance_Ptr := Dynamic_Backup_Instance_Pool__.Add(Self);
   Owner := Owner_;
   backup_file := '';
   Dynamic_Backup_Max_Queue := 500;
+  Aborted := False;
 end;
 
 destructor TZDB2_Th_Engine_Dynamic_Backup.Destroy;
@@ -1067,12 +1109,13 @@ begin
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, nil);
   th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
 
+  Aborted := False;
   // check busy queue
   while Owner.Engine.QueueNum > 0 do
       TCompute.Sleep(1);
   Owner.Th_Engine_Data_Pool.Lock;
   AtomInc(Owner.Owner.FLong_Loop_Num);
-  tatal_data_num_ := Owner.Th_Engine_Data_Pool.Num;
+  tatal_data_num_ := Owner.Th_Engine_Data_Pool.num;
   buff := Owner.Th_Engine_Data_Pool.BuildArrayMemory();
   Owner.Th_Engine_Data_Pool.UnLock;
 
@@ -1088,7 +1131,7 @@ begin
           p^.Data.ID := buff^[i]^.Data.ID;
           Owner.Engine.Async_GetData_AsMem64(p^.Data.ID, p^.Data.Mem64, @p^.Data.State);
         end;
-      if sour.Num > Dynamic_Backup_Max_Queue then
+      if sour.num > Dynamic_Backup_Max_Queue then
         begin
           repeat
             while sour.First^.Data.State = TCMD_State.csDefault do
@@ -1100,14 +1143,17 @@ begin
                 disposeObjectAndNil(sour.First^.Data.Mem64);
 
             sour.Next;
-          until sour.Num <= umlMax(0, Dynamic_Backup_Max_Queue shr 1);
+          until sour.num <= umlMax(0, Dynamic_Backup_Max_Queue shr 1);
         end;
       if th.QueueNum > Dynamic_Backup_Max_Queue then
         while th.QueueNum >= umlMax(0, Dynamic_Backup_Max_Queue shr 1) do
             TCompute.Sleep(1);
+
+      if Aborted then
+          break;
       Inc(i);
     end;
-  while sour.Num > 0 do
+  while sour.num > 0 do
     begin
       while sour.First^.Data.State = TCMD_State.csDefault do
           TCompute.Sleep(1);
@@ -1139,8 +1185,11 @@ begin
   Owner.FLast_Backup_Execute_Time := GetTimeTick();
   Owner.FBackup_Is_Busy := False;
   AtomDec(Owner.Owner.FLong_Loop_Num);
+  // check aborted state
+  if Aborted then
+      umlDeleteFile(backup_file);
   // delay free self
-  DelayFreeObj(1.0, self);
+  DelayFreeObj(1.0, Self);
 end;
 
 procedure TZDB2_Th_Engine.DoFree(var Data: TZDB2_Th_Engine_Data);
@@ -1235,7 +1284,7 @@ begin
     end);
 {$ENDIF FPC}
   // remove old backup
-  while L.Num > Reserve_ do
+  while L.num > Reserve_ do
     begin
       DoStatus('remove old backup "%s"', [umlGetFileName(L.First^.Data.FileName).Text]);
       umlDeleteFile(L.First^.Data.FileName);
@@ -1248,19 +1297,19 @@ begin
     ((Backup_Mode = TZDB2_Backup_Mode.bmAuto) and (Engine.CoreSpace_Physics_Size < Static_Backup_Tech_Physics_Limit)) then
     begin
       // backup instance
-      static_backup_inst := TZDB2_Th_Engine_Static_Backup.Create(self);
+      static_backup_inst := TZDB2_Th_Engine_Static_Backup.Create(Self);
       Owner.Check_Recycle_Pool;
       static_backup_inst.backup_file := Make_backup_File_Name();
-      TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}static_backup_inst.Do_Run); // run static-backup thread
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}static_backup_inst.Do_Run); // run static-backup thread
     end
   else
     begin
       // dynamic backup technology
-      dynamic_backup_inst := TZDB2_Th_Engine_Dynamic_Backup.Create(self);
+      dynamic_backup_inst := TZDB2_Th_Engine_Dynamic_Backup.Create(Self);
       Owner.Check_Recycle_Pool;
       dynamic_backup_inst.Dynamic_Backup_Max_Queue := Dynamic_Backup_Max_Queue;
       dynamic_backup_inst.backup_file := Make_backup_File_Name();
-      TCompute.RunM(nil, self, {$IFDEF FPC}@{$ENDIF FPC}dynamic_backup_inst.Do_Run); // run dynamic-backup thread
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}dynamic_backup_inst.Do_Run); // run dynamic-backup thread
     end;
 end;
 
@@ -1278,6 +1327,7 @@ begin
   OnlyRead := False;
   Delta := 16 * 1024 * 1024;
   BlockSize := 1536;
+  First_Init_Size := Delta;
   Cipher := nil;
   Cipher_Security := TCipherSecurity.csNone;
   Cipher_password := 'DTC40@ZSERVER';
@@ -1290,7 +1340,7 @@ begin
   Engine := nil;
   Th_Engine_Data_Pool := TZDB2_Th_Engine_Data_BigList___.Create;
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
-  Owner.Engine_Pool.Add(self);
+  Owner.Engine_Pool.Add(Self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
 end;
 
@@ -1315,7 +1365,7 @@ begin
     if Database_File <> '' then
         DoStatus('Close file %s', [Database_File.Text])
     else
-        DoStatus('free memory %s', [self.ClassName]);
+        DoStatus('free memory %s', [Self.ClassName]);
   except
   end;
   inherited Destroy;
@@ -1331,6 +1381,7 @@ begin
   OnlyRead := EStrToBool(cfg.GetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead)), OnlyRead);
   Delta := EStrToInt(cfg.GetDefaultValue('Delta', umlIntToStr(Delta)), Delta);
   BlockSize := EStrToInt(cfg.GetDefaultValue('BlockSize', umlIntToStr(BlockSize)), BlockSize);
+  First_Init_Size := EStrToInt64(cfg.GetDefaultValue('First_Init_Size', umlIntToStr(First_Init_Size)), First_Init_Size);
   Cipher_Security := TZDB2_Cipher.GetCipherSecurity(cfg.GetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]));
   Cipher_password := cfg.GetDefaultValue('Password', Cipher_password);
   Cipher_Level := EStrToInt(cfg.GetDefaultValue('Level', umlIntToStr(Cipher_Level)), Cipher_Level);
@@ -1362,6 +1413,7 @@ begin
   cfg.SetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead));
   cfg.SetDefaultValue('Delta', umlIntToStr(Delta));
   cfg.SetDefaultValue('BlockSize', umlIntToStr(BlockSize));
+  cfg.SetDefaultValue('First_Init_Size', umlIntToStr(First_Init_Size));
   cfg.GetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]);
   cfg.SetDefaultValue('Password', Cipher_password);
   cfg.SetDefaultValue('Level', umlIntToStr(Cipher_Level));
@@ -1379,11 +1431,11 @@ end;
 procedure TZDB2_Th_Engine.Update_Engine_Data_Ptr();
 begin
   Th_Engine_Data_Pool.Lock;
-  if Th_Engine_Data_Pool.Num > 0 then
+  if Th_Engine_Data_Pool.num > 0 then
     begin
-      with Th_Engine_Data_Pool.Repeat_ do
+      with Th_Engine_Data_Pool.repeat_ do
         repeat
-          Queue^.Data.FTh_Engine := self;
+          Queue^.Data.FTh_Engine := Self;
           Queue^.Data.FTh_Engine_Data_Ptr := Queue;
         until not Next;
     end;
@@ -1545,7 +1597,7 @@ begin
         Result := CompareDateTime(L.FileTime_, R.FileTime_);
       end);
 {$ENDIF FPC}
-    if L.Num > 0 then
+    if L.num > 0 then
       begin
         umlDeleteFile(Database_File);
         Result := umlCopyFile(L.Last^.Data.FileName, Database_File);
@@ -1646,12 +1698,12 @@ var
 
 begin
   Owner.Check_Recycle_Pool;
-  if Th_Engine_Data_Pool.Num <= 0 then
+  if Th_Engine_Data_Pool.num <= 0 then
       exit;
 
   Th_Engine_Data_Pool.Lock;
   AtomInc(Owner.FLong_Loop_Num);
-  tatal_data_num_ := Th_Engine_Data_Pool.Num;
+  tatal_data_num_ := Th_Engine_Data_Pool.num;
   buff := Th_Engine_Data_Pool.BuildArrayMemory();
   Th_Engine_Data_Pool.UnLock;
   Aborted := False;
@@ -1745,12 +1797,12 @@ var
 
 begin
   Owner.Check_Recycle_Pool;
-  if Th_Engine_Data_Pool.Num <= 0 then
+  if Th_Engine_Data_Pool.num <= 0 then
       exit;
 
   Th_Engine_Data_Pool.Lock;
   AtomInc(Owner.FLong_Loop_Num);
-  tatal_data_num_ := Th_Engine_Data_Pool.Num;
+  tatal_data_num_ := Th_Engine_Data_Pool.num;
   buff := Th_Engine_Data_Pool.BuildArrayMemory();
   Th_Engine_Data_Pool.UnLock;
   Aborted := False;
@@ -1844,12 +1896,12 @@ var
 
 begin
   Owner.Check_Recycle_Pool;
-  if Th_Engine_Data_Pool.Num <= 0 then
+  if Th_Engine_Data_Pool.num <= 0 then
       exit;
 
   Th_Engine_Data_Pool.Lock;
   AtomInc(Owner.FLong_Loop_Num);
-  tatal_data_num_ := Th_Engine_Data_Pool.Num;
+  tatal_data_num_ := Th_Engine_Data_Pool.num;
   buff := Th_Engine_Data_Pool.BuildArrayMemory();
   Th_Engine_Data_Pool.UnLock;
   Aborted := False;
@@ -1948,7 +2000,7 @@ begin
       begin
         // check stream
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
-        Engine.Async_Append_Custom_Space(Delta, BlockSize);
+        Engine.Async_Append_Custom_Space(First_Init_Size, BlockSize);
       end
     else if TZDB2_Core_Space.CheckStream(Stream, Cipher, Found_Backup()) then // check open from cipher and check Fault Shutdown
       begin
@@ -2033,9 +2085,9 @@ begin
   Th_Engine_Data_Pool.Lock;
   try
     Queue_ID_List_ := TZDB2_ID_List.Create;
-    if Th_Engine_Data_Pool.Num > 0 then
+    if Th_Engine_Data_Pool.num > 0 then
       begin
-        __repeat__ := Th_Engine_Data_Pool.Repeat_;
+        __repeat__ := Th_Engine_Data_Pool.repeat_;
         repeat
           if __repeat__.Queue^.Data <> nil then
             begin
@@ -2067,7 +2119,7 @@ begin
   Data_Instance.Lock;
   Data_Instance.FOwner := Owner;
   Data_Instance.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Data_Instance);
-  Data_Instance.FTh_Engine := self;
+  Data_Instance.FTh_Engine := Self;
   Data_Instance.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Data_Instance);
   Data_Instance.FID := ID;
   Data_Instance.FSize := ID_Size;
@@ -2087,9 +2139,9 @@ begin
 
   Th_Engine_Data_Pool.Lock;
   try
-    if Th_Engine_Data_Pool.Num > 0 then
+    if Th_Engine_Data_Pool.num > 0 then
       begin
-        with Th_Engine_Data_Pool.Repeat_ do
+        with Th_Engine_Data_Pool.repeat_ do
           repeat
             if (Queue^.Data <> nil) and Queue^.Data.Can_Progress then
                 Queue^.Data.Progress();
@@ -2116,11 +2168,11 @@ var
   Eng_: PQueueStruct;
 begin
   Result := nil;
-  if Num > 0 then
+  if num > 0 then
     begin
       Eng_ := nil;
       Lock;
-      with Repeat_ do
+      with repeat_ do
         repeat
           if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
             begin
@@ -2145,11 +2197,11 @@ var
   Eng_: PQueueStruct;
 begin
   Result := nil;
-  if Num > 0 then
+  if num > 0 then
     begin
       Eng_ := nil;
       Lock;
-      with Repeat_ do
+      with repeat_ do
         repeat
           if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
             begin
@@ -2172,8 +2224,8 @@ end;
 function TZDB2_Th_Engine_Pool.AllIsOnlyRead(): Boolean;
 begin
   Result := False;
-  if Num > 0 then
-    with Repeat_ do
+  if num > 0 then
+    with repeat_ do
       begin
         repeat
           if not Queue^.Data.OnlyRead then
@@ -2187,7 +2239,7 @@ procedure TZDB2_Th_Engine_Data_Load_Instance.Do_Read_Stream_Result(var Sender: T
 begin
   if Sender.State = TCMD_State.csDone then
     begin
-      FLoad_Processor.FTh_Pool.Enqueue(self);
+      FLoad_Processor.FTh_Pool.Enqueue(Self);
       FLoad_Processor.Load_Task_Num.UnLock(FLoad_Processor.Load_Task_Num.LockP^ - 1);
     end
   else
@@ -2240,7 +2292,7 @@ begin
       try
         if (buff^[i]^.Data <> nil) and (buff^[i]^.Data.Can_Load) then
           begin
-            Load_Inst_ := TZDB2_Th_Engine_Data_Load_Instance.Create(self, buff^[i]^.Data);
+            Load_Inst_ := TZDB2_Th_Engine_Data_Load_Instance.Create(Self, buff^[i]^.Data);
             Load_Inst_.FOnRun_C := OnRun_C;
             Load_Inst_.FOnRun_M := OnRun_M;
             Load_Inst_.FOnRun_P := OnRun_P;
@@ -2373,6 +2425,59 @@ begin
     end;
 end;
 
+procedure TZDB2_Th_Engine_Marshal.Do_Remove_First_Data_From_ThEngine(eng: TZDB2_Th_Engine; Recycle_Space_Size: Int64);
+var
+  sour_size: Int64;
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
+  i, removed_Size, tmp: Int64;
+  Can_Load: Boolean;
+begin
+  if eng.Owner <> Self then
+      exit;
+  if Recycle_Space_Size <= 0 then
+      exit;
+  if eng.Th_Engine_Data_Pool.num <= 0 then
+      exit;
+
+  Lock;
+  eng.Th_Engine_Data_Pool.Lock;
+  sour_size := eng.Engine.CoreSpace_Size;
+  tatal_data_num_ := eng.Th_Engine_Data_Pool.num;
+  buff := eng.Th_Engine_Data_Pool.BuildArrayMemory();
+  eng.Th_Engine_Data_Pool.UnLock;
+  UnLock;
+
+  removed_Size := 0;
+  i := 0;
+  while (i < tatal_data_num_) and (removed_Size < Recycle_Space_Size) do
+    begin
+      try
+        if (buff^[i]^.Data <> nil) then
+          begin
+            buff^[i]^.Data.Lock;
+            Can_Load := buff^[i]^.Data.Can_Load;
+            buff^[i]^.Data.UnLock;
+            if Can_Load then
+              begin
+                tmp := buff^[i]^.Data.Size;
+                if buff^[i]^.Data.Remove() then
+                    Inc(removed_Size, tmp);
+              end;
+          end;
+      except
+      end;
+      Inc(i);
+    end;
+
+  System.FreeMemory(buff);
+
+{$IFDEF DEBUG}
+  DoStatus('%s Recycle Space %s -> %s ', [if_(eng.Database_File = '', '(memory)', umlGetFileName(eng.Database_File).Text),
+    umlSizeToStr(sour_size).Text, umlSizeToStr(eng.Engine.CoreSpace_Size).Text]);
+{$ENDIF DEBUG}
+end;
+
 constructor TZDB2_Th_Engine_Marshal.Create;
 begin
   inherited Create;
@@ -2384,7 +2489,7 @@ begin
   Instance_Recycle_Tool := TZDB2_Th_Engine_Data_Instance_Recycle_Tool___.Create;
   Data_Link_Recycle_Tool := TZDB2_Th_Engine_Data_Link_Recycle_Tool___.Create;
   Current_Data_Class := TZDB2_Th_Engine_Data;
-  Pool_Ptr := Th_Engine_Marshal_Pool__.Add(self);
+  Pool_Ptr := Th_Engine_Marshal_Pool__.Add(Self);
 end;
 
 destructor TZDB2_Th_Engine_Marshal.Destroy;
@@ -2392,9 +2497,9 @@ begin
   try
     Flush(True);
     // free link
-    if Data_Link_Recycle_Tool.Num > 0 then
+    if Data_Link_Recycle_Tool.num > 0 then
       begin
-        with Data_Link_Recycle_Tool.Repeat_ do
+        with Data_Link_Recycle_Tool.repeat_ do
           repeat
             try
               if (Queue^.Data.FTh_Engine <> nil) and (Queue^.Data.FTh_Engine_Data_Ptr <> nil) then
@@ -2416,8 +2521,8 @@ begin
       end;
     disposeObjectAndNil(Data_Link_Recycle_Tool);
     // free thread engine recycle pool
-    if Engine_Pool.Num > 0 then
-      with Engine_Pool.Repeat_ do
+    if Engine_Pool.num > 0 then
+      with Engine_Pool.repeat_ do
         repeat
           try
               Queue^.Data.Th_Engine_Data_Pool.Free_Recycle_Pool;
@@ -2433,8 +2538,8 @@ begin
     disposeObjectAndNil(Engine_Pool);
     disposeObjectAndNil(Data_Marshal);
     // free data instance
-    if Instance_Recycle_Tool.Num > 0 then
-      with Instance_Recycle_Tool.Repeat_ do
+    if Instance_Recycle_Tool.num > 0 then
+      with Instance_Recycle_Tool.repeat_ do
         repeat
           if Queue^.Data <> nil then
             begin
@@ -2468,11 +2573,11 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Build();
 begin
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
               Queue^.Data.Build(Current_Data_Class);
           until not Next;
@@ -2487,15 +2592,15 @@ var
   ready_num: Integer;
 begin
   ready_num := 0;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.Repeat_ do
+      with Engine_Pool.repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(ready_num);
         until not Next;
     end;
-  Result := (Engine_Pool.Num > 0) and (Engine_Pool.Num = ready_num);
+  Result := (Engine_Pool.num > 0) and (Engine_Pool.num = ready_num);
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Update_Data_Ptr();
@@ -2504,17 +2609,17 @@ begin
   try
     // update FOwner_Data_Ptr
     Data_Marshal.Lock;
-    if Data_Marshal.Num > 0 then
-      with Data_Marshal.Repeat_ do
+    if Data_Marshal.num > 0 then
+      with Data_Marshal.repeat_ do
         repeat
-          Queue^.Data.FOwner := self;
+          Queue^.Data.FOwner := Self;
           Queue^.Data.FOwner_Data_Ptr := Queue;
         until not Next;
     Data_Marshal.UnLock;
 
     // update FTh_Engine_Data_Ptr
-    if Engine_Pool.Num > 0 then
-      with Engine_Pool.Repeat_ do
+    if Engine_Pool.num > 0 then
+      with Engine_Pool.repeat_ do
         repeat
             Queue^.Data.Update_Engine_Data_Ptr;
         until not Next;
@@ -2571,9 +2676,9 @@ end;
 function TZDB2_Th_Engine_Marshal.Database_Size: Int64;
 begin
   Result := 0;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.Repeat_ do
+      with Engine_Pool.repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.CoreSpace_Size);
@@ -2584,9 +2689,9 @@ end;
 function TZDB2_Th_Engine_Marshal.Database_Physics_Size: Int64;
 begin
   Result := 0;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.Repeat_ do
+      with Engine_Pool.repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.CoreSpace_Physics_Size);
@@ -2596,15 +2701,15 @@ end;
 
 function TZDB2_Th_Engine_Marshal.Total: NativeInt;
 begin
-  Result := Data_Marshal.Num;
+  Result := Data_Marshal.num;
 end;
 
 function TZDB2_Th_Engine_Marshal.QueueNum: NativeInt;
 begin
   Result := 0;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.Repeat_ do
+      with Engine_Pool.repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.QueueNum);
@@ -2674,9 +2779,9 @@ begin
 
       // link recycle
       Data_Link_Recycle_Tool.Lock;
-      if Data_Link_Recycle_Tool.Num > 0 then
+      if Data_Link_Recycle_Tool.num > 0 then
         begin
-          with Data_Link_Recycle_Tool.Repeat_ do
+          with Data_Link_Recycle_Tool.repeat_ do
             repeat
               try
                 if (Queue^.Data.FTh_Engine <> nil) and (Queue^.Data.FTh_Engine_Data_Ptr <> nil) then
@@ -2700,8 +2805,8 @@ begin
       Data_Link_Recycle_Tool.UnLock;
 
       // free thread engine recycle pool
-      if Engine_Pool.Num > 0 then
-        with Engine_Pool.Repeat_ do
+      if Engine_Pool.num > 0 then
+        with Engine_Pool.repeat_ do
           repeat
             Queue^.Data.Th_Engine_Data_Pool.Lock;
             try
@@ -2721,9 +2826,9 @@ begin
       // recycle tool
       Instance_Recycle_Tool.Lock;
       try
-        if Instance_Recycle_Tool.Num > 0 then
+        if Instance_Recycle_Tool.num > 0 then
           begin
-            with Instance_Recycle_Tool.Repeat_ do
+            with Instance_Recycle_Tool.repeat_ do
               repeat
                 if Queue^.Data = nil then
                     Instance_Recycle_Tool.Push_To_Recycle_Pool(Queue)
@@ -2753,8 +2858,8 @@ begin
     begin
       AtomInc(FLong_Loop_Num);
       try
-        if Engine_Pool.Num > 0 then
-          with Engine_Pool.Repeat_ do
+        if Engine_Pool.num > 0 then
+          with Engine_Pool.repeat_ do
             repeat
                 Queue^.Data.Progress;
             until not Next;
@@ -2769,12 +2874,12 @@ end;
 
 function TZDB2_Th_Engine_Marshal.Get_Last_Backup_Execute_Time: TTimeTick;
 begin
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Result := 0;
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
             if Queue^.Data.Get_Last_Backup_Execute_Time > Result then
                 Result := Queue^.Data.Get_Last_Backup_Execute_Time;
@@ -2789,11 +2894,11 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Backup(Reserve_: Word);
 begin
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
             try
                 Queue^.Data.Backup(Reserve_);
@@ -2808,11 +2913,11 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.Backup_If_No_Exists;
 begin
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
             try
               if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FBackup_Is_Busy) then
@@ -2836,11 +2941,11 @@ begin
   if WaitQueue_ then
       Wait_Busy_Task;
   Check_Recycle_Pool;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
             try
                 Queue^.Data.Flush(WaitQueue_);
@@ -2863,9 +2968,9 @@ begin
   Lock;
   try
     Data_Marshal.Clear;
-    if Engine_Pool.Num > 0 then
+    if Engine_Pool.num > 0 then
       begin
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
               Queue^.Data.Format_Database;
           until not Next;
@@ -2881,14 +2986,14 @@ var
   Load_Inst_: TZDB2_Th_Engine_Load_Processor;
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
 
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
-  Load_Inst_.tatal_data_num_ := Data_Marshal.Num;
+  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.num shr 4, ThNum_));
+  Load_Inst_.tatal_data_num_ := Data_Marshal.num;
   Load_Inst_.buff := Data_Marshal.BuildArrayMemory();
   Load_Inst_.OnRun_C := On_Run;
   Data_Marshal.UnLock;
@@ -2908,14 +3013,14 @@ var
   Load_Inst_: TZDB2_Th_Engine_Load_Processor;
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
 
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
-  Load_Inst_.tatal_data_num_ := Data_Marshal.Num;
+  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.num shr 4, ThNum_));
+  Load_Inst_.tatal_data_num_ := Data_Marshal.num;
   Load_Inst_.buff := Data_Marshal.BuildArrayMemory();
   Load_Inst_.OnRun_M := On_Run;
   Data_Marshal.UnLock;
@@ -2935,14 +3040,14 @@ var
   Load_Inst_: TZDB2_Th_Engine_Load_Processor;
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
 
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.Num shr 4, ThNum_));
-  Load_Inst_.tatal_data_num_ := Data_Marshal.Num;
+  Load_Inst_ := TZDB2_Th_Engine_Load_Processor.Create(umlMin(Data_Marshal.num shr 4, ThNum_));
+  Load_Inst_.tatal_data_num_ := Data_Marshal.num;
   Load_Inst_.buff := Data_Marshal.BuildArrayMemory();
   Load_Inst_.OnRun_P := On_Run;
   Data_Marshal.UnLock;
@@ -3004,12 +3109,12 @@ var
 
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  tatal_data_num_ := Data_Marshal.Num;
+  tatal_data_num_ := Data_Marshal.num;
   buff := Data_Marshal.BuildArrayMemory();
   Data_Marshal.UnLock;
   UnLock;
@@ -3104,12 +3209,12 @@ var
 
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  tatal_data_num_ := Data_Marshal.Num;
+  tatal_data_num_ := Data_Marshal.num;
   buff := Data_Marshal.BuildArrayMemory();
   Data_Marshal.UnLock;
   UnLock;
@@ -3204,12 +3309,12 @@ var
 
 begin
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  tatal_data_num_ := Data_Marshal.Num;
+  tatal_data_num_ := Data_Marshal.num;
   buff := Data_Marshal.BuildArrayMemory();
   Data_Marshal.UnLock;
   UnLock;
@@ -3268,12 +3373,12 @@ begin
   if FLong_Loop_Num > 0 then
       exit;
   Check_Recycle_Pool;
-  if Data_Marshal.Num <= 0 then
+  if Data_Marshal.num <= 0 then
       exit;
   Lock;
   Data_Marshal.Lock;
   AtomInc(FLong_Loop_Num);
-  tatal_data_num_ := Data_Marshal.Num;
+  tatal_data_num_ := Data_Marshal.num;
   buff := Data_Marshal.BuildArrayMemory();
   Data_Marshal.UnLock;
   UnLock;
@@ -3301,69 +3406,18 @@ begin
   Check_Recycle_Pool;
 end;
 
-procedure TZDB2_Th_Engine_Marshal.Remove_First_Data_From_ThEngine(eng: TZDB2_Th_Engine; Recycle_Space_Size: Int64);
-var
-  tatal_data_num_: Int64;
-  buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
-  i, removed_Size, tmp: Int64;
-  Can_Load: Boolean;
-begin
-  if FLong_Loop_Num > 0 then
-      exit;
-  if eng.Owner <> self then
-      exit;
-  if Recycle_Space_Size <= 0 then
-      exit;
-  Check_Recycle_Pool;
-  if eng.Th_Engine_Data_Pool.Num <= 0 then
-      exit;
-
-  Lock;
-  eng.Th_Engine_Data_Pool.Lock;
-  AtomInc(FLong_Loop_Num);
-  tatal_data_num_ := eng.Th_Engine_Data_Pool.Num;
-  buff := eng.Th_Engine_Data_Pool.BuildArrayMemory();
-  eng.Th_Engine_Data_Pool.UnLock;
-  UnLock;
-
-  removed_Size := 0;
-  i := 0;
-  while (i < tatal_data_num_) and (removed_Size < Recycle_Space_Size) do
-    begin
-      try
-        if (buff^[i]^.Data <> nil) then
-          begin
-            buff^[i]^.Data.Lock;
-            Can_Load := buff^[i]^.Data.Can_Load;
-            buff^[i]^.Data.UnLock;
-            if Can_Load then
-              begin
-                tmp := buff^[i]^.Data.Size;
-                if buff^[i]^.Data.Remove() then
-                    Inc(removed_Size, tmp);
-              end;
-          end;
-      except
-      end;
-      Inc(i);
-    end;
-
-  AtomDec(FLong_Loop_Num);
-  System.FreeMemory(buff);
-  Check_Recycle_Pool;
-end;
-
 procedure TZDB2_Th_Engine_Marshal.Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
 begin
   if FLong_Loop_Num > 0 then
       exit;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
+      Check_Recycle_Pool;
       AtomInc(FLong_Loop_Num);
-      with Engine_Pool.Repeat_ do
+      with Engine_Pool.repeat_ do
         repeat
           if Queue^.Data.Engine.CoreSpace_Size > ThEngine_Max_Space_Size then
-              Remove_First_Data_From_ThEngine(Queue^.Data, Queue^.Data.Engine.CoreSpace_Size - ThEngine_Max_Space_Size);
+              Do_Remove_First_Data_From_ThEngine(Queue^.Data, Queue^.Data.Engine.CoreSpace_Size - ThEngine_Max_Space_Size);
         until not Next;
       AtomDec(FLong_Loop_Num);
       Check_Recycle_Pool;
@@ -3385,11 +3439,11 @@ end;
 function TZDB2_Th_Engine_Marshal.GetRemoveDatabaseOnDestroy: Boolean;
 begin
   Result := False;
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
               Result := Result or Queue^.Data.RemoveDatabaseOnDestroy;
           until not Next;
@@ -3401,11 +3455,11 @@ end;
 
 procedure TZDB2_Th_Engine_Marshal.SetRemoveDatabaseOnDestroy(const Value: Boolean);
 begin
-  if Engine_Pool.Num > 0 then
+  if Engine_Pool.num > 0 then
     begin
       Lock;
       try
-        with Engine_Pool.Repeat_ do
+        with Engine_Pool.repeat_ do
           repeat
               Queue^.Data.RemoveDatabaseOnDestroy := Value;
           until not Next;
@@ -3418,13 +3472,13 @@ end;
 function TZDB2_Th_Engine_Marshal.Get_State_Info: U_String;
 begin
   Result := '';
-  if Engine_Pool.Num > 0 then
-    with Engine_Pool.Repeat_ do
+  if Engine_Pool.num > 0 then
+    with Engine_Pool.repeat_ do
       repeat
         if Queue^.Data.Engine <> nil then
             Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s' + #13#10,
             [I__ + 1, umlGetFileName(Queue^.Data.Database_File).Text,
-            Queue^.Data.Th_Engine_Data_Pool.Num,
+            Queue^.Data.Th_Engine_Data_Pool.num,
             Queue^.Data.Engine.QueueNum,
             umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text,
             umlSizeToStr(Queue^.Data.Engine.CoreSpace_Physics_Size).Text]);
@@ -3702,7 +3756,7 @@ begin
 
   DM.Wait_Busy_Task;
   DoStatus('db total:%d', [DM.Total]);
-  with DM.Engine_Pool.Repeat_ do
+  with DM.Engine_Pool.repeat_ do
     repeat
         DoStatus('engine(%d) size: %s', [I__, umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text]);
     until not Next;
@@ -3712,7 +3766,7 @@ begin
   DM.Remove_First_Data_From_All_ThEngine(8 * 1024 * 1024);
   DM.Wait_Busy_Task;
 
-  with DM.Engine_Pool.Repeat_ do
+  with DM.Engine_Pool.repeat_ do
     repeat
         DoStatus('engine(%d) size: %s', [I__, umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text]);
     until not Next;
