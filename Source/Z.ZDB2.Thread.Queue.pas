@@ -200,6 +200,7 @@ type
   public
     Max_Queue: Integer;
     Wait_Queue: Boolean;
+    Aborted: PBoolean;
     AutoFree_Data: Boolean;
     constructor Create(const ThEng_: TZDB2_Th_Queue;
       const Input_: PZDB2_BlockHandle;
@@ -334,7 +335,7 @@ type
     FCoreSpace_Cipher: IZDB2_Cipher;
     FCoreSpace_IOHnd: TIOHnd;
     CoreSpace__: TZDB2_Core_Space;
-    procedure ZDB2_ThRun_Proc(ThSender: TCompute);
+    procedure Do_Th_Queue(ThSender: TCompute);
     procedure Do_Free_CMD(var p: TZDB2_Th_CMD);
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
   public
@@ -382,10 +383,11 @@ type
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_List): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_Pool): Boolean; overload;
     // extract to
-    function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array): Boolean;
+    function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array): Boolean; overload;
+    function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array; Aborted: PBoolean): Boolean; overload;
     function Sync_Extract_To_Stream(var Input_: TZDB2_BlockHandle; const Dest: TCore_Stream; const Cipher_: IZDB2_Cipher): Integer;
     function Sync_Extract_To_File(var Input_: TZDB2_BlockHandle; const Dest: U_String; const Cipher_: IZDB2_Cipher): Integer;
-    function Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue): Integer;
+    function Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; Aborted: PBoolean): Integer;
     // core-space
     function Sync_Format_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
     function Sync_Append_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
@@ -804,6 +806,9 @@ begin
   R_ := TCMD_State.csDone;
   SetLength(Output_Ptr^, length(Input_Ptr^));
 
+  if Aborted <> nil then
+      Aborted^ := False;
+
   if length(Input_Ptr^) > 0 then
     begin
       for i := low(Input_Ptr^) to high(Input_Ptr^) do
@@ -827,8 +832,16 @@ begin
           if Wait_Queue and (Max_Queue > 0) then
             while Dest_Th_Engine.QueueNum > Max_Queue do
                 TCompute.Sleep(10);
+          if Aborted <> nil then
+            if Aborted^ then
+              begin
+                R_ := TCMD_State.csError;
+                break;
+              end;
         end;
     end;
+  if Wait_Queue then
+      Dest_Th_Engine.Wait_Queue();
   State^ := R_;
   if AutoFree_Data then
     begin
@@ -847,6 +860,7 @@ begin
   Output_Ptr := Output_;
   Max_Queue := 100;
   Wait_Queue := True;
+  Aborted := nil;
   AutoFree_Data := False;
   Init();
 end;
@@ -1028,7 +1042,7 @@ begin
   CMD.Ready(State);
 end;
 
-procedure TZDB2_Th_Queue.ZDB2_ThRun_Proc(ThSender: TCompute);
+procedure TZDB2_Th_Queue.Do_Th_Queue(ThSender: TCompute);
 var
   LTK, tmp: TTimeTick;
   CMD_: TZDB2_Th_CMD;
@@ -1063,7 +1077,6 @@ begin
             if CMD_ <> nil then // check exception
                 CMD_.Execute();
           except
-              FCMD_Queue.First^.Data := nil;
           end;
 
           try
@@ -1131,7 +1144,7 @@ begin
   FCoreSpace_IOHnd.Cache.UsedReadCache := True;
 
   // thread
-  TCompute.RunM(nil, nil, {$IFDEF FPC}@{$ENDIF FPC}ZDB2_ThRun_Proc);
+  TCompute.RunM(nil, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Queue);
   while not FCMD_Execute_Thread_Is_Runing do
       TCompute.Sleep(1);
 end;
@@ -1413,6 +1426,19 @@ begin
   Result := tmp = TCMD_State.csDone;
 end;
 
+function TZDB2_Th_Queue.Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array; Aborted: PBoolean): Boolean;
+var
+  inst_: TZDB2_Th_CMD_Extract_To;
+  tmp: TCMD_State;
+begin
+  inst_ := TZDB2_Th_CMD_Extract_To.Create(self, @Input_, Dest_Th_Engine_, @Output_);
+  inst_.Aborted := Aborted;
+  inst_.Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
 function TZDB2_Th_Queue.Sync_Extract_To_Stream(var Input_: TZDB2_BlockHandle; const Dest: TCore_Stream; const Cipher_: IZDB2_Cipher): Integer;
 var
   th: TZDB2_Th_Queue;
@@ -1470,7 +1496,7 @@ begin
   end;
 end;
 
-function TZDB2_Th_Queue.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue): Integer;
+function TZDB2_Th_Queue.Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; Aborted: PBoolean): Integer;
 var
   Output_: TZDB2_Th_CMD_ID_And_State_Array;
   i: Integer;
@@ -1478,7 +1504,7 @@ var
 begin
   Result := 0;
   try
-    if Sync_Extract_To(Input_, Dest_Th_Engine_, Output_) then
+    if Sync_Extract_To(Input_, Dest_Th_Engine_, Output_, Aborted) then
       begin
         tmp := TZDB2_ID_Pool.Create;
         for i := 0 to length(Output_) - 1 do
@@ -1517,24 +1543,24 @@ end;
 
 procedure TZDB2_Th_Queue.Async_GetData_AsMem64(ID: Integer; Mem64: TMem64; State: PCMD_State);
 var
-  Inst_: TZDB2_Th_CMD_GetDataAsMem64;
+  inst_: TZDB2_Th_CMD_GetDataAsMem64;
 begin
-  Inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, Mem64, ID);
-  Inst_.Ready(State^);
+  inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, Mem64, ID);
+  inst_.Ready(State^);
 end;
 
 procedure TZDB2_Th_Queue.Async_GetData_AsStream(ID: Integer; Stream: TCore_Stream; State: PCMD_State);
 var
-  Inst_: TZDB2_Th_CMD_GetDataAsStream;
+  inst_: TZDB2_Th_CMD_GetDataAsStream;
 begin
-  Inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, Stream, ID);
-  Inst_.Ready(State^);
+  inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, Stream, ID);
+  inst_.Ready(State^);
 end;
 
 procedure TZDB2_Th_Queue.Async_SetData(Mem64: TMem64; AutoFree_Data: Boolean; ID: Integer);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromMem64;
+  inst_: TZDB2_Th_CMD_SetDataFromMem64;
 begin
   if ID < 0 then
     begin
@@ -1543,37 +1569,37 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_Append(Mem64: TMem64; AutoFree_Data: Boolean);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromMem64;
+  inst_: TZDB2_Th_CMD_AppendFromMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_Append(Mem64: TMem64; AutoFree_Data: Boolean; ID: PInteger; State: PCMD_State);
 var
-  Inst_: TZDB2_Th_CMD_AppendFromMem64;
+  inst_: TZDB2_Th_CMD_AppendFromMem64;
 begin
-  Inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, ID^);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  Inst_.Ready(State^);
+  inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, ID^);
+  inst_.AutoFree_Data := AutoFree_Data;
+  inst_.Ready(State^);
 end;
 
 procedure TZDB2_Th_Queue.Async_SetData(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: Integer);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromStream;
+  inst_: TZDB2_Th_CMD_SetDataFromStream;
 begin
   if ID < 0 then
     begin
@@ -1582,42 +1608,42 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_Append(Stream: TCore_Stream; AutoFree_Data: Boolean);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromStream;
+  inst_: TZDB2_Th_CMD_AppendFromStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_Append(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: PInteger; State: PCMD_State);
 var
-  Inst_: TZDB2_Th_CMD_AppendFromStream;
+  inst_: TZDB2_Th_CMD_AppendFromStream;
 begin
-  Inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, ID^);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  Inst_.Ready(State^);
+  inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, ID^);
+  inst_.AutoFree_Data := AutoFree_Data;
+  inst_.Ready(State^);
 end;
 
 procedure TZDB2_Th_Queue.Async_Remove(ID: Integer);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_Remove;
+  inst_: TZDB2_Th_CMD_Remove;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_Remove.Create(self, tmp.ID_And_State.ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_Remove.Create(self, tmp.ID_And_State.ID);
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
@@ -1634,17 +1660,17 @@ procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHan
 var
   Table_Ptr: PZDB2_BlockHandle;
   i: Integer;
-  Inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
+  inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
   tmp: TZDB2_Th_CMD_Bridge_State;
 begin
   New(Table_Ptr);
   SetLength(Table_Ptr^, length(Table_));
   for i := 0 to length(Table_) - 1 do
       Table_Ptr^[i] := Table_[i];
-  Inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
-  Inst_.AutoFree_Data := True;
+  inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
+  inst_.AutoFree_Data := True;
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
-  tmp.Init(Inst_);
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
@@ -1656,23 +1682,23 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
 var
   tmp: TZDB2_Th_CMD_Bridge_State;
-  Inst_: TZDB2_Th_CMD_Append_Custom_Space;
+  inst_: TZDB2_Th_CMD_Append_Custom_Space;
 begin
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
-  Inst_ := TZDB2_Th_CMD_Append_Custom_Space.Create(self, Space_, Block_, nil);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_Append_Custom_Space.Create(self, Space_, Block_, nil);
+  tmp.Init(inst_);
   tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_GetData_AsMem64_C(ID: Integer; Mem64: TMem64; OnResult: TOn_Mem64_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_Mem64_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsMem64;
+  inst_: TZDB2_Th_CMD_GetDataAsMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Mem64_And_State.Create;
   tmp.Mem64_And_State.Mem64 := Mem64;
-  Inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1680,12 +1706,12 @@ end;
 procedure TZDB2_Th_Queue.Async_GetData_AsMem64_M(ID: Integer; Mem64: TMem64; OnResult: TOn_Mem64_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_Mem64_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsMem64;
+  inst_: TZDB2_Th_CMD_GetDataAsMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Mem64_And_State.Create;
   tmp.Mem64_And_State.Mem64 := Mem64;
-  Inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1693,12 +1719,12 @@ end;
 procedure TZDB2_Th_Queue.Async_GetData_AsMem64_P(ID: Integer; Mem64: TMem64; OnResult: TOn_Mem64_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_Mem64_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsMem64;
+  inst_: TZDB2_Th_CMD_GetDataAsMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Mem64_And_State.Create;
   tmp.Mem64_And_State.Mem64 := Mem64;
-  Inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsMem64.Create(self, tmp.Mem64_And_State.Mem64, ID);
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1706,12 +1732,12 @@ end;
 procedure TZDB2_Th_Queue.Async_GetData_AsStream_C(ID: Integer; Stream: TCore_Stream; OnResult: TOn_Stream_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_Stream_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsStream;
+  inst_: TZDB2_Th_CMD_GetDataAsStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Stream_And_State.Create;
   tmp.Stream_And_State.Stream := Stream;
-  Inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1719,12 +1745,12 @@ end;
 procedure TZDB2_Th_Queue.Async_GetData_AsStream_M(ID: Integer; Stream: TCore_Stream; OnResult: TOn_Stream_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_Stream_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsStream;
+  inst_: TZDB2_Th_CMD_GetDataAsStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Stream_And_State.Create;
   tmp.Stream_And_State.Stream := Stream;
-  Inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1732,12 +1758,12 @@ end;
 procedure TZDB2_Th_Queue.Async_GetData_AsStream_P(ID: Integer; Stream: TCore_Stream; OnResult: TOn_Stream_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_Stream_And_State;
-  Inst_: TZDB2_Th_CMD_GetDataAsStream;
+  inst_: TZDB2_Th_CMD_GetDataAsStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_Stream_And_State.Create;
   tmp.Stream_And_State.Stream := Stream;
-  Inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_GetDataAsStream.Create(self, tmp.Stream_And_State.Stream, ID);
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1745,7 +1771,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_C(Mem64: TMem64; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromMem64;
+  inst_: TZDB2_Th_CMD_SetDataFromMem64;
 begin
   if ID < 0 then
     begin
@@ -1754,9 +1780,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1764,7 +1790,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_M(Mem64: TMem64; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromMem64;
+  inst_: TZDB2_Th_CMD_SetDataFromMem64;
 begin
   if ID < 0 then
     begin
@@ -1773,9 +1799,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1783,7 +1809,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_P(Mem64: TMem64; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromMem64;
+  inst_: TZDB2_Th_CMD_SetDataFromMem64;
 begin
   if ID < 0 then
     begin
@@ -1792,9 +1818,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1802,12 +1828,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_C(Mem64: TMem64; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromMem64;
+  inst_: TZDB2_Th_CMD_AppendFromMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1815,12 +1841,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_M(Mem64: TMem64; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromMem64;
+  inst_: TZDB2_Th_CMD_AppendFromMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1828,12 +1854,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_P(Mem64: TMem64; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromMem64;
+  inst_: TZDB2_Th_CMD_AppendFromMem64;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromMem64.Create(self, Mem64, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1841,7 +1867,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_C(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromStream;
+  inst_: TZDB2_Th_CMD_SetDataFromStream;
 begin
   if ID < 0 then
     begin
@@ -1850,9 +1876,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1860,7 +1886,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_M(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromStream;
+  inst_: TZDB2_Th_CMD_SetDataFromStream;
 begin
   if ID < 0 then
     begin
@@ -1869,9 +1895,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1879,7 +1905,7 @@ end;
 procedure TZDB2_Th_Queue.Async_SetData_P(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: Integer; OnResult: TOn_ID_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_SetDataFromStream;
+  inst_: TZDB2_Th_CMD_SetDataFromStream;
 begin
   if ID < 0 then
     begin
@@ -1888,9 +1914,9 @@ begin
     end;
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.ID_And_State.ID := ID;
-  Inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_SetDataFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1898,12 +1924,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_C(Stream: TCore_Stream; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromStream;
+  inst_: TZDB2_Th_CMD_AppendFromStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1911,12 +1937,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_M(Stream: TCore_Stream; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_M);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromStream;
+  inst_: TZDB2_Th_CMD_AppendFromStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1924,12 +1950,12 @@ end;
 procedure TZDB2_Th_Queue.Async_Append_P(Stream: TCore_Stream; AutoFree_Data: Boolean; OnResult: TOn_ID_And_State_Event_P);
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
-  Inst_: TZDB2_Th_CMD_AppendFromStream;
+  inst_: TZDB2_Th_CMD_AppendFromStream;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  Inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
-  Inst_.AutoFree_Data := AutoFree_Data;
-  tmp.Init(Inst_);
+  inst_ := TZDB2_Th_CMD_AppendFromStream.Create(self, Stream, tmp.ID_And_State.ID);
+  inst_.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
@@ -1938,17 +1964,17 @@ procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table_C(const Table_: TZDB2_BlockH
 var
   Table_Ptr: PZDB2_BlockHandle;
   i: Integer;
-  Inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
+  inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
   tmp: TZDB2_Th_CMD_Bridge_State;
 begin
   New(Table_Ptr);
   SetLength(Table_Ptr^, length(Table_));
   for i := 0 to length(Table_) - 1 do
       Table_Ptr^[i] := Table_[i];
-  Inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
-  Inst_.AutoFree_Data := True;
+  inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
+  inst_.AutoFree_Data := True;
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
-  tmp.Init(Inst_);
+  tmp.Init(inst_);
   tmp.OnResult_C := OnResult;
   tmp.Ready;
 end;
@@ -1962,17 +1988,17 @@ procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table_M(const Table_: TZDB2_BlockH
 var
   Table_Ptr: PZDB2_BlockHandle;
   i: Integer;
-  Inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
+  inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
   tmp: TZDB2_Th_CMD_Bridge_State;
 begin
   New(Table_Ptr);
   SetLength(Table_Ptr^, length(Table_));
   for i := 0 to length(Table_) - 1 do
       Table_Ptr^[i] := Table_[i];
-  Inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
-  Inst_.AutoFree_Data := True;
+  inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
+  inst_.AutoFree_Data := True;
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
-  tmp.Init(Inst_);
+  tmp.Init(inst_);
   tmp.OnResult_M := OnResult;
   tmp.Ready;
 end;
@@ -1986,17 +2012,17 @@ procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table_P(const Table_: TZDB2_BlockH
 var
   Table_Ptr: PZDB2_BlockHandle;
   i: Integer;
-  Inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
+  inst_: TZDB2_Th_CMD_Flush_Sequence_Table;
   tmp: TZDB2_Th_CMD_Bridge_State;
 begin
   New(Table_Ptr);
   SetLength(Table_Ptr^, length(Table_));
   for i := 0 to length(Table_) - 1 do
       Table_Ptr^[i] := Table_[i];
-  Inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
-  Inst_.AutoFree_Data := True;
+  inst_ := TZDB2_Th_CMD_Flush_Sequence_Table.Create(self, Table_Ptr);
+  inst_.AutoFree_Data := True;
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
-  tmp.Init(Inst_);
+  tmp.Init(inst_);
   tmp.OnResult_P := OnResult;
   tmp.Ready;
 end;
