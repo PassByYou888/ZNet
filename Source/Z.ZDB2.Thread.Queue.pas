@@ -217,6 +217,15 @@ type
     constructor Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word; const OnProgress: TZDB2_OnProgress);
   end;
 
+  TZDB2_Th_CMD_Fast_Format_Custom_Space = class(TZDB2_Th_CMD)
+  private
+    Param_Space: Int64;
+    Param_Block: Word;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word);
+  end;
+
   TZDB2_Th_CMD_Append_Custom_Space = class(TZDB2_Th_CMD)
   private
     Param_Space: Int64;
@@ -225,6 +234,15 @@ type
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
     constructor Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word; const OnProgress: TZDB2_OnProgress);
+  end;
+
+  TZDB2_Th_CMD_Fast_Append_Custom_Space = class(TZDB2_Th_CMD)
+  private
+    Param_Space: Int64;
+    Param_Block: Word;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word);
   end;
 
   // bridge **********************************************************************************
@@ -327,6 +345,7 @@ type
     FInstance_Pool_Ptr: TZDB2_Th_Queue_Instance_Pool.PQueueStruct;
     FCMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
+    FCoreSpace_Fast_Append_Space: Boolean;
     FCoreSpace_Max_File_Size: Int64; // <=0=infinite >0=space limit
     FCoreSpace_Auto_Append_Space: Boolean;
     FCoreSpace_Mode: TZDB2_SpaceMode;
@@ -349,7 +368,7 @@ type
     property CoreSpace: TZDB2_Core_Space read CoreSpace__;
     function CoreSpace_IOHnd: PIOHnd;
 
-    // auto space
+    property Fast_Append_Space: Boolean read FCoreSpace_Fast_Append_Space write FCoreSpace_Fast_Append_Space; // default is true
     property CoreSpace_Max_File_Size: Int64 read FCoreSpace_Max_File_Size write FCoreSpace_Max_File_Size; // CoreSpace_Max_File_Size <= 0 is infinite
     property Auto_Append_Space: Boolean read FCoreSpace_Auto_Append_Space write FCoreSpace_Auto_Append_Space; // default is true
 
@@ -390,7 +409,9 @@ type
     function Sync_Extract_To_Queue_Engine_And_Copy_Sequence_Table(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; Aborted: PBoolean): Integer;
     // core-space
     function Sync_Format_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
+    function Sync_Fast_Format_Custom_Space(const Space_: Int64; const Block_: Word): Boolean;
     function Sync_Append_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
+    function Sync_Fast_Append_Custom_Space(const Space_: Int64; const Block_: Word): Boolean;
 
     // async state model
     procedure Async_GetData_AsMem64(ID: Integer; Mem64: TMem64; State: PCMD_State); overload;
@@ -405,7 +426,10 @@ type
     procedure Async_Flush();
     procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
     procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
+    procedure Async_Format_Custom_Space(const Space_: Int64; const Block_: Word);
+    procedure Async_Fast_Format_Custom_Space(const Space_: Int64; const Block_: Word);
     procedure Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
+    procedure Async_Fast_Append_Custom_Space(const Space_: Int64; const Block_: Word);
 
     // async event model
     procedure Async_GetData_AsMem64_C(ID: Integer; Mem64: TMem64; OnResult: TOn_Mem64_And_State_Event_C); overload;
@@ -888,6 +912,20 @@ begin
   Init();
 end;
 
+procedure TZDB2_Th_CMD_Fast_Format_Custom_Space.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+begin
+  if not CoreSpace__.Fast_BuildSpace(Param_Space, Param_Block) then
+      State^ := TCMD_State.csError;
+end;
+
+constructor TZDB2_Th_CMD_Fast_Format_Custom_Space.Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word);
+begin
+  inherited Create(ThEng_);
+  Param_Space := Space;
+  Param_Block := Block;
+  Init();
+end;
+
 procedure TZDB2_Th_CMD_Append_Custom_Space.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 var
   backup_: TZDB2_OnProgress;
@@ -908,6 +946,20 @@ begin
   Param_Space := Space;
   Param_Block := Block;
   Param_OnProgress := OnProgress;
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_Fast_Append_Custom_Space.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+begin
+  if not CoreSpace__.Fast_AppendSpace(Param_Space, Param_Block) then
+      State^ := TCMD_State.csError;
+end;
+
+constructor TZDB2_Th_CMD_Fast_Append_Custom_Space.Create(const ThEng_: TZDB2_Th_Queue; const Space: Int64; const Block: Word);
+begin
+  inherited Create(ThEng_);
+  Param_Space := Space;
+  Param_Block := Block;
   Init();
 end;
 
@@ -1109,7 +1161,12 @@ end;
 procedure TZDB2_Th_Queue.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
 begin
   if FCoreSpace_Auto_Append_Space and ((FCoreSpace_Max_File_Size <= 0) or (FCoreSpace_Max_File_Size < CoreSpace_File_Size() + FCoreSpace_Delta)) then
-      retry := Trigger.AppendSpace(FCoreSpace_Delta, CoreSpace_BlockSize)
+    begin
+      if FCoreSpace_Fast_Append_Space then
+          retry := Trigger.Fast_AppendSpace(FCoreSpace_Delta, CoreSpace_BlockSize)
+      else
+          retry := Trigger.AppendSpace(FCoreSpace_Delta, CoreSpace_BlockSize);
+    end
   else
       retry := False;
 end;
@@ -1128,6 +1185,7 @@ begin
   FCMD_Queue.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free_CMD;
   FCMD_Execute_Thread_Is_Runing := False;
   FCMD_Execute_Thread_Is_Exit := False;
+  FCoreSpace_Fast_Append_Space := True;
   FCoreSpace_Max_File_Size := 0;
   FCoreSpace_Auto_Append_Space := True;
   FCoreSpace_Mode := Mode_;
@@ -1531,11 +1589,31 @@ begin
   Result := tmp = TCMD_State.csDone;
 end;
 
+function TZDB2_Th_Queue.Sync_Fast_Format_Custom_Space(const Space_: Int64; const Block_: Word): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_Fast_Format_Custom_Space.Create(self, Space_, Block_).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
 function TZDB2_Th_Queue.Sync_Append_Custom_Space(const Space_: Int64; const Block_: Word; const OnProgress_: TZDB2_OnProgress): Boolean;
 var
   tmp: TCMD_State;
 begin
   TZDB2_Th_CMD_Append_Custom_Space.Create(self, Space_, Block_, OnProgress_).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
+function TZDB2_Th_Queue.Sync_Fast_Append_Custom_Space(const Space_: Int64; const Block_: Word): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_Fast_Append_Custom_Space.Create(self, Space_, Block_).Ready(tmp);
   while tmp = TCMD_State.csDefault do
       TCompute.Sleep(1);
   Result := tmp = TCMD_State.csDone;
@@ -1679,6 +1757,28 @@ begin
   Async_Flush_Sequence_Table(TZDB2_Core_Space.Get_Handle(L));
 end;
 
+procedure TZDB2_Th_Queue.Async_Format_Custom_Space(const Space_: Int64; const Block_: Word);
+var
+  tmp: TZDB2_Th_CMD_Bridge_State;
+  inst_: TZDB2_Th_CMD_Format_Custom_Space;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_State.Create;
+  inst_ := TZDB2_Th_CMD_Format_Custom_Space.Create(self, Space_, Block_, nil);
+  tmp.Init(inst_);
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Fast_Format_Custom_Space(const Space_: Int64; const Block_: Word);
+var
+  tmp: TZDB2_Th_CMD_Bridge_State;
+  inst_: TZDB2_Th_CMD_Fast_Format_Custom_Space;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_State.Create;
+  inst_ := TZDB2_Th_CMD_Fast_Format_Custom_Space.Create(self, Space_, Block_);
+  tmp.Init(inst_);
+  tmp.Ready;
+end;
+
 procedure TZDB2_Th_Queue.Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
 var
   tmp: TZDB2_Th_CMD_Bridge_State;
@@ -1686,6 +1786,17 @@ var
 begin
   tmp := TZDB2_Th_CMD_Bridge_State.Create;
   inst_ := TZDB2_Th_CMD_Append_Custom_Space.Create(self, Space_, Block_, nil);
+  tmp.Init(inst_);
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Fast_Append_Custom_Space(const Space_: Int64; const Block_: Word);
+var
+  tmp: TZDB2_Th_CMD_Bridge_State;
+  inst_: TZDB2_Th_CMD_Fast_Append_Custom_Space;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_State.Create;
+  inst_ := TZDB2_Th_CMD_Fast_Append_Custom_Space.Create(self, Space_, Block_);
   tmp.Init(inst_);
   tmp.Ready;
 end;
