@@ -11,7 +11,7 @@ uses SysUtils, Variants, Math,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.ListEngine, Z.UnicodeMixedLib;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.ListEngine, Z.UnicodeMixedLib, Z.HashList.Templet;
 
 type
   TOpValueType = (
@@ -176,6 +176,15 @@ type
   end;
 
   opClass = class of TOpCode;
+
+  TOpCode_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TOpCode>;
+
+  TOpCode_Pool = class(TOpCode_Pool_Decl)
+  public
+    AutoFree_OpCode: Boolean;
+    constructor Create(const AutoFree_OpCode_: Boolean; const HashSize_: Integer);
+    procedure DoFree(var Key: SystemString; var Value: TOpCode); override;
+  end;
 
   TOpCode = class(TCore_Object)
   private type
@@ -1525,6 +1534,19 @@ function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; 
 begin
   Result := RegObjectOpP(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode;
+end;
+
+constructor TOpCode_Pool.Create(const AutoFree_OpCode_: Boolean; const HashSize_: Integer);
+begin
+  inherited Create(HashSize_, nil);
+  AutoFree_OpCode := AutoFree_OpCode_;
+end;
+
+procedure TOpCode_Pool.DoFree(var Key: SystemString; var Value: TOpCode);
+begin
+  if AutoFree_OpCode then
+      DisposeObjectAndNil(Value);
+  inherited DoFree(Key, Value);
 end;
 
 function TOpCode.DoExecute(opRT: TOpCustomRunTime): Variant;
