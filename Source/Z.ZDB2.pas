@@ -233,7 +233,13 @@ type
     function Open(): Boolean;
     property Fault_Shutdown: Boolean read FFault_Shutdown;
     procedure ScanSpace;
+    // fast build space, Do not perform 0 to fill on data blocks, use physics-natural data
+    function Fast_BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
+    // fast append space, Do not perform 0 to fill on data blocks, use physics-natural data
+    function Fast_AppendSpace(NewSpaceSize_: Int64; DestBlockSize_: WORD): Boolean;
+    // build space block used 0 fill
     function BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
+    // append block used 0 fill
     function AppendSpace(NewSpaceSize_: Int64; DestBlockSize_: WORD): Boolean;
     function OptimizedSpaceTo(var Dest_IOHnd: TIOHnd): Boolean;
     // data
@@ -1532,6 +1538,149 @@ begin
         end;
       inc(i);
     end;
+end;
+
+function TZDB2_Core_Space.Fast_BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
+var
+  BlockSize: WORD;
+  StoreData_: TZDB2_BlockStoreData;
+  headSiz: Int64;
+  i: Integer;
+  fp: Int64;
+begin
+  Result := False;
+  if FSpace_IOHnd^.IsOnlyRead then
+    begin
+      ErrorInfo('Fast_BuildSpace: OnlyRead.');
+      exit;
+    end;
+  if not umlFileSeek(FSpace_IOHnd^, 0) then
+    begin
+      ErrorInfo('Fast_BuildSpace: umlFileSeek 0 error.');
+      exit;
+    end;
+  // prepare block
+  FBlockStoreDataStruct.Clean;
+  BlockSize := umlMax(BlockSize_, C_ZDB2_MinBlockSize);
+  headSiz := C_ZDB2_HeaderSize + TZDB2_BlockStoreData.ComputeSize(PhySpaceSize div BlockSize);
+  SetLength(FBlockBuffer, (PhySpaceSize - headSiz) div BlockSize);
+  PrepareCacheBlock();
+  // fast init space
+  if not umlFileSetSize(FSpace_IOHnd^, headSiz + (BlockSize * FBlockCount)) then // fast alloc space
+    begin
+      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSetSize %d error.', [headSiz + (BlockSize * FBlockCount)]));
+      exit;
+    end;
+  if not umlFileSeek(FSpace_IOHnd^, 0) then // reseek
+    begin
+      ErrorInfo('Fast_BuildSpace: umlFileSeek 0 error.');
+      exit;
+    end;
+  // init space table
+  fp := headSiz;
+  i := 0;
+  while i < FBlockCount do
+    begin
+      FBlockBuffer[i].Position := fp;
+      FBlockBuffer[i].Size := BlockSize;
+      FBlockBuffer[i].UsedSpace := 0;
+      FBlockBuffer[i].Next := -1;
+      FBlockBuffer[i].Prev := -1;
+      FBlockBuffer[i].ID := i;
+      inc(fp, BlockSize);
+      inc(i);
+    end;
+  // update struct entry
+  FHeader.StructEntry := C_ZDB2_HeaderSize;
+  // builder store struct
+  StoreData_ := TZDB2_BlockStoreData.Create;
+  StoreData_.BuildBlockBuffer(FBlockBuffer);
+  StoreData_.Position := FHeader.StructEntry;
+  StoreData_.NextPosition := 0;
+  FBlockStoreDataStruct.Add(StoreData_);
+  // table
+  WriteTable();
+  // finish
+  ScanSpace();
+  Do_Modification;
+  Result := True;
+end;
+
+function TZDB2_Core_Space.Fast_AppendSpace(NewSpaceSize_: Int64; DestBlockSize_: WORD): Boolean;
+var
+  BlockSize: WORD;
+  BlockNum_: Integer;
+  tmp: TZDB2_BlockBuffer;
+  headPos, headSiz: Int64;
+  StoreData_: TZDB2_BlockStoreData;
+  fp: Int64;
+  i: Integer;
+begin
+  if FSpace_IOHnd^.IsOnlyRead then
+    begin
+      ErrorInfo('Fast_AppendSpace: OnlyRead.');
+      Result := False;
+      exit;
+    end;
+  if FBlockStoreDataStruct.Count = 0 then
+    begin
+      Result := Fast_BuildSpace(NewSpaceSize_, DestBlockSize_);
+      exit;
+    end;
+  Result := False;
+  // flush
+  FlushCache;
+  if not FBlockStoreDataStruct.FillFromBlockBuffer(FBlockBuffer) then
+    begin
+      ErrorInfo('Fast_AppendSpace: FillFromBlockBuffer error.');
+      exit;
+    end;
+  // prepare block
+  BlockSize := umlMax(DestBlockSize_, C_ZDB2_MinBlockSize);
+  BlockNum_ := NewSpaceSize_ div DestBlockSize_;
+  SetLength(tmp, BlockNum_);
+  headPos := umlFileGetSize(FSpace_IOHnd^);
+  headSiz := TZDB2_BlockStoreData.ComputeSize(Length(tmp));
+  // fast append space
+  if not umlFileSetSize(FSpace_IOHnd^, headPos + headSiz + (BlockSize * BlockNum_)) then // fast alloc space
+    begin
+      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSetSize %d error.', [headPos + headSiz + (BlockSize * BlockNum_)]));
+      exit;
+    end;
+  if not umlFileSeek(FSpace_IOHnd^, headPos) then // reseek
+    begin
+      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSeek %d error.', [headPos]));
+      exit;
+    end;
+  // fill free space
+  fp := headPos + headSiz;
+  i := 0;
+  while i < Length(tmp) do
+    begin
+      tmp[i].Position := fp;
+      tmp[i].Size := BlockSize;
+      tmp[i].UsedSpace := 0;
+      tmp[i].Next := -1;
+      tmp[i].Prev := -1;
+      tmp[i].ID := i + FBlockCount;
+      inc(fp, BlockSize);
+      inc(i);
+    end;
+  // builder store struct
+  StoreData_ := TZDB2_BlockStoreData.Create;
+  StoreData_.BuildBlockBuffer(tmp);
+  SetLength(tmp, 0);
+  StoreData_.Position := headPos;
+  StoreData_.NextPosition := 0;
+  FBlockStoreDataStruct.Last.NextPosition := headPos;
+  FBlockStoreDataStruct.Add(StoreData_);
+  FBlockStoreDataStruct.ExtractToBlockBuffer(FBlockBuffer);
+  // Rebuild cache
+  PrepareCacheBlock();
+  // finish
+  ScanSpace();
+  Do_Modification;
+  Result := True;
 end;
 
 function TZDB2_Core_Space.BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
