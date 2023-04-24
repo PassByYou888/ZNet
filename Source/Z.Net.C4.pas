@@ -1586,11 +1586,24 @@ end;
 
 procedure TC40_PhysicsService.cmd_QueryInfo(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  i, j: Integer;
+  i: Integer;
   L: TC40_InfoList;
+  r_physics_addr: U_String; // remote request physics address
+  r_physics_port: Word; // remote request physcis port
+  dp_serv_s, dp_cli_s: U_String;
 begin
-  L := TC40_InfoList.Create(True);
+  if InData.Count >= 2 then
+    begin
+      r_physics_addr := InData.R.ReadString;
+      r_physics_port := InData.R.ReadWord;
+    end
+  else
+    begin
+      r_physics_addr := PhysicsAddr;
+      r_physics_port := PhysicsPort;
+    end;
 
+  L := TC40_InfoList.Create(True);
   { search all service }
   for i := 0 to C40_ServicePool.Count - 1 do
     if C40_ServicePool[i].C40PhysicsService.Activted then
@@ -1607,6 +1620,27 @@ begin
     if C40_ClientPool[i] is TC40_Dispatch_Client then
         L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).Service_Info_Pool);
 
+  { anti dissymmetrical network fixed path }
+  if not r_physics_addr.Same(PhysicsAddr) then
+    begin
+      {
+        Translating physical addresses in dissymmetrical network environments
+        The system processing of c4 is to eliminate non current request server addresses
+        This is a "anti dissymmetrical network" fixed patch
+      }
+      dp_serv_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Service);
+      dp_cli_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Client);
+      for i := L.Count - 1 downto 0 do
+        if L[i].SamePhysicsAddr(PhysicsAddr, PhysicsPort) and (not L[i].ServiceTyp.Same(dp_serv_s, dp_cli_s)) then
+          begin
+            L[i].PhysicsAddr := r_physics_addr; // translate addr
+            L[i].PhysicsPort := r_physics_port; // translate port
+          end
+        else
+            L.Delete(i);
+    end;
+
+  { finish and send result }
   L.SaveToDF(OutData);
   DisposeObject(L);
 end;
@@ -1975,12 +2009,17 @@ end;
 procedure TC40_PhysicsTunnel.DoConnectAndQuery(Param1: Pointer; Param2: TObject; const state: Boolean);
 var
   tmp: TDCT40_QueryResultData;
+  D: TDFE;
 begin
   DoConnectOnResult(state);
   tmp := TDCT40_QueryResultData(Param2);
   if state then
     begin
-      PhysicsTunnel.SendStreamCmdM('QueryInfo', nil, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      D := TDFE.Create;
+      D.WriteString(PhysicsAddr);
+      D.WriteWORD(PhysicsPort);
+      PhysicsTunnel.SendStreamCmdM('QueryInfo', D, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      DisposeObject(D);
     end
   else
     begin
@@ -2498,6 +2537,7 @@ end;
 procedure TC40_PhysicsTunnel.QueryInfoC(OnResult: TDCT40_OnQueryResultC);
 var
   tmp: TDCT40_QueryResultData;
+  D: TDFE;
 begin
   tmp := TDCT40_QueryResultData.Create;
   tmp.C40_PhysicsTunnel := Self;
@@ -2505,7 +2545,11 @@ begin
 
   if PhysicsTunnel.RemoteInited then
     begin
-      PhysicsTunnel.SendStreamCmdM('QueryInfo', nil, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      D := TDFE.Create;
+      D.WriteString(PhysicsAddr);
+      D.WriteWORD(PhysicsPort);
+      PhysicsTunnel.SendStreamCmdM('QueryInfo', D, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      DisposeObject(D);
       exit;
     end;
 
@@ -2518,6 +2562,7 @@ end;
 procedure TC40_PhysicsTunnel.QueryInfoM(OnResult: TDCT40_OnQueryResultM);
 var
   tmp: TDCT40_QueryResultData;
+  D: TDFE;
 begin
   tmp := TDCT40_QueryResultData.Create;
   tmp.C40_PhysicsTunnel := Self;
@@ -2525,7 +2570,11 @@ begin
 
   if PhysicsTunnel.RemoteInited then
     begin
-      PhysicsTunnel.SendStreamCmdM('QueryInfo', nil, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      D := TDFE.Create;
+      D.WriteString(PhysicsAddr);
+      D.WriteWORD(PhysicsPort);
+      PhysicsTunnel.SendStreamCmdM('QueryInfo', D, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      DisposeObject(D);
       exit;
     end;
 
@@ -2538,6 +2587,7 @@ end;
 procedure TC40_PhysicsTunnel.QueryInfoP(OnResult: TDCT40_OnQueryResultP);
 var
   tmp: TDCT40_QueryResultData;
+  D: TDFE;
 begin
   tmp := TDCT40_QueryResultData.Create;
   tmp.C40_PhysicsTunnel := Self;
@@ -2545,7 +2595,11 @@ begin
 
   if PhysicsTunnel.RemoteInited then
     begin
-      PhysicsTunnel.SendStreamCmdM('QueryInfo', nil, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      D := TDFE.Create;
+      D.WriteString(PhysicsAddr);
+      D.WriteWORD(PhysicsPort);
+      PhysicsTunnel.SendStreamCmdM('QueryInfo', D, nil, nil, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParam, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailed);
+      DisposeObject(D);
       exit;
     end;
 
@@ -3058,11 +3112,11 @@ begin
   D.WriteBool(OnlyInstance);
   D.WriteString(ServiceTyp);
   D.WriteString(PhysicsAddr);
-  D.WriteWord(PhysicsPort);
+  D.WriteWORD(PhysicsPort);
   D.WriteString(p2pVM_RecvTunnel_Addr);
-  D.WriteWord(p2pVM_RecvTunnel_Port);
+  D.WriteWORD(p2pVM_RecvTunnel_Port);
   D.WriteString(p2pVM_SendTunnel_Addr);
-  D.WriteWord(p2pVM_SendTunnel_Port);
+  D.WriteWORD(p2pVM_SendTunnel_Port);
   D.WriteInteger(Workload);
   D.WriteInteger(MaxWorkload);
   D.WriteMD5(Hash);
@@ -5174,7 +5228,7 @@ var
 begin
   D := TDFE.Create;
   D.WriteString(PhysicsAddr);
-  D.WriteWord(PhysicsPort);
+  D.WriteWORD(PhysicsPort);
   Client.SendTunnel.SendDirectStreamCmd('RemovePhysicsNetwork', D);
   DisposeObject(D);
 end;
@@ -6474,12 +6528,12 @@ initialization
 ProgressBackgroundProc := {$IFDEF FPC}@{$ENDIF FPC}C40Progress;
 
 C40_QuietMode := False;
-C40_SafeCheckTime := 1000 * 60;
+C40_SafeCheckTime := C_Tick_Second * 60;
 C40_PhysicsReconnectionDelayTime := 5.0;
-C40_UpdateServiceInfoDelayTime := 1000 * 1;
-C40_PhysicsServiceTimeout := 1000 * 60 * 5;
-C40_PhysicsTunnelTimeout := 1000 * 60 * 5;
-C40_KillDeadPhysicsConnectionTimeout := 1000 * 5;
+C40_UpdateServiceInfoDelayTime := C_Tick_Second * 1;
+C40_PhysicsServiceTimeout := C_Tick_Minute * 5;
+C40_PhysicsTunnelTimeout := C_Tick_Minute * 5;
+C40_KillDeadPhysicsConnectionTimeout := C_Tick_Second * 5;
 C40_KillIDCFaultTimeout := C_Tick_Hour * 5;
 
 {$IFDEF FPC}
