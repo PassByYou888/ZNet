@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * ZDB 2.0 Core-Thread for HPC                                                * }
+{ * ZDB 2.0 Thread-Model for HPC                                               * }
 { ****************************************************************************** }
 unit Z.ZDB2.Thread;
 
@@ -84,7 +84,7 @@ type
     procedure Reset_Instance_As_Free();
     // state
     property Size: Int64 read FSize; // data size
-    property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove; // free instance and remove data on save failure
+    property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove; // free instance and remove data on save failure, default is true
     function IsOnlyRead: Boolean;
     function Engine: TZDB2_Th_Queue;
     property ID: Integer read FID;
@@ -186,22 +186,25 @@ type
     Owner: TZDB2_Th_Engine_Marshal;
     RemoveDatabaseOnDestroy: Boolean;
     Mode: TZDB2_SpaceMode; // default is smBigData
-    Database_File: U_String;
-    OnlyRead: Boolean;
-    Delta: Int64;
-    BlockSize: Word;
-    First_Init_Size: Int64;
+    Database_File: U_String; // Database_File is empty creating an in memory database, otherwise it is a file database
+    OnlyRead: Boolean; // onlyread work in file mode
+    Delta: Int64; // append space delta
+    BlockSize: Word; // blocksize default is 1536
+    Fast_Alloc_Space: Boolean; // default is true
+    First_Inited_Physics_Space: Int64; // initialized when creating a new database size.
+    Auto_Append_Space: Boolean; // default is true
+    // cipher support
     Cipher: TZDB2_Cipher;
     Cipher_Security: TCipherSecurity;
     Cipher_password: U_String;
     Cipher_Level: Integer;
     Cipher_Tail: Boolean;
     Cipher_CBC: Boolean;
-    Backup_Mode: TZDB2_Backup_Mode;
-    Static_Backup_Tech_Physics_Limit: Int64; // this value is exceeded, dynamic-backup tech will be used
-    Dynamic_Backup_Max_Queue: Integer; // default 500
+    Backup_Mode: TZDB2_Backup_Mode; // backup: mode
+    Static_Backup_Tech_Physics_Limit: Int64; // backup: this value is exceeded, dynamic-backup tech will be used
+    Dynamic_Backup_Max_Queue: Integer; // backup: default 500
     Engine: TZDB2_Th_Queue; // th-queue-engine
-    Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___;
+    Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___; // data pool
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
@@ -301,8 +304,7 @@ type
   TZDB2_Th_Engine_Marshal_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Marshal>;
 
   // TZDB2_Th_Engine_Marshal is a parallel marshal manager.
-  // TZDB2_Th_Engine_Marshal all methods is thread safe
-  TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject)
+  TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject) // all methods is thread safe.
   private
     FCritical: TCritical;
     FLong_Loop_Num: Integer;
@@ -1020,7 +1022,10 @@ begin
 
   fs := TCore_FileStream.Create(backup_file, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, Owner.Cipher);
-  th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
+  if Owner.Fast_Alloc_Space then
+      th.Sync_Fast_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize)
+  else
+      th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
 
   // check busy queue
   while Owner.Engine.QueueNum > 0 do
@@ -1107,7 +1112,10 @@ begin
 
   fs := TCore_FileStream.Create(backup_file, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, nil);
-  th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
+  if Owner.Fast_Alloc_Space then
+      th.Sync_Fast_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize)
+  else
+      th.Sync_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize, nil);
 
   Aborted := False;
   // check busy queue
@@ -1327,7 +1335,9 @@ begin
   OnlyRead := False;
   Delta := 16 * 1024 * 1024;
   BlockSize := 1536;
-  First_Init_Size := Delta;
+  Fast_Alloc_Space := True;
+  First_Inited_Physics_Space := Delta;
+  Auto_Append_Space := True;
   Cipher := nil;
   Cipher_Security := TCipherSecurity.csNone;
   Cipher_password := 'DTC40@ZSERVER';
@@ -1380,8 +1390,10 @@ begin
   Database_File := cfg.GetDefaultValue('database', Database_File);
   OnlyRead := EStrToBool(cfg.GetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead)), OnlyRead);
   Delta := EStrToInt(cfg.GetDefaultValue('Delta', umlIntToStr(Delta)), Delta);
+  Fast_Alloc_Space := EStrToBool(cfg.GetDefaultValue('Fast_Alloc_Space', umlBoolToStr(Fast_Alloc_Space)), Fast_Alloc_Space);
   BlockSize := EStrToInt(cfg.GetDefaultValue('BlockSize', umlIntToStr(BlockSize)), BlockSize);
-  First_Init_Size := EStrToInt64(cfg.GetDefaultValue('First_Init_Size', umlIntToStr(First_Init_Size)), First_Init_Size);
+  First_Inited_Physics_Space := EStrToInt64(cfg.GetDefaultValue('First_Inited_Physics_Space', umlIntToStr(First_Inited_Physics_Space)), First_Inited_Physics_Space);
+  Auto_Append_Space := EStrToBool(cfg.GetDefaultValue('Auto_Append_Space', umlBoolToStr(Auto_Append_Space)), Auto_Append_Space);
   Cipher_Security := TZDB2_Cipher.GetCipherSecurity(cfg.GetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]));
   Cipher_password := cfg.GetDefaultValue('Password', Cipher_password);
   Cipher_Level := EStrToInt(cfg.GetDefaultValue('Level', umlIntToStr(Cipher_Level)), Cipher_Level);
@@ -1412,8 +1424,10 @@ begin
   cfg.SetDefaultValue('database', Database_File);
   cfg.SetDefaultValue('OnlyRead', umlBoolToStr(OnlyRead));
   cfg.SetDefaultValue('Delta', umlIntToStr(Delta));
+  cfg.SetDefaultValue('Fast_Alloc_Space', umlBoolToStr(Fast_Alloc_Space));
   cfg.SetDefaultValue('BlockSize', umlIntToStr(BlockSize));
-  cfg.SetDefaultValue('First_Init_Size', umlIntToStr(First_Init_Size));
+  cfg.SetDefaultValue('First_Inited_Physics_Space', umlIntToStr(First_Inited_Physics_Space));
+  cfg.SetDefaultValue('Auto_Append_Space', umlBoolToStr(Auto_Append_Space));
   cfg.GetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]);
   cfg.SetDefaultValue('Password', Cipher_password);
   cfg.SetDefaultValue('Level', umlIntToStr(Cipher_Level));
@@ -2000,11 +2014,18 @@ begin
       begin
         // check stream
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
-        Engine.Async_Append_Custom_Space(First_Init_Size, BlockSize);
+        Engine.Fast_Append_Space := Fast_Alloc_Space;
+        Engine.Auto_Append_Space := Auto_Append_Space;
+        if Fast_Alloc_Space then
+            Engine.Async_Fast_Format_Custom_Space(First_Inited_Physics_Space, BlockSize)
+        else
+            Engine.Async_Format_Custom_Space(First_Inited_Physics_Space, BlockSize);
       end
     else if TZDB2_Core_Space.CheckStream(Stream, Cipher, Found_Backup()) then // check open from cipher and check Fault Shutdown
       begin
         Engine := TZDB2_Th_Queue.Create(Mode, Stream, True, OnlyRead, Delta, BlockSize, Cipher);
+        Engine.Fast_Append_Space := Fast_Alloc_Space;
+        Engine.Auto_Append_Space := Auto_Append_Space;
         // init sequence
         DoStatus('"%s" Get and Clean sequence table', [umlGetFileName(Database_File).Text]);
         if Engine.Sync_Get_And_Clean_Sequence_Table(Queue_Table_) then
@@ -3580,6 +3601,8 @@ const
   C_cfg = '[1]'#13#10 +
     'database=%temp%db1.ox2'#13#10 +
     'OnlyRead=False'#13#10 +
+    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'Fast_Alloc_Space=True'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
     'Security=None'#13#10 +
@@ -3590,6 +3613,8 @@ const
     #13#10 +
     '[2]'#13#10 +
     'database=%temp%db2.ox2'#13#10 +
+    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'Fast_Alloc_Space=True'#13#10 +
     'OnlyRead=False'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
@@ -3601,6 +3626,8 @@ const
     #13#10 +
     '[3]'#13#10 +
     'database=%temp%db3.ox2'#13#10 +
+    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'Fast_Alloc_Space=True'#13#10 +
     'OnlyRead=False'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
@@ -3613,6 +3640,8 @@ const
     '[4]'#13#10 +
     'database=%temp%db4.ox2'#13#10 +
     'OnlyRead=False'#13#10 +
+    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'Fast_Alloc_Space=True'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
     'Security=None'#13#10 +
@@ -3620,7 +3649,6 @@ const
     'Level=1'#13#10 +
     'Tail=True'#13#10 +
     'CBC=True'#13#10;
-
 var
   DM: TZDB2_Th_Engine_Marshal;
   TE: THashTextEngine;
