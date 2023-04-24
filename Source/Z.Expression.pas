@@ -224,7 +224,7 @@ function EvaluateExpressionValue_P(UsedCache: Boolean; Special_ASCII_: TListPasc
   TextEngClass: TTextParsingClass; TextStyle: TTextStyle; ExpressionText: SystemString; const OnGetValue: TOnDeclValue_P): Variant;
 {$ENDREGION 'internal define'}
 
-function OpCache: THashObjectList;
+function OpCache: TOpCode_Pool;
 procedure CleanOpCache();
 
 { prototype: EvaluateExpressionValue }
@@ -305,7 +305,7 @@ procedure EvaluateExpressionVectorAndMatrix_test_;
 implementation
 
 var
-  OpCache___: THashObjectList = nil;
+  OpCache___: TOpCode_Pool = nil;
 
 {$REGION 'internal imp'}
 
@@ -2723,9 +2723,7 @@ begin
   Op := nil;
   if UsedCache then
     begin
-      LockObject(OpCache);
-      Op := TOpCode(OpCache[ExpressionText]);
-      UnLockObject(OpCache);
+      Op := OpCache[ExpressionText];
     end;
 
   if (Op <> nil) and (UsedCache) then
@@ -2750,9 +2748,7 @@ begin
                 Result := Op.Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
-                    LockObject(OpCache);
-                    OpCache.Add(ExpressionText, Op);
-                    UnLockObject(OpCache);
+                    OpCache.Add(ExpressionText, Op, True);
                   end
                 else
                     DisposeObject(Op);
@@ -2775,9 +2771,7 @@ begin
   Op := nil;
   if UsedCache then
     begin
-      LockObject(OpCache);
-      Op := TOpCode(OpCache[ExpressionText]);
-      UnLockObject(OpCache);
+      Op := OpCache[ExpressionText];
     end;
 
   if (Op <> nil) and (UsedCache) then
@@ -2802,9 +2796,7 @@ begin
                 Result := Op.Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
-                    LockObject(OpCache);
-                    OpCache.Add(ExpressionText, Op);
-                    UnLockObject(OpCache);
+                    OpCache.Add(ExpressionText, Op, True);
                   end
                 else
                     DisposeObject(Op);
@@ -2827,9 +2819,7 @@ begin
   Op := nil;
   if UsedCache then
     begin
-      LockObject(OpCache);
-      Op := TOpCode(OpCache[ExpressionText]);
-      UnLockObject(OpCache);
+      Op := OpCache[ExpressionText];
     end;
 
   if (Op <> nil) and (UsedCache) then
@@ -2854,9 +2844,7 @@ begin
                 Result := Op.Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
-                    LockObject(OpCache);
-                    OpCache.Add(ExpressionText, Op);
-                    UnLockObject(OpCache);
+                    OpCache.Add(ExpressionText, Op, True);
                   end
                 else
                     DisposeObject(Op);
@@ -2872,18 +2860,16 @@ end;
 {$ENDREGION 'internal imp'}
 
 
-function OpCache: THashObjectList;
+function OpCache: TOpCode_Pool;
 begin
   if OpCache___ = nil then
-      OpCache___ := THashObjectList.CustomCreate(True, 1024 * 1024);
+      OpCache___ := TOpCode_Pool.Create(True, 1024 * 1024);
   Result := OpCache___;
 end;
 
 procedure CleanOpCache();
 begin
-  LockObject(OpCache);
   OpCache.Clear;
-  UnLockObject(OpCache);
 end;
 
 type
@@ -2947,9 +2933,7 @@ begin
   Op := nil;
   if (UsedCache) and (const_vl = nil) then
     begin
-      LockObject(OpCache);
-      Op := TOpCode(OpCache[ExpressionText]);
-      UnLockObject(OpCache);
+      Op := OpCache[ExpressionText];
     end;
 
   if (Op <> nil) and (UsedCache) and (const_vl = nil) then
@@ -2978,9 +2962,7 @@ begin
 
                 if (UsedCache) and (const_vl = nil) then
                   begin
-                    LockObject(OpCache);
-                    OpCache.Add(ExpressionText, Op);
-                    UnLockObject(OpCache);
+                    OpCache.Add(ExpressionText, Op, True);
                   end
                 else
                     DisposeObject(Op);
