@@ -2819,6 +2819,7 @@ begin
     end;
 
   IOHnd.Handle.Size := siz_;
+  IOHnd.Size := siz_;
   Result := True;
   IOHnd.Return := C_NotError;
 end;
