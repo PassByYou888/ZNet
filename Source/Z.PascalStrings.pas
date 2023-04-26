@@ -73,7 +73,6 @@ type
     class operator Explicit(Value: TPascalString): SystemString;
     class operator Explicit(Value: SystemString): TPascalString;
     class operator Explicit(Value: SystemChar): TPascalString;
-    class operator Explicit(Value: Variant): TPascalString;
     class operator Explicit(Value: TPascalString): Variant;
 {$ENDIF}
     procedure SwapInstance(var source: TPascalString);
@@ -147,9 +146,9 @@ type
     property Chars[index: Integer]: SystemChar read GetChars write SetChars; default;
     property UpperChar[index: Integer]: SystemChar read GetUpperChar write SetUpperChar;
     property LowerChar[index: Integer]: SystemChar read GetLowerChar write SetLowerChar;
-    property Bytes: TBytes read GetBytes write SetBytes;                         // UTF8
+    property Bytes: TBytes read GetBytes write SetBytes; // UTF8
     property PlatformBytes: TBytes read GetPlatformBytes write SetPlatformBytes; // system default
-    property ANSI: TBytes read GetANSI write SetANSI;                            // Ansi Bytes
+    property ANSI: TBytes read GetANSI write SetANSI; // Ansi Bytes
     function BOMBytes: TBytes;
   end;
 
@@ -1597,11 +1596,6 @@ end;
 class operator TPascalString.Explicit(Value: SystemString): TPascalString;
 begin
   Result.Text := Value;
-end;
-
-class operator TPascalString.Explicit(Value: Variant): TPascalString;
-begin
-  Result.Text := VarToStr(Value);
 end;
 
 class operator TPascalString.Explicit(Value: SystemChar): TPascalString;
