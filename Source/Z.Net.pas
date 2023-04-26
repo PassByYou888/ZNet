@@ -637,7 +637,7 @@ type
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
     FID: Cardinal;
-    // io or connection create time
+    // io and connection create time
     FIO_Create_TimeTick: TTimeTick;
     // token
     FHeadToken, FTailToken: Cardinal;
