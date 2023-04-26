@@ -80,7 +80,6 @@ type
     class operator Explicit(Value: TUPascalString): USystemString;
     class operator Explicit(Value: TUPascalString): Variant;
     class operator Explicit(Value: USystemString): TUPascalString;
-    class operator Explicit(Value: Variant): TUPascalString;
     class operator Explicit(Value: USystemChar): TUPascalString;
 {$ENDIF}
     procedure SwapInstance(var source: TUPascalString);
@@ -154,9 +153,9 @@ type
     property Chars[index: Integer]: USystemChar read GetChars write SetChars; default;
     property UpperChar[index: Integer]: USystemChar read GetUpperChar write SetUpperChar;
     property LowerChar[index: Integer]: USystemChar read GetLowerChar write SetLowerChar;
-    property Bytes: TBytes read GetBytes write SetBytes;                         // UTF8
+    property Bytes: TBytes read GetBytes write SetBytes; // UTF8
     property PlatformBytes: TBytes read GetPlatformBytes write SetPlatformBytes; // system default
-    property ANSI: TBytes read GetANSI write SetANSI;                            // Ansi Bytes
+    property ANSI: TBytes read GetANSI write SetANSI; // Ansi Bytes
     function BOMBytes: TBytes;
   end;
 
@@ -1642,11 +1641,6 @@ end;
 class operator TUPascalString.Explicit(Value: USystemString): TUPascalString;
 begin
   Result.Text := Value;
-end;
-
-class operator TUPascalString.Explicit(Value: Variant): TUPascalString;
-begin
-  Result.Text := VarToStr(Value);
 end;
 
 class operator TUPascalString.Explicit(Value: USystemChar): TUPascalString;
