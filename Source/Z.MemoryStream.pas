@@ -135,6 +135,8 @@ type
     procedure Clean;
   end;
 
+  TMS64_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Object_List<TMS64>;
+
   TStream64List = TMemoryStream64List;
   TMS64List = TMemoryStream64List;
 
