@@ -42,6 +42,7 @@ const
   C_PrepareReadCacheSize = 512;
   C_MaxBufferFragmentSize = $F000;
 
+  C_Flush_And_Seek_Error = -912;
   C_StringError = -911;
   C_SeekError = -910;
   C_FileWriteError = -909;
@@ -288,9 +289,9 @@ function umlBlockWrite(var IOHnd: TIOHnd; const buff; const Size: Int64): Boolea
 function umlFileWriteFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
 function umlFileReadFixedString(var IOHnd: TIOHnd; var Value: TPascalString): Boolean;
 function umlCheckSeedPos(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
-function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
-function umlFileGetPOS(var IOHnd: TIOHnd): Int64;
+function umlFileSeek(var IOHnd: TIOHnd; const Pos_: Int64): Boolean;
 function umlFileSetSize(var IOHnd: TIOHnd; siz_: Int64): Boolean;
+function umlFileGetPOS(var IOHnd: TIOHnd): Int64;
 function umlFilePOS(var IOHnd: TIOHnd): Int64;
 function umlFileGetSize(var IOHnd: TIOHnd): Int64;
 function umlFileSize(var IOHnd: TIOHnd): Int64;
@@ -2770,7 +2771,7 @@ begin
   Result := (Pos_ >= 0) and (Pos_ <= IOHnd.Size);
 end;
 
-function umlFileSeek(var IOHnd: TIOHnd; Pos_: Int64): Boolean;
+function umlFileSeek(var IOHnd: TIOHnd; const Pos_: Int64): Boolean;
 begin
   if Pos_ < 0 then
     begin
@@ -2779,16 +2780,17 @@ begin
       exit;
     end;
 
+  if not umlFileFlushWriteCache(IOHnd) then
+    begin
+      IOHnd.Return := C_Flush_And_Seek_Error;
+      Result := False;
+      exit;
+    end;
+
   if (Pos_ = IOHnd.Position) and (Pos_ = IOHnd.Handle.Position) then
     begin
       IOHnd.Return := C_NotError;
       Result := True;
-      exit;
-    end;
-
-  if not umlFileFlushWriteCache(IOHnd) then
-    begin
-      Result := False;
       exit;
     end;
 
@@ -2805,11 +2807,6 @@ begin
   end;
 end;
 
-function umlFileGetPOS(var IOHnd: TIOHnd): Int64;
-begin
-  Result := IOHnd.Position;
-end;
-
 function umlFileSetSize(var IOHnd: TIOHnd; siz_: Int64): Boolean;
 begin
   if not umlFileFlushWriteCache(IOHnd) then
@@ -2820,8 +2817,15 @@ begin
 
   IOHnd.Handle.Size := siz_;
   IOHnd.Size := siz_;
+  IOHnd.Position := IOHnd.Position;
   Result := True;
   IOHnd.Return := C_NotError;
+end;
+
+function umlFileGetPOS(var IOHnd: TIOHnd): Int64;
+begin
+  umlFileFlushWriteCache(IOHnd);
+  Result := IOHnd.Position;
 end;
 
 function umlFilePOS(var IOHnd: TIOHnd): Int64;
@@ -2831,6 +2835,7 @@ end;
 
 function umlFileGetSize(var IOHnd: TIOHnd): Int64;
 begin
+  umlFileFlushWriteCache(IOHnd);
   Result := IOHnd.Size;
 end;
 
