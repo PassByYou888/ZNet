@@ -122,6 +122,19 @@ type
 // **********************************************************************************************************
 
 {$IFDEF FPC}
+  TCritical_PascalString_Hash_Pool__ = specialize TCritical_Big_Hash_Pair_Pool<TPascalString, TPascalString>;
+  TCritical_PascalString_Hash_Pool = class(TCritical_PascalString_Hash_Pool__)
+{$ELSE FPC}
+  TCritical_PascalString_Hash_Pool = class(TCritical_Big_Hash_Pair_Pool<TPascalString, TPascalString>)
+{$ENDIF FPC}
+  public
+    function Get_Key_Hash(const Key_: TPascalString): THash; override;
+    function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
+    procedure DoFree(var Key: TPascalString; var Value: TPascalString); override;
+    function Compare_Value(const Value_1, Value_2: TPascalString): Boolean; override;
+  end;
+
+{$IFDEF FPC}
   generic TCritical_String_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ELSE FPC}
   TCritical_String_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
@@ -212,6 +225,7 @@ type
 // **********************************************************************************************************
 // Compatibility Support: "TGeneric_String_Object_Hash" is stop Updates
 // **********************************************************************************************************
+
 {$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
@@ -419,6 +433,28 @@ begin
 end;
 
 // **********************************************************************************************************
+
+function TCritical_PascalString_Hash_Pool.Get_Key_Hash(const Key_: TPascalString): THash;
+begin
+  Result := FastHashPPascalString(@Key_);
+  Result := Get_CRC32(@Result, SizeOf(THash));
+end;
+
+function TCritical_PascalString_Hash_Pool.Compare_Key(const Key_1, Key_2: TPascalString): Boolean;
+begin
+  Result := Key_1.Same(@Key_2);
+end;
+
+procedure TCritical_PascalString_Hash_Pool.DoFree(var Key: TPascalString; var Value: TPascalString);
+begin
+  Key := '';
+  Value := '';
+end;
+
+function TCritical_PascalString_Hash_Pool.Compare_Value(const Value_1, Value_2: TPascalString): Boolean;
+begin
+  Result := Value_1.Same(@Value_2);
+end;
 
 function TCritical_String_Big_Hash_Pair_Pool{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Key_Hash(const Key_: SystemString): THash;
 begin
