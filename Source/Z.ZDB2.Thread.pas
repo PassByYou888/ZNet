@@ -39,6 +39,7 @@ type
     OnResult_C: TOn_Mem64_And_State_Event_C;
     OnResult_M: TOn_Mem64_And_State_Event_M;
     OnResult_P: TOn_Mem64_And_State_Event_P;
+    State: PCMD_State;
     constructor Create;
     procedure Do_Result(var Sender: TZDB2_Th_CMD_Mem64_And_State);
   end;
@@ -49,6 +50,7 @@ type
     OnResult_C: TOn_Stream_And_State_Event_C;
     OnResult_M: TOn_Stream_And_State_Event_M;
     OnResult_P: TOn_Stream_And_State_Event_P;
+    State: PCMD_State;
     constructor Create;
     procedure Do_Result(var Sender: TZDB2_Th_CMD_Stream_And_State);
   end;
@@ -101,6 +103,8 @@ type
     function Load_Data(Source: TMS64): Boolean; overload;
     function Load_Data(Source: TMem64): Boolean; overload;
     // async load
+    procedure Async_Load_Data(Source: TMS64; State: PCMD_State); overload;
+    procedure Async_Load_Data(Source: TMem64; State: PCMD_State); overload;
     procedure Async_Load_Data_C(Source: TMS64; OnResult: TOn_Stream_And_State_Event_C); overload;
     procedure Async_Load_Data_C(Source: TMem64; OnResult: TOn_Mem64_And_State_Event_C); overload;
     procedure Async_Load_Data_M(Source: TMS64; OnResult: TOn_Stream_And_State_Event_M); overload;
@@ -224,6 +228,9 @@ type
     function Found_Backup(): Boolean;
     function Revert_Backup(remove_backup_, Build_: Boolean): Boolean;
     function Revert_Backup_From(FileName: U_String; Build_: Boolean): Boolean;
+    procedure Remove_Backup;
+    procedure Stop_Backup;
+    procedure Wait_Backup;
     // for-thread safe
     procedure For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
     procedure For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
@@ -348,6 +355,8 @@ type
     function Add_Data_To_Engine(Eng_: TZDB2_Th_Engine): TZDB2_Th_Engine_Data;
     // wait busy task
     procedure Wait_Busy_Task;
+    // wait long loop and backup
+    procedure Wait_Long_Loop(wait_backup_: Boolean);
     // check recycle pool
     procedure Check_Recycle_Pool;
     // progress
@@ -356,6 +365,8 @@ type
     function Get_Last_Backup_Execute_Time: TTimeTick;
     procedure Backup(Reserve_: Word);
     procedure Backup_If_No_Exists();
+    procedure Stop_Backup;
+    procedure Remove_Backup;
     // flush
     procedure Flush; overload;
     procedure Flush(WaitQueue_: Boolean); overload;
@@ -434,6 +445,7 @@ begin
   OnResult_C := nil;
   OnResult_M := nil;
   OnResult_P := nil;
+  State := nil;
 end;
 
 procedure TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Do_Result(var Sender: TZDB2_Th_CMD_Mem64_And_State);
@@ -446,6 +458,8 @@ begin
         OnResult_M(Sender);
     if Assigned(OnResult_P) then
         OnResult_P(Sender);
+    if State <> nil then
+        State^ := Sender.State;
   except
   end;
   AtomDec(Source.FAsync_Load_Num);
@@ -459,6 +473,7 @@ begin
   OnResult_C := nil;
   OnResult_M := nil;
   OnResult_P := nil;
+  State := nil;
 end;
 
 procedure TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Do_Result(var Sender: TZDB2_Th_CMD_Stream_And_State);
@@ -471,6 +486,8 @@ begin
         OnResult_M(Sender);
     if Assigned(OnResult_P) then
         OnResult_P(Sender);
+    if State <> nil then
+        State^ := Sender.State;
   except
   end;
   AtomDec(Source.FAsync_Load_Num);
@@ -716,13 +733,69 @@ begin
   UnLock;
 end;
 
+procedure TZDB2_Th_Engine_Data.Async_Load_Data(Source: TMS64; State: PCMD_State);
+var
+  bridge_: TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge;
+begin
+  Lock;
+  if FPost_Free_Runing or (Source = nil) then
+    begin
+      if State <> nil then
+          State^ := TCMD_State.csError;
+    end
+  else if (FID >= 0) then
+    begin
+      AtomInc(FAsync_Load_Num);
+      bridge_ := TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Create;
+      bridge_.Source := Self;
+      bridge_.State := State;
+      if State <> nil then
+          State^ := TCMD_State.csDefault;
+      Engine.Async_GetData_AsStream_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
+    end
+  else
+    begin
+      if State <> nil then
+          State^ := TCMD_State.csError;
+    end;
+  UnLock;
+end;
+
+procedure TZDB2_Th_Engine_Data.Async_Load_Data(Source: TMem64; State: PCMD_State);
+var
+  bridge_: TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge;
+begin
+  Lock;
+  if FPost_Free_Runing or (Source = nil) then
+    begin
+      if State <> nil then
+          State^ := TCMD_State.csError;
+    end
+  else if (FID >= 0) then
+    begin
+      AtomInc(FAsync_Load_Num);
+      bridge_ := TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Create;
+      bridge_.Source := Self;
+      bridge_.State := State;
+      if State <> nil then
+          State^ := TCMD_State.csDefault;
+      Engine.Async_GetData_AsMem64_M(FID, Source, {$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Result);
+    end
+  else
+    begin
+      if State <> nil then
+          State^ := TCMD_State.csError;
+    end;
+  UnLock;
+end;
+
 procedure TZDB2_Th_Engine_Data.Async_Load_Data_C(Source: TMS64; OnResult: TOn_Stream_And_State_Event_C);
 var
   tmp: TZDB2_Th_CMD_Stream_And_State;
   bridge_: TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Stream := Source;
       tmp.State := TCMD_State.csError;
@@ -751,7 +824,7 @@ var
   bridge_: TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Mem64 := Source;
       tmp.State := TCMD_State.csError;
@@ -780,7 +853,7 @@ var
   bridge_: TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Stream := Source;
       tmp.State := TCMD_State.csError;
@@ -809,7 +882,7 @@ var
   bridge_: TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Mem64 := Source;
       tmp.State := TCMD_State.csError;
@@ -838,7 +911,7 @@ var
   bridge_: TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Stream := Source;
       tmp.State := TCMD_State.csError;
@@ -867,7 +940,7 @@ var
   bridge_: TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge;
 begin
   Lock;
-  if FPost_Free_Runing then
+  if FPost_Free_Runing or (Source = nil) then
     begin
       tmp.Mem64 := Source;
       tmp.State := TCMD_State.csError;
@@ -1359,6 +1432,7 @@ begin
   try
     if FBackup_Is_Busy then
       begin
+        Stop_Backup();
         if Database_File <> '' then
             DoStatus('"%s" wait backup task...', [Database_File.Text])
         else
@@ -1533,16 +1607,18 @@ begin
   if umlTrimSpace(Database_File) = '' then
       exit;
 
-  db_path := Get_Backup_Directory();
-  db_file := umlGetFileName(Database_File);
-
-  arry := umlGetFileListPath(db_path);
-  for n in arry do
-    if umlMultipleMatch(True, db_file + '.backup(*)', n) then
-      begin
-        Result := True;
-        break;
-      end;
+  try
+    db_path := Get_Backup_Directory();
+    db_file := umlGetFileName(Database_File);
+    arry := umlGetFileListPath(db_path);
+    for n in arry do
+      if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+        begin
+          Result := True;
+          break;
+        end;
+  except
+  end;
 
   db_path := '';
   db_file := '';
@@ -1664,6 +1740,81 @@ begin
   finally
       FBackup_Is_Busy := False;
   end;
+end;
+
+procedure TZDB2_Th_Engine.Remove_Backup;
+var
+  db_path: U_String;
+  db_file: U_String;
+  arry: U_StringArray;
+  n, fn: U_SystemString;
+begin
+  if FBackup_Is_Busy then
+      exit;
+  if umlTrimSpace(Database_File) = '' then
+      exit;
+
+  try
+    db_path := Get_Backup_Directory();
+    db_file := umlGetFileName(Database_File);
+    arry := umlGetFileListPath(db_path);
+    for n in arry do
+      if umlMultipleMatch(True, db_file + '.backup(*)', n) then
+        begin
+          fn := umlCombineFileName(db_path, n);
+          umlDeleteFile(fn);
+          DoStatus('remove %s', [fn]);
+        end;
+  except
+  end;
+
+  db_path := '';
+  db_file := '';
+  SetLength(arry, 0);
+end;
+
+procedure TZDB2_Th_Engine.Stop_Backup;
+begin
+  Static_Backup_Instance_Pool__.Lock;
+  try
+    if Static_Backup_Instance_Pool__.num > 0 then
+      begin
+        with Static_Backup_Instance_Pool__.repeat_ do
+          repeat
+            if Queue^.Data.Owner = Self then
+                Queue^.Data.Aborted := True;
+          until not Next;
+      end;
+  finally
+      Static_Backup_Instance_Pool__.UnLock;
+  end;
+
+  Dynamic_Backup_Instance_Pool__.Lock;
+  try
+    if Dynamic_Backup_Instance_Pool__.num > 0 then
+      begin
+        with Dynamic_Backup_Instance_Pool__.repeat_ do
+          repeat
+            if Queue^.Data.Owner = Self then
+                Queue^.Data.Aborted := True;
+          until not Next;
+      end;
+  finally
+      Dynamic_Backup_Instance_Pool__.UnLock;
+  end;
+end;
+
+procedure TZDB2_Th_Engine.Wait_Backup;
+begin
+  if FBackup_Is_Busy then
+    begin
+      if Database_File <> '' then
+          DoStatus('"%s" wait backup task...', [Database_File.Text])
+      else
+          DoStatus('wait backup task...');
+      while FBackup_Is_Busy do
+          TCompute.Sleep(100);
+    end;
 end;
 
 procedure TZDB2_Th_Engine.For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
@@ -2791,6 +2942,30 @@ begin
       TCompute.Sleep(10);
 end;
 
+procedure TZDB2_Th_Engine_Marshal.Wait_Long_Loop(wait_backup_: Boolean);
+var
+  backup_task_num: NativeInt;
+begin
+  repeat
+    backup_task_num := 0;
+    if wait_backup_ and (Engine_Pool.num > 0) then
+      begin
+        Lock;
+        try
+          with Engine_Pool.repeat_ do
+            repeat
+              if Queue^.Data.FBackup_Is_Busy then
+                  Inc(backup_task_num);
+            until not Next;
+        except
+        end;
+        UnLock;
+      end;
+    if (Long_Loop_Num > 0) or (backup_task_num > 0) then
+        TCompute.Sleep(100);
+  until (Long_Loop_Num <= 0) and (backup_task_num <= 0);
+end;
+
 procedure TZDB2_Th_Engine_Marshal.Check_Recycle_Pool;
 begin
   Lock;
@@ -2943,6 +3118,44 @@ begin
             try
               if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FBackup_Is_Busy) then
                   Queue^.Data.Backup(1);
+            except
+            end;
+          until not Next;
+      except
+      end;
+      UnLock;
+    end;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Stop_Backup;
+begin
+  if Engine_Pool.num > 0 then
+    begin
+      Lock;
+      try
+        with Engine_Pool.repeat_ do
+          repeat
+            try
+                Queue^.Data.Stop_Backup;
+            except
+            end;
+          until not Next;
+      except
+      end;
+      UnLock;
+    end;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Remove_Backup;
+begin
+  if Engine_Pool.num > 0 then
+    begin
+      Lock;
+      try
+        with Engine_Pool.repeat_ do
+          repeat
+            try
+                Queue^.Data.Remove_Backup;
             except
             end;
           until not Next;
@@ -3556,25 +3769,25 @@ const
 
 var
   DM: TZDB2_Th_Engine_Marshal;
-  TE: THashTextEngine;
+  te: THashTextEngine;
   L: TListPascalString;
   Eng_: TZDB2_Th_Engine;
   i: Integer;
   tmp: TMem64;
 begin
   DM := TZDB2_Th_Engine_Marshal.Create;
-  TE := THashTextEngine.Create;
-  TE.AsText := C_cfg;
+  te := THashTextEngine.Create;
+  te.AsText := C_cfg;
 
   L := TListPascalString.Create;
-  TE.GetSectionList(L);
+  te.GetSectionList(L);
   for i := 0 to L.Count - 1 do
     begin
       Eng_ := TZDB2_Th_Engine.Create(DM);
-      Eng_.ReadConfig(L[i], TE.HStringList[L[i]]);
+      Eng_.ReadConfig(L[i], te.HStringList[L[i]]);
     end;
   DisposeObject(L);
-  TE.Free;
+  te.Free;
   DM.Build;
 
   DM.Engine_Pool.Get_Minimize_Size_Engine;
@@ -3601,7 +3814,7 @@ const
   C_cfg = '[1]'#13#10 +
     'database=%temp%db1.ox2'#13#10 +
     'OnlyRead=False'#13#10 +
-    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'First_Inited_Physics_Space=100*1024*1024'#13#10 +
     'Fast_Alloc_Space=True'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
@@ -3613,7 +3826,7 @@ const
     #13#10 +
     '[2]'#13#10 +
     'database=%temp%db2.ox2'#13#10 +
-    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'First_Inited_Physics_Space=100*1024*1024'#13#10 +
     'Fast_Alloc_Space=True'#13#10 +
     'OnlyRead=False'#13#10 +
     'Delta=100*1024*1024'#13#10 +
@@ -3626,7 +3839,7 @@ const
     #13#10 +
     '[3]'#13#10 +
     'database=%temp%db3.ox2'#13#10 +
-    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'First_Inited_Physics_Space=100*1024*1024'#13#10 +
     'Fast_Alloc_Space=True'#13#10 +
     'OnlyRead=False'#13#10 +
     'Delta=100*1024*1024'#13#10 +
@@ -3640,7 +3853,7 @@ const
     '[4]'#13#10 +
     'database=%temp%db4.ox2'#13#10 +
     'OnlyRead=False'#13#10 +
-    'First_Inited_Physics_Space=500*1024*1024'#13#10 +
+    'First_Inited_Physics_Space=100*1024*1024'#13#10 +
     'Fast_Alloc_Space=True'#13#10 +
     'Delta=100*1024*1024'#13#10 +
     'BlockSize=1536'#13#10 +
@@ -3651,31 +3864,31 @@ const
     'CBC=True'#13#10;
 var
   DM: TZDB2_Th_Engine_Marshal;
-  TE: THashTextEngine;
+  te: THashTextEngine;
   L: TListPascalString;
   Eng_: TZDB2_Th_Engine;
   i: Integer;
   tmp: TMem64;
 begin
   DM := TZDB2_Th_Engine_Marshal.Create;
-  TE := THashTextEngine.Create;
-  TE.AsText := umlReplace(C_cfg, '%temp%', umlCurrentPath, False, True);
+  te := THashTextEngine.Create;
+  te.AsText := umlReplace(C_cfg, '%temp%', umlCurrentPath, False, True);
 
   L := TListPascalString.Create;
-  TE.GetSectionList(L);
+  te.GetSectionList(L);
   for i := 0 to L.Count - 1 do
     begin
       Eng_ := TZDB2_Th_Engine.Create(DM);
-      Eng_.ReadConfig(L[i], TE.HStringList[L[i]]);
+      Eng_.ReadConfig(L[i], te.HStringList[L[i]]);
     end;
   DisposeObject(L);
-  TE.Free;
+  te.Free;
   DM.Build;
   DM.RemoveDatabaseOnDestroy := True;
 
   DM.Engine_Pool.Get_Minimize_Size_Engine;
 
-  for i := 0 to 10000 do
+  for i := 0 to 20000 do
     begin
       tmp := TMem64.Create;
       tmp.Size := umlRandomRange(1192, 8192);
@@ -3693,11 +3906,13 @@ begin
     begin
       DM.Backup(3);
       DM.Wait_Busy_Task;
+      DM.Wait_Long_Loop(True);
       TCompute.Sleep(1000);
     end;
-
   DoStatus('db total:%d', [DM.Total]);
 
+  DM.Wait_Long_Loop(True);
+  DM.Remove_Backup;
   DisposeObject(DM);
 end;
 
@@ -3749,25 +3964,25 @@ const
 
 var
   DM: TZDB2_Th_Engine_Marshal;
-  TE: THashTextEngine;
+  te: THashTextEngine;
   L: TListPascalString;
   Eng_: TZDB2_Th_Engine;
   i: Integer;
   tmp: TMem64;
 begin
   DM := TZDB2_Th_Engine_Marshal.Create;
-  TE := THashTextEngine.Create;
-  TE.AsText := C_cfg;
+  te := THashTextEngine.Create;
+  te.AsText := C_cfg;
 
   L := TListPascalString.Create;
-  TE.GetSectionList(L);
+  te.GetSectionList(L);
   for i := 0 to L.Count - 1 do
     begin
       Eng_ := TZDB2_Th_Engine.Create(DM);
-      Eng_.ReadConfig(L[i], TE.HStringList[L[i]]);
+      Eng_.ReadConfig(L[i], te.HStringList[L[i]]);
     end;
   DisposeObject(L);
-  TE.Free;
+  te.Free;
   DM.Build;
 
   DM.Engine_Pool.Get_Minimize_Size_Engine;
