@@ -926,9 +926,9 @@ var
   C40_PhysicsReconnectionDelayTime: Double;
   { C4 Dispatch Service info update delay, default is 1 seconds }
   C40_UpdateServiceInfoDelayTime: TTimeTick;
-  { physics service timeout, default is 5 minute }
+  { physics service timeout, default is 15 minute }
   C40_PhysicsServiceTimeout: TTimeTick;
-  { physics tunnel timeout, default is 5 minute }
+  { physics tunnel timeout, default is 15 minute }
   C40_PhysicsTunnelTimeout: TTimeTick;
   { kill dead physics connection timeout, default is 5 seconds }
   C40_KillDeadPhysicsConnectionTimeout: TTimeTick;
@@ -6531,8 +6531,8 @@ C40_QuietMode := False;
 C40_SafeCheckTime := C_Tick_Second * 60;
 C40_PhysicsReconnectionDelayTime := 5.0;
 C40_UpdateServiceInfoDelayTime := C_Tick_Second * 1;
-C40_PhysicsServiceTimeout := C_Tick_Minute * 5;
-C40_PhysicsTunnelTimeout := C_Tick_Minute * 5;
+C40_PhysicsServiceTimeout := C_Tick_Minute * 15;
+C40_PhysicsTunnelTimeout := C_Tick_Minute * 15;
 C40_KillDeadPhysicsConnectionTimeout := C_Tick_Second * 5;
 C40_KillIDCFaultTimeout := C_Tick_Hour * 5;
 
