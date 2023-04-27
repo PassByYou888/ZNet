@@ -2593,6 +2593,7 @@ var
   i: Integer;
   Siz_: Int64;
   SwapBuff_: Pointer;
+  bak_pos: Int64;
 begin
   Result := False;
 
@@ -2601,6 +2602,8 @@ begin
       ErrorInfo('ReadStream: SpaceHnd null error.');
       exit;
     end;
+
+  bak_pos := Stream_.Position;
 
   { compute queue space }
   i := 0;
@@ -2649,6 +2652,7 @@ begin
     inc(FState.ReadNum);
     inc(FState.ReadSize, Siz_);
     Result := True;
+    Stream_.Position := bak_pos;
   finally
       System.FreeMemory(SwapBuff_);
   end;
@@ -2664,6 +2668,7 @@ var
   i: Integer;
   Siz_: Int64;
   p: Pointer;
+  bak_pos: Int64;
 begin
   Result := False;
 
@@ -2688,6 +2693,8 @@ begin
 
   if Siz_ = 0 then
       exit;
+
+  bak_pos := buff.Position;
 
   { read }
   i := 0;
@@ -2718,6 +2725,7 @@ begin
   inc(FState.ReadNum);
   inc(FState.ReadSize, Siz_);
   Result := True;
+  buff.Position := bak_pos;
 end;
 
 function TZDB2_Core_Space.ReadData(buff: TZDB2_Mem; ID: Integer): Boolean;
