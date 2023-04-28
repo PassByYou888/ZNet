@@ -2818,16 +2818,16 @@ begin
 end;
 
 var
-  BigStream_Swap_Space_Pool: TFile_Swap_Space_Pool;
+  BigStream_Swap_Space_Pool__: TFile_Swap_Space_Pool;
 
 procedure Init_SwapSpace_Tech;
 begin
-  BigStream_Swap_Space_Pool := TFile_Swap_Space_Pool.Create;
+  BigStream_Swap_Space_Pool__ := TFile_Swap_Space_Pool.Create;
 
 {$IFDEF MSWINDOWS}
-  BigStream_Swap_Space_Pool.WorkPath := umlGetFilePath(ParamStr(0));
+  BigStream_Swap_Space_Pool__.WorkPath := umlGetFilePath(ParamStr(0));
 {$ELSE MSWINDOWS}
-  BigStream_Swap_Space_Pool.WorkPath := umlCurrentPath;
+  BigStream_Swap_Space_Pool__.WorkPath := umlCurrentPath;
 {$ENDIF MSWINDOWS}
   TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___ := nil;
   TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___ := nil;
@@ -2835,7 +2835,7 @@ end;
 
 procedure Free_SwapSpace_Tech;
 begin
-  DisposeObjectAndNil(BigStream_Swap_Space_Pool);
+  DisposeObjectAndNil(BigStream_Swap_Space_Pool__);
   DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___);
   DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___);
 end;
@@ -2857,7 +2857,7 @@ begin
   path_ := umlGetFilePath(ParamStr(0));
   prefix := umlChangeFileExt(umlGetFileName(ParamStr(0)), '');
 {$ELSE MSWINDOWS}
-  path_ := BigStream_Swap_Space_Pool.WorkPath;
+  path_ := BigStream_Swap_Space_Pool__.WorkPath;
   prefix := 'ZNet_Space_Technology_' + umlDecodeTimeToStr(umlNow);
 {$ENDIF MSWINDOWS}
   if TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool_Cipher___ = nil then
@@ -4563,7 +4563,7 @@ end;
 
 class function TFile_Swap_Space_Pool.RunTime_Pool(): TFile_Swap_Space_Pool;
 begin
-  Result := BigStream_Swap_Space_Pool;
+  Result := BigStream_Swap_Space_Pool__;
 end;
 
 class function TFile_Swap_Space_Stream.Create_BigStream(stream_: TCore_Stream; OwnerSwapSpace_: TFile_Swap_Space_Pool): TFile_Swap_Space_Stream;
@@ -11497,7 +11497,7 @@ begin
     begin
       if not QuietMode then
           P_IO.PrintCommand('swap space technology cache for "%s"', Cmd);
-      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool);
+      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
       if p^.BigStream <> nil then
         begin
           if DoneAutoFree then
@@ -13106,7 +13106,7 @@ begin
     begin
       if not QuietMode then
           ClientIO.PrintCommand('swap space technology cache for "%s"', Cmd);
-      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool);
+      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
       if p^.BigStream <> nil then
         begin
           if DoneAutoFree then
