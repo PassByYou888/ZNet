@@ -66,6 +66,12 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-4-28 小更新**
+
+- Z.Net通讯库新增一个等反馈机制开关(**AutomaticWaitRemoteReponse**):当使用SendDirectConsole,SendDirectStream,SendCompleteBuffer,数据流会一直向目标IO发送,这是无反馈的发送机制.网络不畅时会导致了大量数据堆积在发送缓冲区,AutomaticWaitRemoteReponse开关用于控制对CompleteBuffer这类发送机制增加一条远程响应机制,最后将会形成如下模型
+- **AutomaticWaitRemoteReponse**被打开后,CompleteBuffer来不及送出的数据会被磁盘缓存,然后按队列逐条发送出去,使用CompleteBuffer不会出现全部堆发送缓冲区
+- 提示 **AutomaticWaitRemoteReponse** 被打开后会失去万兆以太的支持能力, AutomaticWaitRemoteReponse 适用于有物理带宽限制的云服务器
+
 **2023-4-26 小更新**
 
 - 主要加固底层的文件api支持,昨天我在数据中心启动了一个10tb规格的备份任务时,中途出现了seek error, 只一瞬间,当时,我强制stop_backup,并没有造成数据丢失,晚上思来想去,还是给底层api库做了一个加固工作
