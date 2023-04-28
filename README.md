@@ -68,9 +68,10 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **2023-4-28 小更新**
 
-- Z.Net通讯库新增一个等反馈机制开关(**AutomaticWaitRemoteReponse**):当使用SendDirectConsole,SendDirectStream,SendCompleteBuffer,数据流会一直向目标IO发送,这是无反馈的发送机制.网络不畅时会导致了大量数据堆积在发送缓冲区,AutomaticWaitRemoteReponse开关用于控制对CompleteBuffer这类发送机制增加一条远程响应机制,最后将会形成如下模型
-- **AutomaticWaitRemoteReponse**被打开后,CompleteBuffer来不及送出的数据会被磁盘缓存,然后按队列逐条发送出去,使用CompleteBuffer不会出现全部堆发送缓冲区
-- 提示 **AutomaticWaitRemoteReponse** 被打开后会失去万兆以太的支持能力, AutomaticWaitRemoteReponse 适用于有物理带宽限制的云服务器
+- Z.Net通讯库新增一个等反馈机制开关(**AutomaticWaitRemoteReponse**)
+- 当使用SendDirectConsole,SendDirectStream,SendCompleteBuffer,数据流会一直向目标IO发送,这是无反馈的发送机制.网络不畅时会导致了大量数据堆积在发送缓冲区,AutomaticWaitRemoteReponse开关用于控制对CompleteBuffer这类发送机制的远程响应,最终会形成如下模型
+- **AutomaticWaitRemoteReponse** 被打开后,CompleteBuffer来不及送出的数据会被磁盘缓存,然后按队列逐条发送出去,使用CompleteBuffer不会出现全部堆发送缓冲区
+- **AutomaticWaitRemoteReponse** 被打开后会失去万兆以太的支持能力, AutomaticWaitRemoteReponse 适用于有物理带宽限制的云服务器
 
 **2023-4-26 小更新**
 
