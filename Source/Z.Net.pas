@@ -1273,6 +1273,7 @@ type
     FCompleteBufferCompressionCondition: Cardinal;
     FCompleteBufferSwapSpace: Boolean;
     FCompleteBufferSwapSpaceTriggerSize: Int64;
+    FAutomaticWaitRemoteReponse: Boolean;
     FEncrypt_P2PVM_Packet: Boolean;
     FPrintParams: TPrint_Param_Hash_Pool;
     FPostProgress: TN_Progress_ToolWithCadencer;
@@ -1337,6 +1338,9 @@ type
     procedure VMAuthSuccessAfterDelayExecute(Sender: TN_Post_Execute);
     procedure VMAuthSuccessDelayExecute(Sender: TN_Post_Execute);
     procedure VMAuthFailedDelayExecute(Sender: TN_Post_Execute);
+
+    { null request }
+    procedure CMD_NULL(Sender: TPeerIO; InData: SystemString; var OutData: SystemString);
   protected
     { automated p2pVM }
     FAutomatedP2PVMServiceBind: TAutomatedP2PVMServiceBind;
@@ -1555,6 +1559,7 @@ type
     property CompleteBufferCompressionCondition: Cardinal read FCompleteBufferCompressionCondition write FCompleteBufferCompressionCondition;
     property CompleteBufferSwapSpace: Boolean read FCompleteBufferSwapSpace write FCompleteBufferSwapSpace;
     property CompleteBufferSwapSpaceTriggerSize: Int64 read FCompleteBufferSwapSpaceTriggerSize write FCompleteBufferSwapSpaceTriggerSize;
+    property AutomaticWaitRemoteReponse: Boolean read FAutomaticWaitRemoteReponse write FAutomaticWaitRemoteReponse;
     property Encrypt_P2PVM_Packet: Boolean read FEncrypt_P2PVM_Packet write FEncrypt_P2PVM_Packet;
     property ProgressMaxDelay: TTimeTick read FProgressMaxDelay write FProgressMaxDelay; { large-scale IO support }
     procedure CopyParamFrom(Source: TZNet);
@@ -1699,6 +1704,9 @@ type
     procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
 
+    { send null request and wait }
+    procedure Send_NULL(P_IO: TPeerIO); overload;
+
     { send used IO bind ID ,return method }
     procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
     procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
@@ -1736,6 +1744,9 @@ type
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
+
+    { send null request and wait }
+    procedure Send_NULL(IO_ID: Cardinal); overload;
 
     { Broadcast to all IO }
     procedure BroadcastDirectConsoleCmd(const Cmd, ConsoleData: SystemString);
@@ -1942,6 +1953,9 @@ type
     procedure SendCompleteBuffer(const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
+
+    { send null request and wait }
+    procedure Send_NULL();
 
     property OnInterface: IZNet_ClientInterface read FOnInterface write FOnInterface;
     property NotyifyInterface: IZNet_ClientInterface read FOnInterface write FOnInterface;
@@ -2673,6 +2687,9 @@ const
   C_BuildP2PAuthToken: SystemString = '__@BuildP2PAuthToken';
   C_InitP2PTunnel: SystemString = '__@InitP2PTunnel';
   C_CloseP2PTunnel: SystemString = '__@CloseP2PTunnel';
+
+  { null request }
+  C_NULL: SystemString = '__@NULL';
 
   { stable IO }
   C_BuildStableIO: SystemString = '__@BuildStableIO';
@@ -9257,6 +9274,10 @@ begin
   P_IO.OnVMAuthResultIO_P := nil;
 end;
 
+procedure TZNet.CMD_NULL(Sender: TPeerIO; InData: SystemString; var OutData: SystemString);
+begin
+end;
+
 procedure TZNet.InitAutomatedP2PVM;
 begin
   FAutomatedP2PVMServiceBind := TAutomatedP2PVMServiceBind.Create;
@@ -9567,6 +9588,7 @@ begin
   FCompleteBufferCompressionCondition := ZNet_Def_CompleteBufferCompressionCondition;
   FCompleteBufferSwapSpace := ZNet_Def_CompleteBuffer_SwapSpace_Activted;
   FCompleteBufferSwapSpaceTriggerSize := ZNet_Def_CompleteBuffer_SwapSpace_Trigger;
+  FAutomaticWaitRemoteReponse := False;
 {$IFDEF Encrypt_P2PVM_Packet}
   FEncrypt_P2PVM_Packet := True;
 {$ELSE Encrypt_P2PVM_Packet}
@@ -9617,9 +9639,11 @@ begin
   RegisterStream(C_BuildP2PAuthToken).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_BuildP2PAuthToken;
   RegisterDirectConsole(C_InitP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_InitP2PTunnel;
   RegisterDirectConsole(C_CloseP2PTunnel).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_CloseP2PTunnel;
+  RegisterConsole(C_NULL).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}CMD_NULL;
 
   FPrintParams := TPrint_Param_Hash_Pool.Create(100, False);
   FPrintParams.Add(C_CipherModel, False, False);
+  FPrintParams.Add(C_NULL, False, False);
 
   SwitchDefaultPerformance;
 
@@ -11260,6 +11284,8 @@ begin
   p^.Cipher := P_IO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL(P_IO);
 end;
 
 procedure TZNet_Server.SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd: SystemString);
@@ -11286,6 +11312,8 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL(P_IO);
 end;
 
 procedure TZNet_Server.SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE);
@@ -11312,6 +11340,8 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL(P_IO);
 end;
 
 procedure TZNet_Server.SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString);
@@ -11542,6 +11572,8 @@ begin
   p^.BufferSize := BuffSize;
   p^.DoneAutoFree := DoneAutoFree;
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL(P_IO);
 end;
 
 procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
@@ -11562,6 +11594,11 @@ begin
       buff.DiscardMemory;
       DisposeObject(buff);
     end;
+end;
+
+procedure TZNet_Server.Send_NULL(P_IO: TPeerIO);
+begin
+  SendConsoleCmdM(P_IO, C_NULL, '', nil);
 end;
 
 procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
@@ -11703,6 +11740,11 @@ begin
       buff.DiscardMemory;
       DisposeObject(buff);
     end;
+end;
+
+procedure TZNet_Server.Send_NULL(IO_ID: Cardinal);
+begin
+  Send_NULL(PeerIO[IO_ID]);
 end;
 
 procedure TZNet_Server.BroadcastDirectConsoleCmd(const Cmd, ConsoleData: SystemString);
@@ -12830,6 +12872,8 @@ begin
   p^.Cipher := ClientIO.FSendDataCipherSecurity;
   p^.ConsoleData := ConsoleData;
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL();
 end;
 
 procedure TZNet_Client.SendDirectConsoleCmd(const Cmd: SystemString);
@@ -12858,6 +12902,8 @@ begin
   p^.DoneAutoFree := DoneAutoFree;
   p^.StreamData := StreamData;
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL();
 end;
 
 procedure TZNet_Client.SendDirectStreamCmd(const Cmd: SystemString; StreamData: TDFE);
@@ -12885,6 +12931,8 @@ begin
   else
       TDFE.BuildEmptyStream(p^.StreamData);
   Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL();
 end;
 
 procedure TZNet_Client.SendDirectStreamCmd(const Cmd: SystemString);
@@ -13135,6 +13183,8 @@ begin
   Post_Queue_Data_To_Swap_Queue(p);
   if not QuietMode then
       ClientIO.PrintCommand('Send complete buffer cmd: %s', Cmd);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL();
 end;
 
 procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
@@ -13155,6 +13205,11 @@ begin
       buff.DiscardMemory;
       DisposeObject(buff);
     end;
+end;
+
+procedure TZNet_Client.Send_NULL;
+begin
+  SendConsoleCmdM(C_NULL, '', nil);
 end;
 
 function TZNet_Client.RemoteID: Cardinal;
