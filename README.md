@@ -72,6 +72,8 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 - 当使用SendDirectConsole,SendDirectStream,SendCompleteBuffer,数据流会一直向目标IO发送,这是无反馈的发送机制.网络不畅时会导致了大量数据堆积在发送缓冲区,AutomaticWaitRemoteReponse开关用于控制对CompleteBuffer这类发送机制的远程响应,最终会形成如下模型
 - **AutomaticWaitRemoteReponse** 被打开后,CompleteBuffer来不及送出的数据会被磁盘缓存,然后按队列逐条发送出去,使用CompleteBuffer不会出现全部堆发送缓冲区
 - **AutomaticWaitRemoteReponse** 被打开后会失去万兆以太的支持能力, AutomaticWaitRemoteReponse 适用于有物理带宽限制的云服务器
+- 将CrossSocket通讯接口中的send机制调整成多线程模型,过去在发送队列中的续发为sync到主现成干,调整后,变为直接在线程中续发
+- 小幅加固CrossSocket处理断开io后的事件
 
 **2023-4-26 小更新**
 
