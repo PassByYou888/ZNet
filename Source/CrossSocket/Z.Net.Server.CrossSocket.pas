@@ -118,14 +118,11 @@ begin
     end;
 
   if LastSendingBuff <> nil then
-    begin
-      DisposeObject(LastSendingBuff);
-      LastSendingBuff := nil;
-    end;
+      DisposeObjectAndNil(LastSendingBuff);
 
-  DisposeObjectAndnil(CurrentBuff);
-  DisposeObjectAndnil(Internal_Send_Queue);
-  DisposeObjectAndnil(FSendCritical);
+  DisposeObjectAndNil(CurrentBuff);
+  DisposeObjectAndNil(Internal_Send_Queue);
+  DisposeObjectAndNil(FSendCritical);
 
   inherited Destroy;
 end;
@@ -158,69 +155,82 @@ begin
 end;
 
 procedure TCrossSocketServer_PeerIO.SendBuffResult(Success_: Boolean);
+var
+  c: TCrossConnection;
+  Num: Integer;
 begin
-  TCompute.SyncP(procedure
-    var
-      Num: Integer;
-    begin
-      if LastSendingBuff <> nil then
-        begin
-          if FSendCritical <> nil then
-              FSendCritical.Lock;
-          DisposeObjectAndnil(LastSendingBuff);
-          if FSendCritical <> nil then
-              FSendCritical.UnLock;
-        end;
-
-      if (not Success_) then
-        begin
-          Sending := False;
-          DelayFree();
-          exit;
-        end;
-
-      if Connected then
-        begin
-          try
-            UpdateLastCommunicationTime;
+  try
+    if LastSendingBuff <> nil then
+      begin
+        if FSendCritical <> nil then
             FSendCritical.Lock;
-            Num := Internal_Send_Queue.Num;
+        DisposeObjectAndNil(LastSendingBuff);
+        if FSendCritical <> nil then
             FSendCritical.UnLock;
+      end;
 
-            if Num > 0 then
-              begin
-                FSendCritical.Lock;
-                // 将发送队列拾取出来
-                LastSendingBuff := Internal_Send_Queue.First^.Data;
-                // 删除队列，下次回调时后置式释放
-                Internal_Send_Queue.Next;
-
-                if Context <> nil then
-                  begin
-                    Context.SendBuf(LastSendingBuff.Memory, LastSendingBuff.Size, OnSendBackcall);
-                    FSendCritical.UnLock;
-                  end
-                else
-                  begin
-                    FSendCritical.UnLock;
-                    SendBuffResult(False);
-                  end;
-              end
-            else
-              begin
-                FSendCritical.Lock;
-                Sending := False;
-                FSendCritical.UnLock;
-              end;
-          except
-              DelayClose();
+    if (not Success_) then
+      begin
+        Sending := False;
+        if IOInterface <> nil then
+          begin
+            c := Context;
+            Context.UserObject := nil;
+            IOInterface := nil;
           end;
-        end
-      else
-        begin
-          Sending := False;
+        DelayFree();
+        exit;
+      end;
+
+    if Connected then
+      begin
+        try
+          UpdateLastCommunicationTime;
+          FSendCritical.Lock;
+          Num := Internal_Send_Queue.Num;
+          FSendCritical.UnLock;
+
+          if Num > 0 then
+            begin
+              FSendCritical.Lock;
+              // 将发送队列拾取出来
+              LastSendingBuff := Internal_Send_Queue.First^.Data;
+              // 删除队列，下次回调时后置式释放
+              Internal_Send_Queue.Next;
+
+              if Context <> nil then
+                begin
+                  Context.SendBuf(LastSendingBuff.Memory, LastSendingBuff.Size, OnSendBackcall);
+                  FSendCritical.UnLock;
+                end
+              else
+                begin
+                  FSendCritical.UnLock;
+                  SendBuffResult(False);
+                end;
+            end
+          else
+            begin
+              FSendCritical.Lock;
+              Sending := False;
+              FSendCritical.UnLock;
+            end;
+        except
+          if IOInterface <> nil then
+            begin
+              c := Context;
+              Context.UserObject := nil;
+              IOInterface := nil;
+            end;
+          DelayClose();
         end;
-    end);
+      end
+    else
+      begin
+        Sending := False;
+      end;
+  except
+  end;
 end;
 
 procedure TCrossSocketServer_PeerIO.Write_IO_Buffer(const buff: PByte; const Size: NativeInt);
@@ -257,7 +267,7 @@ begin
   else
     begin
       if Internal_Send_Queue.Num = 0 then
-          DisposeObjectAndnil(LastSendingBuff);
+          DisposeObjectAndNil(LastSendingBuff);
 
       Internal_Send_Queue.Push(CurrentBuff);
       CurrentBuff := TMem64.Create;
