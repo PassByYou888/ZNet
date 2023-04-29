@@ -532,7 +532,7 @@ end;
 
 class function TZDB2_BlockStoreData.ComputeSize(BlockNum_: Integer): Int64;
 begin
-  Result := SizeOf(TBlockStoreHeader__) + (SizeOf(TZDB2_BlockStore) * BlockNum_) + SizeOf(TBlockStoreTail__);
+  Result := Int64(SizeOf(TBlockStoreHeader__)) + (Int64(SizeOf(TZDB2_BlockStore)) * Int64(BlockNum_)) + Int64(SizeOf(TBlockStoreTail__));
 end;
 
 function TZDB2_BlockStoreDataStruct.BlockSum: Integer;
@@ -1562,13 +1562,13 @@ begin
   // prepare block
   FBlockStoreDataStruct.Clean;
   BlockSize := umlMax(BlockSize_, C_ZDB2_MinBlockSize);
-  headSiz := C_ZDB2_HeaderSize + TZDB2_BlockStoreData.ComputeSize(PhySpaceSize div BlockSize);
+  headSiz := Int64(C_ZDB2_HeaderSize) + TZDB2_BlockStoreData.ComputeSize(PhySpaceSize div BlockSize);
   SetLength(FBlockBuffer, (PhySpaceSize - headSiz) div BlockSize);
   PrepareCacheBlock();
   // fast init space
-  if not umlFileSetSize(FSpace_IOHnd^, headSiz + (BlockSize * FBlockCount)) then // fast alloc space
+  if not umlFileSetSize(FSpace_IOHnd^, headSiz + (Int64(BlockSize) * Int64(FBlockCount))) then // fast alloc space
     begin
-      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSetSize %d error.', [headSiz + (BlockSize * FBlockCount)]));
+      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSetSize %d error.', [headSiz + (Int64(BlockSize) * Int64(FBlockCount))]));
       exit;
     end;
   if not umlFileSeek(FSpace_IOHnd^, 0) then // reseek
@@ -1637,19 +1637,19 @@ begin
     end;
   // prepare block
   BlockSize := umlMax(DestBlockSize_, C_ZDB2_MinBlockSize);
-  BlockNum_ := NewSpaceSize_ div DestBlockSize_;
+  BlockNum_ := NewSpaceSize_ div Int64(DestBlockSize_);
   SetLength(tmp, BlockNum_);
   headPos := umlFileGetSize(FSpace_IOHnd^);
   headSiz := TZDB2_BlockStoreData.ComputeSize(Length(tmp));
   // fast append space
-  if not umlFileSetSize(FSpace_IOHnd^, headPos + headSiz + (BlockSize * BlockNum_)) then // fast alloc space
+  if not umlFileSetSize(FSpace_IOHnd^, headPos + headSiz + (Int64(BlockSize) * Int64(BlockNum_))) then // fast alloc space
     begin
-      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSetSize %d error.', [headPos + headSiz + (BlockSize * BlockNum_)]));
+      ErrorInfo(PFormat('Fast_AppendSpace: umlFileSetSize %d error.', [headPos + headSiz + (Int64(BlockSize) * Int64(BlockNum_))]));
       exit;
     end;
   if not umlFileSeek(FSpace_IOHnd^, headPos) then // reseek
     begin
-      ErrorInfo(PFormat('Fast_BuildSpace: umlFileSeek %d error.', [headPos]));
+      ErrorInfo(PFormat('Fast_AppendSpace: umlFileSeek %d error.', [headPos]));
       exit;
     end;
   // fill free space
