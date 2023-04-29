@@ -285,6 +285,8 @@ function EStrToInt(s: U_String; default: Integer): Integer; overload;
 function EStrToInt(s: U_String): Integer; overload;
 function EStrToInt64(s: U_String; default: Int64): Int64; overload;
 function EStrToInt64(s: U_String): Int64; overload;
+function EStrToUInt64(s: U_String; default: UInt64): UInt64; overload;
+function EStrToUInt64(s: U_String): UInt64; overload;
 function EStrToFloat(s: U_String; default: Double): Double; overload;
 function EStrToFloat(s: U_String): Double; overload;
 function EStrToSingle(s: U_String; default: Single): Single; overload;
@@ -3238,6 +3240,26 @@ end;
 function EStrToInt64(s: U_String): Int64;
 begin
   Result := EStrToInt64(s, 0);
+end;
+
+function EStrToUInt64(s: U_String; default: UInt64): UInt64;
+var
+  v: Variant;
+begin
+  try
+    v := EvaluateExpressionValue(s);
+    if VarIsNumeric(v) then
+        Result := v
+    else
+        Result := default;
+  except
+      Result := default;
+  end;
+end;
+
+function EStrToUInt64(s: U_String): UInt64;
+begin
+  Result := EStrToUInt64(s, 0);
 end;
 
 function EStrToFloat(s: U_String; default: Double): Double;
