@@ -3092,7 +3092,7 @@ end;
 function IsSystemCMD(const Cmd: U_String): Boolean;
 begin
   Result := Cmd.Same(C_CipherModel, C_BuildP2PAuthToken, C_InitP2PTunnel, C_CloseP2PTunnel, C_Wait) or
-    Cmd.Same(C_BuildStableIO, C_OpenStableIO, C_CloseStableIO);
+    Cmd.Same(C_NULL, C_BuildStableIO, C_OpenStableIO, C_CloseStableIO);
 end;
 
 function StrToIPv4(const S: U_String; var Success: Boolean): TIPV4;
@@ -9643,6 +9643,7 @@ begin
 
   FPrintParams := TPrint_Param_Hash_Pool.Create(100, False);
   FPrintParams.Add(C_CipherModel, False, False);
+  FPrintParams.Add(C_Wait, False, False);
   FPrintParams.Add(C_NULL, False, False);
 
   SwitchDefaultPerformance;
