@@ -6448,6 +6448,7 @@ begin
   opRT.RegOpM('RegInfo', 'C4 registed info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
