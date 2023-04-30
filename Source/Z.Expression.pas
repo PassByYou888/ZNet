@@ -2864,8 +2864,6 @@ end;
 
 function OpCache: TOpCode_Pool;
 begin
-  if OpCache___ = nil then
-      OpCache___ := TOpCode_Pool.Create(True, 1024 * 1024);
   Result := OpCache___;
 end;
 
@@ -3382,7 +3380,7 @@ end;
 
 initialization
 
-OpCache___ := nil;
+OpCache___ := TOpCode_Pool.Create(True, 1024 * 1024);
 
 finalization
 
