@@ -1545,7 +1545,9 @@ end;
 procedure TOpCode_Pool.DoFree(var Key: SystemString; var Value: TOpCode);
 begin
   if AutoFree_OpCode then
-      DisposeObjectAndNil(Value);
+      DisposeObjectAndNil(Value)
+  else
+      Value := nil;
   inherited DoFree(Key, Value);
 end;
 
