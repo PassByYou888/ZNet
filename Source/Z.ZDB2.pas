@@ -228,10 +228,12 @@ type
     // warning
     property Last_Warning_Info: TZDB2_Core_Space_Warning_Info read FLast_Warning_Info;
     procedure WarningInfo(const Text_: SystemString);
-    // space
+    // flush and save
     procedure Save();
+    // open
     function Open(): Boolean;
     property Fault_Shutdown: Boolean read FFault_Shutdown;
+    // scan space state and probe seek
     procedure ScanSpace;
     // fast build space, Do not perform 0 to fill on data blocks, use physics-natural data
     function Fast_BuildSpace(PhySpaceSize: Int64; BlockSize_: WORD): Boolean;
@@ -1705,8 +1707,8 @@ begin
   // prepare block
   FBlockStoreDataStruct.Clean;
   BlockSize := umlMax(BlockSize_, C_ZDB2_MinBlockSize);
-  headSiz := C_ZDB2_HeaderSize + TZDB2_BlockStoreData.ComputeSize(PhySpaceSize div BlockSize);
-  SetLength(FBlockBuffer, (PhySpaceSize - headSiz) div BlockSize);
+  headSiz := Int64(C_ZDB2_HeaderSize) + TZDB2_BlockStoreData.ComputeSize(PhySpaceSize div Int64(BlockSize));
+  SetLength(FBlockBuffer, (PhySpaceSize - headSiz) div Int64(BlockSize));
   PrepareCacheBlock();
   // prealloc header space
   m64 := TZDB2_Mem.Create;
@@ -1785,7 +1787,7 @@ begin
     end;
   // prepare block
   BlockSize := umlMax(DestBlockSize_, C_ZDB2_MinBlockSize);
-  BlockNum_ := NewSpaceSize_ div DestBlockSize_;
+  BlockNum_ := NewSpaceSize_ div Int64(DestBlockSize_);
   SetLength(tmp, BlockNum_);
   headPos := umlFileGetSize(FSpace_IOHnd^);
   headSiz := TZDB2_BlockStoreData.ComputeSize(Length(tmp));
@@ -1854,7 +1856,7 @@ begin
   Result := False;
   dest_StoreData := nil;
   FlushCache;
-  headSize := C_ZDB2_HeaderSize + TZDB2_BlockStoreData.ComputeSize(FBlockCount);
+  headSize := Int64(C_ZDB2_HeaderSize) + TZDB2_BlockStoreData.ComputeSize(FBlockCount);
   headPos_ := C_ZDB2_HeaderSize;
 
   m64 := TZDB2_Mem.Create;
