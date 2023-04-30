@@ -2387,6 +2387,27 @@ type
   TZNet_StableClient = class(TZNet_CustomStableClient)
   end;
 {$ENDREGION 'StableIO'}
+{$REGION 'HPC Support Base'}
+
+
+type
+  THPC_Base = class;
+  THPC_Instance_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<THPC_Base>;
+
+  THPC_Instance_Pool = class(THPC_Instance_Pool_Decl)
+  public
+    procedure DoFree(var data: THPC_Base); override;
+  end;
+
+  THPC_Base = class
+  public
+    Instance_Ptr: THPC_Instance_Pool_Decl.PQueueStruct;
+    constructor Create;
+    procedure Do_Free_Instance_Ptr; virtual;
+    destructor Destroy; override;
+  end;
+
+{$ENDREGION 'HPC Support Base'}
 {$REGION 'HPC Stream Support'}
 
 
@@ -2405,7 +2426,7 @@ type
   TOnHPC_Stream_Done_P = reference to procedure(ThSender: THPC_Stream; IO: TPeerIO; ThInData, ThOutData: TDFE);
 {$ENDIF FPC}
 
-  THPC_Stream = class
+  THPC_Stream = class(THPC_Base)
   protected
     On_C: TOnHPC_Stream_C;
     On_M: TOnHPC_Stream_M;
@@ -2415,6 +2436,8 @@ type
   public
     Thread: TCompute;
     Framework: TZNet;
+    Cmd: SystemString;
+    TriggerTime: TTimeTick;
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
@@ -2455,7 +2478,7 @@ type
   TOnHPC_DirectStream_P = reference to procedure(ThSender: THPC_DirectStream; ThInData: TDFE);
 {$ENDIF FPC}
 
-  THPC_DirectStream = class
+  THPC_DirectStream = class(THPC_Base)
   protected
     On_C: TOnHPC_DirectStream_C;
     On_M: TOnHPC_DirectStream_M;
@@ -2464,6 +2487,8 @@ type
   public
     Thread: TCompute;
     Framework: TZNet;
+    Cmd: SystemString;
+    TriggerTime: TTimeTick;
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
@@ -2505,7 +2530,7 @@ type
   TOnHPC_Console_Done_P = reference to procedure(ThSender: THPC_Console; IO: TPeerIO; ThInData: SystemString; var ThOutData: SystemString);
 {$ENDIF FPC}
 
-  THPC_Console = class
+  THPC_Console = class(THPC_Base)
   protected
     On_C: TOnHPC_Console_C;
     On_M: TOnHPC_Console_M;
@@ -2515,6 +2540,8 @@ type
   public
     Thread: TCompute;
     Framework: TZNet;
+    Cmd: SystemString;
+    TriggerTime: TTimeTick;
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
@@ -2555,7 +2582,7 @@ type
   TOnHPC_DirectConsole_P = reference to procedure(ThSender: THPC_DirectConsole; ThInData: SystemString);
 {$ENDIF FPC}
 
-  THPC_DirectConsole = class
+  THPC_DirectConsole = class(THPC_Base)
   protected
     On_C: TOnHPC_DirectConsole_C;
     On_M: TOnHPC_DirectConsole_M;
@@ -2564,6 +2591,8 @@ type
   public
     Thread: TCompute;
     Framework: TZNet;
+    Cmd: SystemString;
+    TriggerTime: TTimeTick;
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
@@ -2591,6 +2620,9 @@ procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
 
 
 var
+  { HPC thread computing instance pool }
+  HPC_Instance_Pool: THPC_Instance_Pool;
+
   { sequence packet model }
   ZNet_Def_Sequence_Packet_HeadSize: Byte = $16;
   ZNet_Def_Sequence_QuietPacket: Byte = $01;
@@ -3572,6 +3604,45 @@ begin
   IO.FReceiveResultRuning := False;
 end;
 
+procedure THPC_Instance_Pool.DoFree(var data: THPC_Base);
+begin
+  if data <> nil then
+    begin
+      if data.Instance_Ptr <> nil then
+          data.Instance_Ptr^.data := nil;
+      data.Instance_Ptr := nil;
+    end;
+end;
+
+constructor THPC_Base.Create;
+begin
+  inherited Create;
+  if HPC_Instance_Pool <> nil then
+      Instance_Ptr := HPC_Instance_Pool.Add(self)
+  else
+      Instance_Ptr := nil;
+end;
+
+procedure THPC_Base.Do_Free_Instance_Ptr;
+var
+  p: THPC_Instance_Pool_Decl.PQueueStruct;
+begin
+  if Instance_Ptr <> nil then
+    begin
+      Instance_Ptr^.data := nil;
+      p := Instance_Ptr;
+      Instance_Ptr := nil;
+      if HPC_Instance_Pool <> nil then
+          HPC_Instance_Pool.Remove_P(p);
+    end;
+end;
+
+destructor THPC_Base.Destroy;
+begin
+  Do_Free_Instance_Ptr();
+  inherited Destroy;
+end;
+
 procedure THPC_Stream.Run(Sender: TCompute);
 begin
   Thread := Sender;
@@ -3625,6 +3696,8 @@ begin
   On_M := nil;
   On_P := nil;
   Framework := nil;
+  Cmd := '';
+  TriggerTime := GetTimeTick();
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
@@ -3637,6 +3710,7 @@ end;
 
 destructor THPC_Stream.Destroy;
 begin
+  Do_Free_Instance_Ptr();
   DisposeObject(InData);
   DisposeObject(OutData);
   inherited Destroy;
@@ -3666,6 +3740,7 @@ begin
   t.On_C := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3693,6 +3768,7 @@ begin
   t.On_M := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3720,6 +3796,7 @@ begin
   t.On_P := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3748,6 +3825,7 @@ begin
   except
   end;
   AtomDec(Framework.FCMD_Thread_Runing_Num);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor THPC_DirectStream.Create;
@@ -3758,6 +3836,8 @@ begin
   On_M := nil;
   On_P := nil;
   Framework := nil;
+  Cmd := '';
+  TriggerTime := GetTimeTick();
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
@@ -3766,6 +3846,7 @@ end;
 
 destructor THPC_DirectStream.Destroy;
 begin
+  Do_Free_Instance_Ptr();
   DisposeObject(InData);
   inherited Destroy;
 end;
@@ -3793,6 +3874,7 @@ begin
   t.On_C := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3816,6 +3898,7 @@ begin
   t.On_M := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3839,6 +3922,7 @@ begin
   t.On_P := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3905,6 +3989,8 @@ begin
   On_M := nil;
   On_P := nil;
   Framework := nil;
+  Cmd := '';
+  TriggerTime := GetTimeTick();
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
@@ -3917,6 +4003,7 @@ end;
 
 destructor THPC_Console.Destroy;
 begin
+  Do_Free_Instance_Ptr();
   inherited Destroy;
 end;
 
@@ -3944,6 +4031,7 @@ begin
   t.On_C := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3967,6 +4055,7 @@ begin
   t.On_M := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -3990,6 +4079,7 @@ begin
   t.On_P := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -4014,6 +4104,7 @@ begin
   except
   end;
   AtomDec(Framework.FCMD_Thread_Runing_Num);
+  DelayFreeObj(1.0, self);
 end;
 
 constructor THPC_DirectConsole.Create;
@@ -4024,6 +4115,8 @@ begin
   On_M := nil;
   On_P := nil;
   Framework := nil;
+  Cmd := '';
+  TriggerTime := GetTimeTick();
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
@@ -4032,6 +4125,7 @@ end;
 
 destructor THPC_DirectConsole.Destroy;
 begin
+  Do_Free_Instance_Ptr();
   inherited Destroy;
 end;
 
@@ -4058,6 +4152,7 @@ begin
   t.On_C := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -4079,6 +4174,7 @@ begin
   t.On_M := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -4100,6 +4196,7 @@ begin
   t.On_P := OnRun;
 
   t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
@@ -16537,11 +16634,13 @@ initialization
 
 ProgressBackgroundProc := nil;
 ProgressBackgroundMethod := nil;
+HPC_Instance_Pool := THPC_Instance_Pool.Create;
 Init_ZNet_Instance_Pool();
 Init_SwapSpace_Tech();
 
 finalization
 
+DisposeObjectAndNil(HPC_Instance_Pool);
 Free_SwapSpace_Tech();
 Free_ZNet_Instance_Pool();
 
