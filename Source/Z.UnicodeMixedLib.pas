@@ -62,6 +62,7 @@ type
   U_StringArray = array of U_SystemString;
   U_ArrayString = U_StringArray;
   U_Bytes = TBytes;
+
   TSR = TSearchRec;
   U_Stream = TCore_Stream;
 
