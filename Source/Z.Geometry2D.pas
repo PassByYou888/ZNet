@@ -965,6 +965,7 @@ type
     property DeflectionPolygon[index: TGeoInt]: PDeflectionPolygonVec read GetDeflectionPolygon;
     property MaxRadius: TGeoFloat read FMaxRadius;
     property ExpandMode: TExpandMode read FExpandMode write FExpandMode;
+    // user define
     property Name: TPascalString read FName write FName;
     property Classifier: TPascalString read FClassifier write FClassifier;
 
