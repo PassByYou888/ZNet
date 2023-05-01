@@ -7,7 +7,7 @@ unit Z.ZDB.ObjectData_LIB;
 
 interface
 
-uses Z.Core, Z.UnicodeMixedLib;
+uses Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
 
 const
   DB_Version_Size = C_Word_Size;
@@ -565,8 +565,6 @@ var
   ZDB_Field_Separator__: U_String;
 
 implementation
-
-uses Z.PascalStrings, Z.UPascalStrings;
 
 function Get_DB_StringL(var IOHnd: TIOHnd): Integer;
 begin
