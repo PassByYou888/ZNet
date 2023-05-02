@@ -12,19 +12,14 @@ uses
   Z.FPC.GenericList,
 {$ENDIF FPC}
   Z.Core,
-  Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine;
+  Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.ListEngine, Z.Geometry2D;
 
 function IsEqual__(const Val1, Val2, Epsilon_: Single): Boolean; overload;
 function IsEqual__(const Val1, Val2, Epsilon_: Double): Boolean; overload;
 
 type
-{$IFDEF FPC}
-  TPascalString_Hash_Pool__ = specialize TBig_Hash_Pair_Pool<TPascalString, TPascalString>;
-
+  TPascalString_Hash_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TPascalString, TPascalString>;
   TPascalString_Hash_Pool = class(TPascalString_Hash_Pool__)
-{$ELSE FPC}
-  TPascalString_Hash_Pool = class(TBig_Hash_Pair_Pool<TPascalString, TPascalString>)
-{$ENDIF FPC}
   public
     function Get_Key_Hash(const Key_: TPascalString): THash; override;
     function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
@@ -35,7 +30,6 @@ type
 {$IFDEF FPC}
   generic TString_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<SystemString, T_>)
 {$ELSE FPC}
-
   TString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<SystemString, T_>)
 {$ENDIF FPC}
   public
@@ -47,7 +41,6 @@ type
 {$IFDEF FPC}
   generic TPascalString_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TPascalString, T_>)
 {$ELSE FPC}
-
   TPascalString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TPascalString, T_>)
 {$ENDIF FPC}
   public
@@ -59,7 +52,6 @@ type
 {$IFDEF FPC}
   generic TSingle_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Single, T_>)
 {$ELSE FPC}
-
   TSingle_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Single, T_>)
 {$ENDIF FPC}
   public
@@ -72,7 +64,6 @@ type
 {$IFDEF FPC}
   generic TDouble_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Double, T_>)
 {$ELSE FPC}
-
   TDouble_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Double, T_>)
 {$ENDIF FPC}
   public
@@ -85,7 +76,6 @@ type
 {$IFDEF FPC}
   generic TPointer_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Pointer, T_>)
 {$ELSE FPC}
-
   TPointer_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Pointer, T_>)
 {$ENDIF FPC}
   end;
@@ -93,7 +83,6 @@ type
 {$IFDEF FPC}
   generic TInt32_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Integer, T_>)
 {$ELSE FPC}
-
   TInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<integer, T_>)
 {$ENDIF FPC}
   end;
@@ -101,7 +90,6 @@ type
 {$IFDEF FPC}
   generic TInt64_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Int64, T_>)
 {$ELSE FPC}
-
   TInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Int64, T_>)
 {$ENDIF FPC}
   end;
@@ -109,7 +97,6 @@ type
 {$IFDEF FPC}
   generic TUInt32_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<Cardinal, T_>)
 {$ELSE FPC}
-
   TUInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Cardinal, T_>)
 {$ENDIF FPC}
   end;
@@ -117,7 +104,6 @@ type
 {$IFDEF FPC}
   generic TUInt64_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<UInt64, T_>)
 {$ELSE FPC}
-
   TUInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<UInt64, T_>)
 {$ENDIF FPC}
   end;
@@ -125,17 +111,12 @@ type
 {$IFDEF FPC}
   generic TMD5_Big_Hash_Pair_Pool<T_> = class(specialize TBig_Hash_Pair_Pool<TMD5, T_>)
 {$ELSE FPC}
-
   TMD5_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TMD5, T_>)
 {$ENDIF FPC}
   end;
 
-  // **********************************************************************************************************
-
 {$IFDEF FPC}
-
   TCritical_PascalString_Hash_Pool__ = specialize TCritical_Big_Hash_Pair_Pool<TPascalString, TPascalString>;
-
   TCritical_PascalString_Hash_Pool = class(TCritical_PascalString_Hash_Pool__)
 {$ELSE FPC}
   TCritical_PascalString_Hash_Pool = class(TCritical_Big_Hash_Pair_Pool<TPascalString, TPascalString>)
@@ -150,7 +131,6 @@ type
 {$IFDEF FPC}
   generic TCritical_String_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ELSE FPC}
-
   TCritical_String_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<SystemString, T_>)
 {$ENDIF FPC}
   public
@@ -162,7 +142,6 @@ type
 {$IFDEF FPC}
   generic TCritical_PascalString_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
 {$ELSE FPC}
-
   TCritical_PascalString_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TPascalString, T_>)
 {$ENDIF FPC}
   public
@@ -174,7 +153,6 @@ type
 {$IFDEF FPC}
   generic TCritical_Single_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Single, T_>)
 {$ELSE FPC}
-
   TCritical_Single_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Single, T_>)
 {$ENDIF FPC}
   public
@@ -187,7 +165,6 @@ type
 {$IFDEF FPC}
   generic TCritical_Double_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Double, T_>)
 {$ELSE FPC}
-
   TCritical_Double_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Double, T_>)
 {$ENDIF FPC}
   public
@@ -200,7 +177,6 @@ type
 {$IFDEF FPC}
   generic TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
 {$ELSE FPC}
-
   TCritical_MD5_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<TMD5, T_>)
 {$ENDIF FPC}
   end;
@@ -208,7 +184,6 @@ type
 {$IFDEF FPC}
   generic TCritical_Pointer_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
 {$ELSE FPC}
-
   TCritical_Pointer_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
 {$ENDIF FPC}
   end;
@@ -216,7 +191,6 @@ type
 {$IFDEF FPC}
   generic TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Integer, T_>)
 {$ELSE FPC}
-
   TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<integer, T_>)
 {$ENDIF FPC}
   end;
@@ -224,7 +198,6 @@ type
 {$IFDEF FPC}
   generic TCritical_Int64_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Int64, T_>)
 {$ELSE FPC}
-
   TCritical_Int64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Int64, T_>)
 {$ENDIF FPC}
   end;
@@ -232,7 +205,6 @@ type
 {$IFDEF FPC}
   generic TCritical_UInt32_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
 {$ELSE FPC}
-
   TCritical_UInt32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Cardinal, T_>)
 {$ENDIF FPC}
   end;
@@ -240,36 +212,23 @@ type
 {$IFDEF FPC}
   generic TCritical_UInt64_Big_Hash_Pair_Pool<T_> = class(specialize TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
 {$ELSE FPC}
-
   TCritical_UInt64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
 {$ENDIF FPC}
   end;
 
-
-  // **********************************************************************************************************
-
   TString_Num_Analysis_Tool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<integer>;
-
   TString_Num_Analysis_Tool = class(TString_Num_Analysis_Tool_Decl)
-  private
-    function Do_Sort_Value(var L, R: TString_Num_Analysis_Tool_Decl.PPair_Pool_Value__): integer;
   public
     procedure IncValue(Key_: SystemString; Value_: integer); overload;
     procedure IncValue(source: TString_Num_Analysis_Tool); overload;
     function Get_Max_Key_And_Value(var k: SystemString; var v: integer): Boolean;
     function Get_Max_Key(): SystemString;
     function Get_Min_Key(): SystemString;
-    function Get_Sort_Key_List(): U_String;
   end;
-
-  // **********************************************************************************************************
-  // Compatibility Support: "TGeneric_String_Object_Hash" is stop Updates
-  // **********************************************************************************************************
 
 {$IFDEF FPC}
   generic TGeneric_String_Object_Hash<T_: TCore_Object> = class(TCore_Object)
 {$ELSE FPC}
-
   TGeneric_String_Object_Hash<T_: class> = class(TCore_Object)
 {$ENDIF FPC}
   public type
@@ -361,7 +320,7 @@ procedure Test_Single_Big_Hash_Pair_Pool();
 
 implementation
 
-uses Z.Geometry2D, SysUtils;
+uses SysUtils;
 
 function IsEqual__(const Val1, Val2, Epsilon_: Single): Boolean;
 var
@@ -567,11 +526,6 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-function TString_Num_Analysis_Tool.Do_Sort_Value(var L, R: TString_Num_Analysis_Tool_Decl.PPair_Pool_Value__): integer;
-begin
-  Result := CompareInteger(L^.Data.Second, R^.Data.Second);
-end;
-
 procedure TString_Num_Analysis_Tool.IncValue(Key_: SystemString; Value_: integer);
 var
   p: TString_Num_Analysis_Tool_Decl.PValue;
@@ -653,22 +607,6 @@ begin
               tmp := queue^.Data^.Data.Second;
             end;
         until not Next;
-    end;
-end;
-
-function TString_Num_Analysis_Tool.Get_Sort_Key_List(): U_String;
-begin
-  Result := '';
-  if num > 0 then
-    begin
-      Queue_Pool.Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort_Value);
-      Extract_Queue_Pool_Third();
-      with Queue_Pool.Invert_Repeat_ do
-        repeat
-          if Result.L > 0 then
-              Result.Append(#13#10);
-          Result.Append('%s:%d', [queue^.Data^.Data.Primary, queue^.Data^.Data.Second]);
-        until not Prev;
     end;
 end;
 
