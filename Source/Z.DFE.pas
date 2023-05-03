@@ -513,7 +513,8 @@ type
     function WriteArrayDouble: TDFArrayDouble;
     function WriteArrayInt64: TDFArrayInt64;
     procedure WriteMem64(v: TMem64);
-    procedure WriteStream(v: TCore_Stream);
+    procedure WriteStream(v: TCore_Stream); overload;
+    procedure WriteStream(v: TMS64; bPos_, Size_: Int64); overload;
     procedure WriteVariant(v: Variant);
     procedure WriteInt64(v: Int64);
     procedure WriteUInt64(v: UInt64);
@@ -695,7 +696,8 @@ type
     procedure WriteArraySingle(v: array of Single);
     procedure WriteArrayDouble(v: array of Double);
     procedure WriteArrayInt64(v: array of Int64);
-    procedure WriteStream(v: TCore_Stream);
+    procedure WriteStream(v: TCore_Stream); overload;
+    procedure WriteStream(v: TMS64; bPos_, Size_: Int64); overload;
     procedure WriteVariant(v: Variant);
     procedure WriteInt64(v: Int64);
     procedure WriteUInt64(v: UInt64);
@@ -2311,16 +2313,9 @@ end;
 procedure TDFE.Clear;
 var
   i: Integer;
-  Obj: TDFBase;
 begin
   for i := 0 to FDataList.Count - 1 do
-    begin
-      Obj := TDFBase(FDataList[i]);
-      try
-          DisposeObject(Obj);
-      except
-      end;
-    end;
+      DisposeObject(FDataList[i]);
 
   try
       FDataList.Clear;
@@ -2632,6 +2627,16 @@ var
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   Obj_.Buffer := v;
+  FDataList.Add_DFBase(Obj_);
+end;
+
+procedure TDFE.WriteStream(v: TMS64; bPos_, Size_: Int64);
+var
+  Obj_: TDFStream;
+begin
+  Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
+  Obj_.Buffer64.Clear;
+  Obj_.Buffer64.WritePtr(v.PosAsPtr(bPos_), Size_);
   FDataList.Add_DFBase(Obj_);
 end;
 
@@ -5161,6 +5166,11 @@ end;
 procedure TDataWriter.WriteStream(v: TCore_Stream);
 begin
   FEngine.WriteStream(v);
+end;
+
+procedure TDataWriter.WriteStream(v: TMS64; bPos_, Size_: Int64);
+begin
+  FEngine.WriteStream(v, bPos_, Size_);
 end;
 
 procedure TDataWriter.WriteVariant(v: Variant);
