@@ -478,7 +478,7 @@ var
   cState: Boolean;
   remote_id, local_id: Cardinal;
   phy_io, s_io: TPeerIO;
-  xUserSpec: TXServerUserSpecial;
+  XUserSpec: TXServerUserSpecial;
   nSiz: NativeInt;
   nBuff: PByte;
 begin
@@ -492,19 +492,19 @@ begin
 
   if cState then
     begin
-      xUserSpec := TXServerUserSpecial(phy_io.UserSpecial);
-      xUserSpec.RemoteProtocol_ID := remote_id;
-      xUserSpec.RemoteProtocol_Inited := True;
+      XUserSpec := TXServerUserSpecial(phy_io.UserSpecial);
+      XUserSpec.RemoteProtocol_ID := remote_id;
+      XUserSpec.RemoteProtocol_Inited := True;
 
-      if xUserSpec.RequestBuffer.Size > 0 then
+      if XUserSpec.RequestBuffer.Size > 0 then
         begin
-          s_io := SendTunnel.PeerIO[xUserSpec.s_id];
+          s_io := SendTunnel.PeerIO[XUserSpec.s_id];
           if s_io <> nil then
             begin
-              Build_XNAT_Buff(xUserSpec.RequestBuffer.Memory, xUserSpec.RequestBuffer.Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
+              Build_XNAT_Buff(XUserSpec.RequestBuffer.Memory, XUserSpec.RequestBuffer.Size, Sender.ID, XUserSpec.RemoteProtocol_ID, nSiz, nBuff);
               s_io.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
             end;
-          xUserSpec.RequestBuffer.Clear;
+          XUserSpec.RequestBuffer.Clear;
         end;
     end
   else
@@ -606,7 +606,7 @@ end;
 
 procedure TXServerCustomProtocol.OnReceiveBuffer(Sender: TPeerIO; const buffer: PByte; const Size: NativeInt; var FillDone: Boolean);
 var
-  xUserSpec: TXServerUserSpecial;
+  XUserSpec: TXServerUserSpecial;
   nSiz: NativeInt;
   nBuff: PByte;
   s_io: TPeerIO;
@@ -617,17 +617,17 @@ begin
       exit;
     end;
 
-  xUserSpec := TXServerUserSpecial(Sender.UserSpecial);
-  if not xUserSpec.RemoteProtocol_Inited then
+  XUserSpec := TXServerUserSpecial(Sender.UserSpecial);
+  if not XUserSpec.RemoteProtocol_Inited then
     begin
-      xUserSpec.RequestBuffer.WritePtr(buffer, Size);
+      XUserSpec.RequestBuffer.WritePtr(buffer, Size);
       exit;
     end;
 
-  s_io := ShareListen.SendTunnel.PeerIO[xUserSpec.s_id];
+  s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
   if s_io <> nil then
     begin
-      Build_XNAT_Buff(buffer, Size, Sender.ID, xUserSpec.RemoteProtocol_ID, nSiz, nBuff);
+      Build_XNAT_Buff(buffer, Size, Sender.ID, XUserSpec.RemoteProtocol_ID, nSiz, nBuff);
       s_io.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
     end
   else
@@ -637,7 +637,7 @@ end;
 procedure TXServerCustomProtocol.DoIOConnectBefore(Sender: TPeerIO);
 var
   de: TDFE;
-  xUserSpec: TXServerUserSpecial;
+  XUserSpec: TXServerUserSpecial;
   s_io: TPeerIO;
 begin
   if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
@@ -646,16 +646,16 @@ begin
       exit;
     end;
 
-  xUserSpec := TXServerUserSpecial(Sender.UserSpecial);
+  XUserSpec := TXServerUserSpecial(Sender.UserSpecial);
 
-  if xUserSpec.RemoteProtocol_Inited then
+  if XUserSpec.RemoteProtocol_Inited then
       exit;
 
-  ShareListen.PickWorkloadTunnel(xUserSpec.r_id, xUserSpec.s_id);
+  ShareListen.PickWorkloadTunnel(XUserSpec.r_id, XUserSpec.s_id);
 
-  if ShareListen.SendTunnel.Exists(xUserSpec.s_id) then
+  if ShareListen.SendTunnel.Exists(XUserSpec.s_id) then
     begin
-      s_io := ShareListen.SendTunnel.PeerIO[xUserSpec.s_id];
+      s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
       de := TDFE.Create;
       de.WriteCardinal(Sender.ID);
       de.WriteString(Sender.PeerIP);
@@ -669,7 +669,7 @@ end;
 procedure TXServerCustomProtocol.DoIODisconnect(Sender: TPeerIO);
 var
   de: TDFE;
-  xUserSpec: TXServerUserSpecial;
+  XUserSpec: TXServerUserSpecial;
   s_io: TPeerIO;
 begin
   if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
@@ -678,13 +678,13 @@ begin
       exit;
     end;
 
-  xUserSpec := TXServerUserSpecial(Sender.UserSpecial);
-  if not xUserSpec.RemoteProtocol_Inited then
+  XUserSpec := TXServerUserSpecial(Sender.UserSpecial);
+  if not XUserSpec.RemoteProtocol_Inited then
       exit;
 
-  if ShareListen.SendTunnel.Exists(xUserSpec.s_id) then
+  if ShareListen.SendTunnel.Exists(XUserSpec.s_id) then
     begin
-      s_io := ShareListen.SendTunnel.PeerIO[xUserSpec.s_id];
+      s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
       de := TDFE.Create;
       de.WriteCardinal(Sender.ID);
       de.WriteCardinal(TXServerUserSpecial(Sender.UserSpecial).RemoteProtocol_ID);
