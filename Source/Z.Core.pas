@@ -1171,6 +1171,10 @@ type
     class procedure RunP_NP(const OnRun: TRunWithThread_P_NP); overload;
     class procedure RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean); overload;
 
+    // free object in thread
+    class procedure PostFreeObjectInThread(const Obj: TObject);
+    class procedure PostFreeObjectInThreadAndNil(var Obj);
+
     // main thread progress
     class procedure ProgressPost();
 
@@ -1683,6 +1687,7 @@ begin
     {$IFDEF AUTOREFCOUNT}Obj.DisposeOf;{$ELSE AUTOREFCOUNT}Obj.Free;{$ENDIF AUTOREFCOUNT}
     Result := True;
   except
+    Result := False;
   end;
 end;
 
