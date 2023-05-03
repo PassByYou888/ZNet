@@ -994,6 +994,8 @@ function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): 
 function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String; overload;
 
 { misc }
+function Compare_C40_ServiceTyp(typ1, typ2: U_String): Boolean; overload;
+function Compare_C40_ServiceTyp(typ1, typ2, typ3: U_String): Boolean; overload;
 function ExtractDependInfo(info: TC40_DependNetworkInfoList): TC40_DependNetworkInfoArray; overload;
 function ExtractDependInfo(info: U_String): TC40_DependNetworkInfoArray; overload;
 function ExtractDependInfo(arry: TC40_DependNetworkString): TC40_DependNetworkInfoArray; overload;
@@ -1490,6 +1492,33 @@ begin
     end;
 end;
 
+function Compare_C40_ServiceTyp(typ1, typ2: U_String): Boolean;
+var
+  arry_1, arry_2: TC40_DependNetworkInfoArray;
+  i, j: Integer;
+begin
+  Result := False;
+  arry_1 := ExtractDependInfo(typ1);
+  arry_2 := ExtractDependInfo(typ2);
+  try
+    for i := 0 to length(arry_1) - 1 do
+      for j := 0 to length(arry_2) - 1 do
+        if arry_1[i].Typ.Same(@arry_2[j].Typ) then
+            exit(True);
+  finally
+    ResetDependInfoBuff(arry_1);
+    ResetDependInfoBuff(arry_2);
+  end;
+end;
+
+function Compare_C40_ServiceTyp(typ1, typ2, typ3: U_String): Boolean;
+begin
+  Result :=
+    Compare_C40_ServiceTyp(typ1, typ2) and
+    Compare_C40_ServiceTyp(typ1, typ3) and
+    Compare_C40_ServiceTyp(typ2, typ3);
+end;
+
 function ExtractDependInfo(info: TC40_DependNetworkInfoList): TC40_DependNetworkInfoArray;
 var
   i: Integer;
@@ -1588,8 +1617,8 @@ procedure TC40_PhysicsService.cmd_QueryInfo(Sender: TPeerIO; InData, OutData: TD
 var
   i: Integer;
   L: TC40_InfoList;
-  r_physics_addr: U_String; // remote request physics address
-  r_physics_port: Word; // remote request physcis port
+  r_physics_addr: U_String; { remote request physics address }
+  r_physics_port: Word; { remote request physcis port }
   dp_serv_s, dp_cli_s: U_String;
 begin
   if InData.Count >= 2 then
@@ -1628,13 +1657,20 @@ begin
         The system processing of c4 is to eliminate non current request server addresses
         This is a "anti dissymmetrical network" fixed patch
       }
+
+      { Remove Dispatch info }
       dp_serv_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Service);
       dp_cli_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Client);
       for i := L.Count - 1 downto 0 do
-        if L[i].SamePhysicsAddr(PhysicsAddr, PhysicsPort) and (not L[i].ServiceTyp.Same(dp_serv_s, dp_cli_s)) then
+        if Compare_C40_ServiceTyp(dp_serv_s, L[i].ServiceTyp) or Compare_C40_ServiceTyp(dp_cli_s, L[i].ServiceTyp) then
+            L.Delete(i);
+
+      { Redefine physics info }
+      for i := L.Count - 1 downto 0 do
+        if L[i].SamePhysicsAddr(PhysicsAddr, PhysicsPort) then
           begin
-            L[i].PhysicsAddr := r_physics_addr; // translate addr
-            L[i].PhysicsPort := r_physics_port; // translate port
+            L[i].PhysicsAddr := r_physics_addr; { translate addr }
+            L[i].PhysicsPort := r_physics_port; { translate port }
           end
         else
             L.Delete(i);
@@ -2146,7 +2182,7 @@ begin
   except
   end;
 
-  // remove children
+  { remove children }
   i := 0;
   while i < C40_ClientPool.Count do
     begin
