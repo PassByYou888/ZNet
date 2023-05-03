@@ -63,6 +63,9 @@ type
     FTh_Engine_Data_Ptr: TZDB2_Th_Engine_Data_BigList___.PQueueStruct; // engine data ptr
     FID: Integer; // FTh_Engine data ID
     FSize: Int64; // data size
+    // In a multithreaded instance, data will be busy-loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
+    // If added to the data, it will be false and true after completion
+    FOneWayDataProcessReady: Boolean; // instance and data is first operation
     FInstance_Busy: Integer; // instance user support
     FLocked: Boolean; // lock
     FSaveFailed_Do_Remove: Boolean; // free instance and remove data on save failure
@@ -86,6 +89,9 @@ type
     procedure Reset_Instance_As_Free();
     // state
     property Size: Int64 read FSize; // data size
+    // In a multithreaded instance, data will be loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
+    // If added to the data, it will be false and true after completion
+    property OneWayDataProcessReady: Boolean read FOneWayDataProcessReady; // instance and data is first operation
     property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove; // free instance and remove data on save failure, default is true
     function IsOnlyRead: Boolean;
     function Engine: TZDB2_Th_Queue;
@@ -372,14 +378,21 @@ type
     procedure Flush(WaitQueue_: Boolean); overload;
     // remove and rebuild datgabase
     procedure Format_Database;
-    // parallel load
+    // parallel load model
     procedure Parallel_Load_C(ThNum_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_C; On_Wait: TOn_Wait_C);
     procedure Parallel_Load_M(ThNum_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_M; On_Wait: TOn_Wait_M);
     procedure Parallel_Load_P(ThNum_: Integer; On_Run: TZDB2_Th_Engine_On_Data_Event_P; On_Wait: TOn_Wait_P);
-    // for-thread safe
-    procedure For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
-    procedure For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
-    procedure For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_P);
+    // parallel for model
+    procedure Parallel_For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
+    procedure Parallel_For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
+    procedure Parallel_For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_P);
+    // one-way for model
+    procedure For_C(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_C);
+    procedure For_M(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_M);
+    procedure For_P(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_P);
+    procedure Invert_For_C(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_C);
+    procedure Invert_For_M(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_M);
+    procedure Invert_For_P(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_P);
     // remove first data, Scrolling storage support
     procedure Remove_First_Data(Num_: Int64; remove_data_: Boolean);
     procedure Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
@@ -451,7 +464,12 @@ end;
 procedure TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge.Do_Result(var Sender: TZDB2_Th_CMD_Mem64_And_State);
 begin
   try
-    Source.FSize := Sender.Mem64.Size;
+    Source.FOneWayDataProcessReady := Sender.State = TCMD_State.csDone;
+    if Source.FOneWayDataProcessReady then
+        Source.FSize := Sender.Mem64.Size
+    else
+        Source.FSize := 0;
+
     if Assigned(OnResult_C) then
         OnResult_C(Sender);
     if Assigned(OnResult_M) then
@@ -479,7 +497,12 @@ end;
 procedure TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge.Do_Result(var Sender: TZDB2_Th_CMD_Stream_And_State);
 begin
   try
-    Source.FSize := Sender.Stream.Size;
+    Source.FOneWayDataProcessReady := Sender.State = TCMD_State.csDone;
+    if Source.FOneWayDataProcessReady then
+        Source.FSize := Sender.Stream.Size
+    else
+        Source.FSize := 0;
+
     if Assigned(OnResult_C) then
         OnResult_C(Sender);
     if Assigned(OnResult_M) then
@@ -512,12 +535,14 @@ begin
   if Sender.State = TCMD_State.csDone then
     begin
       FID := Sender.ID;
+      FOneWayDataProcessReady := True;
       AtomDec(FAsync_Save_Num);
     end
   else
     begin
       FID := -1;
       FSize := 0;
+      FOneWayDataProcessReady := False;
       AtomDec(FAsync_Save_Num);
       if FSaveFailed_Do_Remove then
           Remove(False);
@@ -533,6 +558,7 @@ begin
   FTh_Engine_Data_Ptr := nil;
   FID := -1;
   FSize := 0;
+  FOneWayDataProcessReady := False;
   FInstance_Busy := 0;
   FLocked := False;
   FSaveFailed_Do_Remove := True;
@@ -663,6 +689,7 @@ begin
               Engine.Async_Remove(FID);
           FID := -1;
           FSize := 0;
+          FOneWayDataProcessReady := False;
           Result := True;
         end;
 
@@ -709,7 +736,10 @@ begin
       except
       end;
       if Result then
+        begin
           FSize := Source.Size;
+          FOneWayDataProcessReady := True;
+        end;
       AtomDec(FAsync_Load_Num);
     end;
   UnLock;
@@ -727,7 +757,10 @@ begin
       except
       end;
       if Result then
+        begin
           FSize := Source.Size;
+          FOneWayDataProcessReady := True;
+        end;
       AtomDec(FAsync_Load_Num);
     end;
   UnLock;
@@ -973,7 +1006,10 @@ begin
       Result := Engine.Sync_SetData(Source, FID);
       AtomDec(FAsync_Save_Num);
       if Result then
+        begin
           FSize := Source.Size;
+          FOneWayDataProcessReady := True;
+        end;
     end;
   UnLock;
 end;
@@ -988,7 +1024,10 @@ begin
       Result := Engine.Sync_SetData(Source, FID);
       AtomDec(FAsync_Save_Num);
       if Result then
+        begin
           FSize := Source.Size;
+          FOneWayDataProcessReady := True;
+        end;
     end;
   UnLock;
 end;
@@ -1845,7 +1884,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -1897,7 +1936,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -1944,7 +1983,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -1996,7 +2035,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -2043,7 +2082,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -2095,7 +2134,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -2628,7 +2667,7 @@ begin
         if (buff^[i]^.Data <> nil) then
           begin
             buff^[i]^.Data.Lock;
-            Can_Load := buff^[i]^.Data.Can_Load;
+            Can_Load := buff^[i]^.Data.Can_Load and buff^[i]^.Data.OneWayDataProcessReady;
             buff^[i]^.Data.UnLock;
             if Can_Load then
               begin
@@ -3297,7 +3336,7 @@ begin
   Check_Recycle_Pool;
 end;
 
-procedure TZDB2_Th_Engine_Marshal.For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
+procedure TZDB2_Th_Engine_Marshal.Parallel_For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
 var
   tatal_data_num_: Int64;
   buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
@@ -3325,7 +3364,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -3378,7 +3417,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -3397,7 +3436,7 @@ begin
   Check_Recycle_Pool;
 end;
 
-procedure TZDB2_Th_Engine_Marshal.For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
+procedure TZDB2_Th_Engine_Marshal.Parallel_For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
 var
   tatal_data_num_: Int64;
   buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
@@ -3425,7 +3464,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -3478,7 +3517,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -3497,7 +3536,7 @@ begin
   Check_Recycle_Pool;
 end;
 
-procedure TZDB2_Th_Engine_Marshal.For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_P);
+procedure TZDB2_Th_Engine_Marshal.Parallel_For_P(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_P);
 var
   tatal_data_num_: Int64;
   buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
@@ -3525,7 +3564,7 @@ var
         exit;
     inst.Lock;
     try
-        Can_Load := inst.Can_Load;
+        Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
     except
         Aborted := True;
     end;
@@ -3578,7 +3617,7 @@ begin
           exit;
       inst.Lock;
       try
-          Can_Load := inst.Can_Load;
+          Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
       except
           Aborted := True;
       end;
@@ -3592,6 +3631,318 @@ begin
       end;
     end);
 {$ENDIF FPC}
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.For_C(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_C);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := 0;
+  while i < tatal_data_num_ do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Inc(i);
+      if Aborted or ((Max_Loop_ > 0) and (i >= Max_Loop_)) then
+          break;
+    end;
+
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.For_M(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_M);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := 0;
+  while i < tatal_data_num_ do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Inc(i);
+      if Aborted or ((Max_Loop_ > 0) and (i >= Max_Loop_)) then
+          break;
+    end;
+
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.For_P(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_P);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := 0;
+  while i < tatal_data_num_ do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Inc(i);
+      if Aborted or ((Max_Loop_ > 0) and (i >= Max_Loop_)) then
+          break;
+    end;
+
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Invert_For_C(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_C);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := tatal_data_num_ - 1;
+  while i >= 0 do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Dec(i);
+      if Aborted or ((Max_Loop_ > 0) and (tatal_data_num_ - i >= Max_Loop_)) then
+          break;
+    end;
+
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Invert_For_M(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_M);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := tatal_data_num_ - 1;
+  while i >= 0 do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Dec(i);
+      if Aborted or ((Max_Loop_ > 0) and (tatal_data_num_ - i >= Max_Loop_)) then
+          break;
+    end;
+
+  AtomDec(FLong_Loop_Num);
+  System.FreeMemory(buff);
+  Check_Recycle_Pool;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Invert_For_P(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_P);
+var
+  tatal_data_num_: Int64;
+  buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+  Aborted: Boolean;
+  i: Int64;
+  inst: TZDB2_Th_Engine_Data;
+  Can_Load: Boolean;
+begin
+  Check_Recycle_Pool;
+  if Data_Marshal.num <= 0 then
+      exit;
+  Lock;
+  Data_Marshal.Lock;
+  AtomInc(FLong_Loop_Num);
+  tatal_data_num_ := Data_Marshal.num;
+  buff := Data_Marshal.BuildArrayMemory();
+  Data_Marshal.UnLock;
+  UnLock;
+  Aborted := False;
+
+  i := tatal_data_num_ - 1;
+  while i >= 0 do
+    begin
+      try
+        inst := buff^[i]^.Data;
+        if (inst <> nil) then
+          begin
+            inst.Lock;
+            try
+                Can_Load := inst.Can_Load and inst.OneWayDataProcessReady;
+            finally
+                inst.UnLock;
+            end;
+
+            if Can_Load and (not Aborted) then
+                On_Run(inst, i, Aborted);
+          end;
+      except
+          Aborted := True;
+      end;
+
+      Dec(i);
+      if Aborted or ((Max_Loop_ > 0) and (tatal_data_num_ - i >= Max_Loop_)) then
+          break;
+    end;
+
   AtomDec(FLong_Loop_Num);
   System.FreeMemory(buff);
   Check_Recycle_Pool;
@@ -3625,7 +3976,7 @@ begin
         if buff^[i]^.Data <> nil then
           begin
             buff^[i]^.Data.Lock;
-            Can_Load := buff^[i]^.Data.Can_Load;
+            Can_Load := buff^[i]^.Data.Can_Load and buff^[i]^.Data.OneWayDataProcessReady;
             buff^[i]^.Data.UnLock;
             if Can_Load and buff^[i]^.Data.Remove(remove_data_) then
                 Inc(j);
