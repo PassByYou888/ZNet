@@ -929,6 +929,27 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
+procedure Do_PostFreeObjectInThread(ThSender: TCompute);
+begin
+  DisposeObject(ThSender.UserObject);
+end;
+
+class procedure TCompute.PostFreeObjectInThread(const Obj: TObject);
+begin
+  if Obj = nil then
+      exit;
+  TCompute.RunC(nil, Obj, {$IFDEF FPC}@{$ENDIF FPC}Do_PostFreeObjectInThread, nil);
+end;
+
+class procedure TCompute.PostFreeObjectInThreadAndNil(var Obj);
+begin
+  if TObject(Obj) <> nil then
+    begin
+      TCompute.PostFreeObjectInThread(TObject(Obj));
+      TObject(Obj) := nil;
+    end;
+end;
+
 class procedure TCompute.ProgressPost();
 begin
   MainThreadProgress.Progress();
