@@ -141,6 +141,7 @@ end;
 constructor TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
 begin
   inherited Create;
+  FCritical__ := TCritical.Create;
   FRecycle_Pool__ := nil;
   FFirst := nil;
   FLast := nil;
@@ -154,6 +155,7 @@ end;
 destructor TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
+  FCritical__.Free;
   inherited Destroy;
 end;
 
@@ -172,6 +174,16 @@ end;
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.CompareData(const Data_1, Data_2: T_): Boolean;
 begin
   Result := CompareMemory(@Data_1, @Data_2, SizeOf(T_));
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Lock;
+begin
+  FCritical__.Lock;
+end;
+
+procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.UnLock;
+begin
+  FCritical__.UnLock;
 end;
 
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_To_Recycle_Pool(p: PQueueStruct);
@@ -1282,7 +1294,7 @@ begin
   if Is_Discard___ then
     begin
       Is_Discard___ := False;
-      Instance___.Remove_P(p___^.Prev);
+      Instance___.Remove_P(p___^.Prev, False); // Remove_P is UnLock
       Dec(EI___);
     end
   else
@@ -1346,7 +1358,7 @@ begin
   if Is_Discard___ then
     begin
       Is_Discard___ := False;
-      Instance___.Remove_P(p___^.Next);
+      Instance___.Remove_P(p___^.Next, False); // Remove_P is UnLock
       Dec(BI___);
     end;
   Dec(I___);
@@ -1435,7 +1447,7 @@ begin
     begin
       while FRecycle_Pool__.Num > 0 do
         begin
-          Remove_P(FRecycle_Pool__.First^.Data);
+          Remove_P(FRecycle_Pool__.First^.Data, False); // Remove_P is UnLock
           FRecycle_Pool__.Next;
         end;
       FRecycle_Pool__.Free;
@@ -1476,6 +1488,12 @@ begin
   FLast := nil;
   FChanged := True;
   FCritical__.UnLock;
+end;
+
+procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next(Lock_: Boolean);
+begin
+  if FFirst <> nil then
+      Remove_P(FFirst, Lock_);
 end;
 
 procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
@@ -1535,11 +1553,12 @@ begin
   L_.UnLock;
 end;
 
-function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
+function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(Lock_: Boolean): PQueueStruct;
 var
   p: PQueueStruct;
 begin
-  FCritical__.Lock;
+  if Lock_ then
+      FCritical__.Lock;
   new(p);
   if (FFirst = nil) or (FLast = nil) then
     begin
@@ -1568,9 +1587,15 @@ begin
   p^.Recycle___ := False;
   inc(FNum);
   FChanged := True;
-  FCritical__.UnLock;
+  if Lock_ then
+      FCritical__.UnLock;
   Result := p;
   DoAdd(p^.Data);
+end;
+
+function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Add_Null(): PQueueStruct;
+begin
+  Result := Add_Null(True);
 end;
 
 function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
@@ -1615,7 +1640,7 @@ begin
       until not Next;
 end;
 
-procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
+procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct; Lock_: Boolean);
 var
   P_P, N_P: PQueueStruct;
 begin
@@ -1623,7 +1648,8 @@ begin
   if p^.Instance___ <> Self then
       raiseInfo('error');
 {$ENDIF DEBUG}
-  FCritical__.Lock;
+  if Lock_ then
+      FCritical__.Lock;
 
   P_P := p^.Prev;
   N_P := p^.Next;
@@ -1644,9 +1670,16 @@ begin
       Dec(FNum);
     end;
   FChanged := True;
-  FCritical__.UnLock;
+
+  if Lock_ then
+      FCritical__.UnLock;
 
   DoInternalFree(p);
+end;
+
+procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_P(p: PQueueStruct);
+begin
+  Remove_P(p, True);
 end;
 
 procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Remove_T(const Data: T_);
