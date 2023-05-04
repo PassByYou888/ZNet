@@ -24,14 +24,14 @@ type
   TZDB2_Th_Engine_Marshal = class;
   TZDB2_Th_Engine_Data = class;
   TZDB2_Th_Engine = class;
-  TZDB2_Th_Engine_Static_Backup = class;
-  TZDB2_Th_Engine_Dynamic_Backup = class;
+  TZDB2_Th_Engine_Static_Copy_Tech = class;
+  TZDB2_Th_Engine_Dynamic_Copy_Tech = class;
   TZDB2_Th_Engine_Data_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Marshal_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Static_Backup_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Static_Backup>;
-  TZDB2_Th_Engine_Dynamic_Backup_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Dynamic_Backup>;
+  TZDB2_Th_Engine_Static_Copy_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Static_Copy_Tech>;
+  TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Dynamic_Copy_Tech>;
 
   TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge = class
   public
@@ -61,7 +61,7 @@ type
     FOwner_Data_Ptr: TZDB2_Th_Engine_Marshal_BigList___.PQueueStruct; // marshal data ptr
     FTh_Engine: TZDB2_Th_Engine; // engine
     FTh_Engine_Data_Ptr: TZDB2_Th_Engine_Data_BigList___.PQueueStruct; // engine data ptr
-    FID: Integer; // FTh_Engine data ID
+    FID: Integer; // Th_Engine data ID
     FSize: Int64; // data size
     // In a multithreaded instance, data will be busy-loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
@@ -141,45 +141,47 @@ type
   TZDB2_Th_Engine_For_P = reference to procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean);
 {$ENDIF FPC}
 
-  // static backup technology
-  TZDB2_Th_Engine_Static_Backup = class
+  // static copy technology
+  TZDB2_Th_Engine_Static_Copy_Tech = class
   private
-    Instance_Ptr: TZDB2_Th_Engine_Static_Backup_Instance_Pool.PQueueStruct;
+    Instance_Ptr: TZDB2_Th_Engine_Static_Copy_Instance_Pool.PQueueStruct;
   public
     Owner: TZDB2_Th_Engine;
     Queue_ID_List_: TZDB2_ID_List;
     backup_file: U_String;
     Aborted: Boolean;
+    Quiet: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
   end;
 
-  // dynamic backup technology
-  TZDB2_Th_Engine_Dynamic_Backup = class
+  // dynamic copy technology
+  TZDB2_Th_Engine_Dynamic_Copy_Tech = class
   private
-    Instance_Ptr: TZDB2_Th_Engine_Dynamic_Backup_Instance_Pool.PQueueStruct;
+    Instance_Ptr: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool.PQueueStruct;
   public
     Owner: TZDB2_Th_Engine;
     backup_file: U_String;
-    Dynamic_Backup_Max_Queue: Integer; // default 500
+    Dynamic_Copy_Tech_Max_Queue: Integer; // default 500
     Aborted: Boolean;
+    Quiet: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine);
     destructor Destroy; override;
     procedure Do_Run(Sender: TCompute);
   end;
 
-  TZDB2_Backup_Mode =
+  TZDB2_Copy_Mode =
     (
-    // bmStatic is High speed IO backup, but there may be read-write data waiting for the backup queue to complete.
+    // cmStatic is High speed IO copy, but there may be read-write data waiting for the copy queue to complete.
     // If the physical media is m2, nvme, ssd, they can be directly used
-    bmStatic,
-    // bmDynamicis is Slow and secure backup mode,
-    // supporting level is TB/PB large-scale backup, suitable for hard drives with storage is HDD Group/Pool,
-    bmDynamic,
-    // bmAuto: When the data size > Static_Backup_Tech_Physics_Limit, use bmDynamicis, normal is bmStatic
-    // TZDB2_Th_Engine.Backup_Mode default is bmAuto
-    bmAuto
+    cmStatic,
+    // bmDynamicis is Slow and secure copy mode,
+    // supporting level is TB/PB large-scale copy, suitable for hard drives with storage is HDD Group/Pool,
+    cmDynamic,
+    // cmAuto: When the data size > Static_Copy_Tech_Physics_Limit, use bmDynamicis, normal is cmStatic
+    // TZDB2_Th_Engine.Copy_Mode default is cmAuto
+    cmAuto
     );
 
   // this multithreaded model.
@@ -210,9 +212,9 @@ type
     Cipher_Level: Integer;
     Cipher_Tail: Boolean;
     Cipher_CBC: Boolean;
-    Backup_Mode: TZDB2_Backup_Mode; // backup: mode
-    Static_Backup_Tech_Physics_Limit: Int64; // backup: this value is exceeded, dynamic-backup tech will be used
-    Dynamic_Backup_Max_Queue: Integer; // backup: default 500
+    Copy_Mode: TZDB2_Copy_Mode; // copy mode
+    Static_Copy_Tech_Physics_Limit: Int64; // this value is exceeded, dynamic-copy tech will be used
+    Dynamic_Copy_Tech_Max_Queue: Integer; // default 500
     Engine: TZDB2_Th_Queue; // th-queue-engine
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___; // data pool
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
@@ -221,7 +223,7 @@ type
     procedure ReadConfig(const Name_: U_String; cfg: THashStringList); overload;
     procedure ReadConfig(cfg: THashStringList); overload;
     procedure WriteConfig(cfg: THashStringList);
-    procedure Update_Engine_Data_Ptr(); // reset FTh_Engine and FTh_Engine_Data_Ptr
+    procedure Update_Engine_Data_Ptr(); // reset Th_Engine and Th_Engine_Data_Ptr
     procedure Clear;
     procedure Format_Database;
     function Ready: Boolean;
@@ -415,8 +417,8 @@ procedure Stop_All_ZDB2_Thread_Backup_Task;
 
 var
   Th_Engine_Marshal_Pool__: TZDB2_Th_Engine_Marshal_Pool;
-  Static_Backup_Instance_Pool__: TZDB2_Th_Engine_Static_Backup_Instance_Pool;
-  Dynamic_Backup_Instance_Pool__: TZDB2_Th_Engine_Dynamic_Backup_Instance_Pool;
+  Static_Copy_Instance_Pool__: TZDB2_Th_Engine_Static_Copy_Instance_Pool; // static copy and backup pool technology
+  Dynamic_Copy_Instance_Pool__: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool; // dynamic copy and backup pool technology
 
 implementation
 
@@ -424,30 +426,30 @@ uses Z.Expression;
 
 procedure Stop_All_ZDB2_Thread_Backup_Task;
 begin
-  Static_Backup_Instance_Pool__.Lock;
+  Static_Copy_Instance_Pool__.Lock;
   try
-    if Static_Backup_Instance_Pool__.num > 0 then
+    if Static_Copy_Instance_Pool__.num > 0 then
       begin
-        with Static_Backup_Instance_Pool__.repeat_ do
+        with Static_Copy_Instance_Pool__.repeat_ do
           repeat
               Queue^.Data.Aborted := True;
           until not Next;
       end;
   finally
-      Static_Backup_Instance_Pool__.UnLock;
+      Static_Copy_Instance_Pool__.UnLock;
   end;
 
-  Dynamic_Backup_Instance_Pool__.Lock;
+  Dynamic_Copy_Instance_Pool__.Lock;
   try
-    if Dynamic_Backup_Instance_Pool__.num > 0 then
+    if Dynamic_Copy_Instance_Pool__.num > 0 then
       begin
-        with Dynamic_Backup_Instance_Pool__.repeat_ do
+        with Dynamic_Copy_Instance_Pool__.repeat_ do
           repeat
               Queue^.Data.Aborted := True;
           until not Next;
       end;
   finally
-      Dynamic_Backup_Instance_Pool__.UnLock;
+      Dynamic_Copy_Instance_Pool__.UnLock;
   end;
 end;
 
@@ -1101,21 +1103,22 @@ begin
   FLoad_Data_Error := True;
 end;
 
-constructor TZDB2_Th_Engine_Static_Backup.Create(Owner_: TZDB2_Th_Engine);
+constructor TZDB2_Th_Engine_Static_Copy_Tech.Create(Owner_: TZDB2_Th_Engine);
 begin
   inherited Create;
-  Instance_Ptr := Static_Backup_Instance_Pool__.Add(Self);
+  Instance_Ptr := Static_Copy_Instance_Pool__.Add(Self);
   Owner := Owner_;
   Queue_ID_List_ := TZDB2_ID_List.Create;
   backup_file := '';
   Aborted := False;
+  Quiet := False;
 end;
 
-destructor TZDB2_Th_Engine_Static_Backup.Destroy;
+destructor TZDB2_Th_Engine_Static_Copy_Tech.Destroy;
 begin
   if Instance_Ptr <> nil then
     begin
-      Static_Backup_Instance_Pool__.Remove_P(Instance_Ptr);
+      Static_Copy_Instance_Pool__.Remove_P(Instance_Ptr);
       Instance_Ptr := nil;
     end;
   DisposeObject(Queue_ID_List_);
@@ -1123,14 +1126,15 @@ begin
   inherited Destroy;
 end;
 
-procedure TZDB2_Th_Engine_Static_Backup.Do_Run(Sender: TCompute);
+procedure TZDB2_Th_Engine_Static_Copy_Tech.Do_Run(Sender: TCompute);
 var
   fs: TCore_FileStream;
   th: TZDB2_Th_Queue;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
   hnd: TZDB2_BlockHandle;
 begin
-  DoStatus('static-backup to %s', [umlGetFileName(backup_file).Text]);
+  if not Quiet then
+      DoStatus('static copy to %s', [umlGetFileName(backup_file).Text]);
 
   fs := TCore_FileStream.Create(backup_file, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, Owner.Cipher);
@@ -1178,28 +1182,29 @@ begin
   DelayFreeObj(1.0, Self);
 end;
 
-constructor TZDB2_Th_Engine_Dynamic_Backup.Create(Owner_: TZDB2_Th_Engine);
+constructor TZDB2_Th_Engine_Dynamic_Copy_Tech.Create(Owner_: TZDB2_Th_Engine);
 begin
   inherited Create;
-  Instance_Ptr := Dynamic_Backup_Instance_Pool__.Add(Self);
+  Instance_Ptr := Dynamic_Copy_Instance_Pool__.Add(Self);
   Owner := Owner_;
   backup_file := '';
-  Dynamic_Backup_Max_Queue := 500;
+  Dynamic_Copy_Tech_Max_Queue := 500;
   Aborted := False;
+  Quiet := False;
 end;
 
-destructor TZDB2_Th_Engine_Dynamic_Backup.Destroy;
+destructor TZDB2_Th_Engine_Dynamic_Copy_Tech.Destroy;
 begin
   if Instance_Ptr <> nil then
     begin
-      Dynamic_Backup_Instance_Pool__.Remove_P(Instance_Ptr);
+      Dynamic_Copy_Instance_Pool__.Remove_P(Instance_Ptr);
       Instance_Ptr := nil;
     end;
   backup_file := '';
   inherited Destroy;
 end;
 
-procedure TZDB2_Th_Engine_Dynamic_Backup.Do_Run(Sender: TCompute);
+procedure TZDB2_Th_Engine_Dynamic_Copy_Tech.Do_Run(Sender: TCompute);
 type
   TData_State_ = record
     Mem64: TMem64;
@@ -1207,20 +1212,21 @@ type
     ID: Integer;
   end;
 
-  TDynamic_Backup_Tech_Data_State_Order_ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TData_State_>;
-  PData_State_ = TDynamic_Backup_Tech_Data_State_Order_.POrderStruct;
+  TDynamic_Copy_Tech_Tech_Data_State_Order_ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TData_State_>;
+  PData_State_ = TDynamic_Copy_Tech_Tech_Data_State_Order_.POrderStruct;
 
 var
   fs: TCore_FileStream;
   th: TZDB2_Th_Queue;
   tatal_data_num_: Int64;
   buff: TZDB2_Th_Engine_Data_BigList___.PQueueArrayStruct;
-  sour: TDynamic_Backup_Tech_Data_State_Order_;
+  sour: TDynamic_Copy_Tech_Tech_Data_State_Order_;
   i: Int64;
   p: PData_State_;
   Table_: TZDB2_BlockHandle;
 begin
-  DoStatus('dynamic-backup to %s', [umlGetFileName(backup_file).Text]);
+  if not Quiet then
+      DoStatus('dynamic copy to %s', [umlGetFileName(backup_file).Text]);
 
   fs := TCore_FileStream.Create(backup_file, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, nil);
@@ -1239,7 +1245,7 @@ begin
   buff := Owner.Th_Engine_Data_Pool.BuildArrayMemory();
   Owner.Th_Engine_Data_Pool.UnLock;
 
-  sour := TDynamic_Backup_Tech_Data_State_Order_.Create;
+  sour := TDynamic_Copy_Tech_Tech_Data_State_Order_.Create;
   i := 0;
   while i < tatal_data_num_ do
     begin
@@ -1251,7 +1257,7 @@ begin
           p^.Data.ID := buff^[i]^.Data.ID;
           Owner.Engine.Async_GetData_AsMem64(p^.Data.ID, p^.Data.Mem64, @p^.Data.State);
         end;
-      if sour.num > Dynamic_Backup_Max_Queue then
+      if sour.num > Dynamic_Copy_Tech_Max_Queue then
         begin
           repeat
             while sour.First^.Data.State = TCMD_State.csDefault do
@@ -1263,10 +1269,10 @@ begin
                 disposeObjectAndNil(sour.First^.Data.Mem64);
 
             sour.Next;
-          until sour.num <= umlMax(0, Dynamic_Backup_Max_Queue shr 1);
+          until sour.num <= umlMax(0, Dynamic_Copy_Tech_Max_Queue shr 1);
         end;
-      if th.QueueNum > Dynamic_Backup_Max_Queue then
-        while th.QueueNum >= umlMax(0, Dynamic_Backup_Max_Queue shr 1) do
+      if th.QueueNum > Dynamic_Copy_Tech_Max_Queue then
+        while th.QueueNum >= umlMax(0, Dynamic_Copy_Tech_Max_Queue shr 1) do
             TCompute.Sleep(1);
 
       if Aborted then
@@ -1294,7 +1300,8 @@ begin
   th.Sync_Rebuild_And_Get_Sequence_Table(Table_);
   th.Sync_Flush_Sequence_Table(Table_);
 
-  DoStatus('dynamic-backup done total num:%d size:%s file:%s', [length(Table_), umlSizeToStr(th.CoreSpace_Size).Text, backup_file.Text]);
+  if not Quiet then
+      DoStatus('dynamic copy done total num:%d size:%s file:%s', [length(Table_), umlSizeToStr(th.CoreSpace_Size).Text, backup_file.Text]);
 
   SetLength(Table_, 0);
   // free backup dest
@@ -1350,9 +1357,9 @@ var
   L: TFileTime_Sort_Tool;
 
   // static backup technology
-  static_backup_inst: TZDB2_Th_Engine_Static_Backup;
+  Static_Copy_Tech_inst: TZDB2_Th_Engine_Static_Copy_Tech;
   // dynamic backup technology
-  dynamic_backup_inst: TZDB2_Th_Engine_Dynamic_Backup;
+  Dynamic_Copy_Tech_inst: TZDB2_Th_Engine_Dynamic_Copy_Tech;
 
   function Make_backup_File_Name: U_String;
   var
@@ -1413,23 +1420,25 @@ begin
   DisposeObject(L); // free pool
 
   // static backup technology
-  if (Backup_Mode = TZDB2_Backup_Mode.bmStatic) or
-    ((Backup_Mode = TZDB2_Backup_Mode.bmAuto) and (Engine.CoreSpace_Physics_Size < Static_Backup_Tech_Physics_Limit)) then
+  if (Copy_Mode = TZDB2_Copy_Mode.cmStatic) or
+    ((Copy_Mode = TZDB2_Copy_Mode.cmAuto) and (Engine.CoreSpace_Physics_Size < Static_Copy_Tech_Physics_Limit)) then
     begin
       // backup instance
-      static_backup_inst := TZDB2_Th_Engine_Static_Backup.Create(Self);
+      Static_Copy_Tech_inst := TZDB2_Th_Engine_Static_Copy_Tech.Create(Self);
       Owner.Check_Recycle_Pool;
-      static_backup_inst.backup_file := Make_backup_File_Name();
-      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}static_backup_inst.Do_Run); // run static-backup thread
+      Static_Copy_Tech_inst.backup_file := Make_backup_File_Name();
+      Static_Copy_Tech_inst.Quiet := False;
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Static_Copy_Tech_inst.Do_Run); // run static-backup thread
     end
   else
     begin
       // dynamic backup technology
-      dynamic_backup_inst := TZDB2_Th_Engine_Dynamic_Backup.Create(Self);
+      Dynamic_Copy_Tech_inst := TZDB2_Th_Engine_Dynamic_Copy_Tech.Create(Self);
       Owner.Check_Recycle_Pool;
-      dynamic_backup_inst.Dynamic_Backup_Max_Queue := Dynamic_Backup_Max_Queue;
-      dynamic_backup_inst.backup_file := Make_backup_File_Name();
-      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}dynamic_backup_inst.Do_Run); // run dynamic-backup thread
+      Dynamic_Copy_Tech_inst.Dynamic_Copy_Tech_Max_Queue := Dynamic_Copy_Tech_Max_Queue;
+      Dynamic_Copy_Tech_inst.backup_file := Make_backup_File_Name();
+      Dynamic_Copy_Tech_inst.Quiet := False;
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Dynamic_Copy_Tech_inst.Do_Run); // run dynamic-backup thread
     end;
 end;
 
@@ -1456,9 +1465,9 @@ begin
   Cipher_Level := 1;
   Cipher_Tail := True;
   Cipher_CBC := True;
-  Backup_Mode := TZDB2_Backup_Mode.bmAuto;
-  Static_Backup_Tech_Physics_Limit := 1024 * 1024 * 1024;
-  Dynamic_Backup_Max_Queue := 500;
+  Copy_Mode := TZDB2_Copy_Mode.cmAuto;
+  Static_Copy_Tech_Physics_Limit := 1024 * 1024 * 1024;
+  Dynamic_Copy_Tech_Max_Queue := 500;
   Engine := nil;
   Th_Engine_Data_Pool := TZDB2_Th_Engine_Data_BigList___.Create;
   Th_Engine_Data_Pool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
@@ -1513,17 +1522,17 @@ begin
   Cipher_Tail := EStrToBool(cfg.GetDefaultValue('Tail', umlBoolToStr(Cipher_Tail)), Cipher_Tail);
   Cipher_CBC := EStrToBool(cfg.GetDefaultValue('CBC', umlBoolToStr(Cipher_CBC)), Cipher_CBC);
 
-  Backup_Mode := TZDB2_Backup_Mode.bmAuto;
-  n := cfg.GetDefaultValue('Backup_Mode', '');
+  Copy_Mode := TZDB2_Copy_Mode.cmAuto;
+  n := cfg.GetDefaultValue('Copy_Mode', '');
   if n.Same('Auto', '') then
-      Backup_Mode := TZDB2_Backup_Mode.bmAuto
+      Copy_Mode := TZDB2_Copy_Mode.cmAuto
   else if n.Same('Static', 'safe') then
-      Backup_Mode := TZDB2_Backup_Mode.bmStatic
+      Copy_Mode := TZDB2_Copy_Mode.cmStatic
   else if n.Same('Dynamic') then
-      Backup_Mode := TZDB2_Backup_Mode.bmDynamic;
+      Copy_Mode := TZDB2_Copy_Mode.cmDynamic;
 
-  Static_Backup_Tech_Physics_Limit := EStrToInt64(cfg.GetDefaultValue('Static_Backup_Tech_Physics_Limit', umlIntToStr(Static_Backup_Tech_Physics_Limit)), Static_Backup_Tech_Physics_Limit);
-  Dynamic_Backup_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Backup_Max_Queue', umlIntToStr(Dynamic_Backup_Max_Queue)), Dynamic_Backup_Max_Queue);
+  Static_Copy_Tech_Physics_Limit := EStrToInt64(cfg.GetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit)), Static_Copy_Tech_Physics_Limit);
+  Dynamic_Copy_Tech_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue)), Dynamic_Copy_Tech_Max_Queue);
 end;
 
 procedure TZDB2_Th_Engine.ReadConfig(cfg: THashStringList);
@@ -1546,13 +1555,13 @@ begin
   cfg.SetDefaultValue('Level', umlIntToStr(Cipher_Level));
   cfg.SetDefaultValue('Tail', umlBoolToStr(Cipher_Tail));
   cfg.SetDefaultValue('CBC', umlBoolToStr(Cipher_CBC));
-  case Backup_Mode of
-    bmStatic: cfg.SetDefaultValue('Backup_Mode', 'Static');
-    bmDynamic: cfg.SetDefaultValue('Backup_Mode', 'Dynamic');
-    else cfg.SetDefaultValue('Backup_Mode', 'Auto');
+  case Copy_Mode of
+    cmStatic: cfg.SetDefaultValue('Copy_Mode', 'Static');
+    cmDynamic: cfg.SetDefaultValue('Copy_Mode', 'Dynamic');
+    else cfg.SetDefaultValue('Copy_Mode', 'Auto');
   end;
-  cfg.SetDefaultValue('Static_Backup_Tech_Physics_Limit', umlIntToStr(Static_Backup_Tech_Physics_Limit));
-  cfg.SetDefaultValue('Dynamic_Backup_Max_Queue', umlIntToStr(Dynamic_Backup_Max_Queue));
+  cfg.SetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit));
+  cfg.SetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue));
 end;
 
 procedure TZDB2_Th_Engine.Update_Engine_Data_Ptr();
@@ -1814,32 +1823,32 @@ end;
 
 procedure TZDB2_Th_Engine.Stop_Backup;
 begin
-  Static_Backup_Instance_Pool__.Lock;
+  Static_Copy_Instance_Pool__.Lock;
   try
-    if Static_Backup_Instance_Pool__.num > 0 then
+    if Static_Copy_Instance_Pool__.num > 0 then
       begin
-        with Static_Backup_Instance_Pool__.repeat_ do
+        with Static_Copy_Instance_Pool__.repeat_ do
           repeat
             if Queue^.Data.Owner = Self then
                 Queue^.Data.Aborted := True;
           until not Next;
       end;
   finally
-      Static_Backup_Instance_Pool__.UnLock;
+      Static_Copy_Instance_Pool__.UnLock;
   end;
 
-  Dynamic_Backup_Instance_Pool__.Lock;
+  Dynamic_Copy_Instance_Pool__.Lock;
   try
-    if Dynamic_Backup_Instance_Pool__.num > 0 then
+    if Dynamic_Copy_Instance_Pool__.num > 0 then
       begin
-        with Dynamic_Backup_Instance_Pool__.repeat_ do
+        with Dynamic_Copy_Instance_Pool__.repeat_ do
           repeat
             if Queue^.Data.Owner = Self then
                 Queue^.Data.Aborted := True;
           until not Next;
       end;
   finally
-      Dynamic_Backup_Instance_Pool__.UnLock;
+      Dynamic_Copy_Instance_Pool__.UnLock;
   end;
 end;
 
@@ -4371,13 +4380,13 @@ end;
 initialization
 
 Th_Engine_Marshal_Pool__ := TZDB2_Th_Engine_Marshal_Pool.Create;
-Static_Backup_Instance_Pool__ := TZDB2_Th_Engine_Static_Backup_Instance_Pool.Create;
-Dynamic_Backup_Instance_Pool__ := TZDB2_Th_Engine_Dynamic_Backup_Instance_Pool.Create;
+Static_Copy_Instance_Pool__ := TZDB2_Th_Engine_Static_Copy_Instance_Pool.Create;
+Dynamic_Copy_Instance_Pool__ := TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool.Create;
 
 finalization
 
 disposeObjectAndNil(Th_Engine_Marshal_Pool__);
-disposeObjectAndNil(Static_Backup_Instance_Pool__);
-disposeObjectAndNil(Dynamic_Backup_Instance_Pool__);
+disposeObjectAndNil(Static_Copy_Instance_Pool__);
+disposeObjectAndNil(Dynamic_Copy_Instance_Pool__);
 
 end.
