@@ -451,6 +451,7 @@ type
     TSort_P = reference to function(var L, R: T_): Integer;
 {$ENDIF FPC}
   private
+    FCritical__: TCritical;
     FRecycle_Pool__: TRecycle_Pool__;
     FFirst: PQueueStruct;
     FLast: PQueueStruct;
@@ -461,11 +462,14 @@ type
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
   public
+    property Critical__: TCritical read FCritical__;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
     procedure DoAdd(var Data: T_); virtual;
     function CompareData(const Data_1, Data_2: T_): Boolean; virtual;
+    procedure Lock;
+    procedure UnLock;
     property Recycle_Pool: TRecycle_Pool__ read FRecycle_Pool__;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
     procedure Free_Recycle_Pool;
@@ -633,13 +637,16 @@ type
     procedure Clear;
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
-    procedure Next; // queue support
+    procedure Next(Lock_: Boolean); overload; // queue support
+    procedure Next; overload; // queue support
     function Add(const Data: T_): PQueueStruct;
     procedure AddL(L_: T___);
-    function Add_Null(): PQueueStruct;
+    function Add_Null(Lock_: Boolean): PQueueStruct; overload;
+    function Add_Null(): PQueueStruct; overload;
     function Insert(const Data: T_; To_: PQueueStruct): PQueueStruct;
     function CopyFrom(Source_: T___): NativeInt;
-    procedure Remove_P(p: PQueueStruct);
+    procedure Remove_P(p: PQueueStruct; Lock_: Boolean); overload;
+    procedure Remove_P(p: PQueueStruct); overload;
     procedure Remove_T(const Data: T_);
     procedure Move_Before(p, To_: PQueueStruct);
     procedure MoveToFirst(p: PQueueStruct);
