@@ -4063,11 +4063,11 @@ begin
 {$ENDIF FPC}
   Result := '';
   if (d > 0) then
-      Result.Append(IntToStr(d) + ' day ');
+      Result.Append(IntToStr(d) + ' Day ');
   if (Result.L > 0) or (h > 0) then
-      Result.Append(IntToStr(h) + ' hour ');
+      Result.Append(IntToStr(h) + ':');
   if (Result.L > 0) or (m > 0) then
-      Result.Append(IntToStr(m) + ' minute ');
+      Result.Append(IntToStr(m) + ':');
 
   if (Result.L > 0) or (s > 0) then
       Result.Append(PFormat('%2.2f', [s + tmp / 1000]))
@@ -4998,7 +4998,8 @@ begin
                   BatchInfo.dest_ePos := BatchInfo.dest_bPos + (arry[R].dest.L - 1);
                   Info.add(BatchInfo);
                 end;
-              m64.Write64(arry[R].dest.buff[0], SystemCharSize * arry[R].dest.L);
+              if arry[R].dest.L > 0 then
+                  m64.Write64(arry[R].dest.buff[0], SystemCharSize * arry[R].dest.L);
               inc(arry[R].sum);
               inc(i, arry[R].sour.L);
             end;
