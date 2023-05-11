@@ -186,6 +186,14 @@ begin
   FCritical__.UnLock;
 end;
 
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Recycle_Pool_Num: NativeInt;
+begin
+  if FRecycle_Pool__ <> nil then
+      Result := FRecycle_Pool__.Num
+  else
+      Result := 0;
+end;
+
 procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_To_Recycle_Pool(p: PQueueStruct);
 begin
 {$IFDEF DEBUG}
@@ -1423,6 +1431,14 @@ end;
 procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.UnLock;
 begin
   FCritical__.UnLock;
+end;
+
+function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Get_Recycle_Pool_Num: NativeInt;
+begin
+  if FRecycle_Pool__ <> nil then
+      Result := FRecycle_Pool__.Num
+  else
+      Result := 0;
 end;
 
 procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_To_Recycle_Pool(p: PQueueStruct);
