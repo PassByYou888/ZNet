@@ -470,7 +470,7 @@ type
     function CompareData(const Data_1, Data_2: T_): Boolean; virtual;
     procedure Lock;
     procedure UnLock;
-    property Recycle_Pool: TRecycle_Pool__ read FRecycle_Pool__;
+    function Get_Recycle_Pool_Num: NativeInt;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
     procedure Free_Recycle_Pool;
     procedure Clear;
@@ -631,7 +631,7 @@ type
     function CompareData(const Data_1, Data_2: T_): Boolean; virtual;
     procedure Lock;
     procedure UnLock;
-    property Recycle_Pool: TRecycle_Pool__ read FRecycle_Pool__;
+    function Get_Recycle_Pool_Num: NativeInt;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
     procedure Free_Recycle_Pool;
     procedure Clear;
@@ -695,6 +695,12 @@ type
   end;
 
 {$IFDEF FPC}
+  generic TC_BigList<T_> = class(specialize TCritical_BigList<T_>);
+{$ELSE FPC}
+  TC_BigList<T_> = class(TCritical_BigList<T_>);
+{$ENDIF FPC}
+
+{$IFDEF FPC}
   generic TBig_Object_List<T_: TCore_Object> = class(specialize TBigList<T_>)
 {$ELSE FPC}
   TBig_Object_List<T_: class> = class(TBigList<T_>)
@@ -715,6 +721,12 @@ type
     constructor Create(AutoFreeObject_: Boolean);
     procedure DoFree(var Data: T_); override;
   end;
+
+{$IFDEF FPC}
+  generic TC_Big_Object_List<T_: TCore_Object> = class(specialize TCritical_Big_Object_List<T_>);
+{$ELSE FPC}
+  TC_Big_Object_List<T_: class> = class(TCritical_Big_Object_List<T_>);
+{$ENDIF FPC}
 
 {$ENDREGION 'BigList'}
 {$REGION 'Hash-Pair'}
