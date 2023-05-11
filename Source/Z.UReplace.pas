@@ -501,7 +501,8 @@ begin
                   BatchInfo.dest_ePos := BatchInfo.dest_bPos + (arry[r].dest.L - 1);
                   Info.Add(BatchInfo);
                 end;
-              m64.Write64(arry[r].dest.buff[0], USystemCharSize * arry[r].dest.L);
+              if arry[r].dest.L > 0 then
+                  m64.Write64(arry[r].dest.buff[0], USystemCharSize * arry[r].dest.L);
               inc(arry[r].sum);
               inc(i, arry[r].sour.L);
             end;
