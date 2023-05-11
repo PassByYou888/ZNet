@@ -119,6 +119,7 @@ type
     function DoMin(var OP_Param: TOpParam): Variant;
     function DoClamp(var OP_Param: TOpParam): Variant;
     function DoIfThen(var OP_Param: TOpParam): Variant;
+    function FitXY(var OP_Param: TOpParam): Variant;
     function DoStr(var OP_Param: TOpParam): Variant;
     function DoMultiple(var OP_Param: TOpParam): Variant;
     function DoPrint(var OP_Param: TOpParam): Variant;
@@ -1057,6 +1058,14 @@ begin
       Result := OP_Param[2];
 end;
 
+function TOpSystemAPI.FitXY(var OP_Param: TOpParam): Variant;
+var
+  r: TRectV2;
+begin
+  r := FitRect(OP_Param[0], OP_Param[1], RectV2(0, 0, OP_Param[2], OP_Param[3]));
+  Result := VecToStr(r[1]);
+end;
+
 function TOpSystemAPI.DoStr(var OP_Param: TOpParam): Variant;
 var
   n: TPascalString;
@@ -1249,6 +1258,7 @@ begin
   RunTime.RegOpM('Clamp', 'Clamp(value, min, max): return clamp value', {$IFDEF FPC}@{$ENDIF FPC}DoClamp)^.Category := 'Base Math';
   RunTime.RegOpM('IfThen', 'IfThen(bool, if true then of value, if false then of value): return if value', {$IFDEF FPC}@{$ENDIF FPC}DoIfThen)^.Category := 'Base Math';
   RunTime.RegOpM('if_', 'if_(bool, if true then of value, if false then of value): return if value', {$IFDEF FPC}@{$ENDIF FPC}DoIfThen)^.Category := 'Base Math';
+  RunTime.RegOpM('FitXY', 'FitXY(width, height, new_width, new_height): return size', {$IFDEF FPC}@{$ENDIF FPC}FitXY)^.Category := 'Base Math';
   RunTime.RegOpM('Str', 'Str(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
   RunTime.RegOpM('String', 'String(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
   RunTime.RegOpM('Text', 'Text(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
@@ -1267,6 +1277,7 @@ begin
   RunTime.RegOpM('Bin16', 'Bin16(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin16)^.Category := 'Binary';
   RunTime.RegOpM('Bin32', 'Bin32(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin32)^.Category := 'Binary';
   RunTime.RegOpM('Bin64', 'Bin64(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin64)^.Category := 'Binary';
+
 end;
 
 procedure TOpCustomRunTime.FreeNotifyProc(p: Pointer);
