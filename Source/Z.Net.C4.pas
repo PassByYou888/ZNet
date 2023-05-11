@@ -915,7 +915,7 @@ type
     procedure Run_HelpCmd(exp_: U_String);
   end;
 {$ENDREGION 'C40-Console'}
-
+{$REGION 'Var'}
 
 var
   { quiet mode, defualt is false }
@@ -956,7 +956,8 @@ var
   C40_VM_Client_Pool: TC40_Custom_VM_Client_Pool;
   { default configure }
   C40_DefaultConfig: THashStringList;
-
+{$ENDREGION 'Var'}
+{$REGION 'API'}
 procedure C40Progress(sleep_: Integer); overload; { C4 main progress }
 procedure C40Progress; overload; { C4 main progress }
 function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
@@ -979,6 +980,7 @@ procedure C40PrintRegistation;
 
 { search physics }
 function C40ExistsPhysicsNetwork(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
+function C40_Get_Physics_Connected_Num(): Integer;
 
 { Kill physics tunnel }
 procedure C40RemovePhysics(PhysicsAddr: U_String; PhysicsPort: Word;
@@ -1002,6 +1004,7 @@ function ExtractDependInfo(arry: TC40_DependNetworkString): TC40_DependNetworkIn
 function ExtractDependInfoToL(info: U_String): TC40_DependNetworkInfoList; overload;
 function ExtractDependInfoToL(arry: TC40_DependNetworkString): TC40_DependNetworkInfoList; overload;
 procedure ResetDependInfoBuff(var arry: TC40_DependNetworkInfoArray);
+{$ENDREGION 'API'}
 
 implementation
 
@@ -1282,6 +1285,18 @@ begin
     C40_ClientPool.ExistsPhysicsAddr(PhysicsAddr, PhysicsPort) then
       exit;
   Result := False;
+end;
+
+function C40_Get_Physics_Connected_Num(): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to C40_PhysicsServicePool.Count - 1 do
+      inc(Result, C40_PhysicsServicePool[i].PhysicsTunnel.Count);
+  for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+    if C40_PhysicsTunnelPool[i].PhysicsTunnel.RemoteInited then
+        inc(Result, 1);
 end;
 
 procedure C40RemovePhysics(PhysicsAddr: U_String; PhysicsPort: Word;
