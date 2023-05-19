@@ -57,6 +57,16 @@ type
 
     function GetDefaultText(const SectionName, KeyName: SystemString; const DefaultValue: SystemString): SystemString;
     procedure SetDefaultText(const SectionName, KeyName: SystemString; const Value: SystemString);
+    function GetDefaultText_I32(const SectionName, KeyName: SystemString; const DefaultValue: Integer): Integer;
+    procedure SetDefaultText_I32(const SectionName, KeyName: SystemString; const Value: Integer);
+    function GetDefaultText_I64(const SectionName, KeyName: SystemString; const DefaultValue: Int64): Int64;
+    procedure SetDefaultText_I64(const SectionName, KeyName: SystemString; const Value: Int64);
+    function GetDefaultText_Float(const SectionName, KeyName: SystemString; const DefaultValue: Double): Double;
+    procedure SetDefaultText_Float(const SectionName, KeyName: SystemString; const Value: Double);
+    function GetDefaultText_Bool(const SectionName, KeyName: SystemString; const DefaultValue: Boolean): Boolean;
+    procedure SetDefaultText_Bool(const SectionName, KeyName: SystemString; const Value: Boolean);
+    function GetDefaultText_DT(const SectionName, KeyName: SystemString; const DefaultValue: TDateTime): TDateTime;
+    procedure SetDefaultText_DT(const SectionName, KeyName: SystemString; const Value: TDateTime);
 
     // import section
     function DataImport(TextList_: TCore_Strings): Boolean; overload;
@@ -475,6 +485,56 @@ end;
 procedure THashTextEngine.SetDefaultText(const SectionName, KeyName: SystemString; const Value: SystemString);
 begin
   HitString[SectionName, KeyName] := Value;
+end;
+
+function THashTextEngine.GetDefaultText_I32(const SectionName, KeyName: SystemString; const DefaultValue: Integer): Integer;
+begin
+  Result := umlStrToInt(HStringList[SectionName].GetDefaultValue(KeyName, umlIntToStr(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_I32(const SectionName, KeyName: SystemString; const Value: Integer);
+begin
+  HitString[SectionName, KeyName] := umlIntToStr(Value);
+end;
+
+function THashTextEngine.GetDefaultText_I64(const SectionName, KeyName: SystemString; const DefaultValue: Int64): Int64;
+begin
+  Result := umlStrToInt64(HStringList[SectionName].GetDefaultValue(KeyName, umlIntToStr(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_I64(const SectionName, KeyName: SystemString; const Value: Int64);
+begin
+  HitString[SectionName, KeyName] := umlIntToStr(Value);
+end;
+
+function THashTextEngine.GetDefaultText_Float(const SectionName, KeyName: SystemString; const DefaultValue: Double): Double;
+begin
+  Result := umlStrToFloat(HStringList[SectionName].GetDefaultValue(KeyName, umlFloatToStr(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_Float(const SectionName, KeyName: SystemString; const Value: Double);
+begin
+  HitString[SectionName, KeyName] := umlFloatToStr(Value);
+end;
+
+function THashTextEngine.GetDefaultText_Bool(const SectionName, KeyName: SystemString; const DefaultValue: Boolean): Boolean;
+begin
+  Result := umlStrToBool(HStringList[SectionName].GetDefaultValue(KeyName, umlBoolToStr(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_Bool(const SectionName, KeyName: SystemString; const Value: Boolean);
+begin
+  HitString[SectionName, KeyName] := umlBoolToStr(Value);
+end;
+
+function THashTextEngine.GetDefaultText_DT(const SectionName, KeyName: SystemString; const DefaultValue: TDateTime): TDateTime;
+begin
+  Result := umlDT(HStringList[SectionName].GetDefaultValue(KeyName, umlDT(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_DT(const SectionName, KeyName: SystemString; const Value: TDateTime);
+begin
+  HitString[SectionName, KeyName] := umlDT(Value);
 end;
 
 function THashTextEngine.DataImport(TextList_: TCore_Strings): Boolean;
