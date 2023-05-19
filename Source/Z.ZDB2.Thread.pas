@@ -63,6 +63,10 @@ type
     FTh_Engine_Data_Ptr: TZDB2_Th_Engine_Data_BigList___.PQueueStruct; // engine data ptr
     FID: Integer; // Th_Engine data ID
     FSize: Int64; // data size
+    // temp data swap technology
+    // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
+    // after the long loop ends, the data will truly become a engine structure
+    FIn_Temp_Swap_Pool: Boolean;
     // In a multithreaded instance, data will be busy-loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
     FOneWayDataProcessReady: Boolean; // instance and data is first operation
@@ -103,6 +107,7 @@ type
     procedure MoveToLast;
     procedure MoveToFirst;
     // async delete and delay free, file is only do remove memory
+    procedure Do_Remove(); virtual; // external event support
     function Remove(Delete_Data_: Boolean): Boolean; overload;
     function Remove(): Boolean; overload;
     // sync load.
@@ -193,6 +198,12 @@ type
     FBackup_Directory: U_String; // the current database directory will be used if the backup directory is empty
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
     procedure Do_Start_Backup_Thread(thSender: TCompute);
+  private
+    // temp data swap technology
+    // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
+    // after the long loop ends, the data will truly become a engine structure
+    Temp_Swap_Pool: TZDB2_Th_Engine_Data_BigList___;
+    procedure Flush_Temp_Swap_Pool();
   public
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
@@ -560,6 +571,7 @@ begin
   FTh_Engine_Data_Ptr := nil;
   FID := -1;
   FSize := 0;
+  FIn_Temp_Swap_Pool := False;
   FOneWayDataProcessReady := False;
   FInstance_Busy := 0;
   FLocked := False;
@@ -642,12 +654,12 @@ end;
 
 function TZDB2_Th_Engine_Data.Can_Progress: Boolean;
 begin
-  Result := (not FPost_Free_Runing) and (is_UnLocked) and (not FPost_Free_Runing) and (not FLoad_Data_Error);
+  Result := (not FPost_Free_Runing) and (is_UnLocked) and (not FPost_Free_Runing) and (not FLoad_Data_Error) and (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil);
 end;
 
 function TZDB2_Th_Engine_Data.Can_Free: Boolean;
 begin
-  Result := (FInstance_Busy <= 0) and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0);
+  Result := (FInstance_Busy <= 0) and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0) and (not FIn_Temp_Swap_Pool) and (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil);
 end;
 
 procedure TZDB2_Th_Engine_Data.MoveToLast;
@@ -674,6 +686,11 @@ begin
     end;
 end;
 
+procedure TZDB2_Th_Engine_Data.Do_Remove;
+begin
+
+end;
+
 function TZDB2_Th_Engine_Data.Remove(Delete_Data_: Boolean): Boolean;
 var
   Engine__: TZDB2_Th_Engine;
@@ -684,6 +701,8 @@ begin
   if not FPost_Free_Runing then
     begin
       FPost_Free_Runing := True;
+
+      Do_Remove();
 
       if Delete_Data_ and (Engine <> nil) then
         begin
@@ -1442,12 +1461,32 @@ begin
     end;
 end;
 
+procedure TZDB2_Th_Engine.Flush_Temp_Swap_Pool;
+begin
+  Temp_Swap_Pool.Lock;
+  try
+    Temp_Swap_Pool.Free_Recycle_Pool;
+    if Temp_Swap_Pool.num > 0 then
+      with Temp_Swap_Pool.repeat_ do
+        repeat
+          Queue^.Data.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Queue^.Data);
+          Queue^.Data.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Queue^.Data);
+          Queue^.Data.FIn_Temp_Swap_Pool := False;
+          Temp_Swap_Pool.Push_To_Recycle_Pool(Queue);
+        until not Next;
+    Temp_Swap_Pool.Free_Recycle_Pool;
+  finally
+      Temp_Swap_Pool.UnLock;
+  end;
+end;
+
 constructor TZDB2_Th_Engine.Create(Owner_: TZDB2_Th_Engine_Marshal);
 begin
   inherited Create;
   FLast_Backup_Execute_Time := GetTimeTick();
   FBackup_Is_Busy := False;
   FBackup_Directory := '';
+  Temp_Swap_Pool := TZDB2_Th_Engine_Data_BigList___.Create; // temp data pool
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
@@ -1490,6 +1529,7 @@ begin
       end;
 
     disposeObjectAndNil(Th_Engine_Data_Pool);
+    disposeObjectAndNil(Temp_Swap_Pool);
     disposeObjectAndNil(Engine);
     disposeObjectAndNil(Cipher);
     if RemoveDatabaseOnDestroy and umlFileExists(Database_File) then
@@ -1631,7 +1671,7 @@ var
 begin
   if Engine = nil then
       exit;
-  if Engine.Is_Memory_Data then
+  if Engine.Is_Memory_Database then
       exit;
   if not umlFileExists(Engine.Get_Database_FileName) then
       exit;
@@ -2336,14 +2376,24 @@ begin
       exit;
 
   Data_Instance := Data_Class.Create();
-  Data_Instance.Lock;
   Data_Instance.FOwner := Owner;
-  Data_Instance.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Data_Instance);
   Data_Instance.FTh_Engine := Self;
-  Data_Instance.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Data_Instance);
   Data_Instance.FID := ID;
   Data_Instance.FSize := ID_Size;
-  Data_Instance.UnLock;
+
+  if Owner.FLong_Loop_Num > 0 then
+    begin
+      Data_Instance.FIn_Temp_Swap_Pool := True;
+      Temp_Swap_Pool.Add(Data_Instance);
+    end
+  else
+    begin
+      Data_Instance.FIn_Temp_Swap_Pool := False;
+      Data_Instance.Lock;
+      Data_Instance.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Data_Instance);
+      Data_Instance.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Data_Instance);
+      Data_Instance.UnLock;
+    end;
   Result := Data_Instance;
 end;
 
@@ -2715,7 +2765,16 @@ end;
 destructor TZDB2_Th_Engine_Marshal.Destroy;
 begin
   try
+    // flush now.
     Flush(True);
+    // temp data swap technology
+    // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
+    // after the long loop ends, the data will truly become a engine structure
+    if Engine_Pool.num > 0 then
+      with Engine_Pool.repeat_ do
+        repeat
+            Queue^.Data.Flush_Temp_Swap_Pool;
+        until not Next;
     // free link
     if Data_Link_Recycle_Tool.num > 0 then
       begin
@@ -3089,6 +3148,16 @@ begin
       except
       end;
       Instance_Recycle_Tool.UnLock;
+
+      // temp data swap technology
+      // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
+      // after the long loop ends, the data will truly become a engine structure
+      if Engine_Pool.num > 0 then
+        with Engine_Pool.repeat_ do
+          repeat
+              Queue^.Data.Flush_Temp_Swap_Pool;
+          until not Next;
+
       AtomDec(FLong_Loop_Num);
     end;
   UnLock;
