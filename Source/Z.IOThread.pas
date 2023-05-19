@@ -559,24 +559,18 @@ end;
 function TThread_Pool.TaskNum: NativeInt;
 var
   R_: Int64;
-{$IFDEF FPC}
-  procedure fpc_progress_(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-  begin
-    inc(R_, p^.Data.FPost.Count);
-  end;
-{$ENDIF FPC}
-
-
 begin
   R_ := 0;
-{$IFDEF FPC}
-  For_P(@fpc_progress_);
-{$ELSE FPC}
-  For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
-    begin
-      inc(R_, p^.Data.FPost.Count);
-    end);
-{$ENDIF FPC}
+  FCritical.Lock;
+  try
+    if Num > 0 then
+      with Repeat_ do
+        repeat
+            inc(R_, Queue^.Data.FPost.Num);
+        until not Next;
+  finally
+      FCritical.UnLock;
+  end;
   Result := R_;
 end;
 
