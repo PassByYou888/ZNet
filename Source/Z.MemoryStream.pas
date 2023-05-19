@@ -41,6 +41,7 @@ type
 
     function Mem64: TMem64;
     function Clone: TMS64;
+    function Swap_To_New_Instance: TMS64;
     procedure DiscardMemory;
     procedure Clear;
     procedure NewParam(source: TMS64); overload;
@@ -223,6 +224,7 @@ type
 
     function Stream64: TMS64;
     function Clone: TMem64;
+    function Swap_To_New_Instance: TMem64;
     procedure DiscardMemory;
     procedure Clear;
     procedure NewParam(source: TMS64); overload;
@@ -476,6 +478,12 @@ begin
   Result.Size := Size;
   CopyPtr(Memory, Result.Memory, Size);
   Result.Position := Position;
+end;
+
+function TMS64.Swap_To_New_Instance: TMS64;
+begin
+  Result := TMS64.Create;
+  SwapInstance(Result);
 end;
 
 procedure TMS64.DiscardMemory;
@@ -1465,6 +1473,12 @@ begin
   Result.Size := Size;
   CopyPtr(Memory, Result.Memory, Size);
   Result.Position := Position;
+end;
+
+function TMem64.Swap_To_New_Instance: TMem64;
+begin
+  Result := TMem64.Create;
+  SwapInstance(Result);
 end;
 
 procedure TMem64.DiscardMemory;
