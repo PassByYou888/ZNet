@@ -655,6 +655,7 @@ type
     function DecodeFrom(source: TCore_Stream): Integer; overload;
     function DecodeFromMemory(memory_: Pointer; mSize: Int64; const FastMode: Boolean): Integer; overload;
     function DecodeFromMemory(stream: TMS64; const FastMode: Boolean): Integer; overload;
+    function DecodeFromMemory(stream: TMem64; const FastMode: Boolean): Integer; overload;
     procedure EncodeToBytes(const Compressed, FastMode: Boolean; var output: TBytes);
     procedure DecodeFromBytes(var buff: TBytes); overload;
     procedure DecodeFromBytes(var buff: TBytes; const FastMode: Boolean); overload;
@@ -4912,6 +4913,16 @@ begin
 end;
 
 function TDFE.DecodeFromMemory(stream: TMS64; const FastMode: Boolean): Integer;
+var
+  m64: TMS64;
+begin
+  m64 := TMS64.Create;
+  m64.Mapping(stream);
+  Result := DecodeFrom(m64, FastMode);
+  DisposeObject(m64);
+end;
+
+function TDFE.DecodeFromMemory(stream: TMem64; const FastMode: Boolean): Integer;
 var
   m64: TMS64;
 begin
