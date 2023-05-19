@@ -2346,13 +2346,13 @@ begin
                 begin
                   if not umlFileSeek(FSpace_IOHnd^, Position) then
                     begin
-                      ErrorInfo('WriteData: umlFileSeek Block error.');
+                      ErrorInfo('WriteStream: umlFileSeek Block error.');
                       exit;
                     end;
                   DoEncrypt(SwapBuff_, Size);
                   if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, Size) then
                     begin
-                      ErrorInfo('WriteData: umlBlockWrite Block error.');
+                      ErrorInfo('WriteStream: umlBlockWrite Block error.');
                       exit;
                     end;
                 end;
@@ -2375,19 +2375,19 @@ begin
                 begin
                   if not umlFileSeek(FSpace_IOHnd^, Position) then
                     begin
-                      ErrorInfo('WriteData: umlFileSeek tail Block error.');
+                      ErrorInfo('WriteStream: umlFileSeek tail Block error.');
                       exit;
                     end;
                   DoEncrypt(SwapBuff_, tmp);
                   if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, tmp) then
                     begin
-                      ErrorInfo('WriteData: umlBlockWrite tail Block error.');
+                      ErrorInfo('WriteStream: umlBlockWrite tail Block error.');
                       exit;
                     end;
                   if Size - tmp > 0 then
                     if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size - tmp) then
                       begin
-                        ErrorInfo('WriteData: umlBlockWrite tail (NULL) error.');
+                        ErrorInfo('WriteStream: umlBlockWrite tail (NULL) error.');
                         exit;
                       end;
                 end;
