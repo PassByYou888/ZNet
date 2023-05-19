@@ -381,7 +381,8 @@ type
     function CoreSpace_Free_Space_Size: Int64;
     function CoreSpace_BlockCount: Integer;
     function IsOnlyRead: Boolean;
-    function Is_Memory_Data: Boolean;
+    function Is_Memory_Database: Boolean;
+    function Is_File_Database: Boolean;
     function Get_Database_FileName: U_String;
     function Get_CoreSpace_State(): TZDB2_SpaceState;
     procedure Wait_Queue;
@@ -1297,10 +1298,17 @@ begin
   FCMD_Queue.Critical__.UnLock;
 end;
 
-function TZDB2_Th_Queue.Is_Memory_Data: Boolean;
+function TZDB2_Th_Queue.Is_Memory_Database: Boolean;
 begin
   FCMD_Queue.Critical__.Lock;
   Result := (FCoreSpace_IOHnd.Handle is TMS64) or (FCoreSpace_IOHnd.Handle is TCore_MemoryStream);
+  FCMD_Queue.Critical__.UnLock;
+end;
+
+function TZDB2_Th_Queue.Is_File_Database: Boolean;
+begin
+  FCMD_Queue.Critical__.Lock;
+  Result := (FCoreSpace_IOHnd.Handle is TCore_FileStream) or (FCoreSpace_IOHnd.Handle is TReliableFileStream);
   FCMD_Queue.Critical__.UnLock;
 end;
 
