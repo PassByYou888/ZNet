@@ -2830,6 +2830,8 @@ function CompareIPV6(const IP1, IP2: TIPV6): Boolean;
 function TranslateBindAddr(addr: SystemString): SystemString;
 procedure ExtractHostAddress(var Host: U_String; var Port: Word); overload;
 procedure ExtractHostAddress(var Host, Port: U_String); overload;
+function Build_Host_URL(Host, Port: SystemString): SystemString; overload;
+function Build_Host_URL(Host: SystemString; Port: Word): SystemString; overload;
 
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 {$ENDREGION 'misc-api'}
@@ -3503,6 +3505,22 @@ begin
       Port := umlGetLastStr(Host, '|');
       Host := umlDeleteLastStr(Host, '|');
     end;
+end;
+
+function Build_Host_URL(Host, Port: SystemString): SystemString;
+begin
+  if IsIPV6(Host) then
+      Result := Format('%s|%s', [Host, Port])
+  else
+      Result := Format('%s:%s', [Host, Port]);
+end;
+
+function Build_Host_URL(Host: SystemString; Port: Word): SystemString;
+begin
+  if IsIPV6(Host) then
+      Result := Format('%s|%d', [Host, Port])
+  else
+      Result := Format('%s:%d', [Host, Port]);
 end;
 
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
@@ -13655,6 +13673,7 @@ end;
 destructor TZNet_WithP2PVM_Server.Destroy;
 var
   i: Integer;
+  L: TCore_List;
   p: PUInt32HashListObjectStruct;
 begin
   CloseAllClient;
@@ -13662,17 +13681,17 @@ begin
 
   if (FLinkVMPool.Count > 0) then
     begin
-      i := 0;
-      p := FLinkVMPool.FirstPtr;
-      while i < FLinkVMPool.Count do
-        begin
-          try
+      L := TCore_List.Create;
+      try
+        FLinkVMPool.GetListData(L);
+        for i := 0 to L.Count - 1 do
+          begin
+            p := L[i];
             (TZNet_WithP2PVM(p^.data)).UninstallLogicFramework(self);
-          except
           end;
-          inc(i);
-          p := p^.Next;
-        end;
+      except
+      end;
+      DisposeObject(L);
     end;
 
   DisposeObject(FLinkVMPool);
