@@ -222,7 +222,8 @@ function umlTime: Double;
 function umlDate: Double;
 function umlDefaultAttrib: Integer;
 function umlBoolToStr(const Value: Boolean): TPascalString;
-function umlStrToBool(const Value: TPascalString): Boolean;
+function umlStrToBool(const Value: TPascalString; Default_: Boolean): Boolean; overload;
+function umlStrToBool(const Value: TPascalString): Boolean; overload;
 
 function umlFileExists(const FileName: TPascalString): Boolean;
 function umlDirectoryExists(const DirectoryName: TPascalString): Boolean;
@@ -393,6 +394,7 @@ function umlStrToDateTime(s: TPascalString): TDateTime;
 function umlDateTimeToStr(t: TDateTime): TPascalString;
 function umlDT(t: TDateTime): TPascalString; overload;
 function umlDT(s: TPascalString): TDateTime; overload;
+function umlDT(s: TPascalString; Default_: TDateTime): TDateTime; overload;
 
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
 function umlDateToStr(t: TDateTime): TPascalString;
@@ -1596,7 +1598,7 @@ begin
       Result := 'False';
 end;
 
-function umlStrToBool(const Value: TPascalString): Boolean;
+function umlStrToBool(const Value: TPascalString; Default_: Boolean): Boolean;
 var
   NewValue: TPascalString;
 begin
@@ -1614,7 +1616,12 @@ begin
   else if NewValue.Same('0') then
       Result := False
   else
-      Result := False;
+      Result := Default_;
+end;
+
+function umlStrToBool(const Value: TPascalString): Boolean;
+begin
+  Result := umlStrToBool(Value, False);
 end;
 
 function umlFileExists(const FileName: TPascalString): Boolean;
@@ -4037,6 +4044,15 @@ end;
 function umlDT(s: TPascalString): TDateTime;
 begin
   Result := umlStrToDateTime(s);
+end;
+
+function umlDT(s: TPascalString; Default_: TDateTime): TDateTime;
+begin
+  try
+      Result := umlDT(s);
+  except
+      Result := Default_;
+  end;
 end;
 
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
