@@ -904,6 +904,7 @@ type
     function Do_Reg(var OP_Param: TOpParam): Variant;
     function Do_KillNet(var OP_Param: TOpParam): Variant;
     function Do_SetQuiet(var OP_Param: TOpParam): Variant;
+    function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
@@ -916,6 +917,7 @@ type
   end;
 {$ENDREGION 'C40-Console'}
 {$REGION 'Var'}
+
 
 var
   { quiet mode, defualt is false }
@@ -6352,6 +6354,54 @@ begin
   Result := True;
 end;
 
+function TC40_Console_Help.Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
+var
+  hpc_: THPC_Base;
+begin
+  HPC_Instance_Pool.Lock;
+  try
+    if HPC_Instance_Pool.Num > 0 then
+      with HPC_Instance_Pool.Repeat_ do
+        repeat
+          hpc_ := queue^.Data;
+          if hpc_ is THPC_Stream then
+            begin
+              try
+                  DoStatus('cmd:%s framework:%s time:%s ', [
+                    THPC_Stream(hpc_).Cmd,
+                    THPC_Stream(hpc_).Framework.name,
+                    umlTimeTickToStr(GetTimeTick - THPC_Stream(hpc_).TriggerTime).Text]);
+              except
+              end;
+            end
+          else if hpc_ is THPC_DirectStream then
+            begin
+              DoStatus('cmd:%s framework:%s time:%s ', [
+                  THPC_DirectStream(hpc_).Cmd,
+                  THPC_DirectStream(hpc_).Framework.name,
+                  umlTimeTickToStr(GetTimeTick - THPC_DirectStream(hpc_).TriggerTime).Text]);
+            end
+          else if hpc_ is THPC_Console then
+            begin
+              DoStatus('cmd:%s framework:%s time:%s ', [
+                  THPC_Console(hpc_).Cmd,
+                  THPC_Console(hpc_).Framework.name,
+                  umlTimeTickToStr(GetTimeTick - THPC_Console(hpc_).TriggerTime).Text]);
+            end
+          else if hpc_ is THPC_DirectConsole then
+            begin
+              DoStatus('cmd:%s framework:%s time:%s ', [
+                  THPC_DirectConsole(hpc_).Cmd,
+                  THPC_DirectConsole(hpc_).Framework.name,
+                  umlTimeTickToStr(GetTimeTick - THPC_DirectConsole(hpc_).TriggerTime).Text]);
+            end;
+        until not Next;
+  finally
+      HPC_Instance_Pool.UnLock;
+  end;
+  Result := HPC_Instance_Pool.Num;
+end;
+
 function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
 var
   tk: TTimeTick;
@@ -6362,7 +6412,7 @@ var
   rData: TC4_Help_Console_Command_Data;
 begin
   tk := GetTimeTick;
-  LName := Sender.Trigger^.Name;
+  LName := Sender.Trigger^.name;
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
       cc := C40_ServicePool[i].ConsoleCommand;
@@ -6370,7 +6420,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6386,7 +6436,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6402,7 +6452,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6418,7 +6468,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6466,6 +6516,7 @@ begin
   opRT.RegOpM('cli', 'cli(ip, port), tunnel report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('RegInfo', 'C4 registed info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
@@ -6476,7 +6527,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6489,7 +6540,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6502,7 +6553,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6515,7 +6566,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.Queue^.Data;
+            rData := __repeat__.queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
