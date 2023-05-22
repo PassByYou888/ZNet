@@ -1239,7 +1239,7 @@ begin
   RefreshDependReg('DP');
   RefreshServiceReg('DP');
 
-  SysProgress.PostM1(Do_Init_CmdLine);
+  MainThreadProgress.PostM1(Do_Init_CmdLine);
 end;
 
 destructor TC40AppTempletForm.Destroy;

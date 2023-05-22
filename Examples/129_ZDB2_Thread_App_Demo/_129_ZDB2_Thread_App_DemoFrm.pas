@@ -219,7 +219,7 @@ end;
 procedure T_129_ZDB2_Thread_App_DemoForm.Do_Sim_Remove;
 begin
   TCompute.Sleep(100);
-  Sim_Mem_DB.For_P(True, 8, procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean)
+  Sim_Mem_DB.Parallel_For_P(True, 8, procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean)
     var
       inst: TCustom_Data;
     begin
@@ -250,7 +250,7 @@ procedure T_129_ZDB2_Thread_App_DemoForm.Do_Sim_For;
 begin
   if not For_CheckBox.Checked then
       exit;
-  Sim_Mem_DB.For_P(True, 8, procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean)
+  Sim_Mem_DB.Parallel_For_P(True, 8, procedure(Sender: TZDB2_Th_Engine_Data; Index: Int64; var Aborted: Boolean)
     var
       inst: TCustom_Data;
     begin
@@ -263,7 +263,7 @@ constructor T_129_ZDB2_Thread_App_DemoForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   AddDoStatusHook(self, backcall_DoStatus);
-  Sim_Mem_DB := TZDB2_Th_Engine_Marshal.Create;
+  Sim_Mem_DB := TZDB2_Th_Engine_Marshal.Create(Self);
   Sim_Mem_DB.Current_Data_Class := TCustom_Data;
   Task_Num := 0;
   Add_Num := 0;
