@@ -215,6 +215,8 @@ var
   LTK, L: TTimeTick;
   p: TIO_Thread_Queue.POrderStruct;
 begin
+  Sender.Thread_Info := ClassName;
+
   AtomInc(FThNum);
   LTK := GetTimeTick();
   while FThRunning.V do
@@ -712,6 +714,7 @@ var
   L: NativeInt;
   Last_TK, IDLE_TK: TTimeTick;
 begin
+  ThSender.Thread_Info := ClassName;
   FBindTh := ThSender;
   FPost := TThreadPost.Create(ThSender.ThreadID);
   FPost.OneStep := False;

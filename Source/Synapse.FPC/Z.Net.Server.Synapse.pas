@@ -307,6 +307,8 @@ begin
   FListenTh.Suspended := False;
   while not FListenTh.Activted do
       Z.Core.CheckThreadSynchronize(1);
+
+  name:='Synapse-Server';
 end;
 
 destructor TZNet_Server_Synapse.Destroy;

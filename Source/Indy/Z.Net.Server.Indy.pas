@@ -227,6 +227,8 @@ begin
   FDriver.OnDisconnect := Indy_Disconnect;
   FDriver.OnException := Indy_Exception;
   FDriver.OnExecute := Indy_Execute;
+
+  name:='INDY-Server';
 end;
 
 destructor TZNet_Server_Indy.Destroy;

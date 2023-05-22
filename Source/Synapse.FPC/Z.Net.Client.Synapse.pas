@@ -176,6 +176,8 @@ begin
   Sock.CreateSocket;
   InternalClient := TSynapseClient_PeerIO.Create(Self, Sock);
   SockConnected := False;
+
+  name:='Synapse-Client';
 end;
 
 destructor TZNet_Client_Synapse.Destroy;

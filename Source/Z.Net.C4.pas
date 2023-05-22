@@ -17,6 +17,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.Expression, Z.OpCode,
+  Z.ZDB2, Z.ZDB2.Thread.Queue, Z.ZDB2.Thread,
   Z.Net, Z.Net.PhysicsIO,
   Z.Net.DoubleTunnelIO,
   Z.Net.DataStoreService,
@@ -158,7 +159,7 @@ type
   private
     IsConnecting: Boolean;
     IsWaitBuildNetwor: Boolean;
-    BuildNetworkIsDone: Boolean;
+    Network_Is_Inited: Boolean;
     OfflineTime: TTimeTick;
     procedure DoDelayConnect();
     procedure DoConnectOnResult(const state: Boolean);
@@ -905,6 +906,8 @@ type
     function Do_KillNet(var OP_Param: TOpParam): Variant;
     function Do_SetQuiet(var OP_Param: TOpParam): Variant;
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
+    function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
+    function Do_ZDB2_Info(var OP_Param: TOpParam): Variant;
     function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
@@ -983,6 +986,7 @@ procedure C40PrintRegistation;
 { search physics }
 function C40ExistsPhysicsNetwork(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
 function C40_Get_Physics_Connected_Num(): Integer;
+function C40_Get_Physics_Netowork_Is_Inited_Num(): Integer;
 
 { Kill physics tunnel }
 procedure C40RemovePhysics(PhysicsAddr: U_String; PhysicsPort: Word;
@@ -1296,8 +1300,16 @@ begin
   Result := 0;
   for i := 0 to C40_PhysicsServicePool.Count - 1 do
       inc(Result, C40_PhysicsServicePool[i].PhysicsTunnel.Count);
+  inc(Result, C40_Get_Physics_Netowork_Is_Inited_Num);
+end;
+
+function C40_Get_Physics_Netowork_Is_Inited_Num(): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
   for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-    if C40_PhysicsTunnelPool[i].PhysicsTunnel.RemoteInited then
+    if C40_PhysicsTunnelPool[i].Network_Is_Inited then
         inc(Result, 1);
 end;
 
@@ -1408,13 +1420,13 @@ begin
   while i < C40_PhysicsTunnelPool.Count do
     begin
       tmp := C40_PhysicsTunnelPool[i];
-      if (not tmp.PhysicsTunnel.RemoteInited) and (not tmp.BuildNetworkIsDone) and
+      if (not tmp.PhysicsTunnel.RemoteInited) and (not tmp.Network_Is_Inited) and
         (tmp.OfflineTime > 0) and (GetTimeTick - tmp.OfflineTime > C40_KillDeadPhysicsConnectionTimeout) then
         begin
           C40RemovePhysics(tmp);
           i := 0;
         end
-      else if (not tmp.PhysicsTunnel.RemoteInited) and (tmp.BuildNetworkIsDone) and
+      else if (not tmp.PhysicsTunnel.RemoteInited) and (tmp.Network_Is_Inited) and
         (tmp.OfflineTime > 0) and (GetTimeTick - tmp.OfflineTime > C40_KillIDCFaultTimeout) then
         begin
           C40RemovePhysics(tmp);
@@ -1927,7 +1939,7 @@ begin
           Connect;
 
   C40_PhysicsTunnel.IsWaitBuildNetwor := False;
-  C40_PhysicsTunnel.BuildNetworkIsDone := True;
+  C40_PhysicsTunnel.Network_Is_Inited := True;
   C40_PhysicsTunnel.OfflineTime := 0;
   DoRun(True);
 end;
@@ -2017,7 +2029,7 @@ end;
 
 procedure TC40_PhysicsTunnel.DoConnectOnResult(const state: Boolean);
 begin
-  if not BuildNetworkIsDone then
+  if not Network_Is_Inited then
     begin
       if state then
           PhysicsTunnel.Print('Physics Tunnel connection successed, internet addr: %s port: %d', [PhysicsAddr.Text, PhysicsPort])
@@ -2126,7 +2138,7 @@ begin
   inherited Create;
   IsConnecting := False;
   IsWaitBuildNetwor := False;
-  BuildNetworkIsDone := False;
+  Network_Is_Inited := False;
   OfflineTime := GetTimeTick;
 
   PhysicsAddr := umlTrimSpace(Addr_);
@@ -2190,7 +2202,7 @@ begin
   PhysicsTunnel.Progress;
 
   { check state and reconnection }
-  if BuildNetworkIsDone and (not IsConnecting) and (not PhysicsTunnel.RemoteInited) then
+  if Network_Is_Inited and (not IsConnecting) and (not PhysicsTunnel.RemoteInited) then
     begin
       IsConnecting := True;
       PhysicsTunnel.PostProgress.PostExecuteM_NP(C40_PhysicsReconnectionDelayTime, {$IFDEF FPC}@{$ENDIF FPC}DoDelayConnect);
@@ -2381,7 +2393,7 @@ begin
       exit;
   if IsWaitBuildNetwor then
       exit;
-  if BuildNetworkIsDone then
+  if Network_Is_Inited then
       exit;
 
   Result := True;
@@ -2419,7 +2431,7 @@ begin
   if IsWaitBuildNetwor then
       exit;
 
-  if BuildNetworkIsDone then
+  if Network_Is_Inited then
     begin
       IsWaitBuildNetwor := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
@@ -2468,7 +2480,7 @@ begin
   if IsWaitBuildNetwor then
       exit;
 
-  if BuildNetworkIsDone then
+  if Network_Is_Inited then
     begin
       IsWaitBuildNetwor := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
@@ -2517,7 +2529,7 @@ begin
   if IsWaitBuildNetwor then
       exit;
 
-  if BuildNetworkIsDone then
+  if Network_Is_Inited then
     begin
       IsWaitBuildNetwor := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
@@ -2639,7 +2651,7 @@ begin
       exit;
   if not PhysicsTunnel.RemoteInited then
       exit;
-  if not BuildNetworkIsDone then
+  if not Network_Is_Inited then
       exit;
   for i := 0 to DependNetworkClientPool.Count - 1 do
     if not DependNetworkClientPool[i].Connected then
@@ -2708,7 +2720,7 @@ begin
       Result.ResetDepend(Depend_);
       Result.BuildDependNetwork();
     end
-  else if (not Result.IsConnecting) and (not Result.BuildNetworkIsDone) then
+  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
@@ -2727,7 +2739,7 @@ begin
       Result.ResetDepend(Depend_);
       Result.BuildDependNetwork();
     end
-  else if (not Result.IsConnecting) and (not Result.BuildNetworkIsDone) then
+  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
@@ -2755,7 +2767,7 @@ begin
       Result.ResetDepend(Depend_);
       Result.BuildDependNetwork();
     end
-  else if (not Result.IsConnecting) and (not Result.BuildNetworkIsDone) then
+  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
@@ -2774,7 +2786,7 @@ begin
       Result.ResetDepend(Depend_);
       Result.BuildDependNetwork();
     end
-  else if (not Result.IsConnecting) and (not Result.BuildNetworkIsDone) then
+  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
@@ -6184,7 +6196,6 @@ begin
         [custom_serv.ServiceInfo.p2pVM_RecvTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_RecvTunnel_Port]);
       DoStatus('Send Tunnel IP: %s Port: %d',
         [custom_serv.ServiceInfo.p2pVM_SendTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_SendTunnel_Port]);
-      DoStatus('Workload: %d/%d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]);
       DoStatus('Parameter', []);
       DoStatus('{', []);
       DoStatus(#9 + umlReplace(custom_serv.ParamList.AsText, #13#10, #13#10#9, False, False));
@@ -6361,45 +6372,151 @@ begin
   HPC_Instance_Pool.Lock;
   try
     if HPC_Instance_Pool.Num > 0 then
-      with HPC_Instance_Pool.Repeat_ do
-        repeat
-          hpc_ := queue^.Data;
-          if hpc_ is THPC_Stream then
-            begin
-              try
-                  DoStatus('cmd:%s framework:%s time:%s ', [
-                    THPC_Stream(hpc_).Cmd,
-                    THPC_Stream(hpc_).Framework.name,
-                    umlTimeTickToStr(GetTimeTick - THPC_Stream(hpc_).TriggerTime).Text]);
-              except
+      begin
+        with HPC_Instance_Pool.Repeat_ do
+          repeat
+            hpc_ := Queue^.Data;
+            if hpc_ is THPC_Stream then
+              begin
+                try
+                    DoStatus('cmd:%s framework:%s time:%s ', [
+                      THPC_Stream(hpc_).Cmd,
+                      THPC_Stream(hpc_).Framework.name,
+                      umlTimeTickToStr(GetTimeTick - THPC_Stream(hpc_).TriggerTime).Text]);
+                except
+                end;
+              end
+            else if hpc_ is THPC_DirectStream then
+              begin
+                DoStatus('cmd:%s framework:%s time:%s ', [
+                    THPC_DirectStream(hpc_).Cmd,
+                    THPC_DirectStream(hpc_).Framework.name,
+                    umlTimeTickToStr(GetTimeTick - THPC_DirectStream(hpc_).TriggerTime).Text]);
+              end
+            else if hpc_ is THPC_Console then
+              begin
+                DoStatus('cmd:%s framework:%s time:%s ', [
+                    THPC_Console(hpc_).Cmd,
+                    THPC_Console(hpc_).Framework.name,
+                    umlTimeTickToStr(GetTimeTick - THPC_Console(hpc_).TriggerTime).Text]);
+              end
+            else if hpc_ is THPC_DirectConsole then
+              begin
+                DoStatus('cmd:%s framework:%s time:%s ', [
+                    THPC_DirectConsole(hpc_).Cmd,
+                    THPC_DirectConsole(hpc_).Framework.name,
+                    umlTimeTickToStr(GetTimeTick - THPC_DirectConsole(hpc_).TriggerTime).Text]);
               end;
-            end
-          else if hpc_ is THPC_DirectStream then
-            begin
-              DoStatus('cmd:%s framework:%s time:%s ', [
-                  THPC_DirectStream(hpc_).Cmd,
-                  THPC_DirectStream(hpc_).Framework.name,
-                  umlTimeTickToStr(GetTimeTick - THPC_DirectStream(hpc_).TriggerTime).Text]);
-            end
-          else if hpc_ is THPC_Console then
-            begin
-              DoStatus('cmd:%s framework:%s time:%s ', [
-                  THPC_Console(hpc_).Cmd,
-                  THPC_Console(hpc_).Framework.name,
-                  umlTimeTickToStr(GetTimeTick - THPC_Console(hpc_).TriggerTime).Text]);
-            end
-          else if hpc_ is THPC_DirectConsole then
-            begin
-              DoStatus('cmd:%s framework:%s time:%s ', [
-                  THPC_DirectConsole(hpc_).Cmd,
-                  THPC_DirectConsole(hpc_).Framework.name,
-                  umlTimeTickToStr(GetTimeTick - THPC_DirectConsole(hpc_).TriggerTime).Text]);
-            end;
-        until not Next;
+          until not Next;
+        DoStatus('');
+      end;
   finally
       HPC_Instance_Pool.UnLock;
   end;
+
+  TCompute.Get_Core_Thread_Dispatch_Critical.Lock;
+  try
+    if TCompute.Get_Core_Thread_Pool.Num > 0 then
+      begin
+        with TCompute.Get_Core_Thread_Pool.Repeat_ do
+          repeat
+              DoStatus('thread:"%s" time:%s', [Queue^.Data.Thread_Info, umlTimeTickToStr(GetTimeTick - Queue^.Data.Start_Time_Tick).Text]);
+          until not Next;
+        DoStatus('');
+      end;
+  finally
+      TCompute.Get_Core_Thread_Dispatch_Critical.UnLock;
+  end;
+
+  DoStatus('Compute thread summary ' + TCompute.state);
+  DoStatus('');
+
   Result := HPC_Instance_Pool.Num;
+end;
+
+function TC40_Console_Help.Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
+begin
+  ZNet_Instance_Pool.Print_Status;
+  Result := ZNet_Instance_Pool.Num;
+end;
+
+function TC40_Console_Help.Do_ZDB2_Info(var OP_Param: TOpParam): Variant;
+var
+  tmp: SystemString;
+begin
+  DoStatus('');
+  Static_Copy_Instance_Pool__.Lock;
+  try
+    DoStatus('total static-tech backup task: %d', [Static_Copy_Instance_Pool__.Num]);
+    if Static_Copy_Instance_Pool__.Num > 0 then
+      begin
+        with Static_Copy_Instance_Pool__.Repeat_ do
+          repeat
+              DoStatus('static-tech backup task: %s', [Queue^.Data.backup_file.Text]);
+          until not Next;
+      end;
+  finally
+      Static_Copy_Instance_Pool__.UnLock;
+  end;
+
+  DoStatus('');
+  Dynamic_Copy_Instance_Pool__.Lock;
+  try
+    DoStatus('total dynamic-tech backup task: %d', [Dynamic_Copy_Instance_Pool__.Num]);
+    if Dynamic_Copy_Instance_Pool__.Num > 0 then
+      begin
+        with Dynamic_Copy_Instance_Pool__.Repeat_ do
+          repeat
+              DoStatus('dynamic-tech backup task: %s', [Queue^.Data.backup_file.Text]);
+          until not Next;
+      end;
+  finally
+      Dynamic_Copy_Instance_Pool__.UnLock;
+  end;
+
+  if Th_Engine_Marshal_Pool__.Num > 0 then
+    begin
+      DoStatus('');
+      Th_Engine_Marshal_Pool__.Lock;
+      try
+        with Th_Engine_Marshal_Pool__.Repeat_ do
+          repeat
+            if Queue^.Data.Owner <> nil then
+                tmp := Queue^.Data.Owner.ClassName
+            else
+                tmp := 'NULL';
+            DoStatus('"%s" Owner "%s" database %d/%s/%s ', [Queue^.Data.ClassName, tmp, Queue^.Data.Total,
+                umlGSizeToStr(Queue^.Data.Database_Size).Text,
+                umlGSizeToStr(Queue^.Data.Database_Physics_Size).Text
+                ]);
+            DoStatus(Queue^.Data.Get_State_Info());
+          until not Next;
+      finally
+          Th_Engine_Marshal_Pool__.UnLock;
+      end;
+    end;
+
+  if ZDB2_Th_Queue_Instance_Pool__.Num > 0 then
+    begin
+      DoStatus('');
+      ZDB2_Th_Queue_Instance_Pool__.Lock;
+      try
+        with ZDB2_Th_Queue_Instance_Pool__.Repeat_ do
+          repeat
+              DoStatus('Queue Engine: %d Queue:%d Size/Block:%s/%s/%d MTime: %s file: %s',
+              [I__ + 1,
+                Queue^.Data.QueueNum,
+                umlSizeToStr(Queue^.Data.CoreSpace_Size).Text,
+                umlSizeToStr(Queue^.Data.CoreSpace_Physics_Size).Text,
+                Queue^.Data.CoreSpace_BlockCount,
+                umlTimeTickToStr(GetTimeTick - Queue^.Data.Last_Modification).Text,
+                if_(Queue^.Data.Is_Memory_Database, '(Memory)', Queue^.Data.Get_Database_FileName.Text)]);
+          until not Next;
+      finally
+          ZDB2_Th_Queue_Instance_Pool__.UnLock;
+      end;
+    end;
+  Result := ZDB2_Th_Queue_Instance_Pool__.Num;
 end;
 
 function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
@@ -6420,7 +6537,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6436,7 +6553,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6452,7 +6569,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6468,7 +6585,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if LName.Same(rData.Cmd) then
               begin
                 rData.DoExecute(OP_Param);
@@ -6517,6 +6634,8 @@ begin
   opRT.RegOpM('RegInfo', 'C4 registed info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
@@ -6527,7 +6646,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6540,7 +6659,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6553,7 +6672,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
@@ -6566,7 +6685,7 @@ begin
         begin
           __repeat__ := cc.Repeat_;
           repeat
-            rData := __repeat__.queue^.Data;
+            rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
                 opRT.RegObjectOpM(rData.Cmd, rData.Desc, {$IFDEF FPC}@{$ENDIF FPC}Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;

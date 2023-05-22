@@ -787,6 +787,7 @@ begin
       Exit;
 
   ns := TCore_StringList.Create;
+  FSectionList.GetListData(ns);
 
   for i := 0 to ns.Count - 1 do
     begin

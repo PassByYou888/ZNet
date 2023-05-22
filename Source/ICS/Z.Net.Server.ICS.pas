@@ -174,6 +174,8 @@ begin
 
   // client interface
   Driver.OnSessionAvailable := SessionAvailable;
+
+  name:='ICS-Server';
 end;
 
 destructor TZNet_Server_ICS.Destroy;

@@ -156,13 +156,14 @@ type
     PT_ = ^T_;
   private
     FValue__: T_;
-    Critical: TCritical;
+    FCritical: TCritical;
     function GetValue: T_;
     procedure SetValue(const Value_: T_);
     function GetValueP: PT_;
   public
     constructor Create(Value_: T_);
     destructor Destroy; override;
+    property Critical: TCritical read FCritical;
     // operation
     function Lock: T_;
     function LockP: PT_;
@@ -1108,32 +1109,34 @@ type
 {$Region 'ComputeThread'}
   TCompute = class;
 
-  TRunWithThread_C = procedure(ThSender: TCompute);
-  TRunWithThread_M = procedure(ThSender: TCompute) of object;
-  TRunWithThread_C_NP = procedure();
-  TRunWithThread_M_NP = procedure() of object;
+  TRun_Thread_C = procedure(ThSender: TCompute);
+  TRun_Thread_M = procedure(ThSender: TCompute) of object;
+  TRun_Thread_C_NP = procedure();
+  TRun_Thread_M_NP = procedure() of object;
   {$IFDEF FPC}
-  TRunWithThread_P = procedure(ThSender: TCompute) is nested;
-  TRunWithThread_P_NP = procedure() is nested;
+  TRun_Thread_P = procedure(ThSender: TCompute) is nested;
+  TRun_Thread_P_NP = procedure() is nested;
   {$ELSE FPC}
-  TRunWithThread_P = reference to procedure(ThSender: TCompute);
-  TRunWithThread_P_NP = reference to procedure();
+  TRun_Thread_P = reference to procedure(ThSender: TCompute);
+  TRun_Thread_P_NP = reference to procedure();
   {$ENDIF FPC}
   TCoreCompute_Thread_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCompute>;
 
   TCompute = class(TCore_Thread)
   private
     Thread_Pool_Queue_Data_Ptr: TCoreCompute_Thread_Pool.PQueueStruct;
-    OnRun_C: TRunWithThread_C;
-    OnRun_M: TRunWithThread_M;
-    OnRun_P: TRunWithThread_P;
-    OnRun_C_NP: TRunWithThread_C_NP;
-    OnRun_M_NP: TRunWithThread_M_NP;
-    OnRun_P_NP: TRunWithThread_P_NP;
-    OnDone_C: TRunWithThread_C;
-    OnDone_M: TRunWithThread_M;
-    OnDone_P: TRunWithThread_P;
+    OnRun_C: TRun_Thread_C;
+    OnRun_M: TRun_Thread_M;
+    OnRun_P: TRun_Thread_P;
+    OnRun_C_NP: TRun_Thread_C_NP;
+    OnRun_M_NP: TRun_Thread_M_NP;
+    OnRun_P_NP: TRun_Thread_P_NP;
+    OnDone_C: TRun_Thread_C;
+    OnDone_M: TRun_Thread_M;
+    OnDone_P: TRun_Thread_P;
     FRndInstance: Pointer;
+    FStart_Time_Tick: TTimeTick;
+    FThread_Info: string;
     IsRuning, IsExit: PBoolean;
   protected
     procedure Execute; override;
@@ -1143,10 +1146,15 @@ type
     UserObject: TCore_Object;
     property Runing_Ptr: PBoolean read IsRuning;
     property Exit_Ptr: PBoolean read IsExit;
+    property Start_Time_Tick: TTimeTick read FStart_Time_Tick;
+    property Thread_Info: string read FThread_Info write FThread_Info;
 
     constructor Create;
     destructor Destroy; override;
-    class function IDLE_Thread(): NativeInt;
+    class procedure Set_Thread_Info(Thread_Info_: string);
+    class function Get_Core_Thread_Pool: TCoreCompute_Thread_Pool;
+    class function Get_Core_Thread_Dispatch_Critical: TCritical;
+    class function Wait_Thread(): NativeInt;
     class function ActivtedTask(): NativeInt;
     class function WaitTask(): NativeInt;
     class function TotalTask(): NativeInt;
@@ -1155,40 +1163,40 @@ type
     class function GetMaxActivtedParallel(): Integer;
 
     // build-in synchronization
-    class procedure Sync(const OnRun_: TRunWithThread_P_NP); overload;
-    class procedure Sync(const Thread_: TThread; OnRun_: TRunWithThread_P_NP); overload;
-    class procedure SyncC(OnRun_: TRunWithThread_C_NP); overload;
-    class procedure SyncC(const Thread_: TThread; OnRun_: TRunWithThread_C_NP); overload;
-    class procedure SyncM(OnRun_: TRunWithThread_M_NP); overload;
-    class procedure SyncM(const Thread_: TThread; OnRun_: TRunWithThread_M_NP); overload;
-    class procedure SyncP(const OnRun_: TRunWithThread_P_NP); overload;
-    class procedure SyncP(const Thread_: TThread; OnRun_: TRunWithThread_P_NP); overload;
+    class procedure Sync(const OnRun_: TRun_Thread_P_NP); overload;
+    class procedure Sync(const Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
+    class procedure SyncC(OnRun_: TRun_Thread_C_NP); overload;
+    class procedure SyncC(const Thread_: TThread; OnRun_: TRun_Thread_C_NP); overload;
+    class procedure SyncM(OnRun_: TRun_Thread_M_NP); overload;
+    class procedure SyncM(const Thread_: TThread; OnRun_: TRun_Thread_M_NP); overload;
+    class procedure SyncP(const OnRun_: TRun_Thread_P_NP); overload;
+    class procedure SyncP(const Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
 
     // build-in asynchronous thread
-    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C); overload;
-    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C); overload;
-    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunC(const OnRun: TRunWithThread_C); overload;
-    class procedure RunC(const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunC_NP(const OnRun: TRunWithThread_C_NP); overload;
-    class procedure RunC_NP(const OnRun: TRunWithThread_C_NP; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M); overload;
-    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M); overload;
-    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunM(const OnRun: TRunWithThread_M); overload;
-    class procedure RunM(const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunM_NP(const OnRun: TRunWithThread_M_NP); overload;
-    class procedure RunM_NP(const OnRun: TRunWithThread_M_NP; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P); overload;
-    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P); overload;
-    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunP(const OnRun: TRunWithThread_P); overload;
-    class procedure RunP(const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean); overload;
-    class procedure RunP_NP(const OnRun: TRunWithThread_P_NP); overload;
-    class procedure RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C); overload;
+    class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunC(const OnRun: TRun_Thread_C); overload;
+    class procedure RunC(const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunC_NP(const OnRun: TRun_Thread_C_NP); overload;
+    class procedure RunC_NP(const OnRun: TRun_Thread_C_NP; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M); overload;
+    class procedure RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunM(const OnRun: TRun_Thread_M); overload;
+    class procedure RunM(const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunM_NP(const OnRun: TRun_Thread_M_NP); overload;
+    class procedure RunM_NP(const OnRun: TRun_Thread_M_NP; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P); overload;
+    class procedure RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunP(const OnRun: TRun_Thread_P); overload;
+    class procedure RunP(const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean); overload;
+    class procedure RunP_NP(const OnRun: TRun_Thread_P_NP); overload;
+    class procedure RunP_NP(const OnRun: TRun_Thread_P_NP; IsRuning_, IsExit_: PBoolean); overload;
 
     // free object in thread
     class procedure PostFreeObjectInThread(const Obj: TObject);
@@ -1663,6 +1671,7 @@ const
 type TOnCheckThreadSynchronize = procedure();
 
 var
+  // Synchronize
   Enabled_Check_Thread_Synchronize_System: Boolean;
   Main_Thread_Synchronize_Running: Boolean;
   Main_Thread_OnCheck_Runing: Boolean;
@@ -1685,7 +1694,6 @@ var
   // MainThread TThreadPost
   MainThreadProgress: TThreadPost;
   MainThreadPost: TThreadPost;
-  SysProgress: TThreadPost;
 {$EndRegion 'core var'}
 {$Region 'compatible'}
 {$I Z.Core.Compatible.inc}
@@ -2306,7 +2314,6 @@ initialization
   Main_Thread_Synchronize_Running := False;
   Main_Thread_OnCheck_Runing := False;
   MainThreadPost := MainThreadProgress;
-  SysProgress := MainThreadProgress;
 finalization
   FreeCoreThreadPool;
   MainThreadProgress.Free;

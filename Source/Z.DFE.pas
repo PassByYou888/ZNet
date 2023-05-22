@@ -473,6 +473,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    function DelayFree: TDFE;
 
     property Reader: TDFEReader read FReader;
     property R: TDFEReader read FReader;
@@ -494,68 +495,67 @@ type
     procedure Assign(source: TDFE);
     function Clone: TDFE;
 
-    procedure WriteString(v: SystemString); overload;
-    procedure WriteString(v: TPascalString); overload;
-    procedure WriteString(const Fmt: SystemString; const Args: array of const); overload;
-    procedure WriteInteger(v: Integer);
-    procedure WriteCardinal(v: Cardinal);
-    procedure WriteWORD(v: Word);
-    procedure WriteBool(v: Boolean);
-    procedure WriteBoolean(v: Boolean);
-    procedure WriteByte(v: Byte);
-    procedure WriteSingle(v: Single);
-    procedure WriteDouble(v: Double);
+    function WriteString(v: SystemString): TDFE; overload;
+    function WriteString(v: TPascalString): TDFE; overload;
+    function WriteString(const Fmt: SystemString; const Args: array of const): TDFE; overload;
+    function WriteInteger(v: Integer): TDFE;
+    function WriteCardinal(v: Cardinal): TDFE;
+    function WriteWORD(v: Word): TDFE;
+    function WriteBool(v: Boolean): TDFE;
+    function WriteBoolean(v: Boolean): TDFE;
+    function WriteByte(v: Byte): TDFE;
+    function WriteSingle(v: Single): TDFE;
+    function WriteDouble(v: Double): TDFE;
     function WriteArrayInteger: TDFArrayInteger;
     function WriteArrayShortInt: TDFArrayShortInt;
     function WriteArrayByte: TDFArrayByte;
-    procedure WriteMD5(md5: TMD5);
+    function WriteMD5(md5: TMD5): TDFE;
     function WriteArraySingle: TDFArraySingle;
     function WriteArrayDouble: TDFArrayDouble;
     function WriteArrayInt64: TDFArrayInt64;
-    procedure WriteMem64(v: TMem64);
-    procedure WriteStream(v: TCore_Stream); overload;
-    procedure WriteStream(v: TMS64; bPos_, Size_: Int64); overload;
-    procedure WriteVariant(v: Variant);
-    procedure WriteInt64(v: Int64);
-    procedure WriteUInt64(v: UInt64);
-    procedure WriteStrings(v: TCore_Strings);
-    procedure WriteListStrings(v: TListString);
-    procedure WritePascalStrings(v: TListPascalString);
-    procedure WriteDataFrame(v: TDFE);
+    function WriteMem64(v: TMem64): TDFE;
+    function WriteStream(v: TCore_Stream): TDFE; overload;
+    function WriteStream(v: TMS64; bPos_, Size_: Int64): TDFE; overload;
+    function WriteVariant(v: Variant): TDFE;
+    function WriteInt64(v: Int64): TDFE;
+    function WriteUInt64(v: UInt64): TDFE;
+    function WriteStrings(v: TCore_Strings): TDFE;
+    function WriteListStrings(v: TListString): TDFE;
+    function WritePascalStrings(v: TListPascalString): TDFE;
+    function WriteDataFrame(v: TDFE): TDFE;
     // select compresssion
-    procedure WriteDataFrameCompressed(v: TDFE);
+    function WriteDataFrameCompressed(v: TDFE): TDFE;
     // zlib compression
-    procedure WriteDataFrameZLib(v: TDFE);
-    //
-    procedure WriteHashStringList(v: THashStringList);
-    procedure WriteVariantList(v: THashVariantList);
-    procedure WriteSectionText(v: TSectionTextData);
-    procedure WriteTextSection(v: TSectionTextData);
-    procedure WriteJson(v: TZ_JsonObject); overload;
-    procedure WriteJson(v: TZ_JsonObject; Formated_: Boolean); overload;
-{$IFDEF DELPHI} procedure WriteJson(v: TJsonObject); overload; {$ENDIF DELPHI}
-    procedure WriteFile(fn: SystemString);
-    procedure WriteRect(v: TRect);
-    procedure WriteRectf(v: TRectf);
-    procedure WritePoint(v: TPoint);
-    procedure WritePointf(v: TPointf);
-    procedure WriteVector(v: TVector);
-    procedure WriteAffineVector(v: TAffineVector);
-    procedure WriteVec4(v: TVec4);
-    procedure WriteVec3(v: TVec3);
-    procedure WriteVector4(v: TVector4);
-    procedure WriteVector3(v: TVector3);
-    procedure WriteMat4(v: TMat4);
-    procedure WriteMatrix4(v: TMatrix4);
-    procedure Write2DPoint(v: T2DPoint);
-    procedure WriteVec2(v: TVec2);
-    procedure WriteRectV2(v: TRectV2);
-    procedure WritePointer(v: Pointer); overload;
-    procedure WritePointer(v: UInt64); overload;
-    procedure WriteNM(NM: TNumberModule);
-    procedure WriteNMPool(NMPool: TNumberModulePool);
+    function WriteDataFrameZLib(v: TDFE): TDFE;
+    function WriteHashStringList(v: THashStringList): TDFE;
+    function WriteVariantList(v: THashVariantList): TDFE;
+    function WriteSectionText(v: TSectionTextData): TDFE;
+    function WriteTextSection(v: TSectionTextData): TDFE;
+    function WriteJson(v: TZ_JsonObject): TDFE; overload;
+    function WriteJson(v: TZ_JsonObject; Formated_: Boolean): TDFE; overload;
+{$IFDEF DELPHI} function WriteJson(v: TJsonObject): TDFE; overload; {$ENDIF DELPHI}
+    function WriteFile(fn: SystemString): TDFE;
+    function WriteRect(v: TRect): TDFE;
+    function WriteRectf(v: TRectf): TDFE;
+    function WritePoint(v: TPoint): TDFE;
+    function WritePointf(v: TPointf): TDFE;
+    function WriteVector(v: TVector): TDFE;
+    function WriteAffineVector(v: TAffineVector): TDFE;
+    function WriteVec4(v: TVec4): TDFE;
+    function WriteVec3(v: TVec3): TDFE;
+    function WriteVector4(v: TVector4): TDFE;
+    function WriteVector3(v: TVector3): TDFE;
+    function WriteMat4(v: TMat4): TDFE;
+    function WriteMatrix4(v: TMatrix4): TDFE;
+    function Write2DPoint(v: T2DPoint): TDFE;
+    function WriteVec2(v: TVec2): TDFE;
+    function WriteRectV2(v: TRectV2): TDFE;
+    function WritePointer(v: Pointer): TDFE; overload;
+    function WritePointer(v: UInt64): TDFE; overload;
+    function WriteNM(NM: TNumberModule): TDFE;
+    function WriteNMPool(NMPool: TNumberModulePool): TDFE;
     // auto append new stream and write
-    procedure write(const Buf_; Count_: Int64);
+    function write(const Buf_; Count_: Int64): TDFE;
 
     function ReadString(index_: Integer): SystemString;
     function ReadInteger(index_: Integer): Integer;
@@ -791,7 +791,7 @@ type
 
 implementation
 
-uses SysUtils, Variants;
+uses SysUtils, Variants, Z.Notify;
 
 constructor TDFBase.Create(ID: Byte);
 begin
@@ -2288,6 +2288,12 @@ begin
   inherited Destroy;
 end;
 
+function TDFE.DelayFree: TDFE;
+begin
+  DelayFreeObj(1.0, self);
+  Result := self;
+end;
+
 procedure TDFE.SwapInstance(source: TDFE);
 var
   tmp_DataList: TDFE_DataList;
@@ -2481,94 +2487,103 @@ begin
   Result.Assign(self);
 end;
 
-procedure TDFE.WriteString(v: SystemString);
+function TDFE.WriteString(v: SystemString): TDFE;
 var
   Obj_: TDFString;
 begin
   Obj_ := TDFString.Create(DataTypeToByte(rdtString));
   Obj_.Buffer := umlBytesOf(v);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteString(v: TPascalString);
+function TDFE.WriteString(v: TPascalString): TDFE;
 var
   Obj_: TDFString;
 begin
   Obj_ := TDFString.Create(DataTypeToByte(rdtString));
   Obj_.Buffer := v.Bytes;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteString(const Fmt: SystemString; const Args: array of const);
+function TDFE.WriteString(const Fmt: SystemString; const Args: array of const): TDFE;
 begin
-  WriteString(PFormat(Fmt, Args));
+  Result := WriteString(PFormat(Fmt, Args));
 end;
 
-procedure TDFE.WriteInteger(v: Integer);
+function TDFE.WriteInteger(v: Integer): TDFE;
 var
   Obj_: TDFInteger;
 begin
   Obj_ := TDFInteger.Create(DataTypeToByte(rdtInteger));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteCardinal(v: Cardinal);
+function TDFE.WriteCardinal(v: Cardinal): TDFE;
 var
   Obj_: TDFCardinal;
 begin
   Obj_ := TDFCardinal.Create(DataTypeToByte(rdtCardinal));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteWORD(v: Word);
+function TDFE.WriteWORD(v: Word): TDFE;
 var
   Obj_: TDFWord;
 begin
   Obj_ := TDFWord.Create(DataTypeToByte(rdtWORD));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteBool(v: Boolean);
+function TDFE.WriteBool(v: Boolean): TDFE;
 begin
   if v then
       WriteByte(1)
   else
       WriteByte(0);
+  Result := self;
 end;
 
-procedure TDFE.WriteBoolean(v: Boolean);
+function TDFE.WriteBoolean(v: Boolean): TDFE;
 begin
-  WriteBool(v);
+  Result := WriteBool(v);
 end;
 
-procedure TDFE.WriteByte(v: Byte);
+function TDFE.WriteByte(v: Byte): TDFE;
 var
   Obj_: TDFByte;
 begin
   Obj_ := TDFByte.Create(DataTypeToByte(rdtByte));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteSingle(v: Single);
+function TDFE.WriteSingle(v: Single): TDFE;
 var
   Obj_: TDFSingle;
 begin
   Obj_ := TDFSingle.Create(DataTypeToByte(rdtSingle));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteDouble(v: Double);
+function TDFE.WriteDouble(v: Double): TDFE;
 var
   Obj_: TDFDouble;
 begin
   Obj_ := TDFDouble.Create(DataTypeToByte(rdtDouble));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
 function TDFE.WriteArrayInteger: TDFArrayInteger;
@@ -2589,9 +2604,10 @@ begin
   FDataList.Add_DFBase(Result);
 end;
 
-procedure TDFE.WriteMD5(md5: TMD5);
+function TDFE.WriteMD5(md5: TMD5): TDFE;
 begin
   WriteArrayByte.SetBuff(@md5[0], SizeOf(TMD5));
+  Result := self;
 end;
 
 function TDFE.WriteArraySingle: TDFArraySingle;
@@ -2612,7 +2628,7 @@ begin
   FDataList.Add_DFBase(Result);
 end;
 
-procedure TDFE.WriteMem64(v: TMem64);
+function TDFE.WriteMem64(v: TMem64): TDFE;
 var
   Obj_: TDFStream;
 begin
@@ -2620,18 +2636,20 @@ begin
   v.Position := 0;
   Obj_.Buffer64.CopyMem64(v, v.Size);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteStream(v: TCore_Stream);
+function TDFE.WriteStream(v: TCore_Stream): TDFE;
 var
   Obj_: TDFStream;
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteStream(v: TMS64; bPos_, Size_: Int64);
+function TDFE.WriteStream(v: TMS64; bPos_, Size_: Int64): TDFE;
 var
   Obj_: TDFStream;
 begin
@@ -2639,36 +2657,40 @@ begin
   Obj_.Buffer64.Clear;
   Obj_.Buffer64.WritePtr(v.PosAsPtr(bPos_), Size_);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteVariant(v: Variant);
+function TDFE.WriteVariant(v: Variant): TDFE;
 var
   Obj_: TDFVariant;
 begin
   Obj_ := TDFVariant.Create(DataTypeToByte(rdtVariant));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteInt64(v: Int64);
+function TDFE.WriteInt64(v: Int64): TDFE;
 var
   Obj_: TDFInt64;
 begin
   Obj_ := TDFInt64.Create(DataTypeToByte(rdtInt64));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteUInt64(v: UInt64);
+function TDFE.WriteUInt64(v: UInt64): TDFE;
 var
   Obj_: TDFUInt64;
 begin
   Obj_ := TDFUInt64.Create(DataTypeToByte(rdtUInt64));
   Obj_.Buffer := v;
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteStrings(v: TCore_Strings);
+function TDFE.WriteStrings(v: TCore_Strings): TDFE;
 var
   m64: TMS64;
 begin
@@ -2679,60 +2701,63 @@ begin
   v.SaveToStream(m64, TEncoding.UTF8);
 {$ENDIF}
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WriteListStrings(v: TListString);
+function TDFE.WriteListStrings(v: TListString): TDFE;
 var
   m64: TMS64;
 begin
   m64 := TMS64.CustomCreate(umlMax(8192, v.Count * 10));
   v.SaveToStream(m64);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WritePascalStrings(v: TListPascalString);
+function TDFE.WritePascalStrings(v: TListPascalString): TDFE;
 var
   m64: TMS64;
 begin
   m64 := TMS64.CustomCreate(umlMax(8192, v.Count * 10));
   v.SaveToStream(m64);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WriteDataFrame(v: TDFE);
+function TDFE.WriteDataFrame(v: TDFE): TDFE;
 var
   Obj_: TDFStream;
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   v.FastEncodeTo(Obj_.Buffer);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteDataFrameCompressed(v: TDFE);
+function TDFE.WriteDataFrameCompressed(v: TDFE): TDFE;
 var
   Obj_: TDFStream;
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   v.EncodeAsSelectCompressor(Obj_.Buffer, True);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteDataFrameZLib(v: TDFE);
+function TDFE.WriteDataFrameZLib(v: TDFE): TDFE;
 var
   Obj_: TDFStream;
 begin
   Obj_ := TDFStream.Create(DataTypeToByte(rdtStream));
   v.EncodeAsZLib(Obj_.Buffer, True);
   FDataList.Add_DFBase(Obj_);
+  Result := self;
 end;
 
-procedure TDFE.WriteHashStringList(v: THashStringList);
+function TDFE.WriteHashStringList(v: THashStringList): TDFE;
 var
   m64: TMS64;
   hash_: THashStringTextStream;
@@ -2742,11 +2767,11 @@ begin
   hash_.SaveToStream(m64);
   DisposeObject(hash_);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WriteVariantList(v: THashVariantList);
+function TDFE.WriteVariantList(v: THashVariantList): TDFE;
 var
   m64: TMS64;
   hash_: THashVariantTextStream;
@@ -2756,59 +2781,59 @@ begin
   hash_.SaveToStream(m64);
   DisposeObject(hash_);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WriteSectionText(v: TSectionTextData);
+function TDFE.WriteSectionText(v: TSectionTextData): TDFE;
 var
   m64: TMS64;
 begin
   m64 := TMS64.Create;
   v.SaveToStream(m64);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
-procedure TDFE.WriteTextSection(v: TSectionTextData);
+function TDFE.WriteTextSection(v: TSectionTextData): TDFE;
 begin
-  WriteSectionText(v);
+  Result := WriteSectionText(v);
 end;
 
-procedure TDFE.WriteJson(v: TZ_JsonObject);
+function TDFE.WriteJson(v: TZ_JsonObject): TDFE;
 begin
-  WriteJson(v, False);
+  Result := WriteJson(v, False);
 end;
 
-procedure TDFE.WriteJson(v: TZ_JsonObject; Formated_: Boolean);
+function TDFE.WriteJson(v: TZ_JsonObject; Formated_: Boolean): TDFE;
 var
   m64: TMS64;
 begin
   m64 := TMS64.Create;
   v.SaveToStream(m64, Formated_);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 
 {$IFDEF DELPHI}
 
 
-procedure TDFE.WriteJson(v: TJsonObject);
+function TDFE.WriteJson(v: TJsonObject): TDFE;
 var
   m64: TMS64;
 begin
   m64 := TMS64.Create;
   v.SaveToStream(m64, True, TEncoding.UTF8, True);
   m64.Position := 0;
-  WriteStream(m64);
+  Result := WriteStream(m64);
   DisposeObject(m64);
 end;
 {$ENDIF DELPHI}
 
 
-procedure TDFE.WriteFile(fn: SystemString);
+function TDFE.WriteFile(fn: SystemString): TDFE;
 var
   fs: TCore_FileStream;
 begin
@@ -2816,12 +2841,14 @@ begin
     begin
       fs := TCore_FileStream.Create(fn, fmOpenRead or fmShareDenyNone);
       fs.Position := 0;
-      WriteStream(fs);
+      Result := WriteStream(fs);
       DisposeObject(fs);
-    end;
+    end
+  else
+    Result := self;
 end;
 
-procedure TDFE.WriteRect(v: TRect);
+function TDFE.WriteRect(v: TRect): TDFE;
 begin
   with WriteArrayInteger do
     begin
@@ -2830,9 +2857,10 @@ begin
       Add(v.Right);
       Add(v.Bottom);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WriteRectf(v: TRectf);
+function TDFE.WriteRectf(v: TRectf): TDFE;
 begin
   with WriteArraySingle do
     begin
@@ -2841,57 +2869,66 @@ begin
       Add(v.Right);
       Add(v.Bottom);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WritePoint(v: TPoint);
+function TDFE.WritePoint(v: TPoint): TDFE;
 begin
   with WriteArrayInteger do
     begin
       Add(v.x);
       Add(v.y);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WritePointf(v: TPointf);
+function TDFE.WritePointf(v: TPointf): TDFE;
 begin
   with WriteArraySingle do
     begin
       Add(v.x);
       Add(v.y);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WriteVector(v: TVector);
+function TDFE.WriteVector(v: TVector): TDFE;
 begin
   WriteArraySingle.WriteArray(v);
+  Result := self;
 end;
 
-procedure TDFE.WriteAffineVector(v: TAffineVector);
+function TDFE.WriteAffineVector(v: TAffineVector): TDFE;
 begin
   WriteArraySingle.WriteArray(v);
+  Result := self;
 end;
 
-procedure TDFE.WriteVec4(v: TVec4);
+function TDFE.WriteVec4(v: TVec4): TDFE;
 begin
   WriteArraySingle.WriteArray(v);
+  Result := self;
 end;
 
-procedure TDFE.WriteVec3(v: TVec3);
+function TDFE.WriteVec3(v: TVec3): TDFE;
 begin
   WriteArraySingle.WriteArray(v);
+  Result := self;
 end;
 
-procedure TDFE.WriteVector4(v: TVector4);
+function TDFE.WriteVector4(v: TVector4): TDFE;
 begin
   WriteArraySingle.WriteArray(v.buff);
+  Result := self;
 end;
 
-procedure TDFE.WriteVector3(v: TVector3);
+function TDFE.WriteVector3(v: TVector3): TDFE;
 begin
   WriteArraySingle.WriteArray(v.buff);
+  Result := self;
 end;
 
-procedure TDFE.WriteMat4(v: TMat4);
+function TDFE.WriteMat4(v: TMat4): TDFE;
 begin
   with WriteArraySingle do
     begin
@@ -2900,44 +2937,47 @@ begin
       WriteArray(v[2]);
       WriteArray(v[3]);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WriteMatrix4(v: TMatrix4);
+function TDFE.WriteMatrix4(v: TMatrix4): TDFE;
 begin
-  WriteMat4(v.buff);
+  Result := WriteMat4(v.buff);
 end;
 
-procedure TDFE.Write2DPoint(v: T2DPoint);
+function TDFE.Write2DPoint(v: T2DPoint): TDFE;
 begin
   with WriteArraySingle do
       WriteArray(v);
+  Result := self;
 end;
 
-procedure TDFE.WriteVec2(v: TVec2);
+function TDFE.WriteVec2(v: TVec2): TDFE;
 begin
-  Write2DPoint(v);
+  Result := Write2DPoint(v);
 end;
 
-procedure TDFE.WriteRectV2(v: TRectV2);
+function TDFE.WriteRectV2(v: TRectV2): TDFE;
 begin
   with WriteArraySingle do
     begin
       WriteArray(v[0]);
       WriteArray(v[1]);
     end;
+  Result := self;
 end;
 
-procedure TDFE.WritePointer(v: Pointer);
+function TDFE.WritePointer(v: Pointer): TDFE;
 begin
-  WriteUInt64(UInt64(v));
+  Result := WriteUInt64(UInt64(v));
 end;
 
-procedure TDFE.WritePointer(v: UInt64);
+function TDFE.WritePointer(v: UInt64): TDFE;
 begin
-  WriteUInt64(v);
+  Result := WriteUInt64(v);
 end;
 
-procedure TDFE.WriteNM(NM: TNumberModule);
+function TDFE.WriteNM(NM: TNumberModule): TDFE;
 var
   D_: TDFE;
 begin
@@ -2945,11 +2985,11 @@ begin
   D_.WriteString(NM.Name);
   D_.WriteVariant(NM.OriginValue);
   D_.WriteVariant(NM.CurrentValue);
-  WriteDataFrame(D_);
+  Result := WriteDataFrame(D_);
   DisposeObject(D_);
 end;
 
-procedure TDFE.WriteNMPool(NMPool: TNumberModulePool);
+function TDFE.WriteNMPool(NMPool: TNumberModulePool): TDFE;
 
 var
   D_: TDFE;
@@ -2986,18 +3026,18 @@ begin
       DisposeObject(Tmp_);
     end);
 {$ENDIF FPC}
-  WriteDataFrame(D_);
+  Result := WriteDataFrame(D_);
   DisposeObject(D_);
 end;
 
 // append new stream and write
-procedure TDFE.write(const Buf_; Count_: Int64);
+function TDFE.write(const Buf_; Count_: Int64): TDFE;
 var
   s: TMS64;
 begin
   s := TMS64.Create;
   s.Write64(Buf_, Count_);
-  WriteStream(s);
+  Result := WriteStream(s);
   DisposeObject(s);
 end;
 

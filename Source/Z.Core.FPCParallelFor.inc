@@ -13,6 +13,7 @@ var
   p: PFPCParallelThData32_Block;
   Pass: Integer;
 begin
+  ThSender.Thread_Info := 'block parallel';
   p := ThSender.UserData;
   Pass := p^.b;
   while Pass <= p^.e do
@@ -132,6 +133,7 @@ var
   p: PFPCParallelThData64_Block;
   Pass: Int64;
 begin
+  ThSender.Thread_Info := 'block parallel';
   p := ThSender.UserData;
   Pass := p^.b;
   while Pass <= p^.e do
@@ -251,6 +253,7 @@ procedure FPCParallelTh32_Fold(ThSender: TCompute);
 var
   p: PFPCParallelThData32_Fold;
 begin
+  ThSender.Thread_Info := 'fold parallel';
   p := ThSender.UserData;
   with p^ do
     while Pass <= Total do
@@ -343,6 +346,7 @@ procedure FPCParallelTh64_Fold(ThSender: TCompute);
 var
   p: PFPCParallelThData64_Fold;
 begin
+  ThSender.Thread_Info := 'fold parallel';
   p := ThSender.UserData;
   with p^ do
     while Pass <= Total do

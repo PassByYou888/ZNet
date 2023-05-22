@@ -3,15 +3,15 @@ type
   TCompute_Dispatch_Queue_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PComputeDispatchData>;
 
   TComputeDispatch = record
-    OnRun_C: TRunWithThread_C;
-    OnRun_M: TRunWithThread_M;
-    OnRun_P: TRunWithThread_P;
-    OnRun_C_NP: TRunWithThread_C_NP;
-    OnRun_M_NP: TRunWithThread_M_NP;
-    OnRun_P_NP: TRunWithThread_P_NP;
-    OnDone_C: TRunWithThread_C;
-    OnDone_M: TRunWithThread_M;
-    OnDone_P: TRunWithThread_P;
+    OnRun_C: TRun_Thread_C;
+    OnRun_M: TRun_Thread_M;
+    OnRun_P: TRun_Thread_P;
+    OnRun_C_NP: TRun_Thread_C_NP;
+    OnRun_M_NP: TRun_Thread_M_NP;
+    OnRun_P_NP: TRun_Thread_P_NP;
+    OnDone_C: TRun_Thread_C;
+    OnDone_M: TRun_Thread_M;
+    OnDone_P: TRun_Thread_P;
     UserData: Pointer;
     UserObject: TCore_Object;
     IsRuning_, IsExit_: PBoolean;
@@ -36,14 +36,14 @@ var
   Core_Dispatch_Order__: TCompute_Dispatch_Order;
   Core_Dispatch_Order_Activted__, Core_Dispatch_Order_IsExit__: Boolean;
   Core_Thread_Pool__: TCoreCompute_Thread_Pool;
-  Compute_Dispatch_Critical__: TCritical;
-  Compute_Thread_Task_Running__: TAtomInt;
+  Core_Thread_Dispatch_Critical__: TCritical;
+  Core_Thread_Task_Runing__: TAtomInt;
+  Core_Thread_Dispatch_Queue_Pool__: TCompute_Dispatch_Queue_Pool;
+  Core_Thread_Wait_Sum__: TAtomInt;
+  Core_Thread_Life_Time_Tick__: TTimeTick;
   Parallel_Granularity__: Integer;
   Max_Activted_Parallel__: Integer;
   Parallel_Overflow__: TParallelOverflow;
-  Compute_Dispatch_Queue_Pool__: TCompute_Dispatch_Queue_Pool;
-  IDLE_Compute_Thread_Sum: TAtomInt;
-  IDLE_Compute_Wait_Time_Tick: TTimeTick;
 
 procedure TComputeDispatch.Init;
 begin
@@ -132,58 +132,58 @@ procedure TCore_Dispatch_Order_Thread.Execute;
     Th: TCompute;
   begin
     // check for idle thread, and again run.
-    while (IDLE_Compute_Thread_Sum.V > 0)
+    while (Core_Thread_Wait_Sum__.V > 0)
 {$IFDEF LimitMaxComputeThread}
-      or (Compute_Thread_Task_Running__.V > Max_Thread_Supported)
+      or (Core_Thread_Task_Runing__.V > Max_Thread_Supported)
 {$ENDIF LimitMaxComputeThread}
       do
       begin
         // init atom
         IsPicked_ := False;
-        Compute_Dispatch_Critical__.Acquire;
+        Core_Thread_Dispatch_Critical__.Acquire;
         Data_.IsPicked__ := @IsPicked_;
-        Data_.Pool_Queue_Ptr__ := Compute_Dispatch_Queue_Pool__.Add(@Data_);
+        Data_.Pool_Queue_Ptr__ := Core_Thread_Dispatch_Queue_Pool__.Add(@Data_);
         Tick := GetTimeTick();
-        Compute_Dispatch_Critical__.Release;
+        Core_Thread_Dispatch_Critical__.Release;
 
         // check
-        while (IDLE_Compute_Thread_Sum.V > 0) and (GetTimeTick() - Tick < IDLE_Compute_Wait_Time_Tick) do
+        while (Core_Thread_Wait_Sum__.V > 0) and (GetTimeTick() - Tick < Core_Thread_Life_Time_Tick__) do
           begin
-            Compute_Dispatch_Critical__.Acquire;
+            Core_Thread_Dispatch_Critical__.Acquire;
             if IsPicked_ then
               begin
-                Compute_Dispatch_Critical__.Release;
+                Core_Thread_Dispatch_Critical__.Release;
                 exit;
               end
             else
               begin
-                Compute_Dispatch_Critical__.Release;
+                Core_Thread_Dispatch_Critical__.Release;
               end;
           end;
 
-        Compute_Dispatch_Critical__.Acquire;
+        Core_Thread_Dispatch_Critical__.Acquire;
         if IsPicked_ then
           begin
-            Compute_Dispatch_Critical__.Release;
+            Core_Thread_Dispatch_Critical__.Release;
             exit;
           end
         else
           begin
             // remove
-            Compute_Dispatch_Queue_Pool__.Remove_P(Data_.Pool_Queue_Ptr__);
+            Core_Thread_Dispatch_Queue_Pool__.Remove_P(Data_.Pool_Queue_Ptr__);
             Data_.IsPicked__ := nil;
-            Compute_Dispatch_Critical__.Release;
+            Core_Thread_Dispatch_Critical__.Release;
           end;
       end;
 
     // create thread
-    Compute_Dispatch_Critical__.Acquire;
-    inc(Compute_Thread_Task_Running__.LockP()^);
-    Compute_Thread_Task_Running__.Unlock;
+    Core_Thread_Dispatch_Critical__.Acquire;
+    inc(Core_Thread_Task_Runing__.LockP()^);
+    Core_Thread_Task_Runing__.Unlock;
     Th := Pick_Or_Create_Compute_Thread();
     Data_.AssignTo(Th);
     Th.Start();
-    Compute_Dispatch_Critical__.Release;
+    Core_Thread_Dispatch_Critical__.Release;
   end;
 
 var
@@ -240,7 +240,7 @@ end;
 
 procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
 begin
-  IDLE_Compute_Wait_Time_Tick := Tick_;
+  Core_Thread_Life_Time_Tick__ := Tick_;
 end;
 
 procedure InitCoreThreadPool(Thread_Num: Integer);
@@ -255,14 +255,14 @@ begin
   Core_Dispatch_Order_Activted__ := True;
   Core_Dispatch_Order_IsExit__ := False;
   Core_Thread_Pool__ := TCoreCompute_Thread_Pool.Create;
-  Compute_Thread_Task_Running__ := TAtomInt.Create(0);
+  Core_Thread_Task_Runing__ := TAtomInt.Create(0);
+  Core_Thread_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
+  Core_Thread_Wait_Sum__ := TAtomInt.Create(0);
+  Core_Thread_Life_Time_Tick__ := 1000;
   Parallel_Granularity__ := Thread_Num;
-  Compute_Dispatch_Critical__ := TCritical.Create;
+  Core_Thread_Dispatch_Critical__ := TCritical.Create;
   Max_Activted_Parallel__ := 0;
   Parallel_Overflow__.ActivtedParallel := 0;
-  Compute_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
-  IDLE_Compute_Thread_Sum := TAtomInt.Create(0);
-  IDLE_Compute_Wait_Time_Tick := 1000;
 
   // create dispatch thread
   Th := TCore_Dispatch_Order_Thread.Create;
@@ -276,7 +276,7 @@ begin
 {$ELSE LimitMaxComputeThread}
           'infinite',
 {$ENDIF LimitMaxComputeThread}
-          IDLE_Compute_Wait_Time_Tick]));
+          Core_Thread_Life_Time_Tick__]));
 {$ENDIF DEBUG}
 end;
 
@@ -302,17 +302,17 @@ begin
   Core_Dispatch_Order__.Free;
   Core_Dispatch_Order__ := nil;
 
-  Compute_Thread_Task_Running__.Free;
-  Compute_Thread_Task_Running__ := nil;
+  Core_Thread_Task_Runing__.Free;
+  Core_Thread_Task_Runing__ := nil;
 
-  Compute_Dispatch_Critical__.Free;
-  Compute_Dispatch_Critical__ := nil;
+  Core_Thread_Dispatch_Critical__.Free;
+  Core_Thread_Dispatch_Critical__ := nil;
 
-  Compute_Dispatch_Queue_Pool__.Free;
-  Compute_Dispatch_Queue_Pool__ := nil;
+  Core_Thread_Dispatch_Queue_Pool__.Free;
+  Core_Thread_Dispatch_Queue_Pool__ := nil;
 
-  IDLE_Compute_Thread_Sum.Free;
-  IDLE_Compute_Thread_Sum := nil;
+  Core_Thread_Wait_Sum__.Free;
+  Core_Thread_Wait_Sum__ := nil;
 end;
 
 procedure TCompute.Execute;
@@ -322,6 +322,7 @@ var
 begin
   FRndInstance := InternalMT19937__();
   AtomInc(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
+  FStart_Time_Tick := GetTimeTick();
 
   while True do
     begin
@@ -357,39 +358,37 @@ begin
 
       // check for idle thread, and again run.
       NoTask := True;
-      inc(IDLE_Compute_Thread_Sum.LockP()^);
-      IDLE_Compute_Thread_Sum.Unlock();
+      Core_Thread_Wait_Sum__.Critical.Inc_(Core_Thread_Wait_Sum__.P^);
       Tick := GetTimeTick;
       repeat
-        Compute_Dispatch_Critical__.Acquire;
-        if Compute_Dispatch_Queue_Pool__.Num > 0 then
+        Core_Thread_Dispatch_Critical__.Acquire;
+        if Core_Thread_Dispatch_Queue_Pool__.Num > 0 then
           begin
-            Compute_Dispatch_Queue_Pool__.First^.Data^.AssignTo(Self);
-            if Compute_Dispatch_Queue_Pool__.First^.Data^.IsPicked__ <> nil then
-                Compute_Dispatch_Queue_Pool__.First^.Data^.IsPicked__^ := True;
-            Compute_Dispatch_Queue_Pool__.Next;
+            Core_Thread_Dispatch_Queue_Pool__.First^.Data^.AssignTo(Self);
+            if Core_Thread_Dispatch_Queue_Pool__.First^.Data^.IsPicked__ <> nil then
+                Core_Thread_Dispatch_Queue_Pool__.First^.Data^.IsPicked__^ := True;
+            Core_Thread_Dispatch_Queue_Pool__.Next;
             NoTask := False;
           end;
-        Compute_Dispatch_Critical__.Release;
+        Core_Thread_Dispatch_Critical__.Release;
         if NoTask then
             Sleep(1);
-      until (not NoTask) or (GetTimeTick - Tick > IDLE_Compute_Wait_Time_Tick);
-      dec(IDLE_Compute_Thread_Sum.LockP()^);
-      IDLE_Compute_Thread_Sum.Unlock();
+      until (not NoTask) or (GetTimeTick - Tick > Core_Thread_Life_Time_Tick__);
+      Core_Thread_Wait_Sum__.Critical.Dec_(Core_Thread_Wait_Sum__.P^);
       if NoTask then
           break;
     end;
 
-  Compute_Dispatch_Critical__.Acquire;
+  Core_Thread_Dispatch_Critical__.Acquire;
   Core_Thread_Pool__.Remove_P(Thread_Pool_Queue_Data_Ptr);
-  Compute_Dispatch_Critical__.Release;
+  Core_Thread_Dispatch_Critical__.Release;
 
   AtomDec(PMD19937Core(FRndInstance)^.Instance_TMT19937Random__);
   FRndInstance := nil;
   RemoveMT19937Thread(Self);
 
-  dec(Compute_Thread_Task_Running__.LockP()^);
-  Compute_Thread_Task_Running__.Unlock();
+  dec(Core_Thread_Task_Runing__.LockP()^);
+  Core_Thread_Task_Runing__.Unlock();
 end;
 
 procedure TCompute.Done_Sync;
@@ -403,6 +402,15 @@ begin
         OnDone_P(Self);
   except
   end;
+end;
+
+class procedure TCompute.Set_Thread_Info(Thread_Info_: string);
+var
+  Th: TCore_Thread;
+begin
+  Th := TCore_Thread.CurrentThread;
+  if (Th is TCompute) then
+      TCompute(Th).FThread_Info := Thread_Info_;
 end;
 
 constructor TCompute.Create;
@@ -420,6 +428,8 @@ begin
   OnDone_M := nil;
   OnDone_P := nil;
   FRndInstance := nil;
+  FStart_Time_Tick := GetTimeTick();
+  FThread_Info := '<none>';
   IsRuning := nil;
   IsExit := nil;
   UserData := nil;
@@ -431,14 +441,24 @@ begin
   inherited Destroy;
 end;
 
-class function TCompute.IDLE_Thread(): NativeInt;
+class function TCompute.Get_Core_Thread_Pool: TCoreCompute_Thread_Pool;
 begin
-  Result := IDLE_Compute_Thread_Sum.V;
+  Result := Core_Thread_Pool__;
+end;
+
+class function TCompute.Get_Core_Thread_Dispatch_Critical: TCritical;
+begin
+  Result := Core_Thread_Dispatch_Critical__;
+end;
+
+class function TCompute.Wait_Thread(): NativeInt;
+begin
+  Result := Core_Thread_Wait_Sum__.V;
 end;
 
 class function TCompute.ActivtedTask(): NativeInt;
 begin
-  Result := Compute_Thread_Task_Running__.V;
+  Result := Core_Thread_Task_Runing__.V;
 end;
 
 class function TCompute.WaitTask(): NativeInt;
@@ -448,13 +468,13 @@ end;
 
 class function TCompute.TotalTask(): NativeInt;
 begin
-  Result := Compute_Thread_Task_Running__.V + Core_Dispatch_Order__.Num;
+  Result := Core_Thread_Task_Runing__.V + Core_Dispatch_Order__.Num;
 end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted:%d/%d Suspend:%d IDLE_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d Post:%d',
-    [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), IDLE_Thread(),
+  Result := Format('Compute:%d Activted:%d/%d Suspend:%d Wait_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d Post:%d',
+    [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), Wait_Thread(),
       Get_System_Critical_Recycle_Pool_Num(), Get_MT19937_POOL_Num(), Get_Object_Lock_Pool_Num(),
       Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__,
       MainThreadProgress.Num]);
@@ -473,9 +493,9 @@ end;
 type
   TSyncTmp = class
   private
-    OnRunC: TRunWithThread_C_NP;
-    OnRunM: TRunWithThread_M_NP;
-    OnRunP: TRunWithThread_P_NP;
+    OnRunC: TRun_Thread_C_NP;
+    OnRunM: TRun_Thread_M_NP;
+    OnRunP: TRun_Thread_P_NP;
     procedure DoSync;
   public
     constructor Create;
@@ -503,7 +523,7 @@ begin
   OnRunP := nil;
 end;
 
-class procedure TCompute.Sync(const OnRun_: TRunWithThread_P_NP);
+class procedure TCompute.Sync(const OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -512,7 +532,7 @@ begin
   TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.Sync(const Thread_: TThread; OnRun_: TRunWithThread_P_NP);
+class procedure TCompute.Sync(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -521,7 +541,7 @@ begin
   TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncC(OnRun_: TRunWithThread_C_NP);
+class procedure TCompute.SyncC(OnRun_: TRun_Thread_C_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -530,7 +550,7 @@ begin
   TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncC(const Thread_: TThread; OnRun_: TRunWithThread_C_NP);
+class procedure TCompute.SyncC(const Thread_: TThread; OnRun_: TRun_Thread_C_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -539,7 +559,7 @@ begin
   TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncM(OnRun_: TRunWithThread_M_NP);
+class procedure TCompute.SyncM(OnRun_: TRun_Thread_M_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -548,7 +568,7 @@ begin
   TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncM(const Thread_: TThread; OnRun_: TRunWithThread_M_NP);
+class procedure TCompute.SyncM(const Thread_: TThread; OnRun_: TRun_Thread_M_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -557,7 +577,7 @@ begin
   TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncP(const OnRun_: TRunWithThread_P_NP);
+class procedure TCompute.SyncP(const OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -566,7 +586,7 @@ begin
   TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.SyncP(const Thread_: TThread; OnRun_: TRunWithThread_P_NP);
+class procedure TCompute.SyncP(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
@@ -575,7 +595,7 @@ begin
   TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -587,7 +607,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -606,7 +626,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -617,7 +637,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -635,7 +655,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const OnRun: TRunWithThread_C);
+class procedure TCompute.RunC(const OnRun: TRun_Thread_C);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -646,7 +666,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const OnRun: TRunWithThread_C; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC(const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -664,7 +684,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC_NP(const OnRun: TRunWithThread_C_NP);
+class procedure TCompute.RunC_NP(const OnRun: TRun_Thread_C_NP);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -675,7 +695,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC_NP(const OnRun: TRunWithThread_C_NP; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC_NP(const OnRun: TRun_Thread_C_NP; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -693,7 +713,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -705,7 +725,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -724,7 +744,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -735,7 +755,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -753,7 +773,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const OnRun: TRunWithThread_M);
+class procedure TCompute.RunM(const OnRun: TRun_Thread_M);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -764,7 +784,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const OnRun: TRunWithThread_M; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM(const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -782,7 +802,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM_NP(const OnRun: TRunWithThread_M_NP);
+class procedure TCompute.RunM_NP(const OnRun: TRun_Thread_M_NP);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -793,7 +813,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM_NP(const OnRun: TRunWithThread_M_NP; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM_NP(const OnRun: TRun_Thread_M_NP; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -811,7 +831,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -823,7 +843,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -842,7 +862,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -853,7 +873,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -871,7 +891,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const OnRun: TRunWithThread_P);
+class procedure TCompute.RunP(const OnRun: TRun_Thread_P);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -882,7 +902,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const OnRun: TRunWithThread_P; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP(const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -900,7 +920,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP_NP(const OnRun: TRunWithThread_P_NP);
+class procedure TCompute.RunP_NP(const OnRun: TRun_Thread_P_NP);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -911,7 +931,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP_NP(const OnRun: TRunWithThread_P_NP; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP_NP(const OnRun: TRun_Thread_P_NP; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin

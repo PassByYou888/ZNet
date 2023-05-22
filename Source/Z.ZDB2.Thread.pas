@@ -63,13 +63,16 @@ type
     FTh_Engine_Data_Ptr: TZDB2_Th_Engine_Data_BigList___.PQueueStruct; // engine data ptr
     FID: Integer; // Th_Engine data ID
     FSize: Int64; // data size
+
     // temp data swap technology
     // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
     // after the long loop ends, the data will truly become a engine structure
     FIn_Temp_Swap_Pool: Boolean;
+
     // In a multithreaded instance, data will be busy-loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
     FOneWayDataProcessReady: Boolean; // instance and data is first operation
+
     FInstance_Busy: Integer; // instance user support
     FLocked: Boolean; // lock
     FSaveFailed_Do_Remove: Boolean; // free instance and remove data on save failure
@@ -93,10 +96,14 @@ type
     procedure Reset_Instance_As_Free();
     // state
     property Size: Int64 read FSize; // data size
+
     // In a multithreaded instance, data will be loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
     property OneWayDataProcessReady: Boolean read FOneWayDataProcessReady; // instance and data is first operation
-    property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove; // free instance and remove data on save failure, default is true
+
+    // free instance and remove data on save failure, default is true
+    property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove;
+
     function IsOnlyRead: Boolean;
     function Engine: TZDB2_Th_Queue;
     property ID: Integer read FID;
@@ -338,13 +345,14 @@ type
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
     procedure Do_Remove_First_Data_From_ThEngine(eng: TZDB2_Th_Engine; Recycle_Space_Size: Int64);
   public
+    Owner: TCore_Object;
     Data_Marshal: TZDB2_Th_Engine_Marshal_BigList___;
     Engine_Pool: TZDB2_Th_Engine_Pool;
     Instance_Recycle_Tool: TZDB2_Th_Engine_Data_Instance_Recycle_Tool___;
     Data_Link_Recycle_Tool: TZDB2_Th_Engine_Data_Link_Recycle_Tool___;
     Current_Data_Class: TZDB2_Th_Engine_Data_Class;
     property Long_Loop_Num: Integer read FLong_Loop_Num;
-    constructor Create();
+    constructor Create(Owner_: TCore_Object); virtual;
     destructor Destroy; override;
     // thread
     procedure Lock;
@@ -2748,9 +2756,10 @@ begin
 {$ENDIF DEBUG}
 end;
 
-constructor TZDB2_Th_Engine_Marshal.Create;
+constructor TZDB2_Th_Engine_Marshal.Create(Owner_: TCore_Object);
 begin
   inherited Create;
+  Owner := Owner_;
   FCritical := TCritical.Create;
   FLong_Loop_Num := 0;
   Data_Marshal := TZDB2_Th_Engine_Marshal_BigList___.Create;
@@ -4204,7 +4213,7 @@ var
   i: Integer;
   tmp: TMem64;
 begin
-  DM := TZDB2_Th_Engine_Marshal.Create;
+  DM := TZDB2_Th_Engine_Marshal.Create(nil);
   te := THashTextEngine.Create;
   te.AsText := C_cfg;
 
@@ -4299,7 +4308,7 @@ var
   i: Integer;
   tmp: TMem64;
 begin
-  DM := TZDB2_Th_Engine_Marshal.Create;
+  DM := TZDB2_Th_Engine_Marshal.Create(nil);
   te := THashTextEngine.Create;
   te.AsText := umlReplace(C_cfg, '%temp%', umlCurrentPath, False, True);
 
@@ -4399,7 +4408,7 @@ var
   i: Integer;
   tmp: TMem64;
 begin
-  DM := TZDB2_Th_Engine_Marshal.Create;
+  DM := TZDB2_Th_Engine_Marshal.Create(nil);
   te := THashTextEngine.Create;
   te.AsText := C_cfg;
 

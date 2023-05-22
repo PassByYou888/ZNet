@@ -426,6 +426,7 @@ begin
   FBindPort := 0;
   FBindHost := '';
   FMaxConnection := 20000;
+  name:='Cross-Socket-Server';
 end;
 
 destructor TZNet_Server_CrossSocket.Destroy;

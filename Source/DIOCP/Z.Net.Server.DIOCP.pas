@@ -259,6 +259,8 @@ begin
   FDIOCPServer.KeepAlive := True;
   FDIOCPServer.KeepAliveTime := 5000;
   FDIOCPServer.RegisterContextClass(TIocpClientContextIntf_WithDServ);
+
+  name:='DIOCP-Server';
 end;
 
 destructor TZNet_Server_DIOCP.Destroy;

@@ -1100,6 +1100,8 @@ var
   LTK, tmp: TTimeTick;
   CMD_: TZDB2_Th_CMD;
 begin
+  ThSender.Thread_Info := ClassName;
+
   CoreSpace__ := TZDB2_Core_Space.Create(@FCoreSpace_IOHnd);
   CoreSpace__.Cipher := FCoreSpace_Cipher;
   CoreSpace__.Mode := FCoreSpace_Mode;

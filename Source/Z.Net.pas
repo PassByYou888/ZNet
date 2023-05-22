@@ -223,6 +223,7 @@ type
     procedure Pause;
     procedure Play(ResultData_: TDFE);
     procedure DoStreamParamEvent(Sender_: TPeerIO; Param1_: Pointer; Param2_: TObject; SendData_, ResultData_: TDFE); virtual;
+    procedure DoStreamFailed(Sender_: TPeerIO; Param1: Pointer; Param2: TObject; SendData_: TDFE); virtual;
     procedure DoStreamEvent(Sender_: TPeerIO; ResultData_: TDFE); virtual;
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
@@ -248,6 +249,7 @@ type
     procedure Pause;
     procedure Play(ResultData_: SystemString);
     procedure DoConsoleParamEvent(Sender_: TPeerIO; Param1_: Pointer; Param2_: TObject; SendData_, ResultData_: SystemString); virtual;
+    procedure DoStreamFailed(Sender_: TPeerIO; Param1: Pointer; Param2: TObject; SendData_: SystemString);
     procedure DoConsoleEvent(Sender_: TPeerIO; ResultData_: SystemString); virtual;
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
@@ -1217,7 +1219,12 @@ type
   TCommand_Num_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TString_Big_Hash_Pair_Pool<Integer>;
   TCommand_Hash_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TCommand_base>;
   TPeer_IO_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Cardinal, TPeerIO>;
-  TZNet_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZNet>;
+  TZNet_Instance_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZNet>;
+
+  TZNet_Instance_Pool=class(TZNet_Instance_Pool__)
+  public
+    procedure Print_Status;
+  end;
 
   TCommand_Tick_Hash_Pool = class(TCommand_Tick_Hash_Pool_Decl)
   public
@@ -2188,6 +2195,7 @@ type
     procedure CloseP2PVMTunnel;
 
     { p2p VM logic Z.Net support }
+    property FrameworkPool: TUInt32HashObjectList read FFrameworkPool;
     procedure InstallLogicFramework(c: TZNet);
     procedure UninstallLogicFramework(c: TZNet);
 
@@ -2620,6 +2628,9 @@ procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
 
 
 var
+  { Z-Net instance pool }
+  ZNet_Instance_Pool: TZNet_Instance_Pool;
+
   { HPC thread computing instance pool }
   HPC_Instance_Pool: THPC_Instance_Pool;
 
@@ -2838,17 +2849,14 @@ procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_
 
 implementation
 
-var
-  ZNet_Instance_Pool__: TZNet_Instance_Pool;
-
 procedure Init_ZNet_Instance_Pool;
 begin
-  ZNet_Instance_Pool__ := TZNet_Instance_Pool.Create;
+  ZNet_Instance_Pool := TZNet_Instance_Pool.Create;
 end;
 
 procedure Free_ZNet_Instance_Pool;
 begin
-  DisposeObjectAndNil(ZNet_Instance_Pool__);
+  DisposeObjectAndNil(ZNet_Instance_Pool);
 end;
 
 var
@@ -3663,6 +3671,7 @@ end;
 
 procedure THPC_Stream.Run(Sender: TCompute);
 begin
+  Sender.Thread_Info := PFormat('%s cmd:%s', [ClassName, Cmd]);
   Thread := Sender;
   try
     if Assigned(On_C) then
@@ -3832,6 +3841,7 @@ end;
 
 procedure THPC_DirectStream.Run(Sender: TCompute);
 begin
+  Sender.Thread_Info := PFormat('%s cmd:%s', [ClassName, Cmd]);
   Thread := Sender;
   try
     if Assigned(On_C) then
@@ -3955,6 +3965,7 @@ end;
 
 procedure THPC_Console.Run(Sender: TCompute);
 begin
+  Sender.Thread_Info := PFormat('%s cmd:%s', [ClassName, Cmd]);
   Thread := Sender;
   try
     if Assigned(On_C) then
@@ -4111,6 +4122,7 @@ end;
 
 procedure THPC_DirectConsole.Run(Sender: TCompute);
 begin
+  Sender.Thread_Info := PFormat('%s cmd:%s', [ClassName, Cmd]);
   Thread := Sender;
   try
     if Assigned(On_C) then
@@ -4464,6 +4476,15 @@ begin
   DoStreamEvent(Sender_, ResultData_);
 end;
 
+procedure TStreamEventBridge.DoStreamFailed(Sender_: TPeerIO; Param1: Pointer; Param2: TObject; SendData_: TDFE);
+var
+  de: TDFE;
+begin
+  de := TDFE.Create;
+  DoStreamEvent(Sender_, de);
+  DisposeObject(de);
+end;
+
 procedure TStreamEventBridge.DoStreamEvent(Sender_: TPeerIO; ResultData_: TDFE);
 var
   IO_: TPeerIO;
@@ -4574,6 +4595,11 @@ end;
 procedure TConsoleEventBridge.DoConsoleParamEvent(Sender_: TPeerIO; Param1_: Pointer; Param2_: TObject; SendData_, ResultData_: SystemString);
 begin
   DoConsoleEvent(Sender_, ResultData_);
+end;
+
+procedure TConsoleEventBridge.DoStreamFailed(Sender_: TPeerIO; Param1: Pointer; Param2: TObject; SendData_: SystemString);
+begin
+  DoConsoleEvent(Sender_, '');
 end;
 
 procedure TConsoleEventBridge.DoConsoleEvent(Sender_: TPeerIO; ResultData_: SystemString);
@@ -8827,6 +8853,51 @@ begin
   OnProgress_P := nil;
 end;
 
+procedure TZNet_Instance_Pool.Print_Status;
+  procedure do_print_io_info(prefix_: SystemString; Net: TZNet);
+  var
+    p2p_info: SystemString;
+    p2p_VM_Num: NativeInt;
+    L: TCore_List;
+    p: PUInt32HashListObjectStruct;
+    i: Integer;
+  begin
+    if Net.IOPool.Num > 0 then
+      with Net.IOPool.Repeat_ do
+        repeat
+          if Queue^.Data^.Data.Second.P2PVM = nil then
+              p2p_VM_Num := 0
+          else
+              p2p_VM_Num := Queue^.Data^.Data.Second.P2PVM.FrameworkPool.Count;
+          DoStatus(prefix_ + 'io:%d ip:%s p2pVM:%d', [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.GetPeerIP, p2p_VM_Num]);
+          if Queue^.Data^.Data.Second.P2PVM <> nil then
+            begin
+              L := TCore_List.Create;
+              Queue^.Data^.Data.Second.P2PVM.FrameworkPool.GetListData(L);
+              for i := 0 to L.Count - 1 do
+                begin
+                  p := L[i];
+                  if (p <> nil) and (p^.Data <> nil) and (p^.Data is TZNet) then
+                    begin
+                      DoStatus(prefix_ + #9'pspVM:%s <%s> IO:%d', [p^.Data.ClassName, TZNet(p^.Data).name, TZNet(p^.Data).IOPool.Num]);
+                    end;
+                end;
+              DisposeObject(L);
+            end;
+        until not Next;
+  end;
+
+begin
+  if Num > 0 then
+    begin
+      with Repeat_ do
+        repeat
+          DoStatus('%s <%s> IO:%d', [Queue^.Data.ClassName, Queue^.Data.name, Queue^.Data.IOPool.Num]);
+          do_print_io_info(#9, Queue^.Data);
+        until not Next;
+    end;
+end;
+
 procedure TCommand_Tick_Hash_Pool.SetMax(Key_: SystemString; Value_: TTimeTick);
 var
   p: TCommand_Tick_Hash_Pool_Decl.PValue;
@@ -9671,7 +9742,7 @@ var
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  FInstance_Ptr_Struct := ZNet_Instance_Pool__.Add(self);
+  FInstance_Ptr_Struct := ZNet_Instance_Pool.Add(self);
   FCommand_Hash_Pool := TCommand_Hash_Pool.Create(1024, nil);
   FIDSeed := 1;
   FPeerIO_HashPool := TPeer_IO_Hash_Pool.Create(HashPoolSize, nil);
@@ -9732,7 +9803,7 @@ begin
   FSequencePacketActivted := {$IFDEF UsedSequencePacket}True{$ELSE UsedSequencePacket}False{$ENDIF UsedSequencePacket};
 
   FPrefixName := '';
-  FName := '';
+  FName := 'undefine';
 
   d := umlNow();
   FInitedTimeMD5 := umlMD5(@d, C_Double_Size);
@@ -9779,7 +9850,7 @@ begin
   Print('%s.%s(%s) destroy', [FPrefixName, FName, ClassName]);
 {$ENDIF DEBUG}
   try
-    ZNet_Instance_Pool__.Remove_P(FInstance_Ptr_Struct);
+    ZNet_Instance_Pool.Remove_P(FInstance_Ptr_Struct);
     while FSend_Queue_Swap_Pool.num > 0 do
       begin
         DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
@@ -10280,8 +10351,8 @@ begin
 
   { progress global instance }
   try
-    if ZNet_Instance_Pool__.num > 0 then
-      with ZNet_Instance_Pool__.Repeat_ do
+    if ZNet_Instance_Pool.num > 0 then
+      with ZNet_Instance_Pool.Repeat_ do
         repeat
           try
             if (Queue^.data <> self) and (Queue^.data <> nil) then

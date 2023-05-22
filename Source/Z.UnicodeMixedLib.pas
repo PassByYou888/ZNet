@@ -387,6 +387,7 @@ function umlPointerToStr(param: Pointer): TPascalString;
 
 function umlMBPSToStr(Size: Int64): TPascalString;
 function umlSizeToStr(Parameter: Int64): TPascalString;
+function umlGSizeToStr(Parameter: Int64): TPascalString;
 
 function umlStrToTime(s: TPascalString): TDateTime;
 function umlTimeToStr(t: TDateTime): TPascalString;
@@ -4011,6 +4012,22 @@ function umlSizeToStr(Parameter: Int64): TPascalString;
 begin
   try
       Result := umlSmartSizeToStr(Parameter);
+  except
+      Result := IntToStr(Parameter) + ' B';
+  end;
+end;
+
+function umlGSizeToStr(Parameter: Int64): TPascalString;
+begin
+  try
+    if Parameter < 1 shl 10 then
+        Result := Format('%d', [Parameter])
+    else if Parameter < 1 shl 20 then
+        Result := Format('%f Kb', [Parameter / (1 shl 10)])
+    else if Parameter < 1 shl 30 then
+        Result := Format('%f M', [Parameter / (1 shl 20)])
+    else
+        Result := Format('%f G', [Parameter / (1 shl 30)])
   except
       Result := IntToStr(Parameter) + ' B';
   end;

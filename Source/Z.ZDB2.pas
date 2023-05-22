@@ -1498,10 +1498,9 @@ procedure TZDB2_Core_Space.Save;
 begin
   if FSpace_IOHnd^.IsOnlyRead then
       exit;
-  WriteTable();
   FlushCache;
   FHeader.Modification := False;
-  WriteHeader;
+  WriteTable();
   umlFileUpdate(FSpace_IOHnd^);
 end;
 

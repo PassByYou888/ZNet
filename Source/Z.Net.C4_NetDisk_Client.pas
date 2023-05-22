@@ -2017,9 +2017,9 @@ begin
     DisposeObject(tmp);
     if Assigned(Client.OnEvent) then
         Client.OnEvent.Do_Auto_End_MD5(Client, UserData, stream);
-    SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Done_Compute_Stream_MD5);
+    MainThreadProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Done_Compute_Stream_MD5);
   except
-      SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Compute_Stream_MD5_Error);
+      MainThreadProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Compute_Stream_MD5_Error);
   end;
 end;
 
@@ -2302,7 +2302,7 @@ begin
       begin
         if Assigned(Client.OnEvent) then
             Client.OnEvent.Do_Auto_End_MD5(Client, UserData, stream);
-        SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_File_Same);
+        MainThreadProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_File_Same);
         exit;
       end;
 
@@ -2317,9 +2317,9 @@ begin
 
     if Assigned(Client.OnEvent) then
         Client.OnEvent.Do_Auto_End_MD5(Client, UserData, stream);
-    SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Download_Frag);
+    MainThreadProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Download_Frag);
   except
-      SysProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Download_Frag_Error);
+      MainThreadProgress.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Download_Frag_Error);
   end;
 end;
 

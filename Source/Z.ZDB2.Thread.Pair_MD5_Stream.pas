@@ -146,7 +146,7 @@ end;
 constructor TZDB2_Pair_MD5_Stream_Tool.Create(hash_size_: Integer);
 begin
   inherited Create;
-  ZDB2_Marshal := TZDB2_Th_Engine_Marshal.Create;
+  ZDB2_Marshal := TZDB2_Th_Engine_Marshal.Create(self);
   ZDB2_Marshal.Current_Data_Class := TZDB2_Pair_MD5_Stream_Data;
   MD5_Pool := TZDB2_Pair_MD5_Stream_Pool.Create(hash_size_, nil);
 end;
