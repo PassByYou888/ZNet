@@ -6447,12 +6447,12 @@ begin
   DoStatus('');
   Static_Copy_Instance_Pool__.Lock;
   try
-    DoStatus('total static-tech backup task: %d', [Static_Copy_Instance_Pool__.Num]);
+    DoStatus('total static-technology copy task: %d', [Static_Copy_Instance_Pool__.Num]);
     if Static_Copy_Instance_Pool__.Num > 0 then
       begin
         with Static_Copy_Instance_Pool__.Repeat_ do
           repeat
-              DoStatus('static-tech backup task: %s', [Queue^.Data.backup_file.Text]);
+              DoStatus('static-technology copy task: %s', [Queue^.Data.Copy_To_Dest.Text]);
           until not Next;
       end;
   finally
@@ -6462,12 +6462,12 @@ begin
   DoStatus('');
   Dynamic_Copy_Instance_Pool__.Lock;
   try
-    DoStatus('total dynamic-tech backup task: %d', [Dynamic_Copy_Instance_Pool__.Num]);
+    DoStatus('total dynamic-technology copy task: %d', [Dynamic_Copy_Instance_Pool__.Num]);
     if Dynamic_Copy_Instance_Pool__.Num > 0 then
       begin
         with Dynamic_Copy_Instance_Pool__.Repeat_ do
           repeat
-              DoStatus('dynamic-tech backup task: %s', [Queue^.Data.backup_file.Text]);
+              DoStatus('dynamic-technology copy task: %s', [Queue^.Data.Copy_To_Dest.Text]);
           until not Next;
       end;
   finally
