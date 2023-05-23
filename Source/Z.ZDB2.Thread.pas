@@ -160,7 +160,7 @@ type
   public
     Owner: TZDB2_Th_Engine;
     Queue_ID_List_: TZDB2_ID_List;
-    backup_file: U_String;
+    Copy_To_Dest: U_String;
     Aborted: Boolean;
     Quiet: Boolean;
     constructor Create(Owner_: TZDB2_Th_Engine);
@@ -174,7 +174,7 @@ type
     Instance_Ptr: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool.PQueueStruct;
   public
     Owner: TZDB2_Th_Engine;
-    backup_file: U_String;
+    Copy_To_Dest: U_String;
     Dynamic_Copy_Tech_Max_Queue: Integer; // default 500
     Aborted: Boolean;
     Quiet: Boolean;
@@ -201,7 +201,7 @@ type
   TZDB2_Th_Engine = class(TCore_InterfacedObject)
   private
     FLast_Backup_Execute_Time: TTimeTick;
-    FBackup_Is_Busy: Boolean;
+    FCopy_Is_Busy: Boolean;
     FBackup_Directory: U_String; // the current database directory will be used if the backup directory is empty
     procedure DoFree(var Data: TZDB2_Th_Engine_Data);
     procedure Do_Start_Backup_Thread(thSender: TCompute);
@@ -245,10 +245,10 @@ type
     procedure Clear;
     procedure Format_Database;
     function Ready: Boolean;
-    // backup
+    // backup and copy technology
     function Get_Last_Backup_Execute_Time: TTimeTick;
     property Backup_Directory: U_String read FBackup_Directory write FBackup_Directory;
-    property Backup_Is_Busy: Boolean read FBackup_Is_Busy;
+    property Backup_Is_Busy: Boolean read FCopy_Is_Busy;
     function Get_Backup_Directory: U_String;
     procedure Backup(Reserve_: Word);
     function Found_Backup(): Boolean;
@@ -257,6 +257,9 @@ type
     procedure Remove_Backup;
     procedure Stop_Backup;
     procedure Wait_Backup;
+    procedure Copy_To_File(Dest_: U_String);
+    procedure Stop_Copy;
+    procedure Wait_Copy;
     // for-thread safe
     procedure For_C(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_C);
     procedure For_M(Parallel_: Boolean; ThNum_: Integer; On_Run: TZDB2_Th_Engine_For_M);
@@ -416,7 +419,7 @@ type
     procedure Invert_For_P(Max_Loop_: Int64; On_Run: TZDB2_Th_Engine_For_P);
     // remove first data, Scrolling storage support
     procedure Remove_First_Data(Num_: Int64; remove_data_: Boolean);
-    procedure Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
+    procedure Remove_First_Data_For_All_Th_Engine(Th_Engine_Max_Space_Size: Int64);
     // custom loop
     procedure Begin_Loop;
     procedure End_Loop;
@@ -667,7 +670,7 @@ end;
 
 function TZDB2_Th_Engine_Data.Can_Free: Boolean;
 begin
-  Result := (FInstance_Busy <= 0) and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0) and (not FIn_Temp_Swap_Pool) and (FTh_Engine <> nil) and (FTh_Engine_Data_Ptr <> nil);
+  Result := (FInstance_Busy <= 0) and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0) and (not FIn_Temp_Swap_Pool);
 end;
 
 procedure TZDB2_Th_Engine_Data.MoveToLast;
@@ -1136,7 +1139,7 @@ begin
   Instance_Ptr := Static_Copy_Instance_Pool__.Add(Self);
   Owner := Owner_;
   Queue_ID_List_ := TZDB2_ID_List.Create;
-  backup_file := '';
+  Copy_To_Dest := '';
   Aborted := False;
   Quiet := False;
 end;
@@ -1149,7 +1152,7 @@ begin
       Instance_Ptr := nil;
     end;
   DisposeObject(Queue_ID_List_);
-  backup_file := '';
+  Copy_To_Dest := '';
   inherited Destroy;
 end;
 
@@ -1160,10 +1163,11 @@ var
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
   hnd: TZDB2_BlockHandle;
 begin
+  Sender.Thread_Info := 'static copy technology';
   if not Quiet then
-      DoStatus('static copy to %s', [umlGetFileName(backup_file).Text]);
+      DoStatus('static copy to %s', [umlGetFileName(Copy_To_Dest).Text]);
 
-  fs := TCore_FileStream.Create(backup_file, fmCreate);
+  fs := TCore_FileStream.Create(Copy_To_Dest, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, Owner.Cipher);
   if Owner.Fast_Alloc_Space then
       th.Sync_Fast_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize)
@@ -1200,12 +1204,12 @@ begin
   end;
   disposeObjectAndNil(th);
   Owner.FLast_Backup_Execute_Time := GetTimeTick();
-  Owner.FBackup_Is_Busy := False;
+  Owner.FCopy_Is_Busy := False;
   AtomDec(Owner.Owner.FLong_Loop_Num); // unlock loop
 
   // check aborted state
   if Aborted then
-      umlDeleteFile(backup_file);
+      umlDeleteFile(Copy_To_Dest);
   DelayFreeObj(1.0, Self);
 end;
 
@@ -1214,7 +1218,7 @@ begin
   inherited Create;
   Instance_Ptr := Dynamic_Copy_Instance_Pool__.Add(Self);
   Owner := Owner_;
-  backup_file := '';
+  Copy_To_Dest := '';
   Dynamic_Copy_Tech_Max_Queue := 500;
   Aborted := False;
   Quiet := False;
@@ -1227,7 +1231,7 @@ begin
       Dynamic_Copy_Instance_Pool__.Remove_P(Instance_Ptr);
       Instance_Ptr := nil;
     end;
-  backup_file := '';
+  Copy_To_Dest := '';
   inherited Destroy;
 end;
 
@@ -1252,10 +1256,11 @@ var
   p: PData_State_;
   Table_: TZDB2_BlockHandle;
 begin
+  Sender.Thread_Info := 'dynamic copy technology';
   if not Quiet then
-      DoStatus('dynamic copy to %s', [umlGetFileName(backup_file).Text]);
+      DoStatus('dynamic copy to %s', [umlGetFileName(Copy_To_Dest).Text]);
 
-  fs := TCore_FileStream.Create(backup_file, fmCreate);
+  fs := TCore_FileStream.Create(Copy_To_Dest, fmCreate);
   th := TZDB2_Th_Queue.Create(Owner.Mode, fs, True, False, Owner.Delta, Owner.BlockSize, nil);
   if Owner.Fast_Alloc_Space then
       th.Sync_Fast_Format_Custom_Space(umlMax(Owner.Engine.CoreSpace_Size, Owner.Delta), Owner.BlockSize)
@@ -1328,7 +1333,7 @@ begin
   th.Sync_Flush_Sequence_Table(Table_);
 
   if not Quiet then
-      DoStatus('dynamic copy done total num:%d size:%s file:%s', [length(Table_), umlSizeToStr(th.CoreSpace_Size).Text, backup_file.Text]);
+      DoStatus('dynamic copy done total num:%d size:%s file:%s', [length(Table_), umlSizeToStr(th.CoreSpace_Size).Text, Copy_To_Dest.Text]);
 
   SetLength(Table_, 0);
   // free backup dest
@@ -1337,11 +1342,11 @@ begin
   System.FreeMemory(buff);
   // restore state
   Owner.FLast_Backup_Execute_Time := GetTimeTick();
-  Owner.FBackup_Is_Busy := False;
+  Owner.FCopy_Is_Busy := False;
   AtomDec(Owner.Owner.FLong_Loop_Num);
   // check aborted state
   if Aborted then
-      umlDeleteFile(backup_file);
+      umlDeleteFile(Copy_To_Dest);
   // delay free self
   DelayFreeObj(1.0, Self);
 end;
@@ -1453,7 +1458,7 @@ begin
       // backup instance
       Static_Copy_Tech_inst := TZDB2_Th_Engine_Static_Copy_Tech.Create(Self);
       Owner.Check_Recycle_Pool;
-      Static_Copy_Tech_inst.backup_file := Make_backup_File_Name();
+      Static_Copy_Tech_inst.Copy_To_Dest := Make_backup_File_Name();
       Static_Copy_Tech_inst.Quiet := False;
       TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Static_Copy_Tech_inst.Do_Run); // run static-backup thread
     end
@@ -1463,7 +1468,7 @@ begin
       Dynamic_Copy_Tech_inst := TZDB2_Th_Engine_Dynamic_Copy_Tech.Create(Self);
       Owner.Check_Recycle_Pool;
       Dynamic_Copy_Tech_inst.Dynamic_Copy_Tech_Max_Queue := Dynamic_Copy_Tech_Max_Queue;
-      Dynamic_Copy_Tech_inst.backup_file := Make_backup_File_Name();
+      Dynamic_Copy_Tech_inst.Copy_To_Dest := Make_backup_File_Name();
       Dynamic_Copy_Tech_inst.Quiet := False;
       TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Dynamic_Copy_Tech_inst.Do_Run); // run dynamic-backup thread
     end;
@@ -1492,7 +1497,7 @@ constructor TZDB2_Th_Engine.Create(Owner_: TZDB2_Th_Engine_Marshal);
 begin
   inherited Create;
   FLast_Backup_Execute_Time := GetTimeTick();
-  FBackup_Is_Busy := False;
+  FCopy_Is_Busy := False;
   FBackup_Directory := '';
   Temp_Swap_Pool := TZDB2_Th_Engine_Data_BigList___.Create; // temp data pool
   Name := '';
@@ -1525,14 +1530,14 @@ end;
 destructor TZDB2_Th_Engine.Destroy;
 begin
   try
-    if FBackup_Is_Busy then
+    if FCopy_Is_Busy then
       begin
-        Stop_Backup();
+        Stop_Copy();
         if Database_File <> '' then
-            DoStatus('"%s" wait backup task...', [Database_File.Text])
+            DoStatus('"%s" wait copy task...', [Database_File.Text])
         else
-            DoStatus('wait backup task...');
-        while FBackup_Is_Busy do
+            DoStatus('wait copy task...');
+        while FCopy_Is_Busy do
             TCompute.Sleep(100);
       end;
 
@@ -1654,7 +1659,7 @@ end;
 
 function TZDB2_Th_Engine.Get_Last_Backup_Execute_Time: TTimeTick;
 begin
-  if FBackup_Is_Busy then
+  if FCopy_Is_Busy then
       Result := GetTimeTick()
   else
       Result := FLast_Backup_Execute_Time;
@@ -1683,9 +1688,9 @@ begin
       exit;
   if not umlFileExists(Engine.Get_Database_FileName) then
       exit;
-  if FBackup_Is_Busy then
+  if FCopy_Is_Busy then
       exit;
-  FBackup_Is_Busy := True;
+  FCopy_Is_Busy := True;
   new(p);
   p^ := Reserve_;
   TCompute.RunM(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_Start_Backup_Thread);
@@ -1751,9 +1756,9 @@ begin
   if umlTrimSpace(Database_File) = '' then
       exit;
 
-  while FBackup_Is_Busy do
+  while FCopy_Is_Busy do
       TCompute.Sleep(100);
-  FBackup_Is_Busy := True;
+  FCopy_Is_Busy := True;
 
   try
     Th_Engine_Data_Pool.Clear;
@@ -1805,7 +1810,7 @@ begin
       end;
     DisposeObject(L);
   finally
-      FBackup_Is_Busy := False;
+      FCopy_Is_Busy := False;
   end;
 end;
 
@@ -1818,9 +1823,9 @@ begin
   if not umlFileExists(FileName) then
       exit;
 
-  while FBackup_Is_Busy do
+  while FCopy_Is_Busy do
       TCompute.Sleep(100);
-  FBackup_Is_Busy := True;
+  FCopy_Is_Busy := True;
 
   try
     Th_Engine_Data_Pool.Clear;
@@ -1834,7 +1839,7 @@ begin
           Build(Last_Build_Class);
     DoStatus('Done Revert %s -> %s', [FileName.Text, Database_File.Text]);
   finally
-      FBackup_Is_Busy := False;
+      FCopy_Is_Busy := False;
   end;
 end;
 
@@ -1845,7 +1850,7 @@ var
   arry: U_StringArray;
   n, fn: U_SystemString;
 begin
-  if FBackup_Is_Busy then
+  if FCopy_Is_Busy then
       exit;
   if umlTrimSpace(Database_File) = '' then
       exit;
@@ -1870,6 +1875,46 @@ begin
 end;
 
 procedure TZDB2_Th_Engine.Stop_Backup;
+begin
+  Stop_Copy;
+end;
+
+procedure TZDB2_Th_Engine.Wait_Backup;
+begin
+  Wait_Copy;
+end;
+
+procedure TZDB2_Th_Engine.Copy_To_File(Dest_: U_String);
+var
+  // static backup technology
+  Static_Copy_Tech_inst: TZDB2_Th_Engine_Static_Copy_Tech;
+  // dynamic backup technology
+  Dynamic_Copy_Tech_inst: TZDB2_Th_Engine_Dynamic_Copy_Tech;
+begin
+  // static backup technology
+  if (Copy_Mode = TZDB2_Copy_Mode.cmStatic) or
+    ((Copy_Mode = TZDB2_Copy_Mode.cmAuto) and (Engine.CoreSpace_Physics_Size < Static_Copy_Tech_Physics_Limit)) then
+    begin
+      // backup instance
+      Static_Copy_Tech_inst := TZDB2_Th_Engine_Static_Copy_Tech.Create(Self);
+      Owner.Check_Recycle_Pool;
+      Static_Copy_Tech_inst.Copy_To_Dest := Dest_;
+      Static_Copy_Tech_inst.Quiet := False;
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Static_Copy_Tech_inst.Do_Run); // run static-backup thread
+    end
+  else
+    begin
+      // dynamic backup technology
+      Dynamic_Copy_Tech_inst := TZDB2_Th_Engine_Dynamic_Copy_Tech.Create(Self);
+      Owner.Check_Recycle_Pool;
+      Dynamic_Copy_Tech_inst.Dynamic_Copy_Tech_Max_Queue := Dynamic_Copy_Tech_Max_Queue;
+      Dynamic_Copy_Tech_inst.Copy_To_Dest := Dest_;
+      Dynamic_Copy_Tech_inst.Quiet := False;
+      TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}Dynamic_Copy_Tech_inst.Do_Run); // run dynamic-backup thread
+    end;
+end;
+
+procedure TZDB2_Th_Engine.Stop_Copy;
 begin
   Static_Copy_Instance_Pool__.Lock;
   try
@@ -1900,15 +1945,15 @@ begin
   end;
 end;
 
-procedure TZDB2_Th_Engine.Wait_Backup;
+procedure TZDB2_Th_Engine.Wait_Copy;
 begin
-  if FBackup_Is_Busy then
+  if FCopy_Is_Busy then
     begin
       if Database_File <> '' then
-          DoStatus('"%s" wait backup task...', [Database_File.Text])
+          DoStatus('"%s" wait copy task...', [Database_File.Text])
       else
-          DoStatus('wait backup task...');
-      while FBackup_Is_Busy do
+          DoStatus('wait copy task...');
+      while FCopy_Is_Busy do
           TCompute.Sleep(100);
     end;
 end;
@@ -2396,6 +2441,15 @@ begin
     end
   else
     begin
+      // temp data swap technology
+      // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
+      // after the long loop ends, the data will truly become a engine structure
+      try
+          Flush_Temp_Swap_Pool;
+      except
+      end;
+
+      // complete data instance
       Data_Instance.FIn_Temp_Swap_Pool := False;
       Data_Instance.Lock;
       Data_Instance.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Data_Instance);
@@ -2782,7 +2836,10 @@ begin
     if Engine_Pool.num > 0 then
       with Engine_Pool.repeat_ do
         repeat
-            Queue^.Data.Flush_Temp_Swap_Pool;
+          try
+              Queue^.Data.Flush_Temp_Swap_Pool;
+          except
+          end;
         until not Next;
     // free link
     if Data_Link_Recycle_Tool.num > 0 then
@@ -3070,7 +3127,7 @@ begin
         try
           with Engine_Pool.repeat_ do
             repeat
-              if Queue^.Data.FBackup_Is_Busy then
+              if Queue^.Data.FCopy_Is_Busy then
                   Inc(backup_task_num);
             until not Next;
         except
@@ -3164,7 +3221,10 @@ begin
       if Engine_Pool.num > 0 then
         with Engine_Pool.repeat_ do
           repeat
-              Queue^.Data.Flush_Temp_Swap_Pool;
+            try
+                Queue^.Data.Flush_Temp_Swap_Pool;
+            except
+            end;
           until not Next;
 
       AtomDec(FLong_Loop_Num);
@@ -3242,7 +3302,7 @@ begin
         with Engine_Pool.repeat_ do
           repeat
             try
-              if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FBackup_Is_Busy) then
+              if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FCopy_Is_Busy) then
                   Queue^.Data.Backup(1);
             except
             end;
@@ -4078,7 +4138,7 @@ begin
   Check_Recycle_Pool;
 end;
 
-procedure TZDB2_Th_Engine_Marshal.Remove_First_Data_From_All_ThEngine(ThEngine_Max_Space_Size: Int64);
+procedure TZDB2_Th_Engine_Marshal.Remove_First_Data_For_All_Th_Engine(Th_Engine_Max_Space_Size: Int64);
 begin
   if FLong_Loop_Num > 0 then
       exit;
@@ -4088,8 +4148,8 @@ begin
       AtomInc(FLong_Loop_Num);
       with Engine_Pool.repeat_ do
         repeat
-          if Queue^.Data.Engine.CoreSpace_Size > ThEngine_Max_Space_Size then
-              Do_Remove_First_Data_From_ThEngine(Queue^.Data, Queue^.Data.Engine.CoreSpace_Size - ThEngine_Max_Space_Size);
+          if Queue^.Data.Engine.CoreSpace_Size > Th_Engine_Max_Space_Size then
+              Do_Remove_First_Data_From_ThEngine(Queue^.Data, Queue^.Data.Engine.CoreSpace_Size - Th_Engine_Max_Space_Size);
         until not Next;
       AtomDec(FLong_Loop_Num);
       Check_Recycle_Pool;
@@ -4444,7 +4504,7 @@ begin
   DM.Wait_Busy_Task;
 
   DoStatus('recycle space.');
-  DM.Remove_First_Data_From_All_ThEngine(8 * 1024 * 1024);
+  DM.Remove_First_Data_For_All_Th_Engine(8 * 1024 * 1024);
   DM.Wait_Busy_Task;
 
   with DM.Engine_Pool.repeat_ do
