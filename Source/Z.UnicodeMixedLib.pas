@@ -3958,9 +3958,9 @@ begin
   if Size < 1 shl 10 then
       Result := Format('%d', [Size])
   else if Size < 1 shl 20 then
-      Result := Format('%f Kb', [Size / (1 shl 10)])
+      Result := Format('%fKb', [Size / (1 shl 10)])
   else
-      Result := Format('%f M', [Size / (1 shl 20)]);
+      Result := Format('%fM', [Size / (1 shl 20)]);
 end;
 
 function umlIntToStr(Parameter: Single): TPascalString;
@@ -4001,11 +4001,11 @@ end;
 function umlMBPSToStr(Size: Int64): TPascalString;
 begin
   if Size < 1 shl 10 then
-      Result := Format('%d bps', [Size * 10])
+      Result := Format('%dBps', [Size * 10])
   else if Size < 1 shl 20 then
-      Result := Format('%f Kbps', [Size / (1 shl 10) * 10])
+      Result := Format('%fKbps', [Size / (1 shl 10) * 10])
   else
-      Result := Format('%f Mbps', [Size / (1 shl 20) * 10]);
+      Result := Format('%fMbps', [Size / (1 shl 20) * 10]);
 end;
 
 function umlSizeToStr(Parameter: Int64): TPascalString;
@@ -4023,13 +4023,13 @@ begin
     if Parameter < 1 shl 10 then
         Result := Format('%d', [Parameter])
     else if Parameter < 1 shl 20 then
-        Result := Format('%f Kb', [Parameter / (1 shl 10)])
+        Result := Format('%fKb', [Parameter / (1 shl 10)])
     else if Parameter < 1 shl 30 then
-        Result := Format('%f M', [Parameter / (1 shl 20)])
+        Result := Format('%fM', [Parameter / (1 shl 20)])
     else
-        Result := Format('%f G', [Parameter / (1 shl 30)])
+        Result := Format('%fG', [Parameter / (1 shl 30)])
   except
-      Result := IntToStr(Parameter) + ' B';
+      Result := IntToStr(Parameter);
   end;
 end;
 
