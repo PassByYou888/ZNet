@@ -1248,7 +1248,7 @@ type
   TZNet = class(TCore_InterfacedObject)
   private
     FCritical: TCritical;
-    FInstance_Ptr_Struct: TZNet_Instance_Pool.PQueueStruct;
+    FZNet_Instance_Ptr__: TZNet_Instance_Pool.PQueueStruct;
     FCommand_Hash_Pool: TCommand_Hash_Pool;
     FPeerIO_HashPool: TPeer_IO_Hash_Pool;
     FIDSeed: Cardinal;
@@ -9742,7 +9742,7 @@ var
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  FInstance_Ptr_Struct := ZNet_Instance_Pool.Add(self);
+  FZNet_Instance_Ptr__ := ZNet_Instance_Pool.Add(self);
   FCommand_Hash_Pool := TCommand_Hash_Pool.Create(1024, nil);
   FIDSeed := 1;
   FPeerIO_HashPool := TPeer_IO_Hash_Pool.Create(HashPoolSize, nil);
@@ -9803,7 +9803,7 @@ begin
   FSequencePacketActivted := {$IFDEF UsedSequencePacket}True{$ELSE UsedSequencePacket}False{$ENDIF UsedSequencePacket};
 
   FPrefixName := '';
-  FName := 'undefine';
+  FName := '';
 
   d := umlNow();
   FInitedTimeMD5 := umlMD5(@d, C_Double_Size);
@@ -9850,7 +9850,7 @@ begin
   Print('%s.%s(%s) destroy', [FPrefixName, FName, ClassName]);
 {$ENDIF DEBUG}
   try
-    ZNet_Instance_Pool.Remove_P(FInstance_Ptr_Struct);
+    ZNet_Instance_Pool.Remove_P(FZNet_Instance_Ptr__);
     while FSend_Queue_Swap_Pool.num > 0 do
       begin
         DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
