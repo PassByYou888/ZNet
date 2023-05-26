@@ -422,6 +422,8 @@ type
     procedure Remove_First_Data_For_All_Th_Engine(Th_Engine_Max_Space_Size: Int64);
     // custom loop
     procedure Begin_Loop;
+    function Repeat_: TZDB2_Th_Engine_Marshal_BigList___.TRepeat___;
+    function Invert_Repeat_: TZDB2_Th_Engine_Marshal_BigList___.TInvert_Repeat___;
     procedure End_Loop;
     // RemoveDatabaseOnDestroy
     function GetRemoveDatabaseOnDestroy: Boolean;
@@ -439,8 +441,8 @@ procedure Stop_All_ZDB2_Thread_Backup_Task;
 
 var
   Th_Engine_Marshal_Pool__: TZDB2_Th_Engine_Marshal_Pool;
-  Static_Copy_Instance_Pool__: TZDB2_Th_Engine_Static_Copy_Instance_Pool; // static copy and backup pool technology
-  Dynamic_Copy_Instance_Pool__: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool; // dynamic copy and backup pool technology
+  Static_Copy_Instance_Pool__: TZDB2_Th_Engine_Static_Copy_Instance_Pool; // static copy and backup technology
+  Dynamic_Copy_Instance_Pool__: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool; // dynamic copy and backup technology
 
 implementation
 
@@ -452,7 +454,7 @@ begin
   try
     if Static_Copy_Instance_Pool__.num > 0 then
       begin
-        with Static_Copy_Instance_Pool__.repeat_ do
+        with Static_Copy_Instance_Pool__.Repeat_ do
           repeat
               Queue^.Data.Aborted := True;
           until not Next;
@@ -465,7 +467,7 @@ begin
   try
     if Dynamic_Copy_Instance_Pool__.num > 0 then
       begin
-        with Dynamic_Copy_Instance_Pool__.repeat_ do
+        with Dynamic_Copy_Instance_Pool__.Repeat_ do
           repeat
               Queue^.Data.Aborted := True;
           until not Next;
@@ -1184,7 +1186,7 @@ begin
     // rebuild sequece
     if Owner.Th_Engine_Data_Pool.num > 0 then
       begin
-        __repeat__ := Owner.Th_Engine_Data_Pool.repeat_;
+        __repeat__ := Owner.Th_Engine_Data_Pool.Repeat_;
         repeat
           if __repeat__.Queue^.Data <> nil then
             begin
@@ -1480,7 +1482,7 @@ begin
   try
     Temp_Swap_Pool.Free_Recycle_Pool;
     if Temp_Swap_Pool.num > 0 then
-      with Temp_Swap_Pool.repeat_ do
+      with Temp_Swap_Pool.Repeat_ do
         repeat
           Queue^.Data.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Queue^.Data);
           Queue^.Data.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Queue^.Data);
@@ -1622,7 +1624,7 @@ begin
   Th_Engine_Data_Pool.Lock;
   if Th_Engine_Data_Pool.num > 0 then
     begin
-      with Th_Engine_Data_Pool.repeat_ do
+      with Th_Engine_Data_Pool.Repeat_ do
         repeat
           Queue^.Data.FTh_Engine := Self;
           Queue^.Data.FTh_Engine_Data_Ptr := Queue;
@@ -1920,7 +1922,7 @@ begin
   try
     if Static_Copy_Instance_Pool__.num > 0 then
       begin
-        with Static_Copy_Instance_Pool__.repeat_ do
+        with Static_Copy_Instance_Pool__.Repeat_ do
           repeat
             if Queue^.Data.Owner = Self then
                 Queue^.Data.Aborted := True;
@@ -1934,7 +1936,7 @@ begin
   try
     if Dynamic_Copy_Instance_Pool__.num > 0 then
       begin
-        with Dynamic_Copy_Instance_Pool__.repeat_ do
+        with Dynamic_Copy_Instance_Pool__.Repeat_ do
           repeat
             if Queue^.Data.Owner = Self then
                 Queue^.Data.Aborted := True;
@@ -2400,7 +2402,7 @@ begin
     Queue_ID_List_ := TZDB2_ID_List.Create;
     if Th_Engine_Data_Pool.num > 0 then
       begin
-        __repeat__ := Th_Engine_Data_Pool.repeat_;
+        __repeat__ := Th_Engine_Data_Pool.Repeat_;
         repeat
           if __repeat__.Queue^.Data <> nil then
             begin
@@ -2473,7 +2475,7 @@ begin
   try
     if Th_Engine_Data_Pool.num > 0 then
       begin
-        with Th_Engine_Data_Pool.repeat_ do
+        with Th_Engine_Data_Pool.Repeat_ do
           repeat
             if (Queue^.Data <> nil) and Queue^.Data.Can_Progress then
                 Queue^.Data.Progress();
@@ -2504,7 +2506,7 @@ begin
     begin
       Eng_ := nil;
       Lock;
-      with repeat_ do
+      with Repeat_ do
         repeat
           if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
             begin
@@ -2533,7 +2535,7 @@ begin
     begin
       Eng_ := nil;
       Lock;
-      with repeat_ do
+      with Repeat_ do
         repeat
           if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.IsOnlyRead) then
             begin
@@ -2557,7 +2559,7 @@ function TZDB2_Th_Engine_Pool.AllIsOnlyRead(): Boolean;
 begin
   Result := False;
   if num > 0 then
-    with repeat_ do
+    with Repeat_ do
       begin
         repeat
           if not Queue^.Data.OnlyRead then
@@ -2834,7 +2836,7 @@ begin
     // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
     // after the long loop ends, the data will truly become a engine structure
     if Engine_Pool.num > 0 then
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           try
               Queue^.Data.Flush_Temp_Swap_Pool;
@@ -2844,7 +2846,7 @@ begin
     // free link
     if Data_Link_Recycle_Tool.num > 0 then
       begin
-        with Data_Link_Recycle_Tool.repeat_ do
+        with Data_Link_Recycle_Tool.Repeat_ do
           repeat
             try
               if (Queue^.Data.FTh_Engine <> nil) and (Queue^.Data.FTh_Engine_Data_Ptr <> nil) then
@@ -2867,7 +2869,7 @@ begin
     disposeObjectAndNil(Data_Link_Recycle_Tool);
     // free thread engine recycle pool
     if Engine_Pool.num > 0 then
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           try
               Queue^.Data.Th_Engine_Data_Pool.Free_Recycle_Pool;
@@ -2884,7 +2886,7 @@ begin
     disposeObjectAndNil(Data_Marshal);
     // free data instance
     if Instance_Recycle_Tool.num > 0 then
-      with Instance_Recycle_Tool.repeat_ do
+      with Instance_Recycle_Tool.Repeat_ do
         repeat
           if Queue^.Data <> nil then
             begin
@@ -2922,7 +2924,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
               Queue^.Data.Build(Current_Data_Class);
           until not Next;
@@ -2939,7 +2941,7 @@ begin
   ready_num := 0;
   if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(ready_num);
@@ -2955,7 +2957,7 @@ begin
     // update FOwner_Data_Ptr
     Data_Marshal.Lock;
     if Data_Marshal.num > 0 then
-      with Data_Marshal.repeat_ do
+      with Data_Marshal.Repeat_ do
         repeat
           Queue^.Data.FOwner := Self;
           Queue^.Data.FOwner_Data_Ptr := Queue;
@@ -2964,7 +2966,7 @@ begin
 
     // update FTh_Engine_Data_Ptr
     if Engine_Pool.num > 0 then
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
             Queue^.Data.Update_Engine_Data_Ptr;
         until not Next;
@@ -3023,7 +3025,7 @@ begin
   Result := 0;
   if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.CoreSpace_Size);
@@ -3036,7 +3038,7 @@ begin
   Result := 0;
   if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.CoreSpace_Physics_Size);
@@ -3054,7 +3056,7 @@ begin
   Result := 0;
   if Engine_Pool.num > 0 then
     begin
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine <> nil then
               Inc(Result, Queue^.Data.Engine.QueueNum);
@@ -3125,7 +3127,7 @@ begin
       begin
         Lock;
         try
-          with Engine_Pool.repeat_ do
+          with Engine_Pool.Repeat_ do
             repeat
               if Queue^.Data.FCopy_Is_Busy then
                   Inc(backup_task_num);
@@ -3150,7 +3152,7 @@ begin
       Data_Link_Recycle_Tool.Lock;
       if Data_Link_Recycle_Tool.num > 0 then
         begin
-          with Data_Link_Recycle_Tool.repeat_ do
+          with Data_Link_Recycle_Tool.Repeat_ do
             repeat
               try
                 if (Queue^.Data.FTh_Engine <> nil) and (Queue^.Data.FTh_Engine_Data_Ptr <> nil) then
@@ -3175,7 +3177,7 @@ begin
 
       // free thread engine recycle pool
       if Engine_Pool.num > 0 then
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             Queue^.Data.Th_Engine_Data_Pool.Lock;
             try
@@ -3197,7 +3199,7 @@ begin
       try
         if Instance_Recycle_Tool.num > 0 then
           begin
-            with Instance_Recycle_Tool.repeat_ do
+            with Instance_Recycle_Tool.Repeat_ do
               repeat
                 if Queue^.Data = nil then
                     Instance_Recycle_Tool.Push_To_Recycle_Pool(Queue)
@@ -3219,7 +3221,7 @@ begin
       // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
       // after the long loop ends, the data will truly become a engine structure
       if Engine_Pool.num > 0 then
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
                 Queue^.Data.Flush_Temp_Swap_Pool;
@@ -3241,7 +3243,7 @@ begin
       AtomInc(FLong_Loop_Num);
       try
         if Engine_Pool.num > 0 then
-          with Engine_Pool.repeat_ do
+          with Engine_Pool.Repeat_ do
             repeat
                 Queue^.Data.Progress;
             until not Next;
@@ -3261,7 +3263,7 @@ begin
       Result := 0;
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             if Queue^.Data.Get_Last_Backup_Execute_Time > Result then
                 Result := Queue^.Data.Get_Last_Backup_Execute_Time;
@@ -3280,7 +3282,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
                 Queue^.Data.Backup(Reserve_);
@@ -3299,7 +3301,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
               if (not Queue^.Data.Found_Backup) and (not Queue^.Data.FCopy_Is_Busy) then
@@ -3319,7 +3321,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
                 Queue^.Data.Stop_Backup;
@@ -3338,7 +3340,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
                 Queue^.Data.Remove_Backup;
@@ -3365,7 +3367,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
             try
                 Queue^.Data.Flush(WaitQueue_);
@@ -3390,7 +3392,7 @@ begin
     Data_Marshal.Clear;
     if Engine_Pool.num > 0 then
       begin
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
               Queue^.Data.Format_Database;
           until not Next;
@@ -4146,7 +4148,7 @@ begin
     begin
       Check_Recycle_Pool;
       AtomInc(FLong_Loop_Num);
-      with Engine_Pool.repeat_ do
+      with Engine_Pool.Repeat_ do
         repeat
           if Queue^.Data.Engine.CoreSpace_Size > Th_Engine_Max_Space_Size then
               Do_Remove_First_Data_From_ThEngine(Queue^.Data, Queue^.Data.Engine.CoreSpace_Size - Th_Engine_Max_Space_Size);
@@ -4162,6 +4164,16 @@ begin
   AtomInc(FLong_Loop_Num);
 end;
 
+function TZDB2_Th_Engine_Marshal.Repeat_: TZDB2_Th_Engine_Marshal_BigList___.TRepeat___;
+begin
+  Result := Data_Marshal.Repeat_;
+end;
+
+function TZDB2_Th_Engine_Marshal.Invert_Repeat_: TZDB2_Th_Engine_Marshal_BigList___.TInvert_Repeat___;
+begin
+  Result := Data_Marshal.Invert_Repeat_;
+end;
+
 procedure TZDB2_Th_Engine_Marshal.End_Loop;
 begin
   AtomDec(FLong_Loop_Num);
@@ -4175,7 +4187,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
               Result := Result or Queue^.Data.RemoveDatabaseOnDestroy;
           until not Next;
@@ -4191,7 +4203,7 @@ begin
     begin
       Lock;
       try
-        with Engine_Pool.repeat_ do
+        with Engine_Pool.Repeat_ do
           repeat
               Queue^.Data.RemoveDatabaseOnDestroy := Value;
           until not Next;
@@ -4205,7 +4217,7 @@ function TZDB2_Th_Engine_Marshal.Get_State_Info: U_String;
 begin
   Result := '';
   if Engine_Pool.num > 0 then
-    with Engine_Pool.repeat_ do
+    with Engine_Pool.Repeat_ do
       repeat
         if Queue^.Data.Engine <> nil then
             Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s' + #13#10,
@@ -4497,7 +4509,7 @@ begin
 
   DM.Wait_Busy_Task;
   DoStatus('db total:%d', [DM.Total]);
-  with DM.Engine_Pool.repeat_ do
+  with DM.Engine_Pool.Repeat_ do
     repeat
         DoStatus('engine(%d) size: %s', [I__, umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text]);
     until not Next;
@@ -4507,7 +4519,7 @@ begin
   DM.Remove_First_Data_For_All_Th_Engine(8 * 1024 * 1024);
   DM.Wait_Busy_Task;
 
-  with DM.Engine_Pool.repeat_ do
+  with DM.Engine_Pool.Repeat_ do
     repeat
         DoStatus('engine(%d) size: %s', [I__, umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text]);
     until not Next;
