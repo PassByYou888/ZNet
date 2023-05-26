@@ -157,10 +157,10 @@ type
   { automated tunnel }
   TC40_PhysicsTunnel = class(TCore_InterfacedObject, IZNet_ClientInterface)
   private
-    IsConnecting: Boolean;
-    IsWaitBuildNetwor: Boolean;
-    Network_Is_Inited: Boolean;
-    OfflineTime: TTimeTick;
+    FIsConnecting: Boolean;
+    FWait_Build_Depend_Network: Boolean;
+    FNetwork_Already_Inited: Boolean;
+    FOfflineTime: TTimeTick;
     procedure DoDelayConnect();
     procedure DoConnectOnResult(const state: Boolean);
     procedure DoConnectAndQuery(Param1: Pointer; Param2: TObject; const state: Boolean);
@@ -204,8 +204,18 @@ type
 
   TSearchServiceAndBuildConnection_Bridge = class;
 
+  TC40_First_BuildDependNetwork_Fault_Fixed_Bridge = class
+  public
+    Time_: TTimeTick;
+    Tunnel: TC40_PhysicsTunnel;
+    constructor Create(Tunnel_: TC40_PhysicsTunnel);
+    procedure Do_Delay_Next_BuildDependNetwork();
+    procedure Do_First_BuildDependNetwork(const state: Boolean);
+  end;
+
   TC40_PhysicsTunnelPool = class(TC40_PhysicsTunnelPool_Decl)
   public
+    constructor Create;
     procedure GetRS(var recv, send: Int64);
     { find addr }
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -1309,7 +1319,7 @@ var
 begin
   Result := 0;
   for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-    if C40_PhysicsTunnelPool[i].Network_Is_Inited then
+    if C40_PhysicsTunnelPool[i].FNetwork_Already_Inited then
         inc(Result, 1);
 end;
 
@@ -1420,14 +1430,14 @@ begin
   while i < C40_PhysicsTunnelPool.Count do
     begin
       tmp := C40_PhysicsTunnelPool[i];
-      if (not tmp.PhysicsTunnel.RemoteInited) and (not tmp.Network_Is_Inited) and
-        (tmp.OfflineTime > 0) and (GetTimeTick - tmp.OfflineTime > C40_KillDeadPhysicsConnectionTimeout) then
+      if (not tmp.PhysicsTunnel.RemoteInited) and (not tmp.FNetwork_Already_Inited) and
+        (tmp.FOfflineTime > 0) and (GetTimeTick - tmp.FOfflineTime > C40_KillDeadPhysicsConnectionTimeout) then
         begin
           C40RemovePhysics(tmp);
           i := 0;
         end
-      else if (not tmp.PhysicsTunnel.RemoteInited) and (tmp.Network_Is_Inited) and
-        (tmp.OfflineTime > 0) and (GetTimeTick - tmp.OfflineTime > C40_KillIDCFaultTimeout) then
+      else if (not tmp.PhysicsTunnel.RemoteInited) and (tmp.FNetwork_Already_Inited) and
+        (tmp.FOfflineTime > 0) and (GetTimeTick - tmp.FOfflineTime > C40_KillIDCFaultTimeout) then
         begin
           C40RemovePhysics(tmp);
           i := 0;
@@ -1832,7 +1842,7 @@ procedure TC40_PhysicsServicePool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -1938,9 +1948,9 @@ begin
       if not Connected then
           Connect;
 
-  C40_PhysicsTunnel.IsWaitBuildNetwor := False;
-  C40_PhysicsTunnel.Network_Is_Inited := True;
-  C40_PhysicsTunnel.OfflineTime := 0;
+  C40_PhysicsTunnel.FWait_Build_Depend_Network := False;
+  C40_PhysicsTunnel.FNetwork_Already_Inited := True;
+  C40_PhysicsTunnel.FOfflineTime := 0;
   DoRun(True);
 end;
 
@@ -2029,14 +2039,19 @@ end;
 
 procedure TC40_PhysicsTunnel.DoConnectOnResult(const state: Boolean);
 begin
-  if not Network_Is_Inited then
+  if not FNetwork_Already_Inited then
     begin
       if state then
-          PhysicsTunnel.Print('Physics Tunnel connection successed, internet addr: %s port: %d', [PhysicsAddr.Text, PhysicsPort])
+        begin
+          PhysicsTunnel.Print('Physics Tunnel connection successed, internet addr: %s port: %d', [PhysicsAddr.Text, PhysicsPort]);
+        end
       else
+        begin
+          FWait_Build_Depend_Network := False;
           PhysicsTunnel.Print('Physics Tunnel connection failed, internet addr: %s port: %d', [PhysicsAddr.Text, PhysicsPort]);
+        end;
     end;
-  IsConnecting := False;
+  FIsConnecting := False;
 end;
 
 procedure TC40_PhysicsTunnel.DoConnectAndQuery(Param1: Pointer; Param2: TObject; const state: Boolean);
@@ -2136,10 +2151,10 @@ var
   i: Integer;
 begin
   inherited Create;
-  IsConnecting := False;
-  IsWaitBuildNetwor := False;
-  Network_Is_Inited := False;
-  OfflineTime := GetTimeTick;
+  FIsConnecting := False;
+  FWait_Build_Depend_Network := False;
+  FNetwork_Already_Inited := False;
+  FOfflineTime := GetTimeTick;
 
   PhysicsAddr := umlTrimSpace(Addr_);
   PhysicsPort := Port_;
@@ -2202,15 +2217,15 @@ begin
   PhysicsTunnel.Progress;
 
   { check state and reconnection }
-  if Network_Is_Inited and (not IsConnecting) and (not PhysicsTunnel.RemoteInited) then
+  if FNetwork_Already_Inited and (not FIsConnecting) and (not PhysicsTunnel.RemoteInited) then
     begin
-      IsConnecting := True;
+      FIsConnecting := True;
       PhysicsTunnel.PostProgress.PostExecuteM_NP(C40_PhysicsReconnectionDelayTime, {$IFDEF FPC}@{$ENDIF FPC}DoDelayConnect);
     end;
 
   { check offline state }
-  if (OfflineTime = 0) and (not PhysicsTunnel.RemoteInited) then
-      OfflineTime := GetTimeTick;
+  if (FOfflineTime = 0) and (not PhysicsTunnel.RemoteInited) then
+      FOfflineTime := GetTimeTick;
 end;
 
 function TC40_PhysicsTunnel.ResetDepend(const Depend_: TC40_DependNetworkInfoArray): Boolean;
@@ -2252,7 +2267,7 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
 
   Result := True;
@@ -2272,7 +2287,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndCheckDepend);
@@ -2284,7 +2299,7 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
 
   Result := True;
@@ -2307,7 +2322,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndCheckDepend);
@@ -2319,7 +2334,7 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
 
   Result := True;
@@ -2342,7 +2357,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndCheckDepend);
@@ -2354,7 +2369,7 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
 
   Result := True;
@@ -2377,7 +2392,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndCheckDepend);
@@ -2389,11 +2404,11 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
-  if IsWaitBuildNetwor then
+  if FWait_Build_Depend_Network then
       exit;
-  if Network_Is_Inited then
+  if FNetwork_Already_Inited then
       exit;
 
   Result := True;
@@ -2406,7 +2421,7 @@ begin
 
   tmp := TDCT40_QueryResultAndDependProcessor.Create;
   tmp.C40_PhysicsTunnel := Self;
-  IsWaitBuildNetwor := True;
+  FWait_Build_Depend_Network := True;
 
   if PhysicsTunnel.RemoteInited then
     begin
@@ -2414,7 +2429,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndBuildDependNetwork);
@@ -2426,14 +2441,14 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
-  if IsWaitBuildNetwor then
+  if FWait_Build_Depend_Network then
       exit;
 
-  if Network_Is_Inited then
+  if FNetwork_Already_Inited then
     begin
-      IsWaitBuildNetwor := True;
+      FWait_Build_Depend_Network := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
       tmp.C40_PhysicsTunnel := Self;
       tmp.On_C := OnResult;
@@ -2455,7 +2470,7 @@ begin
   tmp := TDCT40_QueryResultAndDependProcessor.Create;
   tmp.C40_PhysicsTunnel := Self;
   tmp.On_C := OnResult;
-  IsWaitBuildNetwor := True;
+  FWait_Build_Depend_Network := True;
 
   if PhysicsTunnel.RemoteInited then
     begin
@@ -2463,7 +2478,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndBuildDependNetwork);
@@ -2475,14 +2490,14 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
-  if IsWaitBuildNetwor then
+  if FWait_Build_Depend_Network then
       exit;
 
-  if Network_Is_Inited then
+  if FNetwork_Already_Inited then
     begin
-      IsWaitBuildNetwor := True;
+      FWait_Build_Depend_Network := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
       tmp.C40_PhysicsTunnel := Self;
       tmp.On_M := OnResult;
@@ -2504,7 +2519,7 @@ begin
   tmp := TDCT40_QueryResultAndDependProcessor.Create;
   tmp.C40_PhysicsTunnel := Self;
   tmp.On_M := OnResult;
-  IsWaitBuildNetwor := True;
+  FWait_Build_Depend_Network := True;
 
   if PhysicsTunnel.RemoteInited then
     begin
@@ -2512,7 +2527,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndBuildDependNetwork);
@@ -2524,14 +2539,14 @@ var
   tmp: TDCT40_QueryResultAndDependProcessor;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
-  if IsWaitBuildNetwor then
+  if FWait_Build_Depend_Network then
       exit;
 
-  if Network_Is_Inited then
+  if FNetwork_Already_Inited then
     begin
-      IsWaitBuildNetwor := True;
+      FWait_Build_Depend_Network := True;
       tmp := TDCT40_QueryResultAndDependProcessor.Create;
       tmp.C40_PhysicsTunnel := Self;
       tmp.On_P := OnResult;
@@ -2553,7 +2568,7 @@ begin
   tmp := TDCT40_QueryResultAndDependProcessor.Create;
   tmp.C40_PhysicsTunnel := Self;
   tmp.On_P := OnResult;
-  IsWaitBuildNetwor := True;
+  FWait_Build_Depend_Network := True;
 
   if PhysicsTunnel.RemoteInited then
     begin
@@ -2561,7 +2576,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndBuildDependNetwork);
@@ -2586,7 +2601,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndQuery);
@@ -2611,7 +2626,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndQuery);
@@ -2636,7 +2651,7 @@ begin
       exit;
     end;
 
-  IsConnecting := True;
+  FIsConnecting := True;
   PhysicsTunnel.AutomatedP2PVMService := False;
   PhysicsTunnel.AutomatedP2PVMClient := False;
   PhysicsTunnel.AsyncConnectM(PhysicsAddr, PhysicsPort, nil, tmp, {$IFDEF FPC}@{$ENDIF FPC}DoConnectAndQuery);
@@ -2647,11 +2662,11 @@ var
   i: Integer;
 begin
   Result := False;
-  if IsConnecting then
+  if FIsConnecting then
       exit;
   if not PhysicsTunnel.RemoteInited then
       exit;
-  if not Network_Is_Inited then
+  if not FNetwork_Already_Inited then
       exit;
   for i := 0 to DependNetworkClientPool.Count - 1 do
     if not DependNetworkClientPool[i].Connected then
@@ -2663,6 +2678,58 @@ procedure TC40_PhysicsTunnel.DoNetworkOnline(Custom_Client_: TC40_Custom_Client)
 begin
   if Assigned(OnEvent) then
       OnEvent.C40_PhysicsTunnel_Client_Connected(Self, Custom_Client_);
+end;
+
+constructor TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Tunnel_: TC40_PhysicsTunnel);
+begin
+  inherited Create;
+  Time_ := GetTimeTick();
+  Tunnel := Tunnel_;
+end;
+
+procedure TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Do_Delay_Next_BuildDependNetwork;
+begin
+  if (GetTimeTick - Time_ > C_Tick_Minute * 60) then
+    begin
+      DelayFreeObj(1.0, Self);
+      exit;
+    end;
+
+  if (C40_PhysicsTunnelPool = nil) or (C40_PhysicsTunnelPool.IndexOf(Tunnel) < 0) then
+    begin
+      DelayFreeObj(1.0, Self);
+      exit;
+    end;
+
+  Tunnel.FOfflineTime := GetTimeTick();
+
+  if Tunnel.FIsConnecting then
+      SystemPostProgress.PostExecuteM_NP(5.0, {$IFDEF FPC}@{$ENDIF FPC}Do_Delay_Next_BuildDependNetwork)
+  else if not Tunnel.FNetwork_Already_Inited then
+      Tunnel.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}Do_First_BuildDependNetwork)
+  else
+      DelayFreeObj(1.0, Self);
+end;
+
+procedure TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Do_First_BuildDependNetwork(const state: Boolean);
+begin
+  if (C40_PhysicsTunnelPool = nil) or (C40_PhysicsTunnelPool.IndexOf(Tunnel) < 0) then
+    begin
+      DelayFreeObj(1.0, Self);
+      exit;
+    end;
+  if state then
+    begin
+      DelayFreeObj(1.0, Self);
+      exit;
+    end;
+  Tunnel.FOfflineTime := GetTimeTick();
+  SystemPostProgress.PostExecuteM_NP(5.0, {$IFDEF FPC}@{$ENDIF FPC}Do_Delay_Next_BuildDependNetwork);
+end;
+
+constructor TC40_PhysicsTunnelPool.Create;
+begin
+  inherited Create;
 end;
 
 procedure TC40_PhysicsTunnelPool.GetRS(var recv, send: Int64);
@@ -2718,13 +2785,13 @@ begin
       Result := TC40_PhysicsTunnel.Create(PhysicsAddr, PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end
-  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
+  else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end;
 end;
 
@@ -2737,13 +2804,13 @@ begin
       Result := TC40_PhysicsTunnel.Create(PhysicsAddr, PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end
-  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
+  else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end;
 end;
 
@@ -2765,13 +2832,13 @@ begin
       Result := TC40_PhysicsTunnel.Create(dispInfo.PhysicsAddr, dispInfo.PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end
-  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
+  else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end;
 end;
 
@@ -2784,13 +2851,13 @@ begin
       Result := TC40_PhysicsTunnel.Create(dispInfo.PhysicsAddr, dispInfo.PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end
-  else if (not Result.IsConnecting) and (not Result.Network_Is_Inited) then
+  else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetwork();
+      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
     end;
 end;
 
@@ -2798,7 +2865,7 @@ procedure TC40_PhysicsTunnelPool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -3916,7 +3983,7 @@ procedure TC40_Custom_ServicePool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -4266,7 +4333,7 @@ procedure TC40_Custom_ClientPool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -6130,7 +6197,7 @@ procedure TC40_Custom_VM_Service_Pool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -6143,7 +6210,7 @@ procedure TC40_Custom_VM_Client_Pool.Progress;
 var
   i: Integer;
 begin
-  for i := 0 to Count - 1 do
+  for i := Count - 1 downto 0 do
     begin
       try
           Items[i].Progress;
@@ -6723,7 +6790,7 @@ C40_PhysicsReconnectionDelayTime := 5.0;
 C40_UpdateServiceInfoDelayTime := C_Tick_Second * 1;
 C40_PhysicsServiceTimeout := C_Tick_Minute * 15;
 C40_PhysicsTunnelTimeout := C_Tick_Minute * 15;
-C40_KillDeadPhysicsConnectionTimeout := C_Tick_Second * 5;
+C40_KillDeadPhysicsConnectionTimeout := C_Tick_Second * 60;
 C40_KillIDCFaultTimeout := C_Tick_Hour * 5;
 
 {$IFDEF FPC}
@@ -6763,14 +6830,14 @@ finalization
 
 C40Clean;
 
-DisposeObject(C40_PhysicsServicePool);
-DisposeObject(C40_ServicePool);
-DisposeObject(C40_PhysicsTunnelPool);
-DisposeObject(C40_ClientPool);
-DisposeObject(C40_VM_Service_Pool);
-DisposeObject(C40_VM_Client_Pool);
-DisposeObject(C40_Registed);
-DisposeObject(C40_DefaultConfig);
+DisposeObjectAndNil(C40_PhysicsServicePool);
+DisposeObjectAndNil(C40_ServicePool);
+DisposeObjectAndNil(C40_PhysicsTunnelPool);
+DisposeObjectAndNil(C40_ClientPool);
+DisposeObjectAndNil(C40_VM_Service_Pool);
+DisposeObjectAndNil(C40_VM_Client_Pool);
+DisposeObjectAndNil(C40_Registed);
+DisposeObjectAndNil(C40_DefaultConfig);
 
 Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
 
