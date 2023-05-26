@@ -47,6 +47,8 @@ type
     port: word;
     depend: string;
     isAuto, Min_Workload: Boolean;
+    KeepAlive_Connected: Boolean;
+    procedure Init;
   end;
 
   TCmd_Net_Info_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TCmd_Net_Info_>;
@@ -54,6 +56,7 @@ type
   TCommand_Script = class
   private
     function Do_Config(var OP_Param: TOpParam): Variant;
+    function Do_KeepAlive_Client(var OP_Param: TOpParam): Variant;
     function Do_AutoClient(var OP_Param: TOpParam): Variant;
     function Do_Client(var OP_Param: TOpParam): Variant;
     function Do_Service(var OP_Param: TOpParam): Variant;
@@ -70,6 +73,17 @@ type
     procedure Parsing(Expression: U_String);
   end;
 
+procedure TCmd_Net_Info_.Init;
+begin
+  listen_ip := '';
+  ip := '';
+  port := 0;
+  depend := '';
+  isAuto := False;
+  Min_Workload := False;
+  KeepAlive_Connected := False;
+end;
+
 function TCommand_Script.Do_Config(var OP_Param: TOpParam): Variant;
 begin
   if length(OP_Param) > 0 then
@@ -82,10 +96,30 @@ begin
       Result := Config[opRT.Trigger^.Name];
 end;
 
+function TCommand_Script.Do_KeepAlive_Client(var OP_Param: TOpParam): Variant;
+var
+  net_info_: TCmd_Net_Info_;
+begin
+  net_info_.Init;
+  net_info_.listen_ip := '';
+  net_info_.ip := OP_Param[0];
+  net_info_.port := OP_Param[1];
+  net_info_.depend := OP_Param[2];
+  net_info_.isAuto := False;
+  if length(OP_Param) > 3 then
+      net_info_.Min_Workload := OP_Param[3]
+  else
+      net_info_.Min_Workload := False;
+  net_info_.KeepAlive_Connected := True;
+  Client_NetInfo_List.Add(net_info_);
+  Result := True;
+end;
+
 function TCommand_Script.Do_AutoClient(var OP_Param: TOpParam): Variant;
 var
   net_info_: TCmd_Net_Info_;
 begin
+  net_info_.Init;
   net_info_.listen_ip := '';
   net_info_.ip := OP_Param[0];
   net_info_.port := OP_Param[1];
@@ -95,6 +129,7 @@ begin
       net_info_.Min_Workload := OP_Param[3]
   else
       net_info_.Min_Workload := False;
+  net_info_.KeepAlive_Connected := False;
   Client_NetInfo_List.Add(net_info_);
   Result := True;
 end;
@@ -103,12 +138,14 @@ function TCommand_Script.Do_Client(var OP_Param: TOpParam): Variant;
 var
   net_info_: TCmd_Net_Info_;
 begin
+  net_info_.Init;
   net_info_.listen_ip := '';
   net_info_.ip := OP_Param[0];
   net_info_.port := OP_Param[1];
   net_info_.depend := OP_Param[2];
   net_info_.isAuto := False;
   net_info_.Min_Workload := False;
+  net_info_.KeepAlive_Connected := False;
   Client_NetInfo_List.Add(net_info_);
   Result := True;
 end;
@@ -117,6 +154,7 @@ function TCommand_Script.Do_Service(var OP_Param: TOpParam): Variant;
 var
   net_info_: TCmd_Net_Info_;
 begin
+  net_info_.Init;
   if length(OP_Param) > 3 then
     begin
       net_info_.listen_ip := OP_Param[0];
@@ -125,6 +163,7 @@ begin
       net_info_.depend := OP_Param[3];
       net_info_.isAuto := False;
       net_info_.Min_Workload := False;
+      net_info_.KeepAlive_Connected := False;
       Service_NetInfo_List.Add(net_info_);
     end
   else if length(OP_Param) = 3 then
@@ -141,6 +180,7 @@ begin
       net_info_.depend := OP_Param[2];
       net_info_.isAuto := False;
       net_info_.Min_Workload := False;
+      net_info_.KeepAlive_Connected := False;
       Service_NetInfo_List.Add(net_info_);
     end;
   Result := True;
@@ -185,6 +225,15 @@ begin
       opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config)^.Category := 'C4 Param variant';
     end;
   disposeObject(L);
+
+  opRT.RegOpM('KeepAlive', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveClient', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveCli', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveNet', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
 
   opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
   opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
@@ -235,6 +284,7 @@ var
   net_info_: TCmd_Net_Info_;
   arry: TC40_DependNetworkInfoArray;
   c4_opt: THashStringList;
+  phy_: TC40_PhysicsTunnel;
 begin
   Result := False;
   if length(C40AppParam) = 0 then
@@ -324,6 +374,15 @@ begin
                 else
                     Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(
                     net_info_.ip, net_info_.port, net_info_.depend, On_C40_PhysicsTunnel_Event_Console);
+
+                if net_info_.KeepAlive_Connected then
+                  begin
+                    phy_ := Z.Net.C4.C40_PhysicsTunnelPool.GetPhysicsTunnel(net_info_.ip, net_info_.port);
+                    if phy_ <> nil then
+                      begin
+                        // switch keep-alive mode
+                      end;
+                  end;
               end;
           end;
       end;
