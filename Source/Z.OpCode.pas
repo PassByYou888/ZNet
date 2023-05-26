@@ -464,7 +464,7 @@ var
 begin
   n := c.ClassName;
   if GetRegistedOp(@n) <> nil then
-      RaiseInfo('repeat op ' + c.ClassName);
+      RaiseInfo('repeat reg OP ' + c.ClassName);
   new(p);
   p^.opClass := c;
   p^.OpName := p^.opClass.ClassName;
@@ -491,7 +491,7 @@ function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
   var
     Name_: TPascalString;
     RegPtr: POpRegData;
-    i, cnt: Integer;
+    i, Num_: Integer;
     NeedNewOp: Boolean;
     newDataEng: TDFE;
     v: Variant;
@@ -504,8 +504,8 @@ function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
         Result := RegPtr^.opClass.Create(True);
         Result.ParsedInfo := D_.Reader.ReadString;
         Result.ParsedLineNo := D_.Reader.ReadInteger;
-        cnt := D_.Reader.ReadInteger;
-        for i := 0 to cnt - 1 do
+        Num_ := D_.Reader.ReadInteger;
+        for i := 0 to Num_ - 1 do
           begin
             NeedNewOp := D_.Reader.ReadBool;
 
