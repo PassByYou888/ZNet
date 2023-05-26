@@ -11,7 +11,7 @@ uses Variants,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.DFE, Z.Cadencer;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.DFE, Z.Cadencer;
 
 type
   TN_Progress_Tool = class;
@@ -44,6 +44,7 @@ type
     procedure SetIsExit(const Value: PBoolean);
     procedure SetIsRuning(const Value: PBoolean);
   public
+    Info: SystemString;
     Data1: TCore_Object;
     Data2: TCore_Object;
     Data3: Variant;
@@ -62,6 +63,7 @@ type
     property IsRuning: PBoolean read FIsRuning write SetIsRuning;
     property IsExit: PBoolean read FIsExit write SetIsExit;
     property IsReady: Boolean read FIsReady;
+    property NewTime: Double read FNewTime;
 
     constructor Create; virtual;
     destructor Destroy; override;
@@ -133,7 +135,7 @@ type
   TCadencer_N_Progress_Tool = class(TN_Progress_Tool, ICadencerProgressInterface)
   protected
     FCadencerEngine: TCadencer;
-    procedure CadencerProgress(const deltaTime, newTime: Double);
+    procedure CadencerProgress(const deltaTime, NewTime: Double);
   public
     constructor Create;
     destructor Destroy; override;
@@ -231,6 +233,7 @@ begin
 
   FDFE_Inst := TDFE.Create;
   FNewTime := 0;
+  Info := '';
   Data1 := nil;
   Data2 := nil;
   Data3 := Null;
@@ -686,7 +689,7 @@ begin
   end;
 end;
 
-procedure TCadencer_N_Progress_Tool.CadencerProgress(const deltaTime, newTime: Double);
+procedure TCadencer_N_Progress_Tool.CadencerProgress(const deltaTime, NewTime: Double);
 begin
   inherited Progress(deltaTime);
 end;
@@ -719,6 +722,15 @@ SystemPostProgress := TCadencer_N_Progress_Tool.Create;
 finalization
 
 Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
+SystemPostProgress.Progress(10);
 SystemPostProgress.Progress(10);
 DisposeObject(SystemPostProgress);
 
