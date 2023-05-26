@@ -374,6 +374,7 @@ type
   TBigList<T_> = class(TCore_Object)
   public type
 
+    P_ = ^T_;
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
     T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<T_>;
@@ -491,6 +492,7 @@ type
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): NativeInt;
     function Find_Data(const Data: T_): PQueueStruct;
+    function Find_Data_Ptr(const Data_Ptr: P_): PQueueStruct;
     function Search_Data_As_Array(const Data: T_): TArray_T_;
     function Search_Data_As_Order(const Data: T_): TOrder_Data_Pool;
     function Remove_Data(const Data: T_): Integer;
@@ -535,6 +537,7 @@ type
   TCritical_BigList<T_> = class(TCore_Object)
   public type
 
+    P_ = ^T_;
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
     T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<T_>;
@@ -655,6 +658,7 @@ type
     procedure Exchange(p1, p2: PQueueStruct);
     function Found(p1: PQueueStruct): NativeInt;
     function Find_Data(const Data: T_): PQueueStruct;
+    function Find_Data_Ptr(const Data_Ptr: P_): PQueueStruct;
     function Search_Data_As_Array(const Data: T_): TArray_T_;
     function Search_Data_As_Order(const Data: T_): TOrder_Data_Pool;
     function Remove_Data(const Data: T_): Integer;
