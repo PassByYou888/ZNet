@@ -585,6 +585,26 @@ begin
     end;
 end;
 
+function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data_Ptr(const Data_Ptr: P_): PQueueStruct;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  Result := nil;
+  if FNum > 0 then
+    begin
+      i := 0;
+      p := FFirst;
+      while i < FNum do
+        begin
+          if Data_Ptr = @p^.Data then
+              exit(p);
+          inc(i);
+          p := p^.Next;
+        end;
+    end;
+end;
+
 function TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Search_Data_As_Array(const Data: T_): TArray_T_;
 var
   L: TOrder_Data_Pool;
@@ -1876,6 +1896,31 @@ begin
         while i < FNum do
           begin
             if CompareData(Data, p^.Data) then
+                exit(p);
+            inc(i);
+            p := p^.Next;
+          end;
+      end;
+  finally
+      FCritical__.UnLock;
+  end;
+end;
+
+function TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Find_Data_Ptr(const Data_Ptr: P_): PQueueStruct;
+var
+  i: NativeInt;
+  p: PQueueStruct;
+begin
+  Result := nil;
+  FCritical__.Lock;
+  try
+    if FNum > 0 then
+      begin
+        i := 0;
+        p := FFirst;
+        while i < FNum do
+          begin
+            if Data_Ptr = @p^.Data then
                 exit(p);
             inc(i);
             p := p^.Next;
