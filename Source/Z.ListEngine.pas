@@ -701,6 +701,18 @@ type
 
     function GetDefaultValue(const Name: SystemString; Value_: SystemString): SystemString;
     procedure SetDefaultValue(const Name: SystemString; Value_: SystemString);
+    function GetDefaultText(const Name: SystemString; Value_: SystemString): SystemString;
+    procedure SetDefaultText(const Name: SystemString; Value_: SystemString);
+    function GetDefaultText_I32(const Name: SystemString; const Value: Integer): Integer;
+    procedure SetDefaultText_I32(const Name: SystemString; const Value: Integer);
+    function GetDefaultText_I64(const Name: SystemString; const Value: Int64): Int64;
+    procedure SetDefaultText_I64(const Name: SystemString; const Value: Int64);
+    function GetDefaultText_Float(const Name: SystemString; const Value: Double): Double;
+    procedure SetDefaultText_Float(const Name: SystemString; const Value: Double);
+    function GetDefaultText_Bool(const Name: SystemString; const Value: Boolean): Boolean;
+    procedure SetDefaultText_Bool(const Name: SystemString; const Value: Boolean);
+    function GetDefaultText_DT(const Name: SystemString; const Value: TDateTime): TDateTime;
+    procedure SetDefaultText_DT(const Name: SystemString; const Value: TDateTime);
 
     function ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
     function Replace(const Text_: SystemString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): SystemString; overload;
@@ -6530,6 +6542,66 @@ end;
 procedure THashStringList.SetDefaultValue(const Name: SystemString; Value_: SystemString);
 begin
   SetKeyValue(Name, Value_);
+end;
+
+function THashStringList.GetDefaultText(const Name: SystemString; Value_: SystemString): SystemString;
+begin
+  Result := GetDefaultValue(Name, Value_);
+end;
+
+procedure THashStringList.SetDefaultText(const Name: SystemString; Value_: SystemString);
+begin
+  SetDefaultValue(Name, Value_);
+end;
+
+function THashStringList.GetDefaultText_I32(const Name: SystemString; const Value: Integer): Integer;
+begin
+  Result := umlStrToInt(GetDefaultValue(Name, umlIntToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_I32(const Name: SystemString; const Value: Integer);
+begin
+  SetDefaultValue(Name, umlIntToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_I64(const Name: SystemString; const Value: Int64): Int64;
+begin
+  Result := umlStrToInt64(GetDefaultValue(Name, umlIntToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_I64(const Name: SystemString; const Value: Int64);
+begin
+  SetDefaultValue(Name, umlIntToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_Float(const Name: SystemString; const Value: Double): Double;
+begin
+  Result := umlStrToFloat(GetDefaultValue(Name, umlFloatToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_Float(const Name: SystemString; const Value: Double);
+begin
+  SetDefaultValue(Name, umlFloatToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_Bool(const Name: SystemString; const Value: Boolean): Boolean;
+begin
+  Result := umlStrToBool(GetDefaultValue(Name, umlBoolToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_Bool(const Name: SystemString; const Value: Boolean);
+begin
+  SetDefaultValue(Name, umlBoolToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_DT(const Name: SystemString; const Value: TDateTime): TDateTime;
+begin
+  Result := umlDT(GetDefaultValue(Name, umlDT(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_DT(const Name: SystemString; const Value: TDateTime);
+begin
+  SetDefaultValue(Name, umlDT(Value));
 end;
 
 function THashStringList.ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
