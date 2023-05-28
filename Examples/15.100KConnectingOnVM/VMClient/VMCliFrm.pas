@@ -163,7 +163,6 @@ begin
 
   StatusCheckBox.Checked := False;
 
-  ClientTunnel.ClientIO.p2pVMTunnel.CloseAllClientIO;
   ClientTunnel.ClientIO.Progress;
 
   for i := low(ClientWithVM) to high(ClientWithVM) do
