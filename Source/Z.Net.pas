@@ -1221,7 +1221,7 @@ type
   TPeer_IO_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Cardinal, TPeerIO>;
   TZNet_Instance_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZNet>;
 
-  TZNet_Instance_Pool=class(TZNet_Instance_Pool__)
+  TZNet_Instance_Pool = class(TZNet_Instance_Pool__)
   public
     procedure Print_Status;
   end;
@@ -8862,24 +8862,24 @@ procedure TZNet_Instance_Pool.Print_Status;
     p: PUInt32HashListObjectStruct;
     i: Integer;
   begin
-    if Net.IOPool.Num > 0 then
+    if Net.IOPool.num > 0 then
       with Net.IOPool.Repeat_ do
         repeat
-          if Queue^.Data^.Data.Second.P2PVM = nil then
+          if Queue^.data^.data.Second.P2PVM = nil then
               p2p_VM_Num := 0
           else
-              p2p_VM_Num := Queue^.Data^.Data.Second.P2PVM.FrameworkPool.Count;
-          DoStatus(prefix_ + 'io:%d ip:%s p2pVM:%d', [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.GetPeerIP, p2p_VM_Num]);
-          if Queue^.Data^.Data.Second.P2PVM <> nil then
+              p2p_VM_Num := Queue^.data^.data.Second.P2PVM.FrameworkPool.Count;
+          DoStatus(prefix_ + 'io:%d ip:%s p2pVM:%d', [Queue^.data^.data.Primary, Queue^.data^.data.Second.GetPeerIP, p2p_VM_Num]);
+          if Queue^.data^.data.Second.P2PVM <> nil then
             begin
               L := TCore_List.Create;
-              Queue^.Data^.Data.Second.P2PVM.FrameworkPool.GetListData(L);
+              Queue^.data^.data.Second.P2PVM.FrameworkPool.GetListData(L);
               for i := 0 to L.Count - 1 do
                 begin
                   p := L[i];
-                  if (p <> nil) and (p^.Data <> nil) and (p^.Data is TZNet) then
+                  if (p <> nil) and (p^.data <> nil) and (p^.data is TZNet) then
                     begin
-                      DoStatus(prefix_ + #9'pspVM:%s <%s> IO:%d', [p^.Data.ClassName, TZNet(p^.Data).name, TZNet(p^.Data).IOPool.Num]);
+                      DoStatus(prefix_ + #9'pspVM:%s <%s> IO:%d', [p^.data.ClassName, TZNet(p^.data).name, TZNet(p^.data).IOPool.num]);
                     end;
                 end;
               DisposeObject(L);
@@ -8888,12 +8888,12 @@ procedure TZNet_Instance_Pool.Print_Status;
   end;
 
 begin
-  if Num > 0 then
+  if num > 0 then
     begin
       with Repeat_ do
         repeat
-          DoStatus('%s <%s> IO:%d', [Queue^.Data.ClassName, Queue^.Data.name, Queue^.Data.IOPool.Num]);
-          do_print_io_info(#9, Queue^.Data);
+          DoStatus('%s <%s> IO:%d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.num]);
+          do_print_io_info(#9, Queue^.data);
         until not Next;
     end;
 end;
@@ -10829,7 +10829,7 @@ begin
   CompleteBufferCompressionCondition := Source.CompleteBufferCompressionCondition;
   ProgressMaxDelay := Source.ProgressMaxDelay;
   PrefixName := Source.PrefixName;
-  name := Source.Name;
+  name := Source.name;
 end;
 
 procedure TZNet.CopyParamTo(Dest: TZNet);
@@ -13564,7 +13564,7 @@ function TP2PVM_PeerIO.GetPeerIP: SystemString;
 begin
   Result := IPv6ToStr(FIP).Text;
   if (FLinkVM <> nil) and (FLinkVM.FOwner_IO <> nil) then
-      Result := FLinkVM.FOwner_IO.PeerIP + '(' + Result + ')';
+      Result := FLinkVM.FOwner_IO.PeerIP + '-Virtual(' + Result + ')';
 end;
 
 function TP2PVM_PeerIO.WriteBuffer_is_NULL: Boolean;
@@ -13985,7 +13985,7 @@ begin
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
   { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
-  bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
+  bridge_.NewClient.name := bridge_.NewClient.name + '.Clone';
   { init event }
   bridge_.OnResultC := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
@@ -14008,7 +14008,7 @@ begin
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
   { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
-  bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
+  bridge_.NewClient.name := bridge_.NewClient.name + '.Clone';
   { init event }
   bridge_.OnResultM := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
@@ -14031,7 +14031,7 @@ begin
   bridge_.NewClient := TZNet_WithP2PVM_Client.Create;
   { copy parameter }
   bridge_.NewClient.CopyParamFrom(self);
-  bridge_.NewClient.Name := bridge_.NewClient.Name + '.Clone';
+  bridge_.NewClient.name := bridge_.NewClient.name + '.Clone';
   { init event }
   bridge_.OnResultP := OnResult;
   bridge_.NewClient.FP2PVM_CloneOwner := self;
