@@ -53,6 +53,15 @@ object DT_P2PVM_VirtualAuth_ClientForm: TDT_P2PVM_VirtualAuth_ClientForm
     TabOrder = 2
     WordWrap = False
   end
+  object Clone_Button: TButton
+    Left = 16
+    Top = 143
+    Width = 129
+    Height = 33
+    Caption = 'Clone'
+    TabOrder = 3
+    OnClick = Clone_ButtonClick
+  end
   object netTimer: TTimer
     Interval = 10
     OnTimer = netTimerTimer

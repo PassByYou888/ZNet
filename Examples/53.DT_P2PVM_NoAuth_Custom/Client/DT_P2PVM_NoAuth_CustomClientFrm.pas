@@ -17,6 +17,8 @@ type
     connButton: TButton;
     disButton: TButton;
     phyconnButton: TButton;
+    Clone_Button: TButton;
+    procedure Clone_ButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure netTimerTimer(Sender: TObject);
@@ -38,6 +40,12 @@ var
 implementation
 
 {$R *.dfm}
+
+
+procedure TDT_P2PVM_NoAuth_ClientForm.Clone_ButtonClick(Sender: TObject);
+begin
+  TDT_P2PVM_NoAuth_Custom_Client.Create_Clone(Cli1);
+end;
 
 procedure TDT_P2PVM_NoAuth_ClientForm.FormCreate(Sender: TObject);
 begin

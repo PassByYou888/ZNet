@@ -60,6 +60,15 @@ object DT_P2PVM_NoAuth_ClientForm: TDT_P2PVM_NoAuth_ClientForm
     TabOrder = 3
     OnClick = phyconnButtonClick
   end
+  object Clone_Button: TButton
+    Left = 16
+    Top = 175
+    Width = 129
+    Height = 33
+    Caption = 'Clone'
+    TabOrder = 4
+    OnClick = Clone_ButtonClick
+  end
   object netTimer: TTimer
     Interval = 10
     OnTimer = netTimerTimer

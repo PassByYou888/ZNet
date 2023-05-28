@@ -66,6 +66,8 @@ type
     property CurrentReceiveFileName: SystemString read FCurrentReceiveFileName write FCurrentReceiveFileName;
   end;
 
+  TPeerClientUserDefineForRecvTunnel_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TPeerClientUserDefineForRecvTunnel>;
+
   TOnLinkSuccess = procedure(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel) of object;
   TOnUserOut = procedure(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel) of object;
 
@@ -77,8 +79,6 @@ type
     FUserDB: THashTextEngine;
     FAllowRegisterNewUser: Boolean;
     FAllowSaveUserInfo: Boolean;
-    FLoginUserList: THashVariantList;
-    FLoginUserDefineIOList: THashObjectList;
     FCadencerEngine: TCadencer;
     FProgressEngine: TN_Progress_Tool;
     { event }
@@ -191,7 +191,6 @@ type
     procedure GetBatchStreamStateM(cli: TPeerIO; Param1: Pointer; Param2: TObject; OnResult: TOnStreamParam_M); overload;
     procedure GetBatchStreamStateP(cli: TPeerIO; OnResult: TOnStream_P); overload;
     procedure GetBatchStreamStateP(cli: TPeerIO; Param1: Pointer; Param2: TObject; OnResult: TOnStreamParam_P); overload;
-    property LoginUserList: THashVariantList read FLoginUserList;
 
     property AllowRegisterNewUser: Boolean read FAllowRegisterNewUser write FAllowRegisterNewUser;
     property AllowSaveUserInfo: Boolean read FAllowSaveUserInfo write FAllowSaveUserInfo;
@@ -262,7 +261,7 @@ type
   TFileMD5_P = procedure(const UserData: Pointer; const UserObject: TCore_Object;
     const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5) is nested;
   TFileComplete_P = procedure(const UserData: Pointer; const UserObject: TCore_Object; stream:
-    TCore_Stream; const fileName: SystemString) is nested;
+      TCore_Stream; const fileName: SystemString) is nested;
   TFileFragmentData_P = procedure(const UserData: Pointer; const UserObject: TCore_Object;
     const fileName: SystemString; const StartPos, EndPos: Int64; const DataPtr: Pointer; const DataSize: Int64; const MD5: TMD5) is nested;
 {$ELSE FPC}
@@ -271,7 +270,7 @@ type
   TFileMD5_P = reference to procedure(const UserData: Pointer; const UserObject: TCore_Object;
     const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5);
   TFileComplete_P = reference to procedure(const UserData: Pointer; const UserObject: TCore_Object; stream:
-    TCore_Stream; const fileName: SystemString);
+      TCore_Stream; const fileName: SystemString);
   TFileFragmentData_P = reference to procedure(const UserData: Pointer; const UserObject: TCore_Object;
     const fileName: SystemString; const StartPos, EndPos: Int64; const DataPtr: Pointer; const DataSize: Int64; const MD5: TMD5);
 {$ENDIF FPC}
@@ -681,6 +680,13 @@ type
   TDT_P2PVM_Custom_Client_Class = class of TDT_P2PVM_Custom_Client;
   TOn_DT_P2PVM_Custom_Client_TunnelLink = procedure(Sender: TDT_P2PVM_Custom_Client) of object;
 
+  TDT_P2PVM_Custom_Client_Clone_Pool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TDT_P2PVM_Custom_Client>;
+
+  TDT_P2PVM_Custom_Client_Clone_Pool = class(TDT_P2PVM_Custom_Client_Clone_Pool_)
+  public
+    procedure DoFree(var Data: TDT_P2PVM_Custom_Client); override;
+  end;
+
   TDT_P2PVM_Custom_Client = class(TCore_InterfacedObject)
   private
     OnConnectResultState: TDT_P2PVM_OnState;
@@ -688,10 +694,16 @@ type
     Reconnection: Boolean;
     procedure DoRegisterResult(const state: Boolean);
     procedure DoLoginResult(const state: Boolean);
-
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
+  private
+    // clone Technology
+    Parent_Client: TDT_P2PVM_Custom_Client;
+    Clone_Instance_Ptr: TDT_P2PVM_Custom_Client_Clone_Pool_.PQueueStruct;
+    procedure Do_Recv_Connect_State(const state: Boolean);
+    procedure Do_Send_Connect_State(const state: Boolean);
   public
+    Clone_Pool: TDT_P2PVM_Custom_Client_Clone_Pool;
     // bind
     Bind_PhysicsTunnel: TZNet_Client;
     Bind_P2PVM_Recv_IP6: SystemString;
@@ -699,6 +711,7 @@ type
     Bind_P2PVM_Send_IP6: SystemString;
     Bind_P2PVM_Send_Port: Word;
     // local
+    ClientClass: TDTClientClass;
     RecvTunnel, SendTunnel: TZNet_WithP2PVM_Client;
     DTClient: TDTClient;
     LastUser, LastPasswd: SystemString;
@@ -707,8 +720,8 @@ type
     OnTunnelLink: TOn_DT_P2PVM_Custom_Client_TunnelLink;
 
     constructor Create(ClientClass_: TDTClientClass; PhysicsTunnel_: TZNet_Client;
-      P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_,
-      P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString); virtual;
+      P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_, P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString); virtual;
+    constructor Create_Clone(Parent_Client_: TDT_P2PVM_Custom_Client); virtual;
     destructor Destroy; override;
     procedure Progress;
     function LoginIsSuccessed: Boolean;
@@ -1274,16 +1287,6 @@ begin
           if DoubleTunnelService.FSendTunnel.Exists(SendTunnelID) then
               DoubleTunnelService.FSendTunnel.PeerIO[SendTunnelID].Disconnect;
         end;
-
-      try
-          DoubleTunnelService.FLoginUserList.Delete(UserID);
-      except
-      end;
-
-      try
-          DoubleTunnelService.FLoginUserDefineIOList.Delete(UserID);
-      except
-      end;
     end;
 
   try
@@ -1393,9 +1396,6 @@ begin
     Exit;
   end;
 
-  if FLoginUserDefineIOList.Exists(UserID) then
-      TPeerClientUserDefineForRecvTunnel(FLoginUserDefineIOList[UserID]).Owner.Disconnect;
-
   UserDefineIO.UserDBIntf := FUserDB.VariantList[UserID];
   UserDefineIO.UserDBIntf['LastLoginTime'] := DateTimeToStr(Now);
   UserDefineIO.UserFlag := UserDefineIO.UserDBIntf['UserFlag'];
@@ -1409,10 +1409,6 @@ begin
 
   UserDefineIO.UserConfigFile.Hit['UserInfo', 'UserID'] := UserID;
   UserDefineIO.UserConfigFile.Hit['UserInfo', 'Password'] := SystemString(FUserDB.GetDefaultValue(UserID, 'password', ''));
-
-  FLoginUserList[UserID] := Now;
-
-  FLoginUserDefineIOList[UserID] := UserDefineIO;
 
   UserDefineIO.WaitLink := True;
   UserDefineIO.WaitLinkSendID := SendTunnelID;
@@ -1464,13 +1460,6 @@ begin
       Exit;
     end;
 
-  if FLoginUserList.Exists(UserID) then
-    begin
-      OutData.WriteBool(False);
-      OutData.WriteString(PFormat('user already online:%s', [UserID]));
-      Exit;
-    end;
-
   UserDefineIO.UserFlag := MakeUserFlag;
   UserDefineIO.UserID := UserID;
   UserDefineIO.UserPath := umlCombinePath(FRootPath, UserDefineIO.UserFlag);
@@ -1488,10 +1477,6 @@ begin
 
   if FAllowSaveUserInfo then
       SaveUserDB;
-
-  FLoginUserList[UserID] := Now;
-
-  FLoginUserDefineIOList[UserID] := UserDefineIO;
 
   UserDefineIO.WaitLink := True;
   UserDefineIO.WaitLinkSendID := SendTunnelID;
@@ -2765,8 +2750,6 @@ begin
   FUserDB := THashTextEngine.Create(20 * 10000);
   FAllowRegisterNewUser := False;
   FAllowSaveUserInfo := False;
-  FLoginUserList := THashVariantList.CustomCreate(8192);
-  FLoginUserDefineIOList := THashObjectList.CustomCreate(False, 8192);
 
   FCadencerEngine := TCadencer.Create;
   FCadencerEngine.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}CadencerProgress;
@@ -2780,8 +2763,6 @@ end;
 
 destructor TDTService.Destroy;
 begin
-  DisposeObject(FLoginUserList);
-  DisposeObject(FLoginUserDefineIOList);
   DisposeObject(FUserDB);
   DisposeObject(FCadencerEngine);
   DisposeObject(FProgressEngine);
@@ -2868,9 +2849,6 @@ begin
   if FUserDB.Exists(UsrID) then
       Exit;
 
-  if FLoginUserList.Exists(UsrID) then
-      Exit;
-
   UserFlag_ := MakeUserFlag;
 
   UserPath_ := umlCombinePath(FRootPath, UserFlag_);
@@ -2927,8 +2905,32 @@ begin
 end;
 
 function TDTService.GetUserDefineIO(UsrID: SystemString): TPeerClientUserDefineForRecvTunnel;
+var
+  R_: TPeerClientUserDefineForRecvTunnel;
+{$IFDEF FPC}
+  procedure do_fpc_progress(P_IO: TPeerIO);
+  begin
+    if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk and
+      SameText(TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).UserID, UsrID) then
+        R_ := TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine);
+  end;
+{$ENDIF FPC}
+
+
 begin
-  Result := TPeerClientUserDefineForRecvTunnel(FLoginUserDefineIOList[UsrID]);
+  R_ := nil;
+
+{$IFDEF FPC}
+  FRecvTunnel.ProgressPeerIOP(@do_fpc_progress);
+{$ELSE FPC}
+  FRecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
+    begin
+      if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk and
+        SameText(TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).UserID, UsrID) then
+          R_ := TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine);
+    end);
+{$ENDIF FPC}
+  Result := R_;
 end;
 
 function TDTService.UserOnline(UsrID: SystemString): Boolean;
@@ -3186,8 +3188,30 @@ begin
 end;
 
 function TDTService.TotalLinkCount: Integer;
+var
+  R_: Integer;
+{$IFDEF FPC}
+  procedure do_fpc_progress(P_IO: TPeerIO);
+  begin
+    if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk then
+        inc(R_);
+  end;
+{$ENDIF FPC}
+
+
 begin
-  Result := FLoginUserDefineIOList.Count;
+  R_ := 0;
+
+{$IFDEF FPC}
+  FRecvTunnel.ProgressPeerIOP(@do_fpc_progress);
+{$ELSE FPC}
+  FRecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
+    begin
+      if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk then
+          inc(R_);
+    end);
+{$ENDIF FPC}
+  Result := R_;
 end;
 
 procedure TDTService.PostBatchStream(cli: TPeerIO; stream: TCore_Stream; doneFreeStream: Boolean);
@@ -4005,6 +4029,9 @@ end;
 
 destructor TDTClient.Destroy;
 begin
+  FRecvTunnel.NotyifyInterface := nil;
+  FSendTunnel.NotyifyInterface := nil;
+
   if FCurrentStream <> nil then
     begin
       DisposeObject(FCurrentStream);
@@ -6831,6 +6858,15 @@ begin
   RecvTunnel.StopService;
 end;
 
+procedure TDT_P2PVM_Custom_Client_Clone_Pool.DoFree(var Data: TDT_P2PVM_Custom_Client);
+begin
+  if Data <> nil then
+    begin
+      Data.Clone_Instance_Ptr := nil;
+      DisposeObjectAndNil(Data);
+    end;
+end;
+
 procedure TDT_P2PVM_Custom_Client.DoRegisterResult(const state: Boolean);
 begin
   if not state then
@@ -6872,9 +6908,24 @@ begin
   SendTunnel.QuietMode := Value;
 end;
 
+procedure TDT_P2PVM_Custom_Client.Do_Recv_Connect_State(const state: Boolean);
+begin
+  if not state then
+      Exit;
+  if SendTunnel.RemoteInited then
+      Connecting := False;
+end;
+
+procedure TDT_P2PVM_Custom_Client.Do_Send_Connect_State(const state: Boolean);
+begin
+  if not state then
+      Exit;
+  if RecvTunnel.RemoteInited then
+      Connecting := False;
+end;
+
 constructor TDT_P2PVM_Custom_Client.Create(ClientClass_: TDTClientClass; PhysicsTunnel_: TZNet_Client;
-P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_,
-  P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString);
+P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_, P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString);
 begin
   inherited Create;
   // internal
@@ -6882,6 +6933,10 @@ begin
   Connecting := False;
   Reconnection := False;
 
+  // clone Technology
+  Parent_Client := nil;
+  Clone_Instance_Ptr := nil;
+  Clone_Pool := TDT_P2PVM_Custom_Client_Clone_Pool.Create;
   // bind
   Bind_PhysicsTunnel := PhysicsTunnel_;
   Bind_P2PVM_Recv_IP6 := P2PVM_Recv_IP6_;
@@ -6898,9 +6953,12 @@ begin
   SendTunnel.QuietMode := PhysicsTunnel_.QuietMode;
   SendTunnel.PrefixName := 'DT';
   SendTunnel.Name := P2PVM_Send_Name_;
-  DTClient := ClientClass_.Create(RecvTunnel, SendTunnel);
+  // local DT
+  ClientClass := ClientClass_;
+  DTClient := ClientClass.Create(RecvTunnel, SendTunnel);
   DTClient.RegisterCommand;
   DTClient.SwitchAsDefaultPerformance;
+
   LastUser := '';
   LastPasswd := '';
   RegisterUserAndLogin := False;
@@ -6914,12 +6972,92 @@ begin
   Bind_PhysicsTunnel.AutomatedP2PVMClientDelayBoot := 0;
 end;
 
+constructor TDT_P2PVM_Custom_Client.Create_Clone(Parent_Client_: TDT_P2PVM_Custom_Client);
+begin
+  inherited Create;
+
+  if not Parent_Client_.AutomatedConnection then
+      RaiseInfo('Host not established');
+  if Parent_Client_.LastUser = '' then
+      RaiseInfo('Host loss user info');
+  if Parent_Client_.LastPasswd = '' then
+      RaiseInfo('Host loss password info');
+  if not Parent_Client_.DTClient.LinkOk then
+      RaiseInfo('Host is Offline.');
+
+  // internal
+  OnConnectResultState.Init;
+  Connecting := True;
+  Reconnection := True;
+
+  // clone Technology
+  Parent_Client := Parent_Client_;
+  Clone_Instance_Ptr := Parent_Client_.Clone_Pool.Add(Self);
+  Clone_Pool := TDT_P2PVM_Custom_Client_Clone_Pool.Create;
+
+  // bind
+  Bind_PhysicsTunnel := Parent_Client_.Bind_PhysicsTunnel;
+  Bind_P2PVM_Recv_IP6 := Parent_Client_.Bind_P2PVM_Recv_IP6;
+  Bind_P2PVM_Recv_Port := Parent_Client_.Bind_P2PVM_Recv_Port;
+  Bind_P2PVM_Send_IP6 := Parent_Client_.Bind_P2PVM_Send_IP6;
+  Bind_P2PVM_Send_Port := Parent_Client_.Bind_P2PVM_Send_Port;
+
+  // local
+  RecvTunnel := TZNet_WithP2PVM_Client.Create;
+  RecvTunnel.QuietMode := Bind_PhysicsTunnel.QuietMode;
+  RecvTunnel.PrefixName := 'DT';
+  RecvTunnel.Name := Parent_Client_.RecvTunnel.Name;
+  SendTunnel := TZNet_WithP2PVM_Client.Create;
+  SendTunnel.QuietMode := Bind_PhysicsTunnel.QuietMode;
+  SendTunnel.PrefixName := 'DT';
+  SendTunnel.Name := Parent_Client_.SendTunnel.Name;
+  // local DT
+  ClientClass := Parent_Client_.ClientClass;
+  DTClient := ClientClass.Create(RecvTunnel, SendTunnel);
+  DTClient.RegisterCommand;
+  DTClient.SwitchAsDefaultPerformance;
+
+  LastUser := Parent_Client_.LastUser;
+  LastPasswd := Parent_Client_.LastPasswd;
+  RegisterUserAndLogin := False;
+  AutomatedConnection := True;
+  OnTunnelLink := nil;
+
+  // automated p2pVM
+  Bind_PhysicsTunnel.AutomatedP2PVMBindClient.AddClient(RecvTunnel, Bind_P2PVM_Recv_IP6, Bind_P2PVM_Recv_Port);
+  Bind_PhysicsTunnel.AutomatedP2PVMBindClient.AddClient(SendTunnel, Bind_P2PVM_Send_IP6, Bind_P2PVM_Send_Port);
+  Bind_PhysicsTunnel.AutomatedP2PVMClient := True;
+  Bind_PhysicsTunnel.AutomatedP2PVMClientDelayBoot := 0;
+
+  Bind_PhysicsTunnel.P2PVM.InstallLogicFramework(RecvTunnel);
+  Bind_PhysicsTunnel.P2PVM.InstallLogicFramework(SendTunnel);
+
+  if Parent_Client_.RecvTunnel.RemoteInited then
+      RecvTunnel.AsyncConnectM(Bind_P2PVM_Recv_IP6, Bind_P2PVM_Recv_Port, {$IFDEF FPC}@{$ENDIF FPC}Do_Recv_Connect_State);
+  if Parent_Client_.SendTunnel.RemoteInited then
+      SendTunnel.AsyncConnectM(Bind_P2PVM_Send_IP6, Bind_P2PVM_Send_Port, {$IFDEF FPC}@{$ENDIF FPC}Do_Send_Connect_State);
+end;
+
 destructor TDT_P2PVM_Custom_Client.Destroy;
 begin
+  if (Parent_Client <> nil) and (Clone_Instance_Ptr <> nil) then
+    begin
+      Clone_Instance_Ptr^.Data := nil;
+      Parent_Client.Clone_Pool.Remove_P(Clone_Instance_Ptr);
+    end;
+  Clone_Pool.Clear;
+
+  if Bind_PhysicsTunnel <> nil then
+    begin
+      Bind_PhysicsTunnel.AutomatedP2PVMBindClient.RemoveClient(RecvTunnel);
+      Bind_PhysicsTunnel.AutomatedP2PVMBindClient.RemoveClient(SendTunnel);
+    end;
+
   Disconnect;
-  DisposeObject(RecvTunnel);
-  DisposeObject(SendTunnel);
-  DisposeObject(DTClient);
+  DisposeObjectAndNil(DTClient);
+  DisposeObjectAndNil(RecvTunnel);
+  DisposeObjectAndNil(SendTunnel);
+  DisposeObjectAndNil(Clone_Pool);
   inherited Destroy;
 end;
 
@@ -6930,6 +7068,12 @@ begin
   if (AutomatedConnection) and (Bind_PhysicsTunnel.RemoteInited) and (Bind_PhysicsTunnel.AutomatedP2PVMClientConnectionDone(Bind_PhysicsTunnel.ClientIO))
     and (not Connecting) and (Reconnection) and (not DTClient.LinkOk) then
       Connect(LastUser, LastPasswd);
+
+  if Clone_Pool.Num > 0 then
+    with Clone_Pool.Invert_Repeat_ do
+      repeat
+          queue^.Data.Progress;
+      until not Prev;
 end;
 
 function TDT_P2PVM_Custom_Client.LoginIsSuccessed: Boolean;
@@ -7047,6 +7191,12 @@ begin
   Connecting := False;
   Reconnection := False;
   DTClient.Disconnect;
+
+  if Clone_Pool.Num > 0 then
+    with Clone_Pool.Invert_Repeat_ do
+      repeat
+          queue^.Data.Disconnect;
+      until not Prev;
 end;
 
 end.

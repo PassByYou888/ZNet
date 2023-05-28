@@ -1,6 +1,7 @@
 program DT_P2PVM_Custom_Client;
 
 uses
+  FastMM5,
   Vcl.Forms,
   DT_P2PVM_CustomClientFrm in 'DT_P2PVM_CustomClientFrm.pas' {DT_P2PVM_CustomClientForm};
 

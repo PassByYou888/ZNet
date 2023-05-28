@@ -19,7 +19,7 @@ object DT_P2PVM_CustomClientForm: TDT_P2PVM_CustomClientForm
   TextHeight = 13
   object Memo: TMemo
     Left = 168
-    Top = 16
+    Top = 24
     Width = 673
     Height = 337
     Lines.Strings = (
@@ -74,6 +74,15 @@ object DT_P2PVM_CustomClientForm: TDT_P2PVM_CustomClientForm
     PasswordChar = '*'
     TabOrder = 4
     Text = 'testUser'
+  end
+  object Clone_Button: TButton
+    Left = 16
+    Top = 207
+    Width = 129
+    Height = 33
+    Caption = 'Clone'
+    TabOrder = 5
+    OnClick = Clone_ButtonClick
   end
   object netTimer: TTimer
     Interval = 10

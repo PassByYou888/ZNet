@@ -548,6 +548,13 @@ type
   TDT_P2PVM_VirtualAuth_Custom_Client_Class = class of TDT_P2PVM_VirtualAuth_Custom_Client;
   TOn_DT_P2PVM_VirtualAuth_Custom_Client_TunnelLink = procedure(Sender: TDT_P2PVM_VirtualAuth_Custom_Client) of object;
 
+  TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TDT_P2PVM_VirtualAuth_Custom_Client>;
+
+  TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool = class(TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool_)
+  public
+    procedure DoFree(var Data: TDT_P2PVM_VirtualAuth_Custom_Client); override;
+  end;
+
   TDT_P2PVM_VirtualAuth_Custom_Client = class(TCore_InterfacedObject)
   private
     OnConnectResultState: TDT_P2PVM_VirtualAuth_OnState;
@@ -555,10 +562,16 @@ type
     Reconnection: Boolean;
     procedure DoRegisterResult(const state: Boolean);
     procedure DoLoginResult(const state: Boolean);
-
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
+  private
+    // clone Technology
+    Parent_Client: TDT_P2PVM_VirtualAuth_Custom_Client;
+    Clone_Instance_Ptr: TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool_.PQueueStruct;
+    procedure Do_Recv_Connect_State(const state: Boolean);
+    procedure Do_Send_Connect_State(const state: Boolean);
   public
+    Clone_Pool: TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool;
     // bind
     Bind_PhysicsTunnel: TZNet_Client;
     Bind_P2PVM_Recv_IP6: SystemString;
@@ -566,6 +579,7 @@ type
     Bind_P2PVM_Send_IP6: SystemString;
     Bind_P2PVM_Send_Port: Word;
     // local
+    ClientClass: TDTClient_VirtualAuthClass;
     RecvTunnel, SendTunnel: TZNet_WithP2PVM_Client;
     DTClient: TDTClient_VirtualAuth;
     LastUser, LastPasswd: SystemString;
@@ -576,6 +590,7 @@ type
     constructor Create(ClientClass_: TDTClient_VirtualAuthClass; PhysicsTunnel_: TZNet_Client;
       P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_,
       P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString); virtual;
+    constructor Create_Clone(Parent_Client_: TDT_P2PVM_VirtualAuth_Custom_Client); virtual;
     destructor Destroy; override;
     procedure Progress;
     function LoginIsSuccessed: Boolean;
@@ -2623,6 +2638,8 @@ end;
 
 destructor TDTClient_VirtualAuth.Destroy;
 begin
+  FRecvTunnel.NotyifyInterface := nil;
+  FSendTunnel.NotyifyInterface := nil;
   if FAutoFreeTunnel then
     begin
       DisposeObjectAndNil(FRecvTunnel);
@@ -4443,6 +4460,15 @@ begin
   RecvTunnel.StopService;
 end;
 
+procedure TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool.DoFree(var Data: TDT_P2PVM_VirtualAuth_Custom_Client);
+begin
+  if Data <> nil then
+    begin
+      Data.Clone_Instance_Ptr := nil;
+      DisposeObjectAndNil(Data);
+    end;
+end;
+
 procedure TDT_P2PVM_VirtualAuth_Custom_Client.DoRegisterResult(const state: Boolean);
 begin
   DTClient.UserLoginM(LastUser, LastPasswd, {$IFDEF FPC}@{$ENDIF FPC}DoLoginResult);
@@ -4477,6 +4503,22 @@ begin
   SendTunnel.QuietMode := Value;
 end;
 
+procedure TDT_P2PVM_VirtualAuth_Custom_Client.Do_Recv_Connect_State(const state: Boolean);
+begin
+  if not state then
+      exit;
+  if SendTunnel.RemoteInited then
+      Connecting := False;
+end;
+
+procedure TDT_P2PVM_VirtualAuth_Custom_Client.Do_Send_Connect_State(const state: Boolean);
+begin
+  if not state then
+      exit;
+  if RecvTunnel.RemoteInited then
+      Connecting := False;
+end;
+
 constructor TDT_P2PVM_VirtualAuth_Custom_Client.Create(ClientClass_: TDTClient_VirtualAuthClass; PhysicsTunnel_: TZNet_Client;
   P2PVM_Recv_Name_, P2PVM_Recv_IP6_, P2PVM_Recv_Port_,
   P2PVM_Send_Name_, P2PVM_Send_IP6_, P2PVM_Send_Port_: SystemString);
@@ -4486,6 +4528,11 @@ begin
   OnConnectResultState.Init;
   Connecting := False;
   Reconnection := False;
+
+  // clone Technology
+  Parent_Client := nil;
+  Clone_Instance_Ptr := nil;
+  Clone_Pool := TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool.Create;
 
   // bind
   Bind_PhysicsTunnel := PhysicsTunnel_;
@@ -4503,7 +4550,9 @@ begin
   SendTunnel.QuietMode := PhysicsTunnel_.QuietMode;
   SendTunnel.PrefixName := 'VA';
   SendTunnel.Name := P2PVM_Send_Name_;
-  DTClient := ClientClass_.Create(RecvTunnel, SendTunnel);
+
+  ClientClass := ClientClass_;
+  DTClient := ClientClass.Create(RecvTunnel, SendTunnel);
   DTClient.RegisterCommand;
   DTClient.SwitchAsDefaultPerformance;
   LastUser := '';
@@ -4519,8 +4568,87 @@ begin
   Bind_PhysicsTunnel.AutomatedP2PVMClientDelayBoot := 0;
 end;
 
+constructor TDT_P2PVM_VirtualAuth_Custom_Client.Create_Clone(Parent_Client_: TDT_P2PVM_VirtualAuth_Custom_Client);
+begin
+  inherited Create;
+
+  if not Parent_Client_.AutomatedConnection then
+      RaiseInfo('Host not established');
+  if Parent_Client_.LastUser = '' then
+      RaiseInfo('Host loss user info');
+  if Parent_Client_.LastPasswd = '' then
+      RaiseInfo('Host loss password info');
+  if not Parent_Client_.DTClient.LinkOk then
+      RaiseInfo('Host is Offline.');
+
+  // internal
+  OnConnectResultState.Init;
+  Connecting := True;
+  Reconnection := True;
+
+  // clone Technology
+  Parent_Client := Parent_Client_;
+  Clone_Instance_Ptr := Parent_Client_.Clone_Pool.Add(Self);
+  Clone_Pool := TDT_P2PVM_VirtualAuth_Custom_Client_Clone_Pool.Create;
+
+  // bind
+  Bind_PhysicsTunnel := Parent_Client_.Bind_PhysicsTunnel;
+  Bind_P2PVM_Recv_IP6 := Parent_Client_.Bind_P2PVM_Recv_IP6;
+  Bind_P2PVM_Recv_Port := Parent_Client_.Bind_P2PVM_Recv_Port;
+  Bind_P2PVM_Send_IP6 := Parent_Client_.Bind_P2PVM_Send_IP6;
+  Bind_P2PVM_Send_Port := Parent_Client_.Bind_P2PVM_Send_Port;
+
+  // local
+  RecvTunnel := TZNet_WithP2PVM_Client.Create;
+  RecvTunnel.QuietMode := Bind_PhysicsTunnel.QuietMode;
+  RecvTunnel.PrefixName := 'DT';
+  RecvTunnel.Name := Parent_Client_.RecvTunnel.Name;
+  SendTunnel := TZNet_WithP2PVM_Client.Create;
+  SendTunnel.QuietMode := Bind_PhysicsTunnel.QuietMode;
+  SendTunnel.PrefixName := 'DT';
+  SendTunnel.Name := Parent_Client_.SendTunnel.Name;
+  // local DT
+  ClientClass := Parent_Client_.ClientClass;
+  DTClient := ClientClass.Create(RecvTunnel, SendTunnel);
+  DTClient.RegisterCommand;
+  DTClient.SwitchAsDefaultPerformance;
+
+  LastUser := Parent_Client_.LastUser;
+  LastPasswd := Parent_Client_.LastPasswd;
+  RegisterUserAndLogin := False;
+  AutomatedConnection := True;
+  OnTunnelLink := nil;
+
+  // automated p2pVM
+  Bind_PhysicsTunnel.AutomatedP2PVMBindClient.AddClient(RecvTunnel, Bind_P2PVM_Recv_IP6, Bind_P2PVM_Recv_Port);
+  Bind_PhysicsTunnel.AutomatedP2PVMBindClient.AddClient(SendTunnel, Bind_P2PVM_Send_IP6, Bind_P2PVM_Send_Port);
+  Bind_PhysicsTunnel.AutomatedP2PVMClient := True;
+  Bind_PhysicsTunnel.AutomatedP2PVMClientDelayBoot := 0;
+
+  Bind_PhysicsTunnel.P2PVM.InstallLogicFramework(RecvTunnel);
+  Bind_PhysicsTunnel.P2PVM.InstallLogicFramework(SendTunnel);
+
+  if Parent_Client_.RecvTunnel.RemoteInited then
+      RecvTunnel.AsyncConnectM(Bind_P2PVM_Recv_IP6, Bind_P2PVM_Recv_Port, {$IFDEF FPC}@{$ENDIF FPC}Do_Recv_Connect_State);
+  if Parent_Client_.SendTunnel.RemoteInited then
+      SendTunnel.AsyncConnectM(Bind_P2PVM_Send_IP6, Bind_P2PVM_Send_Port, {$IFDEF FPC}@{$ENDIF FPC}Do_Send_Connect_State);
+end;
+
 destructor TDT_P2PVM_VirtualAuth_Custom_Client.Destroy;
 begin
+  if (Parent_Client <> nil) and (Clone_Instance_Ptr <> nil) then
+    begin
+      Clone_Instance_Ptr^.Data := nil;
+      Parent_Client.Clone_Pool.Remove_P(Clone_Instance_Ptr);
+    end;
+  Clone_Pool.Clear;
+
+  if Bind_PhysicsTunnel <> nil then
+    begin
+      Bind_PhysicsTunnel.AutomatedP2PVMBindClient.RemoveClient(RecvTunnel);
+      Bind_PhysicsTunnel.AutomatedP2PVMBindClient.RemoveClient(SendTunnel);
+    end;
+
   Disconnect;
   DisposeObject(RecvTunnel);
   DisposeObject(SendTunnel);
@@ -4535,6 +4663,12 @@ begin
   if (AutomatedConnection) and (Bind_PhysicsTunnel.RemoteInited) and (Bind_PhysicsTunnel.AutomatedP2PVMClientConnectionDone(Bind_PhysicsTunnel.ClientIO))
     and (not Connecting) and (Reconnection) and (not DTClient.LinkOk) then
       Connect(LastUser, LastPasswd);
+
+  if Clone_Pool.Num > 0 then
+    with Clone_Pool.Invert_Repeat_ do
+      repeat
+          queue^.Data.Progress;
+      until not Prev;
 end;
 
 function TDT_P2PVM_VirtualAuth_Custom_Client.LoginIsSuccessed: Boolean;
@@ -4684,6 +4818,12 @@ begin
   Connecting := False;
   Reconnection := False;
   DTClient.Disconnect;
+
+  if Clone_Pool.Num > 0 then
+    with Clone_Pool.Invert_Repeat_ do
+      repeat
+          queue^.Data.Disconnect;
+      until not Prev;
 end;
 
 end.

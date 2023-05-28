@@ -100,7 +100,6 @@
         </DelphiCompile>
         <DCCReference Include="DT_P2PVM_CustomClientFrm.pas">
             <Form>DT_P2PVM_CustomClientForm</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
