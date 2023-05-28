@@ -368,21 +368,17 @@ begin
               begin
                 net_info_ := cmd_script_.Client_NetInfo_List[i];
 
+                if net_info_.KeepAlive_Connected then
+                  begin
+                    C40_PhysicsTunnelPool.Auto_Repair_First_BuildDependNetwork_Fault := True;
+                  end;
+
                 if net_info_.isAuto then
                     Z.Net.C4.C40_PhysicsTunnelPool.SearchServiceAndBuildConnection(
                     net_info_.ip, net_info_.port, not net_info_.Min_Workload, net_info_.depend, On_C40_PhysicsTunnel_Event_Console)
                 else
                     Z.Net.C4.C40_PhysicsTunnelPool.GetOrCreatePhysicsTunnel(
                     net_info_.ip, net_info_.port, net_info_.depend, On_C40_PhysicsTunnel_Event_Console);
-
-                if net_info_.KeepAlive_Connected then
-                  begin
-                    phy_ := Z.Net.C4.C40_PhysicsTunnelPool.GetPhysicsTunnel(net_info_.ip, net_info_.port);
-                    if phy_ <> nil then
-                      begin
-                        // switch keep-alive mode
-                      end;
-                  end;
               end;
           end;
       end;
