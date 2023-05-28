@@ -215,6 +215,14 @@ type
 
   TC40_PhysicsTunnelPool = class(TC40_PhysicsTunnelPool_Decl)
   public
+    // when the c4 network is deployed and connected for the first time,
+    // if a connection failure occurs, it is mostly due to the server being started or maintained.
+    // at this time, c4 will try to connect repeatedly
+    // after opening this switch, it can facilitate large-scale system integration and deployment.
+    // the fault repair time can only last for 4 hours. If it exceeds this time, it will be considered a failure
+    // this "ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault" is effective for IoT device deployment and large-scale server groups.
+    Auto_Repair_First_BuildDependNetwork_Fault: Boolean;
+
     constructor Create;
     procedure GetRS(var recv, send: Int64);
     { find addr }
@@ -2689,7 +2697,7 @@ end;
 
 procedure TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Do_Delay_Next_BuildDependNetwork;
 begin
-  if (GetTimeTick - Time_ > C_Tick_Minute * 60) then
+  if (GetTimeTick - Time_ > C_Tick_Minute * 60 * 4) then
     begin
       DelayFreeObj(1.0, Self);
       exit;
@@ -2730,6 +2738,11 @@ end;
 constructor TC40_PhysicsTunnelPool.Create;
 begin
   inherited Create;
+{$IFDEF ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault}
+  Auto_Repair_First_BuildDependNetwork_Fault := True;
+{$ELSE ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault}
+  Auto_Repair_First_BuildDependNetwork_Fault := False;
+{$ENDIF ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault}
 end;
 
 procedure TC40_PhysicsTunnelPool.GetRS(var recv, send: Int64);
@@ -2785,13 +2798,19 @@ begin
       Result := TC40_PhysicsTunnel.Create(PhysicsAddr, PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end
   else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end;
 end;
 
@@ -2804,13 +2823,19 @@ begin
       Result := TC40_PhysicsTunnel.Create(PhysicsAddr, PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end
   else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end;
 end;
 
@@ -2832,13 +2857,19 @@ begin
       Result := TC40_PhysicsTunnel.Create(dispInfo.PhysicsAddr, dispInfo.PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end
   else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end;
 end;
 
@@ -2851,13 +2882,19 @@ begin
       Result := TC40_PhysicsTunnel.Create(dispInfo.PhysicsAddr, dispInfo.PhysicsPort);
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end
   else if (not Result.FIsConnecting) and (not Result.FNetwork_Already_Inited) then
     begin
       Result.OnEvent := OnEvent_;
       Result.ResetDepend(Depend_);
-      Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork);
+      if Auto_Repair_First_BuildDependNetwork_Fault then
+          Result.BuildDependNetworkM({$IFDEF FPC}@{$ENDIF FPC}TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Result).Do_First_BuildDependNetwork)
+      else
+          Result.BuildDependNetwork();
     end;
 end;
 
