@@ -2241,10 +2241,6 @@ type
     function FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
     procedure DeleteListen(const IPV6: TIPV6; const Port: Word);
     procedure ClearListen;
-
-    { p2p VM operaton }
-    procedure CloseAllClientIO;
-    procedure CloseAllServerIO;
   end;
 {$ENDREGION 'P2pVM'}
 {$REGION 'StableIO'}
@@ -13979,7 +13975,7 @@ begin
   end;
 
   if FVMClientIO <> nil then
-      DisposeObject(FVMClientIO);
+      DisposeObjectAndNil(FVMClientIO);
   if FLinkVM <> nil then
       FLinkVM.UninstallLogicFramework(self);
   DisposeObjectAndNil(FP2PVM_ClonePool);
@@ -15070,18 +15066,50 @@ end;
 
 destructor TZNet_WithP2PVM.Destroy;
 var
+  L: TCore_List;
   i: Integer;
+  p: PUInt32HashListObjectStruct;
   OnEchoPtr: PP2PVM_ECHO;
 begin
-  for i := 0 to FWaitEchoList.Count - 1 do
-    begin
-      OnEchoPtr := FWaitEchoList[i];
-      Dispose(OnEchoPtr);
-    end;
+  // safe remove LinkVM
+  L := TCore_List.Create;
+  FFrameworkPool.GetListData(L);
+  try
+    for i := 0 to L.Count - 1 do
+      begin
+        p := L[i];
+        if p^.data is TZNet_WithP2PVM_Server then
+            TZNet_WithP2PVM_Server(p^.data).FLinkVMPool.Delete(FVMID)
+        else if p^.data is TZNet_WithP2PVM_Client then
+          begin
+            TZNet_WithP2PVM_Client(p^.data).FLinkVM := nil;
+            TZNet_WithP2PVM_Client(p^.data).Disconnect;
+          end;
+      end;
+  except
+  end;
+  DisposeObject(L);
+  FFrameworkPool.Clear;
+
+  // remove echo data
+  try
+    for i := 0 to FWaitEchoList.Count - 1 do
+      begin
+        OnEchoPtr := FWaitEchoList[i];
+        Dispose(OnEchoPtr);
+      end;
+  except
+  end;
   FWaitEchoList.Clear;
+
+  // close Owner-IO
   if FOwner_IO <> nil then
       CloseP2PVMTunnel;
+
+  // clear listen
   ClearListen;
+
+  // free
   DisposeObject(FWaitEchoList);
   DisposeObject(FReceiveStream);
   DisposeObject(FSendStream);
@@ -15310,15 +15338,18 @@ begin
         begin
           if p^.data is TZNet_WithP2PVM_Server then
             begin
-              TZNet(p^.data).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
+              TZNet_WithP2PVM_Server(p^.data).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
               TZNet_WithP2PVM_Server(p^.data).FLinkVMPool.Delete(FVMID);
+            end
+          else if p^.data is TZNet_WithP2PVM_Client then
+            begin
+              TZNet_WithP2PVM_Client(p^.data).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
+              TZNet_WithP2PVM_Client(p^.data).FLinkVM := nil;
             end;
           inc(i);
           p := p^.Next;
         end;
     end;
-
-  CloseAllClientIO;
 
   FAuthWaiting := False;
   FAuthed := False;
@@ -15759,60 +15790,6 @@ begin
   for i := 0 to FFrameworkListenPool.Count - 1 do
       Dispose(PP2PVMListen(FFrameworkListenPool[i]));
   FFrameworkListenPool.Clear;
-end;
-
-procedure TZNet_WithP2PVM.CloseAllClientIO;
-var
-  L: TCore_ListForObj;
-  i: Integer;
-  p: PUInt32HashListObjectStruct;
-begin
-  if (FFrameworkPool.Count = 0) then
-      exit;
-
-  L := TCore_ListForObj.Create;
-
-  i := 0;
-  p := FFrameworkPool.FirstPtr;
-  while i < FFrameworkPool.Count do
-    begin
-      if p^.data is TZNet_WithP2PVM_Client then
-          L.Add(p^.data);
-      inc(i);
-      p := p^.Next;
-    end;
-
-  for i := 0 to L.Count - 1 do
-      TZNet(L[i]).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
-
-  DisposeObject(L);
-end;
-
-procedure TZNet_WithP2PVM.CloseAllServerIO;
-var
-  L: TCore_ListForObj;
-  i: Integer;
-  p: PUInt32HashListObjectStruct;
-begin
-  if (FFrameworkPool.Count = 0) then
-      exit;
-
-  L := TCore_ListForObj.Create;
-
-  i := 0;
-  p := FFrameworkPool.FirstPtr;
-  while i < FFrameworkPool.Count do
-    begin
-      if p^.data is TZNet_WithP2PVM_Server then
-          L.Add(p^.data);
-      inc(i);
-      p := p^.Next;
-    end;
-
-  for i := 0 to L.Count - 1 do
-      TZNet(L[i]).ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}DoPerClientClose);
-
-  DisposeObject(L);
 end;
 
 constructor TStableServer_OwnerIO_UserDefine.Create(Owner_: TPeerIO);
