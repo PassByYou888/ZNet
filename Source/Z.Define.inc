@@ -273,6 +273,14 @@
 // MaxComputeThread default limit parameter = CpuCount*20
 {$UNDEF LimitMaxComputeThread}
 
+// when the c4 network is deployed and connected for the first time,
+// if a connection failure occurs, it is mostly due to the server being started or maintained.
+// at this time, c4 will try to connect repeatedly
+// after opening this switch, it can facilitate large-scale system integration and deployment.
+// the fault repair time can only last for 4 hours. If it exceeds this time, it will be considered a failure
+// this "ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault" is effective for IoT device deployment and large-scale server groups.
+{$DEFINE ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault}
+
 {$IFDEF DEBUG}
   // initialization status prompt
   {$DEFINE initializationStatus}
