@@ -142,7 +142,7 @@ begin
   FOnAsyncConnectNotify_C := nil;
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
-  name:='Cross-Socket-Client';
+  name := 'Cross-Socket-Client';
 end;
 
 destructor TZNet_Client_CrossSocket.Destroy;
@@ -471,7 +471,8 @@ begin
               BuildAsyncConnect(addr, Port, BuildIntf);
               Exit;
             end;
-          BuildIntf.TriggerDoConnectFailed;
+          if BuildIntf <> nil then
+              BuildIntf.TriggerDoConnectFailed;
         end;
     end);
 end;
