@@ -81,9 +81,9 @@ type
     procedure CloseAll;
 
     function WaitSendConsoleCmd(p_io: TPeerIO;
-      const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
+      const Cmd, ConsoleData: SystemString; Timeout_: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(p_io: TPeerIO;
-      const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick); override;
+      const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout_: TTimeTick); override;
   end;
 
 implementation
@@ -308,7 +308,7 @@ begin
   while not FListenTh.Activted do
       Z.Core.CheckThreadSynchronize(1);
 
-  name:='Synapse-Server';
+  name := 'Synapse-Server';
 end;
 
 destructor TZNet_Server_Synapse.Destroy;
@@ -355,14 +355,14 @@ begin
 end;
 
 function TZNet_Server_Synapse.WaitSendConsoleCmd(p_io: TPeerIO;
-  const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString;
+  const Cmd, ConsoleData: SystemString; Timeout_: TTimeTick): SystemString;
 begin
   Result := '';
   RaiseInfo('WaitSend no Suppport');
 end;
 
 procedure TZNet_Server_Synapse.WaitSendStreamCmd(p_io: TPeerIO;
-  const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick);
+  const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout_: TTimeTick);
 begin
   RaiseInfo('WaitSend no Suppport');
 end;
