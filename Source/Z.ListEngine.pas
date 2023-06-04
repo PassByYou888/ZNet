@@ -705,6 +705,8 @@ type
     procedure SetDefaultText(const Name: SystemString; Value_: SystemString);
     function GetDefaultText_I32(const Name: SystemString; const Value: Integer): Integer;
     procedure SetDefaultText_I32(const Name: SystemString; const Value: Integer);
+    function GetDefaultText_U32(const Name: SystemString; const Value: Cardinal): Cardinal;
+    procedure SetDefaultText_U32(const Name: SystemString; const Value: Cardinal);
     function GetDefaultText_I64(const Name: SystemString; const Value: Int64): Int64;
     procedure SetDefaultText_I64(const Name: SystemString; const Value: Int64);
     function GetDefaultText_Float(const Name: SystemString; const Value: Double): Double;
@@ -6560,6 +6562,16 @@ begin
 end;
 
 procedure THashStringList.SetDefaultText_I32(const Name: SystemString; const Value: Integer);
+begin
+  SetDefaultValue(Name, umlIntToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_U32(const Name: SystemString; const Value: Cardinal): Cardinal;
+begin
+  Result := umlStrToInt(GetDefaultValue(Name, umlIntToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_U32(const Name: SystemString; const Value: Cardinal);
 begin
   SetDefaultValue(Name, umlIntToStr(Value));
 end;
