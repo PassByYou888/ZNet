@@ -206,7 +206,7 @@ begin
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
 
-  name:='ICS-Client';
+  name := 'ICS-Client';
 end;
 
 destructor TZNet_Client_ICS.Destroy;
