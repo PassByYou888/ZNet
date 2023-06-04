@@ -63,9 +63,9 @@ type
     procedure Progress; override;
 
     { select: recommended no used blocking communication calls on the server, unstable!! }
-    function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString; override;
+    function WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; override;
     { select: recommended no used blocking communication calls on the server, unstable!! }
-    procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick); override;
+    procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, ResultData: TDFE; TimeOut_: TTimeTick); override;
   end;
 
 implementation
@@ -149,14 +149,14 @@ begin
 end;
 
 function TCommunicationFramework_Server_Refrence.WaitSendConsoleCmd(p_io: TPeerIO;
-  const Cmd, ConsoleData: SystemString; Timeout: TTimeTick): SystemString;
+  const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
 begin
   Result := '';
   RaiseInfo('WaitSend no Suppport');
 end;
 
 procedure TCommunicationFramework_Server_Refrence.WaitSendStreamCmd(p_io: TPeerIO;
-  const Cmd: SystemString; StreamData, ResultData: TDFE; Timeout: TTimeTick);
+  const Cmd: SystemString; StreamData, ResultData: TDFE; TimeOut_: TTimeTick);
 begin
   RaiseInfo('WaitSend no Suppport');
 end;
