@@ -26,7 +26,7 @@ type
   PUPascalString = Z.PascalStrings.PPascalString;
 {$ENDIF FPC}
   PUSystemChar = ^USystemChar;
-  TUOrdChar = (uc0to9, uc1to9, uc0to32, uc0to32no10, ucLoAtoF, ucHiAtoF, ucLoAtoZ, ucHiAtoZ, ucHex, ucAtoF, ucAtoZ, ucVisibled);
+  TUOrdChar = (uc0to9, uc1to9, uc0to32, uc0to32no10, ucLoAtoF, ucHiAtoF, ucLoAtoZ, ucHiAtoZ, ucHex, ucAtoF, ucAtoZ, ucVisibled, ucDoubleChar);
   TUOrdChars = set of TUOrdChar;
 
   TUPascalString = record
@@ -385,7 +385,8 @@ begin
     ucHex: Result := ((v >= ordLA) and (v <= ordLF)) or ((v >= ordHA) and (v <= ordHF)) or ((v >= ord0) and (v <= ord9));
     ucAtoF: Result := ((v >= ordLA) and (v <= ordLF)) or ((v >= ordHA) and (v <= ordHF));
     ucAtoZ: Result := ((v >= ordLA) and (v <= ordLZ)) or ((v >= ordHA) and (v <= ordHZ));
-    ucVisibled: Result := (v >= $20) and (v <= $7E);
+    ucVisibled: Result := ((v >= $20) and (v <= $7E)) or (v > $FF);
+    ucDoubleChar: Result := v > $FF;
     else Result := False;
   end;
 end;
