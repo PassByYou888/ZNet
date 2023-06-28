@@ -243,7 +243,7 @@ begin
   Core_Thread_Life_Time_Tick__ := Tick_;
 end;
 
-procedure InitCoreThreadPool(Thread_Num: Integer);
+procedure InitCoreThreadPool(Thread_Num, Parallel_Granularity_: Integer);
 var
   Th: TCore_Dispatch_Order_Thread;
 begin
@@ -259,7 +259,7 @@ begin
   Core_Thread_Dispatch_Queue_Pool__ := TCompute_Dispatch_Queue_Pool.Create;
   Core_Thread_Wait_Sum__ := TAtomInt.Create(0);
   Core_Thread_Life_Time_Tick__ := 1000;
-  Parallel_Granularity__ := Thread_Num;
+  Parallel_Granularity__ := Parallel_Granularity_;
   Core_Thread_Dispatch_Critical__ := TCritical.Create;
   Max_Activted_Parallel__ := 0;
   Parallel_Overflow__.ActivtedParallel := 0;
@@ -269,13 +269,14 @@ begin
   Th.Start();
 {$IFDEF DEBUG}
   if IsConsole then
-      WriteLn(Format('CPU_Thread=%d, Max_Thread=%s, IDLE_Thread_Time=%dms',
+      WriteLn(Format('CPU_Thread=%d, Max_Thread=%s, Parallel_Granularity=%d IDLE_Thread_Time=%dms',
         [Thread_Num,
 {$IFDEF LimitMaxComputeThread}
           IntToStr(Max_Thread_Supported),
 {$ELSE LimitMaxComputeThread}
           'infinite',
 {$ENDIF LimitMaxComputeThread}
+          Parallel_Granularity__,
           Core_Thread_Life_Time_Tick__]));
 {$ENDIF DEBUG}
 end;
