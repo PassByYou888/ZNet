@@ -18,6 +18,8 @@ function IsEqual__(const Val1, Val2, Epsilon_: Single): Boolean; overload;
 function IsEqual__(const Val1, Val2, Epsilon_: Double): Boolean; overload;
 
 type
+  TString_Num_Analysis_Tool = class;
+
   TPascalString_Hash_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TPascalString, TPascalString>;
   TPascalString_Hash_Pool = class(TPascalString_Hash_Pool__)
   public
