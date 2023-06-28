@@ -273,6 +273,11 @@
 // MaxComputeThread default limit parameter = CpuCount*20
 {$UNDEF LimitMaxComputeThread}
 
+// Limit maximum parallel threads
+// When parallel threads are too large,
+// server performance will be lost, and in some hardware environments, large-scale threads can reduce parallel computing efficiency by 50%
+{$DEFINE LimitMaxParallelThread}
+
 // when the c4 network is deployed and connected for the first time,
 // if a connection failure occurs, it is mostly due to the server being started or maintained.
 // at this time, c4 will try to connect repeatedly
