@@ -212,6 +212,7 @@ type
     Temp_Swap_Pool: TZDB2_Th_Engine_Data_BigList___;
     procedure Flush_Temp_Swap_Pool();
   public
+    // base
     Name: U_String;
     Owner: TZDB2_Th_Engine_Marshal;
     RemoveDatabaseOnDestroy: Boolean;
@@ -230,9 +231,11 @@ type
     Cipher_Level: Integer;
     Cipher_Tail: Boolean;
     Cipher_CBC: Boolean;
+    // backup and copy technology
     Copy_Mode: TZDB2_Copy_Mode; // copy mode
     Static_Copy_Tech_Physics_Limit: Int64; // this value is exceeded, dynamic-copy tech will be used
     Dynamic_Copy_Tech_Max_Queue: Integer; // default 500
+    // pool
     Engine: TZDB2_Th_Queue; // th-queue-engine
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___; // data pool
     Last_Build_Class: TZDB2_Th_Engine_Data_Class;
@@ -245,7 +248,7 @@ type
     procedure Clear;
     procedure Format_Database;
     function Ready: Boolean;
-    // backup and copy technology
+    // backup technology
     function Get_Last_Backup_Execute_Time: TTimeTick;
     property Backup_Directory: U_String read FBackup_Directory write FBackup_Directory;
     property Backup_Is_Busy: Boolean read FCopy_Is_Busy;
@@ -257,6 +260,7 @@ type
     procedure Remove_Backup;
     procedure Stop_Backup;
     procedure Wait_Backup;
+    // copy technology
     procedure Copy_To_File(Dest_: U_String);
     procedure Stop_Copy;
     procedure Wait_Copy;
