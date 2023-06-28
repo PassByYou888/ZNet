@@ -1221,7 +1221,7 @@ begin
             begin
               Break;
             end
-          else if Char_is(c, {$IFDEF FPC}ucAtoZ{$ELSE FPC}cAtoZ{$ENDIF FPC}) then
+          else if Char_is(c, [{$IFDEF FPC}ucAtoZ, ucDoubleChar{$ELSE FPC}cAtoZ, cDoubleChar{$ENDIF FPC}]) then
             begin
               Result := False;
               exit;
@@ -1274,7 +1274,7 @@ begin
             begin
               Break
             end
-          else if Char_is(c, {$IFDEF FPC}ucAtoZ{$ELSE FPC}cAtoZ{$ENDIF FPC}) then
+          else if Char_is(c, [{$IFDEF FPC}ucAtoZ, ucDoubleChar{$ELSE FPC}cAtoZ, cDoubleChar{$ENDIF FPC}]) then
             begin
               Result := False;
               exit;
