@@ -2311,7 +2311,9 @@ initialization
   Init_Critical_System();
   InitMT19937Rand();
   CoreInitedTimeTick := GetTimeTick();
-  InitCoreThreadPool(if_(IsDebuging, 2, CpuCount * 2));
+  InitCoreThreadPool(
+    if_(IsDebuging, 2, CpuCount * 2),
+    if_(IsDebuging, 2, {$IFDEF LimitMaxParallelThread}8{$ELSE LimitMaxParallelThread}CpuCount * 2{$ENDIF LimitMaxParallelThread}));
   MainThreadProgress := TThreadPost.Create(MainThreadID);
   MainThreadProgress.OneStep := False;
   Enabled_Check_Thread_Synchronize_System := True;
