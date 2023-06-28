@@ -209,12 +209,22 @@ function umlRandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): I
 function umlRandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload;
 function umlRandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
 function umlRandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
-
 function umlRandomRange(const min_, max_: Integer): Integer; overload;
 function umlRandomRange64(const min_, max_: Int64): Int64; overload;
 function umlRandomRangeS(const min_, max_: Single): Single; overload;
 function umlRandomRangeD(const min_, max_: Double): Double; overload;
 function umlRandomRangeF(const min_, max_: Double): Double; overload;
+
+function umlRR(const rnd: TMT19937Random; const min_, max_: Integer): Integer; overload;
+function umlRR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; overload;
+function umlRRS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload;
+function umlRRD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
+function umlRRF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
+function umlRR(const min_, max_: Integer): Integer; overload;
+function umlRR64(const min_, max_: Int64): Int64; overload;
+function umlRRS(const min_, max_: Single): Single; overload;
+function umlRRD(const min_, max_: Double): Double; overload;
+function umlRRF(const min_, max_: Double): Double; overload;
 
 function umlDefaultTime: Double;
 function umlNow: Double;
@@ -396,6 +406,9 @@ function umlDateTimeToStr(t: TDateTime): TPascalString;
 function umlDT(t: TDateTime): TPascalString; overload;
 function umlDT(s: TPascalString): TDateTime; overload;
 function umlDT(s: TPascalString; Default_: TDateTime): TDateTime; overload;
+function umlT(t: TDateTime): TPascalString; overload;
+function umlT(s: TPascalString): TDateTime; overload;
+function umlT(s: TPascalString; Default_: TDateTime): TDateTime; overload;
 
 function umlTimeTickToStr(const t: TTimeTick): TPascalString;
 function umlDateToStr(t: TDateTime): TPascalString;
@@ -1564,6 +1577,130 @@ end;
 function umlRandomRangeF(const min_, max_: Double): Double;
 begin
   Result := (umlRandomRange64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+function umlRR(const rnd: TMT19937Random; const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand32(mn - mx) + mx
+  else
+      Result := rnd.Rand32(mx - mn) + mn;
+end;
+
+function umlRR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand64(mn - mx) + mx
+  else
+      Result := rnd.Rand64(mx - mn) + mn;
+end;
+
+function umlRRS(const rnd: TMT19937Random; const min_, max_: Single): Single;
+begin
+  Result := (umlRR64(rnd, Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+function umlRRD(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (umlRR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+function umlRRF(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (umlRR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+function umlRR(const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand32(mn - mx) + mx
+  else
+      Result := MT19937Rand32(mx - mn) + mn;
+end;
+
+function umlRR64(const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand64(mn - mx) + mx
+  else
+      Result := MT19937Rand64(mx - mn) + mn;
+end;
+
+function umlRRS(const min_, max_: Single): Single;
+begin
+  Result := (umlRR64(Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+function umlRRD(const min_, max_: Double): Double;
+begin
+  Result := (umlRR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+function umlRRF(const min_, max_: Double): Double;
+begin
+  Result := (umlRR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
 end;
 
 function umlDefaultTime: Double;
@@ -4067,6 +4204,25 @@ function umlDT(s: TPascalString; Default_: TDateTime): TDateTime;
 begin
   try
       Result := umlDT(s);
+  except
+      Result := Default_;
+  end;
+end;
+
+function umlT(t: TDateTime): TPascalString;
+begin
+  Result := umlTimeToStr(t);
+end;
+
+function umlT(s: TPascalString): TDateTime;
+begin
+  Result := umlStrToTime(s);
+end;
+
+function umlT(s: TPascalString; Default_: TDateTime): TDateTime;
+begin
+  try
+      Result := umlT(s);
   except
       Result := Default_;
   end;
