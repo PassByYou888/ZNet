@@ -716,7 +716,7 @@ type
     function GetDefaultText_DT(const Name: SystemString; const Value: TDateTime): TDateTime;
     procedure SetDefaultText_DT(const Name: SystemString; const Value: TDateTime);
 
-    function ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
+    function ProcessMacro(const Text_, Before__, After__: SystemString; var Output_: SystemString): Boolean;
     function Replace(const Text_: SystemString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): SystemString; overload;
     function UReplace(const Text_: USystemString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): USystemString; overload;
 
@@ -872,7 +872,7 @@ type
     function GetDefaultValue_Str(const Name: SystemString; Value_: SystemString): SystemString;
     procedure SetDefaultValue_Str(const Name: SystemString; Value_: SystemString);
 
-    function ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
+    function ProcessMacro(const Text_, Before__, After__: SystemString; var Output_: SystemString): Boolean;
     function Replace(const Text_: SystemString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): SystemString;
 
     property AutoUpdateDefaultValue: Boolean read FAutoUpdateDefaultValue write FAutoUpdateDefaultValue;
@@ -6616,36 +6616,36 @@ begin
   SetDefaultValue(Name, umlDT(Value));
 end;
 
-function THashStringList.ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
+function THashStringList.ProcessMacro(const Text_, Before__, After__: SystemString; var Output_: SystemString): Boolean;
 var
   sour: U_String;
-  h, t: U_String;
+  B__, A__: TPascalString;
   bPos, ePos: Integer;
   KeyText: SystemString;
   i: Integer;
 begin
   Output_ := '';
   sour.Text := Text_;
-  h.Text := HeadToken;
-  t.Text := TailToken;
+  B__.Text := Before__;
+  A__.Text := After__;
   Result := True;
 
   i := 1;
 
   while i <= sour.L do
     begin
-      if sour.ComparePos(i, h) then
+      if sour.ComparePos(i, @B__) then
         begin
           bPos := i;
-          ePos := sour.GetPos(t, i + h.L);
+          ePos := sour.GetPos(@A__, i + B__.L);
           if ePos > 0 then
             begin
-              KeyText := sour.Copy(bPos + h.L, ePos - (bPos + h.L)).Text;
+              KeyText := sour.Copy(bPos + B__.L, ePos - (bPos + B__.L)).Text;
 
               if Exists(KeyText) then
                 begin
                   Output_ := Output_ + GetKeyValue(KeyText);
-                  i := ePos + t.L;
+                  i := ePos + A__.L;
                   Continue;
                 end
               else
@@ -7729,36 +7729,36 @@ begin
   SetDefaultValue(Name, Value_);
 end;
 
-function THashVariantList.ProcessMacro(const Text_, HeadToken, TailToken: SystemString; var Output_: SystemString): Boolean;
+function THashVariantList.ProcessMacro(const Text_, Before__, After__: SystemString; var Output_: SystemString): Boolean;
 var
   sour: U_String;
-  h, t: U_String;
+  B__, A__: TPascalString;
   bPos, ePos: Integer;
   KeyText: SystemString;
   i: Integer;
 begin
   Output_ := '';
   sour.Text := Text_;
-  h.Text := HeadToken;
-  t.Text := TailToken;
+  B__.Text := Before__;
+  A__.Text := After__;
   Result := True;
 
   i := 1;
 
   while i <= sour.L do
     begin
-      if sour.ComparePos(i, h) then
+      if sour.ComparePos(i, @B__) then
         begin
           bPos := i;
-          ePos := sour.GetPos(t, i + h.L);
+          ePos := sour.GetPos(@A__, i + B__.L);
           if ePos > 0 then
             begin
-              KeyText := sour.Copy(bPos + h.L, ePos - (bPos + h.L)).Text;
+              KeyText := sour.Copy(bPos + B__.L, ePos - (bPos + B__.L)).Text;
 
               if Exists(KeyText) then
                 begin
                   Output_ := Output_ + VarToStr(GetKeyValue(KeyText));
-                  i := ePos + t.L;
+                  i := ePos + A__.L;
                   Continue;
                 end
               else
