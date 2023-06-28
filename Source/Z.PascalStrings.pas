@@ -21,7 +21,7 @@ type
   TArrayChar = array of SystemChar;
   PSystemString = ^SystemString;
   PPascalString = ^TPascalString;
-  TOrdChar = (c0to9, c1to9, c0to32, c0to32no10, cLoAtoF, cHiAtoF, cLoAtoZ, cHiAtoZ, cHex, cAtoF, cAtoZ, cVisibled);
+  TOrdChar = (c0to9, c1to9, c0to32, c0to32no10, cLoAtoF, cHiAtoF, cLoAtoZ, cHiAtoZ, cHex, cAtoF, cAtoZ, cVisibled, cDoubleChar);
   TOrdChars = set of TOrdChar;
 
   TPascalString = record
@@ -373,7 +373,8 @@ begin
     cHex: Result := ((v >= ordLA) and (v <= ordLF)) or ((v >= ordHA) and (v <= ordHF)) or ((v >= ord0) and (v <= ord9));
     cAtoF: Result := ((v >= ordLA) and (v <= ordLF)) or ((v >= ordHA) and (v <= ordHF));
     cAtoZ: Result := ((v >= ordLA) and (v <= ordLZ)) or ((v >= ordHA) and (v <= ordHZ));
-    cVisibled: Result := (v >= $20) and (v <= $7E);
+    cVisibled: Result := ((v >= $20) and (v <= $7E)) or (v > $FF);
+    cDoubleChar: Result := v > $FF;
     else Result := False;
   end;
 end;
