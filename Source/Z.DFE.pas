@@ -414,7 +414,8 @@ type
     function ReadUInt64: UInt64;
     procedure ReadStrings(output: TCore_Strings);
     procedure ReadListStrings(output: TListString);
-    procedure ReadPascalStrings(output: TListPascalString);
+    procedure ReadPascalStrings(output: TPascalStringList); overload;
+    procedure ReadPascalStrings(var output: U_StringArray); overload;
     procedure ReadDataFrame(output: TDFE);
     procedure ReadHashStringList(output: THashStringList);
     procedure ReadVariantList(output: THashVariantList);
@@ -521,7 +522,8 @@ type
     function WriteUInt64(v: UInt64): TDFE;
     function WriteStrings(v: TCore_Strings): TDFE;
     function WriteListStrings(v: TListString): TDFE;
-    function WritePascalStrings(v: TListPascalString): TDFE;
+    function WritePascalStrings(v: TPascalStringList): TDFE; overload;
+    function WritePascalStrings(v: U_StringArray): TDFE; overload;
     function WriteDataFrame(v: TDFE): TDFE;
     // select compresssion
     function WriteDataFrameCompressed(v: TDFE): TDFE;
@@ -580,7 +582,8 @@ type
     function ReadUInt64(index_: Integer): UInt64;
     procedure ReadStrings(index_: Integer; output: TCore_Strings);
     procedure ReadListStrings(index_: Integer; output: TListString);
-    procedure ReadPascalStrings(index_: Integer; output: TListPascalString);
+    procedure ReadPascalStrings(index_: Integer; output: TPascalStringList); overload;
+    procedure ReadPascalStrings(index_: Integer; var output: U_StringArray); overload;
     procedure ReadDataFrame(index_: Integer; output: TDFE);
     procedure ReadHashStringList(index_: Integer; output: THashStringList);
     procedure ReadVariantList(index_: Integer; output: THashVariantList);
@@ -704,7 +707,8 @@ type
     procedure WriteUInt64(v: UInt64);
     procedure WriteStrings(v: TCore_Strings);
     procedure WriteListStrings(v: TListString);
-    procedure WritePascalStrings(v: TListPascalString);
+    procedure WritePascalStrings(v: TPascalStringList); overload;
+    procedure WritePascalStrings(v: U_StringArray); overload;
     procedure WriteDataFrame(v: TDFE);
     procedure WriteDataFrameCompressed(v: TDFE);
     procedure WriteHashStringList(v: THashStringList);
@@ -761,7 +765,8 @@ type
     function ReadUInt64: UInt64;
     procedure ReadStrings(output: TCore_Strings);
     procedure ReadListStrings(output: TListString);
-    procedure ReadPascalStrings(output: TListPascalString);
+    procedure ReadPascalStrings(output: TPascalStringList); overload;
+    procedure ReadPascalStrings(var output: U_StringArray); overload;
     procedure ReadDataFrame(output: TDFE);
     procedure ReadHashStringList(output: THashStringList);
     procedure ReadVariantList(output: THashVariantList);
@@ -2065,7 +2070,13 @@ begin
   inc(FIndex);
 end;
 
-procedure TDFEReader.ReadPascalStrings(output: TListPascalString);
+procedure TDFEReader.ReadPascalStrings(output: TPascalStringList);
+begin
+  FOwner.ReadPascalStrings(FIndex, output);
+  inc(FIndex);
+end;
+
+procedure TDFEReader.ReadPascalStrings(var output: U_StringArray);
 begin
   FOwner.ReadPascalStrings(FIndex, output);
   inc(FIndex);
@@ -2716,7 +2727,7 @@ begin
   DisposeObject(m64);
 end;
 
-function TDFE.WritePascalStrings(v: TListPascalString): TDFE;
+function TDFE.WritePascalStrings(v: TPascalStringList): TDFE;
 var
   m64: TMS64;
 begin
@@ -2725,6 +2736,18 @@ begin
   m64.Position := 0;
   Result := WriteStream(m64);
   DisposeObject(m64);
+end;
+
+function TDFE.WritePascalStrings(v: U_StringArray): TDFE;
+var
+  L: TPascalStringList;
+  i: Integer;
+begin
+  L := TPascalStringList.Create;
+  for i := low(v) to high(v) do
+      L.Add(v[i]);
+  WritePascalStrings(L);
+  DisposeObject(L);
 end;
 
 function TDFE.WriteDataFrame(v: TDFE): TDFE;
@@ -2845,7 +2868,7 @@ begin
       DisposeObject(fs);
     end
   else
-    Result := self;
+      Result := self;
 end;
 
 function TDFE.WriteRect(v: TRect): TDFE;
@@ -3569,7 +3592,7 @@ begin
   DisposeObject(m64);
 end;
 
-procedure TDFE.ReadPascalStrings(index_: Integer; output: TListPascalString);
+procedure TDFE.ReadPascalStrings(index_: Integer; output: TPascalStringList);
 var
   m64: TMS64;
 begin
@@ -3579,6 +3602,19 @@ begin
 
   output.LoadFromStream(m64);
   DisposeObject(m64);
+end;
+
+procedure TDFE.ReadPascalStrings(index_: Integer; var output: U_StringArray);
+var
+  L: TPascalStringList;
+  i: Integer;
+begin
+  L := TPascalStringList.Create;
+  ReadPascalStrings(index_, L);
+  SetLength(output, L.Count);
+  for i := 0 to L.Count - 1 do
+      output[i] := L[i];
+  DisposeObject(L);
 end;
 
 procedure TDFE.ReadDataFrame(index_: Integer; output: TDFE);
@@ -5249,7 +5285,12 @@ begin
   FEngine.WriteListStrings(v);
 end;
 
-procedure TDataWriter.WritePascalStrings(v: TListPascalString);
+procedure TDataWriter.WritePascalStrings(v: TPascalStringList);
+begin
+  FEngine.WritePascalStrings(v);
+end;
+
+procedure TDataWriter.WritePascalStrings(v: U_StringArray);
 begin
   FEngine.WritePascalStrings(v);
 end;
@@ -5562,7 +5603,12 @@ begin
   FEngine.Reader.ReadListStrings(output);
 end;
 
-procedure TDataReader.ReadPascalStrings(output: TListPascalString);
+procedure TDataReader.ReadPascalStrings(output: TPascalStringList);
+begin
+  FEngine.Reader.ReadPascalStrings(output);
+end;
+
+procedure TDataReader.ReadPascalStrings(var output: U_StringArray);
 begin
   FEngine.Reader.ReadPascalStrings(output);
 end;
