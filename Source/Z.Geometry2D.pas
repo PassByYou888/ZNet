@@ -386,6 +386,8 @@ function Make_Jitter_Box(rnd: TMT19937Random; XY_Offset_Scale_, Rotate_, Scale_:
 function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: boolean;
   const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt; overload;
 
+function Rect_Overlap_or_Intersect(r1, r2: TRectV2): boolean;
+
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function FixRect(r: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -3001,6 +3003,18 @@ begin
   until (not Fit_) or RectInRect(TV2R4.Init(dest, Angle).BoundRect, source);
 end;
 
+function Rect_Overlap_or_Intersect(r1, r2: TRectV2): boolean;
+begin
+  Result := True;
+  if RectWithInRect(r1, r2) then
+      exit;
+  if RectWithInRect(r2, r1) then
+      exit;
+  if RectToRectIntersect(r1, r2) then
+      exit;
+  Result := False;
+end;
+
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt);
 begin
   if Bottom < Top then
@@ -3452,6 +3466,12 @@ var
 begin
   Result := NULLPoint;
   Count := length(buff);
+
+  if Count = 1 then
+      exit(buff[0]);
+
+  if Count = 2 then
+      exit(MiddleVec2(buff[0], buff[1]));
 
   if Count < 3 then
       exit;
@@ -4976,10 +4996,10 @@ class function TV2Rect4.Init(r: TRectV2): TV2Rect4;
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
 end;
 
@@ -4987,10 +5007,10 @@ class function TV2Rect4.Init(r: TRectV2; axis: TVec2; Ang: TGeoFloat): TV2Rect4;
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
   if Ang <> 0 then
       Result := Result.Rotation(axis, Ang);
@@ -5000,10 +5020,10 @@ class function TV2Rect4.Init(r: TRectV2; Ang: TGeoFloat): TV2Rect4;
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
   if Ang <> 0 then
       Result := Result.Rotation(Ang);
@@ -5060,10 +5080,10 @@ class function TV2Rect4.Create(r: TRectV2): TV2Rect4;
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
 end;
 
@@ -5071,10 +5091,10 @@ class function TV2Rect4.Create(r: TRectV2; axis: TVec2; Ang: TGeoFloat): TV2Rect
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
   if Ang <> 0 then
       Result := Result.Rotation(axis, Ang);
@@ -5084,10 +5104,10 @@ class function TV2Rect4.Create(r: TRectV2; Ang: TGeoFloat): TV2Rect4;
 begin
   with Result do
     begin
-      LeftTop := PointMake(r[0, 0], r[0, 1]);
-      RightTop := PointMake(r[1, 0], r[0, 1]);
-      RightBottom := PointMake(r[1, 0], r[1, 1]);
-      LeftBottom := PointMake(r[0, 0], r[1, 1]);
+      LeftTop := vec2(r[0, 0], r[0, 1]);
+      RightTop := vec2(r[1, 0], r[0, 1]);
+      RightBottom := vec2(r[1, 0], r[1, 1]);
+      LeftBottom := vec2(r[0, 0], r[1, 1]);
     end;
   if Ang <> 0 then
       Result := Result.Rotation(Ang);
@@ -5672,6 +5692,9 @@ var
   p1, p2: PVec2;
 begin
   Result := NULLPoint;
+
+  if Count = 1 then
+      exit(Points[0]^);
 
   if Count = 2 then
     begin
@@ -8237,6 +8260,17 @@ var
   pt1, pt2: TVec2;
 begin
   Result := NULLPoint;
+
+  if Count = 1 then
+      exit(Points[0]);
+
+  if Count = 2 then
+    begin
+      pt1 := Points[0];
+      pt2 := Points[1];
+      Result := MiddleVec2(pt1, pt2);
+      exit;
+    end;
 
   if Count < 3 then
       exit;
