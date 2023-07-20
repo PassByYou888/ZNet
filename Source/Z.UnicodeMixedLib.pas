@@ -632,6 +632,12 @@ function umlMD5Compare(const m1, m2: TMD5): Boolean;
 function umlCompareMD5(const m1, m2: TMD5): Boolean;
 function umlIsNullMD5(m: TMD5): Boolean;
 function umlWasNullMD5(m: TMD5): Boolean;
+{ cache MD5 }
+function umlFileMD5(FileName: TPascalString): TMD5; overload;
+procedure Do_ThCacheFileMD5(ThSender: TCompute);
+procedure umlCacheFileMD5(FileName: U_String);
+procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
+
 
 {$REGION 'crc16define'}
 
@@ -760,12 +766,6 @@ function umlGetByteString(const sour: PArrayRawByte; const L: Integer): TPascalS
 
 { savememory }
 procedure SaveMemory(p: Pointer; siz: NativeInt; DestFile: TPascalString);
-
-{ fast cache for fileMD5 }
-function umlFileMD5(FileName: TPascalString): TMD5; overload;
-procedure Do_ThCacheFileMD5(ThSender: TCompute);
-procedure umlCacheFileMD5(FileName: U_String);
-procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
 
 { binary }
 function umlBinToUInt8(Value: U_String): Byte;
@@ -6765,6 +6765,177 @@ begin
   Result := umlCompareMD5(m, NullMD5);
 end;
 
+type
+  TFileMD5_CacheData = record
+    Time_: TDateTime;
+    Size_: Int64;
+    md5: TMD5;
+  end;
+
+  PFileMD5_CacheData = ^TFileMD5_CacheData;
+
+  TFileMD5Cache = class
+  private
+    Critical: TCritical;
+    FHash: THashList;
+    procedure DoDataFreeProc(p: Pointer);
+    function DoGetFileMD5(FileName: U_String): TMD5;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Clear;
+  end;
+
+var
+  FileMD5Cache: TFileMD5Cache = nil;
+
+procedure TFileMD5Cache.DoDataFreeProc(p: Pointer);
+begin
+  Dispose(PFileMD5_CacheData(p));
+end;
+
+function TFileMD5Cache.DoGetFileMD5(FileName: U_String): TMD5;
+var
+  p: PFileMD5_CacheData;
+  ft: TDateTime;
+  fs: Int64;
+begin
+  if not umlFileExists(FileName) then
+    begin
+      Critical.Lock;
+      FHash.Delete(FileName);
+      Critical.UnLock;
+      Result := NullMD5;
+      exit;
+    end;
+
+  ft := umlGetFileTime(FileName);
+  fs := umlGetFileSize(FileName);
+  Critical.Lock;
+  p := FHash[FileName];
+  if p = nil then
+    begin
+      new(p);
+      p^.Time_ := ft;
+      p^.Size_ := fs;
+      try
+          p^.md5 := umlFileMD5___(FileName);
+      except
+          p^.md5 := Null_Buff_MD5;
+      end;
+      FHash.add(FileName, p, False);
+      Result := p^.md5;
+    end
+  else
+    begin
+      if (ft <> p^.Time_) or (fs <> p^.Size_) then
+        begin
+          p^.Time_ := ft;
+          p^.Size_ := fs;
+          try
+              p^.md5 := umlFileMD5___(FileName);
+          except
+              p^.md5 := Null_Buff_MD5;
+          end;
+        end;
+      Result := p^.md5;
+    end;
+  Critical.UnLock;
+end;
+
+constructor TFileMD5Cache.Create;
+begin
+  inherited Create;
+  FHash := THashList.CustomCreate($FFFF);
+  FHash.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DoDataFreeProc;
+  FHash.IgnoreCase := True;
+  FHash.AccessOptimization := True;
+  Critical := TCritical.Create;
+end;
+
+destructor TFileMD5Cache.Destroy;
+begin
+  DisposeObject(Critical);
+  DisposeObject(FHash);
+  inherited Destroy;
+end;
+
+procedure TFileMD5Cache.Clear;
+begin
+  FHash.Clear;
+end;
+
+function umlFileMD5(FileName: TPascalString): TMD5;
+begin
+  Result := FileMD5Cache.DoGetFileMD5(FileName);
+end;
+
+procedure Do_ThCacheFileMD5(ThSender: TCompute);
+var
+  p: PPascalString;
+begin
+  p := ThSender.UserData;
+  FileMD5Cache.DoGetFileMD5(p^);
+  Dispose(p);
+end;
+
+procedure umlCacheFileMD5(FileName: U_String);
+var
+  p: PPascalString;
+begin
+  new(p);
+  p^ := FileName;
+  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_ThCacheFileMD5);
+end;
+
+type
+  TCacheFileMD5FromDirectoryData_ = record
+    Directory_, Filter_: U_String;
+  end;
+
+  PCacheFileMD5FromDirectoryData_ = ^TCacheFileMD5FromDirectoryData_;
+
+var
+  CacheThreadIsAcivted: Boolean = True;
+  CacheFileMD5FromDirectory_Num: Integer = 0;
+
+procedure DoCacheFileMD5FromDirectory(ThSender: TCompute);
+var
+  p: PCacheFileMD5FromDirectoryData_;
+  arry: U_StringArray;
+  n: U_SystemString;
+begin
+  p := ThSender.UserData;
+  try
+    arry := umlGetFileListWithFullPath(p^.Directory_);
+    for n in arry do
+      begin
+        if umlMultipleMatch(p^.Filter_, umlGetFileName(n)) then
+          if umlFileExists(n) then
+              FileMD5Cache.DoGetFileMD5(n);
+        if not CacheThreadIsAcivted then
+            break;
+      end;
+    SetLength(arry, 0);
+  except
+  end;
+  p^.Directory_ := '';
+  p^.Filter_ := '';
+  Dispose(p);
+  AtomDec(CacheFileMD5FromDirectory_Num);
+end;
+
+procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
+var
+  p: PCacheFileMD5FromDirectoryData_;
+begin
+  AtomInc(CacheFileMD5FromDirectory_Num);
+  new(p);
+  p^.Directory_ := Directory_;
+  p^.Filter_ := Filter_;
+  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}DoCacheFileMD5FromDirectory);
+end;
+
 function umlCRC16(const Value: PByte; const Count: NativeUInt): Word;
 var
   i: NativeUInt;
@@ -8112,177 +8283,6 @@ begin
   m64.SetPointerWithProtectedMode(p, siz);
   m64.SaveToFile(DestFile);
   DisposeObject(m64);
-end;
-
-type
-  TFileMD5_CacheData = record
-    Time_: TDateTime;
-    Size_: Int64;
-    md5: TMD5;
-  end;
-
-  PFileMD5_CacheData = ^TFileMD5_CacheData;
-
-  TFileMD5Cache = class
-  private
-    Critical: TCritical;
-    FHash: THashList;
-    procedure DoDataFreeProc(p: Pointer);
-    function DoGetFileMD5(FileName: U_String): TMD5;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    procedure Clear;
-  end;
-
-var
-  FileMD5Cache: TFileMD5Cache = nil;
-
-procedure TFileMD5Cache.DoDataFreeProc(p: Pointer);
-begin
-  Dispose(PFileMD5_CacheData(p));
-end;
-
-function TFileMD5Cache.DoGetFileMD5(FileName: U_String): TMD5;
-var
-  p: PFileMD5_CacheData;
-  ft: TDateTime;
-  fs: Int64;
-begin
-  if not umlFileExists(FileName) then
-    begin
-      Critical.Lock;
-      FHash.Delete(FileName);
-      Critical.UnLock;
-      Result := NullMD5;
-      exit;
-    end;
-
-  ft := umlGetFileTime(FileName);
-  fs := umlGetFileSize(FileName);
-  Critical.Lock;
-  p := FHash[FileName];
-  if p = nil then
-    begin
-      new(p);
-      p^.Time_ := ft;
-      p^.Size_ := fs;
-      try
-          p^.md5 := umlFileMD5___(FileName);
-      except
-          p^.md5 := Null_Buff_MD5;
-      end;
-      FHash.add(FileName, p, False);
-      Result := p^.md5;
-    end
-  else
-    begin
-      if (ft <> p^.Time_) or (fs <> p^.Size_) then
-        begin
-          p^.Time_ := ft;
-          p^.Size_ := fs;
-          try
-              p^.md5 := umlFileMD5___(FileName);
-          except
-              p^.md5 := Null_Buff_MD5;
-          end;
-        end;
-      Result := p^.md5;
-    end;
-  Critical.UnLock;
-end;
-
-constructor TFileMD5Cache.Create;
-begin
-  inherited Create;
-  FHash := THashList.CustomCreate($FFFF);
-  FHash.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DoDataFreeProc;
-  FHash.IgnoreCase := True;
-  FHash.AccessOptimization := True;
-  Critical := TCritical.Create;
-end;
-
-destructor TFileMD5Cache.Destroy;
-begin
-  DisposeObject(Critical);
-  DisposeObject(FHash);
-  inherited Destroy;
-end;
-
-procedure TFileMD5Cache.Clear;
-begin
-  FHash.Clear;
-end;
-
-function umlFileMD5(FileName: TPascalString): TMD5;
-begin
-  Result := FileMD5Cache.DoGetFileMD5(FileName);
-end;
-
-procedure Do_ThCacheFileMD5(ThSender: TCompute);
-var
-  p: PPascalString;
-begin
-  p := ThSender.UserData;
-  FileMD5Cache.DoGetFileMD5(p^);
-  Dispose(p);
-end;
-
-procedure umlCacheFileMD5(FileName: U_String);
-var
-  p: PPascalString;
-begin
-  new(p);
-  p^ := FileName;
-  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_ThCacheFileMD5);
-end;
-
-type
-  TCacheFileMD5FromDirectoryData_ = record
-    Directory_, Filter_: U_String;
-  end;
-
-  PCacheFileMD5FromDirectoryData_ = ^TCacheFileMD5FromDirectoryData_;
-
-var
-  CacheThreadIsAcivted: Boolean = True;
-  CacheFileMD5FromDirectory_Num: Integer = 0;
-
-procedure DoCacheFileMD5FromDirectory(ThSender: TCompute);
-var
-  p: PCacheFileMD5FromDirectoryData_;
-  arry: U_StringArray;
-  n: U_SystemString;
-begin
-  p := ThSender.UserData;
-  try
-    arry := umlGetFileListWithFullPath(p^.Directory_);
-    for n in arry do
-      begin
-        if umlMultipleMatch(p^.Filter_, umlGetFileName(n)) then
-          if umlFileExists(n) then
-              FileMD5Cache.DoGetFileMD5(n);
-        if not CacheThreadIsAcivted then
-            break;
-      end;
-    SetLength(arry, 0);
-  except
-  end;
-  p^.Directory_ := '';
-  p^.Filter_ := '';
-  Dispose(p);
-  AtomDec(CacheFileMD5FromDirectory_Num);
-end;
-
-procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
-var
-  p: PCacheFileMD5FromDirectoryData_;
-begin
-  AtomInc(CacheFileMD5FromDirectory_Num);
-  new(p);
-  p^.Directory_ := Directory_;
-  p^.Filter_ := Filter_;
-  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}DoCacheFileMD5FromDirectory);
 end;
 
 function umlBinToUInt8(Value: U_String): Byte;

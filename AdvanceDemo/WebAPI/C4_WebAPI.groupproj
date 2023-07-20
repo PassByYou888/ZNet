@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{BE4531F8-DFCC-4CE7-A6AF-612348C5D1EE}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="C4_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Web_API_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="C4_Serv">
+        <MSBuild Projects="C4_Serv.dproj"/>
+    </Target>
+    <Target Name="C4_Serv:Clean">
+        <MSBuild Projects="C4_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_Serv:Make">
+        <MSBuild Projects="C4_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Web_API_Serv">
+        <MSBuild Projects="Web_API_Serv.dproj"/>
+    </Target>
+    <Target Name="Web_API_Serv:Clean">
+        <MSBuild Projects="Web_API_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Web_API_Serv:Make">
+        <MSBuild Projects="Web_API_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="C4_Serv;Web_API_Serv"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="C4_Serv:Clean;Web_API_Serv:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="C4_Serv:Make;Web_API_Serv:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

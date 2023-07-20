@@ -6739,6 +6739,7 @@ begin
   opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
