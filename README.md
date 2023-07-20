@@ -71,7 +71,7 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 - 目前webapi只有http-get方式,并且只有一个函数get_demo_info,后台请求流程属于完整方案,可直接套用外部语言,webapi位于AdvanceDemo目录
 - **webapi说明:webapi后台服务我们一次开了数十个,并且配有进程守护程序,系统守护程序,numa+亲和性调度系统,这次提交是webapi服务本体,代码较多,运营级项目使用**
-- 新增两个小demo,位于Examples目录
+- 新增3个小demo,位于Examples目录
 
 **2023-5-28 C4入网机制优化**
 
