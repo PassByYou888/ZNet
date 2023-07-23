@@ -15,7 +15,6 @@ object StringTranslateForm: TStringTranslateForm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  ScreenSnap = True
   PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
