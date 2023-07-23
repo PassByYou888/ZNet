@@ -42,34 +42,34 @@ implementation
 procedure TStringTranslateForm.Hex2AsciiButtonClick(Sender: TObject);
 var
   s, n: u_String;
-  c: Char;
+  c: SystemChar;
   output: string;
 begin
-  s := Memo1.Text;
+  s := Memo1.Lines.Text;
   output := '';
 
   while s <> '' do
     begin
-      n := umlGetFirstStr(s, ',');
-      s := umlDeleteFirstStr(s, ',');
-      c := Char(umlStrToInt(n, 0));
+      n := umlGetFirstStr(s, ','#13#10#32);
+      s := umlDeleteFirstStr(s, ','#13#10#32);
+      c := SystemChar(umlStrToInt(n, 0));
       output := output + c;
     end;
 
-  Memo2.Text := output;
+  Memo2.Lines.Text := output;
 end;
 
 procedure TStringTranslateForm.Ascii2HexButtonClick(Sender: TObject);
 var
-  s: string;
-  c: Char;
+  s: U_String;
+  c: SystemChar;
   cnt: Integer;
   output: string;
 begin
-  s := Memo2.Text;
+  s := Memo2.Lines.Text;
   output := '';
   cnt := 0;
-  for c in s do
+  for c in s.buff do
     begin
       if cnt > 40 then
         begin
@@ -92,15 +92,15 @@ end;
 
 procedure TStringTranslateForm.Ascii2DeclButtonClick(Sender: TObject);
 var
-  s: string;
-  c: Char;
+  s: U_String;
+  c: SystemChar;
   cnt: Integer;
   output: string;
 begin
   s := Memo2.Text;
   output := '';
   cnt := 0;
-  for c in s do
+  for c in s.buff do
     begin
       if cnt > 40 then
         begin
@@ -110,9 +110,9 @@ begin
       else
         begin
           if output <> '' then
-              output := Format('%s%s', [output, '#' + IntToStr(ord(c))])
+              output := output + Format('%s', ['#' + IntToStr(ord(c))])
           else
-              output := '#' + IntToStr(ord(c));
+              output := output + '#' + IntToStr(ord(c));
         end;
 
       inc(cnt);
@@ -160,4 +160,3 @@ begin
 end;
 
 end.
-
