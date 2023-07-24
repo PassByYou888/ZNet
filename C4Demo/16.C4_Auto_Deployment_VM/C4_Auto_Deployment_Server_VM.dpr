@@ -22,7 +22,6 @@ uses
   Z.ZDB2,
   Z.ZDB2.Thread.Queue,
   Z.ZDB2.Thread,
-  Z.AI.RealTimeVideo.Info,
   Z.Net,
   Z.Net.PhysicsIO,
   Z.Net.C4,
