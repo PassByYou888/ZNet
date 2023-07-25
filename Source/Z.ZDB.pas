@@ -136,12 +136,15 @@ type
 
     // export to stream
     procedure SaveToStream(stream: TCore_Stream);
+    procedure SaveToFile(FileName_: U_String);
 
     // export to ZLib Compressor for stream
     procedure SaveToZLibStream(stream: TCore_Stream);
+    procedure SaveToZLibFile(FileName_: U_String);
 
     // export to parallel Compressor for stream
     procedure SaveToParallelCompressionStream(stream: TCore_Stream);
+    procedure SaveToParallelCompressionFile(FileName_: U_String);
 
     // export to ZDB2 tream
     procedure Save_To_ZDB2_Stream(Cipher_: IZDB2_Cipher; stream: TCore_Stream); overload;
@@ -957,13 +960,25 @@ end;
 
 procedure TObjectDataManager.SaveToStream(stream: TCore_Stream);
 var
-  E: TObjectDataManager;
+  Eng_: TObjectDataManager;
 begin
-  E := TObjectDataManager.CreateAsStream(Handle^.IOHnd.FixedStringL, stream, ObjectName, DefaultItemID, False, True, False);
-  E.Reserved := Reserved;
-  E.OverWriteItem := False;
-  CopyTo(E);
-  DisposeObject(E);
+  Eng_ := TObjectDataManager.CreateAsStream(Handle^.IOHnd.FixedStringL, stream, ObjectName, DefaultItemID, False, True, False);
+  Eng_.Reserved := Reserved;
+  Eng_.OverWriteItem := False;
+  CopyTo(Eng_);
+  DisposeObject(Eng_);
+end;
+
+procedure TObjectDataManager.SaveToFile(FileName_: U_String);
+var
+  f: TCore_FileStream;
+begin
+  try
+    f := TCore_FileStream.Create(FileName_, fmCreate);
+    SaveToStream(f);
+    DisposeObject(f);
+  except
+  end;
 end;
 
 procedure TObjectDataManager.SaveToZLibStream(stream: TCore_Stream);
@@ -977,6 +992,18 @@ begin
   DisposeObject(m64);
 end;
 
+procedure TObjectDataManager.SaveToZLibFile(FileName_: U_String);
+var
+  f: TCore_FileStream;
+begin
+  try
+    f := TCore_FileStream.Create(FileName_, fmCreate);
+    SaveToZLibStream(f);
+    DisposeObject(f);
+  except
+  end;
+end;
+
 procedure TObjectDataManager.SaveToParallelCompressionStream(stream: TCore_Stream);
 var
   m64: TMS64;
@@ -986,6 +1013,18 @@ begin
   m64.Position := 0;
   ParallelCompressMemory(TSelectCompressionMethod.scmZLIB_Max, m64, stream);
   DisposeObject(m64);
+end;
+
+procedure TObjectDataManager.SaveToParallelCompressionFile(FileName_: U_String);
+var
+  f: TCore_FileStream;
+begin
+  try
+    f := TCore_FileStream.Create(FileName_, fmCreate);
+    SaveToParallelCompressionStream(f);
+    DisposeObject(f);
+  except
+  end;
 end;
 
 procedure TObjectDataManager.Save_To_ZDB2_Stream(Cipher_: IZDB2_Cipher; stream: TCore_Stream);
