@@ -1960,12 +1960,18 @@ end;
 
 function Distance(const f1, f2: TGeoFloat): TGeoFloat;
 begin
-  Result := abs(f2 - f1);
+  if f2 > f1 then
+      Result := f2 - f1
+  else
+      Result := f1 - f2;
 end;
 
 function FloatDistance(const f1, f2: TGeoFloat): TGeoFloat;
 begin
-  Result := abs(f2 - f1);
+  if f2 > f1 then
+      Result := f2 - f1
+  else
+      Result := f1 - f2;
 end;
 
 function PointDistance(const x1, y1, x2, y2: TGeoFloat): TGeoFloat;
