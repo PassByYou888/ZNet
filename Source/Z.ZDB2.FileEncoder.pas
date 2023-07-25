@@ -129,7 +129,8 @@ type
     destructor Destroy; override;
     function CheckFileInfo(FileInfo_: TZDB2_FI): Boolean;
     function DecodeToStream(source_: TZDB2_FI; Dest_: TCore_Stream): Boolean;
-    function DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String): Boolean;
+    function DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String; var dest_file: U_String): Boolean; overload;
+    function DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String): Boolean; overload;
     property Files: TZDB2_FI_Pool read FDecoderFiles;
     property FileHash: TZDB2_FI_Hash read FDecoderFile_Hash;
     property PathHash: TZDB2_FI_Hash read FDecoderPath_Hash;
@@ -864,10 +865,18 @@ end;
 
 function TZDB2_File_Decoder.DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String): Boolean;
 var
+  dest_file: U_String;
+begin
+  Result := DecodeToDirectory(source_, DestDirectory_, dest_file);
+end;
+
+function TZDB2_File_Decoder.DecodeToDirectory(source_: TZDB2_FI; DestDirectory_: U_String; var dest_file: U_String): Boolean;
+var
   path_, fn: U_String;
   fs: TCore_FileStream;
 begin
   Result := False;
+  dest_file := '';
   if source_ = nil then
       exit;
   if source_.FileName.L = 0 then
@@ -900,6 +909,7 @@ begin
       DoStatus('decode %s %s -> %s ratio:%d%%',
         [FProgressInfo, umlSizeToStr(source_.Compressed).Text, umlSizeToStr(source_.Size).Text, 100 - umlPercentageToInt64(source_.Size, source_.Compressed)]);
       FFileLog.Add(fn);
+      dest_file := fn;
     end;
   except
     DoStatus('illegal file %s', [fn.Text]);
