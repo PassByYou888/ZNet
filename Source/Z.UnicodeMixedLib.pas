@@ -2424,7 +2424,7 @@ end;
 
 function umlFileCreateAsStream(stream: U_Stream; var IOHnd: TIOHnd; OnlyRead_: Boolean): Boolean;
 begin
-  Result := umlFileCreateAsStream('', stream, IOHnd, False);
+  Result := umlFileCreateAsStream('', stream, IOHnd, OnlyRead_);
 end;
 
 function umlFileOpenAsStream(const FileName: TPascalString; stream: U_Stream; var IOHnd: TIOHnd; OnlyRead_: Boolean): Boolean;
