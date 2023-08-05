@@ -190,7 +190,7 @@ begin
   for i := 1 to 5 do
     begin
       Eng_ := TZDB2_Th_Engine.Create(Sim_Mem_DB);
-      Eng_.Mode := smBigData;
+      Eng_.Cache_Mode := smBigData;
       Eng_.BlockSize := 1536;
       Eng_.Database_File := '';
       Eng_.OnlyRead := False;
