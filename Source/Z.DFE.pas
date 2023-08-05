@@ -5043,7 +5043,7 @@ var
   enStream: TMS64;
 begin
   enStream := TMS64.Create;
-  EncodeTo(enStream, FastMode);
+  FastEncodeTo(enStream);
 
   Result := umlMD5(enStream.Memory, enStream.Size);
   DisposeObject(enStream);
