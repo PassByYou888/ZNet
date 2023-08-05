@@ -1466,6 +1466,17 @@ const
 
 function Get_CRC32(const Data: PByte; const Size: NativeInt): THash; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function Hash_Key_Mod(const hash: THash; const Num: integer): integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
+
+type
+  TBool_Signal_Array = array of Boolean;
+
+procedure Wait_All_Signal(var arry: TBool_Signal_Array; const signal_: Boolean); overload;
+
+type
+  TInteger_Signal_Array = array of Integer;
+
+procedure Wait_All_Signal(var arry: TInteger_Signal_Array; const signal_: Integer); overload;
+
 function DeltaStep(const value_, Delta_: NativeInt): NativeInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 procedure AtomInc(var x: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure AtomInc(var x: Int64; const v: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
