@@ -69,7 +69,7 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **2023-8-5 一个基于ZDB2的具体大数据框架**
 
-- 新增一个大数据框架,由于需要光栅技术支持体系,ZNet没有demo
+- 新增一个大数据框架,由于需要光栅技术支持体系,ZNet没有demo,而是把集成到了Z-AI1.4项目[地址](https://github.com/PassByYou888/Z-AI1.4/tree/main/AI-demo/_138_C4_LargeDB_Picture_Label)
 
 **2023-7-20 从idc运营项目中剥离了webapi技术方案,作为demo使用**
 
