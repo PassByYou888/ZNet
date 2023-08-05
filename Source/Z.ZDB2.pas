@@ -57,6 +57,7 @@ type
   IZDB2_Cipher = interface
     procedure Encrypt(buff: Pointer; Size: NativeInt);
     procedure Decrypt(buff: Pointer; Size: NativeInt);
+    function Get_CipherSecurity: TCipherSecurity;
   end;
 
   TZDB2_BlockHandle = array of Integer;
@@ -144,6 +145,7 @@ type
     destructor Destroy; override;
     procedure Encrypt(buff: Pointer; Size: NativeInt);
     procedure Decrypt(buff: Pointer; Size: NativeInt);
+    function Get_CipherSecurity: TCipherSecurity;
     class procedure Test;
   end;
 
@@ -199,6 +201,7 @@ type
     FOnProgress: TZDB2_OnProgress;
     FOnNoSpace: TZDB2_OnNoSpace;
 
+    function Check_ReadCache(ID: Integer): Boolean;
     function ReadCacheBlock(buff: Pointer; ID: Integer): Boolean;
     function WriteCacheBlock(buff: Pointer; siz: Integer; ID: Integer; FlushThisCache_: Boolean): Boolean;
     procedure DeleteCache(ID: Integer);
@@ -259,6 +262,7 @@ type
     // block IO
     function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
     function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
+    function Block_IO_Custom_Read(buff: Pointer; ID, Block_Offset, Block_Read_Size: Integer): Boolean;
     // write stream
     function WriteStream(Stream_: TCore_Stream; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function WriteStream(Stream_: TCore_Stream; var ID: Integer): Boolean; overload;
@@ -316,7 +320,7 @@ type
     class procedure Test_Cache();
   end;
 
-{ ZDB2 extract swap define }
+  { ZDB2 extract swap define }
 function Get_New_ZDB2_Extract_FileName(F: U_String): U_String;
 procedure Check_And_Replace_ZDB2_Extract_FileName(F: U_String);
 
@@ -1098,6 +1102,11 @@ begin
   FCipher_.Decrypt(buff, Size);
 end;
 
+function TZDB2_Cipher.Get_CipherSecurity: TCipherSecurity;
+begin
+  Result := FCipher_.CipherSecurity;
+end;
+
 class procedure TZDB2_Cipher.Test;
 var
   cs: TCipherSecurity;
@@ -1124,6 +1133,16 @@ end;
 procedure TZDB2_Core_Space_Info.DoFree(var Data: SystemString);
 begin
   Data := '';
+end;
+
+function TZDB2_Core_Space.Check_ReadCache(ID: Integer): Boolean;
+var
+  p: PZDB2_Block;
+begin
+  Result := False;
+  p := @FBlockBuffer[ID];
+  with FBlockWriteCache[p^.ID] do
+      Result := (FUsedReadCache or FlushThisCacheToFile) and (p^.UsedSpace > 0) and (Mem <> nil); // fixed by qq600585, Mode = smNormal
 end;
 
 function TZDB2_Core_Space.ReadCacheBlock(buff: Pointer; ID: Integer): Boolean;
@@ -2279,6 +2298,48 @@ begin
             exit;
           end;
       Do_Modification;
+    end;
+  Result := True;
+end;
+
+function TZDB2_Core_Space.Block_IO_Custom_Read(buff: Pointer; ID, Block_Offset, Block_Read_Size: Integer): Boolean;
+var
+  p: PZDB2_Block;
+  SwapBuff_: Pointer;
+begin
+  Result:=False;
+  if (ID < 0) or (ID >= FBlockCount) then
+      exit;
+  if Block_Read_Size <= 0 then
+      exit;
+  p := @FBlockBuffer[ID];
+  if p^.UsedSpace = 0 then
+      exit;
+  if not umlInRange(Block_Offset, 0, p^.UsedSpace - 1) then
+      exit;
+  if not umlInRange(Block_Offset + Block_Read_Size, 0, p^.UsedSpace - 1) then
+      exit;
+
+  if Check_ReadCache(ID) or (Assigned(Cipher) and (Cipher.Get_CipherSecurity <> TCipherSecurity.csNone)) then
+    begin
+      SwapBuff_ := System.GetMemory(p^.UsedSpace);
+      if Block_IO_Read(SwapBuff_, ID) = p^.UsedSpace then
+          CopyPtr(GetOffset(SwapBuff_, Block_Offset), buff, Block_Read_Size);
+      System.FreeMemory(SwapBuff_);
+    end
+  else
+    begin
+      // optimized IO read
+      if not umlFileSeek(FSpace_IOHnd^, p^.Position + Block_Offset) then
+        begin
+          ErrorInfo('Block_IO_Custom_Read: umlFileSeek error.');
+          exit;
+        end;
+      if not umlBlockRead(FSpace_IOHnd^, buff^, Block_Read_Size) then
+        begin
+          ErrorInfo('Block_IO_Custom_Read: umlBlockRead error.');
+          exit;
+        end;
     end;
   Result := True;
 end;
