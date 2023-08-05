@@ -67,6 +67,10 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-7-20 一个基于ZDB2的具体大数据框架**
+
+- 新增一个大数据框架,由于需要光栅技术支持体系,ZNet没有demo
+
 **2023-7-20 从idc运营项目中剥离了webapi技术方案,作为demo使用**
 
 - 目前webapi只有http-get方式,并且只有一个函数get_demo_info,后台请求流程属于完整方案,可直接套用外部语言,webapi位于AdvanceDemo目录
