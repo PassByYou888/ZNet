@@ -175,6 +175,32 @@ begin
       Result := value_;
 end;
 
+procedure Wait_All_Signal(var arry: TBool_Signal_Array; const signal_: Boolean);
+var
+  i: Boolean;
+  r: Boolean;
+begin
+  repeat
+    TCompute.Sleep(1);
+    r := True;
+    for i in arry do
+        r := r and (i = signal_);
+  until r;
+end;
+
+procedure Wait_All_Signal(var arry: TInteger_Signal_Array; const signal_: Integer);
+var
+  i: Integer;
+  r: Boolean;
+begin
+  repeat
+    TCompute.Sleep(1);
+    r := True;
+    for i in arry do
+        r := r and (i = signal_);
+  until r;
+end;
+
 procedure AtomInc(var x: Int64);
 begin
 {$IFDEF FPC}
