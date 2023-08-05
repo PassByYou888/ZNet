@@ -231,7 +231,8 @@ type
 
 type
   { key style and auto Encrypt }
-  TCipherSecurity = (csNone,
+  TCipherSecurity = (
+    csNone,
     csDES64, csDES128, csDES192,
     csBlowfish, csLBC, csLQC, csRNG32, csRNG64, csLSC,
     // mini cipher
@@ -272,7 +273,8 @@ type
       '256', '128', '64', '32', '16', 'ELF', 'ELF64', 'Mix128', 'CRC16', 'CRC32');
 
     CCipherSecurityName: array [TCipherSecurity] of SystemString =
-      ('None',
+      (
+      'None',
       'DES64', 'DES128', 'DES192',
       'Blowfish', 'LBC', 'LQC', 'RNG32', 'RNG64', 'LSC',
       'XXTea512',
