@@ -153,7 +153,7 @@ end;
 function TZDB2_Pair_String_Stream_Tool.BuildMemory(): TZDB2_Th_Engine;
 begin
   Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
-  Result.Mode := smBigData;
+  Result.Cache_Mode := smBigData;
   Result.Database_File := '';
   Result.OnlyRead := False;
   Result.Cipher_Security := TCipherSecurity.csNone;
@@ -163,7 +163,7 @@ end;
 function TZDB2_Pair_String_Stream_Tool.BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean): TZDB2_Th_Engine;
 begin
   Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
-  Result.Mode := smNormal;
+  Result.Cache_Mode := smNormal;
   Result.Database_File := FileName_;
   Result.OnlyRead := OnlyRead_;
 
@@ -183,7 +183,7 @@ end;
 function TZDB2_Pair_String_Stream_Tool.BuildOrOpen(FileName_: U_String; OnlyRead_, Encrypt_: Boolean; cfg: THashStringList): TZDB2_Th_Engine;
 begin
   Result := TZDB2_Th_Engine.Create(ZDB2_Marshal);
-  Result.Mode := smNormal;
+  Result.Cache_Mode := smNormal;
   Result.Database_File := FileName_;
   Result.OnlyRead := OnlyRead_;
   if cfg <> nil then
