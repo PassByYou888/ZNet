@@ -8149,7 +8149,11 @@ begin
             TZDB2_Swap_Space_Technology_Memory(FReceived_Physics_Fragment_Pool.First^.data).Prepare;
         if FReceived_Physics_Fragment_Pool.First^.data.Size > 0 then
           begin
-            On_Internal_Save_Receive_Buffer(self, FReceived_Physics_Fragment_Pool.First^.data.Memory, FReceived_Physics_Fragment_Pool.First^.data.Size);
+            try
+                On_Internal_Save_Receive_Buffer(self, FReceived_Physics_Fragment_Pool.First^.data.Memory, FReceived_Physics_Fragment_Pool.First^.data.Size);
+            except
+                Break; // loop to next time attempt
+            end;
             AtomDec(OwnerFramework.Statistics[TStatisticsType.stPhysicsFragmentCache], FReceived_Physics_Fragment_Pool.First^.data.Size);
           end;
         inc(Result, FReceived_Physics_Fragment_Pool.First^.data.Size);
