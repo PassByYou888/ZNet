@@ -638,7 +638,6 @@ procedure Do_ThCacheFileMD5(ThSender: TCompute);
 procedure umlCacheFileMD5(FileName: U_String);
 procedure umlCacheFileMD5FromDirectory(Directory_, Filter_: U_String);
 
-
 {$REGION 'crc16define'}
 
 
@@ -4737,6 +4736,7 @@ type
     Hour, min_, Sec, MSec: Word;
     i64: Int64;
     i32: Integer;
+    MT_ID: Cardinal;
   end;
 var
   d: TDateTime;
@@ -4749,6 +4749,7 @@ begin
       DecodeTime(d, Hour, min_, Sec, MSec);
       i64 := TMT19937.Rand64;
       i32 := TMT19937.Rand32;
+      MT_ID := MainThreadID;
     end;
   Result := umlMD5String(@R, SizeOf(TDecode_Data_));
 end;
