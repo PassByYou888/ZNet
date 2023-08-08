@@ -188,6 +188,19 @@ begin
   until r;
 end;
 
+procedure Wait_All_Signal(const arry: PBool_Signal_Array; const signal_: Boolean);
+var
+  p: PBoolean;
+  r: Boolean;
+begin
+  repeat
+    TCompute.Sleep(1);
+    r := True;
+    for p in arry do
+        r := r and (p^ = signal_);
+  until r;
+end;
+
 procedure Wait_All_Signal(var arry: TInteger_Signal_Array; const signal_: Integer);
 var
   i: Integer;
@@ -198,6 +211,19 @@ begin
     r := True;
     for i in arry do
         r := r and (i = signal_);
+  until r;
+end;
+
+procedure Wait_All_Signal(const arry: PInteger_Signal_Array; const signal_: Integer);
+var
+  p: PInteger;
+  r: Boolean;
+begin
+  repeat
+    TCompute.Sleep(1);
+    r := True;
+    for p in arry do
+        r := r and (p^ = signal_);
   until r;
 end;
 
