@@ -39,7 +39,8 @@ type
     constructor CustomCreate(const customDelta: NativeInt);
     destructor Destroy; override;
 
-    function Mem64: TMem64;
+    function Mem64(Mapping_Begin_As_Position_: Boolean): TMem64; overload;
+    function Mem64: TMem64; overload;
     function Clone: TMS64;
     function Swap_To_New_Instance: TMS64;
     procedure DiscardMemory;
@@ -222,7 +223,8 @@ type
     constructor CustomCreate(const customDelta: NativeInt);
     destructor Destroy; override;
 
-    function Stream64: TMS64;
+    function Stream64(Mapping_Begin_As_Position_: Boolean): TMS64; overload;
+    function Stream64: TMS64; overload;
     function Clone: TMem64;
     function Swap_To_New_Instance: TMem64;
     procedure DiscardMemory;
@@ -464,12 +466,20 @@ begin
   inherited Destroy;
 end;
 
-function TMS64.Mem64: TMem64;
+function TMS64.Mem64(Mapping_Begin_As_Position_: Boolean): TMem64;
 begin
   if FMem64 = nil then
       FMem64 := TMem64.Create;
-  FMem64.Mapping(self);
+  if Mapping_Begin_As_Position_ then
+      FMem64.Mapping(PosAsPtr, Size - Position)
+  else
+      FMem64.Mapping(self);
   Result := FMem64;
+end;
+
+function TMS64.Mem64: TMem64;
+begin
+  Result := Mem64(False);
 end;
 
 function TMS64.Clone: TMS64;
@@ -1459,12 +1469,20 @@ begin
   inherited Destroy;
 end;
 
-function TMem64.Stream64: TMS64;
+function TMem64.Stream64(Mapping_Begin_As_Position_: Boolean): TMS64;
 begin
   if FStream64 = nil then
       FStream64 := TMS64.Create;
-  FStream64.Mapping(self);
+  if Mapping_Begin_As_Position_ then
+      FStream64.Mapping(PosAsPtr, Size - Position)
+  else
+      FStream64.Mapping(self);
   Result := FStream64;
+end;
+
+function TMem64.Stream64: TMS64;
+begin
+  Result := Stream64(False);
 end;
 
 function TMem64.Clone: TMem64;
