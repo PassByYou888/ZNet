@@ -24,7 +24,7 @@ type
   TZDB2_FileHeader = packed record
     Flag: Cardinal;
     Major, Minor: WORD;
-    StructEntry: Int64;
+    Struct_Main: Int64;
     UserCustomHeader: TZDB2_UserCustomHeader;
     Modification: Boolean;
   end;
@@ -250,7 +250,7 @@ type
     // data
     function Check(ID_: Integer): Boolean;
     function GetSpaceHndID(ID_: Integer): Integer;
-    function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle; inline;
+    function GetSpaceHnd(ID_: Integer): TZDB2_BlockHandle;
     function GetSpaceHndAsText(ID_: Integer): U_String;
     function GetSpaceHndPtr(ID_: Integer): TZDB2_BlockPtrList;
     function CheckWriteSpace(Siz_: Int64): Boolean; overload;
@@ -287,10 +287,12 @@ type
     function GetDataPhysics(SpaceHnd: TZDB2_BlockHandle): Int64; overload;
     function GetDataPhysics(ID: Integer): Int64; overload;
     function BuildTableID: TZDB2_BlockHandle;
+    procedure Format_Space();
     // hnd
     property AutoCloseIOHnd: Boolean read FAutoCloseIOHnd write FAutoCloseIOHnd;
     property AutoFreeIOHnd: Boolean read FAutoFreeIOHnd write FAutoFreeIOHnd;
     property Space_IOHnd: PIOHnd read FSpace_IOHnd write FSpace_IOHnd;
+    property IOHnd_Ptr: PIOHnd read FSpace_IOHnd write FSpace_IOHnd;
     // custom
     property UserCustomHeader: PZDB2_UserCustomHeader read GetUserCustomHeader;
     property UserHeader: PZDB2_UserCustomHeader read GetUserCustomHeader;
@@ -301,6 +303,7 @@ type
     property BlockCount: Integer read FBlockCount;
     property BlockBuffer: TZDB2_BlockBuffer read FBlockBuffer;
     property MaxCacheMemory: Int64 read FMaxCacheMemory write FMaxCacheMemory;
+    property CacheMemory: Int64 read FMaxCacheMemory write FMaxCacheMemory;
     property UsedReadCache: Boolean read FUsedReadCache write FUsedReadCache;
     property UsedWriteCache: Boolean read FUsedWriteCache write FUsedWriteCache;
     property Mode: TZDB2_SpaceMode read FMode write SetMode;
@@ -711,7 +714,7 @@ begin
     end
   else
     begin
-      FCore.FHeader.StructEntry := 0;
+      FCore.FHeader.Struct_Main := 0;
       FCore.WriteHeader;
     end;
   FWriteID := FCore.FBlockCount;
@@ -898,7 +901,7 @@ begin
   else
     begin
       // BuildSpace
-      FCore.FHeader.StructEntry := StoreData_.Position;
+      FCore.FHeader.Struct_Main := StoreData_.Position;
       FCore.WriteHeader;
       StoreData_.Write(FCore, FCore.FCipher, StoreData_.Position, FCore.FSpace_IOHnd^);
       FCore.Open;
@@ -1305,7 +1308,7 @@ begin
   if not WriteHeader() then
       exit;
   FBlockStoreDataStruct.FillFromBlockBuffer(FBlockBuffer);
-  if not FBlockStoreDataStruct.Write(Self, FCipher, FHeader.StructEntry, FSpace_IOHnd^) then
+  if not FBlockStoreDataStruct.Write(Self, FCipher, FHeader.Struct_Main, FSpace_IOHnd^) then
     begin
       ErrorInfo('WriteTable: write BlockStoreDataStruct error.');
       exit;
@@ -1530,6 +1533,8 @@ begin
   Result := False;
   FBlockStoreDataStruct.Clean;
   FillPtr(@FHeader, C_ZDB2_HeaderSize, 0);
+  if umlFileGetSize(FSpace_IOHnd^) < C_ZDB2_HeaderSize then
+      exit;
   umlFileSeek(FSpace_IOHnd^, 0);
   umlBlockRead(FSpace_IOHnd^, FHeader, C_ZDB2_HeaderSize);
   if FHeader.Flag <> C_ZDB2_FileHead then
@@ -1542,8 +1547,8 @@ begin
       FFault_Shutdown := FHeader.Modification;
       if FFault_Shutdown then
           WarningInfo('Open: Fault Shutdown');
-      if FHeader.StructEntry >= C_ZDB2_HeaderSize then
-        if not FBlockStoreDataStruct.Read(Self, FCipher, FHeader.StructEntry, FSpace_IOHnd^) then
+      if FHeader.Struct_Main >= C_ZDB2_HeaderSize then
+        if not FBlockStoreDataStruct.Read(Self, FCipher, FHeader.Struct_Main, FSpace_IOHnd^) then
           begin
             ErrorInfo('Open: read BlockStoreDataStruct error.');
             exit;
@@ -1637,11 +1642,11 @@ begin
       inc(i);
     end;
   // update struct entry
-  FHeader.StructEntry := C_ZDB2_HeaderSize;
+  FHeader.Struct_Main := C_ZDB2_HeaderSize;
   // builder store struct
   StoreData_ := TZDB2_BlockStoreData.Create;
   StoreData_.BuildBlockBuffer(FBlockBuffer);
-  StoreData_.Position := FHeader.StructEntry;
+  StoreData_.Position := FHeader.Struct_Main;
   StoreData_.NextPosition := 0;
   FBlockStoreDataStruct.Add(StoreData_);
   // table
@@ -1785,11 +1790,11 @@ begin
           FOnProgress(FBlockCount, i);
     end;
   // update struct entry
-  FHeader.StructEntry := C_ZDB2_HeaderSize;
+  FHeader.Struct_Main := C_ZDB2_HeaderSize;
   // builder store struct
   StoreData_ := TZDB2_BlockStoreData.Create;
   StoreData_.BuildBlockBuffer(FBlockBuffer);
-  StoreData_.Position := FHeader.StructEntry;
+  StoreData_.Position := FHeader.Struct_Main;
   StoreData_.NextPosition := 0;
   FBlockStoreDataStruct.Add(StoreData_);
   // table
@@ -1944,7 +1949,7 @@ begin
     dest_Header.Flag := C_ZDB2_FileHead;
     dest_Header.Major := 2;
     dest_Header.Minor := 0;
-    dest_Header.StructEntry := headPos_;
+    dest_Header.Struct_Main := headPos_;
     umlFileSeek(Dest_IOHnd, 0);
     umlBlockWrite(Dest_IOHnd, dest_Header, C_ZDB2_HeaderSize);
 
@@ -2307,7 +2312,7 @@ var
   p: PZDB2_Block;
   SwapBuff_: Pointer;
 begin
-  Result:=False;
+  Result := False;
   if (ID < 0) or (ID >= FBlockCount) then
       exit;
   if Block_Read_Size <= 0 then
@@ -3005,6 +3010,20 @@ begin
   end;
   DisposeObject(L);
   SetLength(LBuff, 0);
+end;
+
+procedure TZDB2_Core_Space.Format_Space();
+var
+  i: Integer;
+begin
+  FillPtr(@FHeader.UserCustomHeader, SizeOf(TZDB2_UserCustomHeader), 0);
+  for i := 0 to FBlockCount - 1 do
+    begin
+      FBlockBuffer[i].UsedSpace := 0;
+      FBlockBuffer[i].Next := -1;
+      FBlockBuffer[i].Prev := -1;
+      FBlockBuffer[i].ID := i;
+    end;
 end;
 
 procedure TZDB2_Core_Space.DoProgress(Total_, current_: Integer);
