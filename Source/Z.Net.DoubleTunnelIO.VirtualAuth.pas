@@ -469,7 +469,7 @@ type
     constructor Create(ServiceClass_: TDTService_VirtualAuthClass);
     destructor Destroy; override;
     procedure Progress; virtual;
-    procedure StartService(ListenAddr, ListenPort, Auth: SystemString);
+    function StartService(ListenAddr, ListenPort, Auth: SystemString): Boolean;
     procedure StopService;
     property QuietMode: Boolean read GetQuietMode write SetQuietMode;
   end;
@@ -1892,6 +1892,8 @@ end;
 
 function TDTService_VirtualAuth.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel_VirtualAuth;
 begin
+  if RecvCli = nil then
+      exit(nil);
   Result := RecvCli.UserDefine as TPeerClientUserDefineForRecvTunnel_VirtualAuth;
 end;
 
@@ -4126,13 +4128,14 @@ begin
   PhysicsTunnel.Progress;
 end;
 
-procedure TDT_P2PVM_VirtualAuth_Service.StartService(ListenAddr, ListenPort, Auth: SystemString);
+function TDT_P2PVM_VirtualAuth_Service.StartService(ListenAddr, ListenPort, Auth: SystemString): Boolean;
 begin
   StopService;
   RecvTunnel.StartService('::', 1);
   SendTunnel.StartService('::', 2);
   PhysicsTunnel.AutomatedP2PVMAuthToken := Auth;
-  if PhysicsTunnel.StartService(ListenAddr, umlStrToInt(ListenPort)) then
+  Result := PhysicsTunnel.StartService(ListenAddr, umlStrToInt(ListenPort));
+  if Result then
       DoStatus('listening %s:%s ok.', [TranslateBindAddr(ListenAddr), ListenPort])
   else
       DoStatus('listening %s:%s failed!', [TranslateBindAddr(ListenAddr), ListenPort]);
