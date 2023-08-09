@@ -57,6 +57,10 @@ type
 {$ENDIF PhysicsIO_On_Synapse}
 {$ENDIF FPC}
   TPhysicsService = TPhysicsServer;
+  TZService = TPhysicsServer;
+  TPhysicsTunnel = TPhysicsClient;
+  TZClient = TPhysicsClient;
+  TZTunnel = TPhysicsClient;
 
 implementation
 
