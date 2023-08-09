@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{DF9C3FC4-53D9-45B6-954D-9EC179E7CB1C}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_500_Multi_Long_Run_In_ZNet_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_500_Multi_Long_Run_In_ZNet_Client.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Serv.dproj"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Clean">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Make">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Client.dproj"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Clean">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Make">
+        <MSBuild Projects="_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_500_Multi_Long_Run_In_ZNet_Serv;_500_Multi_Long_Run_In_ZNet_Client"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_500_Multi_Long_Run_In_ZNet_Serv:Clean;_500_Multi_Long_Run_In_ZNet_Client:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_500_Multi_Long_Run_In_ZNet_Serv:Make;_500_Multi_Long_Run_In_ZNet_Client:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
