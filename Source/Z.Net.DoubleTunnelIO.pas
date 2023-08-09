@@ -601,7 +601,7 @@ type
     constructor Create(ServiceClass_: TDTServiceClass);
     destructor Destroy; override;
     procedure Progress; virtual;
-    procedure StartService(ListenAddr, ListenPort, Auth: SystemString);
+    function StartService(ListenAddr, ListenPort, Auth: SystemString): Boolean;
     procedure StopService;
     property QuietMode: Boolean read GetQuietMode write SetQuietMode;
   end;
@@ -3181,10 +3181,9 @@ end;
 
 function TDTService.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel;
 begin
-  if RecvCli <> nil then
-      Result := RecvCli.UserDefine as TPeerClientUserDefineForRecvTunnel
-  else
-      Result := nil;
+  if RecvCli = nil then
+      Exit(nil);
+  Result := RecvCli.UserDefine as TPeerClientUserDefineForRecvTunnel;
 end;
 
 function TDTService.TotalLinkCount: Integer;
@@ -6522,13 +6521,14 @@ begin
   PhysicsTunnel.Progress;
 end;
 
-procedure TDT_P2PVM_Service.StartService(ListenAddr, ListenPort, Auth: SystemString);
+function TDT_P2PVM_Service.StartService(ListenAddr, ListenPort, Auth: SystemString): Boolean;
 begin
   StopService;
   RecvTunnel.StartService('::', 1);
   SendTunnel.StartService('::', 2);
   PhysicsTunnel.AutomatedP2PVMAuthToken := Auth;
-  if PhysicsTunnel.StartService(ListenAddr, umlStrToInt(ListenPort)) then
+  Result := PhysicsTunnel.StartService(ListenAddr, umlStrToInt(ListenPort));
+  if Result then
       DoStatus('listening %s:%s ok.', [TranslateBindAddr(ListenAddr), ListenPort])
   else
       DoStatus('listening %s:%s failed!', [TranslateBindAddr(ListenAddr), ListenPort]);
