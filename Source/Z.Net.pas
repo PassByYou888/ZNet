@@ -2453,6 +2453,7 @@ type
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
+    UserVariant: Variant;
     InData, OutData: TDFE;
     OnDone_C: TOnHPC_Stream_Done_C;
     OnDone_M: TOnHPC_Stream_Done_M;
@@ -2465,16 +2466,29 @@ type
   end;
 
 procedure RunHPC_StreamC(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C); overload;
+
+procedure RunHPC_StreamC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C);
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C); overload;
+
+procedure RunHPC_StreamM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_M); overload;
 
 procedure RunHPC_StreamM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_M);
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_M); overload;
+
+procedure RunHPC_StreamP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_P); overload;
 
 procedure RunHPC_StreamP(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_P);
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_P); overload;
+
 {$ENDREGION 'HPC Stream Support'}
 {$REGION 'HPC DirectStream Support'}
 
@@ -2504,6 +2518,7 @@ type
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
+    UserVariant: Variant;
     InData: TDFE;
     property ID: Cardinal read WorkID;
     constructor Create;
@@ -2513,16 +2528,28 @@ type
   end;
 
 procedure RunHPC_DirectStreamC(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_C); overload;
+
+procedure RunHPC_DirectStreamC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: TDFE; const OnRun: TOnHPC_DirectStream_C);
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_C); overload;
+
+procedure RunHPC_DirectStreamM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_M); overload;
 
 procedure RunHPC_DirectStreamM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: TDFE; const OnRun: TOnHPC_DirectStream_M);
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_M); overload;
+
+procedure RunHPC_DirectStreamP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_P); overload;
 
 procedure RunHPC_DirectStreamP(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: TDFE; const OnRun: TOnHPC_DirectStream_P);
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_P); overload;
 {$ENDREGION 'HPC DirectStream Support'}
 {$REGION 'HPC Console Support'}
 
@@ -2557,6 +2584,7 @@ type
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
+    UserVariant: Variant;
     InData, OutData: SystemString;
     OnDone_C: TOnHPC_Console_Done_C;
     OnDone_M: TOnHPC_Console_Done_M;
@@ -2569,16 +2597,29 @@ type
   end;
 
 procedure RunHPC_ConsoleC(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C); overload;
+
+procedure RunHPC_ConsoleC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C);
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C); overload;
+
+procedure RunHPC_ConsoleM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_M); overload;
 
 procedure RunHPC_ConsoleM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_M);
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_M); overload;
+
+procedure RunHPC_ConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_P); overload;
 
 procedure RunHPC_ConsoleP(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_P);
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_P); overload;
+
 {$ENDREGION 'HPC Console Support'}
 {$REGION 'HPC DirectConsole Support'}
 
@@ -2608,6 +2649,7 @@ type
     WorkID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
+    UserVariant: Variant;
     InData: SystemString;
     property ID: Cardinal read WorkID;
     constructor Create;
@@ -2617,16 +2659,29 @@ type
   end;
 
 procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_C); overload;
+
+procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_C);
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_C); overload;
+
+procedure RunHPC_DirectConsoleM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_M); overload;
 
 procedure RunHPC_DirectConsoleM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_M);
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_M); overload;
+
+procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_P); overload;
 
 procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
-  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_P);
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_P); overload;
+
 {$ENDREGION 'HPC DirectConsole Support'}
 {$REGION 'ConstAndVariant'}
 
@@ -3732,6 +3787,7 @@ begin
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
+  UserVariant := NULL;
   InData := TDFE.Create;
   OutData := TDFE.Create;
   OnDone_C := nil;
@@ -3760,7 +3816,7 @@ begin
 end;
 
 procedure RunHPC_StreamC(Sender: TPeerIO;
-  const UserData: Pointer; const UserObject: TCore_Object;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C);
 var
   t: THPC_Stream;
@@ -3775,6 +3831,43 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
+  t.InData := TDFE.Create;
+  if InData <> nil then
+      t.InData.Assign(InData);
+  t.OutData := TDFE.Create;
+  if OutData <> nil then
+      t.OutData.Assign(OutData);
+
+  AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
+
+  TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
+end;
+
+procedure RunHPC_StreamC(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_C);
+begin
+  RunHPC_StreamC(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
+end;
+
+procedure RunHPC_StreamM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_M);
+var
+  t: THPC_Stream;
+begin
+  Sender.PauseResultSend;
+  t := THPC_Stream.Create;
+
+  t.On_M := OnRun;
+
+  t.Framework := Sender.OwnerFramework;
+  t.Cmd := Sender.CurrentCmd;
+  t.WorkID := Sender.ID;
+  t.UserData := UserData;
+  t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
@@ -3790,19 +3883,27 @@ end;
 procedure RunHPC_StreamM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
   const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_M);
+begin
+  RunHPC_StreamM(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
+end;
+
+procedure RunHPC_StreamP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
+  const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_P);
 var
   t: THPC_Stream;
 begin
   Sender.PauseResultSend;
   t := THPC_Stream.Create;
 
-  t.On_M := OnRun;
+  t.On_P := OnRun;
 
   t.Framework := Sender.OwnerFramework;
   t.Cmd := Sender.CurrentCmd;
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
@@ -3818,29 +3919,8 @@ end;
 procedure RunHPC_StreamP(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
   const InData, OutData: TDFE; const OnRun: TOnHPC_Stream_P);
-var
-  t: THPC_Stream;
 begin
-  Sender.PauseResultSend;
-  t := THPC_Stream.Create;
-
-  t.On_P := OnRun;
-
-  t.Framework := Sender.OwnerFramework;
-  t.Cmd := Sender.CurrentCmd;
-  t.WorkID := Sender.ID;
-  t.UserData := UserData;
-  t.UserObject := UserObject;
-  t.InData := TDFE.Create;
-  if InData <> nil then
-      t.InData.Assign(InData);
-  t.OutData := TDFE.Create;
-  if OutData <> nil then
-      t.OutData.Assign(OutData);
-
-  AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
-
-  TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
+  RunHPC_StreamP(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
 end;
 
 procedure THPC_DirectStream.Run(Sender: TCompute);
@@ -3873,6 +3953,7 @@ begin
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
+  UserVariant := NULL;
   InData := TDFE.Create;
 end;
 
@@ -3896,7 +3977,7 @@ begin
 end;
 
 procedure RunHPC_DirectStreamC(Sender: TPeerIO;
-  const UserData: Pointer; const UserObject: TCore_Object;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: TDFE; const OnRun: TOnHPC_DirectStream_C);
 var
   t: THPC_DirectStream;
@@ -3910,6 +3991,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
@@ -3919,8 +4001,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
 end;
 
-procedure RunHPC_DirectStreamM(Sender: TPeerIO;
+procedure RunHPC_DirectStreamC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_C);
+begin
+  RunHPC_DirectStreamC(Sender, UserData, UserObject, NULL, InData, OnRun);
+end;
+
+procedure RunHPC_DirectStreamM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: TDFE; const OnRun: TOnHPC_DirectStream_M);
 var
   t: THPC_DirectStream;
@@ -3934,6 +4023,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
@@ -3943,8 +4033,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
 end;
 
-procedure RunHPC_DirectStreamP(Sender: TPeerIO;
+procedure RunHPC_DirectStreamM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_M);
+begin
+  RunHPC_DirectStreamM(Sender, UserData, UserObject, NULL, InData, OnRun);
+end;
+
+procedure RunHPC_DirectStreamP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: TDFE; const OnRun: TOnHPC_DirectStream_P);
 var
   t: THPC_DirectStream;
@@ -3958,6 +4055,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
@@ -3965,6 +4063,13 @@ begin
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
+end;
+
+procedure RunHPC_DirectStreamP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: TDFE; const OnRun: TOnHPC_DirectStream_P);
+begin
+  RunHPC_DirectStreamP(Sender, UserData, UserObject, NULL, InData, OnRun);
 end;
 
 procedure THPC_Console.Run(Sender: TCompute);
@@ -4027,6 +4132,7 @@ begin
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
+  UserVariant := NULL;
   InData := '';
   OutData := '';
   OnDone_C := nil;
@@ -4053,7 +4159,7 @@ begin
 end;
 
 procedure RunHPC_ConsoleC(Sender: TPeerIO;
-  const UserData: Pointer; const UserObject: TCore_Object;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C);
 var
   t: THPC_Console;
@@ -4068,6 +4174,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
   t.OutData := OutData;
 
@@ -4076,8 +4183,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
 end;
 
-procedure RunHPC_ConsoleM(Sender: TPeerIO;
+procedure RunHPC_ConsoleC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_C);
+begin
+  RunHPC_ConsoleC(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
+end;
+
+procedure RunHPC_ConsoleM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData, OutData: SystemString; const OnRun: TOnHPC_Console_M);
 var
   t: THPC_Console;
@@ -4092,6 +4206,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
   t.OutData := OutData;
 
@@ -4100,8 +4215,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
 end;
 
-procedure RunHPC_ConsoleP(Sender: TPeerIO;
+procedure RunHPC_ConsoleM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_M);
+begin
+  RunHPC_ConsoleM(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
+end;
+
+procedure RunHPC_ConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData, OutData: SystemString; const OnRun: TOnHPC_Console_P);
 var
   t: THPC_Console;
@@ -4116,12 +4238,20 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
   t.OutData := OutData;
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
+end;
+
+procedure RunHPC_ConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object;
+  const InData, OutData: SystemString; const OnRun: TOnHPC_Console_P);
+begin
+  RunHPC_ConsoleP(Sender, UserData, UserObject, NULL, InData, OutData, OnRun);
 end;
 
 procedure THPC_DirectConsole.Run(Sender: TCompute);
@@ -4154,6 +4284,7 @@ begin
   WorkID := 0;
   UserData := nil;
   UserObject := nil;
+  UserVariant := NULL;
   InData := '';
 end;
 
@@ -4176,7 +4307,7 @@ begin
 end;
 
 procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
-  const UserData: Pointer; const UserObject: TCore_Object;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: SystemString; const OnRun: TOnHPC_DirectConsole_C);
 var
   t: THPC_DirectConsole;
@@ -4190,6 +4321,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
@@ -4197,8 +4329,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
 end;
 
-procedure RunHPC_DirectConsoleM(Sender: TPeerIO;
+procedure RunHPC_DirectConsoleC(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_C);
+begin
+  RunHPC_DirectConsoleC(Sender, UserData, UserObject, NULL, InData, OnRun);
+end;
+
+procedure RunHPC_DirectConsoleM(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: SystemString; const OnRun: TOnHPC_DirectConsole_M);
 var
   t: THPC_DirectConsole;
@@ -4212,6 +4351,7 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
@@ -4219,8 +4359,15 @@ begin
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
 end;
 
-procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
+procedure RunHPC_DirectConsoleM(Sender: TPeerIO;
   const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_M);
+begin
+  RunHPC_DirectConsoleM(Sender, UserData, UserObject, NULL, InData, OnRun);
+end;
+
+procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object; const UserVariant: Variant;
   const InData: SystemString; const OnRun: TOnHPC_DirectConsole_P);
 var
   t: THPC_DirectConsole;
@@ -4234,11 +4381,19 @@ begin
   t.WorkID := Sender.ID;
   t.UserData := UserData;
   t.UserObject := UserObject;
+  t.UserVariant := UserVariant;
   t.InData := InData;
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
+end;
+
+procedure RunHPC_DirectConsoleP(Sender: TPeerIO;
+  const UserData: Pointer; const UserObject: TCore_Object;
+  const InData: SystemString; const OnRun: TOnHPC_DirectConsole_P);
+begin
+  RunHPC_DirectConsoleP(Sender, UserData, UserObject, NULL, InData, OnRun);
 end;
 
 procedure TOnStateStruct.Init;
@@ -7511,7 +7666,7 @@ begin
   FOnAutomatedP2PVMClientConnectionDone_P := nil;
 
   FUserData := nil;
-  FUserValue := Null;
+  FUserValue := NULL;
   FUserVariants := nil;
   FUserObjects := nil;
   FUserAutoFreeObjects := nil;
