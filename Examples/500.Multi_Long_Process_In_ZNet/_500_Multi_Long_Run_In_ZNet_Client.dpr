@@ -43,7 +43,7 @@ begin
 
   d := TDFE.Create;
   d.WritePointer(p); // 保存反馈指针
-  for i := 1 to 1000 * 10 do // 生成计算脚本
+  for i := 1 to 1000 * 50 do // 生成计算脚本
       d.WriteString('%d*%d', [umlRR(1, 1000000), umlRR(1, 1000000)]);
 
   DoStatus('"%s" 已经发送到服务器计算', [p^.user_info.Text]);
