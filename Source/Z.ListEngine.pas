@@ -553,12 +553,12 @@ type
 
   PHashObjectListData = ^THashObjectListData;
 
-  THashObjectListLoop_C = procedure(const Name: PSystemString; Obj: TCore_Object);
-  THashObjectListLoop_M = procedure(const Name: PSystemString; Obj: TCore_Object) of object;
+  THashObjectListLoop_C = procedure(const Name_: PSystemString; Obj_: TCore_Object);
+  THashObjectListLoop_M = procedure(const Name_: PSystemString; Obj_: TCore_Object) of object;
 {$IFDEF FPC}
-  THashObjectListLoop_P = procedure(const Name: PSystemString; Obj: TCore_Object) is nested;
+  THashObjectListLoop_P = procedure(const Name_: PSystemString; Obj_: TCore_Object) is nested;
 {$ELSE FPC}
-  THashObjectListLoop_P = reference to procedure(const Name: PSystemString; Obj: TCore_Object);
+  THashObjectListLoop_P = reference to procedure(const Name_: PSystemString; Obj_: TCore_Object);
 {$ENDIF FPC}
 
   THashObjectList = class(TCore_Object)
