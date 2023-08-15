@@ -130,11 +130,15 @@ type
   TListPascalString_Helper_ = class helper for TListPascalString
   public
     procedure FillToArry(var Output_: U_StringArray);
+    procedure InputArray(arry: U_StringArray);
+    procedure Add_Arry(arry: U_StringArray);
   end;
 
   TStringBigList_Helper_ = class helper for TStringBigList
   public
+    procedure FillToArry(var Output_: U_StringArray);
     procedure InputArray(arry: U_StringArray);
+    procedure Add_Arry(arry: U_StringArray);
   end;
 
 function umlBytesOf(const s: TPascalString): TBytes;
@@ -954,7 +958,41 @@ begin
       Output_[i] := Items[i];
 end;
 
+procedure TListPascalString_Helper_.InputArray(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      add(arry[i]);
+end;
+
+procedure TListPascalString_Helper_.Add_Arry(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      add(arry[i]);
+end;
+
+procedure TStringBigList_Helper_.FillToArry(var Output_: U_StringArray);
+begin
+  SetLength(Output_, Num);
+  if Num > 0 then
+    with repeat_ do
+      repeat
+          Output_[I__] := Queue^.Data;
+      until not Next;
+end;
+
 procedure TStringBigList_Helper_.InputArray(arry: U_StringArray);
+var
+  i: Integer;
+begin
+  for i := low(arry) to high(arry) do
+      add(arry[i]);
+end;
+
+procedure TStringBigList_Helper_.Add_Arry(arry: U_StringArray);
 var
   i: Integer;
 begin
@@ -4749,7 +4787,7 @@ begin
       DecodeTime(d, Hour, min_, Sec, MSec);
       i64 := TMT19937.Rand64;
       i32 := TMT19937.Rand32;
-      MT_ID := MainThreadID;
+      MT_ID := MainInstance;
     end;
   Result := umlMD5String(@R, SizeOf(TDecode_Data_));
 end;
@@ -6249,7 +6287,7 @@ end;
 
 procedure TMD5_Pair_Pool.SaveToStream(stream: TCore_Stream);
 begin
-  with Repeat_ do
+  with repeat_ do
     repeat
       StreamWriteMD5(stream, Queue^.Data^.Data.Primary);
       StreamWriteMD5(stream, Queue^.Data^.Data.Second);
