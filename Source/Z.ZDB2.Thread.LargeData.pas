@@ -285,7 +285,7 @@ type
     property Batch_Post_Num: Integer read FBatch_Post_Num;
     property Post_Batch_Num: Integer read FBatch_Post_Num;
 
-    constructor Create();
+    constructor Create(); virtual;
     destructor Destroy; override;
 
     { Creating or opening a database using a script }
@@ -293,7 +293,7 @@ type
     { If the database 'database' value does not specify a drive+directory, the root directory will be used to place }
     { If the database 'database' value specifies a drive+directory, the data will be stored in a specific location }
     { If the database 'database' value is empty, it will be stored directly in memory }
-    procedure Build_DB_From_Script(Root_Path_: U_String; te: TTextDataEngine; OnlyRead_: Boolean);
+    procedure Build_DB_From_Script(Root_Path_: U_String; te: TTextDataEngine; OnlyRead_: Boolean); virtual;
 
     { Generate Script Template }
     class function Make_Script(Name_: U_String; S_DB_Num, M_DB_Num, L_DB_Num: Integer; Cipher_Security_: TCipherSecurity): TTextDataEngine;
@@ -305,10 +305,10 @@ type
     procedure Close_DB;
 
     { When unlocking the database, the data items in the parallel sub database will be sorted to achieve the purpose of restoration }
-    procedure Extract_S_DB(ThNum_: Integer); { Complete traversal in parallel mode, Thread safety }
+    procedure Extract_S_DB(ThNum_: Integer); virtual; { Complete traversal in parallel mode, Thread safety }
     { In parallel mode, it is solved by traversing (single block storage block), Thread safety }
-    procedure Extract_M_DB(ThNum_: Integer);
-    procedure Extract_L_DB(ThNum_: Integer);
+    procedure Extract_M_DB(ThNum_: Integer); virtual;
+    procedure Extract_L_DB(ThNum_: Integer); virtual;
 
     { Create a small data instance and generate an associated Sequence after creation_ID, data is empty and will not be immediately posted. Here, some custom programs can be made }
     { After completing the processing, manually post: Don't forget that each data requires MD5, refer to Post_Data_The internal implementation of methods like xxx is sufficient }
@@ -345,15 +345,14 @@ type
     procedure Modify_L_DB_Data(Inst_: TZDB2_Custom_Large_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean);
 
     { Processing the recycling system, which can be executed at a high frequency }
-    procedure Check_Recycle_Pool;
+    procedure Check_Recycle_Pool; virtual;
     { To handle the main loop, this method should avoid frequent execution. It is recommended to run it every 5 minutes and start a thread to run it, as the main loop may get stuck after too many entries }
-    function Progress: Integer;
+    function Progress: Integer; virtual;
     { Perform backup }
-    procedure Backup(Reserve_: Word);
-    procedure Backup_If_No_Exists();
+    procedure Backup(Reserve_: Word); virtual;
+    procedure Backup_If_No_Exists(); virtual;
     { Clear cache }
-    procedure Flush; overload;
-    procedure Flush(WaitQueue_: Boolean); overload;
+    procedure Flush(WaitQueue_: Boolean); virtual;
 
     // test case
     class procedure Do_Test_Batch_Post(Eng_: TZDB2_Custom_Large_Marshal);
@@ -1541,13 +1540,6 @@ begin
   FS_DB.Backup_If_No_Exists();
   FM_DB.Backup_If_No_Exists();
   FL_DB.Backup_If_No_Exists();
-end;
-
-procedure TZDB2_Custom_Large_Marshal.Flush;
-begin
-  FS_DB.Flush;
-  FM_DB.Flush;
-  FL_DB.Flush;
 end;
 
 procedure TZDB2_Custom_Large_Marshal.Flush(WaitQueue_: Boolean);
