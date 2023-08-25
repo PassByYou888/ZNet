@@ -64,7 +64,7 @@ type
     destructor Destroy; override;
 
     procedure Start(To_: TVec2); overload;
-    procedure Start(Paths_: TVec2List); overload;
+    procedure Start(Paths_: TV2L); overload;
     procedure Start; overload;
     procedure stop;
     procedure Pause;
@@ -165,7 +165,7 @@ begin
     end;
 end;
 
-procedure TMovementEngine.Start(Paths_: TVec2List);
+procedure TMovementEngine.Start(Paths_: TV2L);
 var
   i: Integer;
 begin

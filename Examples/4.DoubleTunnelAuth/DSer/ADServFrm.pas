@@ -20,8 +20,8 @@ type
     f: TAuthDoubleServerForm;
   protected
     procedure UserRegistedSuccess(UserID: string); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine); override;
   protected
     // reg cmd
     procedure cmd_helloWorld_Console(Sender: TPeerClient; InData: string);
@@ -63,13 +63,13 @@ implementation
 {$R *.dfm}
 
 
-procedure TMyService.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TMyService.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   inherited UserLinkSuccess(UserDefineIO);
   DoStatus('user link success!');
 end;
 
-procedure TMyService.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TMyService.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   inherited UserOut(UserDefineIO);
   DoStatus('user out!');
@@ -82,7 +82,7 @@ end;
 
 procedure TMyService.cmd_helloWorld_Console(Sender: TPeerClient; InData: string);
 var
-  UserIO: TPeerClientUserDefineForRecvTunnel;
+  UserIO: TService_RecvTunnel_UserDefine;
 begin
   UserIO := GetUserDefineRecvTunnel(Sender);
 
@@ -98,7 +98,7 @@ end;
 
 procedure TMyService.cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
 var
-  UserIO: TPeerClientUserDefineForRecvTunnel;
+  UserIO: TService_RecvTunnel_UserDefine;
 begin
   UserIO := GetUserDefineRecvTunnel(Sender);
 
@@ -114,7 +114,7 @@ end;
 
 procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
 var
-  UserIO: TPeerClientUserDefineForRecvTunnel;
+  UserIO: TService_RecvTunnel_UserDefine;
 begin
   UserIO := GetUserDefineRecvTunnel(Sender);
 
@@ -198,10 +198,10 @@ begin
     begin
       c := PeerClient;
       // 如果客户端没有登录成功
-      if TPeerClientUserDefineForSendTunnel(c.UserDefine).RecvTunnel = nil then
+      if TService_SendTunnel_UserDefine(c.UserDefine).RecvTunnel = nil then
           exit;
       // 和上列一样，如果客户端没有登录
-      if not TPeerClientUserDefineForSendTunnel(c.UserDefine).RecvTunnel.LinkOK then
+      if not TService_SendTunnel_UserDefine(c.UserDefine).RecvTunnel.LinkOK then
           exit;
 
       de := TDataFrameEngine.Create;

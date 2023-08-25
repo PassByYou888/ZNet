@@ -57,7 +57,7 @@ end;
 type
   TMyVA_Service = class(TC40_Base_VirtualAuth_Service)
   private type
-    TMyVA_RecvIO_Define = class(TPeerClientUserDefineForRecvTunnel_VirtualAuth)
+    TMyVA_RecvIO_Define = class(TService_RecvTunnel_UserDefine_VirtualAuth)
     public
       UserPrimaryIdentifier: U_String;
       MyCustomData: TZJ;
@@ -99,7 +99,7 @@ type
   protected
     procedure DoUserReg_Event(Sender: TDTService_VirtualAuth; RegIO: TVirtualRegIO); override;
     procedure DoUserAuth_Event(Sender: TDTService_VirtualAuth; AuthIO: TVirtualAuthIO); override;
-    procedure DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
+    procedure DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
   private
     procedure cmd_NewLoginName(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_NewAlias(Sender: TPeerIO; InData: TDFE);
@@ -219,7 +219,7 @@ begin
   Get_UserDB_Client.Usr_AuthM(AuthIO.UserID, AuthIO.Passwd, tmp.Do_Usr_Auth);
 end;
 
-procedure TMyVA_Service.DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyVA_Service.DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 var
   IO_Def: TMyVA_RecvIO_Define;
   L: TMyVA_RecvIO_Define_List;

@@ -531,7 +531,7 @@ var
   fAry: U_StringArray;
   n: SystemString;
 begin
-  fAry := umlGetFileListWithFullPath(Directory_);
+  fAry := umlGet_File_Full_Array(Directory_);
   for n in fAry do
     if not FAborted then
         EncodeFromFile(n, OwnerPath_, chunkSize_, CM, BlockSize_)
@@ -540,7 +540,7 @@ begin
 
   if IncludeSub then
     begin
-      fAry := umlGetDirListWithFullPath(Directory_);
+      fAry := umlGet_Path_Full_Array(Directory_);
       for n in fAry do
         if not FAborted then
             EncodeFromDirectory(n, IncludeSub, umlCombineWinPath(OwnerPath_, umlGetLastStr(n, '\/')), chunkSize_, CM, BlockSize_)

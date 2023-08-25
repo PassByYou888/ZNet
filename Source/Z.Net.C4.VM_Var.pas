@@ -45,7 +45,7 @@ type
   TVAR_Service_NMBigPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_Var_VM_Service_NM_Pool>;
   TC40_Var_VM_NumberModulePool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Var_VM_Service_NM_Pool>;
 
-  TC40_Var_VM_Service_IO_Define = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TC40_Var_VM_Service_IO_Define = class(TService_RecvTunnel_UserDefine_NoAuth)
   public
     NM_List: TC40_Var_VM_NumberModulePool_List;
     constructor Create(Owner_: TPeerIO); override;
@@ -61,7 +61,7 @@ type
     function OP_DoSetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
     function OP_DoGetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
     procedure DoNMCreateOpRunTime(Sender: TNumberModulePool; OP_: TOpCustomRunTime);
-    procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
     procedure cmd_NM_Init(Sender: TPeerIO; InData: TDFE);
     procedure cmd_NM_InitAsTemp(Sender: TPeerIO; InData: TDFE);
@@ -436,7 +436,7 @@ begin
   OP_.RegObjectOpM('GetSys', '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoGetSysNM);
 end;
 
-procedure TC40_Var_VM_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_Var_VM_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   IO_Def_: TC40_Var_VM_Service_IO_Define;
   i: Integer;

@@ -994,20 +994,26 @@ type
   PListPascalStringData = ^TListPascalStringData;
   TListPascalStringData_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PListPascalStringData>;
 
+  TPascalString_Sort_C = function(var L, R: TPascalString): Integer;
+  TPascalString_Sort_M = function(var L, R: TPascalString): Integer of object;
+{$IFDEF FPC}
+  TPascalString_Sort_P = function(var L, R: TPascalString): Integer is nested;
+{$ELSE FPC}
+  TPascalString_Sort_P = reference to function(var L, R: TPascalString): Integer;
+{$ENDIF FPC}
+
   TListPascalString = class(TCore_Object)
   private
     FList: TListPascalStringData_List;
   protected
     function GetText: SystemString;
     procedure SetText(const Value: SystemString);
-
     function GetItems(idx: Integer): TPascalString;
     procedure SetItems(idx: Integer; Value: TPascalString);
-
     function GetItems_PPascalString(idx: Integer): PPascalString;
-
     function GetObjects(idx: Integer): TCore_Object;
     procedure SetObjects(idx: Integer; Value: TCore_Object);
+    function Do_Sort(var L, R: TPascalString): Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -1027,6 +1033,10 @@ type
     function ExistsValue(Value: TPascalString): Integer;
     procedure Exchange(const idx1, idx2: Integer);
     function ReplaceSum(Pattern: TPascalString; OnlyWord, IgnoreCase: Boolean; bPos, ePos: Integer): Integer;
+    procedure Sort();
+    procedure Sort_C(OnSort: TPascalString_Sort_C);
+    procedure Sort_M(OnSort: TPascalString_Sort_M);
+    procedure Sort_P(OnSort: TPascalString_Sort_P);
 
     procedure Assign(SameObj: TListPascalString); overload;
     procedure Assign(sour: TCore_Strings); overload;
@@ -7576,18 +7586,18 @@ end;
 function THashVariantList.SetMax(const Name: SystemString; V: Variant): Variant;
 var
   pVarData: PHashVariantListData;
-  r: Boolean;
+  R: Boolean;
 begin
   pVarData := FHashList.NameValue[Name];
   if pVarData <> nil then
     begin
       try
-          r := V > pVarData^.V;
+          R := V > pVarData^.V;
       except
-          r := True;
+          R := True;
       end;
 
-      if r then
+      if R then
         begin
           Result := V;
           try
@@ -7629,18 +7639,18 @@ end;
 function THashVariantList.SetMin(const Name: SystemString; V: Variant): Variant;
 var
   pVarData: PHashVariantListData;
-  r: Boolean;
+  R: Boolean;
 begin
   pVarData := FHashList.NameValue[Name];
   if pVarData <> nil then
     begin
       try
-          r := V < pVarData^.V;
+          R := V < pVarData^.V;
       except
-          r := True;
+          R := True;
       end;
 
-      if r then
+      if R then
         begin
           Result := V;
           try
@@ -8341,29 +8351,29 @@ end;
 procedure TListString.LoadFromStream(stream: TCore_Stream);
 var
   bp: Int64;
-  r: TStreamReader;
+  R: TStreamReader;
 begin
   Clear;
   bp := stream.Position;
 {$IFDEF FPC}
-  r := TStreamReader.Create(stream);
-  while not r.Eof do
-      Add(r.ReadLine);
+  R := TStreamReader.Create(stream);
+  while not R.Eof do
+      Add(R.ReadLine);
 {$ELSE FPC}
-  r := TStreamReader.Create(stream, TEncoding.UTF8);
+  R := TStreamReader.Create(stream, TEncoding.UTF8);
   try
-    while not r.EndOfStream do
-        Add(r.ReadLine);
+    while not R.EndOfStream do
+        Add(R.ReadLine);
   except
     Clear;
-    DisposeObject(r);
+    DisposeObject(R);
     stream.Position := bp;
-    r := TStreamReader.Create(stream, TEncoding.ANSI);
-    while not r.EndOfStream do
-        Add(r.ReadLine);
+    R := TStreamReader.Create(stream, TEncoding.ANSI);
+    while not R.EndOfStream do
+        Add(R.ReadLine);
   end;
 {$ENDIF FPC}
-  DisposeObject(r);
+  DisposeObject(R);
 end;
 
 procedure TListString.SaveToStream(stream: TCore_Stream);
@@ -8462,6 +8472,11 @@ end;
 procedure TListPascalString.SetObjects(idx: Integer; Value: TCore_Object);
 begin
   FList[idx]^.Obj := Value;
+end;
+
+function TListPascalString.Do_Sort(var L, R: TPascalString): Integer;
+begin
+  Result := CompareText(L, R);
 end;
 
 constructor TListPascalString.Create;
@@ -8638,6 +8653,167 @@ begin
     end;
 end;
 
+procedure TListPascalString.Sort;
+begin
+  Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort);
+end;
+
+procedure TListPascalString.Sort_C(OnSort: TPascalString_Sort_C);
+  procedure Do_Sort_(L, R: Integer);
+  var
+    i, j: Integer;
+    p: PListPascalStringData;
+  begin
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnSort(FList[L]^.Data, FList[R]^.Data) > 0 then
+                  FList.Exchange(L, R);
+              Break;
+            end;
+          i := L;
+          j := R;
+          p := FList[(L + R) shr 1];
+          repeat
+            while OnSort(FList[i]^.Data, p^.Data) < 0 do
+                inc(i);
+            while OnSort(FList[j]^.Data, p^.Data) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                    FList.Exchange(i, j);
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  Do_Sort_(i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  Do_Sort_(L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
+  end;
+
+begin
+  if Count > 1 then
+      Do_Sort_(0, Count - 1);
+end;
+
+procedure TListPascalString.Sort_M(OnSort: TPascalString_Sort_M);
+  procedure Do_Sort_(L, R: Integer);
+  var
+    i, j: Integer;
+    p: PListPascalStringData;
+  begin
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnSort(FList[L]^.Data, FList[R]^.Data) > 0 then
+                  FList.Exchange(L, R);
+              Break;
+            end;
+          i := L;
+          j := R;
+          p := FList[(L + R) shr 1];
+          repeat
+            while OnSort(FList[i]^.Data, p^.Data) < 0 do
+                inc(i);
+            while OnSort(FList[j]^.Data, p^.Data) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                    FList.Exchange(i, j);
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  Do_Sort_(i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  Do_Sort_(L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
+  end;
+
+begin
+  if Count > 1 then
+      Do_Sort_(0, Count - 1);
+end;
+
+procedure TListPascalString.Sort_P(OnSort: TPascalString_Sort_P);
+  procedure Do_Sort_(L, R: Integer);
+  var
+    i, j: Integer;
+    p: PListPascalStringData;
+  begin
+    if L < R then
+      begin
+        repeat
+          if (R - L) = 1 then
+            begin
+              if OnSort(FList[L]^.Data, FList[R]^.Data) > 0 then
+                  FList.Exchange(L, R);
+              Break;
+            end;
+          i := L;
+          j := R;
+          p := FList[(L + R) shr 1];
+          repeat
+            while OnSort(FList[i]^.Data, p^.Data) < 0 do
+                inc(i);
+            while OnSort(FList[j]^.Data, p^.Data) > 0 do
+                dec(j);
+            if i <= j then
+              begin
+                if i <> j then
+                    FList.Exchange(i, j);
+                inc(i);
+                dec(j);
+              end;
+          until i > j;
+          if (j - L) > (R - i) then
+            begin
+              if i < R then
+                  Do_Sort_(i, R);
+              R := j;
+            end
+          else
+            begin
+              if L < j then
+                  Do_Sort_(L, j);
+              L := i;
+            end;
+        until L >= R;
+      end;
+  end;
+
+begin
+  if Count > 1 then
+      Do_Sort_(0, Count - 1);
+end;
+
 procedure TListPascalString.Assign(SameObj: TListPascalString);
 var
   i: Integer;
@@ -8713,29 +8889,29 @@ end;
 procedure TListPascalString.LoadFromStream(stream: TCore_Stream);
 var
   bp: Int64;
-  r: TStreamReader;
+  R: TStreamReader;
 begin
   Clear;
   bp := stream.Position;
 {$IFDEF FPC}
-  r := TStreamReader.Create(stream);
-  while not r.Eof do
-      Add(r.ReadLine);
+  R := TStreamReader.Create(stream);
+  while not R.Eof do
+      Add(R.ReadLine);
 {$ELSE FPC}
-  r := TStreamReader.Create(stream, TEncoding.UTF8);
+  R := TStreamReader.Create(stream, TEncoding.UTF8);
   try
-    while not r.EndOfStream do
-        Add(r.ReadLine);
+    while not R.EndOfStream do
+        Add(R.ReadLine);
   except
     Clear;
-    DisposeObject(r);
+    DisposeObject(R);
     stream.Position := bp;
-    r := TStreamReader.Create(stream, TEncoding.ANSI);
-    while not r.EndOfStream do
-        Add(r.ReadLine);
+    R := TStreamReader.Create(stream, TEncoding.ANSI);
+    while not R.EndOfStream do
+        Add(R.ReadLine);
   end;
 {$ENDIF FPC}
-  DisposeObject(r);
+  DisposeObject(R);
 end;
 
 procedure TListPascalString.SaveToStream(stream: TCore_Stream);

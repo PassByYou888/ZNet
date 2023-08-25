@@ -148,6 +148,8 @@ begin
       else if TZDB_List_Item(ListView.Selected).isItem then
         begin
           SaveDialog.FileName := ListView.Selected.Caption;
+          SaveDialog.DefaultExt := umlGetFileExt(SaveDialog.FileName);
+          SaveDialog.Filter := PFormat('%s file|*%s|all file|*.*', [umlGetFileExt(SaveDialog.FileName).Text, umlGetFileExt(SaveDialog.FileName).Text]);
           if not SaveDialog.Execute() then
               Exit;
           showMsg := True;
@@ -213,7 +215,7 @@ procedure TObjectDataManagerFrame.ActionImportDirectoryExecute(Sender: TObject);
         FResourceData.CreateField(DBPath, '');
     fPos := FResourceData.GetPathFieldPos(DBPath);
 
-    fAry := umlGetFileListWithFullPath(ImpPath);
+    fAry := umlGet_File_Full_Array(ImpPath);
     for n in fAry do
       begin
         longName := FResourceData.Handle^.IOHnd.CheckFixedStringLoss(umlGetFileName(n));
@@ -236,7 +238,7 @@ procedure TObjectDataManagerFrame.ActionImportDirectoryExecute(Sender: TObject);
         DisposeObject(itmStream);
       end;
 
-    fAry := umlGetDirListPath(ImpPath);
+    fAry := umlGet_Path_Array(ImpPath);
     for n in fAry do
         ImpFromPath(umlCombinePath(ImpPath, n), umlCombinePath(DBPath, n));
   end;
@@ -391,7 +393,7 @@ begin
         end;
     end;
   IsModify := True;
-  SysProgress.PostM1(Refresh_All);
+  MainThreadProgress.PostM1(Refresh_All);
 end;
 
 procedure TObjectDataManagerFrame.ListViewEditing(Sender: TObject; Item: TListItem; var AllowEdit: Boolean);
@@ -520,6 +522,7 @@ begin
         end;
     end;
   ListView.Items.EndUpdate;
+  ListView.Width := ListView.Width - 1;
 end;
 
 procedure TObjectDataManagerFrame.Refresh_All;

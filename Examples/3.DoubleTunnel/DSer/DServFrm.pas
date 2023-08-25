@@ -17,8 +17,8 @@ type
   private
     f: TDoubleServerForm;
   protected
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
     // reg cmd
     procedure cmd_helloWorld_Console(Sender: TPeerClient; InData: string);
@@ -59,13 +59,13 @@ implementation
 {$R *.dfm}
 
 
-procedure TMyService.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TMyService.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited UserLinkSuccess(UserDefineIO);
   DoStatus('user link success!');
 end;
 
-procedure TMyService.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TMyService.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited UserOut(UserDefineIO);
   DoStatus('user out!');

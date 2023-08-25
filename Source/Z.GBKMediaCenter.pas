@@ -268,7 +268,7 @@ begin
   if not umlDirectoryExists(Path_) then
       exit;
 
-  fArry := umlGetFileListWithFullPath(Path_);
+  fArry := umlGet_File_Full_Array(Path_);
   for i := low(fArry) to high(fArry) do
     if umlMultipleMatch(fileFilter, umlGetFileName(fArry[i])) then
       begin
@@ -278,7 +278,7 @@ begin
       end;
   SetLength(fArry, 0);
 
-  pArry := umlGetDirListWithFullPath(Path_);
+  pArry := umlGet_Path_Full_Array(Path_);
   for i := low(pArry) to high(pArry) do
       inc(Result, LoadPath(pArry[i], fileFilter, mergeTo_));
   SetLength(pArry, 0);
@@ -296,7 +296,7 @@ begin
   if not umlDirectoryExists(Path_) then
       exit;
 
-  fArry := umlGetFileListWithFullPath(Path_);
+  fArry := umlGet_File_Full_Array(Path_);
   for i := low(fArry) to high(fArry) do
     if umlMultipleMatch(fileFilter, umlGetFileName(fArry[i])) then
       begin
@@ -312,7 +312,7 @@ begin
       end;
   SetLength(fArry, 0);
 
-  pArry := umlGetDirListWithFullPath(Path_);
+  pArry := umlGet_Path_Full_Array(Path_);
   for i := low(pArry) to high(pArry) do
       inc(Result, LoadPath(pArry[i], fileFilter, mergeTo_));
   SetLength(pArry, 0);
@@ -330,7 +330,7 @@ begin
   if not umlDirectoryExists(Path_) then
       exit;
 
-  fArry := umlGetFileListWithFullPath(Path_);
+  fArry := umlGet_File_Full_Array(Path_);
   for i := low(fArry) to high(fArry) do
     if umlMultipleMatch(fileFilter, umlGetFileName(fArry[i])) then
       begin
@@ -345,7 +345,7 @@ begin
       end;
   SetLength(fArry, 0);
 
-  pArry := umlGetDirListWithFullPath(Path_);
+  pArry := umlGet_Path_Full_Array(Path_);
   for i := low(pArry) to high(pArry) do
       inc(Result, LoadPath(pArry[i], fileFilter, mergeTo_));
   SetLength(pArry, 0);

@@ -1414,7 +1414,7 @@ var
   fn, n: SystemString;
 begin
   Clear;
-  Arr := umlGetFileListWithFullPath(RootPath);
+  Arr := umlGet_File_Full_Array(RootPath);
   for fn in Arr do
     begin
       n := umlGetFileName(fn);

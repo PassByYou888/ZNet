@@ -19,7 +19,6 @@ type
     SaveDialog: TSaveDialog;
     SaveAsButton: TButton;
     Memo: TMemo;
-    MD5Edit: TMemo;
     CacheStateMemo: TMemo;
     Timer: TTimer;
     CompressAsButton: TButton;
@@ -30,16 +29,12 @@ type
     Bevel5: TBevel;
     Bevel7: TBevel;
     BuildIndexPackageButton: TButton;
-    Bevel8: TBevel;
     NewCustomButton: TButton;
     ParallelCompressAsButton: TButton;
     SaveAsParallelCompressedDialog: TSaveDialog;
     SaveAsZDB2Button: TButton;
     SaveAsZDB2Dialog: TSaveDialog;
-    procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure TimerTimer(Sender: TObject);
     procedure NewButtonClick(Sender: TObject);
     procedure NewCustomButtonClick(Sender: TObject);
@@ -61,6 +56,9 @@ type
     procedure Disable_All;
     procedure Enabled_All;
   public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure NewPackage;
     procedure OpenFile_Th(thSender: TCompute);
     procedure OpenFile_Th_Done(thSender: TCompute);
     procedure OpenFile(fileName: SystemString);
@@ -84,40 +82,9 @@ implementation
 
 uses BuildIndexPackageOptFrm, NewDBOptFrm;
 
-procedure TFilePackageWithZDBMainForm.FormCreate(Sender: TObject);
-begin
-  StatusThreadID := False;
-  FTotalRead := 0;
-  FTotalWrite := 0;
-  AddDoStatusHook(Self, DoStatus_backcall);
-
-  FDBEng := nil;
-
-  FDBManFrame := TObjectDataManagerFrame.Create(Self);
-  FDBManFrame.Parent := Self;
-  FDBManFrame.Align := alClient;
-  FDBManFrame.ResourceData := nil;
-  FOpenFile := '';
-  MD5Edit.Text := '';
-
-  NewButtonClick(NewButton);
-end;
-
-procedure TFilePackageWithZDBMainForm.FormDestroy(Sender: TObject);
-begin
-  DeleteDoStatusHook(Self);
-  disposeObject(FDBManFrame);
-  disposeObject(FDBEng);
-end;
-
 procedure TFilePackageWithZDBMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := True;
-end;
-
-procedure TFilePackageWithZDBMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Action := caFree;
 end;
 
 procedure TFilePackageWithZDBMainForm.TimerTimer(Sender: TObject);
@@ -140,7 +107,6 @@ begin
 
   FDBEng.UpdateIO;
   FDBEng.StreamEngine.Position := 0;
-  MD5Edit.Text := umlStreamMD5String(FDBEng.StreamEngine);
   DoStatus('new DB. [fixed string size: %d]', [FDBEng.Handle^.FixedStringL]);
 end;
 
@@ -162,7 +128,6 @@ begin
 
   FDBEng.UpdateIO;
   FDBEng.StreamEngine.Position := 0;
-  MD5Edit.Text := umlStreamMD5String(FDBEng.StreamEngine);
   DoStatus('new DB. [fixed string size: %d]', [FDBEng.Handle^.FixedStringL]);
 end;
 
@@ -276,6 +241,48 @@ begin
   FDBManFrame.Enabled := True;
 end;
 
+constructor TFilePackageWithZDBMainForm.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  StatusThreadID := False;
+  FTotalRead := 0;
+  FTotalWrite := 0;
+  AddDoStatusHook(Self, DoStatus_backcall);
+
+  FDBEng := nil;
+
+  FDBManFrame := TObjectDataManagerFrame.Create(Self);
+  FDBManFrame.Parent := Self;
+  FDBManFrame.Align := alClient;
+  FDBManFrame.ResourceData := nil;
+  FOpenFile := '';
+
+  NewButtonClick(NewButton);
+end;
+
+destructor TFilePackageWithZDBMainForm.Destroy;
+begin
+  DeleteDoStatusHook(Self);
+  disposeObject(FDBManFrame);
+  disposeObject(FDBEng);
+  inherited Destroy;
+end;
+
+procedure TFilePackageWithZDBMainForm.NewPackage;
+begin
+  FTotalRead := 0;
+  FTotalWrite := 0;
+  FDBManFrame.ResourceData := nil;
+  disposeObject(FDBEng);
+  FDBEng := TObjectDataManager.CreateAsStream(TMemoryStream64OfReadWriteTrigger.Create(Self), '', ObjectDataMarshal.ID, False, True, True);
+  FDBManFrame.ResourceData := FDBEng;
+  FOpenFile := '';
+
+  FDBEng.UpdateIO;
+  FDBEng.StreamEngine.Position := 0;
+  DoStatus('new DB. [fixed string size: %d]', [FDBEng.Handle^.FixedStringL]);
+end;
+
 procedure TFilePackageWithZDBMainForm.OpenFile_Th(thSender: TCompute);
 var
   m64, C64: TMS64;
@@ -329,7 +336,6 @@ var
   m64: TMS64;
 begin
   m64 := TMS64(thSender.UserObject);
-  MD5Edit.Text := umlStreamMD5String(m64);
   FTotalRead := 0;
   FTotalWrite := 0;
   m64.Position := 0;
@@ -373,7 +379,7 @@ begin
     disposeObject(stream);
     dispose(p);
   end;
-  SysProgress.PostM1(Enabled_All);
+  MainThreadProgress.PostM1(Enabled_All);
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveToFile(fileName: SystemString);
@@ -383,7 +389,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveToFile_Th, TRunWithThread_M(nil));
+  TCompute.RunM(p, nil, SaveToFile_Th, TRun_Thread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXC_File_Th(thSender: TCompute);
@@ -397,7 +403,6 @@ begin
   try
     FDBEng.SaveToStream(m64);
     m64.Position := 0;
-    MD5Edit.Text := umlStreamMD5String(m64);
 
     m64.Position := 0;
     MaxCompressStream(m64, C64);
@@ -409,7 +414,7 @@ begin
     disposeObject([m64, C64]);
     dispose(p);
   end;
-  SysProgress.PostM1(Enabled_All);
+  MainThreadProgress.PostM1(Enabled_All);
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXC_File(fileName: SystemString);
@@ -419,7 +424,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_OXC_File_Th, TRunWithThread_M(nil));
+  TCompute.RunM(p, nil, SaveTo_OXC_File_Th, TRun_Thread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXP_File_Th(thSender: TCompute);
@@ -434,7 +439,6 @@ begin
   try
     FDBEng.SaveToStream(m64);
     m64.Position := 0;
-    MD5Edit.Text := umlStreamMD5String(m64);
 
     m64.Position := 0;
     ParallelCompressMemory(TSelectCompressionMethod.scmZLIB_Max, m64, C64);
@@ -446,7 +450,7 @@ begin
     disposeObject([m64, C64]);
     dispose(p);
   end;
-  SysProgress.PostM1(Enabled_All);
+  MainThreadProgress.PostM1(Enabled_All);
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_OXP_File(fileName: SystemString);
@@ -456,7 +460,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_OXP_File_Th, TRunWithThread_M(nil));
+  TCompute.RunM(p, nil, SaveTo_OXP_File_Th, TRun_Thread_M(nil));
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_ZDB2_File_Th(thSender: TCompute);
@@ -474,7 +478,7 @@ begin
     disposeObject(stream);
     dispose(p);
   end;
-  SysProgress.PostM1(Enabled_All);
+  MainThreadProgress.PostM1(Enabled_All);
 end;
 
 procedure TFilePackageWithZDBMainForm.SaveTo_ZDB2_File(fileName: SystemString);
@@ -484,7 +488,7 @@ begin
   Disable_All;
   new(p);
   p^ := fileName;
-  TCompute.RunM(p, nil, SaveTo_ZDB2_File_Th, TRunWithThread_M(nil));
+  TCompute.RunM(p, nil, SaveTo_ZDB2_File_Th, TRun_Thread_M(nil));
 end;
 
 end.

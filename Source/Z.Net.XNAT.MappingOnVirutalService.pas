@@ -84,7 +84,7 @@ type
     procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); override;
   end;
 
-  TPhysicsEngine_Special = class(TPeerIOUserSpecial)
+  TPhysicsEngine_Special = class(TPeer_IO_User_Special)
   protected
     XNAT: TXNAT_VS_Mapping;
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
@@ -115,10 +115,10 @@ type
     procedure PeerIO_Destroy(const Sender: TPeerIO);
     { p2pVM Interface }
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean);
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
     { backcall }
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
   public
@@ -638,7 +638,7 @@ begin
       Sender.Print('p2pVM auth failed!');
 end;
 
-procedure TXNAT_VS_Mapping.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TXNAT_VS_Mapping.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   if PhysicsEngine is TZNet_Server then
     begin
@@ -649,7 +649,7 @@ begin
   DoStatus('XTunnel Open Before on %s', [Sender.PeerIP]);
 end;
 
-procedure TXNAT_VS_Mapping.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TXNAT_VS_Mapping.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   if PhysicsEngine is TZNet_Server then
     begin
@@ -660,7 +660,7 @@ begin
   DoStatus('XTunnel Open on %s', [Sender.PeerIP]);
 end;
 
-procedure TXNAT_VS_Mapping.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TXNAT_VS_Mapping.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   if PhysicsEngine is TZNet_Server then
     begin
@@ -672,7 +672,7 @@ begin
   DoStatus('XTunnel Open After on %s', [Sender.PeerIP]);
 end;
 
-procedure TXNAT_VS_Mapping.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TXNAT_VS_Mapping.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   if PhysicsEngine is TZNet_Server then
     begin

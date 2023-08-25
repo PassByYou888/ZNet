@@ -96,13 +96,13 @@ type
       const ManCliRecvPort, ManCliSendPort, RegRecvPort, RegSendPort: Word; ServerType: TServerType): Boolean;
   end;
 
-  TServerManager_SendTunnelData = class(TPeerClientUserDefineForSendTunnel_NoAuth)
+  TServerManager_SendTunnelData = class(TService_SendTunnel_UserDefine_NoAuth)
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
 
-  TServerManager_RecvTunnelData = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TServerManager_RecvTunnelData = class(TService_RecvTunnel_UserDefine_NoAuth)
   public
     ManServAddr, Regname, RegAddr: SystemString;
     RegRecvPort, RegSendPort: Word;
@@ -120,8 +120,8 @@ type
 
   TServerManager = class(TZNet_DoubleTunnelService_NoAuth, IServerManager_ClientPoolNotify)
   protected
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
     procedure PostExecute_ServerOffline(Sender: TN_Post_Execute);
     procedure PostExecute_RegServer(Sender: TN_Post_Execute);
   protected
@@ -547,13 +547,13 @@ begin
   Result := Format('%s_%s_%d_%d', [serverType2Str(ServerType), RegAddr, RegRecvPort, RegSendPort]);
 end;
 
-procedure TServerManager.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TServerManager.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   UserDefineIO.Owner.Print('channel link success[r%d]<->[s%d]', [UserDefineIO.Owner.ID, UserDefineIO.SendTunnelID]);
   inherited UserLinkSuccess(UserDefineIO);
 end;
 
-procedure TServerManager.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TServerManager.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   cli: TServerManager_RecvTunnelData;
   i: Integer;

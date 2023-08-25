@@ -29,8 +29,8 @@ type
   TMyVirtualAuth_Service = class(TDTService_VirtualAuth)
   protected
     procedure UserAuth(Sender: TVirtualAuthIO); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
   public
     constructor Create(RecvTunnel_, SendTunnel_: TZNet_Server); override;
     destructor Destroy; override;
@@ -51,13 +51,13 @@ begin
   Sender.Accept;
 end;
 
-procedure TMyVirtualAuth_Service.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyVirtualAuth_Service.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   inherited UserLinkSuccess(UserDefineIO);
   DoStatus('用户 %s 登录成功', [UserDefineIO.UserID]);
 end;
 
-procedure TMyVirtualAuth_Service.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyVirtualAuth_Service.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   inherited UserOut(UserDefineIO);
   DoStatus('用户 %s 离线', [UserDefineIO.UserID]);

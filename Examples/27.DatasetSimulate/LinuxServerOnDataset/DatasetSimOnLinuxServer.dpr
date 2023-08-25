@@ -142,7 +142,7 @@ begin
     procedure(dPipe: TZDBPipeline)
     var
       queryRec_Ptr: POpCodeRun_Record;
-      r_io_def: TPeerClientUserDefineForRecvTunnel_NoAuth;
+      r_io_def: TService_RecvTunnel_UserDefine_NoAuth;
       de: TDataFrameEngine;
       mystream: TMemoryStream64;
     begin

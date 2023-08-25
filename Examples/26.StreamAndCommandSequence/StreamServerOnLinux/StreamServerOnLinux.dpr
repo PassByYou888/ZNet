@@ -25,7 +25,7 @@ uses
 }
 
 type
-  TSingleTunnelServer_UserSpecial = class(TPeerIOUserSpecial)
+  TSingleTunnelServer_UserSpecial = class(TPeer_IO_User_Special)
   public
     mybigstream: TMemoryStream64;
     mycompletebuffer: TMemoryStream64;
@@ -168,8 +168,8 @@ end;
 type
   TDoubleTunnelServer = class(TZNet_DoubleTunnelService_NoAuth)
   protected
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   public
     procedure cmd_MyBatchStream(Sender: TPeerIO; InData: TDataFrameEngine);
     procedure RegisterCommand; override;
@@ -180,7 +180,7 @@ procedure TDoubleTunnelServer.cmd_MyBatchStream(Sender: TPeerIO; InData: TDataFr
 var
   new_stream, m: TMemoryStream64;
   i: integer;
-  rIO: TPeerClientUserDefineForRecvTunnel_NoAuth;
+  rIO: TService_RecvTunnel_UserDefine_NoAuth;
 begin
   rIO := GetUserDefineRecvTunnel(Sender);
 
@@ -208,13 +208,13 @@ begin
   RecvTunnel.UnRegisted('MyBatchStream');
 end;
 
-procedure TDoubleTunnelServer.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TDoubleTunnelServer.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited;
   UserDefineIO.Owner.Print('double tunnel link success');
 end;
 
-procedure TDoubleTunnelServer.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TDoubleTunnelServer.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited;
   UserDefineIO.Owner.Print('double tunnel user out');

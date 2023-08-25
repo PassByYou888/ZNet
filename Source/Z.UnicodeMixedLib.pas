@@ -253,15 +253,15 @@ function umlFindFirstDir(const DirName: TPascalString; var SR: TSR): Boolean;
 function umlFindNextDir(var SR: TSR): Boolean;
 procedure umlFindClose(var SR: TSR);
 
-function umlGetFileList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
-function umlGetDirList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
-function umlGetFileList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
-function umlGetDirList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
+function uml_Get_File_To_List(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
+function uml_Get_Dir_To_List(const FullPath: TPascalString; AsLst: TCore_Strings): Integer; overload;
+function uml_Get_File_To_List(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
+function uml_Get_Dir_To_List(const FullPath: TPascalString; AsLst: TPascalStringList): Integer; overload;
 
-function umlGetFileListWithFullPath(const FullPath: TPascalString): U_StringArray;
-function umlGetDirListWithFullPath(const FullPath: TPascalString): U_StringArray;
-function umlGetFileListPath(const FullPath: TPascalString): U_StringArray;
-function umlGetDirListPath(const FullPath: TPascalString): U_StringArray;
+function umlGet_File_Full_Array(const FullPath: TPascalString): U_StringArray;
+function umlGet_Path_Full_Array(const FullPath: TPascalString): U_StringArray;
+function umlGet_File_Array(const FullPath: TPascalString): U_StringArray;
+function umlGet_Path_Array(const FullPath: TPascalString): U_StringArray;
 
 function umlFixedPath(s: TPascalString): TPascalString;
 function umlCombinePath(const s1, s2: TPascalString): TPascalString;
@@ -442,7 +442,7 @@ function umlMatchFileInfo(const exp_, sour_, dest_: TPascalString): Boolean;
 
 function umlGetDateTimeStr(NowDateTime: TDateTime): TPascalString;
 function umlDecodeTimeToStr(NowDateTime: TDateTime): TPascalString;
-function umlMakeRanName: TPascalString;
+function umlGenerate_Random_Name: TPascalString;
 function umlDecodeDateTimeToInt64(NowDateTime: TDateTime): Int64;
 
 type
@@ -1952,7 +1952,7 @@ begin
   FindClose(SR);
 end;
 
-function umlGetFileList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer;
+function uml_Get_File_To_List(const FullPath: TPascalString; AsLst: TCore_Strings): Integer;
 var
   _SR: TSR;
 begin
@@ -1967,7 +1967,7 @@ begin
   umlFindClose(_SR);
 end;
 
-function umlGetDirList(const FullPath: TPascalString; AsLst: TCore_Strings): Integer;
+function uml_Get_Dir_To_List(const FullPath: TPascalString; AsLst: TCore_Strings): Integer;
 var
   _SR: TSR;
 begin
@@ -1982,7 +1982,7 @@ begin
   umlFindClose(_SR);
 end;
 
-function umlGetFileList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer;
+function uml_Get_File_To_List(const FullPath: TPascalString; AsLst: TPascalStringList): Integer;
 var
   _SR: TSR;
 begin
@@ -1997,7 +1997,7 @@ begin
   umlFindClose(_SR);
 end;
 
-function umlGetDirList(const FullPath: TPascalString; AsLst: TPascalStringList): Integer;
+function uml_Get_Dir_To_List(const FullPath: TPascalString; AsLst: TPascalStringList): Integer;
 var
   _SR: TSR;
 begin
@@ -2012,7 +2012,7 @@ begin
   umlFindClose(_SR);
 end;
 
-function umlGetFileListWithFullPath(const FullPath: TPascalString): U_StringArray;
+function umlGet_File_Full_Array(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
   L: TPascalStringList;
@@ -2020,14 +2020,14 @@ var
 begin
   ph := FullPath;
   L := TPascalStringList.Create;
-  umlGetFileList(FullPath, L);
+  uml_Get_File_To_List(FullPath, L);
   SetLength(Result, L.Count);
   for i := 0 to L.Count - 1 do
       Result[i] := umlCombineFileName(ph, L[i]).text;
   DisposeObject(L);
 end;
 
-function umlGetDirListWithFullPath(const FullPath: TPascalString): U_StringArray;
+function umlGet_Path_Full_Array(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
   L: TPascalStringList;
@@ -2035,14 +2035,14 @@ var
 begin
   ph := FullPath;
   L := TPascalStringList.Create;
-  umlGetDirList(FullPath, L);
+  uml_Get_Dir_To_List(FullPath, L);
   SetLength(Result, L.Count);
   for i := 0 to L.Count - 1 do
       Result[i] := umlCombinePath(ph, L[i]).text;
   DisposeObject(L);
 end;
 
-function umlGetFileListPath(const FullPath: TPascalString): U_StringArray;
+function umlGet_File_Array(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
   L: TPascalStringList;
@@ -2050,14 +2050,14 @@ var
 begin
   ph := FullPath;
   L := TPascalStringList.Create;
-  umlGetFileList(FullPath, L);
+  uml_Get_File_To_List(FullPath, L);
   SetLength(Result, L.Count);
   for i := 0 to L.Count - 1 do
       Result[i] := L[i];
   DisposeObject(L);
 end;
 
-function umlGetDirListPath(const FullPath: TPascalString): U_StringArray;
+function umlGet_Path_Array(const FullPath: TPascalString): U_StringArray;
 var
   ph: TPascalString;
   L: TPascalStringList;
@@ -2065,7 +2065,7 @@ var
 begin
   ph := FullPath;
   L := TPascalStringList.Create;
-  umlGetDirList(FullPath, L);
+  uml_Get_Dir_To_List(FullPath, L);
   SetLength(Result, L.Count);
   for i := 0 to L.Count - 1 do
       Result[i] := L[i];
@@ -4767,7 +4767,7 @@ begin
     IntToHex(Sec, 2) + IntToHex(MSec, 3);
 end;
 
-function umlMakeRanName: TPascalString;
+function umlGenerate_Random_Name: TPascalString;
 type
   TDecode_Data_ = packed record
     Year, Month, Day: Word;
@@ -6232,7 +6232,7 @@ begin
 
       Result.Append(buffer[i]);
       inc(n);
-      if n = width then
+      if n >= width - 1 then
         begin
           if DivisionAsPascalString then
               Result.Append(#39 + '+' + #13#10)
@@ -6241,7 +6241,7 @@ begin
           n := 0;
         end;
     end;
-  if DivisionAsPascalString then
+  if DivisionAsPascalString and (n > 0) then
       Result.Append(#39);
 end;
 
@@ -6946,7 +6946,7 @@ var
 begin
   p := ThSender.UserData;
   try
-    arry := umlGetFileListWithFullPath(p^.Directory_);
+    arry := umlGet_File_Full_Array(p^.Directory_);
     for n in arry do
       begin
         if umlMultipleMatch(p^.Filter_, umlGetFileName(n)) then

@@ -33,7 +33,7 @@ var
   P2PVMConnectionDone, P2PVMConnectionWait: Integer;
 
 type
-  TMyPhysics_Server_Special = class(TPeerIOUserSpecial)
+  TMyPhysics_Server_Special = class(TPeer_IO_User_Special)
   public
     MyP2PVM_ClientArray: array of TZNet_WithP2PVM_Client;
     constructor Create(AOwner: TPeerIO); override;

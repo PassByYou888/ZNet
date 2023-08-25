@@ -968,11 +968,11 @@ procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Directory.Do_Run_Task;
     i: Integer;
   begin
     Client.CreateField(R_Field_);
-    arry := umlGetDirListPath(L_Directory_);
+    arry := umlGet_Path_Array(L_Directory_);
     for i := low(arry) to high(arry) do
         Do_Scan_Directory(umlCombinePath(L_Directory_, arry[i]), umlCombineUnixPath(R_Field_, arry[i]));
 
-    arry := umlGetFileListPath(L_Directory_);
+    arry := umlGet_File_Array(L_Directory_);
     for i := low(arry) to high(arry) do
         Post_Directory_Task_Pool.Add_Task_Post_File(umlCombineFileName(L_Directory_, arry[i]), R_Field_, arry[i]);
   end;

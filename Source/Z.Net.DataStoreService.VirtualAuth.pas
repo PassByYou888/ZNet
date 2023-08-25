@@ -14,9 +14,9 @@ uses Z.Core, Z.ListEngine, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream, Z.Net, Z.Te
 
 type
   TDataStoreService_VirtualAuth = class;
-  TDataStoreService_PeerClientSendTunnel_VirtualAuth = class;
+  TDataStoreService_SendTunnel_UserDefine_VirtualAuth = class;
 
-  TDataStoreService_PeerClientRecvTunnel_VirtualAuth = class(TPeerClientUserDefineForRecvTunnel_VirtualAuth)
+  TDataStoreService_RecvTunnel_UserDefine_VirtualAuth = class(TService_RecvTunnel_UserDefine_VirtualAuth)
   private
     FPostPerformaceCounter: Integer;
     FLastPostPerformaceTime: TTimeTick;
@@ -32,19 +32,19 @@ type
 
     procedure Progress; override;
 
-    function SendTunnelDefine: TDataStoreService_PeerClientSendTunnel_VirtualAuth;
+    function SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine_VirtualAuth;
     property PostCounterOfPerSec: Double read FPostCounterOfPerSec;
 
     { data security }
     procedure EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
   end;
 
-  TDataStoreService_PeerClientSendTunnel_VirtualAuth = class(TPeerClientUserDefineForSendTunnel_VirtualAuth)
+  TDataStoreService_SendTunnel_UserDefine_VirtualAuth = class(TService_SendTunnel_UserDefine_VirtualAuth)
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
 
-    function RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+    function RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   end;
 
   TDataStoreService_VirtualAuth = class(TZNet_DoubleTunnelService_VirtualAuth, IZDBLocalManagerNotify)
@@ -69,8 +69,8 @@ type
     procedure DownloadQueryFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
     procedure DownloadQueryWithIDFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
 
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
 
     procedure Command_InitDB(Sender: TPeerIO; InData: TDFE); virtual;
     procedure Command_CloseDB(Sender: TPeerIO; InData: TDFE); virtual;
@@ -121,7 +121,7 @@ type
     procedure Progress; override;
     procedure CadencerProgress(Sender: TObject; const deltaTime, newTime: Double); override;
 
-    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 
     function RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
     procedure UnRegisterQuery_C(QuerierName_: SystemString);
@@ -385,7 +385,7 @@ type
     BackcallPtr: UInt64;
   end;
 
-constructor TDataStoreService_PeerClientRecvTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TDataStoreService_RecvTunnel_UserDefine_VirtualAuth.Create(Owner_: TPeerIO);
 type
   TCipherDef = array [0 .. 4] of TCipherSecurity;
 const
@@ -409,13 +409,13 @@ begin
   FCipherInstance.ProcessTail := True;
 end;
 
-destructor TDataStoreService_PeerClientRecvTunnel_VirtualAuth.Destroy;
+destructor TDataStoreService_RecvTunnel_UserDefine_VirtualAuth.Destroy;
 begin
   DisposeObjectAndNil(FCipherInstance);
   inherited Destroy;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel_VirtualAuth.Progress;
+procedure TDataStoreService_RecvTunnel_UserDefine_VirtualAuth.Progress;
 var
   lastTime: TTimeTick;
 begin
@@ -438,12 +438,12 @@ begin
     end;
 end;
 
-function TDataStoreService_PeerClientRecvTunnel_VirtualAuth.SendTunnelDefine: TDataStoreService_PeerClientSendTunnel_VirtualAuth;
+function TDataStoreService_RecvTunnel_UserDefine_VirtualAuth.SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine_VirtualAuth;
 begin
-  Result := SendTunnel as TDataStoreService_PeerClientSendTunnel_VirtualAuth;
+  Result := SendTunnel as TDataStoreService_SendTunnel_UserDefine_VirtualAuth;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel_VirtualAuth.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
+procedure TDataStoreService_RecvTunnel_UserDefine_VirtualAuth.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
 begin
   if FCipherInstance = nil then
       exit;
@@ -453,19 +453,19 @@ begin
       FCipherInstance.Decrypt(sour, Size);
 end;
 
-constructor TDataStoreService_PeerClientSendTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TDataStoreService_SendTunnel_UserDefine_VirtualAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
 end;
 
-destructor TDataStoreService_PeerClientSendTunnel_VirtualAuth.Destroy;
+destructor TDataStoreService_SendTunnel_UserDefine_VirtualAuth.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TDataStoreService_PeerClientSendTunnel_VirtualAuth.RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+function TDataStoreService_SendTunnel_UserDefine_VirtualAuth.RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 begin
-  Result := RecvTunnel as TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  Result := RecvTunnel as TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 end;
 
 procedure TDataStoreService_VirtualAuth.CreateQuery(pipe: TZDBPipeline);
@@ -490,7 +490,7 @@ begin
   DestStream := TMS64.Create;
   DestStream.SwapInstance(FragmentSource);
 
-  TDataStoreService_PeerClientRecvTunnel_VirtualAuth(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
+  TDataStoreService_RecvTunnel_UserDefine_VirtualAuth(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
 
   ClearBatchStream(pl.SendTunnel.Owner);
   PostBatchStream(pl.SendTunnel.Owner, DestStream, True);
@@ -565,7 +565,7 @@ begin
   end;
 end;
 
-procedure TDataStoreService_VirtualAuth.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TDataStoreService_VirtualAuth.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 var
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
@@ -579,13 +579,13 @@ begin
   inherited UserOut(UserDefineIO);
 end;
 
-procedure TDataStoreService_VirtualAuth.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TDataStoreService_VirtualAuth.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   de: TDFE;
   arr: TDFArrayByte;
 begin
-  RT := UserDefineIO as TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT := UserDefineIO as TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   de := TDFE.Create;
   de.WriteByte(Byte(RT.FDataStoreCipherSecurity));
   arr := de.WriteArrayByte;
@@ -597,7 +597,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_InitDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   InMem: Boolean;
   dataBaseName_: SystemString;
 begin
@@ -615,7 +615,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CloseDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   CloseAndDeleted: Boolean;
 begin
@@ -634,7 +634,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CopyDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_, copy2N: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger_VirtualAuth;
@@ -655,7 +655,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CompressDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger_VirtualAuth;
@@ -675,7 +675,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_ReplaceDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_, replaceN: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -689,7 +689,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_ResetData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -702,7 +702,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_QueryDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   RegedQueryName: SystemString;
   SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean;
   dataBaseName_, OutputDatabaseName_: SystemString;
@@ -765,7 +765,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_DownloadDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
@@ -793,7 +793,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_DownloadDBWithID(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   downloadWithID: Cardinal;
@@ -826,7 +826,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_RequestDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -858,7 +858,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_RequestFastDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -888,7 +888,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_FastPostCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -910,7 +910,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_FastInsertCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -932,7 +932,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_FastModifyCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -954,7 +954,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CompletedPostAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   dID: Cardinal;
   p: PBigStreamBatchPostData;
@@ -977,7 +977,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CompletedInsertAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   dID: Cardinal;
@@ -1002,7 +1002,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_CompletedModifyAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   p: PBigStreamBatchPostData;
@@ -1032,7 +1032,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_DeleteData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
 begin
@@ -1048,7 +1048,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_GetDBList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   lst: TCore_ListForObj;
   i: Integer;
   Database_: TZDBLMStore;
@@ -1069,7 +1069,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_GetQueryList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1087,7 +1087,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_GetQueryState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
   ps: TPipeState;
@@ -1135,7 +1135,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_QueryStop(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1154,7 +1154,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_QueryPause(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1173,7 +1173,7 @@ end;
 
 procedure TDataStoreService_VirtualAuth.Command_QueryPlay(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1268,8 +1268,8 @@ end;
 constructor TDataStoreService_VirtualAuth.Create(RecvTunnel_, SendTunnel_: TZNet_Server);
 begin
   inherited Create(RecvTunnel_, SendTunnel_);
-  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
-  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientSendTunnel_VirtualAuth;
+  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
+  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_SendTunnel_UserDefine_VirtualAuth;
 
   FZDBLocal := TZDBLocalManager.Create;
   FZDBLocal.PipelineClass := TTDataStoreService_DBPipeline;
@@ -1364,9 +1364,9 @@ begin
   inherited CadencerProgress(Sender, deltaTime, newTime);
 end;
 
-function TDataStoreService_VirtualAuth.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+function TDataStoreService_VirtualAuth.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 begin
-  Result := RecvCli.UserDefine as TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  Result := RecvCli.UserDefine as TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 end;
 
 function TDataStoreService_VirtualAuth.RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
@@ -1397,7 +1397,7 @@ function TDataStoreService_VirtualAuth.PostCounterOfPerSec: Double;
 var
   IO_Array: TIO_Array;
   pcid: Cardinal;
-  RT: TDataStoreService_PeerClientRecvTunnel_VirtualAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   Result := 0;
   FRecvTunnel.GetIO_Array(IO_Array);

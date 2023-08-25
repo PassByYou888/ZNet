@@ -17,8 +17,8 @@ type
   TMyServer = class(TZNet_Server_CrossSocket)
   protected
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean); override;
-    procedure p2pVMTunnelOpen(Sender: TPeerClient; p2pVMTunnel: TZNet_WithP2PVM); override;
-    procedure p2pVMTunnelClose(Sender: TPeerClient; p2pVMTunnel: TZNet_WithP2PVM); override;
+    procedure p2pVMTunnelOpen(Sender: TPeerClient; p2pVMTunnel: TZNet_P2PVM); override;
+    procedure p2pVMTunnelClose(Sender: TPeerClient; p2pVMTunnel: TZNet_P2PVM); override;
   end;
 
   TVMServForm = class(TForm)
@@ -67,13 +67,13 @@ begin
   Accept := True;
 end;
 
-procedure TMyServer.p2pVMTunnelOpen(Sender: TPeerClient; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TMyServer.p2pVMTunnelOpen(Sender: TPeerClient; p2pVMTunnel: TZNet_P2PVM);
 begin
   inherited p2pVMTunnelOpen(Sender, p2pVMTunnel);
   p2pVMTunnel.InstallLogicFramework(VMServForm.ServWithVM);
 end;
 
-procedure TMyServer.p2pVMTunnelClose(Sender: TPeerClient; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TMyServer.p2pVMTunnelClose(Sender: TPeerClient; p2pVMTunnel: TZNet_P2PVM);
 begin
   p2pVMTunnel.UninstallLogicFramework(VMServForm.ServWithVM);
   inherited p2pVMTunnelClose(Sender, p2pVMTunnel);

@@ -16,9 +16,9 @@ uses Z.Core, Z.ListEngine, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream, Z.Net, Z.Te
 
 type
   TDataStoreService_NoAuth = class;
-  TDataStoreService_PeerClientSendTunnel_NoAuth = class;
+  TDataStoreService_SendTunnel_UserDefine_NoAuth = class;
 
-  TDataStoreService_PeerClientRecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TDataStoreService_RecvTunnel_UserDefine_NoAuth = class(TService_RecvTunnel_UserDefine_NoAuth)
   private
     FPostPerformaceCounter: Integer;
     FLastPostPerformaceTime: TTimeTick;
@@ -34,19 +34,19 @@ type
 
     procedure Progress; override;
 
-    function SendTunnelDefine: TDataStoreService_PeerClientSendTunnel_NoAuth;
+    function SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine_NoAuth;
     property PostCounterOfPerSec: Double read FPostCounterOfPerSec;
 
     { data security }
     procedure EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
   end;
 
-  TDataStoreService_PeerClientSendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
+  TDataStoreService_SendTunnel_UserDefine_NoAuth = class(TService_SendTunnel_UserDefine_NoAuth)
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
 
-    function RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+    function RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   end;
 
   TDataStoreService_NoAuth = class(TZNet_DoubleTunnelService_NoAuth, IZDBLocalManagerNotify)
@@ -71,8 +71,8 @@ type
     procedure DownloadQueryFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
     procedure DownloadQueryWithIDFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
 
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
 
     procedure Command_InitDB(Sender: TPeerIO; InData: TDFE); virtual;
     procedure Command_CloseDB(Sender: TPeerIO; InData: TDFE); virtual;
@@ -123,7 +123,7 @@ type
     procedure Progress; override;
     procedure CadencerProgress(Sender: TObject; const deltaTime, newTime: Double); override;
 
-    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel_NoAuth;
+    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 
     function RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
     procedure UnRegisterQuery_C(QuerierName_: SystemString);
@@ -387,7 +387,7 @@ type
     BackcallPtr: UInt64;
   end;
 
-constructor TDataStoreService_PeerClientRecvTunnel_NoAuth.Create(Owner_: TPeerIO);
+constructor TDataStoreService_RecvTunnel_UserDefine_NoAuth.Create(Owner_: TPeerIO);
 type
   TCipherDef = array [0 .. 4] of TCipherSecurity;
 const
@@ -411,13 +411,13 @@ begin
   FCipherInstance.ProcessTail := True;
 end;
 
-destructor TDataStoreService_PeerClientRecvTunnel_NoAuth.Destroy;
+destructor TDataStoreService_RecvTunnel_UserDefine_NoAuth.Destroy;
 begin
   DisposeObjectAndNil(FCipherInstance);
   inherited Destroy;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel_NoAuth.Progress;
+procedure TDataStoreService_RecvTunnel_UserDefine_NoAuth.Progress;
 var
   lastTime: TTimeTick;
 begin
@@ -440,12 +440,12 @@ begin
     end;
 end;
 
-function TDataStoreService_PeerClientRecvTunnel_NoAuth.SendTunnelDefine: TDataStoreService_PeerClientSendTunnel_NoAuth;
+function TDataStoreService_RecvTunnel_UserDefine_NoAuth.SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine_NoAuth;
 begin
-  Result := SendTunnel as TDataStoreService_PeerClientSendTunnel_NoAuth;
+  Result := SendTunnel as TDataStoreService_SendTunnel_UserDefine_NoAuth;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel_NoAuth.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
+procedure TDataStoreService_RecvTunnel_UserDefine_NoAuth.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
 begin
   if FCipherInstance = nil then
       exit;
@@ -455,19 +455,19 @@ begin
       FCipherInstance.Decrypt(sour, Size);
 end;
 
-constructor TDataStoreService_PeerClientSendTunnel_NoAuth.Create(Owner_: TPeerIO);
+constructor TDataStoreService_SendTunnel_UserDefine_NoAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
 end;
 
-destructor TDataStoreService_PeerClientSendTunnel_NoAuth.Destroy;
+destructor TDataStoreService_SendTunnel_UserDefine_NoAuth.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TDataStoreService_PeerClientSendTunnel_NoAuth.RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+function TDataStoreService_SendTunnel_UserDefine_NoAuth.RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 begin
-  Result := RecvTunnel as TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  Result := RecvTunnel as TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 end;
 
 procedure TDataStoreService_NoAuth.CreateQuery(pipe: TZDBPipeline);
@@ -492,7 +492,7 @@ begin
   DestStream := TMS64.Create;
   DestStream.SwapInstance(FragmentSource);
 
-  TDataStoreService_PeerClientRecvTunnel_NoAuth(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
+  TDataStoreService_RecvTunnel_UserDefine_NoAuth(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
 
   ClearBatchStream(pl.SendTunnel.Owner);
   PostBatchStream(pl.SendTunnel.Owner, DestStream, True);
@@ -567,7 +567,7 @@ begin
   end;
 end;
 
-procedure TDataStoreService_NoAuth.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TDataStoreService_NoAuth.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
@@ -581,13 +581,13 @@ begin
   inherited UserOut(UserDefineIO);
 end;
 
-procedure TDataStoreService_NoAuth.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TDataStoreService_NoAuth.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   de: TDFE;
   arr: TDFArrayByte;
 begin
-  RT := UserDefineIO as TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT := UserDefineIO as TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   de := TDFE.Create;
   de.WriteByte(Byte(RT.FDataStoreCipherSecurity));
   arr := de.WriteArrayByte;
@@ -599,7 +599,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_InitDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   InMem: Boolean;
   dataBaseName_: SystemString;
 begin
@@ -617,7 +617,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CloseDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   CloseAndDeleted: Boolean;
 begin
@@ -636,7 +636,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CopyDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_, copy2N: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger_NoAuth;
@@ -657,7 +657,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CompressDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger_NoAuth;
@@ -677,7 +677,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_ReplaceDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_, replaceN: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -691,7 +691,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_ResetData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -704,7 +704,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_QueryDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   RegedQueryName: SystemString;
   SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean;
   dataBaseName_, OutputDatabaseName_: SystemString;
@@ -767,7 +767,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_DownloadDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
@@ -795,7 +795,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_DownloadDBWithID(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   downloadWithID: Cardinal;
@@ -828,7 +828,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_RequestDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -860,7 +860,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_RequestFastDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -890,7 +890,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_FastPostCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -912,7 +912,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_FastInsertCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -934,7 +934,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_FastModifyCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -956,7 +956,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CompletedPostAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   dID: Cardinal;
   p: PBigStreamBatchPostData;
@@ -979,7 +979,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CompletedInsertAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   dID: Cardinal;
@@ -1004,7 +1004,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_CompletedModifyAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   p: PBigStreamBatchPostData;
@@ -1034,7 +1034,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_DeleteData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   dataBaseName_: SystemString;
   dStorePos: Int64;
 begin
@@ -1050,7 +1050,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_GetDBList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   lst: TCore_ListForObj;
   i: Integer;
   Database_: TZDBLMStore;
@@ -1071,7 +1071,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_GetQueryList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1089,7 +1089,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_GetQueryState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
   ps: TPipeState;
@@ -1137,7 +1137,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_QueryStop(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1156,7 +1156,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_QueryPause(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1175,7 +1175,7 @@ end;
 
 procedure TDataStoreService_NoAuth.Command_QueryPlay(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1270,8 +1270,8 @@ end;
 constructor TDataStoreService_NoAuth.Create(RecvTunnel_, SendTunnel_: TZNet_Server);
 begin
   inherited Create(RecvTunnel_, SendTunnel_);
-  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientRecvTunnel_NoAuth;
-  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientSendTunnel_NoAuth;
+  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_RecvTunnel_UserDefine_NoAuth;
+  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_SendTunnel_UserDefine_NoAuth;
 
   FZDBLocal := TZDBLocalManager.Create;
   FZDBLocal.PipelineClass := TTDataStoreService_DBPipeline;
@@ -1366,9 +1366,9 @@ begin
   inherited CadencerProgress(Sender, deltaTime, newTime);
 end;
 
-function TDataStoreService_NoAuth.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel_NoAuth;
+function TDataStoreService_NoAuth.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 begin
-  Result := RecvCli.UserDefine as TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  Result := RecvCli.UserDefine as TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 end;
 
 function TDataStoreService_NoAuth.RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
@@ -1399,7 +1399,7 @@ function TDataStoreService_NoAuth.PostCounterOfPerSec: Double;
 var
   IO_Array: TIO_Array;
   pcid: Cardinal;
-  RT: TDataStoreService_PeerClientRecvTunnel_NoAuth;
+  RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
 begin
   Result := 0;
   FRecvTunnel.GetIO_Array(IO_Array);

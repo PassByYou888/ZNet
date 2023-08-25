@@ -31,14 +31,14 @@ type
 {$REGION 'define_bridge'}
   TC40_NetDisk_VM_Service = class;
 
-  TC40_NetDisk_VM_Service_SendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
+  TC40_NetDisk_VM_Service_SendTunnel_NoAuth = class(TService_SendTunnel_UserDefine_NoAuth)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
 
-  TC40_NetDisk_VM_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TC40_NetDisk_VM_Service_RecvTunnel_NoAuth = class(TService_RecvTunnel_UserDefine_NoAuth)
   private
     NetDisk_File_Name: U_String;
     NetDisk_File_Field, NetDisk_File_Item: U_String;
@@ -285,8 +285,8 @@ type
     procedure Remove_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth);
     function Check_PrimaryIdentifier(RecvIO_Define_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth): Boolean;
   protected
-    procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
     // user db interface
     FUserDB_Client: TC40_NetDisk_UserDB_Client;
@@ -1301,7 +1301,7 @@ begin
   Result := L.Count > 0;
 end;
 
-procedure TC40_NetDisk_VM_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_NetDisk_VM_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin
@@ -1311,7 +1311,7 @@ begin
   TC40_NetDisk_VM_Service_SendTunnel_NoAuth(IO_Def.SendTunnel).VM_Service := self;
 end;
 
-procedure TC40_NetDisk_VM_Service.DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_NetDisk_VM_Service.DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   IO_Def: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
 begin

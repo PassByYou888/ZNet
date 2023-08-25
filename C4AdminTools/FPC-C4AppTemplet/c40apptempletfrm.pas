@@ -1441,7 +1441,7 @@ begin
   RefreshDependReg('DP');
   RefreshServiceReg('DP');
 
-  SysProgress.PostM1(@Do_Init_CmdLine);
+  MainThreadPost.PostM1(@Do_Init_CmdLine);
 end;
 
 destructor TC40AppTempletForm.Destroy;

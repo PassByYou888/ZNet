@@ -20,7 +20,7 @@ uses
 
 type
   TDTService_VirtualAuth = class;
-  TPeerClientUserDefineForRecvTunnel_VirtualAuth = class;
+  TService_RecvTunnel_UserDefine_VirtualAuth = class;
   TDTService_VirtualAuthClass = class of TDTService_VirtualAuth;
 
   TVirtualAuthIO = class(TCore_Object)
@@ -32,7 +32,7 @@ type
     Owner: TDTService_VirtualAuth;
     UserID, Passwd: SystemString;
     function Online: Boolean;
-    function UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+    function UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
     procedure Accept;
     procedure Reject;
     procedure Bye;
@@ -47,15 +47,15 @@ type
     Owner: TDTService_VirtualAuth;
     UserID, Passwd: SystemString;
     function Online: Boolean;
-    function UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+    function UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
     procedure Accept;
     procedure Reject;
     procedure Bye;
   end;
 
-  TPeerClientUserDefineForSendTunnel_VirtualAuth = class(TPeerIOUserDefine)
+  TService_SendTunnel_UserDefine_VirtualAuth = class(TPeer_IO_User_Define)
   public
-    RecvTunnel: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+    RecvTunnel: TService_RecvTunnel_UserDefine_VirtualAuth;
     RecvTunnelID: Cardinal;
     DoubleTunnelService: TDTService_VirtualAuth;
 
@@ -66,12 +66,12 @@ type
     property BindOk: Boolean read LinkOk;
   end;
 
-  TPeerClientUserDefineForRecvTunnel_VirtualAuth = class(TPeerIOUserDefine)
+  TService_RecvTunnel_UserDefine_VirtualAuth = class(TPeer_IO_User_Define)
   private
     FCurrentFileStream: TCore_Stream;
     FCurrentReceiveFileName: SystemString;
   public
-    SendTunnel: TPeerClientUserDefineForSendTunnel_VirtualAuth;
+    SendTunnel: TService_SendTunnel_UserDefine_VirtualAuth;
     SendTunnelID: Cardinal;
     DoubleTunnelService: TDTService_VirtualAuth;
     UserID, Passwd: SystemString;
@@ -88,8 +88,8 @@ type
 
   TVirtualAuth_OnAuth = procedure(Sender: TDTService_VirtualAuth; AuthIO: TVirtualAuthIO) of object;
   TVirtualAuth_OnReg = procedure(Sender: TDTService_VirtualAuth; RegIO: TVirtualRegIO) of object;
-  TVirtualAuth_OnLinkSuccess = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth) of object;
-  TVirtualAuth_OnUserOut = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth) of object;
+  TVirtualAuth_OnLinkSuccess = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth) of object;
+  TVirtualAuth_OnUserOut = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth) of object;
 
   TDTService_VirtualAuth = class(TCore_InterfacedObject)
   protected
@@ -107,10 +107,10 @@ type
     { virtual event }
     procedure UserAuth(Sender: TVirtualAuthIO); virtual;
     procedure UserReg(Sender: TVirtualRegIO); virtual;
-    procedure UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); virtual;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); virtual;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); virtual;
-    procedure UserPostFileSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth; fn: SystemString); virtual;
+    procedure UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); virtual;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); virtual;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); virtual;
+    procedure UserPostFileSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth; fn: SystemString); virtual;
   protected
     { registed server command }
     procedure Command_UserLogin(Sender: TPeerIO; InData, OutData: TDFE); virtual;
@@ -148,7 +148,7 @@ type
     procedure RegisterCommand; virtual;
     procedure UnRegisterCommand; virtual;
 
-    function GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+    function GetUserDefineRecvTunnel(RecvCli: TPeerIO): TService_RecvTunnel_UserDefine_VirtualAuth;
 
     function TotalLinkCount: Integer;
 
@@ -185,22 +185,22 @@ type
   end;
 
   TDTClient_VirtualAuth = class;
-  TClientUserDefineForSendTunnel_VirtualAuth = class;
+  TClient_SendTunnel_VirtualAuth = class;
   TDTClient_VirtualAuthClass = class of TDTClient_VirtualAuth;
 
-  TClientUserDefineForRecvTunnel_VirtualAuth = class(TPeerIOUserDefine)
+  TClient_RecvTunnel_VirtualAuth = class(TPeer_IO_User_Define)
   public
     Client: TDTClient_VirtualAuth;
-    SendTunnel: TClientUserDefineForSendTunnel_VirtualAuth;
+    SendTunnel: TClient_SendTunnel_VirtualAuth;
 
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
 
-  TClientUserDefineForSendTunnel_VirtualAuth = class(TPeerIOUserDefine)
+  TClient_SendTunnel_VirtualAuth = class(TPeer_IO_User_Define)
   public
     Client: TDTClient_VirtualAuth;
-    RecvTunnel: TClientUserDefineForRecvTunnel_VirtualAuth;
+    RecvTunnel: TClient_RecvTunnel_VirtualAuth;
 
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
@@ -870,12 +870,12 @@ begin
   Result := Owner.RecvTunnel.Exists(RecvIO_ID);
 end;
 
-function TVirtualAuthIO.UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+function TVirtualAuthIO.UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   Result := nil;
   if not Online then
       exit;
-  Result := Owner.RecvTunnel[RecvIO_ID].UserDefine as TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  Result := Owner.RecvTunnel[RecvIO_ID].UserDefine as TService_RecvTunnel_UserDefine_VirtualAuth;
 end;
 
 procedure TVirtualAuthIO.Accept;
@@ -959,12 +959,12 @@ begin
   Result := Owner.RecvTunnel.Exists(RecvIO_ID);
 end;
 
-function TVirtualRegIO.UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+function TVirtualRegIO.UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   Result := nil;
   if not Online then
       exit;
-  Result := Owner.RecvTunnel[RecvIO_ID].UserDefine as TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  Result := Owner.RecvTunnel[RecvIO_ID].UserDefine as TService_RecvTunnel_UserDefine_VirtualAuth;
 end;
 
 procedure TVirtualRegIO.Accept;
@@ -1029,7 +1029,7 @@ begin
   DelayFreeObj(1.0, Self);
 end;
 
-constructor TPeerClientUserDefineForSendTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TService_SendTunnel_UserDefine_VirtualAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   RecvTunnel := nil;
@@ -1037,7 +1037,7 @@ begin
   DoubleTunnelService := nil;
 end;
 
-destructor TPeerClientUserDefineForSendTunnel_VirtualAuth.Destroy;
+destructor TService_SendTunnel_UserDefine_VirtualAuth.Destroy;
 begin
   if (DoubleTunnelService <> nil) and (RecvTunnelID > 0) and (RecvTunnel <> nil) then
     begin
@@ -1047,12 +1047,12 @@ begin
   inherited Destroy;
 end;
 
-function TPeerClientUserDefineForSendTunnel_VirtualAuth.LinkOk: Boolean;
+function TService_SendTunnel_UserDefine_VirtualAuth.LinkOk: Boolean;
 begin
   Result := DoubleTunnelService <> nil;
 end;
 
-constructor TPeerClientUserDefineForRecvTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TService_RecvTunnel_UserDefine_VirtualAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   SendTunnel := nil;
@@ -1065,7 +1065,7 @@ begin
   LoginSuccessed := False;
 end;
 
-destructor TPeerClientUserDefineForRecvTunnel_VirtualAuth.Destroy;
+destructor TService_RecvTunnel_UserDefine_VirtualAuth.Destroy;
 begin
   if DoubleTunnelService <> nil then
     begin
@@ -1085,7 +1085,7 @@ begin
   inherited Destroy;
 end;
 
-function TPeerClientUserDefineForRecvTunnel_VirtualAuth.LinkOk: Boolean;
+function TService_RecvTunnel_UserDefine_VirtualAuth.LinkOk: Boolean;
 begin
   Result := DoubleTunnelService <> nil;
 end;
@@ -1108,11 +1108,11 @@ begin
   end;
 end;
 
-procedure TDTService_VirtualAuth.UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TDTService_VirtualAuth.UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
 end;
 
-procedure TDTService_VirtualAuth.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TDTService_VirtualAuth.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   try
     if Assigned(FOnLinkSuccess) then
@@ -1121,7 +1121,7 @@ begin
   end;
 end;
 
-procedure TDTService_VirtualAuth.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TDTService_VirtualAuth.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   try
     if Assigned(FOnUserOut) then
@@ -1130,7 +1130,7 @@ begin
   end;
 end;
 
-procedure TDTService_VirtualAuth.UserPostFileSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth; fn: SystemString);
+procedure TDTService_VirtualAuth.UserPostFileSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth; fn: SystemString);
 begin
 end;
 
@@ -1138,7 +1138,7 @@ procedure TDTService_VirtualAuth.Command_UserLogin(Sender: TPeerIO; InData, OutD
 var
   SendTunnelID: Cardinal;
   UserID, UserPasswd: SystemString;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   AuthIO: TVirtualAuthIO;
 begin
   SendTunnelID := InData.Reader.ReadCardinal;
@@ -1183,7 +1183,7 @@ procedure TDTService_VirtualAuth.Command_RegisterUser(Sender: TPeerIO; InData, O
 var
   SendTunnelID: Cardinal;
   UserID, UserPasswd: SystemString;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   RegIO: TVirtualRegIO;
 begin
   SendTunnelID := InData.Reader.ReadCardinal;
@@ -1227,7 +1227,7 @@ end;
 procedure TDTService_VirtualAuth.Command_TunnelLink(Sender: TPeerIO; InData, OutData: TDFE);
 var
   RecvID, SendID: Cardinal;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   RecvID := InData.Reader.ReadCardinal;
   SendID := InData.Reader.ReadCardinal;
@@ -1258,7 +1258,7 @@ begin
       exit;
     end;
 
-  UserDefineIO.SendTunnel := FSendTunnel.PeerIO[SendID].UserDefine as TPeerClientUserDefineForSendTunnel_VirtualAuth;
+  UserDefineIO.SendTunnel := FSendTunnel.PeerIO[SendID].UserDefine as TService_SendTunnel_UserDefine_VirtualAuth;
   UserDefineIO.SendTunnelID := SendID;
   UserDefineIO.DoubleTunnelService := Self;
 
@@ -1281,7 +1281,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFileTime(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fullfn, fileName: SystemString;
 begin
   if not FFileSystem then
@@ -1304,7 +1304,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFileInfo(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fullfn, fileName: SystemString;
 begin
   if not FFileSystem then
@@ -1368,7 +1368,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   if not FFileSystem then
       exit;
@@ -1381,7 +1381,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFile(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fullfn, fileName, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -1435,7 +1435,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFileAs(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fullfn, fileName, saveFileName, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -1490,7 +1490,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_PostFileInfo(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fn: SystemString;
   StartPos: Int64;
   FSize: Int64;
@@ -1540,7 +1540,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_PostFile(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   if not FFileSystem then
       exit;
@@ -1561,7 +1561,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_PostFileOver(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fn: SystemString;
 begin
   if not FFileSystem then
@@ -1586,7 +1586,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetFileFragmentData(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth;
   fullfn, fileName: SystemString;
   StartPos, EndPos, siz, fp: Int64;
   RemoteBackcallAddr: UInt64;
@@ -1654,7 +1654,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_NewBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TService_RecvTunnel_UserDefine_VirtualAuth;
   p: PBigStreamBatchPostData;
 begin
   RT := GetUserDefineRecvTunnel(Sender);
@@ -1667,7 +1667,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_PostBatchStream(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  RT: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TService_RecvTunnel_UserDefine_VirtualAuth;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
@@ -1700,7 +1700,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_ClearBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   RT := GetUserDefineRecvTunnel(Sender);
   if not RT.LinkOk then
@@ -1710,7 +1710,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_PostBatchStreamDone(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TService_RecvTunnel_UserDefine_VirtualAuth;
   rMD5, sMD5: TMD5;
   backCallVal: UInt64;
   backCallValPtr: POnStateStruct;
@@ -1756,7 +1756,7 @@ end;
 
 procedure TDTService_VirtualAuth.Command_GetBatchStreamState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TService_RecvTunnel_UserDefine_VirtualAuth;
   i: Integer;
   p: PBigStreamBatchPostData;
 
@@ -1780,9 +1780,9 @@ constructor TDTService_VirtualAuth.Create(RecvTunnel_, SendTunnel_: TZNet_Server
 begin
   inherited Create;
   FRecvTunnel := RecvTunnel_;
-  FRecvTunnel.PeerClientUserDefineClass := TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  FRecvTunnel.PeerClientUserDefineClass := TService_RecvTunnel_UserDefine_VirtualAuth;
   FSendTunnel := SendTunnel_;
-  FSendTunnel.PeerClientUserDefineClass := TPeerClientUserDefineForSendTunnel_VirtualAuth;
+  FSendTunnel.PeerClientUserDefineClass := TService_SendTunnel_UserDefine_VirtualAuth;
 
   FRecvTunnel.DoubleChannelFramework := Self;
   FSendTunnel.DoubleChannelFramework := Self;
@@ -1890,11 +1890,11 @@ begin
   FRecvTunnel.DeleteRegistedCMD(C_GetBatchStreamState);
 end;
 
-function TDTService_VirtualAuth.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+function TDTService_VirtualAuth.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TService_RecvTunnel_UserDefine_VirtualAuth;
 begin
   if RecvCli = nil then
       exit(nil);
-  Result := RecvCli.UserDefine as TPeerClientUserDefineForRecvTunnel_VirtualAuth;
+  Result := RecvCli.UserDefine as TService_RecvTunnel_UserDefine_VirtualAuth;
 end;
 
 function TDTService_VirtualAuth.TotalLinkCount: Integer;
@@ -2038,28 +2038,28 @@ begin
   DisposeObject(de);
 end;
 
-constructor TClientUserDefineForRecvTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TClient_RecvTunnel_VirtualAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   Client := nil;
   SendTunnel := nil;
 end;
 
-destructor TClientUserDefineForRecvTunnel_VirtualAuth.Destroy;
+destructor TClient_RecvTunnel_VirtualAuth.Destroy;
 begin
   if Client <> nil then
       Client.FLinkOk := False;
   inherited Destroy;
 end;
 
-constructor TClientUserDefineForSendTunnel_VirtualAuth.Create(Owner_: TPeerIO);
+constructor TClient_SendTunnel_VirtualAuth.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   Client := nil;
   RecvTunnel := nil;
 end;
 
-destructor TClientUserDefineForSendTunnel_VirtualAuth.Destroy;
+destructor TClient_SendTunnel_VirtualAuth.Destroy;
 begin
   if Client <> nil then
       Client.FLinkOk := False;
@@ -2297,12 +2297,12 @@ end;
 
 procedure TDTClient_VirtualAuth.Command_NewBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TClient_RecvTunnel_VirtualAuth;
   p: PBigStreamBatchPostData;
 begin
   if not LinkOk then
       exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT := Sender.UserDefine as TClient_RecvTunnel_VirtualAuth;
   p := RT.BigStreamBatchList.NewPostData;
   p^.RemoteMD5 := InData.Reader.ReadMD5;
   p^.CompletedBackcallPtr := InData.Reader.ReadPointer;
@@ -2310,13 +2310,13 @@ end;
 
 procedure TDTClient_VirtualAuth.Command_PostBatchStream(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  RT: TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TClient_RecvTunnel_VirtualAuth;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
   if not LinkOk then
       exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT := Sender.UserDefine as TClient_RecvTunnel_VirtualAuth;
 
   if Sender.UserDefine.BigStreamBatchList.Count > 0 then
     begin
@@ -2343,19 +2343,19 @@ end;
 
 procedure TDTClient_VirtualAuth.Command_ClearBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TClient_RecvTunnel_VirtualAuth;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
   if not LinkOk then
       exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT := Sender.UserDefine as TClient_RecvTunnel_VirtualAuth;
   RT.BigStreamBatchList.Clear;
 end;
 
 procedure TDTClient_VirtualAuth.Command_PostBatchStreamDone(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TClient_RecvTunnel_VirtualAuth;
   rMD5, sMD5: TMD5;
   backCallVal: UInt64;
   backCallValPtr: POnStateStruct;
@@ -2363,7 +2363,7 @@ var
 begin
   if not LinkOk then
       exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT := Sender.UserDefine as TClient_RecvTunnel_VirtualAuth;
 
   rMD5 := InData.Reader.ReadMD5;
   sMD5 := InData.Reader.ReadMD5;
@@ -2401,7 +2401,7 @@ end;
 
 procedure TDTClient_VirtualAuth.Command_GetBatchStreamState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT: TClient_RecvTunnel_VirtualAuth;
   i: Integer;
   p: PBigStreamBatchPostData;
 
@@ -2409,7 +2409,7 @@ var
 begin
   if not LinkOk then
       exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel_VirtualAuth;
+  RT := Sender.UserDefine as TClient_RecvTunnel_VirtualAuth;
 
   for i := 0 to RT.BigStreamBatchList.Count - 1 do
     begin
@@ -2563,11 +2563,11 @@ begin
               FFileSystem := Result_.ReadBool(2)
           else
               FFileSystem := True;
-          TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine);
+          TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine);
 
-          TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine);
+          TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine);
 
           FLinkOk := True;
         end;
@@ -2603,11 +2603,11 @@ begin
   inherited Create;
   FRecvTunnel := RecvTunnel_;
   FRecvTunnel.NotyifyInterface := Self;
-  FRecvTunnel.PeerClientUserDefineClass := TClientUserDefineForRecvTunnel_VirtualAuth;
+  FRecvTunnel.PeerClientUserDefineClass := TClient_RecvTunnel_VirtualAuth;
 
   FSendTunnel := SendTunnel_;
   FSendTunnel.NotyifyInterface := Self;
-  FSendTunnel.PeerClientUserDefineClass := TClientUserDefineForSendTunnel_VirtualAuth;
+  FSendTunnel.PeerClientUserDefineClass := TClient_SendTunnel_VirtualAuth;
 
   FRecvTunnel.DoubleChannelFramework := Self;
   FSendTunnel.DoubleChannelFramework := Self;
@@ -2929,11 +2929,11 @@ begin
               FFileSystem := resDE.ReadBool(2)
           else
               FFileSystem := True;
-          TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine);
+          TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine);
 
-          TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForRecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClientUserDefineForSendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine);
+          TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_RecvTunnel_VirtualAuth(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClient_SendTunnel_VirtualAuth(FSendTunnel.ClientIO.UserDefine);
 
           FLinkOk := True;
         end;

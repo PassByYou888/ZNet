@@ -533,9 +533,9 @@ end;
 function StrToArrayVec2(const s: SystemString): TArrayVec2;
 var
   n, v1, v2: U_String;
-  L: TVec2List;
+  L: TV2L;
 begin
-  L := TVec2List.Create;
+  L := TV2L.Create;
   n := umlTrimSpace(s);
   while n.L > 0 do
     begin
@@ -1979,4 +1979,3 @@ begin
 end;
 
 end.
- 

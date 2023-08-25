@@ -23,9 +23,9 @@ type
   TMyDataStoreService = class(TDataStoreService_VirtualAuth)
   protected
     procedure UserAuth(Sender: TVirtualAuthIO); override;
-    procedure UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); override;
+    procedure UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); override;
   end;
 
   TZDBBatchDataServiceForm = class(TForm)
@@ -57,7 +57,7 @@ implementation
 {$R *.dfm}
 
 
-procedure TMyDataStoreService.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyDataStoreService.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   DoStatus('用户 %s 建立交互链接成功', [UserDefineIO.UserID]);
   inherited;
@@ -68,13 +68,13 @@ begin
   Sender.Accept;
 end;
 
-procedure TMyDataStoreService.UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyDataStoreService.UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   DoStatus('用户 %s 登录成功', [UserDefineIO.UserID]);
   inherited;
 end;
 
-procedure TMyDataStoreService.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TMyDataStoreService.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   DoStatus('用户 %s 离线', [UserDefineIO.UserID]);
   inherited;

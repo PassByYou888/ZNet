@@ -181,7 +181,7 @@ procedure BatchImportPathToDB(InitDir, Filter: SystemString; dbEng: TObjectDataM
         dbEng.FastDelete(aFieldPos, srHnd.HeaderPOS);
       end;
 
-    fAry := umlGetFileListWithFullPath(APath);
+    fAry := umlGet_File_Full_Array(APath);
     for n in fAry do
       begin
         suffixn := umlGetFileName(n).Text;
@@ -228,7 +228,7 @@ procedure BatchImportPathToDB(InitDir, Filter: SystemString; dbEng: TObjectDataM
     DisposeObject(hashTextStream);
     DisposeObject(md5List);
 
-    fAry := umlGetDirListWithFullPath(APath);
+    fAry := umlGet_Path_Full_Array(APath);
     for n in fAry do
       begin
         suffixn := umlGetLastStr(n, '/\').Text;

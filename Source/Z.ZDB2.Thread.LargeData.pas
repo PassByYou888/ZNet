@@ -31,15 +31,15 @@ type
   TZDB2_Custom_Large_Data_Class = class of TZDB2_Custom_Large_Data;
 
   { Sequence ID pool structure, providing reverse lookup function }
-  TZDB2_Custom_Small_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<UInt64, TZDB2_Custom_Small_Data>;
-  TZDB2_Custom_Medium_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<UInt64, TZDB2_Custom_Medium_Data>;
-  TZDB2_Custom_Large_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<UInt64, TZDB2_Custom_Large_Data>;
+  TZDB2_Custom_Small_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Small_Data>;
+  TZDB2_Custom_Medium_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Medium_Data>;
+  TZDB2_Custom_Large_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Large_Data>;
 
   { Chain tools, data exchange, caching, batching, computation, classification }
   TZDB2_Custom_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Custom_Small_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<UInt64>;
-  TZDB2_Custom_Medium_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<UInt64>;
-  TZDB2_Custom_Large_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<UInt64>;
+  TZDB2_Custom_Small_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
+  TZDB2_Custom_Medium_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
+  TZDB2_Custom_Large_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
 
   { TZDB2_Custom_Small_Data storage format }
   { Small data has a storage sequence mechanism that can be automatically preloaded, with full data loading as the preloading method }
@@ -51,13 +51,13 @@ type
   TZDB2_Custom_Small_Data = class(TZDB2_Th_Engine_Data)
   private
     FOwner_Large_Marshal: TZDB2_Custom_Large_Marshal;
-    { 0-7: UInt64, serialization ID, representing the sequence of data entries, and opening the database will automatically restore the sorting order }
-    FSequence_ID: UInt64;
+    { 0-7: Int64, serialization ID, representing the sequence of data entries, and opening the database will automatically restore the sorting order }
+    FSequence_ID: Int64;
     { 8-24: MD5 of the data body, which represents the data body ending from 24. Providing MD5 here is equivalent to providing reference information for fault recovery }
     FMD5: TMD5;
   public
     property Owner_Large_Marshal: TZDB2_Custom_Large_Marshal read FOwner_Large_Marshal;
-    property Sequence_ID: UInt64 read FSequence_ID write FSequence_ID;
+    property Sequence_ID: Int64 read FSequence_ID write FSequence_ID;
     property MD5: TMD5 read FMD5 write FMD5;
     constructor Create(); override;
     destructor Destroy; override;
@@ -88,14 +88,14 @@ type
   TZDB2_Custom_Medium_Data = class(TZDB2_Th_Engine_Data)
   private
     FOwner_Large_Marshal: TZDB2_Custom_Large_Marshal;
-    { 0-7: UInt64, serialization ID, representing the sequence of data entries. Opening the database will automatically restore the sorting order, and Extract is not supported_Data_Source }
-    FSequence_ID: UInt64;
+    { 0-7: Int64, serialization ID, representing the sequence of data entries. Opening the database will automatically restore the sorting order, and Extract is not supported_Data_Source }
+    FSequence_ID: Int64;
     { 8-24: The md5 of the data body represents the data body that ends from 24. Providing md5 here is equivalent to providing a guarantee for fault recovery }
     { Medium Big data will only calculate md5 when submitting and repairing the database. There will be a slight delay in calculating md5 when submitting, but the impact will be slight }
     FMD5: TMD5;
   public
     property Owner_Large_Marshal: TZDB2_Custom_Large_Marshal read FOwner_Large_Marshal;
-    property Sequence_ID: UInt64 read FSequence_ID write FSequence_ID;
+    property Sequence_ID: Int64 read FSequence_ID write FSequence_ID;
     property MD5: TMD5 read FMD5 write FMD5;
     constructor Create(); override;
     destructor Destroy; override;
@@ -123,14 +123,14 @@ type
   TZDB2_Custom_Large_Data = class(TZDB2_Th_Engine_Data)
   private
     FOwner_Large_Marshal: TZDB2_Custom_Large_Marshal;
-    { 0-7: UInt64, serialization ID, representing the sequence of data entries. Opening the database will automatically restore the sorting order, and Extract is not supported_Data_Source }
-    FSequence_ID: UInt64;
+    { 0-7: Int64, serialization ID, representing the sequence of data entries. Opening the database will automatically restore the sorting order, and Extract is not supported_Data_Source }
+    FSequence_ID: Int64;
     { 8-24: The md5 of the data body represents the data body that ends from 24. Providing md5 here is equivalent to providing a guarantee for fault recovery }
     { Medium Big data will only calculate md5 when submitting and repairing the database. There will be a slight delay in calculating md5 when submitting, but the impact will be slight }
     FMD5: TMD5;
   public
     property Owner_Large_Marshal: TZDB2_Custom_Large_Marshal read FOwner_Large_Marshal;
-    property Sequence_ID: UInt64 read FSequence_ID write FSequence_ID;
+    property Sequence_ID: Int64 read FSequence_ID write FSequence_ID;
     property MD5: TMD5 read FMD5 write FMD5;
     constructor Create(); override;
     destructor Destroy; override;
@@ -198,9 +198,9 @@ type
     { Active batch Post instances }
     FBatch_Post_Num: Integer;
     { Sequence seed }
-    FCurrent_S_DB_Sequence_ID: UInt64;
-    FCurrent_M_DB_Sequence_ID: UInt64;
-    FCurrent_L_DB_Sequence_ID: UInt64;
+    FCurrent_S_DB_Sequence_ID: Int64;
+    FCurrent_M_DB_Sequence_ID: Int64;
+    FCurrent_L_DB_Sequence_ID: Int64;
     { Interface Class }
     FSmall_Data_Class: TZDB2_Custom_Small_Data_Class;
     FMedium_Data_Class: TZDB2_Custom_Medium_Data_Class;
@@ -235,17 +235,17 @@ type
     procedure Set_Medium_Data_Class(const Value: TZDB2_Custom_Medium_Data_Class);
     procedure Set_Large_Data_Class(const Value: TZDB2_Custom_Large_Data_Class);
     { TZDB2_Custom_Small_Data storage format }
-    { 0: UInt64, serialized ID, representing the sequence of data entries }
+    { 0: Int64, serialized ID, representing the sequence of data entries }
     { The following data structure Make your own decision, and when opening the database, you will use Extract_Data_Source initializes data }
     procedure Do_Th_S_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
     function Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
     { TZDB2_Custom_Medium_Data storage format }
-    { 0: UInt64, serialized ID, representing the sequence of data entries }
+    { 0: Int64, serialized ID, representing the sequence of data entries }
     { The subsequent data structure is non user modified, and the system is dead set }
     procedure Do_Th_M_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
     function Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
     { TZDB2_Custom_Large_Data storage format }
-    { 0: UInt64, serialized ID, representing the sequence of data entries }
+    { 0: Int64, serialized ID, representing the sequence of data entries }
     { The subsequent data structure is non user modified, and the system is dead set }
     procedure Do_Th_L_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
     function Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
@@ -397,7 +397,7 @@ begin
   Result := TMem64.Create;
   Result.Size := Data_Source.Size + 24;
   Result.Position := 0;
-  Result.WriteUInt64(FSequence_ID);
+  Result.WriteInt64(FSequence_ID);
   Result.WriteMD5(FMD5);
   Result.WritePtr(Data_Source.Memory, Data_Source.Size);
   if AutoFree_ then
@@ -409,7 +409,7 @@ begin
   if Update_ then
     begin
       Data_Source.Position := 0;
-      FSequence_ID := Data_Source.ReadUInt64;
+      FSequence_ID := Data_Source.ReadInt64;
       FMD5 := Data_Source.ReadMD5;
     end
   else
@@ -453,7 +453,7 @@ begin
   Result := TMem64.Create;
   Result.Size := Data_Source.Size + 24;
   Result.Position := 0;
-  Result.WriteUInt64(FSequence_ID);
+  Result.WriteInt64(FSequence_ID);
   Result.WriteMD5(FMD5);
   Result.WritePtr(Data_Source.Memory, Data_Source.Size);
   if AutoFree_ then
@@ -465,7 +465,7 @@ begin
   if Update_ then
     begin
       Data_Source.Position := 0;
-      FSequence_ID := Data_Source.ReadUInt64;
+      FSequence_ID := Data_Source.ReadInt64;
       FMD5 := Data_Source.ReadMD5;
     end
   else
@@ -509,7 +509,7 @@ begin
   Result := TMem64.Create;
   Result.Size := Data_Source.Size + 24;
   Result.Position := 0;
-  Result.WriteUInt64(FSequence_ID);
+  Result.WriteInt64(FSequence_ID);
   Result.WriteMD5(FMD5);
   Result.WritePtr(Data_Source.Memory, Data_Source.Size);
   if AutoFree_ then
@@ -521,7 +521,7 @@ begin
   if Update_ then
     begin
       Data_Source.Position := 0;
-      FSequence_ID := Data_Source.ReadUInt64;
+      FSequence_ID := Data_Source.ReadInt64;
       FMD5 := Data_Source.ReadMD5;
     end
   else
@@ -683,7 +683,7 @@ end;
 
 function TZDB2_Custom_Large_Marshal.Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
 begin
-  Result := CompareUInt64(TZDB2_Custom_Small_Data(L).FSequence_ID, TZDB2_Custom_Small_Data(R).FSequence_ID);
+  Result := CompareInt64(TZDB2_Custom_Small_Data(L).FSequence_ID, TZDB2_Custom_Small_Data(R).FSequence_ID);
 end;
 
 procedure TZDB2_Custom_Large_Marshal.Do_Th_M_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
@@ -697,7 +697,7 @@ end;
 
 function TZDB2_Custom_Large_Marshal.Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
 begin
-  Result := CompareUInt64(TZDB2_Custom_Medium_Data(L).FSequence_ID, TZDB2_Custom_Medium_Data(R).FSequence_ID);
+  Result := CompareInt64(TZDB2_Custom_Medium_Data(L).FSequence_ID, TZDB2_Custom_Medium_Data(R).FSequence_ID);
 end;
 
 procedure TZDB2_Custom_Large_Marshal.Do_Th_L_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
@@ -711,7 +711,7 @@ end;
 
 function TZDB2_Custom_Large_Marshal.Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
 begin
-  Result := CompareUInt64(TZDB2_Custom_Large_Data(L).FSequence_ID, TZDB2_Custom_Large_Data(R).FSequence_ID);
+  Result := CompareInt64(TZDB2_Custom_Large_Data(L).FSequence_ID, TZDB2_Custom_Large_Data(R).FSequence_ID);
 end;
 
 constructor TZDB2_Custom_Large_Marshal.Create();
@@ -1566,9 +1566,9 @@ begin
           if Sender.Error_Num > 0 then
               exit;
           d := TDFE.Create;
-          d.WriteUInt64(Sender.User_Hash_Variants.GetDefaultValue('m_id', 0));
+          d.WriteInt64(Sender.User_Hash_Variants.GetDefaultValue('m_id', 0));
           d.WriteString(Sender.User_Hash_Strings.GetDefaultValue('m_md5', ''));
-          d.WriteUInt64(Sender.User_Hash_Variants.GetDefaultValue('l_id', 0));
+          d.WriteInt64(Sender.User_Hash_Variants.GetDefaultValue('l_id', 0));
           d.WriteString(Sender.User_Hash_Strings.GetDefaultValue('l_md5', ''));
           tmp_m64 := TMS64.Create;
           d.FastEncodeTo(tmp_m64);
@@ -1605,13 +1605,13 @@ begin
 
       M64 := TMS64.Create;
       M64.Size := umlRR(8192, 500 * 1024);
-      d.WriteUInt64(Eng_.Post_Data_To_M_DB(M64, False).FSequence_ID);
+      d.WriteInt64(Eng_.Post_Data_To_M_DB(M64, False).FSequence_ID);
       d.WriteString(umlMD5ToStr(M64.ToMD5));
       DisposeObject(M64);
 
       M64 := TMS64.Create;
       M64.Size := umlRR(1048576, 1024 * 1024 * 8);
-      d.WriteUInt64(Eng_.Post_Data_To_L_DB(M64, False).FSequence_ID);
+      d.WriteInt64(Eng_.Post_Data_To_L_DB(M64, False).FSequence_ID);
       d.WriteString(umlMD5ToStr(M64.ToMD5));
       DisposeObject(M64);
 

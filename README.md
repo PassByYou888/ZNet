@@ -75,6 +75,29 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 
 **最新更新日志**
 
+**2023-8-26 毫无人性的大规模命名修正**
+
+- 无法忍受许多含糊不清命名
+- 老项目更新正需要prp模型,在PRP位于发行包中,老工程使用prp命令行移植,兼容ZServer4D老工程
+```sh
+	prp.exe "-D:your project directory"
+```
+- Z.Net.pas库中的所有IO都可以直接推算出发送和接收通道
+```pascal
+	TPeerIO=class
+		function Is_Double_Tunnel: Boolean;
+		function Is_Recveive_Tunnel: Boolean;
+		function Is_Send_Tunnel: Boolean;
+		function Is_Link_OK: Boolean;
+		function Get_Send_Tunnel: TPeerIO; overload;
+		function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
+		function Get_Receive_Tunnel: TPeerIO;
+		function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
+	end;
+```
+- HPC线程会自动检测是否处于双通道模型,并且自动推算出发送和接受通道
+- 新增三角镜像函数
+
 **2023-8-9** 新增一个demo:long run,这是一个被大量使用,但一直没有demo的长处理机制
 
 - long run机制可以在服务端简单实现大规模并行计算处理,且不会卡队列

@@ -1987,7 +1987,7 @@ begin
   db_file := umlGetFileName(Engine.Get_Database_FileName);
 
   DoStatus('scan backup file:' + db_file + '.backup(*)');
-  arry := umlGetFileListPath(db_path);
+  arry := umlGet_File_Array(db_path);
   L := TFileTime_Sort_Tool.Create;
   for n in arry do
     if umlMultipleMatch(True, db_file + '.backup(*)', n) then
@@ -2302,7 +2302,7 @@ begin
   try
     db_path := Get_Backup_Directory();
     db_file := umlGetFileName(Database_File);
-    arry := umlGetFileListPath(db_path);
+    arry := umlGet_File_Array(db_path);
     for n in arry do
       if umlMultipleMatch(True, db_file + '.backup(*)', n) then
         begin
@@ -2360,7 +2360,7 @@ begin
     db_file := umlGetFileName(Database_File);
 
     DoStatus('scan Backup-Revert for "%s"', [umlGetFileName(Database_File).Text]);
-    arry := umlGetFileListPath(db_path);
+    arry := umlGet_File_Array(db_path);
     L := TFileTime_Sort_Tool.Create;
     for n in arry do
       if umlMultipleMatch(True, db_file + '.backup(*)', n) then
@@ -2449,7 +2449,7 @@ begin
   try
     db_path := Get_Backup_Directory();
     db_file := umlGetFileName(Database_File);
-    arry := umlGetFileListPath(db_path);
+    arry := umlGet_File_Array(db_path);
     for n in arry do
       if umlMultipleMatch(True, db_file + '.backup(*)', n) then
         begin

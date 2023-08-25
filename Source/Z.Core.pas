@@ -19,6 +19,8 @@ uses SysUtils, Classes, Types, Variants, SyncObjs, TypInfo,
 type
   THash = Cardinal;
   THash64 = UInt64;
+  TInt32_Array = array of Integer;
+  TUInt32_Array = array of Cardinal;
   TBytes = SysUtils.TBytes;
   TPoint = Types.TPoint;
   TTimeTick = UInt64;
@@ -87,7 +89,7 @@ type
   end;
 
   TGenericsList<t> = class(System.Generics.Collections.TList<t>)
-  private type
+  public type
     TGArry = array of t;
     PGArry = ^TGArry;
   public var Arry: TGArry;
@@ -95,7 +97,7 @@ type
   end;
 
   TGenericsObjectList<t: class> = class(System.Generics.Collections.TList<t>)
-  private type
+  public type
     TGArry = array of t;
     PGArry = ^TGArry;
   public var Arry: TGArry;
@@ -2343,4 +2345,3 @@ finalization
   GlobalMemoryHook := nil;
   Free_System_Critical_Recycle_Pool();
 end.
-

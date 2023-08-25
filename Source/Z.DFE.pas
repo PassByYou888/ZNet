@@ -166,7 +166,7 @@ type
     procedure Clear;
     procedure Add(v: Integer);
     function Count: Integer;
-    procedure WriteArray(const a: array of Integer);
+    procedure WriteArray(const arry_: array of Integer);
 
     procedure LoadFromStream(stream: TCore_Stream); override;
     procedure SaveToStream(stream: TCore_Stream); override;
@@ -177,6 +177,7 @@ type
     function GetBuffer(index_: Integer): Integer;
     procedure SetBuffer(index_: Integer; Value: Integer);
     property Buffer[index_: Integer]: Integer read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFArrayShortInt = class(TDFBase)
@@ -189,7 +190,7 @@ type
     procedure Clear;
     procedure Add(v: ShortInt);
     function Count: Integer;
-    procedure WriteArray(const a: array of ShortInt);
+    procedure WriteArray(const arry_: array of ShortInt);
 
     procedure LoadFromStream(stream: TCore_Stream); override;
     procedure SaveToStream(stream: TCore_Stream); override;
@@ -200,6 +201,7 @@ type
     function GetBuffer(index_: Integer): ShortInt;
     procedure SetBuffer(index_: Integer; Value: ShortInt);
     property Buffer[index_: Integer]: ShortInt read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFArrayByte = class(TDFBase)
@@ -218,8 +220,8 @@ type
     procedure AddWord(v: Word);
     function Count: Int64;
     property Size: Int64 read Count;
-    procedure WriteArray(const a: array of Byte);
-    procedure SetArray(const a: array of Byte);
+    procedure WriteArray(const arry_: array of Byte);
+    procedure SetArray(const arry_: array of Byte);
     procedure SetBuff(p: PByte; Size_: Integer);
     procedure GetBuff(p: PByte);
 
@@ -232,6 +234,7 @@ type
     function GetBuffer(index_: Integer): Byte;
     procedure SetBuffer(index_: Integer; Value: Byte);
     property Buffer[index_: Integer]: Byte read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFArraySingle = class(TDFBase)
@@ -244,7 +247,7 @@ type
     procedure Clear;
     procedure Add(v: Single);
     function Count: Integer;
-    procedure WriteArray(const a: array of Single);
+    procedure WriteArray(const arry_: array of Single);
 
     procedure LoadFromStream(stream: TCore_Stream); override;
     procedure SaveToStream(stream: TCore_Stream); override;
@@ -255,6 +258,7 @@ type
     function GetBuffer(index_: Integer): Single;
     procedure SetBuffer(index_: Integer; Value: Single);
     property Buffer[index_: Integer]: Single read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFArrayDouble = class(TDFBase)
@@ -268,7 +272,7 @@ type
     procedure Clear;
     procedure Add(v: Double);
     function Count: Integer;
-    procedure WriteArray(const a: array of Double);
+    procedure WriteArray(const arry_: array of Double);
 
     procedure LoadFromStream(stream: TCore_Stream); override;
     procedure SaveToStream(stream: TCore_Stream); override;
@@ -279,6 +283,7 @@ type
     function GetBuffer(index_: Integer): Double;
     procedure SetBuffer(index_: Integer; Value: Double);
     property Buffer[index_: Integer]: Double read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFArrayInt64 = class(TDFBase)
@@ -292,7 +297,7 @@ type
     procedure Clear;
     procedure Add(v: Int64);
     function Count: Integer;
-    procedure WriteArray(const a: array of Int64);
+    procedure WriteArray(const arry_: array of Int64);
 
     procedure LoadFromStream(stream: TCore_Stream); override;
     procedure SaveToStream(stream: TCore_Stream); override;
@@ -303,6 +308,7 @@ type
     function GetBuffer(index_: Integer): Int64;
     procedure SetBuffer(index_: Integer; Value: Int64);
     property Buffer[index_: Integer]: Int64 read GetBuffer write SetBuffer; default;
+    property Buffer__: TMS64 read FBuffer;
   end;
 
   TDFStream = class(TDFBase)
@@ -439,6 +445,7 @@ type
     function ReadVec2: TVec2;
     function ReadRectV2: TRectV2;
     function ReadPointer: UInt64;
+    function ReadPtr: UInt64;
     procedure ReadNM(output: TNumberModule);
     procedure ReadNMPool(output: TNumberModulePool);
     // auto read from stream data
@@ -554,6 +561,8 @@ type
     function WriteRectV2(v: TRectV2): TDFE;
     function WritePointer(v: Pointer): TDFE; overload;
     function WritePointer(v: UInt64): TDFE; overload;
+    function WritePtr(v: Pointer): TDFE; overload;
+    function WritePtr(v: UInt64): TDFE; overload;
     function WriteNM(NM: TNumberModule): TDFE;
     function WriteNMPool(NMPool: TNumberModulePool): TDFE;
     // auto append new stream and write
@@ -607,6 +616,7 @@ type
     function ReadVec2(index_: Integer): TVec2;
     function ReadRectV2(index_: Integer): TRectV2;
     function ReadPointer(index_: Integer): UInt64;
+    function ReadPtr(index_: Integer): UInt64;
     procedure ReadNM(index_: Integer; output: TNumberModule);
     procedure ReadNMPool(index_: Integer; output: TNumberModulePool);
     // read from stream data
@@ -1101,12 +1111,12 @@ begin
   Result := FBuffer.Size div C_Integer_Size;
 end;
 
-procedure TDFArrayInteger.WriteArray(const a: array of Integer);
+procedure TDFArrayInteger.WriteArray(const arry_: array of Integer);
 begin
-  if length(a) > 0 then
+  if length(arry_) > 0 then
     begin
       FBuffer.Position := FBuffer.Size;
-      FBuffer.WritePtr(@a[0], length(a) * C_Integer_Size);
+      FBuffer.WritePtr(@arry_[0], length(arry_) * C_Integer_Size);
     end;
 end;
 
@@ -1133,7 +1143,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.i[i]);
 end;
@@ -1192,12 +1202,12 @@ begin
   Result := FBuffer.Size;
 end;
 
-procedure TDFArrayShortInt.WriteArray(const a: array of ShortInt);
+procedure TDFArrayShortInt.WriteArray(const arry_: array of ShortInt);
 begin
-  if length(a) > 0 then
+  if length(arry_) > 0 then
     begin
       FBuffer.Position := FBuffer.Size;
-      FBuffer.WritePtr(@a[0], length(a));
+      FBuffer.WritePtr(@arry_[0], length(arry_));
     end;
 end;
 
@@ -1224,7 +1234,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.i[i]);
 end;
@@ -1309,17 +1319,17 @@ begin
   Result := FBuffer.Size;
 end;
 
-procedure TDFArrayByte.WriteArray(const a: array of Byte);
+procedure TDFArrayByte.WriteArray(const arry_: array of Byte);
 begin
-  if length(a) > 0 then
-      AddPtrBuff(@a[0], length(a));
+  if length(arry_) > 0 then
+      AddPtrBuff(@arry_[0], length(arry_));
 end;
 
-procedure TDFArrayByte.SetArray(const a: array of Byte);
+procedure TDFArrayByte.SetArray(const arry_: array of Byte);
 begin
   Clear;
-  if length(a) > 0 then
-      AddPtrBuff(@a[0], length(a));
+  if length(arry_) > 0 then
+      AddPtrBuff(@arry_[0], length(arry_));
 end;
 
 procedure TDFArrayByte.SetBuff(p: PByte; Size_: Integer);
@@ -1356,7 +1366,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.i[i]);
 end;
@@ -1415,12 +1425,12 @@ begin
   Result := FBuffer.Size div C_Single_Size;
 end;
 
-procedure TDFArraySingle.WriteArray(const a: array of Single);
+procedure TDFArraySingle.WriteArray(const arry_: array of Single);
 begin
-  if length(a) > 0 then
+  if length(arry_) > 0 then
     begin
       FBuffer.Position := FBuffer.Size;
-      FBuffer.WritePtr(@a[0], length(a) * C_Single_Size);
+      FBuffer.WritePtr(@arry_[0], length(arry_) * C_Single_Size);
     end;
 end;
 
@@ -1447,7 +1457,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.f[i]);
 end;
@@ -1506,12 +1516,12 @@ begin
   Result := FBuffer.Size div C_Double_Size;
 end;
 
-procedure TDFArrayDouble.WriteArray(const a: array of Double);
+procedure TDFArrayDouble.WriteArray(const arry_: array of Double);
 begin
-  if length(a) > 0 then
+  if length(arry_) > 0 then
     begin
       FBuffer.Position := FBuffer.Size;
-      FBuffer.WritePtr(@a[0], length(a) * C_Double_Size);
+      FBuffer.WritePtr(@arry_[0], length(arry_) * C_Double_Size);
     end;
 end;
 
@@ -1538,7 +1548,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.f[i]);
 end;
@@ -1597,12 +1607,12 @@ begin
   Result := FBuffer.Size div C_Int64_Size;
 end;
 
-procedure TDFArrayInt64.WriteArray(const a: array of Int64);
+procedure TDFArrayInt64.WriteArray(const arry_: array of Int64);
 begin
-  if length(a) > 0 then
+  if length(arry_) > 0 then
     begin
       FBuffer.Position := FBuffer.Size;
-      FBuffer.WritePtr(@a[0], length(a) * C_Int64_Size);
+      FBuffer.WritePtr(@arry_[0], length(arry_) * C_Int64_Size);
     end;
 end;
 
@@ -1629,7 +1639,7 @@ var
   ja: TZ_JsonArray;
   i: Integer;
 begin
-  ja := jarry.a[index_];
+  ja := jarry.A[index_];
   for i := 0 to ja.Count - 1 do
       Add(ja.L[i]);
 end;
@@ -2219,6 +2229,12 @@ begin
 end;
 
 function TDFEReader.ReadPointer: UInt64;
+begin
+  Result := FOwner.ReadPointer(FIndex);
+  inc(FIndex);
+end;
+
+function TDFEReader.ReadPtr: UInt64;
 begin
   Result := FOwner.ReadPointer(FIndex);
   inc(FIndex);
@@ -2996,6 +3012,16 @@ begin
 end;
 
 function TDFE.WritePointer(v: UInt64): TDFE;
+begin
+  Result := WriteUInt64(v);
+end;
+
+function TDFE.WritePtr(v: Pointer): TDFE;
+begin
+  Result := WriteUInt64(UInt64(v));
+end;
+
+function TDFE.WritePtr(v: UInt64): TDFE;
 begin
   Result := WriteUInt64(v);
 end;
@@ -3850,6 +3876,11 @@ begin
   Result := ReadUInt64(index_);
 end;
 
+function TDFE.ReadPtr(index_: Integer): UInt64;
+begin
+  Result := ReadUInt64(index_);
+end;
+
 procedure TDFE.ReadNM(index_: Integer; output: TNumberModule);
 var
   D_: TDFE;
@@ -4189,8 +4220,8 @@ begin
 
   for i := 0 to Count - 1 do
     begin
-      j.a['Ref'].Add(TDFBase(FDataList[i]).FID);
-      TDFBase(FDataList[i]).SaveToJson(j.a['Data'], i);
+      j.A['Ref'].Add(TDFBase(FDataList[i]).FID);
+      TDFBase(FDataList[i]).SaveToJson(j.A['Data'], i);
     end;
 
   j.SaveToStream(output, True);
@@ -4209,8 +4240,8 @@ begin
   for i := 0 to Count - 1 do
     begin
       DataFrame_ := TDFBase(FDataList[i]);
-      DataFrame_.SaveToJson(j.a['Data'], i);
-      j.a['Ref'].Add(DataFrame_.FID);
+      DataFrame_.SaveToJson(j.A['Data'], i);
+      j.A['Ref'].Add(DataFrame_.FID);
     end;
 
   j.SaveToStream(output, False);
@@ -4227,8 +4258,8 @@ begin
   for i := 0 to Count - 1 do
     begin
       DataFrame_ := TDFBase(FDataList[i]);
-      DataFrame_.SaveToJson(Json.a['Data'], i);
-      Json.a['Ref'].Add(DataFrame_.FID);
+      DataFrame_.SaveToJson(Json.A['Data'], i);
+      Json.A['Ref'].Add(DataFrame_.FID);
     end;
 end;
 
@@ -4249,11 +4280,11 @@ begin
   end;
 
   try
-    for i := 0 to j.a['Ref'].Count - 1 do
+    for i := 0 to j.A['Ref'].Count - 1 do
       begin
-        t := j.a['Ref'].i[i];
+        t := j.A['Ref'].i[i];
         DataFrame_ := AddData(ByteToDataType(t));
-        DataFrame_.LoadFromJson(j.a['Data'], i);
+        DataFrame_.LoadFromJson(j.A['Data'], i);
       end;
   except
     DisposeObject(j);
@@ -4285,11 +4316,11 @@ var
 begin
   Clear;
 
-  for i := 0 to Json.a['Ref'].Count - 1 do
+  for i := 0 to Json.A['Ref'].Count - 1 do
     begin
-      t := Json.a['Ref'].i[i];
+      t := Json.A['Ref'].i[i];
       DataFrame_ := AddData(ByteToDataType(t));
-      DataFrame_.LoadFromJson(Json.a['Data'], i);
+      DataFrame_.LoadFromJson(Json.A['Data'], i);
     end;
 end;
 

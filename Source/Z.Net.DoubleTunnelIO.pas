@@ -21,12 +21,12 @@ uses
 
 type
   TDTService = class;
-  TPeerClientUserDefineForRecvTunnel = class;
+  TService_RecvTunnel_UserDefine = class;
   TDTServiceClass = class of TDTService;
 
-  TPeerClientUserDefineForSendTunnel = class(TPeerIOUserDefine)
+  TService_SendTunnel_UserDefine = class(TPeer_IO_User_Define)
   public
-    RecvTunnel: TPeerClientUserDefineForRecvTunnel;
+    RecvTunnel: TService_RecvTunnel_UserDefine;
     RecvTunnelID: Cardinal;
     DoubleTunnelService: TDTService;
 
@@ -36,9 +36,9 @@ type
     property BindOk: Boolean read LinkOk;
   end;
 
-  TPeerClientUserDefineForRecvTunnel = class(TPeerIOUserDefine)
+  TService_RecvTunnel_UserDefine = class(TPeer_IO_User_Define)
   public
-    SendTunnel: TPeerClientUserDefineForSendTunnel;
+    SendTunnel: TService_SendTunnel_UserDefine;
     SendTunnelID: Cardinal;
     UserFlag, UserID: SystemString;
     UserPath: SystemString;
@@ -66,10 +66,10 @@ type
     property CurrentReceiveFileName: SystemString read FCurrentReceiveFileName write FCurrentReceiveFileName;
   end;
 
-  TPeerClientUserDefineForRecvTunnel_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TPeerClientUserDefineForRecvTunnel>;
+  TPeerClientUserDefineForRecvTunnel_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TService_RecvTunnel_UserDefine>;
 
-  TOnLinkSuccess = procedure(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel) of object;
-  TOnUserOut = procedure(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel) of object;
+  TOnLinkSuccess = procedure(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine) of object;
+  TOnUserOut = procedure(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine) of object;
 
   TDTService = class(TCore_InterfacedObject)
   protected
@@ -87,11 +87,11 @@ type
   protected
     { virtual event }
     procedure UserRegistedSuccess(UserID: SystemString); virtual;
-    procedure UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel); virtual;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel); virtual;
-    procedure UserCreateDirectorySuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel; dn: SystemString); virtual;
-    procedure UserPostFileSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel; fn: SystemString); virtual;
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel); virtual;
+    procedure UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine); virtual;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine); virtual;
+    procedure UserCreateDirectorySuccess(UserDefineIO: TService_RecvTunnel_UserDefine; dn: SystemString); virtual;
+    procedure UserPostFileSuccess(UserDefineIO: TService_RecvTunnel_UserDefine; fn: SystemString); virtual;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine); virtual;
   protected
     { registed server command }
     procedure Command_UserLogin(Sender: TPeerIO; InData, OutData: TDFE); virtual;
@@ -159,7 +159,7 @@ type
     function ExistsUser(UsrID: SystemString): Boolean;
     function GetUserPath(UsrID: SystemString): SystemString;
     function GetUserFile(UsrID, UserFileName_: SystemString): SystemString;
-    function GetUserDefineIO(UsrID: SystemString): TPeerClientUserDefineForRecvTunnel;
+    function GetUserDefineIO(UsrID: SystemString): TService_RecvTunnel_UserDefine;
     function UserOnline(UsrID: SystemString): Boolean;
 
     function PackUserAsFile(UsrID, packageFile: SystemString): Boolean;
@@ -178,7 +178,7 @@ type
     procedure UnRegisterCommand; virtual;
 
     function MakeUserFlag: SystemString;
-    function GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel;
+    function GetUserDefineRecvTunnel(RecvCli: TPeerIO): TService_RecvTunnel_UserDefine;
 
     function TotalLinkCount: Integer;
 
@@ -217,22 +217,22 @@ type
   end;
 
   TDTClient = class;
-  TClientUserDefineForSendTunnel = class;
+  TClient_SendTunnel = class;
   TDTClientClass = class of TDTClient;
 
-  TClientUserDefineForRecvTunnel = class(TPeerIOUserDefine)
+  TClient_RecvTunnel = class(TPeer_IO_User_Define)
   public
     Client: TDTClient;
-    SendTunnel: TClientUserDefineForSendTunnel;
+    SendTunnel: TClient_SendTunnel;
 
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
 
-  TClientUserDefineForSendTunnel = class(TPeerIOUserDefine)
+  TClient_SendTunnel = class(TPeer_IO_User_Define)
   public
     Client: TDTClient;
-    RecvTunnel: TClientUserDefineForRecvTunnel;
+    RecvTunnel: TClient_RecvTunnel;
 
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
@@ -1231,7 +1231,7 @@ begin
   inherited Destroy;
 end;
 
-constructor TPeerClientUserDefineForSendTunnel.Create(Owner_: TPeerIO);
+constructor TService_SendTunnel_UserDefine.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   RecvTunnel := nil;
@@ -1239,7 +1239,7 @@ begin
   DoubleTunnelService := nil;
 end;
 
-destructor TPeerClientUserDefineForSendTunnel.Destroy;
+destructor TService_SendTunnel_UserDefine.Destroy;
 begin
   if (DoubleTunnelService <> nil) and (RecvTunnelID > 0) and (RecvTunnel <> nil) then
     begin
@@ -1249,12 +1249,12 @@ begin
   inherited Destroy;
 end;
 
-function TPeerClientUserDefineForSendTunnel.LinkOk: Boolean;
+function TService_SendTunnel_UserDefine.LinkOk: Boolean;
 begin
   Result := DoubleTunnelService <> nil;
 end;
 
-constructor TPeerClientUserDefineForRecvTunnel.Create(Owner_: TPeerIO);
+constructor TService_RecvTunnel_UserDefine.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   SendTunnel := nil;
@@ -1272,7 +1272,7 @@ begin
   FCurrentReceiveFileName := '';
 end;
 
-destructor TPeerClientUserDefineForRecvTunnel.Destroy;
+destructor TService_RecvTunnel_UserDefine.Destroy;
 begin
   if LoginSuccessed then
     begin
@@ -1303,22 +1303,22 @@ begin
   inherited Destroy;
 end;
 
-function TPeerClientUserDefineForRecvTunnel.MakeFilePath(fn: SystemString): SystemString;
+function TService_RecvTunnel_UserDefine.MakeFilePath(fn: SystemString): SystemString;
 begin
   Result := umlCombineFileName(UserPath, fn);
 end;
 
-function TPeerClientUserDefineForRecvTunnel.GetUserID: SystemString;
+function TService_RecvTunnel_UserDefine.GetUserID: SystemString;
 begin
   Result := UserConfigFile.GetDefaultValue('UserInfo', 'UserID', '');
 end;
 
-procedure TPeerClientUserDefineForRecvTunnel.SaveConfigFile;
+procedure TService_RecvTunnel_UserDefine.SaveConfigFile;
 begin
   UserConfigFile.SaveToFile(MakeFilePath('User.Config'));
 end;
 
-function TPeerClientUserDefineForRecvTunnel.LinkOk: Boolean;
+function TService_RecvTunnel_UserDefine.LinkOk: Boolean;
 begin
   Result := SendTunnel <> nil;
 end;
@@ -1327,11 +1327,11 @@ procedure TDTService.UserRegistedSuccess(UserID: SystemString);
 begin
 end;
 
-procedure TDTService.UserLoginSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TDTService.UserLoginSuccess(UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
 end;
 
-procedure TDTService.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TDTService.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   try
     if Assigned(FOnLinkSuccess) then
@@ -1340,15 +1340,15 @@ begin
   end;
 end;
 
-procedure TDTService.UserCreateDirectorySuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel; dn: SystemString);
+procedure TDTService.UserCreateDirectorySuccess(UserDefineIO: TService_RecvTunnel_UserDefine; dn: SystemString);
 begin
 end;
 
-procedure TDTService.UserPostFileSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel; fn: SystemString);
+procedure TDTService.UserPostFileSuccess(UserDefineIO: TService_RecvTunnel_UserDefine; fn: SystemString);
 begin
 end;
 
-procedure TDTService.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TDTService.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   try
     if Assigned(FOnUserOut) then
@@ -1361,7 +1361,7 @@ procedure TDTService.Command_UserLogin(Sender: TPeerIO; InData, OutData: TDFE);
 var
   SendTunnelID: Cardinal;
   UserID, UserPasswd: SystemString;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   SendTunnelID := InData.Reader.ReadCardinal;
   UserID := InData.Reader.ReadString;
@@ -1424,7 +1424,7 @@ procedure TDTService.Command_RegisterUser(Sender: TPeerIO; InData, OutData: TDFE
 var
   SendTunnelID: Cardinal;
   UserID, UserPasswd: SystemString;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   UserDefineIO := GetUserDefineRecvTunnel(Sender);
 
@@ -1492,7 +1492,7 @@ end;
 procedure TDTService.Command_TunnelLink(Sender: TPeerIO; InData, OutData: TDFE);
 var
   RecvID, SendID: Cardinal;
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   RecvID := InData.Reader.ReadCardinal;
   SendID := InData.Reader.ReadCardinal;
@@ -1531,7 +1531,7 @@ begin
       Exit;
     end;
 
-  UserDefineIO.SendTunnel := FSendTunnel.PeerIO[SendID].UserDefine as TPeerClientUserDefineForSendTunnel;
+  UserDefineIO.SendTunnel := FSendTunnel.PeerIO[SendID].UserDefine as TService_SendTunnel_UserDefine;
   UserDefineIO.SendTunnelID := SendID;
   UserDefineIO.SendTunnel.RecvTunnel := UserDefineIO;
   UserDefineIO.SendTunnel.RecvTunnelID := RecvID;
@@ -1546,7 +1546,7 @@ end;
 
 procedure TDTService.Command_ChangePasswd(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   oldPasswd, newPasswd: SystemString;
 begin
   UserDefineIO := GetUserDefineRecvTunnel(Sender);
@@ -1581,7 +1581,7 @@ end;
 
 procedure TDTService.Command_CustomNewUser(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   UserID, passwd: SystemString;
   UserConfig: THashTextEngine;
 begin
@@ -1603,7 +1603,7 @@ end;
 
 procedure TDTService.Command_ProcessStoreQueueCMD(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fs: U_StringArray;
   fn: SystemString;
   Cmd: SystemString;
@@ -1616,7 +1616,7 @@ begin
   if UserDefineIO.SendTunnel = nil then
       Exit;
 
-  fs := umlGetFileListWithFullPath(UserDefineIO.UserPath);
+  fs := umlGet_File_Full_Array(UserDefineIO.UserPath);
 
   for fn in fs do
     begin
@@ -1642,7 +1642,7 @@ end;
 
 procedure TDTService.Command_GetPublicFileList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   Filter: SystemString;
   fs: U_StringArray;
   i: Integer;
@@ -1658,7 +1658,7 @@ begin
 
   Filter := InData.Reader.ReadString;
 
-  fs := umlGetFileListWithFullPath(FPublicPath);
+  fs := umlGet_File_Full_Array(FPublicPath);
   for i := low(fs) to high(fs) do
     begin
       n := umlGetFileName(fs[i]);
@@ -1669,7 +1669,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFileList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   Filter, dn: SystemString;
   fs: U_StringArray;
   i: Integer;
@@ -1686,7 +1686,7 @@ begin
   Filter := InData.Reader.ReadString;
   dn := InData.Reader.ReadString;
 
-  fs := umlGetFileListWithFullPath(umlCombinePath(UserDefineIO.UserPath, dn));
+  fs := umlGet_File_Full_Array(umlCombinePath(UserDefineIO.UserPath, dn));
   for i := low(fs) to high(fs) do
     begin
       n := umlGetFileName(fs[i]);
@@ -1697,7 +1697,7 @@ end;
 
 procedure TDTService.Command_GetPrivateDirectoryList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   Filter, dn: SystemString;
   fs: U_StringArray;
   i: Integer;
@@ -1714,7 +1714,7 @@ begin
   Filter := InData.Reader.ReadString;
   dn := InData.Reader.ReadString;
 
-  fs := umlGetDirListWithFullPath(umlCombinePath(UserDefineIO.UserPath, dn));
+  fs := umlGet_Path_Full_Array(umlCombinePath(UserDefineIO.UserPath, dn));
   for i := low(fs) to high(fs) do
     begin
       n := umlGetFileName(fs[i]);
@@ -1725,7 +1725,7 @@ end;
 
 procedure TDTService.Command_CreatePrivateDirectory(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   dn, fulldn: SystemString;
 begin
   if not FFileSystem then
@@ -1758,7 +1758,7 @@ end;
 
 procedure TDTService.Command_GetPublicFileInfo(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName: SystemString;
 begin
   if not FFileSystem then
@@ -1785,7 +1785,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFileInfo(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName, dn: SystemString;
 begin
   if not FFileSystem then
@@ -1851,7 +1851,7 @@ end;
 
 procedure TDTService.Command_GetPublicFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   if not FFileSystem then
       Exit;
@@ -1873,7 +1873,7 @@ var
 {$IFDEF FPC}
   procedure do_fpc_sync();
   var
-    UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+    UserDefineIO: TService_RecvTunnel_UserDefine;
   begin
     UserDefineIO := GetUserDefineRecvTunnel(ThSender.IO);
     fullfn := umlCombineFileName(umlCombinePath(UserDefineIO.UserPath, dn), fileName);
@@ -1893,7 +1893,7 @@ begin
 {$ELSE FPC}
   TCompute.Sync(procedure
     var
-      UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+      UserDefineIO: TService_RecvTunnel_UserDefine;
     begin
       if not ThSender.IsOnline then
           Exit;
@@ -1930,7 +1930,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFileMD5(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   if not FFileSystem then
       Exit;
@@ -1944,7 +1944,7 @@ end;
 
 procedure TDTService.Command_GetPublicFile(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2000,7 +2000,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFile(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName, dn, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2057,7 +2057,7 @@ end;
 
 procedure TDTService.Command_GetUserPrivateFile(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, UserID, fileName, dn, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2118,7 +2118,7 @@ end;
 
 procedure TDTService.Command_GetPublicFileAs(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName, saveFileName, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2175,7 +2175,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFileAs(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName, saveFileName, dn, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2233,7 +2233,7 @@ end;
 
 procedure TDTService.Command_GetUserPrivateFileAs(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, UserID, fileName, saveFileName, dn, remoteinfo: SystemString;
   StartPos: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2295,7 +2295,7 @@ end;
 
 procedure TDTService.Command_PostPublicFileInfo(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fn: SystemString;
   StartPos: Int64;
   FSize: Int64;
@@ -2350,7 +2350,7 @@ end;
 
 procedure TDTService.Command_PostPrivateFileInfo(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fn, dn: SystemString;
   StartPos: Int64;
   FSize: Int64;
@@ -2413,7 +2413,7 @@ end;
 
 procedure TDTService.Command_PostFile(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
 begin
   if not FFileSystem then
       Exit;
@@ -2439,7 +2439,7 @@ end;
 
 procedure TDTService.Command_PostFileOver(Sender: TPeerIO; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fn: SystemString;
 begin
   if not FFileSystem then
@@ -2469,7 +2469,7 @@ end;
 
 procedure TDTService.Command_GetPublicFileFragmentData(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName: SystemString;
   StartPos, EndPos, siz, fp: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2537,7 +2537,7 @@ end;
 
 procedure TDTService.Command_GetPrivateFileFragmentData(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   fullfn, fileName: SystemString;
   StartPos, EndPos, siz, fp: Int64;
   RemoteBackcallAddr: UInt64;
@@ -2611,7 +2611,7 @@ end;
 
 procedure TDTService.Command_NewBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel;
+  RT: TService_RecvTunnel_UserDefine;
   p: PBigStreamBatchPostData;
 begin
   RT := GetUserDefineRecvTunnel(Sender);
@@ -2624,7 +2624,7 @@ end;
 
 procedure TDTService.Command_PostBatchStream(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  RT: TPeerClientUserDefineForRecvTunnel;
+  RT: TService_RecvTunnel_UserDefine;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
@@ -2657,7 +2657,7 @@ end;
 
 procedure TDTService.Command_ClearBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel;
+  RT: TService_RecvTunnel_UserDefine;
 begin
   RT := GetUserDefineRecvTunnel(Sender);
   if not RT.LinkOk then
@@ -2667,7 +2667,7 @@ end;
 
 procedure TDTService.Command_PostBatchStreamDone(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel;
+  RT: TService_RecvTunnel_UserDefine;
   rMD5, sMD5: TMD5;
   backCallVal: UInt64;
   backCallValPtr: POnStateStruct;
@@ -2713,7 +2713,7 @@ end;
 
 procedure TDTService.Command_GetBatchStreamState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TPeerClientUserDefineForRecvTunnel;
+  RT: TService_RecvTunnel_UserDefine;
   i: Integer;
   p: PBigStreamBatchPostData;
 
@@ -2737,9 +2737,9 @@ constructor TDTService.Create(RecvTunnel_, SendTunnel_: TZNet_Server);
 begin
   inherited Create;
   FRecvTunnel := RecvTunnel_;
-  FRecvTunnel.PeerClientUserDefineClass := TPeerClientUserDefineForRecvTunnel;
+  FRecvTunnel.PeerClientUserDefineClass := TService_RecvTunnel_UserDefine;
   FSendTunnel := SendTunnel_;
-  FSendTunnel.PeerClientUserDefineClass := TPeerClientUserDefineForSendTunnel;
+  FSendTunnel.PeerClientUserDefineClass := TService_SendTunnel_UserDefine;
 
   FRecvTunnel.DoubleChannelFramework := Self;
   FSendTunnel.DoubleChannelFramework := Self;
@@ -2803,7 +2803,7 @@ procedure TDTService.LoadUserDB;
 var
   IO_Array: TIO_Array;
   pcid: Cardinal;
-  cli: TPeerClientUserDefineForRecvTunnel;
+  cli: TService_RecvTunnel_UserDefine;
 begin
   if umlFileExists(umlCombineFileName(FRootPath, C_UserDB)) then
     begin
@@ -2823,7 +2823,7 @@ procedure TDTService.SaveUserDB;
 var
   IO_Array: TIO_Array;
   pcid: Cardinal;
-  cli: TPeerClientUserDefineForRecvTunnel;
+  cli: TService_RecvTunnel_UserDefine;
 begin
   FUserDB.SaveToFile(umlCombineFileName(FRootPath, C_UserDB));
 
@@ -2904,15 +2904,15 @@ begin
   Result := umlCombineFileName(GetUserPath(UsrID), UserFileName_);
 end;
 
-function TDTService.GetUserDefineIO(UsrID: SystemString): TPeerClientUserDefineForRecvTunnel;
+function TDTService.GetUserDefineIO(UsrID: SystemString): TService_RecvTunnel_UserDefine;
 var
-  R_: TPeerClientUserDefineForRecvTunnel;
+  R_: TService_RecvTunnel_UserDefine;
 {$IFDEF FPC}
   procedure do_fpc_progress(P_IO: TPeerIO);
   begin
-    if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk and
-      SameText(TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).UserID, UsrID) then
-        R_ := TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine);
+    if TService_RecvTunnel_UserDefine(P_IO.UserDefine).LinkOk and
+      SameText(TService_RecvTunnel_UserDefine(P_IO.UserDefine).UserID, UsrID) then
+        R_ := TService_RecvTunnel_UserDefine(P_IO.UserDefine);
   end;
 {$ENDIF FPC}
 
@@ -2925,9 +2925,9 @@ begin
 {$ELSE FPC}
   FRecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     begin
-      if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk and
-        SameText(TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).UserID, UsrID) then
-          R_ := TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine);
+      if TService_RecvTunnel_UserDefine(P_IO.UserDefine).LinkOk and
+        SameText(TService_RecvTunnel_UserDefine(P_IO.UserDefine).UserID, UsrID) then
+          R_ := TService_RecvTunnel_UserDefine(P_IO.UserDefine);
     end);
 {$ENDIF FPC}
   Result := R_;
@@ -2940,7 +2940,7 @@ end;
 
 function TDTService.PackUserAsFile(UsrID, packageFile: SystemString): Boolean;
 var
-  cli: TPeerClientUserDefineForRecvTunnel;
+  cli: TService_RecvTunnel_UserDefine;
 begin
   Result := False;
   if not ExistsUser(UsrID) then
@@ -2956,7 +2956,7 @@ end;
 
 function TDTService.PackUserAsStream(UsrID: SystemString; packageStream: TCore_Stream): Boolean;
 var
-  cli: TPeerClientUserDefineForRecvTunnel;
+  cli: TService_RecvTunnel_UserDefine;
 begin
   Result := False;
   if not ExistsUser(UsrID) then
@@ -3040,7 +3040,7 @@ end;
 
 procedure TDTService.PostStoreQueueCMD(ToUserID: SystemString; Cmd: SystemString; InData: TDFE);
 var
-  UserDefineIO: TPeerClientUserDefineForRecvTunnel;
+  UserDefineIO: TService_RecvTunnel_UserDefine;
   d: Double;
   p: PInt64;
   UserPath: SystemString;
@@ -3179,11 +3179,11 @@ begin
   until not umlDirectoryExists(umlCombinePath(FRootPath, Result));
 end;
 
-function TDTService.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TPeerClientUserDefineForRecvTunnel;
+function TDTService.GetUserDefineRecvTunnel(RecvCli: TPeerIO): TService_RecvTunnel_UserDefine;
 begin
   if RecvCli = nil then
       Exit(nil);
-  Result := RecvCli.UserDefine as TPeerClientUserDefineForRecvTunnel;
+  Result := RecvCli.UserDefine as TService_RecvTunnel_UserDefine;
 end;
 
 function TDTService.TotalLinkCount: Integer;
@@ -3192,7 +3192,7 @@ var
 {$IFDEF FPC}
   procedure do_fpc_progress(P_IO: TPeerIO);
   begin
-    if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk then
+    if TService_RecvTunnel_UserDefine(P_IO.UserDefine).LinkOk then
         inc(R_);
   end;
 {$ENDIF FPC}
@@ -3206,7 +3206,7 @@ begin
 {$ELSE FPC}
   FRecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     begin
-      if TPeerClientUserDefineForRecvTunnel(P_IO.UserDefine).LinkOk then
+      if TService_RecvTunnel_UserDefine(P_IO.UserDefine).LinkOk then
           inc(R_);
     end);
 {$ENDIF FPC}
@@ -3349,14 +3349,14 @@ begin
   DisposeObject(de);
 end;
 
-constructor TClientUserDefineForRecvTunnel.Create(Owner_: TPeerIO);
+constructor TClient_RecvTunnel.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   Client := nil;
   SendTunnel := nil;
 end;
 
-destructor TClientUserDefineForRecvTunnel.Destroy;
+destructor TClient_RecvTunnel.Destroy;
 begin
   if Client <> nil then
     begin
@@ -3370,14 +3370,14 @@ begin
   inherited Destroy;
 end;
 
-constructor TClientUserDefineForSendTunnel.Create(Owner_: TPeerIO);
+constructor TClient_SendTunnel.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   Client := nil;
   RecvTunnel := nil;
 end;
 
-destructor TClientUserDefineForSendTunnel.Destroy;
+destructor TClient_SendTunnel.Destroy;
 begin
   if Client <> nil then
       Client.FLinkOk := False;
@@ -3673,12 +3673,12 @@ end;
 
 procedure TDTClient.Command_NewBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel;
+  RT: TClient_RecvTunnel;
   p: PBigStreamBatchPostData;
 begin
   if not LinkOk then
       Exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel;
+  RT := Sender.UserDefine as TClient_RecvTunnel;
   p := RT.BigStreamBatchList.NewPostData;
   p^.RemoteMD5 := InData.Reader.ReadMD5;
   p^.CompletedBackcallPtr := InData.Reader.ReadPointer;
@@ -3686,13 +3686,13 @@ end;
 
 procedure TDTClient.Command_PostBatchStream(Sender: TPeerIO; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 var
-  RT: TClientUserDefineForRecvTunnel;
+  RT: TClient_RecvTunnel;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
   if not LinkOk then
       Exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel;
+  RT := Sender.UserDefine as TClient_RecvTunnel;
 
   if Sender.UserDefine.BigStreamBatchList.Count > 0 then
     begin
@@ -3719,19 +3719,19 @@ end;
 
 procedure TDTClient.Command_ClearBatchStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel;
+  RT: TClient_RecvTunnel;
   p: PBigStreamBatchPostData;
   de: TDFE;
 begin
   if not LinkOk then
       Exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel;
+  RT := Sender.UserDefine as TClient_RecvTunnel;
   RT.BigStreamBatchList.Clear;
 end;
 
 procedure TDTClient.Command_PostBatchStreamDone(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel;
+  RT: TClient_RecvTunnel;
   rMD5, sMD5: TMD5;
   backCallVal: UInt64;
   backCallValPtr: POnStateStruct;
@@ -3739,7 +3739,7 @@ var
 begin
   if not LinkOk then
       Exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel;
+  RT := Sender.UserDefine as TClient_RecvTunnel;
 
   rMD5 := InData.Reader.ReadMD5;
   sMD5 := InData.Reader.ReadMD5;
@@ -3777,7 +3777,7 @@ end;
 
 procedure TDTClient.Command_GetBatchStreamState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TClientUserDefineForRecvTunnel;
+  RT: TClient_RecvTunnel;
   i: Integer;
   p: PBigStreamBatchPostData;
 
@@ -3785,7 +3785,7 @@ var
 begin
   if not LinkOk then
       Exit;
-  RT := Sender.UserDefine as TClientUserDefineForRecvTunnel;
+  RT := Sender.UserDefine as TClient_RecvTunnel;
 
   for i := 0 to RT.BigStreamBatchList.Count - 1 do
     begin
@@ -3947,11 +3947,11 @@ begin
               FFileSystem := Result_.ReadBool(2)
           else
               FFileSystem := True;
-          TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine);
+          TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine);
 
-          TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine);
+          TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine);
 
           FLinkOk := True;
         end;
@@ -3987,11 +3987,11 @@ begin
   inherited Create;
   FRecvTunnel := RecvTunnel_;
   FRecvTunnel.NotyifyInterface := Self;
-  FRecvTunnel.PeerClientUserDefineClass := TClientUserDefineForRecvTunnel;
+  FRecvTunnel.PeerClientUserDefineClass := TClient_RecvTunnel;
 
   FSendTunnel := SendTunnel_;
   FSendTunnel.NotyifyInterface := Self;
-  FSendTunnel.PeerClientUserDefineClass := TClientUserDefineForSendTunnel;
+  FSendTunnel.PeerClientUserDefineClass := TClient_SendTunnel;
 
   FRecvTunnel.DoubleChannelFramework := Self;
   FSendTunnel.DoubleChannelFramework := Self;
@@ -4325,11 +4325,11 @@ begin
               FFileSystem := resDE.ReadBool(2)
           else
               FFileSystem := True;
-          TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine);
+          TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine).RecvTunnel := TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine);
 
-          TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine).Client := Self;
-          TClientUserDefineForRecvTunnel(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClientUserDefineForSendTunnel(FSendTunnel.ClientIO.UserDefine);
+          TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine).Client := Self;
+          TClient_RecvTunnel(FRecvTunnel.ClientIO.UserDefine).SendTunnel := TClient_SendTunnel(FSendTunnel.ClientIO.UserDefine);
           FLinkOk := True;
         end;
     end;

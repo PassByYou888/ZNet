@@ -531,7 +531,7 @@ type
     procedure Delete(const index: Integer);
   end;
 
-  TPeerIOUserDefine = class(TCore_InterfacedObject)
+  TPeer_IO_User_Define = class(TCore_InterfacedObject)
   protected
     FOwner: TPeerIO;
     FWorkPlatform: TExecutePlatform;
@@ -554,9 +554,9 @@ type
     function BusyNum: PInteger;
   end;
 
-  TPeerIOUserDefineClass = class of TPeerIOUserDefine;
+  TPeer_IO_User_Define_Class = class of TPeer_IO_User_Define;
 
-  TPeerIOUserSpecial = class(TCore_InterfacedObject)
+  TPeer_IO_User_Special = class(TCore_InterfacedObject)
   protected
     FOwner: TPeerIO;
     FBusy: Boolean;
@@ -571,10 +571,10 @@ type
     function BusyNum: PInteger;
   end;
 
-  TPeerIOUserSpecialClass = class of TPeerIOUserSpecial;
+  TPeer_IO_User_Special_Class = class of TPeer_IO_User_Special;
 
-  TPeerClientUserDefine = TPeerIOUserDefine;
-  TPeerClientUserSpecial = TPeerIOUserSpecial;
+  TPeerClientUserDefine = TPeer_IO_User_Define;
+  TPeerClientUserSpecial = TPeer_IO_User_Special;
 
   PSequencePacket = ^TSequencePacket;
 
@@ -632,7 +632,7 @@ type
     procedure DoFree(var data: TMem64); override;
   end;
 
-  TZNet_WithP2PVM = class;
+  TZNet_P2PVM = class;
 
   TPeerIO = class(TCore_InterfacedObject)
   private
@@ -767,7 +767,7 @@ type
     procedure Received_Add_OnPtr(var Sequence_ID_: Cardinal; var p: PSequencePacket);
   protected
     { private vm and protocol stack support }
-    FP2PVMTunnel: TZNet_WithP2PVM;
+    FP2PVMTunnel: TZNet_P2PVM;
     { vm auth token buffer }
     FP2PVM_Auth_Token: TBytes;
     FP2PVM_Cipher_Key: TCipherKeyBuffer;
@@ -794,7 +794,7 @@ type
     OnVMAuthResultIO_C: TOnIOState_C;
     OnVMAuthResultIO_M: TOnIOState_M;
     OnVMAuthResultIO_P: TOnIOState_P;
-    procedure P2PVMAuthSuccess(Sender: TZNet_WithP2PVM);
+    procedure P2PVMAuthSuccess(Sender: TZNet_P2PVM);
   protected
     { automated P2PVM }
     FOnAutomatedP2PVMClientConnectionDone_C: TOnIOState_C;
@@ -807,8 +807,8 @@ type
     FUserVariants: THashVariantList;
     FUserObjects: THashObjectList;
     FUserAutoFreeObjects: THashObjectList;
-    FUserDefine: TPeerIOUserDefine;
-    FUserSpecial: TPeerIOUserSpecial;
+    FUser_Define: TPeer_IO_User_Define;
+    FUser_Special: TPeer_IO_User_Special;
 
     function GetUserVariants: THashVariantList;
     function GetUserObjects: THashObjectList;
@@ -883,6 +883,16 @@ type
     procedure IO_IDLE_TraceM(data: TCore_Object; OnNotify: TOnDataNotify_M);
     procedure IO_IDLE_TraceP(data: TCore_Object; OnNotify: TOnDataNotify_P);
 
+    { double tunnel }
+    function Is_Double_Tunnel: Boolean;
+    function Is_Recveive_Tunnel: Boolean;
+    function Is_Send_Tunnel: Boolean;
+    function Is_Link_OK: Boolean;
+    function Get_Send_Tunnel: TPeerIO; overload;
+    function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
+    function Get_Receive_Tunnel: TPeerIO;
+    function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
+
     { Sequence Packet model support }
     property SequencePacketSignal: Boolean read FSequencePacketSignal;
     { performance }
@@ -895,8 +905,8 @@ type
     property SequencePacketState: SystemString read GetSequencePacketState;
 
     { p2pVM Tunnel support }
-    property P2PVM: TZNet_WithP2PVM read FP2PVMTunnel;
-    property P2PVMTunnel: TZNet_WithP2PVM read FP2PVMTunnel;
+    property P2PVM: TZNet_P2PVM read FP2PVMTunnel;
+    property P2PVMTunnel: TZNet_P2PVM read FP2PVMTunnel;
     property P2PVM_Auth_Token: TBytes read FP2PVM_Auth_Token;
     property P2PVM_Cipher_Key: TCipherKeyBuffer read FP2PVM_Cipher_Key;
     property P2PVM_Cipher: TCipher_Base read FP2PVM_Cipher;
@@ -1029,13 +1039,13 @@ type
     property UserData: Pointer read FUserData write FUserData;
     property UserValue: Variant read FUserValue write FUserValue;
     { custom class }
-    property UserDefine: TPeerIOUserDefine read FUserDefine;
-    property IODefine: TPeerIOUserDefine read FUserDefine;
-    property Define: TPeerIOUserDefine read FUserDefine;
+    property UserDefine: TPeer_IO_User_Define read FUser_Define;
+    property IODefine: TPeer_IO_User_Define read FUser_Define;
+    property Define: TPeer_IO_User_Define read FUser_Define;
     { custom special class }
-    property UserSpecial: TPeerIOUserSpecial read FUserSpecial;
-    property IOSpecial: TPeerIOUserSpecial read FUserSpecial;
-    property Special: TPeerIOUserSpecial read FUserSpecial;
+    property UserSpecial: TPeer_IO_User_Special read FUser_Special;
+    property IOSpecial: TPeer_IO_User_Special read FUser_Special;
+    property Special: TPeer_IO_User_Special read FUser_Special;
 
     { hash code }
     procedure GenerateHashCode(const hs: THashSecurity; buff: Pointer; siz: Integer; var output: TBytes);
@@ -1138,10 +1148,10 @@ type
 
   IZNet_VMInterface = interface
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean);
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
   end;
 
   IOnBigStreamInterface = interface
@@ -1255,8 +1265,8 @@ type
     FProgress_Pool: TZNet_Progress_Pool;
     FOnExecuteCommand: TPeerIOCMDNotify;
     FOnSendCommand: TPeerIOCMDNotify;
-    FPeerIOUserDefineClass: TPeerIOUserDefineClass;
-    FPeerIOUserSpecialClass: TPeerIOUserSpecialClass;
+    FPeerIOUserDefineClass: TPeer_IO_User_Define_Class;
+    FPeerIOUserSpecialClass: TPeer_IO_User_Special_Class;
     FIdleTimeOut: TTimeTick;
     FPhysicsFragmentSwapSpaceTechnology: Boolean;
     FPhysicsFragmentSwapSpaceTrigger: NativeInt;
@@ -1415,10 +1425,10 @@ type
     property OnVM: IZNet_VMInterface read FVMInterface write FVMInterface;
     { p2pVM trigger }
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean); virtual;
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
-    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM); virtual;
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM); virtual;
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM); virtual;
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM); virtual;
+    procedure p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM); virtual;
 
     { automated P2PVM service support }
     property AutomatedP2PVMServiceBind: TAutomatedP2PVMServiceBind read FAutomatedP2PVMServiceBind;
@@ -1591,22 +1601,22 @@ type
     property IOPool: TPeer_IO_Hash_Pool read FPeerIO_HashPool;
 
     { custom struct: user custom instance one }
-    procedure SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
-    property PeerClientUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
-    property PeerIOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
-    property IOUserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
-    property IODefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
-    property UserDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
-    property ExternalDefineClass: TPeerIOUserDefineClass read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    procedure SetPeerIOUserDefineClass(const Value: TPeer_IO_User_Define_Class);
+    property PeerClientUserDefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property PeerIOUserDefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property IOUserDefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property IODefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property UserDefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
+    property ExternalDefineClass: TPeer_IO_User_Define_Class read FPeerIOUserDefineClass write SetPeerIOUserDefineClass;
 
     { custom special struct: user custom instance two }
-    procedure SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
-    property PeerClientUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write SetPeerIOUserSpecialClass;
-    property PeerIOUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
-    property IOUserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
-    property IOSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
-    property UserSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
-    property ExternalSpecialClass: TPeerIOUserSpecialClass read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    procedure SetPeerIOUserSpecialClass(const Value: TPeer_IO_User_Special_Class);
+    property PeerClientUserSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write SetPeerIOUserSpecialClass;
+    property PeerIOUserSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    property IOUserSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    property IOSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    property UserSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
+    property ExternalSpecialClass: TPeer_IO_User_Special_Class read FPeerIOUserSpecialClass write FPeerIOUserSpecialClass;
 
     { misc }
     property IDCounter: Cardinal read FIDSeed write FIDSeed;
@@ -1766,8 +1776,8 @@ type
     property Count: Integer read GetCount;
 
     function Exists(P_IO: TPeerIO): Boolean; overload;
-    function Exists(P_IO: TPeerIOUserDefine): Boolean; overload;
-    function Exists(P_IO: TPeerIOUserSpecial): Boolean; overload;
+    function Exists(P_IO: TPeer_IO_User_Define): Boolean; overload;
+    function Exists(P_IO: TPeer_IO_User_Special): Boolean; overload;
     function Exists(IO_ID: Cardinal): Boolean; overload;
 
     function GetPeerIO(ID: Cardinal): TPeerIO;
@@ -1844,9 +1854,9 @@ type
     procedure DelayFreeSelf;
 
     { p2pVM }
-    function GetP2PVMTunnel: TZNet_WithP2PVM;
-    property P2PVM: TZNet_WithP2PVM read GetP2PVMTunnel;
-    property P2PVMTunnel: TZNet_WithP2PVM read GetP2PVMTunnel;
+    function GetP2PVMTunnel: TZNet_P2PVM;
+    property P2PVM: TZNet_P2PVM read GetP2PVMTunnel;
+    property P2PVMTunnel: TZNet_P2PVM read GetP2PVMTunnel;
 
     { IO IDLE Trace }
     procedure IO_IDLE_TraceC(data: TCore_Object; const OnNotify: TOnDataNotify_C);
@@ -2002,7 +2012,7 @@ type
 
   TP2PVM_PeerIO = class(TPeerIO)
   private
-    FLinkVM: TZNet_WithP2PVM;
+    FLinkVM: TZNet_P2PVM;
     FRealSendBuff: TMem64;
     FSendQueue: TP2P_VM_Fragment_Packet_Pool;
     FRemote_frameworkID: Cardinal;
@@ -2024,7 +2034,7 @@ type
     function WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean; override;
     procedure Progress; override;
 
-    property LinkVM: TZNet_WithP2PVM read FLinkVM;
+    property LinkVM: TZNet_P2PVM read FLinkVM;
     property Remote_frameworkID: Cardinal read FRemote_frameworkID;
     property Remote_p2pID: Cardinal read FRemote_p2pID;
   end;
@@ -2042,9 +2052,9 @@ type
 
   TZNet_WithP2PVM_Server = class(TZNet_Server)
   protected
-    procedure Connecting(SenderVM: TZNet_WithP2PVM;
+    procedure Connecting(SenderVM: TZNet_P2PVM;
       const Remote_frameworkID, FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; var Allowed: Boolean); virtual;
-    procedure ListenState(SenderVM: TZNet_WithP2PVM; const IPV6: TIPV6; const Port: Word; const State: Boolean); virtual;
+    procedure ListenState(SenderVM: TZNet_P2PVM; const IPV6: TIPV6; const Port: Word; const State: Boolean); virtual;
   protected
     FFrameworkListenPool: TCore_List;
     FLinkVMPool: TUInt32HashObjectList;
@@ -2069,7 +2079,7 @@ type
     procedure CloseAllClient;
 
     { service method }
-    procedure ProgressStopServiceWithPerVM(SenderVM: TZNet_WithP2PVM);
+    procedure ProgressStopServiceWithPerVM(SenderVM: TZNet_P2PVM);
     procedure StopService; override;
     function StartService(Host_: SystemString; Port: Word): Boolean; override;
 
@@ -2084,10 +2094,10 @@ type
   protected
     procedure Framework_Internal_IO_Create(const Sender: TPeerIO); override;
     procedure Framework_Internal_IO_Destroy(const Sender: TPeerIO); override;
-    procedure VMConnectSuccessed(SenderVM: TZNet_WithP2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal); virtual;
-    procedure VMDisconnect(SenderVM: TZNet_WithP2PVM); virtual;
+    procedure VMConnectSuccessed(SenderVM: TZNet_P2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal); virtual;
+    procedure VMDisconnect(SenderVM: TZNet_P2PVM); virtual;
   protected
-    FLinkVM: TZNet_WithP2PVM;
+    FLinkVM: TZNet_P2PVM;
     FFrameworkWithVM_ID: Cardinal;
     FVMClientIO: TP2PVM_PeerIO;
     FVMConnected: Boolean;
@@ -2133,7 +2143,7 @@ type
     procedure DoBackCall_Progress(Sender: TZNet);
     procedure ProgressWaitSend(P_IO: TPeerIO); override;
 
-    property LinkVM: TZNet_WithP2PVM read FLinkVM;
+    property LinkVM: TZNet_P2PVM read FLinkVM;
     property FrameworkWithVM_ID: Cardinal read FFrameworkWithVM_ID;
     property VMClientIO: TP2PVM_PeerIO read FVMClientIO;
   end;
@@ -2145,9 +2155,9 @@ type
 {$ELSE FPC}
   TZNet_List_P = reference to procedure(Sender: TZNet);
 {$ENDIF FPC}
-  TP2PVMAuthSuccessMethod = procedure(Sender: TZNet_WithP2PVM) of object;
+  TP2PVMAuthSuccessMethod = procedure(Sender: TZNet_P2PVM) of object;
 
-  TZNet_WithP2PVM = class(TCore_Object)
+  TZNet_P2PVM = class(TCore_Object)
   protected
     FOwner_IO: TPeerIO;
     FAuthWaiting: Boolean;
@@ -2247,7 +2257,7 @@ type
 
   TStableServer_PeerIO = class;
 
-  TStableServer_OwnerIO_UserDefine = class(TPeerIOUserDefine)
+  TStableServer_OwnerIO_UserDefine = class(TPeer_IO_User_Define)
   public
     BindStableIO: TStableServer_PeerIO;
     constructor Create(Owner_: TPeerIO); override;
@@ -2447,10 +2457,12 @@ type
     procedure RunDone(Sender: TCompute);
   public
     Thread: TCompute;
-    Framework: TZNet;
+    Framework: TZNet; // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
-    WorkID: Cardinal;
+    WorkID: Cardinal; // recevie tunnel-ID
+    Send_Tunnel: TZNet;
+    Send_Tunnel_ID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
     UserVariant: Variant;
@@ -2512,10 +2524,12 @@ type
     procedure Run(Sender: TCompute);
   public
     Thread: TCompute;
-    Framework: TZNet;
+    Framework: TZNet; // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
-    WorkID: Cardinal;
+    WorkID: Cardinal; // recevie tunnel-ID
+    Send_Tunnel: TZNet;
+    Send_Tunnel_ID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
     UserVariant: Variant;
@@ -2578,10 +2592,12 @@ type
     procedure RunDone(Sender: TCompute);
   public
     Thread: TCompute;
-    Framework: TZNet;
+    Framework: TZNet; // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
-    WorkID: Cardinal;
+    WorkID: Cardinal; // recevie tunnel-ID
+    Send_Tunnel: TZNet;
+    Send_Tunnel_ID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
     UserVariant: Variant;
@@ -2643,10 +2659,12 @@ type
     procedure Run(Sender: TCompute);
   public
     Thread: TCompute;
-    Framework: TZNet;
+    Framework: TZNet; // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
-    WorkID: Cardinal;
+    WorkID: Cardinal; // recevie tunnel-ID
+    Send_Tunnel: TZNet;
+    Send_Tunnel_ID: Cardinal;
     UserData: Pointer;
     UserObject: TCore_Object;
     UserVariant: Variant;
@@ -2902,11 +2920,17 @@ procedure ExtractHostAddress(var Host: U_String; var Port: Word); overload;
 procedure ExtractHostAddress(var Host, Port: U_String); overload;
 function Build_Host_URL(Host, Port: SystemString): SystemString; overload;
 function Build_Host_URL(Host: SystemString; Port: Word): SystemString; overload;
+function Get_Link_OK_Send_Tunnel(IO_: TPeerIO; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
+function Get_Link_OK_Send_Tunnel(Framework_: TZNet; ID_: Cardinal; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
+function Get_Link_OK_Recv_Tunnel(IO_: TPeerIO; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
+function Get_Link_OK_Recv_Tunnel(Framework_: TZNet; ID_: Cardinal; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
 
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 {$ENDREGION 'misc-api'}
 
 implementation
+
+uses Z.Net.DoubleTunnelIO, Z.Net.DoubleTunnelIO.VirtualAuth, Z.Net.DoubleTunnelIO.NoAuth;
 
 procedure Init_ZNet_Instance_Pool;
 begin
@@ -3590,6 +3614,142 @@ begin
       Result := Format('%s:%d', [Host, Port]);
 end;
 
+function Get_Link_OK_Send_Tunnel(IO_: TPeerIO; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := False;
+  if IO_ = nil then
+      exit;
+  if IO_.UserDefine = nil then
+      exit;
+  if IO_.UserDefine is TService_RecvTunnel_UserDefine_NoAuth then
+    begin
+      if not TService_RecvTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
+          exit;
+      Send_Tunnel := TService_RecvTunnel_UserDefine_NoAuth(IO_.UserDefine).SendTunnel.Owner.OwnerFramework;
+      Send_Tunnel_ID := TService_RecvTunnel_UserDefine_NoAuth(IO_.UserDefine).SendTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_RecvTunnel_NoAuth then
+    begin
+      if TClient_RecvTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+        if TDTClient_NoAuth(TClient_RecvTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO <> nil then
+          begin
+            Send_Tunnel := TDTClient_NoAuth(TClient_RecvTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel;
+            Send_Tunnel_ID := TDTClient_NoAuth(TClient_RecvTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end
+  else if IO_.UserDefine is TService_RecvTunnel_UserDefine_VirtualAuth then
+    begin
+      if not TService_RecvTunnel_UserDefine_VirtualAuth(IO_.UserDefine).LinkOk then
+          exit;
+      Send_Tunnel := TService_RecvTunnel_UserDefine_VirtualAuth(IO_.UserDefine).SendTunnel.Owner.OwnerFramework;
+      Send_Tunnel_ID := TService_RecvTunnel_UserDefine_VirtualAuth(IO_.UserDefine).SendTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_RecvTunnel_VirtualAuth then
+    begin
+      if TClient_RecvTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+        if TDTClient_VirtualAuth(TClient_RecvTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO <> nil then
+          begin
+            Send_Tunnel := TDTClient_VirtualAuth(TClient_RecvTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel;
+            Send_Tunnel_ID := TDTClient_VirtualAuth(TClient_RecvTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end
+  else if IO_.UserDefine is TService_RecvTunnel_UserDefine then
+    begin
+      if not TService_RecvTunnel_UserDefine(IO_.UserDefine).LinkOk then
+          exit;
+      Send_Tunnel := TService_RecvTunnel_UserDefine(IO_.UserDefine).SendTunnel.Owner.OwnerFramework;
+      Send_Tunnel_ID := TService_RecvTunnel_UserDefine(IO_.UserDefine).SendTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_RecvTunnel then
+    begin
+      if TClient_RecvTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient then
+        if TDTClient(TClient_RecvTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO <> nil then
+          begin
+            Send_Tunnel := TDTClient(TClient_RecvTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel;
+            Send_Tunnel_ID := TDTClient(TClient_RecvTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).SendTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end;
+end;
+
+function Get_Link_OK_Send_Tunnel(Framework_: TZNet; ID_: Cardinal; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := Get_Link_OK_Send_Tunnel(Framework_.PeerIO_HashPool[ID_], Send_Tunnel, Send_Tunnel_ID);
+end;
+
+function Get_Link_OK_Recv_Tunnel(IO_: TPeerIO; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := False;
+  if IO_ = nil then
+      exit;
+  if IO_.UserDefine = nil then
+      exit;
+  if IO_.UserDefine is TService_SendTunnel_UserDefine_NoAuth then
+    begin
+      if not TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
+          exit;
+      Recv_Tunnel := TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).RecvTunnel.Owner.OwnerFramework;
+      Recv_Tunnel_ID := TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).RecvTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_SendTunnel_NoAuth then
+    begin
+      if TClient_SendTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+        if TDTClient_NoAuth(TClient_SendTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO <> nil then
+          begin
+            Recv_Tunnel := TDTClient_NoAuth(TClient_SendTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel;
+            Recv_Tunnel_ID := TDTClient_NoAuth(TClient_SendTunnel_NoAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end
+  else if IO_.UserDefine is TService_SendTunnel_UserDefine_VirtualAuth then
+    begin
+      if not TService_SendTunnel_UserDefine_VirtualAuth(IO_.UserDefine).LinkOk then
+          exit;
+      Recv_Tunnel := TService_SendTunnel_UserDefine_VirtualAuth(IO_.UserDefine).RecvTunnel.Owner.OwnerFramework;
+      Recv_Tunnel_ID := TService_SendTunnel_UserDefine_VirtualAuth(IO_.UserDefine).RecvTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_SendTunnel_VirtualAuth then
+    begin
+      if TClient_SendTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+        if TDTClient_VirtualAuth(TClient_SendTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO <> nil then
+          begin
+            Recv_Tunnel := TDTClient_VirtualAuth(TClient_SendTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel;
+            Recv_Tunnel_ID := TDTClient_VirtualAuth(TClient_SendTunnel_VirtualAuth(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end
+  else if IO_.UserDefine is TService_SendTunnel_UserDefine then
+    begin
+      if not TService_SendTunnel_UserDefine(IO_.UserDefine).LinkOk then
+          exit;
+      Recv_Tunnel := TService_SendTunnel_UserDefine(IO_.UserDefine).RecvTunnel.Owner.OwnerFramework;
+      Recv_Tunnel_ID := TService_SendTunnel_UserDefine(IO_.UserDefine).RecvTunnelID;
+      Result := True;
+    end
+  else if IO_.UserDefine is TClient_SendTunnel then
+    begin
+      if TClient_SendTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework is TDTClient then
+        if TDTClient(TClient_SendTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO <> nil then
+          begin
+            Recv_Tunnel := TDTClient(TClient_SendTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel;
+            Recv_Tunnel_ID := TDTClient(TClient_SendTunnel(IO_.UserDefine).Owner.OwnerFramework.DoubleChannelFramework).RecvTunnel.ClientIO.ID;
+            Result := True;
+          end;
+    end;
+end;
+
+function Get_Link_OK_Recv_Tunnel(Framework_: TZNet; ID_: Cardinal; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := Get_Link_OK_Recv_Tunnel(Framework_.PeerIO_HashPool[ID_], Recv_Tunnel, Recv_Tunnel_ID);
+end;
+
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
 var
   InData: TDFE;
@@ -3785,6 +3945,8 @@ begin
   Cmd := '';
   TriggerTime := GetTimeTick();
   WorkID := 0;
+  Send_Tunnel := nil;
+  Send_Tunnel_ID := 0;
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
@@ -3839,6 +4001,8 @@ begin
   if OutData <> nil then
       t.OutData.Assign(OutData);
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
@@ -3875,6 +4039,8 @@ begin
   if OutData <> nil then
       t.OutData.Assign(OutData);
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
@@ -3910,6 +4076,8 @@ begin
   t.OutData := TDFE.Create;
   if OutData <> nil then
       t.OutData.Assign(OutData);
+
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
@@ -3951,6 +4119,8 @@ begin
   Cmd := '';
   TriggerTime := GetTimeTick();
   WorkID := 0;
+  Send_Tunnel := nil;
+  Send_Tunnel_ID := 0;
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
@@ -3996,6 +4166,8 @@ begin
   if InData <> nil then
       t.InData.Assign(InData);
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
@@ -4028,6 +4200,8 @@ begin
   if InData <> nil then
       t.InData.Assign(InData);
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
@@ -4059,6 +4233,8 @@ begin
   t.InData := TDFE.Create;
   if InData <> nil then
       t.InData.Assign(InData);
+
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
@@ -4130,6 +4306,8 @@ begin
   Cmd := '';
   TriggerTime := GetTimeTick();
   WorkID := 0;
+  Send_Tunnel := nil;
+  Send_Tunnel_ID := 0;
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
@@ -4178,6 +4356,8 @@ begin
   t.InData := InData;
   t.OutData := OutData;
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
@@ -4210,6 +4390,8 @@ begin
   t.InData := InData;
   t.OutData := OutData;
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run, {$IFDEF FPC}@{$ENDIF FPC}t.RunDone);
@@ -4241,6 +4423,8 @@ begin
   t.UserVariant := UserVariant;
   t.InData := InData;
   t.OutData := OutData;
+
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
@@ -4282,6 +4466,8 @@ begin
   Cmd := '';
   TriggerTime := GetTimeTick();
   WorkID := 0;
+  Send_Tunnel := nil;
+  Send_Tunnel_ID := 0;
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
@@ -4324,6 +4510,8 @@ begin
   t.UserVariant := UserVariant;
   t.InData := InData;
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
@@ -4354,6 +4542,8 @@ begin
   t.UserVariant := UserVariant;
   t.InData := InData;
 
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
+
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
   TCompute.RunM(UserData, UserObject, {$IFDEF FPC}@{$ENDIF FPC}t.Run);
@@ -4383,6 +4573,8 @@ begin
   t.UserObject := UserObject;
   t.UserVariant := UserVariant;
   t.InData := InData;
+
+  Get_Link_OK_Send_Tunnel(Sender, t.Send_Tunnel, t.Send_Tunnel_ID);
 
   AtomInc(Sender.OwnerFramework.FCMD_Thread_Runing_Num);
 
@@ -5208,7 +5400,7 @@ begin
     end;
 end;
 
-procedure TPeerIOUserDefine.DelayFreeOnBusy;
+procedure TPeer_IO_User_Define.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
@@ -5217,7 +5409,7 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-constructor TPeerIOUserDefine.Create(Owner_: TPeerIO);
+constructor TPeer_IO_User_Define.Create(Owner_: TPeerIO);
 begin
   inherited Create;
   FOwner := Owner_;
@@ -5226,22 +5418,22 @@ begin
   FBusy := False;
 end;
 
-destructor TPeerIOUserDefine.Destroy;
+destructor TPeer_IO_User_Define.Destroy;
 begin
   DisposeObject(FBigStreamBatch);
   inherited Destroy;
 end;
 
-procedure TPeerIOUserDefine.Progress;
+procedure TPeer_IO_User_Define.Progress;
 begin
 end;
 
-function TPeerIOUserDefine.BusyNum: PInteger;
+function TPeer_IO_User_Define.BusyNum: PInteger;
 begin
   Result := @FBusyNum;
 end;
 
-procedure TPeerIOUserSpecial.DelayFreeOnBusy;
+procedure TPeer_IO_User_Special.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
@@ -5249,23 +5441,23 @@ begin
   DelayFreeObj(1.0, self);
 end;
 
-constructor TPeerIOUserSpecial.Create(Owner_: TPeerIO);
+constructor TPeer_IO_User_Special.Create(Owner_: TPeerIO);
 begin
   inherited Create;
   FOwner := Owner_;
   FBusy := False;
 end;
 
-destructor TPeerIOUserSpecial.Destroy;
+destructor TPeer_IO_User_Special.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TPeerIOUserSpecial.Progress;
+procedure TPeer_IO_User_Special.Progress;
 begin
 end;
 
-function TPeerIOUserSpecial.BusyNum: PInteger;
+function TPeer_IO_User_Special.BusyNum: PInteger;
 begin
   Result := @FBusyNum;
 end;
@@ -5834,7 +6026,7 @@ begin
       PrintError('SequencePacketReceivedPoolMemory overflow');
 end;
 
-procedure TPeerIO.P2PVMAuthSuccess(Sender: TZNet_WithP2PVM);
+procedure TPeerIO.P2PVMAuthSuccess(Sender: TZNet_P2PVM);
 begin
   with OwnerFramework.ProgressPost.PostExecuteM(False, 0, {$IFDEF FPC}@{$ENDIF FPC}OwnerFramework.VMAuthSuccessDelayExecute) do
     begin
@@ -7671,8 +7863,8 @@ begin
   FUserObjects := nil;
   FUserAutoFreeObjects := nil;
 
-  FUserDefine := OwnerFramework.FPeerIOUserDefineClass.Create(self);
-  FUserSpecial := OwnerFramework.FPeerIOUserSpecialClass.Create(self);
+  FUser_Define := OwnerFramework.FPeerIOUserDefineClass.Create(self);
+  FUser_Special := OwnerFramework.FPeerIOUserSpecialClass.Create(self);
   BeginSendState := False;
 
   OnCreate(self);
@@ -7720,15 +7912,15 @@ begin
     end;
   FSend_Queue_Critical.UnLock;
 
-  if (FUserDefine.FBusy) or (FUserDefine.FBusyNum > 0) then
-      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserDefine.DelayFreeOnBusy)
+  if (FUser_Define.FBusy) or (FUser_Define.FBusyNum > 0) then
+      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUser_Define.DelayFreeOnBusy)
   else
-      DisposeObject(FUserDefine);
+      DisposeObject(FUser_Define);
 
-  if (FUserSpecial.FBusy) or (FUserSpecial.FBusyNum > 0) then
-      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUserSpecial.DelayFreeOnBusy)
+  if (FUser_Special.FBusy) or (FUser_Special.FBusyNum > 0) then
+      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}FUser_Special.DelayFreeOnBusy)
   else
-      DisposeObject(FUserSpecial);
+      DisposeObject(FUser_Special);
 
   { free buffer }
   DisposeObject(FQueuePool);
@@ -7859,6 +8051,133 @@ begin
     end;
 end;
 
+function TPeerIO.Is_Double_Tunnel: Boolean;
+begin
+  Result := False;
+  if OwnerFramework = nil then
+      exit;
+
+  if OwnerFramework.DoubleChannelFramework is TDTService_NoAuth then
+      Result := True
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+      Result := True
+  else if OwnerFramework.DoubleChannelFramework is TDTService_VirtualAuth then
+      Result := True
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+      Result := True
+  else if OwnerFramework.DoubleChannelFramework is TDTService then
+      Result := True
+  else if OwnerFramework.DoubleChannelFramework is TDTClient then
+      Result := True;
+end;
+
+function TPeerIO.Is_Recveive_Tunnel: Boolean;
+begin
+  Result := False;
+  if OwnerFramework = nil then
+      exit;
+
+  if OwnerFramework.DoubleChannelFramework is TDTService_NoAuth then
+      Result := TDTService_NoAuth(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+      Result := TDTClient_NoAuth(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTService_VirtualAuth then
+      Result := TDTService_VirtualAuth(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+      Result := TDTClient_VirtualAuth(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTService then
+      Result := TDTService(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient then
+      Result := TDTClient(OwnerFramework.DoubleChannelFramework).RecvTunnel = OwnerFramework;
+end;
+
+function TPeerIO.Is_Send_Tunnel: Boolean;
+begin
+  Result := False;
+  if OwnerFramework = nil then
+      exit;
+
+  if OwnerFramework.DoubleChannelFramework is TDTService_NoAuth then
+      Result := TDTService_NoAuth(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+      Result := TDTClient_NoAuth(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTService_VirtualAuth then
+      Result := TDTService_VirtualAuth(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+      Result := TDTClient_VirtualAuth(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTService then
+      Result := TDTService(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework
+  else if OwnerFramework.DoubleChannelFramework is TDTClient then
+      Result := TDTClient(OwnerFramework.DoubleChannelFramework).SendTunnel = OwnerFramework;
+end;
+
+function TPeerIO.Is_Link_OK: Boolean;
+begin
+  Result := False;
+  if OwnerFramework = nil then
+      exit;
+
+  if UserDefine is TService_RecvTunnel_UserDefine_NoAuth then
+    begin
+      Result := TService_RecvTunnel_UserDefine_NoAuth(UserDefine).LinkOk;
+    end
+  else if UserDefine is TClient_RecvTunnel_NoAuth then
+    begin
+      if OwnerFramework.DoubleChannelFramework is TDTClient_NoAuth then
+          Result := TDTClient_NoAuth(OwnerFramework.DoubleChannelFramework).LinkOk;
+    end
+  else if UserDefine is TService_RecvTunnel_UserDefine_VirtualAuth then
+    begin
+      Result := TService_RecvTunnel_UserDefine_VirtualAuth(UserDefine).LinkOk;
+    end
+  else if UserDefine is TClient_RecvTunnel_VirtualAuth then
+    begin
+      if OwnerFramework.DoubleChannelFramework is TDTClient_VirtualAuth then
+          Result := TDTClient_VirtualAuth(OwnerFramework.DoubleChannelFramework).LinkOk;
+    end
+  else if UserDefine is TService_RecvTunnel_UserDefine then
+    begin
+      Result := TService_RecvTunnel_UserDefine(UserDefine).LinkOk;
+    end
+  else if UserDefine is TClient_RecvTunnel then
+    begin
+      if OwnerFramework.DoubleChannelFramework is TDTClient then
+          Result := TDTClient(OwnerFramework.DoubleChannelFramework).LinkOk;
+    end;
+end;
+
+function TPeerIO.Get_Send_Tunnel: TPeerIO;
+var
+  Send_Tunnel: TZNet;
+  Send_Tunnel_ID: Cardinal;
+begin
+  Result := nil;
+  if not Get_Link_OK_Send_Tunnel(self, Send_Tunnel, Send_Tunnel_ID) then
+      exit;
+  Result := Send_Tunnel.PeerIO_HashPool[Send_Tunnel_ID];
+end;
+
+function TPeerIO.Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := Get_Link_OK_Send_Tunnel(self, Send_Tunnel, Send_Tunnel_ID);
+end;
+
+function TPeerIO.Get_Receive_Tunnel: TPeerIO;
+var
+  Recv_Tunnel: TZNet;
+  Recv_Tunnel_ID: Cardinal;
+begin
+  Result := nil;
+  if not Get_Link_OK_Recv_Tunnel(self, Recv_Tunnel, Recv_Tunnel_ID) then
+      exit;
+  Result := Recv_Tunnel.PeerIO_HashPool[Recv_Tunnel_ID];
+end;
+
+function TPeerIO.Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean;
+begin
+  Result := Get_Link_OK_Recv_Tunnel(self, Recv_Tunnel, Recv_Tunnel_ID);
+end;
+
 function TPeerIO.p2pVMTunnelReadyOk: Boolean;
 begin
   Result := (FP2PVMTunnel <> nil) and (FP2PVMTunnel.WasAuthed);
@@ -7946,7 +8265,7 @@ begin
           Process_Send_Buffer();
         end;
 
-      FP2PVMTunnel := TZNet_WithP2PVM.Create(vmHashPoolSize);
+      FP2PVMTunnel := TZNet_P2PVM.Create(vmHashPoolSize);
       FP2PVMTunnel.QuietMode := OwnerFramework.QuietMode;
       FP2PVMTunnel.FVMID := FID;
 
@@ -8222,12 +8541,12 @@ begin
     end;
 
   try
-      FUserDefine.Progress;
+      FUser_Define.Progress;
   except
   end;
 
   try
-      FUserSpecial.Progress;
+      FUser_Special.Progress;
   except
   end;
 
@@ -8536,7 +8855,7 @@ end;
 
 function TPeerIO.GetBigStreamBatch: TBigStreamBatch;
 begin
-  Result := FUserDefine.FBigStreamBatch;
+  Result := FUser_Define.FBigStreamBatch;
 end;
 
 function TPeerIO.Get_Last_IO_IDLE_Time: TTimeTick;
@@ -9937,8 +10256,8 @@ begin
 {$ELSE Encrypt_P2PVM_Packet}
   FEncrypt_P2PVM_Packet := False;
 {$ENDIF Encrypt_P2PVM_Packet}
-  FPeerIOUserDefineClass := TPeerIOUserDefine;
-  FPeerIOUserSpecialClass := TPeerIOUserSpecial;
+  FPeerIOUserDefineClass := TPeer_IO_User_Define;
+  FPeerIOUserSpecialClass := TPeer_IO_User_Special;
 
   FPostProgress := TN_Progress_ToolWithCadencer.Create;
 
@@ -10075,7 +10394,7 @@ begin
       Accept := CompareQuantumCryptographyPassword(FAutomatedP2PVMAuthToken, Token);
 end;
 
-procedure TZNet.p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpenBefore(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
 var
   i: Integer;
 begin
@@ -10087,13 +10406,13 @@ begin
         P2PVMTunnel.InstallLogicFramework(FAutomatedP2PVMServiceBind[i]^.Service);
 end;
 
-procedure TZNet.p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpen(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
 begin
   if FVMInterface <> nil then
       FVMInterface.p2pVMTunnelOpen(Sender, P2PVMTunnel);
 end;
 
-procedure TZNet.p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelOpenAfter(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
 begin
   Sender.ResetSequencePacketBuffer;
   Sender.FSequencePacketSignal := True;
@@ -10102,7 +10421,7 @@ begin
       FVMInterface.p2pVMTunnelOpenAfter(Sender, P2PVMTunnel);
 end;
 
-procedure TZNet.p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_WithP2PVM);
+procedure TZNet.p2pVMTunnelClose(Sender: TPeerIO; P2PVMTunnel: TZNet_P2PVM);
 begin
   if FVMInterface <> nil then
       FVMInterface.p2pVMTunnelClose(Sender, P2PVMTunnel);
@@ -11002,21 +11321,21 @@ begin
   Dest.CopyParamFrom(self);
 end;
 
-procedure TZNet.SetPeerIOUserDefineClass(const Value: TPeerIOUserDefineClass);
+procedure TZNet.SetPeerIOUserDefineClass(const Value: TPeer_IO_User_Define_Class);
 begin
   { safe }
   if FPeerIOUserDefineClass <> nil then
-    if (not Value.InheritsFrom(FPeerIOUserDefineClass)) and (Value <> TPeerIOUserDefine) then
+    if (not Value.InheritsFrom(FPeerIOUserDefineClass)) and (Value <> TPeer_IO_User_Define) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserDefineClass.ClassName]);
   { update }
   FPeerIOUserDefineClass := Value;
 end;
 
-procedure TZNet.SetPeerIOUserSpecialClass(const Value: TPeerIOUserSpecialClass);
+procedure TZNet.SetPeerIOUserSpecialClass(const Value: TPeer_IO_User_Special_Class);
 begin
   { safe }
   if FPeerIOUserSpecialClass <> nil then
-    if (not Value.InheritsFrom(FPeerIOUserSpecialClass)) and (Value <> TPeerIOUserSpecial) then
+    if (not Value.InheritsFrom(FPeerIOUserSpecialClass)) and (Value <> TPeer_IO_User_Special) then
         RaiseInfo('%s no inherited from %s', [Value.ClassName, FPeerIOUserSpecialClass.ClassName]);
   { update }
   FPeerIOUserSpecialClass := Value;
@@ -12139,12 +12458,12 @@ begin
   Result := FPeerIO_HashPool.Exists_Value(P_IO);
 end;
 
-function TZNet_Server.Exists(P_IO: TPeerIOUserDefine): Boolean;
+function TZNet_Server.Exists(P_IO: TPeer_IO_User_Define): Boolean;
 begin
   Result := Exists(P_IO.Owner);
 end;
 
-function TZNet_Server.Exists(P_IO: TPeerIOUserSpecial): Boolean;
+function TZNet_Server.Exists(P_IO: TPeer_IO_User_Special): Boolean;
 begin
   Result := Exists(P_IO.Owner);
 end;
@@ -12440,7 +12759,7 @@ begin
   DelayFreeObject(1.0, self, nil);
 end;
 
-function TZNet_Client.GetP2PVMTunnel: TZNet_WithP2PVM;
+function TZNet_Client.GetP2PVMTunnel: TZNet_P2PVM;
 begin
   if ClientIO <> nil then
       Result := ClientIO.P2PVM
@@ -13654,7 +13973,7 @@ begin
 
   while FSendQueue.num > 0 do
     begin
-      TZNet_WithP2PVM.FreeP2PVMPacket(FSendQueue.current^.data);
+      TZNet_P2PVM.FreeP2PVMPacket(FSendQueue.current^.data);
       FSendQueue.Next;
     end;
   DisposeObject(FSendQueue);
@@ -13771,7 +14090,7 @@ begin
   Process_Send_Buffer();
 end;
 
-procedure TZNet_WithP2PVM_Server.Connecting(SenderVM: TZNet_WithP2PVM;
+procedure TZNet_WithP2PVM_Server.Connecting(SenderVM: TZNet_P2PVM;
   const Remote_frameworkID, FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; var Allowed: Boolean);
 var
   p: PP2PVMListen;
@@ -13804,7 +14123,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM_Server.ListenState(SenderVM: TZNet_WithP2PVM; const IPV6: TIPV6; const Port: Word; const State: Boolean);
+procedure TZNet_WithP2PVM_Server.ListenState(SenderVM: TZNet_P2PVM; const IPV6: TIPV6; const Port: Word; const State: Boolean);
 begin
   if not FQuietMode then
     begin
@@ -13927,7 +14246,7 @@ begin
         for i := 0 to L.Count - 1 do
           begin
             p := L[i];
-            (TZNet_WithP2PVM(p^.data)).UninstallLogicFramework(self);
+            (TZNet_P2PVM(p^.data)).UninstallLogicFramework(self);
           end;
       except
       end;
@@ -13949,7 +14268,7 @@ begin
   ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}ProgressDisconnectClient);
 end;
 
-procedure TZNet_WithP2PVM_Server.ProgressStopServiceWithPerVM(SenderVM: TZNet_WithP2PVM);
+procedure TZNet_WithP2PVM_Server.ProgressStopServiceWithPerVM(SenderVM: TZNet_P2PVM);
 var
   i: Integer;
   p: PP2PVMListen;
@@ -13984,7 +14303,7 @@ begin
       while i < FLinkVMPool.Count do
         begin
           try
-              ProgressStopServiceWithPerVM(TZNet_WithP2PVM(p^.data));
+              ProgressStopServiceWithPerVM(TZNet_P2PVM(p^.data));
           except
           end;
           inc(i);
@@ -14036,7 +14355,7 @@ begin
       while i < FLinkVMPool.Count do
         begin
           try
-              TZNet_WithP2PVM(p^.data).SendListen(FFrameworkWithVM_ID, IPV6, Port, True);
+              TZNet_P2PVM(p^.data).SendListen(FFrameworkWithVM_ID, IPV6, Port, True);
           except
           end;
           inc(i);
@@ -14073,7 +14392,7 @@ begin
   inherited Framework_Internal_IO_Destroy(Sender);
 end;
 
-procedure TZNet_WithP2PVM_Client.VMConnectSuccessed(SenderVM: TZNet_WithP2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal);
+procedure TZNet_WithP2PVM_Client.VMConnectSuccessed(SenderVM: TZNet_P2PVM; Remote_frameworkID, Remote_p2pID, FrameworkID: Cardinal);
 begin
   FVMClientIO.FRemote_frameworkID := Remote_frameworkID;
   FVMClientIO.FRemote_p2pID := Remote_p2pID;
@@ -14082,7 +14401,7 @@ begin
   DoConnected(FVMClientIO);
 end;
 
-procedure TZNet_WithP2PVM_Client.VMDisconnect(SenderVM: TZNet_WithP2PVM);
+procedure TZNet_WithP2PVM_Client.VMDisconnect(SenderVM: TZNet_P2PVM);
 begin
   FVMConnected := False;
   TriggerDoConnectFailed;
@@ -14633,7 +14952,7 @@ begin
   inherited ProgressWaitSend(P_IO);
 end;
 
-procedure TZNet_WithP2PVM.Hook_SendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
+procedure TZNet_P2PVM.Hook_SendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -14650,7 +14969,7 @@ begin
       FSendStream.WritePtr(buff, siz);
 end;
 
-procedure TZNet_WithP2PVM.Hook_SaveReceiveBuffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
+procedure TZNet_P2PVM.Hook_SaveReceiveBuffer(const Sender: TPeerIO; const buff: Pointer; siz: Int64);
 begin
   if siz <= 0 then
       exit;
@@ -14659,7 +14978,7 @@ begin
   FReceiveStream.WritePtr(buff, siz);
 end;
 
-procedure TZNet_WithP2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
+procedure TZNet_P2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
   function Extract_P2PVM_Receive_Buffer(var fPk: TP2PVMFragmentPacket; const Stream: TMS64): Integer;
   begin
     Result := 0;
@@ -14830,13 +15149,13 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.Hook_ClientDestroy(const Sender: TPeerIO);
+procedure TZNet_P2PVM.Hook_ClientDestroy(const Sender: TPeerIO);
 begin
   CloseP2PVMTunnel;
   Sender.OwnerFramework.Framework_Internal_IO_Destroy(Sender);
 end;
 
-procedure TZNet_WithP2PVM.SendVMBuffer(const buff: Pointer; const siz: NativeInt);
+procedure TZNet_P2PVM.SendVMBuffer(const buff: Pointer; const siz: NativeInt);
 begin
   FOwner_IO.WriteBufferOpen;
   FOwner_IO.OwnerFramework.Framework_Internal_Send_Byte_Buffer(FOwner_IO, buff, siz);
@@ -14844,12 +15163,12 @@ begin
   FOwner_IO.WriteBufferClose;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedEchoing(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedEchoing(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 begin
   echoBuffer(buff, siz);
 end;
 
-procedure TZNet_WithP2PVM.ReceivedEcho(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedEcho(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 type
   TBuf = array [0 .. 7] of Byte;
   PBuf = ^TBuf;
@@ -14899,7 +15218,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedListen(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedListen(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 type
   TBuf = array [0 .. 18] of Byte;
   PBuf = ^TBuf;
@@ -14955,7 +15274,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedListenState(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedListenState(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 type
   TBuf = array [0 .. 18] of Byte;
   PBuf = ^TBuf;
@@ -15020,7 +15339,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedConnecting(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedConnecting(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 type
   TBuf = array [0 .. 25] of Byte;
   PBuf = ^TBuf;
@@ -15071,7 +15390,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedConnectedReponse(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedConnectedReponse(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 type
   TBuf = array [0 .. 7] of Byte;
   PBuf = ^TBuf;
@@ -15104,7 +15423,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedDisconnect(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedDisconnect(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 var
   c: TZNet;
   LocalVMc: TP2PVM_PeerIO;
@@ -15132,7 +15451,7 @@ begin
       FOwner_IO.Print('disconnect protocol no frameworkID: %d', [FrameworkID]);
 end;
 
-procedure TZNet_WithP2PVM.ReceivedLogicFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedLogicFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 var
   c: TZNet;
   LocalVMc: TPeerIO;
@@ -15171,7 +15490,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ReceivedOwnerIOFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
+procedure TZNet_P2PVM.ReceivedOwnerIOFragmentData(const FrameworkID, p2pID: Cardinal; const buff: PByte; const siz: Cardinal);
 begin
   if FOwner_IO = nil then
       exit;
@@ -15179,7 +15498,7 @@ begin
   FOwner_IO.OwnerFramework.Framework_Internal_Process_Receive_Buffer(FOwner_IO);
 end;
 
-procedure TZNet_WithP2PVM.DoProcessPerClientFragmentSend(P_IO: TPeerIO);
+procedure TZNet_P2PVM.DoProcessPerClientFragmentSend(P_IO: TPeerIO);
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -15195,7 +15514,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.DoPerClientClose(P_IO: TPeerIO);
+procedure TZNet_P2PVM.DoPerClientClose(P_IO: TPeerIO);
 begin
   if TP2PVM_PeerIO(P_IO).FLinkVM = self then
     begin
@@ -15203,7 +15522,7 @@ begin
     end;
 end;
 
-constructor TZNet_WithP2PVM.Create(HashPoolSize: Integer);
+constructor TZNet_P2PVM.Create(HashPoolSize: Integer);
 begin
   inherited Create;
   FOwner_IO := nil;
@@ -15223,7 +15542,7 @@ begin
   OnAuthSuccessOnesNotify := nil;
 end;
 
-destructor TZNet_WithP2PVM.Destroy;
+destructor TZNet_P2PVM.Destroy;
 var
   L: TCore_List;
   i: Integer;
@@ -15277,7 +15596,7 @@ begin
   inherited Destroy;
 end;
 
-function TZNet_WithP2PVM.Build_P2PVM_Packet(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
+function TZNet_P2PVM.Build_P2PVM_Packet(BuffSiz, FrameworkID, p2pID: Cardinal; pkType: Byte; buff: PByte): PP2PVMFragmentPacket;
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -15300,14 +15619,14 @@ begin
   Result := p;
 end;
 
-class procedure TZNet_WithP2PVM.FreeP2PVMPacket(p: PP2PVMFragmentPacket);
+class procedure TZNet_P2PVM.FreeP2PVMPacket(p: PP2PVMFragmentPacket);
 begin
   if (p^.buff <> nil) and (p^.BuffSiz > 0) then
       System.FreeMemory(p^.buff);
   Dispose(p);
 end;
 
-procedure TZNet_WithP2PVM.Progress;
+procedure TZNet_P2PVM.Progress;
 var
   i: Integer;
   p: PUInt32HashListObjectStruct;
@@ -15389,7 +15708,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ProgressZNet_C(const OnBackcall: TZNet_List_C);
+procedure TZNet_P2PVM.ProgressZNet_C(const OnBackcall: TZNet_List_C);
 var
   i: Integer;
   p: PUInt32HashListObjectStruct;
@@ -15410,7 +15729,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ProgressZNet_M(const OnBackcall: TZNet_List_M);
+procedure TZNet_P2PVM.ProgressZNet_M(const OnBackcall: TZNet_List_M);
 var
   i: Integer;
   p: PUInt32HashListObjectStruct;
@@ -15431,7 +15750,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ProgressZNet_P(const OnBackcall: TZNet_List_P);
+procedure TZNet_P2PVM.ProgressZNet_P(const OnBackcall: TZNet_List_P);
 var
   i: Integer;
   p: PUInt32HashListObjectStruct;
@@ -15452,7 +15771,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.OpenP2PVMTunnel(c: TPeerIO);
+procedure TZNet_P2PVM.OpenP2PVMTunnel(c: TPeerIO);
 begin
   FOwner_IO := c;
   FAuthWaiting := False;
@@ -15474,7 +15793,7 @@ begin
       FOwner_IO.Print('Open VM P2P Tunnel ' + FOwner_IO.PeerIP);
 end;
 
-procedure TZNet_WithP2PVM.CloseP2PVMTunnel;
+procedure TZNet_P2PVM.CloseP2PVMTunnel;
 var
   i: Integer;
   OnEchoPtr: PP2PVM_ECHO;
@@ -15533,7 +15852,7 @@ begin
   FOwner_IO := nil;
 end;
 
-procedure TZNet_WithP2PVM.InstallLogicFramework(c: TZNet);
+procedure TZNet_P2PVM.InstallLogicFramework(c: TZNet);
 var
   i: Integer;
   LP: PP2PVMListen;
@@ -15598,7 +15917,7 @@ begin
       RaiseInfo('illegal p2pVM.');
 end;
 
-procedure TZNet_WithP2PVM.UninstallLogicFramework(c: TZNet);
+procedure TZNet_P2PVM.UninstallLogicFramework(c: TZNet);
 var
   i: Integer;
   LP: PP2PVMListen;
@@ -15642,14 +15961,14 @@ begin
       RaiseInfo('illegal p2pVM.');
 end;
 
-procedure TZNet_WithP2PVM.AuthWaiting;
+procedure TZNet_P2PVM.AuthWaiting;
 begin
   if FOwner_IO = nil then
       exit;
   FAuthWaiting := True;
 end;
 
-procedure TZNet_WithP2PVM.AuthVM;
+procedure TZNet_P2PVM.AuthVM;
 begin
   if FOwner_IO = nil then
       exit;
@@ -15662,7 +15981,7 @@ begin
       end;
 end;
 
-procedure TZNet_WithP2PVM.AuthSuccessed;
+procedure TZNet_P2PVM.AuthSuccessed;
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -15673,7 +15992,7 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.echoing(const OnEchoPtr: PP2PVM_ECHO; TimeOut_: TTimeTick);
+procedure TZNet_P2PVM.echoing(const OnEchoPtr: PP2PVM_ECHO; TimeOut_: TTimeTick);
 var
   u64ptr: UInt64;
   p: PP2PVMFragmentPacket;
@@ -15717,7 +16036,7 @@ begin
   FWaitEchoList.Add(OnEchoPtr);
 end;
 
-procedure TZNet_WithP2PVM.echoingC(const OnResult: TOnState_C; TimeOut_: TTimeTick);
+procedure TZNet_P2PVM.echoingC(const OnResult: TOnState_C; TimeOut_: TTimeTick);
 var
   p: PP2PVM_ECHO;
 begin
@@ -15729,7 +16048,7 @@ begin
   echoing(p, TimeOut_);
 end;
 
-procedure TZNet_WithP2PVM.echoingM(const OnResult: TOnState_M; TimeOut_: TTimeTick);
+procedure TZNet_P2PVM.echoingM(const OnResult: TOnState_M; TimeOut_: TTimeTick);
 var
   p: PP2PVM_ECHO;
 begin
@@ -15741,7 +16060,7 @@ begin
   echoing(p, TimeOut_);
 end;
 
-procedure TZNet_WithP2PVM.echoingP(const OnResult: TOnState_P; TimeOut_: TTimeTick);
+procedure TZNet_P2PVM.echoingP(const OnResult: TOnState_P; TimeOut_: TTimeTick);
 var
   p: PP2PVM_ECHO;
 begin
@@ -15753,7 +16072,7 @@ begin
   echoing(p, TimeOut_);
 end;
 
-procedure TZNet_WithP2PVM.echoBuffer(const buff: Pointer; const siz: NativeInt);
+procedure TZNet_P2PVM.echoBuffer(const buff: Pointer; const siz: NativeInt);
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -15766,7 +16085,7 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.SendListen(const FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; const Listening: Boolean);
+procedure TZNet_P2PVM.SendListen(const FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; const Listening: Boolean);
 var
   LP: PP2PVMListen;
   c: TZNet;
@@ -15813,7 +16132,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.SendListenState(const FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; const Listening: Boolean);
+procedure TZNet_P2PVM.SendListenState(const FrameworkID: Cardinal; const IPV6: TIPV6; const Port: Word; const Listening: Boolean);
 var
   RBuf: array [0 .. 18] of Byte;
   p: PP2PVMFragmentPacket;
@@ -15830,7 +16149,7 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.SendConnecting(const Remote_frameworkID, FrameworkID, p2pID: Cardinal; const IPV6: TIPV6; const Port: Word);
+procedure TZNet_P2PVM.SendConnecting(const Remote_frameworkID, FrameworkID, p2pID: Cardinal; const IPV6: TIPV6; const Port: Word);
 var
   RBuf: array [0 .. 25] of Byte;
   p: PP2PVMFragmentPacket;
@@ -15849,7 +16168,7 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.SendConnectedReponse(const Remote_frameworkID, Remote_p2pID, FrameworkID, p2pID: Cardinal);
+procedure TZNet_P2PVM.SendConnectedReponse(const Remote_frameworkID, Remote_p2pID, FrameworkID, p2pID: Cardinal);
 var
   RBuf: array [0 .. 7] of Byte;
   p: PP2PVMFragmentPacket;
@@ -15866,7 +16185,7 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-procedure TZNet_WithP2PVM.SendDisconnect(const Remote_frameworkID, Remote_p2pID: Cardinal);
+procedure TZNet_P2PVM.SendDisconnect(const Remote_frameworkID, Remote_p2pID: Cardinal);
 var
   p: PP2PVMFragmentPacket;
 begin
@@ -15879,17 +16198,17 @@ begin
   FreeP2PVMPacket(p);
 end;
 
-function TZNet_WithP2PVM.ListenCount: Integer;
+function TZNet_P2PVM.ListenCount: Integer;
 begin
   Result := FFrameworkListenPool.Count;
 end;
 
-function TZNet_WithP2PVM.GetListen(const index: Integer): PP2PVMListen;
+function TZNet_P2PVM.GetListen(const index: Integer): PP2PVMListen;
 begin
   Result := FFrameworkListenPool[index];
 end;
 
-function TZNet_WithP2PVM.FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
+function TZNet_P2PVM.FindListen(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
   p: PP2PVMListen;
@@ -15906,7 +16225,7 @@ begin
   Result := nil;
 end;
 
-function TZNet_WithP2PVM.FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
+function TZNet_P2PVM.FindListening(const IPV6: TIPV6; const Port: Word): PP2PVMListen;
 var
   i: Integer;
   p: PP2PVMListen;
@@ -15923,7 +16242,7 @@ begin
   Result := nil;
 end;
 
-procedure TZNet_WithP2PVM.DeleteListen(const IPV6: TIPV6; const Port: Word);
+procedure TZNet_P2PVM.DeleteListen(const IPV6: TIPV6; const Port: Word);
 var
   i: Integer;
   p: PP2PVMListen;
@@ -15942,7 +16261,7 @@ begin
     end;
 end;
 
-procedure TZNet_WithP2PVM.ClearListen;
+procedure TZNet_P2PVM.ClearListen;
 var
   i: Integer;
 begin
@@ -16094,7 +16413,7 @@ begin
     begin
       FOwnerIOServer.FOnServerCustomProtocolReceiveBufferNotify := nil;
       FOwnerIOServer.Protocol := TCommunicationProtocol.cpZServer;
-      FOwnerIOServer.UserDefineClass := TPeerIOUserDefine;
+      FOwnerIOServer.UserDefineClass := TPeer_IO_User_Define;
       FOwnerIOServer.QuietMode := False;
 
       UnRegisted(C_BuildStableIO);

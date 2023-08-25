@@ -22,7 +22,7 @@ uses
   {System.SysUtils is needed for exception handling.}
   System.SysUtils;
 
-{$R *.RES}
+{$R *.res}
 
 function GetAllocMemCount: Integer;
 begin

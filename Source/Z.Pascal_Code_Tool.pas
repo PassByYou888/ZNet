@@ -1137,7 +1137,7 @@ var
     Trace_Pool.Clean;
     disposeObject(Trace_Pool);
 
-    arry := umlGetFileListWithFullPath(directory_);
+    arry := umlGet_File_Full_Array(directory_);
     for pass := 0 to Length(arry) - 1 do
       begin
         Custom_PatternHash_ := THashStringList.CustomCreate($FFFF);
@@ -1146,14 +1146,14 @@ var
         disposeObject(Custom_PatternHash_);
       end;
 
-    arry := umlGetDirListWithFullPath(directory_);
+    arry := umlGet_Path_Full_Array(directory_);
     for pass := 0 to Length(arry) - 1 do
         Inc(num, RewritePascal_ProcessDirectory(Parallel_, arry[pass], UnitHash_, PatternHash_, CustomPattern_, OnStatus));
   end;
 
 begin
   num := 0;
-  arry := umlGetFileListWithFullPath(directory_);
+  arry := umlGet_File_Full_Array(directory_);
   Trace_Pool := TRewrite_Trace_Pool.Create;
 
   if Parallel_ then
@@ -1164,9 +1164,9 @@ begin
       RewritePascal_Include_File_Processor(UnitHash_, PatternHash_, Trace_Pool, OnStatus);
       Trace_Pool.Clean;
       disposeObject(Trace_Pool);
-      arry := umlGetFileListWithFullPath(directory_);
+      arry := umlGet_File_Full_Array(directory_);
       FPCParallelFor(@Nested_ParallelFor_File_Custom_Pattern, 0, Length(arry) - 1);
-      arry := umlGetDirListWithFullPath(directory_);
+      arry := umlGet_Path_Full_Array(directory_);
       FPCParallelFor(@Nested_ParallelFor_Dir, 0, Length(arry) - 1);
 {$ELSE FPC}
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
@@ -1189,7 +1189,7 @@ begin
       Trace_Pool.Clean;
       disposeObject(Trace_Pool);
 
-      arry := umlGetFileListWithFullPath(directory_);
+      arry := umlGet_File_Full_Array(directory_);
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
         var
           Custom_PatternHash_: THashStringList;
@@ -1200,7 +1200,7 @@ begin
           disposeObject(Custom_PatternHash_);
         end);
 
-      arry := umlGetDirListWithFullPath(directory_);
+      arry := umlGet_Path_Full_Array(directory_);
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
         begin
           AtomInc(num, RewritePascal_ProcessDirectory(Parallel_, arry[pass], UnitHash_, PatternHash_, CustomPattern_, OnStatus));
@@ -2866,4 +2866,3 @@ begin
 end;
 
 end.
-

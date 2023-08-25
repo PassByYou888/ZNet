@@ -982,11 +982,11 @@ var
   fArry, dArry: U_StringArray;
   n: U_SystemString;
 begin
-  fArry := umlGetFileListWithFullPath(dir);
+  fArry := umlGet_File_Full_Array(dir);
   for n in fArry do
     if umlMultipleMatch(['*.pas', '*.inc', '*.pp'], n) then
         UnitDefinePool.AddFile(n);
-  dArry := umlGetDirListWithFullPath(dir);
+  dArry := umlGet_Path_Full_Array(dir);
   for n in dArry do
       DoAddUnitFromDirectory(n);
 end;

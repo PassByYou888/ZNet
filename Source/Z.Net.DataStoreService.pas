@@ -17,9 +17,9 @@ uses Z.Core, Z.ListEngine, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream, Z.Net, Z.Te
 
 type
   TDataStoreService = class;
-  TDataStoreService_PeerClientSendTunnel = class;
+  TDataStoreService_SendTunnel_UserDefine = class;
 
-  TDataStoreService_PeerClientRecvTunnel = class(TPeerClientUserDefineForRecvTunnel)
+  TDataStoreService_RecvTunnel_UserDefine = class(TService_RecvTunnel_UserDefine)
   private
     FPostPerformaceCounter: Integer;
     FLastPostPerformaceTime: TTimeTick;
@@ -35,19 +35,19 @@ type
 
     procedure Progress; override;
 
-    function SendTunnelDefine: TDataStoreService_PeerClientSendTunnel;
+    function SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine;
     property PostCounterOfPerSec: Double read FPostCounterOfPerSec;
 
     { data security }
     procedure EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
   end;
 
-  TDataStoreService_PeerClientSendTunnel = class(TPeerClientUserDefineForSendTunnel)
+  TDataStoreService_SendTunnel_UserDefine = class(TService_SendTunnel_UserDefine)
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
 
-    function RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel;
+    function RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine;
   end;
 
   TDataStoreService = class(TZNet_DoubleTunnelService, IZDBLocalManagerNotify)
@@ -72,8 +72,8 @@ type
     procedure DownloadQueryFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
     procedure DownloadQueryWithIDFilterMethod(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean);
 
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine); override;
 
     procedure Command_InitDB(Sender: TPeerIO; InData: TDFE); virtual;
     procedure Command_CloseDB(Sender: TPeerIO; InData: TDFE); virtual;
@@ -124,7 +124,7 @@ type
     procedure Progress; override;
     procedure CadencerProgress(Sender: TObject; const deltaTime, newTime: Double); override;
 
-    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel;
+    function GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine;
 
     function RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
     procedure UnRegisterQuery_C(QuerierName_: SystemString);
@@ -388,7 +388,7 @@ type
     BackcallPtr: UInt64;
   end;
 
-constructor TDataStoreService_PeerClientRecvTunnel.Create(Owner_: TPeerIO);
+constructor TDataStoreService_RecvTunnel_UserDefine.Create(Owner_: TPeerIO);
 type
   TCipherDef = array [0 .. 4] of TCipherSecurity;
 const
@@ -412,13 +412,13 @@ begin
   FCipherInstance.ProcessTail := True;
 end;
 
-destructor TDataStoreService_PeerClientRecvTunnel.Destroy;
+destructor TDataStoreService_RecvTunnel_UserDefine.Destroy;
 begin
   DisposeObjectAndNil(FCipherInstance);
   inherited Destroy;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel.Progress;
+procedure TDataStoreService_RecvTunnel_UserDefine.Progress;
 var
   lastTime: TTimeTick;
 begin
@@ -441,12 +441,12 @@ begin
     end;
 end;
 
-function TDataStoreService_PeerClientRecvTunnel.SendTunnelDefine: TDataStoreService_PeerClientSendTunnel;
+function TDataStoreService_RecvTunnel_UserDefine.SendTunnelDefine: TDataStoreService_SendTunnel_UserDefine;
 begin
-  Result := SendTunnel as TDataStoreService_PeerClientSendTunnel;
+  Result := SendTunnel as TDataStoreService_SendTunnel_UserDefine;
 end;
 
-procedure TDataStoreService_PeerClientRecvTunnel.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
+procedure TDataStoreService_RecvTunnel_UserDefine.EncryptBuffer(sour: Pointer; Size: NativeInt; Encrypt: Boolean);
 begin
   if FCipherInstance = nil then
       exit;
@@ -456,19 +456,19 @@ begin
       FCipherInstance.Decrypt(sour, Size);
 end;
 
-constructor TDataStoreService_PeerClientSendTunnel.Create(Owner_: TPeerIO);
+constructor TDataStoreService_SendTunnel_UserDefine.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
 end;
 
-destructor TDataStoreService_PeerClientSendTunnel.Destroy;
+destructor TDataStoreService_SendTunnel_UserDefine.Destroy;
 begin
   inherited Destroy;
 end;
 
-function TDataStoreService_PeerClientSendTunnel.RecvTunnelDefine: TDataStoreService_PeerClientRecvTunnel;
+function TDataStoreService_SendTunnel_UserDefine.RecvTunnelDefine: TDataStoreService_RecvTunnel_UserDefine;
 begin
-  Result := RecvTunnel as TDataStoreService_PeerClientRecvTunnel;
+  Result := RecvTunnel as TDataStoreService_RecvTunnel_UserDefine;
 end;
 
 procedure TDataStoreService.CreateQuery(pipe: TZDBPipeline);
@@ -493,7 +493,7 @@ begin
   DestStream := TMS64.Create;
   DestStream.SwapInstance(FragmentSource);
 
-  TDataStoreService_PeerClientRecvTunnel(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
+  TDataStoreService_RecvTunnel_UserDefine(pl.RecvTunnel).EncryptBuffer(DestStream.Memory, DestStream.Size, True);
 
   ClearBatchStream(pl.SendTunnel.Owner);
   PostBatchStream(pl.SendTunnel.Owner, DestStream, True);
@@ -568,7 +568,7 @@ begin
   end;
 end;
 
-procedure TDataStoreService.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TDataStoreService.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine);
 var
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
@@ -582,13 +582,13 @@ begin
   inherited UserOut(UserDefineIO);
 end;
 
-procedure TDataStoreService.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TDataStoreService.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   de: TDFE;
   arr: TDFArrayByte;
 begin
-  RT := UserDefineIO as TDataStoreService_PeerClientRecvTunnel;
+  RT := UserDefineIO as TDataStoreService_RecvTunnel_UserDefine;
   de := TDFE.Create;
   de.WriteByte(Byte(RT.FDataStoreCipherSecurity));
   arr := de.WriteArrayByte;
@@ -600,7 +600,7 @@ end;
 
 procedure TDataStoreService.Command_InitDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   InMem: Boolean;
   dataBaseName_: SystemString;
 begin
@@ -618,7 +618,7 @@ end;
 
 procedure TDataStoreService.Command_CloseDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   CloseAndDeleted: Boolean;
 begin
@@ -637,7 +637,7 @@ end;
 
 procedure TDataStoreService.Command_CopyDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_, copy2N: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger;
@@ -658,7 +658,7 @@ end;
 
 procedure TDataStoreService.Command_CompressDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   BackcallPtr: UInt64;
   p: POnStorePosTransformTrigger;
@@ -678,7 +678,7 @@ end;
 
 procedure TDataStoreService.Command_ReplaceDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_, replaceN: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -692,7 +692,7 @@ end;
 
 procedure TDataStoreService.Command_ResetData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
 begin
   RT := GetDataStoreUserDefine(Sender);
@@ -705,7 +705,7 @@ end;
 
 procedure TDataStoreService.Command_QueryDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   RegedQueryName: SystemString;
   SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean;
   dataBaseName_, OutputDatabaseName_: SystemString;
@@ -768,7 +768,7 @@ end;
 
 procedure TDataStoreService.Command_DownloadDB(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
@@ -796,7 +796,7 @@ end;
 
 procedure TDataStoreService.Command_DownloadDBWithID(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   ReverseQuery: Boolean;
   dataBaseName_: SystemString;
   downloadWithID: Cardinal;
@@ -829,7 +829,7 @@ end;
 
 procedure TDataStoreService.Command_RequestDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -861,7 +861,7 @@ end;
 
 procedure TDataStoreService.Command_RequestFastDownloadAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   StorePos: Int64;
   BackcallPtr: UInt64;
@@ -891,7 +891,7 @@ end;
 
 procedure TDataStoreService.Command_FastPostCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -913,7 +913,7 @@ end;
 
 procedure TDataStoreService.Command_FastInsertCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -935,7 +935,7 @@ end;
 
 procedure TDataStoreService.Command_FastModifyCompleteBuffer(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: TPascalString;
   itmID: Cardinal;
   StorePos: Int64;
@@ -957,7 +957,7 @@ end;
 
 procedure TDataStoreService.Command_CompletedPostAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   dID: Cardinal;
   p: PBigStreamBatchPostData;
@@ -980,7 +980,7 @@ end;
 
 procedure TDataStoreService.Command_CompletedInsertAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   dID: Cardinal;
@@ -1005,7 +1005,7 @@ end;
 
 procedure TDataStoreService.Command_CompletedModifyAssembleStream(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   dStorePos: Int64;
   p: PBigStreamBatchPostData;
@@ -1035,7 +1035,7 @@ end;
 
 procedure TDataStoreService.Command_DeleteData(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   dataBaseName_: SystemString;
   dStorePos: Int64;
 begin
@@ -1051,7 +1051,7 @@ end;
 
 procedure TDataStoreService.Command_GetDBList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   lst: TCore_ListForObj;
   i: Integer;
   Database_: TZDBLMStore;
@@ -1072,7 +1072,7 @@ end;
 
 procedure TDataStoreService.Command_GetQueryList(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   i: Integer;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1090,7 +1090,7 @@ end;
 
 procedure TDataStoreService.Command_GetQueryState(Sender: TPeerIO; InData, OutData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
   ps: TPipeState;
@@ -1138,7 +1138,7 @@ end;
 
 procedure TDataStoreService.Command_QueryStop(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1157,7 +1157,7 @@ end;
 
 procedure TDataStoreService.Command_QueryPause(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1176,7 +1176,7 @@ end;
 
 procedure TDataStoreService.Command_QueryPlay(Sender: TPeerIO; InData: TDFE);
 var
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
   PipeName_: SystemString;
   pl: TTDataStoreService_DBPipeline;
 begin
@@ -1271,8 +1271,8 @@ end;
 constructor TDataStoreService.Create(RecvTunnel_, SendTunnel_: TZNet_Server);
 begin
   inherited Create(RecvTunnel_, SendTunnel_);
-  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientRecvTunnel;
-  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_PeerClientSendTunnel;
+  FRecvTunnel.PeerClientUserDefineClass := TDataStoreService_RecvTunnel_UserDefine;
+  FSendTunnel.PeerClientUserDefineClass := TDataStoreService_SendTunnel_UserDefine;
 
   FZDBLocal := TZDBLocalManager.Create;
   FZDBLocal.PipelineClass := TTDataStoreService_DBPipeline;
@@ -1367,9 +1367,9 @@ begin
   inherited CadencerProgress(Sender, deltaTime, newTime);
 end;
 
-function TDataStoreService.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_PeerClientRecvTunnel;
+function TDataStoreService.GetDataStoreUserDefine(RecvCli: TPeerIO): TDataStoreService_RecvTunnel_UserDefine;
 begin
-  Result := RecvCli.UserDefine as TDataStoreService_PeerClientRecvTunnel;
+  Result := RecvCli.UserDefine as TDataStoreService_RecvTunnel_UserDefine;
 end;
 
 function TDataStoreService.RegisterQuery_C(QuerierName_: SystemString): TTDataStoreService_Query_C;
@@ -1400,7 +1400,7 @@ function TDataStoreService.PostCounterOfPerSec: Double;
 var
   IO_Array: TIO_Array;
   pcid: Cardinal;
-  RT: TDataStoreService_PeerClientRecvTunnel;
+  RT: TDataStoreService_RecvTunnel_UserDefine;
 begin
   Result := 0;
   FRecvTunnel.GetIO_Array(IO_Array);

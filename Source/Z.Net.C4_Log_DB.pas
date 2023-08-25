@@ -31,7 +31,7 @@ type
   TLog_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_Log_DB_ZDB2_HashString>;
   TLog_DB_List = {$IFDEF FPC}specialize {$ENDIF FPC}TBigList<TC40_Log_DB_ZDB2_HashString>;
 
-  TC40_Log_DB_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TC40_Log_DB_Service_RecvTunnel_NoAuth = class(TService_RecvTunnel_UserDefine_NoAuth)
   public
     Log_DB_Service: TC40_Log_DB_Service;
     Sync_Log: Boolean;
@@ -41,8 +41,8 @@ type
 
   TC40_Log_DB_Service = class(TC40_Base_NoAuth_Service)
   protected
-    procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   private
     procedure cmd_PostLog(sender: TPeerIO; InData: TDFE);
     procedure cmd_QueryLog(sender: TPeerIO; InData, OutData: TDFE);
@@ -263,7 +263,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TC40_Log_DB_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_Log_DB_Service.DoLinkSuccess_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 var
   IO_Def: TC40_Log_DB_Service_RecvTunnel_NoAuth;
 begin
@@ -272,7 +272,7 @@ begin
   IO_Def.Log_DB_Service := self;
 end;
 
-procedure TC40_Log_DB_Service.DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_Log_DB_Service.DoUserOut_Event(sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited DoUserOut_Event(sender, UserDefineIO);
 end;
@@ -420,7 +420,7 @@ var
   fArry: U_StringArray;
   fn: U_SystemString;
 begin
-  fArry := umlGetFileListWithFullPath(C40_DB_Directory);
+  fArry := umlGet_File_Full_Array(C40_DB_Directory);
   for fn in fArry do
     if umlMultipleMatch(True, '*.Log_ZDB2', fn) then
         OutData.WriteString(umlChangeFileExt(umlGetFileName(fn), ''));

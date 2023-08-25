@@ -1091,7 +1091,7 @@ begin
       CreateField(Path_, '');
   fPos := GetPathFieldPos(Path_);
 
-  fAry := umlGetFileListWithFullPath(ImpPath);
+  fAry := umlGet_File_Full_Array(ImpPath);
   for n in fAry do
     begin
       fs := TCore_FileStream.Create(n, fmOpenRead or fmShareDenyNone);
@@ -1112,7 +1112,7 @@ begin
 
   if IncludeSub then
     begin
-      fAry := umlGetDirListWithFullPath(ImpPath);
+      fAry := umlGet_Path_Full_Array(ImpPath);
       for n in fAry do
           ImpFromPathP(n, umlCombineUnixPath(Path_, umlGetLastStr(n, '\/')).Text, IncludeSub, Notify);
     end;

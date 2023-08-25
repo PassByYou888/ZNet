@@ -22,13 +22,13 @@ type
 
   TC40_UserDB_VM_Json_Hash_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TZDB2_Json>;
 
-  TC40_UserDB_VM_Service_SendTunnel_NoAuth = class(TPeerClientUserDefineForSendTunnel_NoAuth)
+  TC40_UserDB_VM_Service_SendTunnel_NoAuth = class(TService_SendTunnel_UserDefine_NoAuth)
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
   end;
 
-  TC40_UserDB_VM_Service_RecvTunnel_NoAuth = class(TPeerClientUserDefineForRecvTunnel_NoAuth)
+  TC40_UserDB_VM_Service_RecvTunnel_NoAuth = class(TService_RecvTunnel_UserDefine_NoAuth)
   public
     OpenUserIdentifier: TC40_UserDB_VM_Json_Hash_Pool;
     constructor Create(Owner_: TPeerIO); override;

@@ -26,8 +26,8 @@ type
 
   TChatServer = class(TZNet_DoubleTunnelService_NoAuth)
   protected
-    procedure UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
-    procedure UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); override;
+    procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
+    procedure UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   public
     constructor Create(ARecvTunnel, ASendTunnel: TZNet_Server);
     procedure cmd_PushMsg(Sender: TPeerIO; InData: SystemString);
@@ -99,10 +99,10 @@ type
   private
     // ICommunicationFrameworkVMInterface
     procedure p2pVMTunnelAuth(Sender: TPeerIO; const Token: SystemString; var Accept: Boolean);
-    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
-    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+    procedure p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
+    procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 
     // IMsgNotify
     procedure OnMsg(InData: SystemString);
@@ -142,12 +142,12 @@ begin
 
 end;
 
-procedure TChatServer.UserOut(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TChatServer.UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited;
   RecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     var
-      rDef: TPeerClientUserDefineForRecvTunnel_NoAuth;
+      rDef: TService_RecvTunnel_UserDefine_NoAuth;
     begin
       rDef := GetUserDefineRecvTunnel(P_IO);
       if rDef.LinkOk then
@@ -155,12 +155,12 @@ begin
     end);
 end;
 
-procedure TChatServer.UserLinkSuccess(UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TChatServer.UserLinkSuccess(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   inherited;
   RecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     var
-      rDef: TPeerClientUserDefineForRecvTunnel_NoAuth;
+      rDef: TService_RecvTunnel_UserDefine_NoAuth;
     begin
       rDef := GetUserDefineRecvTunnel(P_IO);
       if rDef.LinkOk then
@@ -188,7 +188,7 @@ begin
 
   RecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     var
-      rDef: TPeerClientUserDefineForRecvTunnel_NoAuth;
+      rDef: TService_RecvTunnel_UserDefine_NoAuth;
       PeerUserSpec: TChatServer_UserSpecial;
     begin
       rDef := GetUserDefineRecvTunnel(P_IO);
@@ -219,7 +219,7 @@ begin
 
   RecvTunnel.ProgressPeerIOP(procedure(P_IO: TPeerIO)
     var
-      rDef: TPeerClientUserDefineForRecvTunnel_NoAuth;
+      rDef: TService_RecvTunnel_UserDefine_NoAuth;
       PeerUserSpec: TChatServer_UserSpecial;
     begin
       rDef := GetUserDefineRecvTunnel(P_IO);
@@ -416,23 +416,23 @@ begin
   Accept := True;
 end;
 
-procedure TForm3.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TForm3.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   Sender.p2pVM.InstallLogicFramework(serv.RecvTunnel);
   Sender.p2pVM.InstallLogicFramework(serv.SendTunnel);
 end;
 
-procedure TForm3.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TForm3.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
 
 end;
 
-procedure TForm3.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TForm3.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
 
 end;
 
-procedure TForm3.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_WithP2PVM);
+procedure TForm3.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
   Sender.p2pVM.UnInstallLogicFramework(serv.RecvTunnel);
   Sender.p2pVM.UnInstallLogicFramework(serv.SendTunnel);

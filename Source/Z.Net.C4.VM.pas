@@ -29,8 +29,8 @@ uses
 type
   TC40_NoAuth_VM_Service = class(TC40_Custom_VM_Service)
   protected
-    procedure DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); virtual;
-    procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth); virtual;
+    procedure DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); virtual;
+    procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); virtual;
   public
     Service: TDT_P2PVM_NoAuth_Service;
     DTNoAuthService: TDTService_NoAuth;
@@ -82,8 +82,8 @@ type
   protected
     procedure DoUserReg_Event(Sender: TDTService_VirtualAuth; RegIO: TVirtualRegIO); virtual;
     procedure DoUserAuth_Event(Sender: TDTService_VirtualAuth; AuthIO: TVirtualAuthIO); virtual;
-    procedure DoLinkSuccess_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); virtual;
-    procedure DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth); virtual;
+    procedure DoLinkSuccess_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); virtual;
+    procedure DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth); virtual;
   public
     Service: TDT_P2PVM_VirtualAuth_Service;
     DTVirtualAuthService: TDTService_VirtualAuth;
@@ -133,8 +133,8 @@ type
 
   TC40_VM_Service = class(TC40_Custom_VM_Service)
   protected
-    procedure DoLinkSuccess_Event(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel); virtual;
-    procedure DoUserOut_Event(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel); virtual;
+    procedure DoLinkSuccess_Event(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine); virtual;
+    procedure DoUserOut_Event(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine); virtual;
   public
     Service: TDT_P2PVM_Service;
     DTVirtualAuthService: TDTService;
@@ -184,12 +184,12 @@ type
 
 implementation
 
-procedure TC40_NoAuth_VM_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_NoAuth_VM_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   DoLinkSuccess(UserDefineIO);
 end;
 
-procedure TC40_NoAuth_VM_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_NoAuth);
+procedure TC40_NoAuth_VM_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
 begin
   DoUserOut(UserDefineIO);
 end;
@@ -352,12 +352,12 @@ begin
   AuthIO.Accept;
 end;
 
-procedure TC40_VirtualAuth_VM_Service.DoLinkSuccess_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TC40_VirtualAuth_VM_Service.DoLinkSuccess_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   DoLinkSuccess(UserDefineIO);
 end;
 
-procedure TC40_VirtualAuth_VM_Service.DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TPeerClientUserDefineForRecvTunnel_VirtualAuth);
+procedure TC40_VirtualAuth_VM_Service.DoUserOut_Event(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth);
 begin
   DoUserOut(UserDefineIO);
 end;
@@ -512,12 +512,12 @@ begin
   Result := TDataStoreClient_VirtualAuth;
 end;
 
-procedure TC40_VM_Service.DoLinkSuccess_Event(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TC40_VM_Service.DoLinkSuccess_Event(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   DoLinkSuccess(UserDefineIO);
 end;
 
-procedure TC40_VM_Service.DoUserOut_Event(Sender: TDTService; UserDefineIO: TPeerClientUserDefineForRecvTunnel);
+procedure TC40_VM_Service.DoUserOut_Event(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine);
 begin
   DoUserOut(UserDefineIO);
 end;
