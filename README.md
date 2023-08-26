@@ -73,6 +73,25 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 后续我会专门开个项目讲解PascalRewrite模型的建模方法
 ```
 
+### 关于多平台
+
+- ZNet本身可以兼容全部平台,包括最近刚退出的国产化平台
+- ZNet在FPC+Lazarus构建项目时,默认客户端为阻塞方式
+- ZNet在Delphi构建项目时默认兼容delphi支持的全部平台
+
+### 关于项目堆大
+
+- 项目堆大时建议直接引用C4, 因为C4框架就是为了解决堆大问题
+- 其次是C4设计服务器完全基于p2pVM虚拟化框架,在跨平台移植,和10年后的兼容均会远高于控件和库依赖
+- **C4框架有许多库,这些库都代表某个项目时期的服务器组件,这些组件并不重要,并且未来C4的组件会不断的增多,因为C4的开发模式就是堆组件**
+- 建议单服务行数不要超过3000,否则难以维护,如超过可以分离服务器与客户端,如果再次超过,可以1分2
+
+### 关于项目运营
+
+- 不要尝试remote debug之类的功能,运营期间服务器的启停代价很大
+- 把需要监控的服务器状态内容,使用Console debug做成命令行函数,如果服务器出错,用运行状态来分析
+
+
 **最新更新日志**
 
 **2023-8-26 毫无人性的大规模命名修正**
@@ -80,19 +99,21 @@ PascalRewriteModel.dproj是prp的建模工具，都可以编译通过，本文�
 - 无法忍受许多含糊不清命名
 - 老项目更新正需要prp模型,在PRP位于发行包中,老工程使用prp命令行移植,兼容ZServer4D老工程
 ```sh
+	rem 一定要使用新版本的PRP老版本内部不包含本次更新的命名模型
 	prp.exe "-D:your project directory"
 ```
 - Z.Net.pas库中的所有IO都可以直接推算出发送和接收通道
 ```pascal
-	TPeerIO=class
-		function Is_Double_Tunnel: Boolean;
-		function Is_Recveive_Tunnel: Boolean;
-		function Is_Send_Tunnel: Boolean;
-		function Is_Link_OK: Boolean;
-		function Get_Send_Tunnel: TPeerIO; overload;
-		function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
-		function Get_Receive_Tunnel: TPeerIO;
-		function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
+	TPeerIO
+	{ double tunnel }
+	function Is_Double_Tunnel: Boolean;
+	function Is_Recveive_Tunnel: Boolean;
+	function Is_Send_Tunnel: Boolean;
+	function Is_Link_OK: Boolean;
+	function Get_Send_Tunnel: TPeerIO; overload;
+	function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
+	function Get_Receive_Tunnel: TPeerIO;
+	function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
 	end;
 ```
 - HPC线程会自动检测是否处于双通道模型,并且自动推算出发送和接受通道
