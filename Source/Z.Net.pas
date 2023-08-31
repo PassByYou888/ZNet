@@ -888,10 +888,10 @@ type
     function Is_Recveive_Tunnel: Boolean;
     function Is_Send_Tunnel: Boolean;
     function Is_Link_OK: Boolean;
-    function Get_Send_Tunnel: TPeerIO; overload;
-    function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
-    function Get_Receive_Tunnel: TPeerIO;
-    function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
+    function Get_Send_Tunnel_IO: TPeerIO;
+    function Get_Send_Tunnel(var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean;
+    function Get_Recv_Tunnel_IO: TPeerIO;
+    function Get_Recv_Tunnel(var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean;
 
     { Sequence Packet model support }
     property SequencePacketSignal: Boolean read FSequencePacketSignal;
@@ -8146,7 +8146,7 @@ begin
     end;
 end;
 
-function TPeerIO.Get_Send_Tunnel: TPeerIO;
+function TPeerIO.Get_Send_Tunnel_IO: TPeerIO;
 var
   Send_Tunnel: TZNet;
   Send_Tunnel_ID: Cardinal;
@@ -8162,7 +8162,7 @@ begin
   Result := Get_Link_OK_Send_Tunnel(self, Send_Tunnel, Send_Tunnel_ID);
 end;
 
-function TPeerIO.Get_Receive_Tunnel: TPeerIO;
+function TPeerIO.Get_Recv_Tunnel_IO: TPeerIO;
 var
   Recv_Tunnel: TZNet;
   Recv_Tunnel_ID: Cardinal;
