@@ -6,7 +6,7 @@ program _500_Multi_Long_Run_In_ZNet_Serv;
 
 
 uses
-  FastMM5,
+  FastMM5, // 多线程后台外MM库,提速用
   SysUtils,
   Z.Core, Z.Status, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.DFE, Z.Expression, Z.OpCode,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth;
@@ -19,14 +19,10 @@ var
   // 长处理程序范式不容易入库,这是在项目开发中酌情使用的技术:long run算一种范式性质的技术
 procedure Do_Th_Large_Expression(ThSender: THPC_DirectStream; ThInData: TDFE);
 var
-  S_ID: Cardinal; // 反馈通道ID
   user_data_: UInt64; // 远程结构
   i: Integer;
   OutData: TDFE;
 begin
-  // 这里需要记忆一下反馈通道ID,可能在计算中,远程出现断线,要摆在第一行
-  S_ID := ThSender.UserVariant;
-
   user_data_ := ThInData.R.ReadPointer;
   OutData := TDFE.Create;
   OutData.WritePointer(user_data_); // 反馈指针
@@ -34,14 +30,21 @@ begin
       OutData.WriteString(umlVarToStr(EvaluateExpressionValue(False, ThInData.R.ReadString)));
 
   // 通过发送通道反馈回去,以S_ID方式反馈是安全的
-  serv_.SendTunnel.SendDirectStreamCmd(S_ID, 'Done_Large_Expression', OutData);
+  serv_.SendTunnel.SendDirectStreamCmd(ThSender.Send_Tunnel_ID, 'Done_Large_Expression', OutData);
+
+  // 建议方式
+  // TZNet_Server(ThSender.Send_Tunnel).SendDirectStreamCmd(ThSender.Send_Tunnel_ID, 'Done_Large_Expression', OutData);
+
+  // 第二种主动发送方式,这种方式会出现处理完以后,远程IO刚好断线从而异常,这时候,使用TCompute的异常冗余来消化这些异常
+  // ThSender.IO.Get_Send_Tunnel_IO.SendDirectStreamCmd('Done_Large_Expression', OutData);
+
   OutData.Free;
 end;
 
 procedure cmd_Large_Expression(Sender: TPeerIO; InData: TDFE);
 begin
   // 处理转交给线程
-  RunHPC_DirectStreamC(Sender, nil, nil, serv_.DTService.GetUserDefineRecvTunnel(Sender).SendTunnelID, InData, Do_Th_Large_Expression);
+  RunHPC_DirectStreamC(Sender, nil, nil, InData, Do_Th_Large_Expression);
 end;
 
 procedure run_serv;
