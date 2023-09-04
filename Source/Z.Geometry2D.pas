@@ -12,7 +12,7 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Types, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
+  Z.Core, Types, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings;
 
 {$REGION 'BaseType define'}
 
@@ -1170,7 +1170,7 @@ type
     Style: TRectPacking_Style;
     MaxWidth, MaxHeight: TGeoFloat;
     Margins: TGeoFloat;
-    UserToken: U_String;
+    UserToken: TPascalString;
 
     constructor Create;
     destructor Destroy; override;
@@ -1241,7 +1241,7 @@ type
 
   TNearest_Box_Tool = class(TNearest_Box_Tool_)
   var
-    function Do_Sort_Group(var L, R: TNearest_Box_Group.PPair_Pool_Value__): Integer;
+    function Do_Sort_Group(var L, R: TNearest_Box_Group_.PPair_Pool_Value__): Integer;
   public
     Nearest_Group: TNearest_Box_Group;
     constructor Create;
@@ -1468,7 +1468,7 @@ const
 
 implementation
 
-uses Z.Geometry3D, Z.Geometry.Low, Z.DFE, Z.Status;
+uses Z.UnicodeMixedLib, Z.Geometry3D, Z.Geometry.Low, Z.DFE, Z.Status;
 
 const
   C_Epsilon = 1.0E-12;
@@ -10834,7 +10834,7 @@ begin
   DisposeObjectAndNil(Value);
 end;
 
-function TNearest_Box_Tool.Do_Sort_Group(var L, R: TNearest_Box_Group.PPair_Pool_Value__): Integer;
+function TNearest_Box_Tool.Do_Sort_Group(var L, R: TNearest_Box_Group_.PPair_Pool_Value__): Integer;
 begin
   Result := CompareInteger(L^.Data.Second.Num, R^.Data.Second.Num);
   if Result = 0 then

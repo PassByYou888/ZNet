@@ -14,6 +14,7 @@ uses Z.Core,
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib,
   Z.MemoryStream,
   Z.Status, Z.Cipher, Z.ZDB2, Z.ListEngine, Z.TextDataEngine, Z.IOThread,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Notify;
 
 type
@@ -210,6 +211,30 @@ type
     constructor Create(const ThEng_: TZDB2_Th_Queue; const Table_: PZDB2_BlockHandle);
   end;
 
+  TExternal_Head = packed record
+    Identifier: Word;
+    ID: Integer;
+  end;
+
+  PExternal_Head = ^TExternal_Head;
+
+  TZDB2_Th_CMD_Flush_External_Header = class(TZDB2_Th_CMD)
+  private
+    Header_Data: TMem64;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    AutoFree_Data: Boolean;
+    constructor Create(const ThEng_: TZDB2_Th_Queue; const Header_Data_: TMem64);
+  end;
+
+  TZDB2_Th_CMD_Get_And_Reset_External_Header = class(TZDB2_Th_CMD)
+  private
+    Header_Data: TMem64;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; const Header_Data_: TMem64);
+  end;
+
   TZDB2_Th_CMD_Extract_To = class(TZDB2_Th_CMD)
   private
     Input_Ptr: PZDB2_BlockHandle;
@@ -374,6 +399,8 @@ type
     FCoreSpace_Cipher: IZDB2_Cipher;
     FCoreSpace_IOHnd: TIOHnd;
     CoreSpace__: TZDB2_Core_Space;
+    FFragment_Buffer_Num: Int64;
+    FFragment_Buffer_Memory: Int64;
     procedure Do_Th_Queue(ThSender: TCompute);
     procedure Do_Free_CMD(var p: TZDB2_Th_CMD);
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
@@ -405,6 +432,8 @@ type
     function Is_File_Database: Boolean;
     function Get_Database_FileName: U_String;
     function Get_CoreSpace_State(): TZDB2_SpaceState;
+    property Fragment_Buffer_Num: Int64 read FFragment_Buffer_Num;
+    property Fragment_Buffer_Memory: Int64 read FFragment_Buffer_Memory;
     procedure Wait_Queue;
 
     // sync Model
@@ -423,6 +452,8 @@ type
     function Sync_Flush_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_List): Boolean; overload;
     function Sync_Flush_Sequence_Table(L: TZDB2_ID_Pool): Boolean; overload;
+    function Sync_Flush_External_Header(Header_Data: TMem64): Boolean; overload;
+    function Sync_Get_And_Reset_External_Header(Header_Data: TMem64): Boolean; overload;
     // extract to
     function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array): Boolean; overload;
     function Sync_Extract_To(var Input_: TZDB2_BlockHandle; const Dest_Th_Engine_: TZDB2_Th_Queue; var Output_: TZDB2_Th_CMD_ID_And_State_Array; Aborted: PBoolean): Boolean; overload;
@@ -448,6 +479,8 @@ type
     procedure Async_Flush();
     procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
     procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
+    procedure Async_Flush_External_Header(Header_Data: TMem64; AutoFree_Data: Boolean);
+    // async core-space model
     procedure Async_Format_Custom_Space(const Space_: Int64; const Block_: Word);
     procedure Async_Fast_Format_Custom_Space(const Space_: Int64; const Block_: Word);
     procedure Async_Append_Custom_Space(const Space_: Int64; const Block_: Word);
@@ -492,10 +525,15 @@ type
 {$ENDREGION 'Command_Dispatch'}
 
 
+const
+  C_Sequence_Table_Identifier: Word = $FFFF;
+  C_External_Header_Identifier: Word = $8888;
+
 var
   ZDB2_Th_Queue_Instance_Pool__: TZDB2_Th_Queue_Instance_Pool;
 
 implementation
+
 
 constructor TZDB2_Th_CMD.Create(const ThEng_: TZDB2_Th_Queue);
 begin
@@ -719,7 +757,7 @@ end;
 
 procedure TZDB2_Th_CMD_Flush.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 begin
-  CoreSpace__.Save;
+  CoreSpace__.Flush;
 end;
 
 constructor TZDB2_Th_CMD_Flush.Create(const ThEng_: TZDB2_Th_Queue);
@@ -737,7 +775,7 @@ begin
   if not Engine.FCoreSpace_IOHnd.IsOnlyRead then
     begin
       // remove identifier
-      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = $FFFF) and
+      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = C_Sequence_Table_Identifier) and
         CoreSpace__.Check(PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID) then
         begin
           if not CoreSpace__.RemoveData(PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID, False) then
@@ -764,7 +802,7 @@ var
   Mem64: TMem64;
 begin
   R_ := TCMD_State.csDone;
-  if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = $FFFF) and
+  if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = C_Sequence_Table_Identifier) and
     CoreSpace__.Check(PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID) then
     begin
       // read identifier
@@ -833,7 +871,7 @@ begin
     begin
       R_ := TCMD_State.csDone;
 
-      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = $FFFF) and
+      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = C_Sequence_Table_Identifier) and
         CoreSpace__.Check(PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID) then
         begin
           // remove identifier
@@ -851,7 +889,7 @@ begin
           // save identifier
           Mem64 := TMem64.Create;
           Mem64.Mapping(@Sequence_Table[0], length(Sequence_Table) shl 2);
-          PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := $FFFF;
+          PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := C_Sequence_Table_Identifier;
           if not CoreSpace__.WriteData(Mem64, PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID, True) then
               R_ := TCMD_State.csError;
           disposeObject(Mem64);
@@ -886,7 +924,7 @@ begin
     begin
       R_ := TCMD_State.csDone;
 
-      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = $FFFF) and
+      if (PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier = C_Sequence_Table_Identifier) and
         CoreSpace__.Check(PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID) then
         begin
           // remove identifier
@@ -900,7 +938,7 @@ begin
           // save identifier
           Mem64 := TMem64.Create;
           Mem64.Mapping(@Table_Ptr^[0], length(Table_Ptr^) shl 2);
-          PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := $FFFF;
+          PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := C_Sequence_Table_Identifier;
           if not CoreSpace__.WriteData(Mem64, PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID, True) then
               R_ := TCMD_State.csError;
           disposeObject(Mem64);
@@ -923,6 +961,89 @@ begin
   inherited Create(ThEng_);
   Table_Ptr := Table_;
   AutoFree_Data := False;
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_Flush_External_Header.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+var
+  R_: TCMD_State;
+  i, j: Integer;
+begin
+  if Engine.FCoreSpace_IOHnd.IsOnlyRead then
+    begin
+      State^ := TCMD_State.csError;
+    end
+  else
+    begin
+      R_ := TCMD_State.csDone;
+
+      if (PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.Identifier = C_External_Header_Identifier) and
+        CoreSpace__.Check(PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID) then
+        begin
+          // remove external header
+          if not CoreSpace__.RemoveData(PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID, False) then
+              R_ := TCMD_State.csError;
+          FillPtr(@CoreSpace__.UserCustomHeader^[6], SizeOf(TExternal_Head), 0);
+        end;
+
+      if Header_Data.Size > 0 then
+        begin
+          // save external header
+          PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.Identifier := C_External_Header_Identifier;
+          if not CoreSpace__.WriteData(Header_Data, PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID, True) then
+              R_ := TCMD_State.csError;
+        end
+      else
+        begin
+          FillPtr(@CoreSpace__.UserCustomHeader^[6], SizeOf(TExternal_Head), 0);
+        end;
+      State^ := R_;
+    end;
+  if AutoFree_Data then
+    begin
+      disposeObject(Header_Data);
+    end;
+end;
+
+constructor TZDB2_Th_CMD_Flush_External_Header.Create(const ThEng_: TZDB2_Th_Queue; const Header_Data_: TMem64);
+begin
+  inherited Create(ThEng_);
+  Header_Data := Header_Data_;
+  AutoFree_Data := False;
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_Get_And_Reset_External_Header.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+var
+  R_: TCMD_State;
+begin
+  R_ := TCMD_State.csDone;
+  Header_Data.Clear;
+
+  if (PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.Identifier = C_External_Header_Identifier) and
+    CoreSpace__.Check(PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID) then
+    begin
+      // read identifier
+      if not CoreSpace__.ReadData(Header_Data, PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID) then
+        begin
+          DoStatus('"%s" no found External Header.', [Engine.Get_Database_FileName.Text]);
+        end;
+      if not Engine.FCoreSpace_IOHnd.IsOnlyRead then
+        begin
+          // remove identifier
+          if not CoreSpace__.RemoveData(PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID, False) then
+              DoStatus('"%s" remove external header failed, safe exception, you can be ignored.', [Engine.Get_Database_FileName.Text]);
+          FillPtr(@CoreSpace__.UserCustomHeader^[6], SizeOf(TExternal_Head), 0);
+        end;
+    end;
+
+  State^ := R_;
+end;
+
+constructor TZDB2_Th_CMD_Get_And_Reset_External_Header.Create(const ThEng_: TZDB2_Th_Queue; const Header_Data_: TMem64);
+begin
+  inherited Create(ThEng_);
+  Header_Data := Header_Data_;
   Init();
 end;
 
@@ -1203,7 +1324,7 @@ end;
 
 procedure TZDB2_Th_Queue.Do_Th_Queue(ThSender: TCompute);
 var
-  LTK, tmp: TTimeTick;
+  LTK, Tmp_TK, L_State_TK: TTimeTick;
   CMD_: TZDB2_Th_CMD;
 begin
   ThSender.Thread_Info := ClassName;
@@ -1230,6 +1351,7 @@ begin
   FCMD_Execute_Thread_Is_Exit := False;
 
   LTK := GetTimeTick();
+  L_State_TK := LTK;
   while FCMD_Execute_Thread_Is_Runing do
     begin
       if FCMD_Queue.Num > 0 then
@@ -1250,11 +1372,21 @@ begin
         end
       else
         begin
-          tmp := GetTimeTick() - LTK;
-          if tmp > 10000 then
+          Tmp_TK := GetTimeTick() - LTK;
+          if Tmp_TK > 1000 then
               TCompute.Sleep(10)
-          else if tmp > 1000 then
+          else if Tmp_TK > 100 then
               TCompute.Sleep(1);
+        end;
+
+      if GetTimeTick() - L_State_TK > 1000 then
+        begin
+          if FCoreSpace_IOHnd.Handle is TSafe_Flush_Stream then
+            begin
+              FFragment_Buffer_Num := TSafe_Flush_Stream(FCoreSpace_IOHnd.Handle).Fragment_Space.Num;
+              FFragment_Buffer_Memory := TSafe_Flush_Stream(FCoreSpace_IOHnd.Handle).Fragment_Space.Fragment_Memory;
+            end;
+          L_State_TK := GetTimeTick();
         end;
     end;
 
@@ -1307,6 +1439,8 @@ begin
   umlFileCreateAsStream(Stream_, FCoreSpace_IOHnd, OnlyRead_);
   FCoreSpace_IOHnd.AutoFree := AutoFree_;
   CoreSpace__ := nil;
+  FFragment_Buffer_Num := 0;
+  FFragment_Buffer_Memory := 0;
 
   // test
   FCoreSpace_IOHnd.Cache.UsedWriteCache := True;
@@ -1418,7 +1552,7 @@ end;
 function TZDB2_Th_Queue.Is_File_Database: Boolean;
 begin
   FCMD_Queue.Critical__.Lock;
-  Result := (FCoreSpace_IOHnd.Handle is TCore_FileStream) or (FCoreSpace_IOHnd.Handle is TReliableFileStream);
+  Result := (FCoreSpace_IOHnd.Handle is TCore_FileStream) or (FCoreSpace_IOHnd.Handle is TReliableFileStream) or (FCoreSpace_IOHnd.Handle is TSafe_Flush_Stream);
   FCMD_Queue.Critical__.UnLock;
 end;
 
@@ -1429,7 +1563,9 @@ begin
   if FCoreSpace_IOHnd.Handle is TCore_FileStream then
       Result := TCore_FileStream(FCoreSpace_IOHnd.Handle).FileName
   else if FCoreSpace_IOHnd.Handle is TReliableFileStream then
-      Result := TReliableFileStream(FCoreSpace_IOHnd.Handle).FileName;
+      Result := TReliableFileStream(FCoreSpace_IOHnd.Handle).FileName
+  else if FCoreSpace_IOHnd.Handle is TSafe_Flush_Stream then
+      Result := TSafe_Flush_Stream(FCoreSpace_IOHnd.Handle).FileName;
   FCMD_Queue.Critical__.UnLock;
 end;
 
@@ -1599,6 +1735,26 @@ begin
   Table_ := TZDB2_Core_Space.Get_Handle(L);
   Result := Sync_Flush_Sequence_Table(Table_);
   SetLength(Table_, 0);
+end;
+
+function TZDB2_Th_Queue.Sync_Flush_External_Header(Header_Data: TMem64): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_Flush_External_Header.Create(self, Header_Data).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
+function TZDB2_Th_Queue.Sync_Get_And_Reset_External_Header(Header_Data: TMem64): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_Get_And_Reset_External_Header.Create(self, Header_Data).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
 end;
 
 function TZDB2_Th_Queue.Sync_Extract_To(var Input_: TZDB2_BlockHandle;
@@ -1883,6 +2039,18 @@ end;
 procedure TZDB2_Th_Queue.Async_Flush_Sequence_Table(const L: TZDB2_ID_List);
 begin
   Async_Flush_Sequence_Table(TZDB2_Core_Space.Get_Handle(L));
+end;
+
+procedure TZDB2_Th_Queue.Async_Flush_External_Header(Header_Data: TMem64; AutoFree_Data: Boolean);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+  inst: TZDB2_Th_CMD_Flush_External_Header;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  inst := TZDB2_Th_CMD_Flush_External_Header.Create(self, Header_Data);
+  inst.AutoFree_Data := AutoFree_Data;
+  tmp.Init(inst);
+  tmp.Ready;
 end;
 
 procedure TZDB2_Th_Queue.Async_Format_Custom_Space(const Space_: Int64; const Block_: Word);

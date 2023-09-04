@@ -14,6 +14,7 @@ uses
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.ZDB2, Z.ZDB2.HS, Z.HashList.Templet,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4;
 
@@ -551,7 +552,7 @@ end;
 function TC40_Log_DB_Service.GetDB(const LogDB: SystemString): TC40_Log_DB_ZDB2_HashString;
 var
   fn: U_String;
-  fs: TCore_FileStream;
+  fs: TCore_Stream;
   LogDB_: U_String;
 begin
   LogDB_ := umlConverStrToFileName(LogDB);
@@ -562,9 +563,21 @@ begin
       fn := umlCombineFileName(C40_DB_Directory, LogDB_.Text + '.Log_ZDB2');
       try
         if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(fn) then
-            fs := TCore_FileStream.Create(fn, fmOpenReadWrite)
+          begin
+{$IFDEF C4_Safe_Flush}
+            fs := TSafe_Flush_Stream.Create(fn, False, True);
+{$ELSE C4_Safe_Flush}
+            fs := TCore_FileStream.Create(fn, fmOpenReadWrite);
+{$ENDIF C4_Safe_Flush}
+          end
         else
+          begin
+{$IFDEF C4_Safe_Flush}
+            fs := TSafe_Flush_Stream.Create(fn, True, True);
+{$ELSE C4_Safe_Flush}
             fs := TCore_FileStream.Create(fn, fmCreate);
+{$ENDIF C4_Safe_Flush}
+          end;
         Result := TC40_Log_DB_ZDB2_HashString.Create(
           TZDB2_HashString,
 {$IFDEF FPC}@{$ENDIF FPC}Do_Create_ZDB2_HashString,

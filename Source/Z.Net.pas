@@ -1064,11 +1064,14 @@ type
     property CurrentQueueData: PQueueData read FCurrentQueueData;
 
     { send console cmd and result method }
+    procedure SendConsoleCmd(const Cmd, ConsoleData: SystemString);
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M); overload;
 
     { send stream cmd and result method }
+    procedure SendStreamCmd(const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendStreamCmd(const Cmd: SystemString; StreamData: TDFE); overload;
     procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M); overload;
     procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M); overload;
@@ -1258,7 +1261,7 @@ type
   TZNet = class(TCore_InterfacedObject)
   private
     FCritical: TCritical;
-    FZNet_Instance_Ptr__: TZNet_Instance_Pool.PQueueStruct;
+    FZNet_Instance_Ptr__: TZNet_Instance_Pool__.PQueueStruct;
     FCommand_Hash_Pool: TCommand_Hash_Pool;
     FPeerIO_HashPool: TPeer_IO_Hash_Pool;
     FIDSeed: Cardinal;
@@ -1682,88 +1685,80 @@ type
     procedure DoIOConnectAfter(Sender: TPeerIO); virtual;
     procedure DoIODisconnect(Sender: TPeerIO); virtual;
 
-    { send console cmd method }
+    { send console cmd }
+    procedure SendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString); overload;
     procedure SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
     procedure SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
     procedure SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M); overload;
+    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P); overload;
+    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P); overload;
+    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P); overload;
+    procedure SendConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString); overload;
+    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
+    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
+    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M); overload;
+    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P); overload;
+    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P); overload;
+    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P); overload;
 
-    { send stream cmd method }
+    { send stream cmd }
+    procedure SendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE); overload;
     procedure SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M); overload;
     procedure SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M); overload;
     procedure SendStreamCmdM(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M); overload;
-
-    { send console cmd proc }
-    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P); overload;
-    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P); overload;
-    procedure SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P); overload;
-
-    { send stream cmd proc }
     procedure SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P); overload;
     procedure SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P); overload;
     procedure SendStreamCmdP(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P); overload;
-
-    { send direct cmd }
-    procedure SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString); overload;
-    procedure SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd: SystemString); overload;
-    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
-    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE); overload;
-    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString); overload;
-
-    { wait send }
-    function WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; overload; virtual;
-    procedure WaitSendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); overload; virtual;
-
-    { send bigstream }
-    procedure SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean); overload;
-    procedure SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean); overload;
-
-    { send complete buffer }
-    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean); overload;
-    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
-    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
-
-    { send null request and wait }
-    procedure Send_NULL(P_IO: TPeerIO); overload;
-
-    { send used IO bind ID ,return method }
-    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
-    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
-    procedure SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M); overload;
+    procedure SendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE); overload;
     procedure SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M); overload;
     procedure SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M); overload;
     procedure SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M); overload;
-
-    { send used IO bind ID,return proc }
-    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P); overload;
-    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P); overload;
-    procedure SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P); overload;
     procedure SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P); overload;
     procedure SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P); overload;
     procedure SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P); overload;
 
-    { direct send used IO BIND ID }
+    { send direct console cmd }
+    procedure SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString); overload;
+    procedure SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd: SystemString); overload;
     procedure SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString); overload;
     procedure SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd: SystemString); overload;
+
+    { send direct stream cmd }
+    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE); overload;
+    procedure SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString); overload;
     procedure SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
     procedure SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE); overload;
     procedure SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString); overload;
 
-    { wait send }
-    function WaitSendConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; overload;
-    procedure WaitSendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); overload;
-
     { send bigstream }
+    procedure SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean); overload;
+    procedure SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean); overload;
     procedure SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean); overload;
     procedure SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean); overload;
 
     { send complete buffer }
+    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean); overload;
+    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean); overload;
     procedure SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean); overload;
+
+    { send null request and wait }
+    procedure Send_NULL(P_IO: TPeerIO); overload;
+
+    { wait send }
+    function WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; overload; virtual;
+    procedure WaitSendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); overload; virtual;
+    function WaitSendConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; overload;
+    procedure WaitSendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); overload;
 
     { send null request and wait }
     procedure Send_NULL(IO_ID: Cardinal); overload;
@@ -1938,22 +1933,21 @@ type
     function Last_IO_IDLE_Time: TTimeTick;
 
     { send console cmd method }
+    procedure SendConsoleCmd(const Cmd, ConsoleData: SystemString); overload;
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M); overload;
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M); overload;
     procedure SendConsoleCmdM(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M); overload;
-
-    { send stream cmd method }
-    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean); overload;
-    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M); overload;
-    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M); overload;
-    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M); overload;
-
-    { send console cmd proc }
     procedure SendConsoleCmdP(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P); overload;
     procedure SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P); overload;
     procedure SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P); overload;
 
-    { send stream cmd proc }
+    { send stream cmd method }
+    procedure SendStreamCmd(const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean); overload;
+    procedure SendStreamCmd(const Cmd: SystemString; StreamData: TDFE); overload;
+    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean); overload;
+    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M); overload;
+    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M); overload;
+    procedure SendStreamCmdM(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M); overload;
     procedure SendStreamCmdP(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean); overload;
     procedure SendStreamCmdP(const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P); overload;
     procedure SendStreamCmdP(const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P); overload;
@@ -1966,10 +1960,6 @@ type
     procedure SendDirectStreamCmd(const Cmd: SystemString; StreamData: TDFE); overload;
     procedure SendDirectStreamCmd(const Cmd: SystemString); overload;
 
-    { wait send }
-    function WaitSendConsoleCmd(const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; virtual;
-    procedure WaitSendStreamCmd(const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); virtual;
-
     { send bigstream }
     procedure SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean); overload;
     procedure SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean); overload;
@@ -1981,6 +1971,10 @@ type
 
     { send null request and wait }
     procedure Send_NULL();
+
+    { wait send }
+    function WaitSendConsoleCmd(const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; virtual;
+    procedure WaitSendStreamCmd(const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); virtual;
 
     property OnInterface: IZNet_ClientInterface read FOnInterface write FOnInterface;
     property NotyifyInterface: IZNet_ClientInterface read FOnInterface write FOnInterface;
@@ -8964,6 +8958,14 @@ begin
   FLastCommunicationTick := GetTimeTick;
 end;
 
+procedure TPeerIO.SendConsoleCmd(const Cmd, ConsoleData: SystemString);
+begin
+  if OwnerFramework.InheritsFrom(TZNet_Server) then
+      TZNet_Server(OwnerFramework).SendConsoleCmd(self, Cmd, ConsoleData)
+  else if OwnerFramework.InheritsFrom(TZNet_Client) then
+      TZNet_Client(OwnerFramework).SendConsoleCmd(Cmd, ConsoleData);
+end;
+
 procedure TPeerIO.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
 begin
   if OwnerFramework.InheritsFrom(TZNet_Server) then
@@ -8986,6 +8988,22 @@ begin
       TZNet_Server(OwnerFramework).SendConsoleCmdM(self, Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed)
   else if OwnerFramework.InheritsFrom(TZNet_Client) then
       TZNet_Client(OwnerFramework).SendConsoleCmdM(Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed);
+end;
+
+procedure TPeerIO.SendStreamCmd(const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
+begin
+  if OwnerFramework.InheritsFrom(TZNet_Server) then
+      TZNet_Server(OwnerFramework).SendStreamCmd(self, Cmd, StreamData, DoneAutoFree)
+  else if OwnerFramework.InheritsFrom(TZNet_Client) then
+      TZNet_Client(OwnerFramework).SendStreamCmd(Cmd, StreamData, DoneAutoFree);
+end;
+
+procedure TPeerIO.SendStreamCmd(const Cmd: SystemString; StreamData: TDFE);
+begin
+  if OwnerFramework.InheritsFrom(TZNet_Server) then
+      TZNet_Server(OwnerFramework).SendStreamCmd(self, Cmd, StreamData)
+  else if OwnerFramework.InheritsFrom(TZNet_Client) then
+      TZNet_Client(OwnerFramework).SendStreamCmd(Cmd, StreamData);
 end;
 
 procedure TPeerIO.SendStreamCmdM(const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean);
@@ -11578,6 +11596,26 @@ procedure TZNet_Server.DoIODisconnect(Sender: TPeerIO);
 begin
 end;
 
+procedure TZNet_Server.SendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+  if not QuietMode then
+      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
 procedure TZNet_Server.SendConsoleCmdM(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
 var
   p: PQueueData;
@@ -11645,6 +11683,160 @@ begin
   p^.OnConsoleFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+
+  if not QuietMode then
+      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleProc := OnResult;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+
+  if not QuietMode then
+      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleParamProc := OnResult;
+  p^.Param1 := Param1;
+  p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+
+  if not QuietMode then
+      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleParamProc := OnResult;
+  p^.OnConsoleFailedProc := OnFailed;
+  p^.Param1 := Param1;
+  p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Server.SendConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString);
+begin
+  SendConsoleCmd(PeerIO[IO_ID], Cmd, ConsoleData);
+end;
+
+procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
+begin
+  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, OnResult);
+end;
+
+procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M);
+begin
+  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult);
+end;
+
+procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M);
+begin
+  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
+begin
+  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, OnResult);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
+begin
+  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult);
+end;
+
+procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
+begin
+  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed);
+end;
+
+procedure TZNet_Server.SendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+
+  if not QuietMode then
+      P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendStreamCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.DoneAutoFree := DoneAutoFree;
+  p^.StreamData := StreamData;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Server.SendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TDFE);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+
+  if not QuietMode then
+      P_IO.PrintCommand('Send Stream cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendStreamCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.DoneAutoFree := True;
+  p^.StreamData := TMS64.Create;
+  if StreamData <> nil then
+      StreamData.FastEncodeTo(p^.StreamData)
+  else
+      TDFE.BuildEmptyStream(p^.StreamData);
   Post_Queue_Data_To_Swap_Queue(p);
 end;
 
@@ -11752,77 +11944,6 @@ begin
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamParamMethod := OnResult;
   p^.OnStreamFailedMethod := OnFailed;
-  p^.Param1 := Param1;
-  p^.Param2 := Param2;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
-var
-  p: PQueueData;
-begin
-  { init queue data }
-  if (P_IO = nil) or (not P_IO.Connected) then
-      exit;
-  if not CanSendCommand(P_IO, Cmd) then
-      exit;
-
-  if not QuietMode then
-      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  p := NewQueueData(P_IO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := P_IO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleProc := OnResult;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
-var
-  p: PQueueData;
-begin
-  { init queue data }
-  if (P_IO = nil) or (not P_IO.Connected) then
-      exit;
-  if not CanSendCommand(P_IO, Cmd) then
-      exit;
-
-  if not QuietMode then
-      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  p := NewQueueData(P_IO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := P_IO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleParamProc := OnResult;
-  p^.Param1 := Param1;
-  p^.Param2 := Param2;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
-var
-  p: PQueueData;
-begin
-  { init queue data }
-  if (P_IO = nil) or (not P_IO.Connected) then
-      exit;
-  if not CanSendCommand(P_IO, Cmd) then
-      exit;
-
-  if not QuietMode then
-      P_IO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  p := NewQueueData(P_IO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := P_IO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleParamProc := OnResult;
-  p^.OnConsoleFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
   Post_Queue_Data_To_Swap_Queue(p);
@@ -11937,6 +12058,56 @@ begin
   Post_Queue_Data_To_Swap_Queue(p);
 end;
 
+procedure TZNet_Server.SendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
+begin
+  SendStreamCmd(PeerIO[IO_ID], Cmd, StreamData, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE);
+begin
+  SendStreamCmd(PeerIO[IO_ID], Cmd, StreamData);
+end;
+
+procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M; DoneAutoFree: Boolean);
+begin
+  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, OnResult, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M);
+begin
+  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, OnResult);
+end;
+
+procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M);
+begin
+  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult);
+end;
+
+procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M);
+begin
+  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult, OnFailed);
+end;
+
+procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean);
+begin
+  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, OnResult, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P);
+begin
+  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, OnResult);
+end;
+
+procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P);
+begin
+  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult);
+end;
+
+procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P);
+begin
+  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult, OnFailed);
+end;
+
 procedure TZNet_Server.SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString);
 var
   p: PQueueData;
@@ -11962,6 +12133,16 @@ end;
 procedure TZNet_Server.SendDirectConsoleCmd(P_IO: TPeerIO; const Cmd: SystemString);
 begin
   SendDirectConsoleCmd(P_IO, Cmd, '');
+end;
+
+procedure TZNet_Server.SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString);
+begin
+  SendDirectConsoleCmd(PeerIO[IO_ID], Cmd, ConsoleData);
+end;
+
+procedure TZNet_Server.SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd: SystemString);
+begin
+  SendDirectConsoleCmd(PeerIO[IO_ID], Cmd, '');
 end;
 
 procedure TZNet_Server.SendDirectStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
@@ -12022,6 +12203,179 @@ begin
   d := TDFE.Create;
   SendDirectStreamCmd(P_IO, Cmd, d);
   DisposeObject(d);
+end;
+
+procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
+begin
+  SendDirectStreamCmd(PeerIO[IO_ID], Cmd, StreamData, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE);
+begin
+  SendDirectStreamCmd(PeerIO[IO_ID], Cmd, StreamData);
+end;
+
+procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString);
+begin
+  SendDirectStreamCmd(PeerIO[IO_ID], Cmd);
+end;
+
+procedure TZNet_Server.SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendBigStream;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+  p^.BigStreamStartPos := StartPos;
+  if FBigStreamMemorySwapSpace and DoneAutoFree and P_IO.IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
+    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
+    begin
+      if not QuietMode then
+          P_IO.PrintCommand('swap space technology cache for "%s"', Cmd);
+      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
+      if p^.BigStream <> nil then
+        begin
+          if DoneAutoFree then
+              DisposeObject(BigStream);
+          p^.DoneAutoFree := True;
+        end
+      else
+        begin
+          p^.BigStream := BigStream;
+          p^.DoneAutoFree := DoneAutoFree;
+        end;
+    end
+  else
+    begin
+      p^.BigStream := BigStream;
+      p^.DoneAutoFree := DoneAutoFree;
+    end;
+  Post_Queue_Data_To_Swap_Queue(p);
+  if not QuietMode then
+      P_IO.PrintCommand('Send BigStream cmd: %s', Cmd);
+end;
+
+procedure TZNet_Server.SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
+begin
+  SendBigStream(P_IO, Cmd, BigStream, 0, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
+begin
+  SendBigStream(PeerIO[IO_ID], Cmd, BigStream, StartPos, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
+begin
+  SendBigStream(PeerIO[IO_ID], Cmd, BigStream, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+  tmp_queue_num, tmp_buff_siz: Int64;
+begin
+  { init queue data }
+  if (P_IO = nil) or (not P_IO.Connected) then
+      exit;
+  if not CanSendCommand(P_IO, Cmd) then
+      exit;
+  if not QuietMode then
+      P_IO.PrintCommand('Send complete buffer cmd: %s', Cmd);
+
+  p := NewQueueData(P_IO);
+  p^.State := TQueueState.qsSendCompleteBuffer;
+  p^.Cmd := Cmd;
+  p^.Cipher := P_IO.FSendDataCipherSecurity;
+
+  P_IO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
+  if FCompleteBufferSwapSpace and DoneAutoFree and P_IO.IOBusy
+    and ((FCompleteBufferSwapSpaceTriggerSize <= 0) or (BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
+    begin
+      if not QuietMode then
+          P_IO.PrintCommand('ZDB2 swap space technology cache for "%s"', Cmd);
+      P_IO.FReceived_Physics_Critical.Lock;
+      p^.Buffer_Swap_Memory := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(buff, BuffSize, False);
+      P_IO.FReceived_Physics_Critical.UnLock;
+      if p^.Buffer_Swap_Memory <> nil then
+        begin
+          System.FreeMemory(buff);
+          p^.Buffer := nil;
+        end
+      else
+        begin
+          p^.Buffer := buff;
+          p^.Buffer_Swap_Memory := nil;
+        end;
+    end
+  else
+    begin
+      p^.Buffer := buff;
+      p^.Buffer_Swap_Memory := nil;
+    end;
+
+  p^.BufferSize := BuffSize;
+  p^.DoneAutoFree := DoneAutoFree;
+  Post_Queue_Data_To_Swap_Queue(p);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL(P_IO);
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(P_IO, Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(P_IO, Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(PeerIO[IO_ID], Cmd, buff, BuffSize, DoneAutoFree);
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(IO_ID, Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(IO_ID, Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Server.Send_NULL(P_IO: TPeerIO);
+begin
+  SendConsoleCmdM(P_IO, C_NULL, '', TOnConsole_M(nil));
 end;
 
 function TZNet_Server.WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
@@ -12149,225 +12503,6 @@ begin
       P_IO.FWaitSendBusy := False;
 end;
 
-procedure TZNet_Server.SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
-var
-  p: PQueueData;
-begin
-  { init queue data }
-  if (P_IO = nil) or (not P_IO.Connected) then
-      exit;
-  if not CanSendCommand(P_IO, Cmd) then
-      exit;
-  p := NewQueueData(P_IO);
-  p^.State := TQueueState.qsSendBigStream;
-  p^.Cmd := Cmd;
-  p^.Cipher := P_IO.FSendDataCipherSecurity;
-  p^.BigStreamStartPos := StartPos;
-  if FBigStreamMemorySwapSpace and DoneAutoFree and P_IO.IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
-    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
-    begin
-      if not QuietMode then
-          P_IO.PrintCommand('swap space technology cache for "%s"', Cmd);
-      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
-      if p^.BigStream <> nil then
-        begin
-          if DoneAutoFree then
-              DisposeObject(BigStream);
-          p^.DoneAutoFree := True;
-        end
-      else
-        begin
-          p^.BigStream := BigStream;
-          p^.DoneAutoFree := DoneAutoFree;
-        end;
-    end
-  else
-    begin
-      p^.BigStream := BigStream;
-      p^.DoneAutoFree := DoneAutoFree;
-    end;
-  Post_Queue_Data_To_Swap_Queue(p);
-  if not QuietMode then
-      P_IO.PrintCommand('Send BigStream cmd: %s', Cmd);
-end;
-
-procedure TZNet_Server.SendBigStream(P_IO: TPeerIO; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
-begin
-  SendBigStream(P_IO, Cmd, BigStream, 0, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
-var
-  p: PQueueData;
-  tmp_queue_num, tmp_buff_siz: Int64;
-begin
-  { init queue data }
-  if (P_IO = nil) or (not P_IO.Connected) then
-      exit;
-  if not CanSendCommand(P_IO, Cmd) then
-      exit;
-  if not QuietMode then
-      P_IO.PrintCommand('Send complete buffer cmd: %s', Cmd);
-
-  p := NewQueueData(P_IO);
-  p^.State := TQueueState.qsSendCompleteBuffer;
-  p^.Cmd := Cmd;
-  p^.Cipher := P_IO.FSendDataCipherSecurity;
-
-  P_IO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
-  if FCompleteBufferSwapSpace and DoneAutoFree and P_IO.IOBusy
-    and ((FCompleteBufferSwapSpaceTriggerSize <= 0) or (BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
-    begin
-      if not QuietMode then
-          P_IO.PrintCommand('ZDB2 swap space technology cache for "%s"', Cmd);
-      P_IO.FReceived_Physics_Critical.Lock;
-      p^.Buffer_Swap_Memory := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(buff, BuffSize, False);
-      P_IO.FReceived_Physics_Critical.UnLock;
-      if p^.Buffer_Swap_Memory <> nil then
-        begin
-          System.FreeMemory(buff);
-          p^.Buffer := nil;
-        end
-      else
-        begin
-          p^.Buffer := buff;
-          p^.Buffer_Swap_Memory := nil;
-        end;
-    end
-  else
-    begin
-      p^.Buffer := buff;
-      p^.Buffer_Swap_Memory := nil;
-    end;
-
-  p^.BufferSize := BuffSize;
-  p^.DoneAutoFree := DoneAutoFree;
-  Post_Queue_Data_To_Swap_Queue(p);
-  if FAutomaticWaitRemoteReponse then
-      Send_NULL(P_IO);
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(P_IO, Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(P_IO: TPeerIO; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(P_IO, Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
-end;
-
-procedure TZNet_Server.Send_NULL(P_IO: TPeerIO);
-begin
-  SendConsoleCmdM(P_IO, C_NULL, '', nil);
-end;
-
-procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
-begin
-  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, OnResult);
-end;
-
-procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M);
-begin
-  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult);
-end;
-
-procedure TZNet_Server.SendConsoleCmdM(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_M; const OnFailed: TOnConsoleFailed_M);
-begin
-  SendConsoleCmdM(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed);
-end;
-
-procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_M;
-  DoneAutoFree: Boolean);
-begin
-  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, OnResult, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_M);
-begin
-  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, OnResult);
-end;
-
-procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M);
-begin
-  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult);
-end;
-
-procedure TZNet_Server.SendStreamCmdM(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_M; const OnFailed: TOnStreamFailed_M);
-begin
-  SendStreamCmdM(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult, OnFailed);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
-begin
-  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, OnResult);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
-begin
-  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult);
-end;
-
-procedure TZNet_Server.SendConsoleCmdP(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
-begin
-  SendConsoleCmdP(PeerIO[IO_ID], Cmd, ConsoleData, Param1, Param2, OnResult, OnFailed);
-end;
-
-procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; const OnResult: TOnStream_P; DoneAutoFree: Boolean);
-begin
-  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, OnResult, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; const OnResult: TOnStream_P);
-begin
-  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, OnResult);
-end;
-
-procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P);
-begin
-  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult);
-end;
-
-procedure TZNet_Server.SendStreamCmdP(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE; Param1: Pointer; Param2: TObject; const OnResult: TOnStreamParam_P; const OnFailed: TOnStreamFailed_P);
-begin
-  SendStreamCmdP(PeerIO[IO_ID], Cmd, StreamData, Param1, Param2, OnResult, OnFailed);
-end;
-
-procedure TZNet_Server.SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString);
-begin
-  SendDirectConsoleCmd(PeerIO[IO_ID], Cmd, ConsoleData);
-end;
-
-procedure TZNet_Server.SendDirectConsoleCmd(IO_ID: Cardinal; const Cmd: SystemString);
-begin
-  SendDirectConsoleCmd(PeerIO[IO_ID], Cmd, '');
-end;
-
-procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
-begin
-  SendDirectStreamCmd(PeerIO[IO_ID], Cmd, StreamData, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData: TDFE);
-begin
-  SendDirectStreamCmd(PeerIO[IO_ID], Cmd, StreamData);
-end;
-
-procedure TZNet_Server.SendDirectStreamCmd(IO_ID: Cardinal; const Cmd: SystemString);
-begin
-  SendDirectStreamCmd(PeerIO[IO_ID], Cmd);
-end;
-
 function TZNet_Server.WaitSendConsoleCmd(IO_ID: Cardinal; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
 begin
   Result := WaitSendConsoleCmd(PeerIO[IO_ID], Cmd, ConsoleData, TimeOut_);
@@ -12376,41 +12511,6 @@ end;
 procedure TZNet_Server.WaitSendStreamCmd(IO_ID: Cardinal; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick);
 begin
   WaitSendStreamCmd(PeerIO[IO_ID], Cmd, StreamData, Result_, TimeOut_);
-end;
-
-procedure TZNet_Server.SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
-begin
-  SendBigStream(PeerIO[IO_ID], Cmd, BigStream, StartPos, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendBigStream(IO_ID: Cardinal; const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
-begin
-  SendBigStream(PeerIO[IO_ID], Cmd, BigStream, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(PeerIO[IO_ID], Cmd, buff, BuffSize, DoneAutoFree);
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(IO_ID, Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
-end;
-
-procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(IO_ID, Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
 end;
 
 procedure TZNet_Server.Send_NULL(IO_ID: Cardinal);
@@ -13157,6 +13257,28 @@ begin
       Result := ClientIO.Last_IO_IDLE_Time;
 end;
 
+procedure TZNet_Client.SendConsoleCmd(const Cmd, ConsoleData: SystemString);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
 procedure TZNet_Client.SendConsoleCmdM(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_M);
 var
   p: PQueueData;
@@ -13228,6 +13350,130 @@ begin
   p^.OnConsoleFailedMethod := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleProc := OnResult;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleParamProc := OnResult;
+  p^.Param1 := Param1;
+  p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendConsoleCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.ConsoleData := ConsoleData;
+  p^.OnConsoleParamProc := OnResult;
+  p^.OnConsoleFailedProc := OnFailed;
+  p^.Param1 := Param1;
+  p^.Param2 := Param2;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Client.SendStreamCmd(const Cmd: SystemString; StreamData: TMS64; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendStreamCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.DoneAutoFree := DoneAutoFree;
+  p^.StreamData := StreamData;
+  Post_Queue_Data_To_Swap_Queue(p);
+end;
+
+procedure TZNet_Client.SendStreamCmd(const Cmd: SystemString; StreamData: TDFE);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  if not QuietMode then
+      ClientIO.PrintCommand('Send Stream cmd: %s', Cmd);
+
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendStreamCMD;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.DoneAutoFree := True;
+  p^.StreamData := TMS64.Create;
+  if StreamData <> nil then
+      StreamData.FastEncodeTo(p^.StreamData)
+  else
+      TDFE.BuildEmptyStream(p^.StreamData);
   Post_Queue_Data_To_Swap_Queue(p);
 end;
 
@@ -13339,80 +13585,6 @@ begin
       TDFE.BuildEmptyStream(p^.StreamData);
   p^.OnStreamParamMethod := OnResult;
   p^.OnStreamFailedMethod := OnFailed;
-  p^.Param1 := Param1;
-  p^.Param2 := Param2;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; const OnResult: TOnConsole_P);
-var
-  p: PQueueData;
-begin
-  if ClientIO = nil then
-      exit;
-  if not Connected then
-      exit;
-  if not CanSendCommand(ClientIO, Cmd) then
-      exit;
-  if not QuietMode then
-      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  { init queue data }
-  p := NewQueueData(ClientIO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := ClientIO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleProc := OnResult;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P);
-var
-  p: PQueueData;
-begin
-  if ClientIO = nil then
-      exit;
-  if not Connected then
-      exit;
-  if not CanSendCommand(ClientIO, Cmd) then
-      exit;
-  if not QuietMode then
-      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  { init queue data }
-  p := NewQueueData(ClientIO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := ClientIO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleParamProc := OnResult;
-  p^.Param1 := Param1;
-  p^.Param2 := Param2;
-  Post_Queue_Data_To_Swap_Queue(p);
-end;
-
-procedure TZNet_Client.SendConsoleCmdP(const Cmd, ConsoleData: SystemString; Param1: Pointer; Param2: TObject; const OnResult: TOnConsoleParam_P; const OnFailed: TOnConsoleFailed_P);
-var
-  p: PQueueData;
-begin
-  if ClientIO = nil then
-      exit;
-  if not Connected then
-      exit;
-  if not CanSendCommand(ClientIO, Cmd) then
-      exit;
-  if not QuietMode then
-      ClientIO.PrintCommand('Send Console cmd: %s', Cmd);
-
-  { init queue data }
-  p := NewQueueData(ClientIO);
-  p^.State := TQueueState.qsSendConsoleCMD;
-  p^.Cmd := Cmd;
-  p^.Cipher := ClientIO.FSendDataCipherSecurity;
-  p^.ConsoleData := ConsoleData;
-  p^.OnConsoleParamProc := OnResult;
-  p^.OnConsoleFailedProc := OnFailed;
   p^.Param1 := Param1;
   p^.Param2 := Param2;
   Post_Queue_Data_To_Swap_Queue(p);
@@ -13623,6 +13795,134 @@ begin
   DisposeObject(d);
 end;
 
+procedure TZNet_Client.SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendBigStream;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+  p^.BigStreamStartPos := StartPos;
+
+  if FBigStreamMemorySwapSpace and DoneAutoFree and IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
+    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
+    begin
+      if not QuietMode then
+          ClientIO.PrintCommand('swap space technology cache for "%s"', Cmd);
+      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
+      if p^.BigStream <> nil then
+        begin
+          if DoneAutoFree then
+              DisposeObject(BigStream);
+          p^.DoneAutoFree := True;
+        end
+      else
+        begin
+          p^.BigStream := BigStream;
+          p^.DoneAutoFree := DoneAutoFree;
+        end;
+    end
+  else
+    begin
+      p^.BigStream := BigStream;
+      p^.DoneAutoFree := DoneAutoFree;
+    end;
+
+  Post_Queue_Data_To_Swap_Queue(p);
+  if not QuietMode then
+      ClientIO.PrintCommand('Send BigStream cmd: %s', Cmd);
+end;
+
+procedure TZNet_Client.SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
+begin
+  SendBigStream(Cmd, BigStream, 0, DoneAutoFree);
+end;
+
+procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
+var
+  p: PQueueData;
+  tmp_queue_num, tmp_buff_siz: Int64;
+begin
+  if ClientIO = nil then
+      exit;
+  if not Connected then
+      exit;
+  if not CanSendCommand(ClientIO, Cmd) then
+      exit;
+  { init queue data }
+  p := NewQueueData(ClientIO);
+  p^.State := TQueueState.qsSendCompleteBuffer;
+  p^.Cmd := Cmd;
+  p^.Cipher := ClientIO.FSendDataCipherSecurity;
+
+  ClientIO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
+  if FCompleteBufferSwapSpace and DoneAutoFree and IOBusy
+    and ((FCompleteBufferSwapSpaceTriggerSize <= 0) or (BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
+    begin
+      if not QuietMode then
+          ClientIO.PrintCommand('ZDB2 swap space technology cache for "%s"', Cmd);
+      ClientIO.FReceived_Physics_Critical.Lock;
+      p^.Buffer_Swap_Memory := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(buff, BuffSize, False);
+      ClientIO.FReceived_Physics_Critical.UnLock;
+      if p^.Buffer_Swap_Memory <> nil then
+        begin
+          System.FreeMemory(buff);
+          p^.Buffer := nil;
+        end
+      else
+        begin
+          p^.Buffer := buff;
+          p^.Buffer_Swap_Memory := nil;
+        end;
+    end
+  else
+    begin
+      p^.Buffer := buff;
+      p^.Buffer_Swap_Memory := nil;
+    end;
+
+  p^.BufferSize := BuffSize;
+  p^.DoneAutoFree := DoneAutoFree;
+  Post_Queue_Data_To_Swap_Queue(p);
+  if not QuietMode then
+      ClientIO.PrintCommand('Send complete buffer cmd: %s', Cmd);
+  if FAutomaticWaitRemoteReponse then
+      Send_NULL();
+end;
+
+procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
+begin
+  SendCompleteBuffer(Cmd, buff.Memory, buff.Size, DoneAutoFree);
+  if DoneAutoFree then
+    begin
+      buff.DiscardMemory;
+      DisposeObject(buff);
+    end;
+end;
+
+procedure TZNet_Client.Send_NULL;
+begin
+  SendConsoleCmdM(C_NULL, '', TOnConsole_M(nil));
+end;
+
 function TZNet_Client.WaitSendConsoleCmd(const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
 var
   waitIntf: TWaitSendConsoleCmdIntf;
@@ -13761,134 +14061,6 @@ begin
 
   if ExistsID(IO_ID) and Connected then
       ClientIO.FWaitSendBusy := False;
-end;
-
-procedure TZNet_Client.SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; StartPos: Int64; DoneAutoFree: Boolean);
-var
-  p: PQueueData;
-begin
-  if ClientIO = nil then
-      exit;
-  if not Connected then
-      exit;
-  if not CanSendCommand(ClientIO, Cmd) then
-      exit;
-  { init queue data }
-  p := NewQueueData(ClientIO);
-  p^.State := TQueueState.qsSendBigStream;
-  p^.Cmd := Cmd;
-  p^.Cipher := ClientIO.FSendDataCipherSecurity;
-  p^.BigStreamStartPos := StartPos;
-
-  if FBigStreamMemorySwapSpace and DoneAutoFree and IOBusy and (BigStream.Size > FBigStreamSwapSpaceTriggerSize)
-    and ((BigStream is TMS64) or (BigStream is TMemoryStream)) then
-    begin
-      if not QuietMode then
-          ClientIO.PrintCommand('swap space technology cache for "%s"', Cmd);
-      p^.BigStream := TFile_Swap_Space_Stream.Create_BigStream(BigStream, BigStream_Swap_Space_Pool__);
-      if p^.BigStream <> nil then
-        begin
-          if DoneAutoFree then
-              DisposeObject(BigStream);
-          p^.DoneAutoFree := True;
-        end
-      else
-        begin
-          p^.BigStream := BigStream;
-          p^.DoneAutoFree := DoneAutoFree;
-        end;
-    end
-  else
-    begin
-      p^.BigStream := BigStream;
-      p^.DoneAutoFree := DoneAutoFree;
-    end;
-
-  Post_Queue_Data_To_Swap_Queue(p);
-  if not QuietMode then
-      ClientIO.PrintCommand('Send BigStream cmd: %s', Cmd);
-end;
-
-procedure TZNet_Client.SendBigStream(const Cmd: SystemString; BigStream: TCore_Stream; DoneAutoFree: Boolean);
-begin
-  SendBigStream(Cmd, BigStream, 0, DoneAutoFree);
-end;
-
-procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: PByte; BuffSize: NativeInt; DoneAutoFree: Boolean);
-var
-  p: PQueueData;
-  tmp_queue_num, tmp_buff_siz: Int64;
-begin
-  if ClientIO = nil then
-      exit;
-  if not Connected then
-      exit;
-  if not CanSendCommand(ClientIO, Cmd) then
-      exit;
-  { init queue data }
-  p := NewQueueData(ClientIO);
-  p^.State := TQueueState.qsSendCompleteBuffer;
-  p^.Cmd := Cmd;
-  p^.Cipher := ClientIO.FSendDataCipherSecurity;
-
-  ClientIO.WriteBuffer_State(tmp_queue_num, tmp_buff_siz);
-  if FCompleteBufferSwapSpace and DoneAutoFree and IOBusy
-    and ((FCompleteBufferSwapSpaceTriggerSize <= 0) or (BuffSize.Size > FCompleteBufferSwapSpaceTriggerSize) or (BuffSize.Size > tmp_buff_siz)) then
-    begin
-      if not QuietMode then
-          ClientIO.PrintCommand('ZDB2 swap space technology cache for "%s"', Cmd);
-      ClientIO.FReceived_Physics_Critical.Lock;
-      p^.Buffer_Swap_Memory := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(buff, BuffSize, False);
-      ClientIO.FReceived_Physics_Critical.UnLock;
-      if p^.Buffer_Swap_Memory <> nil then
-        begin
-          System.FreeMemory(buff);
-          p^.Buffer := nil;
-        end
-      else
-        begin
-          p^.Buffer := buff;
-          p^.Buffer_Swap_Memory := nil;
-        end;
-    end
-  else
-    begin
-      p^.Buffer := buff;
-      p^.Buffer_Swap_Memory := nil;
-    end;
-
-  p^.BufferSize := BuffSize;
-  p^.DoneAutoFree := DoneAutoFree;
-  Post_Queue_Data_To_Swap_Queue(p);
-  if not QuietMode then
-      ClientIO.PrintCommand('Send complete buffer cmd: %s', Cmd);
-  if FAutomaticWaitRemoteReponse then
-      Send_NULL();
-end;
-
-procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: TMS64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
-end;
-
-procedure TZNet_Client.SendCompleteBuffer(const Cmd: SystemString; buff: TMem64; DoneAutoFree: Boolean);
-begin
-  SendCompleteBuffer(Cmd, buff.Memory, buff.Size, DoneAutoFree);
-  if DoneAutoFree then
-    begin
-      buff.DiscardMemory;
-      DisposeObject(buff);
-    end;
-end;
-
-procedure TZNet_Client.Send_NULL;
-begin
-  SendConsoleCmdM(C_NULL, '', nil);
 end;
 
 function TZNet_Client.RemoteID: Cardinal;

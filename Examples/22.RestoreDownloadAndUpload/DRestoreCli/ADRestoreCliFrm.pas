@@ -11,7 +11,7 @@ uses
   Z.Net,
   Z.Net.DoubleTunnelIO,
   Z.Net.Client.CrossSocket,
-  Z.Cadencer, Z.DFE;
+  Z.Cadencer, Z.DFE, Vcl.Mask;
 
 type
   TAuthDoubleTunnelClientForm = class(TForm)
@@ -195,7 +195,7 @@ begin
     begin
       client.GetPublicFileMD5P(Name^, 0, v, nil, nil,
         procedure(const UserData: Pointer; const UserObject: TCore_Object;
-          const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+          const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
         begin
           hashMD5.Add(fileName, umlMD5ToStr(MD5).Text);
         end);
@@ -233,7 +233,7 @@ begin
       // 获取远程文件截断的md5
       client.GetPublicFileMD5P('ADRestoreServer.exe', 0, 512, nil, nil,
         procedure(const UserData: Pointer; const UserObject: TCore_Object;
-          const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+          const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
         begin
           // 只取文件的头512byte重新来存储，为后面的断点续传demo打下基础
           DoStatus('remote MD5(0..512):%s', [umlMD5ToStr(MD5).Text]);
@@ -246,7 +246,7 @@ begin
           // 获取远程文件完整的md5
           client.GetPublicFileMD5P('ADRestoreServer.exe', 0, 0, nil, nil,
             procedure(const UserData: Pointer; const UserObject: TCore_Object;
-              const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+              const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
             begin
               DoStatus('remote MD5:%s', [umlMD5ToStr(MD5).Text]);
               // 从远程断点续传下载
@@ -277,7 +277,7 @@ begin
                           // 在这里触发事件，表示上传已经完成了
                           client.GetPrivateFileMD5P('testUpload.dat', '', 0, 0, nil, nil,
                             procedure(const UserData: Pointer; const UserObject: TCore_Object;
-                              const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+                              const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
                             var
                               m64_2: TMemoryStream64;
                             begin
@@ -294,7 +294,7 @@ begin
                                 begin
                                   client.GetPrivateFileMD5P('testUpload.dat', '', 0, 0, nil, nil,
                                     procedure(const UserData: Pointer; const UserObject: TCore_Object;
-                                      const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+                                      const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
                                     begin
                                       // 如果上面两个md5相同，则表示断点续传的上传已经成功
                                       DoStatus('private remote md5:%s', [umlMD5ToStr(MD5).Text]);

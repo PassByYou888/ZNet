@@ -201,6 +201,11 @@ begin
   FOnFree := nil;
 end;
 
+constructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(const HashSize_: integer);
+begin
+  Create(HashSize_, T___.Null_Value);
+end;
+
 destructor TBig_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Destroy;
 begin
   Clear;
@@ -840,6 +845,11 @@ begin
   FNull_Value := Null_Value_;
   FOnAdd := nil;
   FOnFree := nil;
+end;
+
+constructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Create(const HashSize_: integer);
+begin
+  Create(HashSize_, T___.Null_Value);
 end;
 
 destructor TCritical_Big_Hash_Pair_Pool{$IFNDEF FPC}<TKey_, TValue_>{$ENDIF FPC}.Destroy;

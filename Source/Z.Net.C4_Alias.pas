@@ -15,6 +15,7 @@ uses Variants,
   Z.Geometry2D, Z.DFE, Z.ListEngine,
   Z.Parsing, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4,
   Z.ZDB2.HS, Z.ZDB2;
 
@@ -198,9 +199,21 @@ begin
   C40_Alias_DB_FileName := umlCombineFileName(DTNoAuthService.PublicFileDirectory, Get_DB_FileName_Config(PFormat('DTC40_%s.Space', [ServiceInfo.ServiceTyp.Text])));
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), true) and umlFileExists(C40_Alias_DB_FileName) then
-      fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite)
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, False, True);
+{$ELSE C4_Safe_Flush}
+      FS := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite);
+{$ENDIF C4_Safe_Flush}
+    end
   else
-      fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, True, True);
+{$ELSE C4_Safe_Flush}
+      FS := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
+{$ENDIF C4_Safe_Flush}
+    end;
 
   Alias_DB := TZDB2_List_HashString.Create(
     TZDB2_HashString,

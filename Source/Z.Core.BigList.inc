@@ -148,6 +148,7 @@ begin
   FNum := 0;
   FOnAdd := nil;
   FOnFree := nil;
+  FAccept_Sort := True;
   FChanged := False;
   FList := nil;
 end;
@@ -926,7 +927,7 @@ procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C);
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       tmp := BuildArrayMemory;
       Sort_C(tmp, 0, Num - 1, OnSort);
@@ -992,7 +993,7 @@ procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M);
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       tmp := BuildArrayMemory;
       Sort_M(tmp, 0, Num - 1, OnSort);
@@ -1058,7 +1059,7 @@ procedure TBigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P);
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       tmp := BuildArrayMemory;
       Sort_P(tmp, 0, Num - 1, OnSort);
@@ -1415,6 +1416,7 @@ begin
   FNum := 0;
   FOnAdd := nil;
   FOnFree := nil;
+  FAccept_Sort := True;
   FChanged := False;
   FList := nil;
 end;
@@ -2302,7 +2304,7 @@ procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_C(OnSort: TSort_C)
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       FCritical__.Lock;
       tmp := BuildArrayMemory;
@@ -2370,7 +2372,7 @@ procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_M(OnSort: TSort_M)
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       FCritical__.Lock;
       tmp := BuildArrayMemory;
@@ -2438,7 +2440,7 @@ procedure TCritical_BigList{$IFNDEF FPC}<T_>{$ENDIF FPC}.Sort_P(OnSort: TSort_P)
 var
   tmp: PQueueArrayStruct;
 begin
-  if (Num > 1) and (Assigned(OnSort)) then
+  if (FAccept_Sort) and (Num > 1) and (Assigned(OnSort)) then
     begin
       FCritical__.Lock;
       tmp := BuildArrayMemory;

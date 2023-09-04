@@ -16,6 +16,7 @@ uses
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.ZDB2, Z.ZDB2.MS64, Z.HashList.Templet,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4;
 
@@ -940,9 +941,21 @@ begin
   DoStatus('extract %s', [C40_FS2_FileName.Text]);
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_FS2_FileName) then
-      FS := TCore_FileStream.Create(C40_FS2_FileName, fmOpenReadWrite)
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_FS2_FileName, False, True);
+{$ELSE C4_Safe_Flush}
+      FS := TCore_FileStream.Create(C40_FS2_FileName, fmOpenReadWrite);
+{$ENDIF C4_Safe_Flush}
+    end
   else
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_FS2_FileName, True, True);
+{$ELSE C4_Safe_Flush}
       FS := TCore_FileStream.Create(C40_FS2_FileName, fmCreate);
+{$ENDIF C4_Safe_Flush}
+    end;
 
   FileDatabase := TZDB2_List_MS64.Create(
   TC40_FS2_Service_ZDB2_MS64,

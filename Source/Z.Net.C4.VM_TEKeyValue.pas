@@ -14,6 +14,7 @@ uses Variants,
   Z.Geometry2D, Z.DFE, Z.ListEngine,
   Z.Parsing, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4, Z.Net.C4.VM,
   Z.TextDataEngine,
   Z.ZDB2.TE, Z.ZDB2, Z.HashList.Templet;
@@ -775,9 +776,21 @@ begin
   Check_And_Replace_ZDB2_Extract_FileName(C40_TEKeyValue_VM_DB_FileName);
 
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), True) and umlFileExists(C40_TEKeyValue_VM_DB_FileName) then
-      FS := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite)
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_TEKeyValue_VM_DB_FileName, False, True);
+{$ELSE C4_Safe_Flush}
+      FS := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmOpenReadWrite);
+{$ENDIF C4_Safe_Flush}
+    end
   else
+    begin
+{$IFDEF C4_Safe_Flush}
+      FS := TSafe_Flush_Stream.Create(C40_TEKeyValue_VM_DB_FileName, True, True);
+{$ELSE C4_Safe_Flush}
       FS := TCore_FileStream.Create(C40_TEKeyValue_VM_DB_FileName, fmCreate);
+{$ENDIF C4_Safe_Flush}
+    end;
 
   TEKeyValue_DB := TZDB2_List_HashTextEngine.Create(
     TZDB2_HashTextEngine,

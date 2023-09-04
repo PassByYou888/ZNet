@@ -10,7 +10,7 @@ uses
   Z.Status,
   Z.Net,
   Z.Net.PhysicsIO,
-  Z.Net.DoubleTunnelIO.NoAuth, Vcl.ExtCtrls, Vcl.StdCtrls;
+  Z.Net.DoubleTunnelIO.NoAuth, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask;
 
 type
   // 多线下载以标准数据结构梳理而出,思路简洁明了
@@ -415,7 +415,7 @@ begin
       // 3,计算远程文件的md5用于验证下载正确性
       Session.First.logic.GetFileMD5P(FileName, 0, fSiz, nil, nil,
         procedure(const UserData: Pointer; const UserObject: TCore_Object;
-          const FileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5)
+          const FileName: SystemString; const StartPos, EndPos: Int64; const MD5: TMD5)
         begin
           DoStatus(FileName + ' 远程文件md5: ' + umlMD5ToStr(MD5));
         end);

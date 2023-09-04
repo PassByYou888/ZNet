@@ -2,27 +2,25 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
   Left = 0
   Top = 0
   Caption = 'Auth Double Tunnel Client'
-  ClientHeight = 384
-  ClientWidth = 634
+  ClientHeight = 383
+  ClientWidth = 630
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
-    634
-    384)
-  PixelsPerInch = 96
+    630
+    383)
   TextHeight = 13
   object Memo1: TMemo
     Left = 119
     Top = 62
-    Width = 498
-    Height = 307
+    Width = 490
+    Height = 306
     Anchors = [akLeft, akTop, akRight, akBottom]
     Lines.Strings = (
       'ZServer4D'#26159#19968#27454#26381#21153#22120#20013#38388#20214
@@ -72,7 +70,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 121
     Height = 21
     EditLabel.Width = 65
-    EditLabel.Height = 13
+    EditLabel.Height = 21
     EditLabel.Caption = 'host address '
     LabelPosition = lpLeft
     TabOrder = 2
@@ -93,7 +91,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 97
     Height = 21
     EditLabel.Width = 22
-    EditLabel.Height = 13
+    EditLabel.Height = 21
     EditLabel.Caption = 'User'
     LabelPosition = lpLeft
     TabOrder = 4
@@ -105,7 +103,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 97
     Height = 21
     EditLabel.Width = 36
-    EditLabel.Height = 13
+    EditLabel.Height = 21
     EditLabel.Caption = 'Passwd'
     LabelPosition = lpLeft
     TabOrder = 5

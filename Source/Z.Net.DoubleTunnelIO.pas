@@ -794,13 +794,13 @@ type
     r_fileName: SystemString;
     r_fileExisted: Boolean;
     r_fileSize: Int64;
-    r_fileMD5: Z.UnicodeMixedLib.TMD5;
-    l_fileMD5: Z.UnicodeMixedLib.TMD5;
+    r_fileMD5: Z.Core.TMD5;
+    l_fileMD5: Z.Core.TMD5;
     procedure DoComplete(const UserData: Pointer; const UserObject: TCore_Object; stream: TCore_Stream; const fileName: SystemString);
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
     procedure Do_Th_ComputeLFileMD5();
     procedure Done_ComputeLFileMD5();
-    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
   public
     constructor Create;
     destructor Destroy; override;
@@ -816,13 +816,13 @@ type
     r_fileName: SystemString;
     r_fileExisted: Boolean;
     r_fileSize: Int64;
-    r_fileMD5: Z.UnicodeMixedLib.TMD5;
-    l_fileMD5: Z.UnicodeMixedLib.TMD5;
+    r_fileMD5: Z.Core.TMD5;
+    l_fileMD5: Z.Core.TMD5;
     procedure DoComplete(const UserData: Pointer; const UserObject: TCore_Object; stream: TCore_Stream; const fileName: SystemString);
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
     procedure Do_Th_ComputeLFileMD5();
     procedure Done_ComputeLFileMD5();
-    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
   public
     constructor Create;
     destructor Destroy; override;
@@ -835,13 +835,13 @@ type
     r_fileName: SystemString;
     r_fileExisted: Boolean;
     r_fileSize: Int64;
-    r_fileMD5: Z.UnicodeMixedLib.TMD5;
+    r_fileMD5: Z.Core.TMD5;
     l_file_StartPos, l_file_EndPos: Int64;
-    l_fileMD5: Z.UnicodeMixedLib.TMD5;
+    l_fileMD5: Z.Core.TMD5;
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
     procedure Do_Th_ComputeLFileMD5();
     procedure Done_ComputeLFileMD5();
-    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
   public
     constructor Create;
     destructor Destroy; override;
@@ -854,13 +854,13 @@ type
     r_fileName: SystemString;
     r_fileExisted: Boolean;
     r_fileSize: Int64;
-    r_fileMD5: Z.UnicodeMixedLib.TMD5;
+    r_fileMD5: Z.Core.TMD5;
     l_file_StartPos, l_file_EndPos: Int64;
-    l_fileMD5: Z.UnicodeMixedLib.TMD5;
+    l_fileMD5: Z.Core.TMD5;
     procedure DoResult_GetFileInfo(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const Existed: Boolean; const fSiz: Int64);
     procedure Do_Th_ComputeLFileMD5();
     procedure Done_ComputeLFileMD5();
-    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+    procedure DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object; const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
   public
     constructor Create;
     destructor Destroy; override;
@@ -963,7 +963,7 @@ begin
 end;
 
 procedure TAutomatedDownloadPublicFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
-  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
 begin
   r_fileMD5 := MD5;
   TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Th_ComputeLFileMD5);
@@ -1049,7 +1049,7 @@ begin
 end;
 
 procedure TAutomatedDownloadPrivateFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
-  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
 begin
   r_fileMD5 := MD5;
   TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_Th_ComputeLFileMD5);
@@ -1125,7 +1125,7 @@ begin
 end;
 
 procedure TAutomatedUploadPublicFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
-  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
 begin
   r_fileMD5 := MD5;
   l_file_StartPos := StartPos;
@@ -1199,7 +1199,7 @@ begin
 end;
 
 procedure TAutomatedUploadPrivateFile_Struct.DoResult_GetFileMD5(const UserData: Pointer; const UserObject: TCore_Object;
-  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.UnicodeMixedLib.TMD5);
+  const fileName: SystemString; const StartPos, EndPos: Int64; const MD5: Z.Core.TMD5);
 begin
   r_fileMD5 := MD5;
   l_file_StartPos := StartPos;

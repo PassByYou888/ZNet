@@ -577,7 +577,7 @@ begin
   DisposeObject(d);
   FPlace.Flush;
   PInteger(@FCore.UserCustomHeader^[$F0])^ := FileInfo_ID;
-  FCore.Save;
+  FCore.Flush;
   FEncoderFiles.Clear;
   FFlushed := True;
 end;

@@ -17,8 +17,8 @@ uses
 {$IFDEF MSWINDOWS} Windows, {$ENDIF MSWINDOWS}
   System.IOUtils,
 {$ENDIF FPC}
-  SysUtils, Types, Math, Variants, Z.Core,
-  Z.PascalStrings, Z.UPascalStrings, Z.ListEngine;
+  SysUtils, Types, Math, Variants,
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine;
 
 const
   C_Max_UInt32 = $FFFFFFFF;
@@ -40,7 +40,7 @@ const
   C_MD5_Size = 16;
 
   C_PrepareReadCacheSize = 512;
-  C_MaxBufferFragmentSize = $F000;
+  C_MaxBufferFragmentSize = $FFFF * 10;
 
   C_Flush_And_Seek_Error = -912;
   C_StringError = -911;
@@ -68,9 +68,9 @@ type
 
   TReliableFileStream = class(TCore_Stream)
   protected
-    SourceIO, BackupFileIO: TCore_FileStream;
+    Source_IO, Backup_IO: TCore_FileStream;
     FActivted: Boolean;
-    FFileName, FBackupFileName: SystemString;
+    FFileName, Backup_FileName: SystemString;
 
     procedure InitIO;
     procedure FreeIO;
@@ -81,13 +81,13 @@ type
     constructor Create(const FileName_: SystemString; IsNew_, IsWrite_: Boolean);
     destructor Destroy; override;
 
+    property FileName: SystemString read FFileName;
+    property BackupFileName: SystemString read Backup_FileName;
+    property Activted: Boolean read FActivted;
+
     function Write(const buffer; Count: longint): longint; override;
     function Read(var buffer; Count: longint): longint; override;
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64; override;
-
-    property FileName: SystemString read FFileName;
-    property BackupFileName: SystemString read FBackupFileName;
-    property Activted: Boolean read FActivted;
   end;
 
   PIOHnd = ^TIOHnd;
@@ -581,8 +581,6 @@ function umlDivisionBase64Text(const buffer: TPascalString; width: Integer; Divi
 function umlTestBase64(const text: TPascalString): Boolean;
 
 type
-  PMD5 = ^TMD5;
-  TMD5 = array [0 .. 15] of Byte;
   TMD5_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
   TMD5_Big_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TMD5>;
   TArrayMD5 = array of TMD5;
@@ -599,13 +597,13 @@ type
   end;
 
 const
-  Null_MD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  NULL_MD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   Zero_MD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  NullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  NULLMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   ZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  umlNullMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  umlNULLMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
   umlZeroMD5: TMD5 = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-  Null_Buff_MD5: TMD5 = (212, 29, 140, 217, 143, 0, 178, 4, 233, 128, 9, 152, 236, 248, 66, 126);
+  NULL_Buff_MD5: TMD5 = (212, 29, 140, 217, 143, 0, 178, 4, 233, 128, 9, 152, 236, 248, 66, 126);
 
 function umlStrIsMD5(hex: TPascalString): Boolean;
 function umlStrToMD5(hex: TPascalString): TMD5;
@@ -792,7 +790,7 @@ uses
 {$IF Defined(WIN32) or Defined(WIN64)}
   Z.md5,
 {$ENDIF}
-  Z.Cipher, Z.Status, Z.MemoryStream;
+  Z.Cipher, Z.Status, Z.MemoryStream, Z.FragmentBuffer;
 
 procedure TReliableFileStream.InitIO;
 begin
@@ -800,16 +798,16 @@ begin
       exit;
 
   DoStatus(PFormat('Reliable IO Open : %s', [umlGetFileName(FileName).text]));
-  DoStatus(PFormat('Create Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(SourceIO.Size).text]));
+  DoStatus(PFormat('Create Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(Source_IO.Size).text]));
 
-  BackupFileIO := TCore_FileStream.Create(FBackupFileName, fmCreate);
-  BackupFileIO.Size := SourceIO.Size;
-  SourceIO.Position := 0;
-  BackupFileIO.Position := 0;
-  BackupFileIO.CopyFrom(SourceIO, SourceIO.Size);
-  BackupFileIO.Position := 0;
-  DisposeObject(SourceIO);
-  SourceIO := nil;
+  Backup_IO := TCore_FileStream.Create(Backup_FileName, fmCreate);
+  Backup_IO.Size := Source_IO.Size;
+  Source_IO.Position := 0;
+  Backup_IO.Position := 0;
+  Backup_IO.CopyFrom(Source_IO, Source_IO.Size);
+  Backup_IO.Position := 0;
+  DisposeObject(Source_IO);
+  Source_IO := nil;
 end;
 
 procedure TReliableFileStream.FreeIO;
@@ -817,11 +815,11 @@ begin
   if not FActivted then
       exit;
 
-  DisposeObject(BackupFileIO);
-  BackupFileIO := nil;
+  DisposeObject(Backup_IO);
+  Backup_IO := nil;
   try
     umlDeleteFile(FFileName);
-    umlRenameFile(FBackupFileName, FileName);
+    umlRenameFile(Backup_FileName, FileName);
   except
   end;
   DoStatus(PFormat('Reliable IO Close : %s', [umlGetFileName(FileName).text]));
@@ -829,7 +827,7 @@ end;
 
 procedure TReliableFileStream.SetSize(const NewSize: Int64);
 begin
-  SourceIO.Size := NewSize;
+  Source_IO.Size := NewSize;
 end;
 
 procedure TReliableFileStream.SetSize(NewSize: longint);
@@ -853,18 +851,18 @@ begin
 {$ELSE ZDB_BACKUP}
   FActivted := False;
 {$ENDIF ZDB_BACKUP}
-  SourceIO := TCore_FileStream.Create(FileName_, m);
+  Source_IO := TCore_FileStream.Create(FileName_, m);
 
-  BackupFileIO := nil;
+  Backup_IO := nil;
   FFileName := FileName_;
-  FBackupFileName := FileName_ + '.save';
-  umlDeleteFile(FBackupFileName);
+  Backup_FileName := FileName_ + '.save';
+  umlDeleteFile(Backup_FileName);
   InitIO;
 end;
 
 destructor TReliableFileStream.Destroy;
 begin
-  DisposeObject(SourceIO);
+  DisposeObject(Source_IO);
   FreeIO;
   inherited Destroy;
 end;
@@ -873,11 +871,11 @@ function TReliableFileStream.Write(const buffer; Count: longint): longint;
 begin
   if FActivted then
     begin
-      Result := BackupFileIO.Write(buffer, Count);
+      Result := Backup_IO.Write(buffer, Count);
     end
   else
     begin
-      Result := SourceIO.Write(buffer, Count);
+      Result := Source_IO.Write(buffer, Count);
     end;
 end;
 
@@ -885,11 +883,11 @@ function TReliableFileStream.Read(var buffer; Count: longint): longint;
 begin
   if FActivted then
     begin
-      Result := BackupFileIO.Read(buffer, Count);
+      Result := Backup_IO.Read(buffer, Count);
     end
   else
     begin
-      Result := SourceIO.Read(buffer, Count);
+      Result := Source_IO.Read(buffer, Count);
     end;
 end;
 
@@ -897,11 +895,11 @@ function TReliableFileStream.Seek(const Offset: Int64; origin: TSeekOrigin): Int
 begin
   if FActivted then
     begin
-      Result := BackupFileIO.Seek(Offset, origin);
+      Result := Backup_IO.Seek(Offset, origin);
     end
   else
     begin
-      Result := SourceIO.Seek(Offset, origin);
+      Result := Source_IO.Seek(Offset, origin);
     end;
 end;
 
@@ -2622,6 +2620,8 @@ begin
 
   umlFileFlushWriteCache(IOHnd);
   umlResetPrepareRead(IOHnd);
+  if IOHnd.Handle is TSafe_Flush_Stream then
+      TSafe_Flush_Stream(IOHnd.Handle).Flush;
   IOHnd.ChangeFromWrite := False;
 
   Result := True;
@@ -6262,7 +6262,7 @@ end;
 
 constructor TMD5_Pair_Pool.Create(HashSize_: Integer);
 begin
-  inherited Create(HashSize_, NullMD5);
+  inherited Create(HashSize_, NULLMD5);
   IsChanged := False;
 end;
 
@@ -6561,7 +6561,7 @@ begin
       if stream.Read(DeltaBuf^, bufSiz) <> bufSiz then
         begin
           FreeMemory(DeltaBuf);
-          exit(NullMD5);
+          exit(NULLMD5);
         end;
       p := DeltaBuf;
     end
@@ -6577,7 +6577,7 @@ begin
             if stream.Read(DeltaBuf^, Rest) <> Rest then
               begin
                 FreeMemory(DeltaBuf);
-                exit(NullMD5);
+                exit(NULLMD5);
               end;
 
             p := DeltaBuf;
@@ -6615,7 +6615,7 @@ function umlStreamMD5(stream: TCore_Stream): TMD5;
 begin
   if stream.Size <= 0 then
     begin
-      Result := NullMD5;
+      Result := NULLMD5;
       exit;
     end;
   stream.Position := 0;
@@ -6653,7 +6653,7 @@ begin
   try
       fs := TCore_FileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
   except
-    Result := NullMD5;
+    Result := NULLMD5;
     exit;
   end;
   try
@@ -6669,7 +6669,7 @@ var
 begin
   if not umlFileExists(FileName) then
     begin
-      Result := NullMD5;
+      Result := NULLMD5;
       exit;
     end;
 
@@ -6682,7 +6682,7 @@ begin
   try
       fs := TCore_FileStream.Create(FileName, fmOpenRead or fmShareDenyNone);
   except
-    Result := NullMD5;
+    Result := NULLMD5;
     exit;
   end;
   try
@@ -6796,12 +6796,12 @@ end;
 
 function umlIsNullMD5(m: TMD5): Boolean;
 begin
-  Result := umlCompareMD5(m, NullMD5);
+  Result := umlCompareMD5(m, NULLMD5);
 end;
 
 function umlWasNullMD5(m: TMD5): Boolean;
 begin
-  Result := umlCompareMD5(m, NullMD5);
+  Result := umlCompareMD5(m, NULLMD5);
 end;
 
 type
@@ -6844,7 +6844,7 @@ begin
       Critical.Lock;
       FHash.Delete(FileName);
       Critical.UnLock;
-      Result := NullMD5;
+      Result := NULLMD5;
       exit;
     end;
 
@@ -6860,7 +6860,7 @@ begin
       try
           p^.md5 := umlFileMD5___(FileName);
       except
-          p^.md5 := Null_Buff_MD5;
+          p^.md5 := NULL_Buff_MD5;
       end;
       FHash.add(FileName, p, False);
       Result := p^.md5;
@@ -6874,7 +6874,7 @@ begin
           try
               p^.md5 := umlFileMD5___(FileName);
           except
-              p^.md5 := Null_Buff_MD5;
+              p^.md5 := NULL_Buff_MD5;
           end;
         end;
       Result := p^.md5;

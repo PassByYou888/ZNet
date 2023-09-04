@@ -286,6 +286,13 @@
 // this "ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault" is effective for IoT device deployment and large-scale server groups.
 {$DEFINE ZNet_C4_Auto_Repair_First_BuildDependNetwork_Fault}
 
+// Safe flush is a power-off protection technology
+// ZDB2-HPC support system defaults to using Safe Flush.
+// Safe flush can effectively solve the problem of data loss during power outages, and on the other hand, it can reduce IO performance
+{$DEFINE ZDB2_Thread_Engine_Safe_Flush}
+// When using the ZDB2 engine in the ZNet-C4 framework Safe Flush technology, prioritize the use of Safe Flush technology
+{$DEFINE C4_Safe_Flush}
+
 {$IFDEF DEBUG}
   // initialization status prompt
   {$DEFINE initializationStatus}

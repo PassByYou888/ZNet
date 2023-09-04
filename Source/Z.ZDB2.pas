@@ -13,6 +13,7 @@ uses Z.Core,
 {$ENDIF FPC}
   Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib,
   Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Status, Z.Cipher;
 
 type
@@ -231,7 +232,8 @@ type
     // warning
     property Last_Warning_Info: TZDB2_Core_Space_Warning_Info read FLast_Warning_Info;
     procedure WarningInfo(const Text_: SystemString);
-    // flush and save
+    // flush
+    procedure Flush();
     procedure Save();
     // open
     function Open(): Boolean;
@@ -710,7 +712,7 @@ begin
   FStruct := TZDB2_BlockStoreDataStruct.Create;
   if FCore.FBlockStoreDataStruct.Count > 0 then
     begin
-      FCore.Save;
+      FCore.Flush;
     end
   else
     begin
@@ -894,7 +896,7 @@ begin
     begin
       // AppendSpace
       FCore.FBlockStoreDataStruct.Last.NextPosition := StoreData_.Position;
-      FCore.Save;
+      FCore.Flush;
       StoreData_.Write(FCore, FCore.FCipher, StoreData_.Position, FCore.FSpace_IOHnd^);
       FCore.Open;
     end
@@ -1482,7 +1484,7 @@ end;
 destructor TZDB2_Core_Space.Destroy;
 begin
   if FHeader.Modification then
-      Save();
+      Flush();
 
   SetLength(FBlockBuffer, 0);
   FBlockStoreDataStruct.Clean;
@@ -1516,7 +1518,7 @@ begin
   DoStatus(FLast_Warning_Info.Last^.Data);
 end;
 
-procedure TZDB2_Core_Space.Save;
+procedure TZDB2_Core_Space.Flush;
 begin
   if FSpace_IOHnd^.IsOnlyRead then
       exit;
@@ -1524,6 +1526,11 @@ begin
   FHeader.Modification := False;
   WriteTable();
   umlFileUpdate(FSpace_IOHnd^);
+end;
+
+procedure TZDB2_Core_Space.Save;
+begin
+  Flush();
 end;
 
 function TZDB2_Core_Space.Open(): Boolean;
@@ -1959,7 +1966,6 @@ begin
     dest_StoreData.NextPosition := 0;
     dest_StoreData.Count := Length(dest_StoreData.Buffer);
     dest_StoreData.Write(Self, FCipher, headPos_, Dest_IOHnd);
-    umlFileUpdate(Dest_IOHnd);
     Result := True;
   finally
     System.FreeMemory(SwapBuff_);
@@ -3169,7 +3175,7 @@ begin
 
   db1_place.Flush;
   DisposeObject(db1_place);
-  db1.Save;
+  db1.Flush;
 
   db1Hnd_ := db1.BuildTableID;
   if Length(db1Hnd_) = Length(TestArry) then

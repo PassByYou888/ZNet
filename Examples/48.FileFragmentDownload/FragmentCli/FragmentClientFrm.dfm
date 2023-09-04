@@ -4,19 +4,17 @@ object FragmentClientForm: TFragmentClientForm
   AutoSize = True
   BorderWidth = 20
   Caption = #22810#32447#25991#20214#19979#36733'demo'
-  ClientHeight = 385
-  ClientWidth = 944
+  ClientHeight = 386
+  ClientWidth = 948
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  PixelsPerInch = 96
   TextHeight = 13
   object Memo: TMemo
     Left = 0
@@ -46,7 +44,7 @@ object FragmentClientForm: TFragmentClientForm
     Width = 161
     Height = 21
     EditLabel.Width = 29
-    EditLabel.Height = 13
+    EditLabel.Height = 21
     EditLabel.Caption = 'Host: '
     LabelPosition = lpLeft
     TabOrder = 1

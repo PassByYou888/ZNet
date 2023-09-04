@@ -18,6 +18,7 @@ uses DateUtils, SysUtils,
   Z.MemoryStream,
   Z.Status, Z.Cipher, Z.ZDB2, Z.ListEngine, Z.TextDataEngine, Z.IOThread,
   Z.HashList.Templet,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Notify, Z.ZDB2.Thread.Queue;
 
 type
@@ -26,6 +27,7 @@ type
   TZDB2_Th_Engine = class;
   TZDB2_Th_Engine_Static_Copy_Tech = class;
   TZDB2_Th_Engine_Dynamic_Copy_Tech = class;
+  TZDB2_Th_Engine_Data_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Marshal_BigList___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
   TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine_Data>;
@@ -337,6 +339,9 @@ type
     Th_Engine_Data_Pool: TZDB2_Th_Engine_Data_BigList___; // queue data pool
     Th_Engine_ID_Data_Pool: TZDB2_Th_Engine_ID_Data_Pool; // ID data pool
     Last_Build_Class: TZDB2_Th_Engine_Data_Class; // default is TZDB2_Th_Engine_Data
+    // external-header-data
+    External_Header_Data: TMem64;
+    // api
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
     procedure ReadConfig(const Name_: U_String; cfg: THashStringList); overload;
@@ -369,11 +374,14 @@ type
     // create or open
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
-    procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle);
+    procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
     procedure Flush(WaitQueue_: Boolean);
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
     procedure Progress();
+    // solved for discontinuous space.
+    function Fragment_Buffer_Num: Int64;
+    function Fragment_Buffer_Memory: Int64;
   end;
 
   TZDB2_Th_Engine_Pool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Engine>;
@@ -542,6 +550,9 @@ type
     function Total: NativeInt;
     // task queue
     function QueueNum: NativeInt;
+    // solved for discontinuous space.
+    function Fragment_Buffer_Num: Int64;
+    function Fragment_Buffer_Memory: Int64;
     // pick engine
     function Add_Data_To_Minimize_Workload_Engine(): TZDB2_Th_Engine_Data;
     function Add_Data_To_Minimize_Size_Engine(): TZDB2_Th_Engine_Data;
@@ -562,6 +573,8 @@ type
     procedure Remove_Backup;
     // copy
     procedure Stop_Copy;
+    // flush-build external-header
+    procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); virtual;
     // flush
     procedure Flush; overload;
     procedure Flush(WaitQueue_: Boolean); overload;
@@ -2092,6 +2105,7 @@ begin
   Th_Engine_ID_Data_Pool := TZDB2_Th_Engine_ID_Data_Pool.Create($FFFF, nil); // ID data pool
   Owner.Engine_Pool.Add(Self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
+  External_Header_Data := TMem64.CustomCreate(1024 * 1024);
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -2120,6 +2134,7 @@ begin
         DoStatus('Close file %s', [Database_File.Text])
     else
         DoStatus('free memory %s', [Self.ClassName]);
+    DisposeObject(External_Header_Data);
   except
   end;
   inherited Destroy;
@@ -2870,6 +2885,7 @@ begin
   Th_Engine_Data_Pool.Clear;
   disposeObjectAndNil(Engine);
   disposeObjectAndNil(Cipher);
+  External_Header_Data.Clear;
 
   // init cipher
   if Cipher_Security <> TCipherSecurity.csNone then
@@ -2884,8 +2900,18 @@ begin
     else
       begin
         if RemoveDatabaseOnDestroy then
+          begin
             umlDeleteFile(Database_File);
-        Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
+            Stream := TCore_FileStream.Create(Database_File, fmCreate);
+          end
+        else
+          begin
+{$IFDEF ZDB2_Thread_Engine_Safe_Flush}
+            Stream := TSafe_Flush_Stream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead, False);
+{$ELSE ZDB2_Thread_Engine_Safe_Flush}
+            Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
+{$ENDIF ZDB2_Thread_Engine_Safe_Flush}
+          end;
         DoStatus('Open ZDB2 DB %s', [Database_File.Text]);
       end;
   except
@@ -2910,7 +2936,7 @@ begin
         Engine.Fast_Append_Space := Fast_Alloc_Space;
         Engine.Auto_Append_Space := Auto_Append_Space;
         // init sequence
-        DoStatus('"%s" Get and Clean sequence table', [umlGetFileName(Database_File).Text]);
+        DoStatus('"%s" load sequence table', [umlGetFileName(Database_File).Text]);
         if Engine.Sync_Get_And_Clean_Sequence_Table(Queue_Table_) then
           begin
             DoStatus('"%s" compute sequence space', [umlGetFileName(Database_File).Text]);
@@ -2921,8 +2947,12 @@ begin
               end;
             SetLength(Queue_Table_, 0);
             SetLength(ID_Size_Buffer, 0);
-            DoStatus('"%s" open done.', [umlGetFileName(Database_File).Text]);
           end;
+        if Engine.Sync_Get_And_Reset_External_Header(External_Header_Data) then
+          begin
+            DoStatus('"%s" load external header data', [umlGetFileName(Database_File).Text]);
+          end;
+        DoStatus('"%s" open done.', [umlGetFileName(Database_File).Text]);
       end
     else
       begin
@@ -2972,9 +3002,11 @@ end;
 
 procedure TZDB2_Th_Engine.Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle);
 var
+  tmp: TZDB2_Th_Engine_Data_Instance_Pool;
   i: Integer;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
 begin
+  tmp := TZDB2_Th_Engine_Data_Instance_Pool.Create;
   Th_Engine_Data_Pool.Lock;
   try
     Th_Engine_Data_Pool.Free_Recycle_Pool;
@@ -2989,6 +3021,7 @@ begin
               if __repeat__.Queue^.Data.Can_Load then
                 begin
                   Sequence_Table[i] := __repeat__.Queue^.Data.FID;
+                  tmp.Add(__repeat__.Queue^.Data);
                   Inc(i);
                 end;
             end;
@@ -2999,6 +3032,25 @@ begin
       SetLength(Sequence_Table, 0);
   end;
   Th_Engine_Data_Pool.UnLock;
+  External_Header_Data.Clear;
+  Owner.Prepare_Flush_External_Header(Self, Sequence_Table, tmp, External_Header_Data); // external header-data
+  DisposeObject(tmp);
+end;
+
+function TZDB2_Th_Engine.Fragment_Buffer_Memory: Int64;
+begin
+  if Engine <> nil then
+      Result := Engine.Fragment_Buffer_Num
+  else
+      Result := 0;
+end;
+
+function TZDB2_Th_Engine.Fragment_Buffer_Num: Int64;
+begin
+  if Engine <> nil then
+      Result := Engine.Fragment_Buffer_Memory
+  else
+      Result := 0;
 end;
 
 procedure TZDB2_Th_Engine.Flush(WaitQueue_: Boolean);
@@ -3013,6 +3065,7 @@ begin
   if not OnlyRead then
     begin
       Engine.Async_Flush_Backcall_Sequence_Table({$IFDEF FPC}@{$ENDIF FPC}Do_Get_Sequence_Table);
+      Engine.Async_Flush_External_Header(External_Header_Data, False);
       Engine.Async_Flush;
 
       if WaitQueue_ then
@@ -3842,6 +3895,32 @@ begin
     end;
 end;
 
+function TZDB2_Th_Engine_Marshal.Fragment_Buffer_Num: Int64;
+begin
+  Result := 0;
+  if Engine_Pool.num > 0 then
+    begin
+      with Engine_Pool.Repeat_ do
+        repeat
+          if Queue^.Data.Engine <> nil then
+              Inc(Result, Queue^.Data.Fragment_Buffer_Num);
+        until not Next;
+    end;
+end;
+
+function TZDB2_Th_Engine_Marshal.Fragment_Buffer_Memory: Int64;
+begin
+  Result := 0;
+  if Engine_Pool.num > 0 then
+    begin
+      with Engine_Pool.Repeat_ do
+        repeat
+          if Queue^.Data.Engine <> nil then
+              Inc(Result, Queue^.Data.Fragment_Buffer_Memory);
+        until not Next;
+    end;
+end;
+
 function TZDB2_Th_Engine_Marshal.Add_Data_To_Minimize_Workload_Engine(): TZDB2_Th_Engine_Data;
 var
   Eng_: TZDB2_Th_Engine;
@@ -4148,6 +4227,11 @@ begin
       end;
       UnLock;
     end;
+end;
+
+procedure TZDB2_Th_Engine_Marshal.Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64);
+begin
+
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Flush;
@@ -5107,12 +5191,15 @@ begin
     with Engine_Pool.Repeat_ do
       repeat
         if Queue^.Data.Engine <> nil then
-            Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s' + #13#10,
+            Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s Frag:%d/%s' + #13#10,
             [I__ + 1, umlGetFileName(Queue^.Data.Database_File).Text,
             Queue^.Data.Th_Engine_Data_Pool.num,
             Queue^.Data.Engine.QueueNum,
             umlSizeToStr(Queue^.Data.Engine.CoreSpace_Size).Text,
-            umlSizeToStr(Queue^.Data.Engine.CoreSpace_Physics_Size).Text]);
+            umlSizeToStr(Queue^.Data.Engine.CoreSpace_Physics_Size).Text,
+            Queue^.Data.Engine.Fragment_Buffer_Num,
+            umlSizeToStr(Queue^.Data.Engine.Fragment_Buffer_Memory).Text
+            ]);
       until not Next;
 
   Result.Append('Total Data/Queue:%d/%d'#13#10, [Total, QueueNum]);
@@ -5296,6 +5383,7 @@ begin
           TCompute.Sleep(1);
     end;
 
+  DM.Flush;
   DM.Wait_Busy_Task;
   DM.Parallel_Load_C(4, nil, nil);
   DM.Wait_Busy_Task;

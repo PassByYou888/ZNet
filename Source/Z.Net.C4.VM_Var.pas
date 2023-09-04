@@ -16,6 +16,7 @@ uses Variants,
   Z.Parsing, Z.Expression, Z.OpCode,
   Z.Json, Z.HashList.Templet, Z.Number,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.ZDB.ObjectData_LIB, Z.ZDB, Z.ZDB.ItemStream_LIB,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4, Z.Net.C4.VM;
 

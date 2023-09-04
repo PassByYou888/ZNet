@@ -19,6 +19,8 @@ uses SysUtils, Classes, Types, Variants, SyncObjs, TypInfo,
 type
   THash = Cardinal;
   THash64 = UInt64;
+  PMD5 = ^TMD5;
+  TMD5 = array [0 .. 15] of Byte;
   TInt32_Array = array of Integer;
   TUInt32_Array = array of Cardinal;
   TBytes = SysUtils.TBytes;
@@ -462,6 +464,7 @@ type
     FNum: NativeInt;
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
+    FAccept_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
@@ -510,6 +513,7 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
+    property Accept_Sort: Boolean read FAccept_Sort write FAccept_Sort;
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
@@ -625,6 +629,7 @@ type
     FNum: NativeInt;
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
+    FAccept_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
@@ -676,6 +681,7 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
+    property Accept_Sort: Boolean read FAccept_Sort write FAccept_Sort;
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
@@ -874,7 +880,8 @@ type
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
-    constructor Create(const HashSize_: integer; const Null_Value_: TValue_);
+    constructor Create(const HashSize_: integer; const Null_Value_: TValue_); overload;
+    constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
     procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;
@@ -961,7 +968,8 @@ type
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
-    constructor Create(const HashSize_: integer; const Null_Value_: TValue_);
+    constructor Create(const HashSize_: integer; const Null_Value_: TValue_); overload;
+    constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
     procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;

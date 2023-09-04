@@ -16,6 +16,7 @@ uses Variants, SysUtils,
   Z.Parsing, Z.Pascal_Code_Tool, Z.Expression, Z.OpCode,
   Z.Json, Z.HashList.Templet,
   Z.Notify, Z.Cipher, Z.MemoryStream,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4,
   Z.ZDB2, Z.ZDB2.FileEncoder,
   Z.Pascal_Rewrite_Model_Data;

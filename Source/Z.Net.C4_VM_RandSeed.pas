@@ -15,6 +15,7 @@ uses
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression,
   Z.Notify, Z.Cipher, Z.MemoryStream,
   Z.ZDB2, Z.HashList.Templet,
+  Z.FragmentBuffer, // solve for discontinuous space
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4, Z.Net.C4.VM;
 
 type
