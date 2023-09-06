@@ -637,6 +637,7 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
+  OneWay_Ready_From_External_Header;
 end;
 
 procedure TZDB2_Custom_Small_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
@@ -649,6 +650,7 @@ procedure TZDB2_Custom_Small_Data.Decode_External_Header_Data(External_Header_Da
 begin
   Sequence_ID := External_Header_Data.ReadInt64;
   MD5 := External_Header_Data.ReadMD5;
+  OneWay_Ready_From_External_Header;
 end;
 
 constructor TZDB2_Custom_Medium_Data.Create;
@@ -705,6 +707,7 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
+  OneWay_Ready_From_External_Header;
 end;
 
 procedure TZDB2_Custom_Medium_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
@@ -717,6 +720,7 @@ procedure TZDB2_Custom_Medium_Data.Decode_External_Header_Data(External_Header_D
 begin
   Sequence_ID := External_Header_Data.ReadInt64;
   MD5 := External_Header_Data.ReadMD5;
+  OneWay_Ready_From_External_Header;
 end;
 
 constructor TZDB2_Custom_Large_Data.Create;
@@ -773,6 +777,7 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
+  OneWay_Ready_From_External_Header;
 end;
 
 procedure TZDB2_Custom_Large_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
@@ -785,6 +790,7 @@ procedure TZDB2_Custom_Large_Data.Decode_External_Header_Data(External_Header_Da
 begin
   Sequence_ID := External_Header_Data.ReadInt64;
   MD5 := External_Header_Data.ReadMD5;
+  OneWay_Ready_From_External_Header;
 end;
 
 procedure TS_Th_Engine_Marshal.Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64);

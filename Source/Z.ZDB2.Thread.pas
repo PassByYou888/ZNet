@@ -173,6 +173,7 @@ type
     // In a multithreaded instance, data will be loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
     property OneWayDataProcessReady: Boolean read FOneWayDataProcessReady; // instance and data is first operation
+    procedure OneWay_Ready_From_External_Header();
 
     // free instance and remove data on save failure, default is true
     property SaveFailed_Do_Remove: Boolean read FSaveFailed_Do_Remove write FSaveFailed_Do_Remove;
@@ -921,6 +922,11 @@ begin
   Lock;
   FInstance_Busy := 0;
   UnLock;
+end;
+
+procedure TZDB2_Th_Engine_Data.OneWay_Ready_From_External_Header;
+begin
+  FOneWayDataProcessReady := True;
 end;
 
 function TZDB2_Th_Engine_Data.IsOnlyRead: Boolean;

@@ -2781,9 +2781,9 @@ var
   ZNet_Def_Physics_Fragment_Cache_Trigger: NativeInt = 10000;
 
   { swap cache technology }
-  ZNet_Def_Swap_Space_Technology_Security_Model: Boolean = True;
-  ZNet_Def_Swap_Space_Technology_Delta: Int64 = 8 * 1024 * 1024;
-  ZNet_Def_Swap_Space_Technology_Block: Word = 1536;
+  ZNet_Def_Swap_Space_Technology_Security_Model: Boolean = False;
+  ZNet_Def_Swap_Space_Technology_Delta: Int64 = 64 * 1024 * 1024;
+  ZNet_Def_Swap_Space_Technology_Block: Word = $FFFF;
 
   { random ipv6 seed }
   ZNet_Def_IPV6_Seed: UInt64 = 0;
@@ -3055,7 +3055,7 @@ begin
   if (FOwner <> nil) and (FID >= 0) then
     begin
       FOwner.Critical.Lock;
-      FOwner.RemoveData(FID, False);
+      FOwner.RemoveData(FID, True);
       FOwner.Critical.UnLock;
       if FOwner.State^.FreeSpace >= FOwner.State^.Physics then
           DisposeObjectAndNil(TZDB2_Swap_Space_Technology.ZDB2_Swap_Space_Pool___);
