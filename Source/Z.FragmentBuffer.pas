@@ -7,7 +7,15 @@ unit Z.FragmentBuffer;
 
 interface
 
-uses Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.MemoryStream;
+uses
+{$IFDEF MSWINDOWS}
+{$IFDEF FPC}
+  Windows,
+{$ELSE FPC}
+  Winapi.Windows,
+{$ENDIF FPC}
+{$ENDIF MSWINDOWS}
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.MemoryStream;
 
 type
   TPosition_Data = class;
@@ -813,6 +821,13 @@ begin
     FFragment_Space.Clear;
   except
   end;
+
+{$IFDEF MSWINDOWS}
+  if Source_IO is TCore_FileStream then
+    begin
+      FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
+    end;
+{$ENDIF MSWINDOWS}
 end;
 
 class procedure TSafe_Flush_Stream.Test;

@@ -206,7 +206,7 @@ type
 
   TC40_First_BuildDependNetwork_Fault_Fixed_Bridge = class
   public
-    Time_: TTimeTick;
+    Fault_Fixed_Bridge_Begin_Time: TTimeTick;
     Tunnel: TC40_PhysicsTunnel;
     constructor Create(Tunnel_: TC40_PhysicsTunnel);
     procedure Do_Delay_Next_BuildDependNetwork();
@@ -926,6 +926,7 @@ type
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
     function Do_ZDB2_Info(var OP_Param: TOpParam): Variant;
+    function Do_ZDB2_Flush(var OP_Param: TOpParam): Variant;
     function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
@@ -2691,13 +2692,13 @@ end;
 constructor TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Create(Tunnel_: TC40_PhysicsTunnel);
 begin
   inherited Create;
-  Time_ := GetTimeTick();
+  Fault_Fixed_Bridge_Begin_Time := GetTimeTick();
   Tunnel := Tunnel_;
 end;
 
 procedure TC40_First_BuildDependNetwork_Fault_Fixed_Bridge.Do_Delay_Next_BuildDependNetwork;
 begin
-  if (GetTimeTick - Time_ > C_Tick_Minute * 60 * 4) then
+  if (GetTimeTick - Fault_Fixed_Bridge_Begin_Time > C40_KillIDCFaultTimeout) then
     begin
       DelayFreeObj(1.0, Self);
       exit;
@@ -2731,6 +2732,12 @@ begin
       DelayFreeObj(1.0, Self);
       exit;
     end;
+  if Tunnel.FNetwork_Already_Inited then
+    begin
+      DelayFreeObj(1.0, Self);
+      exit;
+    end;
+
   Tunnel.FOfflineTime := GetTimeTick();
   SystemPostProgress.PostExecuteM_NP(5.0, {$IFDEF FPC}@{$ENDIF FPC}Do_Delay_Next_BuildDependNetwork);
 end;
@@ -6623,6 +6630,24 @@ begin
   Result := ZDB2_Th_Queue_Instance_Pool__.Num;
 end;
 
+function TC40_Console_Help.Do_ZDB2_Flush(var OP_Param: TOpParam): Variant;
+begin
+  if Th_Engine_Marshal_Pool__.Num > 0 then
+    begin
+      DoStatus('');
+      Th_Engine_Marshal_Pool__.Lock;
+      try
+        with Th_Engine_Marshal_Pool__.Repeat_ do
+          repeat
+              Queue^.Data.Flush(False);
+          until not Next;
+      finally
+          Th_Engine_Marshal_Pool__.UnLock;
+      end;
+    end;
+  Result := Th_Engine_Marshal_Pool__.Num;
+end;
+
 function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
 var
   tk: TTimeTick;
@@ -6741,6 +6766,7 @@ begin
   opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('ZDB2_Flush', 'ZDB2_Flush), flush all zdb2 thread engine.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 

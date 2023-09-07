@@ -150,6 +150,14 @@ type
     constructor Create(const ThEng_: TZDB2_Th_Queue);
   end;
 
+  TZDB2_Th_CMD_NOP = class(TZDB2_Th_CMD)
+  private
+    Runing: PBoolean;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; Runing_: PBoolean);
+  end;
+
   TZDB2_Th_CMD_Flush = class(TZDB2_Th_CMD)
   private
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -446,6 +454,7 @@ type
     function Sync_Append(Stream: TCore_Stream; var ID: Integer): Boolean; overload;
     function Sync_Remove(ID: Integer): Boolean;
     function Sync_Flush(): Boolean;
+    function Sync_NOP(): Boolean;
     function Sync_Rebuild_And_Get_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean;
     function Sync_Get_And_Clean_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean;
     function Sync_Get_ID_Size_From_Sequence_Table(var Table_: TZDB2_BlockHandle; var ID_Size_Buffer: TSequence_Table_ID_Size_Buffer): Boolean;
@@ -477,6 +486,7 @@ type
     procedure Async_Append(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: PInteger; State: PCMD_State); overload;
     procedure Async_Remove(ID: Integer); overload;
     procedure Async_Flush();
+    procedure Async_NOP(Runing_: PBoolean);
     procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
     procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
     procedure Async_Flush_External_Header(Header_Data: TMem64; AutoFree_Data: Boolean);
@@ -752,6 +762,21 @@ end;
 constructor TZDB2_Th_CMD_Exit.Create(const ThEng_: TZDB2_Th_Queue);
 begin
   inherited Create(ThEng_);
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_NOP.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+begin
+  if Runing <> nil then
+      Runing^ := False;
+end;
+
+constructor TZDB2_Th_CMD_NOP.Create(const ThEng_: TZDB2_Th_Queue; Runing_: PBoolean);
+begin
+  inherited Create(ThEng_);
+  Runing := Runing_;
+  if Runing <> nil then
+      Runing^ := True;
   Init();
 end;
 
@@ -1679,6 +1704,16 @@ begin
   Result := tmp = TCMD_State.csDone;
 end;
 
+function TZDB2_Th_Queue.Sync_NOP(): Boolean;
+var
+  tmp: TCMD_State;
+begin
+  TZDB2_Th_CMD_NOP.Create(self, nil).Ready(tmp);
+  while tmp = TCMD_State.csDefault do
+      TCompute.Sleep(1);
+  Result := tmp = TCMD_State.csDone;
+end;
+
 function TZDB2_Th_Queue.Sync_Rebuild_And_Get_Sequence_Table(var Table_: TZDB2_BlockHandle): Boolean;
 var
   tmp: TCMD_State;
@@ -2015,6 +2050,15 @@ var
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.Init(TZDB2_Th_CMD_Flush.Create(self));
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_NOP(Runing_: PBoolean);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  tmp.Init(TZDB2_Th_CMD_NOP.Create(self, Runing_));
   tmp.Ready;
 end;
 

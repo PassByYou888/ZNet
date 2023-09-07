@@ -68,7 +68,7 @@ type
 
   TReliableFileStream = class(TCore_Stream)
   protected
-    Source_IO, Backup_IO: TCore_FileStream;
+    FSource_IO, FBackup_IO: TCore_FileStream;
     FActivted: Boolean;
     FFileName, Backup_FileName: SystemString;
 
@@ -798,16 +798,16 @@ begin
       exit;
 
   DoStatus(PFormat('Reliable IO Open : %s', [umlGetFileName(FileName).text]));
-  DoStatus(PFormat('Create Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(Source_IO.Size).text]));
+  DoStatus(PFormat('Create Backup %s size: %s', [umlGetFileName(FileName).text, umlSizeToStr(FSource_IO.Size).text]));
 
-  Backup_IO := TCore_FileStream.Create(Backup_FileName, fmCreate);
-  Backup_IO.Size := Source_IO.Size;
-  Source_IO.Position := 0;
-  Backup_IO.Position := 0;
-  Backup_IO.CopyFrom(Source_IO, Source_IO.Size);
-  Backup_IO.Position := 0;
-  DisposeObject(Source_IO);
-  Source_IO := nil;
+  FBackup_IO := TCore_FileStream.Create(Backup_FileName, fmCreate);
+  FBackup_IO.Size := FSource_IO.Size;
+  FSource_IO.Position := 0;
+  FBackup_IO.Position := 0;
+  FBackup_IO.CopyFrom(FSource_IO, FSource_IO.Size);
+  FBackup_IO.Position := 0;
+  DisposeObject(FSource_IO);
+  FSource_IO := nil;
 end;
 
 procedure TReliableFileStream.FreeIO;
@@ -815,8 +815,8 @@ begin
   if not FActivted then
       exit;
 
-  DisposeObject(Backup_IO);
-  Backup_IO := nil;
+  DisposeObject(FBackup_IO);
+  FBackup_IO := nil;
   try
     umlDeleteFile(FFileName);
     umlRenameFile(Backup_FileName, FileName);
@@ -827,7 +827,7 @@ end;
 
 procedure TReliableFileStream.SetSize(const NewSize: Int64);
 begin
-  Source_IO.Size := NewSize;
+  FSource_IO.Size := NewSize;
 end;
 
 procedure TReliableFileStream.SetSize(NewSize: longint);
@@ -851,9 +851,9 @@ begin
 {$ELSE ZDB_BACKUP}
   FActivted := False;
 {$ENDIF ZDB_BACKUP}
-  Source_IO := TCore_FileStream.Create(FileName_, m);
+  FSource_IO := TCore_FileStream.Create(FileName_, m);
 
-  Backup_IO := nil;
+  FBackup_IO := nil;
   FFileName := FileName_;
   Backup_FileName := FileName_ + '.save';
   umlDeleteFile(Backup_FileName);
@@ -862,7 +862,7 @@ end;
 
 destructor TReliableFileStream.Destroy;
 begin
-  DisposeObject(Source_IO);
+  DisposeObject(FSource_IO);
   FreeIO;
   inherited Destroy;
 end;
@@ -871,11 +871,11 @@ function TReliableFileStream.Write(const buffer; Count: longint): longint;
 begin
   if FActivted then
     begin
-      Result := Backup_IO.Write(buffer, Count);
+      Result := FBackup_IO.Write(buffer, Count);
     end
   else
     begin
-      Result := Source_IO.Write(buffer, Count);
+      Result := FSource_IO.Write(buffer, Count);
     end;
 end;
 
@@ -883,11 +883,11 @@ function TReliableFileStream.Read(var buffer; Count: longint): longint;
 begin
   if FActivted then
     begin
-      Result := Backup_IO.Read(buffer, Count);
+      Result := FBackup_IO.Read(buffer, Count);
     end
   else
     begin
-      Result := Source_IO.Read(buffer, Count);
+      Result := FSource_IO.Read(buffer, Count);
     end;
 end;
 
@@ -895,11 +895,11 @@ function TReliableFileStream.Seek(const Offset: Int64; origin: TSeekOrigin): Int
 begin
   if FActivted then
     begin
-      Result := Backup_IO.Seek(Offset, origin);
+      Result := FBackup_IO.Seek(Offset, origin);
     end
   else
     begin
-      Result := Source_IO.Seek(Offset, origin);
+      Result := FSource_IO.Seek(Offset, origin);
     end;
 end;
 
@@ -2620,10 +2620,17 @@ begin
 
   umlFileFlushWriteCache(IOHnd);
   umlResetPrepareRead(IOHnd);
-  if IOHnd.Handle is TSafe_Flush_Stream then
-      TSafe_Flush_Stream(IOHnd.Handle).Flush;
-  IOHnd.ChangeFromWrite := False;
 
+  if IOHnd.Handle is TSafe_Flush_Stream then
+      TSafe_Flush_Stream(IOHnd.Handle).Flush
+  else if IOHnd.Handle is TCore_FileStream then
+    begin
+{$IFDEF MSWINDOWS}
+      FlushFileBuffers(TCore_FileStream(IOHnd.Handle).Handle);
+{$ENDIF MSWINDOWS}
+    end;
+
+  IOHnd.ChangeFromWrite := False;
   Result := True;
 end;
 

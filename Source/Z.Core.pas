@@ -1630,6 +1630,35 @@ function GetOffset(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDE
 function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
 {$EndRegion 'core api'}
+{$Region 'core var'}
+
+type TOnCheckThreadSynchronize = procedure();
+
+var
+  // Synchronize
+  Enabled_Check_Thread_Synchronize_System: Boolean;
+  Main_Thread_Synchronize_Running: Boolean;
+  Main_Thread_OnCheck_Runing: Boolean;
+  OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
+
+  // DelphiParallelFor and FPCParallelFor work in parallel
+  WorkInParallelCore: TAtomBool;
+  // same WorkInParallelCore
+  ParallelCore: TAtomBool;
+
+  // default is True
+  GlobalMemoryHook: TAtomBool;
+
+  // core init time
+  CoreInitedTimeTick: TTimeTick;
+
+  // The life time of working in asynchronous thread consistency,
+  MT19937LifeTime: TTimeTick;
+
+  // MainThread TThreadPost
+  MainThreadProgress: TThreadPost;
+  MainThreadPost: TThreadPost;
+{$EndRegion 'core var'}
 {$Region 'core-const'}
 const
   {$IF Defined(WIN32)}
@@ -1692,35 +1721,6 @@ const
   fmShareDenyWrite = SysUtils.fmShareDenyWrite;
   fmShareDenyNone  = SysUtils.fmShareDenyNone;
 {$EndRegion 'core-const'}
-{$Region 'core var'}
-
-type TOnCheckThreadSynchronize = procedure();
-
-var
-  // Synchronize
-  Enabled_Check_Thread_Synchronize_System: Boolean;
-  Main_Thread_Synchronize_Running: Boolean;
-  Main_Thread_OnCheck_Runing: Boolean;
-  OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
-
-  // DelphiParallelFor and FPCParallelFor work in parallel
-  WorkInParallelCore: TAtomBool;
-  // same WorkInParallelCore
-  ParallelCore: TAtomBool;
-
-  // default is True
-  GlobalMemoryHook: TAtomBool;
-
-  // core init time
-  CoreInitedTimeTick: TTimeTick;
-
-  // The life time of working in asynchronous thread consistency,
-  MT19937LifeTime: TTimeTick;
-
-  // MainThread TThreadPost
-  MainThreadProgress: TThreadPost;
-  MainThreadPost: TThreadPost;
-{$EndRegion 'core var'}
 {$Region 'compatible'}
 {$I Z.Core.Compatible.inc}
 {$EndRegion 'compatible'}
