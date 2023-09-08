@@ -944,7 +944,7 @@ type
 var
   { quiet mode, defualt is false }
   C40_QuietMode: Boolean;
-  { physics service safeCheck time, default is 30 seconds }
+  { physics service safeCheck time, default is 45 seconds }
   C40_SafeCheckTime: TTimeTick;
   { C4 reconnection delay time, default is 5.0(float) seconds }
   C40_PhysicsReconnectionDelayTime: Double;
@@ -6849,7 +6849,7 @@ initialization
 ProgressBackgroundProc := {$IFDEF FPC}@{$ENDIF FPC}C40Progress;
 
 C40_QuietMode := False;
-C40_SafeCheckTime := C_Tick_Second * 30;
+C40_SafeCheckTime := C_Tick_Second * 45;
 C40_PhysicsReconnectionDelayTime := 5.0;
 C40_UpdateServiceInfoDelayTime := C_Tick_Second * 1;
 C40_PhysicsServiceTimeout := C_Tick_Minute * 15;
