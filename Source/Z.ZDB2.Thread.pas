@@ -305,7 +305,7 @@ type
     procedure Flush_Temp_Swap_Pool();
   private
     // flush state
-    FFlash_Runing: Boolean;
+    FFlash_Run_Num: Integer;
   public
     // base
     Name: U_String; // default is ''
@@ -379,7 +379,7 @@ type
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
     procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
-    property Flash_Runing: Boolean read FFlash_Runing;
+    property Flash_Run_Num: Integer read FFlash_Run_Num;
     procedure Flush(WaitQueue_: Boolean);
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
@@ -2088,7 +2088,7 @@ begin
   FCopy_Is_Busy := False;
   FBackup_Directory := '';
   Temp_Swap_Pool := TZDB2_Th_Engine_Data_BigList___.Create; // temp data pool
-  FFlash_Runing := False;
+  FFlash_Run_Num := 0;
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
@@ -3075,15 +3075,12 @@ begin
           TCompute.Sleep(1);
     end;
 
-  while FFlash_Runing do
-      TCompute.Sleep(1);
-
   if not OnlyRead then
     begin
       Engine.Async_Flush_Backcall_Sequence_Table({$IFDEF FPC}@{$ENDIF FPC}Do_Get_Sequence_Table);
       Engine.Async_Flush_External_Header(External_Header_Data, False);
       Engine.Async_Flush();
-      Engine.Async_NOP(@FFlash_Runing);
+      Engine.Async_NOP(FFlash_Run_Num);
 
       if WaitQueue_ then
         while Engine.QueueNum > 0 do
