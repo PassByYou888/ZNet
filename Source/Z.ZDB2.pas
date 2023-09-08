@@ -92,9 +92,9 @@ type
     class function ComputeSize(BlockNum_: Integer): Int64;
   end;
 
-  TZDB2_BlockStoreStruct_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZDB2_BlockStoreData>;
+  TZDB2_BlockStoreStruct_ = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZDB2_BlockStoreData>;
 
-  TZDB2_BlockStoreDataStruct = class(TZDB2_BlockStoreStruct_Decl)
+  TZDB2_BlockStoreDataStruct = class(TZDB2_BlockStoreStruct_)
   public
     function BlockSum: Integer;
     procedure ExtractToStoreBuffer(var Buffer: TZDB2_BlockStoreBuffer); overload;
@@ -105,7 +105,7 @@ type
     function Read(Sender: TZDB2_Core_Space; Cipher_: IZDB2_Cipher; Position_: Int64; var Hnd_: TIOHnd): Boolean;
     function Write(Sender: TZDB2_Core_Space; Cipher_: IZDB2_Cipher; Position_: Int64; var Hnd_: TIOHnd): Boolean;
     procedure Clean;
-    procedure SavingMemory;
+    procedure Recycle_Memory;
   end;
 
   TZDB2_Space_Planner = class
@@ -697,7 +697,7 @@ begin
   inherited Clear;
 end;
 
-procedure TZDB2_BlockStoreDataStruct.SavingMemory;
+procedure TZDB2_BlockStoreDataStruct.Recycle_Memory;
 var
   i: Integer;
 begin
@@ -1561,7 +1561,7 @@ begin
             exit;
           end;
       FBlockStoreDataStruct.ExtractToBlockBuffer(FBlockBuffer);
-      FBlockStoreDataStruct.SavingMemory;
+      FBlockStoreDataStruct.Recycle_Memory;
       PrepareCacheBlock();
       ScanSpace();
       FHeader.Modification := False;
@@ -2289,6 +2289,8 @@ begin
   Result := False;
   if (ID < 0) or (ID >= FBlockCount) then
       exit;
+
+  Do_Modification;
   p := @FBlockBuffer[ID];
   if not WriteCacheBlock(buff, p^.UsedSpace, ID, True) then
     begin
@@ -2308,7 +2310,6 @@ begin
             ErrorInfo('Block_IO_Write: umlBlockWrite (NULL) error.');
             exit;
           end;
-      Do_Modification;
     end;
   Result := True;
 end;
@@ -2392,6 +2393,8 @@ begin
           ErrorInfo(PFormat('WriteStream: No Space. source: %d', [Stream_.Size]));
       exit;
     end;
+
+    Do_Modification;
 
   SetLength(SpaceHnd, Space_.Count);
 
@@ -2506,7 +2509,6 @@ begin
           else
               inc(i);
         end;
-    Do_Modification;
   finally
       System.FreeMemory(SwapBuff_);
   end;
@@ -2559,6 +2561,8 @@ begin
           ErrorInfo(PFormat('WriteData: No Space. source: %d', [buff.Size]));
       exit;
     end;
+
+  Do_Modification;
 
   SetLength(SpaceHnd, Space_.Count);
 
@@ -2659,7 +2663,6 @@ begin
         else
             inc(i);
       end;
-  Do_Modification;
 end;
 
 function TZDB2_Core_Space.WriteData(buff: TZDB2_Mem; var SpaceHnd: TZDB2_BlockHandle): Boolean;
@@ -3030,6 +3033,7 @@ begin
       FBlockBuffer[i].Prev := -1;
       FBlockBuffer[i].ID := i;
     end;
+  Do_Modification;
 end;
 
 procedure TZDB2_Core_Space.DoProgress(Total_, current_: Integer);
