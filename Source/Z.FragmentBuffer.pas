@@ -18,14 +18,14 @@ uses
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.MemoryStream;
 
 type
-  TPosition_Data = class;
+  TPart_Data = class;
   TFragment_Space_Tool = class;
 
-  TPosition_Buffer_Tool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPosition_Data>;
+  TPart_Buffer_Tool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPart_Data>;
 
-  TPosition_Data = class
+  TPart_Data = class
   public
-    Owner_Buffer: TPosition_Buffer_Tool_.PQueueStruct;
+    Owner_Buffer: TPart_Buffer_Tool_.PQueueStruct;
     bPos: Int64;
     Mem: TMem64;
     Size: Int64;
@@ -36,9 +36,9 @@ type
     procedure Copy_To_Ptr(b, buff_size: Int64; p: Pointer);
   end;
 
-  TPosition_Buffer_Tool = class(TPosition_Buffer_Tool_)
+  TPart_Buffer_Tool = class(TPart_Buffer_Tool_)
   private
-    function Do_Sort_bPos(var L, R: TPosition_Data): Integer;
+    function Do_Sort_bPos(var L, R: TPart_Data): Integer;
   public
     Owner: TFragment_Space_Tool;
     constructor Create(Owner_: TFragment_Space_Tool);
@@ -51,19 +51,26 @@ type
 
   TFragment_Space_Stream_Head = packed record
     Edition: Word;
+    TimeTick: TTimeTick;
     MD5: TMD5;
     Num: Int64;
   end;
 
+  TSpace_Span_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Int64, Boolean>;
+
   TFragment_Space_Tool = class
   private
-    FBuffer: TPosition_Buffer_Tool;
+    FSpace_Span_Tool: TSpace_Span_Tool;
+    FSpace_Span: Int64; // default 1024*1024
+    FBuffer: TPart_Buffer_Tool;
     FRead_Buffer_Cache: Boolean;
     FMin_Pos, FMax_Pos: Int64;
     FOn_Get_Fragment: TOn_Get_Fragment;
-    procedure DoFree(var Data: TPosition_Data);
+    procedure DoFree(var Data: TPart_Data);
+    procedure Update_Space_Span(bPos, ePos: Int64; Is_Cache_: Boolean);
+    function In_Space_Span(bPos, ePos: Int64): Boolean;
     function IsOverlap(b, e: Int64): Boolean;
-    function Found_Overlap(bPos, Size: Int64): TPosition_Buffer_Tool;
+    function Found_Overlap(bPos, Size: Int64): TPart_Buffer_Tool;
     function Process_Overlap_Buffer(bPos: Int64; p: Pointer; Size: Int64): Boolean;
     function Get_Fragment(Position: Int64; buff: Pointer; Size: Int64): Boolean;
   public
@@ -80,8 +87,9 @@ type
     procedure Sort;
     function Num: NativeInt;
     function Fragment_Memory: Int64;
-    function Repeat_: TPosition_Buffer_Tool_.TRepeat___;
-    property Buffer: TPosition_Buffer_Tool read FBuffer;
+    function Repeat_: TPart_Buffer_Tool_.TRepeat___;
+    property Buffer: TPart_Buffer_Tool read FBuffer;
+    property Space_Span: Int64 read FSpace_Span write FSpace_Span; // default 1024*1024
     property On_Get_Fragment: TOn_Get_Fragment read FOn_Get_Fragment write FOn_Get_Fragment;
   end;
 
@@ -137,7 +145,7 @@ implementation
 
 uses Z.Geometry2D, Z.UnicodeMixedLib, Z.Status;
 
-constructor TPosition_Data.Create;
+constructor TPart_Data.Create;
 begin
   inherited Create;
   Owner_Buffer := nil;
@@ -146,18 +154,18 @@ begin
   Size := 0;
 end;
 
-destructor TPosition_Data.Destroy;
+destructor TPart_Data.Destroy;
 begin
   DisposeObjectAndNil(Mem);
   inherited Destroy;
 end;
 
-function TPosition_Data.ePos(): Int64;
+function TPart_Data.ePos(): Int64;
 begin
   Result := bPos + Size;
 end;
 
-function TPosition_Data.IsOverlap(b, e: Int64): Boolean;
+function TPart_Data.IsOverlap(b, e: Int64): Boolean;
 begin
   Result :=
     umlInRange(bPos, b, e) or
@@ -166,7 +174,7 @@ begin
     umlInRange(e, bPos, ePos);
 end;
 
-procedure TPosition_Data.Copy_To_Ptr(b, buff_size: Int64; p: Pointer);
+procedure TPart_Data.Copy_To_Ptr(b, buff_size: Int64; p: Pointer);
 begin
   if bPos >= b then
       CopyPtr(Mem.Memory, GetOffset(p, bPos - b), umlMin(buff_size - (bPos - b), Size))
@@ -174,30 +182,30 @@ begin
       CopyPtr(Mem.PosAsPtr(b - bPos), p, umlMin(buff_size, Size - (b - bPos)));
 end;
 
-function TPosition_Buffer_Tool.Do_Sort_bPos(var L, R: TPosition_Data): Integer;
+function TPart_Buffer_Tool.Do_Sort_bPos(var L, R: TPart_Data): Integer;
 begin
   Result := CompareInt64(L.bPos, R.bPos);
   if Result = 0 then
       Result := CompareInt64(L.Size, R.Size);
 end;
 
-constructor TPosition_Buffer_Tool.Create(Owner_: TFragment_Space_Tool);
+constructor TPart_Buffer_Tool.Create(Owner_: TFragment_Space_Tool);
 begin
   inherited Create;
   Owner := Owner_;
 end;
 
-destructor TPosition_Buffer_Tool.Destroy;
+destructor TPart_Buffer_Tool.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TPosition_Buffer_Tool.Sort;
+procedure TPart_Buffer_Tool.Sort;
 begin
   Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort_bPos);
 end;
 
-procedure TPosition_Buffer_Tool.Extract_To_Mem(Mem: TMem64; Mem_Pos: Int64);
+procedure TPart_Buffer_Tool.Extract_To_Mem(Mem: TMem64; Mem_Pos: Int64);
 var
   bPos, ePos: Int64;
 begin
@@ -212,9 +220,39 @@ begin
     until not Next;
 end;
 
-procedure TFragment_Space_Tool.DoFree(var Data: TPosition_Data);
+procedure TFragment_Space_Tool.DoFree(var Data: TPart_Data);
 begin
   DisposeObjectAndNil(Data);
+end;
+
+procedure TFragment_Space_Tool.Update_Space_Span(bPos, ePos: Int64; Is_Cache_: Boolean);
+var
+  i, bI, eI: Int64;
+begin
+  bI := (bPos div FSpace_Span);
+  eI := (ePos div FSpace_Span);
+  i := umlMax(bI - 1, 0);
+  while i <= eI + 1 do
+    begin
+      FSpace_Span_Tool[i * FSpace_Span] := Is_Cache_;
+      inc(i);
+    end;
+end;
+
+function TFragment_Space_Tool.In_Space_Span(bPos, ePos: Int64): Boolean;
+var
+  i, bI, eI: Int64;
+begin
+  Result := True;
+  bI := (bPos div FSpace_Span);
+  eI := (ePos div FSpace_Span);
+  i := umlMax(bI - 1, 0);
+  while i <= eI + 1 do
+    if not FSpace_Span_Tool.Get_Default_Value(i * FSpace_Span, False) then
+        inc(i)
+    else
+        exit;
+  Result := False;
 end;
 
 function TFragment_Space_Tool.IsOverlap(b, e: Int64): Boolean;
@@ -226,11 +264,14 @@ begin
     umlInRange(e, FMin_Pos, FMax_Pos);
 end;
 
-function TFragment_Space_Tool.Found_Overlap(bPos, Size: Int64): TPosition_Buffer_Tool;
+function TFragment_Space_Tool.Found_Overlap(bPos, Size: Int64): TPart_Buffer_Tool;
 begin
   Result := nil;
 
-  if not IsOverlap(bPos, bPos + Size) then // optmized
+  if not IsOverlap(bPos, bPos + Size) then // lv1 optmized
+      exit;
+
+  if not In_Space_Span(bPos, bPos + Size) then // lv2 optimized
       exit;
 
   if Num > 0 then
@@ -239,7 +280,7 @@ begin
         if queue^.Data.IsOverlap(bPos, bPos + Size) then
           begin
             if Result = nil then
-                Result := TPosition_Buffer_Tool.Create(self);
+                Result := TPart_Buffer_Tool.Create(self);
             Result.Add(queue^.Data);
           end;
       until not Next;
@@ -249,8 +290,8 @@ end;
 
 function TFragment_Space_Tool.Process_Overlap_Buffer(bPos: Int64; p: Pointer; Size: Int64): Boolean;
 var
-  L: TPosition_Buffer_Tool;
-  inst: TPosition_Data;
+  L: TPart_Buffer_Tool;
+  inst: TPart_Data;
 begin
   Result := False;
   L := Found_Overlap(bPos, Size);
@@ -265,20 +306,23 @@ begin
           CopyPtr(p, inst.Mem.PosAsPtr(bPos - inst.bPos), Size);
           DisposeObject(L);
           Result := True;
+          Update_Space_Span(bPos, bPos + Size, True);
           exit;
         end;
       if (inst.ePos = bPos) then // append
         begin
+          inst.Mem.Delta := umlMin(1024 * 1024, inst.Size);
           inst.Mem.Position := inst.Size;
           inst.Mem.WritePtr(p, Size);
           inst.Size := inst.Size + Size;
           DisposeObject(L);
           Result := True;
+          Update_Space_Span(bPos, bPos + Size, True);
           exit;
         end;
     end;
   // compare overlap buffer
-  inst := TPosition_Data.Create;
+  inst := TPart_Data.Create;
   if L.First^.Data.bPos < bPos then
     begin
       inst.bPos := L.First^.Data.bPos;
@@ -315,6 +359,7 @@ begin
 
   DisposeObject(L);
   Result := True;
+  Update_Space_Span(bPos, bPos + Size, True);
 end;
 
 function TFragment_Space_Tool.Get_Fragment(Position: Int64; buff: Pointer; Size: Int64): Boolean;
@@ -327,7 +372,9 @@ end;
 constructor TFragment_Space_Tool.Create;
 begin
   inherited Create;
-  FBuffer := TPosition_Buffer_Tool.Create(self);
+  FSpace_Span_Tool := TSpace_Span_Tool.Create($FFFF, False);
+  FSpace_Span := 1024 * 1024;
+  FBuffer := TPart_Buffer_Tool.Create(self);
   FBuffer.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
   FRead_Buffer_Cache := False;
   FOn_Get_Fragment := nil;
@@ -338,11 +385,13 @@ end;
 destructor TFragment_Space_Tool.Destroy;
 begin
   DisposeObject(FBuffer);
+  DisposeObject(FSpace_Span_Tool);
   inherited Destroy;
 end;
 
 procedure TFragment_Space_Tool.Clear;
 begin
+  FSpace_Span_Tool.Clear;
   FBuffer.Clear;
   FMin_Pos := 0;
   FMax_Pos := 0;
@@ -350,11 +399,11 @@ end;
 
 procedure TFragment_Space_Tool.Write_Buffer(bPos: Int64; p: Pointer; Size: Int64);
 var
-  inst: TPosition_Data;
+  inst: TPart_Data;
 begin
   if Process_Overlap_Buffer(bPos, p, Size) then
       exit;
-  inst := TPosition_Data.Create;
+  inst := TPart_Data.Create;
   inst.bPos := bPos;
   inst.Mem.WritePtr(p, Size);
   inst.Size := Size;
@@ -369,12 +418,13 @@ begin
       FMin_Pos := umlMin(FMin_Pos, inst.bPos);
       FMax_Pos := umlMax(FMax_Pos, inst.ePos);
     end;
+  Update_Space_Span(bPos, bPos + Size, True);
 end;
 
 function TFragment_Space_Tool.Read_Buffer(bPos: Int64; p: Pointer; Size: Int64): Boolean;
 var
-  L: TPosition_Buffer_Tool;
-  inst: TPosition_Data;
+  L: TPart_Buffer_Tool;
+  inst: TPart_Data;
 begin
   Result := False;
   L := Found_Overlap(bPos, Size);
@@ -413,10 +463,11 @@ procedure TFragment_Space_Tool.Save_To_Stream(stream: TCore_Stream);
 var
   m64: TMem64;
   head: TFragment_Space_Stream_Head;
-  inst: TPosition_Data;
+  inst: TPart_Data;
 begin
   m64 := TMem64.CustomCreate(SizeOf(TFragment_Space_Stream_Head) + (Num * 16) + Fragment_Memory);
   head.Edition := 1;
+  head.TimeTick := 0;
   head.MD5 := NULL_MD5;
   head.Num := Num;
   m64.Position := 0;
@@ -430,6 +481,7 @@ begin
         m64.WritePtr(inst.Mem.Memory, inst.Size);
       until not Next;
   head.MD5 := umlMD5(m64.PosAsPtr(SizeOf(TFragment_Space_Stream_Head)), m64.Size - SizeOf(TFragment_Space_Stream_Head));
+  head.TimeTick := GetTimeTick;
   m64.Position := 0;
   m64.Write(head, SizeOf(TFragment_Space_Stream_Head));
 
@@ -447,7 +499,7 @@ var
   head: TFragment_Space_Stream_Head;
   MD5: TMD5;
   i: Int64;
-  inst: TPosition_Data;
+  inst: TPart_Data;
   n: TPascalString;
 begin
   Result := False;
@@ -463,7 +515,7 @@ begin
       i := 0;
       while i < head.Num do
         begin
-          inst := TPosition_Data.Create;
+          inst := TPart_Data.Create;
           inst.bPos := m64.ReadInt64;
           inst.Size := m64.ReadInt64;
           inst.Mem.Size := inst.Size;
@@ -480,6 +532,7 @@ begin
               FMax_Pos := umlMax(FMax_Pos, inst.ePos);
             end;
           inc(i);
+          Update_Space_Span(inst.bPos, inst.ePos, True);
         end;
       Result := True;
     end
@@ -546,7 +599,7 @@ begin
     until not Next;
 end;
 
-function TFragment_Space_Tool.Repeat_: TPosition_Buffer_Tool_.TRepeat___;
+function TFragment_Space_Tool.Repeat_: TPart_Buffer_Tool_.TRepeat___;
 begin
   Result := FBuffer.Repeat_;
 end;
@@ -555,6 +608,7 @@ constructor TFragment_Space_Tool_Test.Create;
 begin
   inherited Create;
   tool := TFragment_Space_Tool.Create;
+  tool.Space_Span := 10;
   tool.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
   mirror := TMem64.Create;
 end;
@@ -578,7 +632,7 @@ var
 
   function DoCheck(): Boolean;
   var
-    repeat___: TPosition_Buffer_Tool.TRepeat___;
+    repeat___: TPart_Buffer_Tool.TRepeat___;
   begin
     Result := True;
     repeat___ := t_.tool.Repeat_;
@@ -623,6 +677,7 @@ var
   i: Integer;
   tmp: TMS64;
 begin
+  TMT19937.SetSeed(0);
   t_ := TFragment_Space_Tool_Test.Create;
   setLength(buff, 500 * 1024);
   TMT19937.Rand32(MaxInt, @buff[0], length(buff) div 4);
@@ -710,6 +765,7 @@ begin
       Source_IO := TCore_FileStream.Create(FileName_, mode_);
 
   FFragment_Space := TFragment_Space_Tool.Create;
+  FFragment_Space.Read_Buffer_Cache := True;
   FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
   FMax_Write_Memory := 0;
   FMax_Write_Fragment := 0;
@@ -828,6 +884,7 @@ begin
       FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
     end;
 {$ENDIF MSWINDOWS}
+  umlDeleteFile(Get_Flush_Temp_File_Name);
 end;
 
 class procedure TSafe_Flush_Stream.Test;
