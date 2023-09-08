@@ -152,10 +152,10 @@ type
 
   TZDB2_Th_CMD_NOP = class(TZDB2_Th_CMD)
   private
-    Runing: PBoolean;
+    NOP_Num: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
-    constructor Create(const ThEng_: TZDB2_Th_Queue; Runing_: PBoolean);
+    constructor Create(const ThEng_: TZDB2_Th_Queue; NOP_Num_: PInteger);
   end;
 
   TZDB2_Th_CMD_Flush = class(TZDB2_Th_CMD)
@@ -486,7 +486,8 @@ type
     procedure Async_Append(Stream: TCore_Stream; AutoFree_Data: Boolean; ID: PInteger; State: PCMD_State); overload;
     procedure Async_Remove(ID: Integer); overload;
     procedure Async_Flush();
-    procedure Async_NOP(Runing_: PBoolean);
+    procedure Async_NOP(); overload;
+    procedure Async_NOP(var NOP_Num_: Integer); overload;
     procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
     procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
     procedure Async_Flush_External_Header(Header_Data: TMem64; AutoFree_Data: Boolean);
@@ -767,16 +768,16 @@ end;
 
 procedure TZDB2_Th_CMD_NOP.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 begin
-  if Runing <> nil then
-      Runing^ := False;
+  if NOP_Num <> nil then
+      AtomDec(NOP_Num^);
 end;
 
-constructor TZDB2_Th_CMD_NOP.Create(const ThEng_: TZDB2_Th_Queue; Runing_: PBoolean);
+constructor TZDB2_Th_CMD_NOP.Create(const ThEng_: TZDB2_Th_Queue; NOP_Num_: PInteger);
 begin
   inherited Create(ThEng_);
-  Runing := Runing_;
-  if Runing <> nil then
-      Runing^ := True;
+  NOP_Num := NOP_Num_;
+  if NOP_Num <> nil then
+      AtomInc(NOP_Num^);
   Init();
 end;
 
@@ -2053,12 +2054,21 @@ begin
   tmp.Ready;
 end;
 
-procedure TZDB2_Th_Queue.Async_NOP(Runing_: PBoolean);
+procedure TZDB2_Th_Queue.Async_NOP();
 var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
-  tmp.Init(TZDB2_Th_CMD_NOP.Create(self, Runing_));
+  tmp.Init(TZDB2_Th_CMD_NOP.Create(self, nil));
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_NOP(var NOP_Num_: Integer);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  tmp.Init(TZDB2_Th_CMD_NOP.Create(self, @NOP_Num_));
   tmp.Ready;
 end;
 
