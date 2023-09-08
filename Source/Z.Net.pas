@@ -7045,6 +7045,7 @@ begin
 
   FReceiveDataCipherSecurity := TCipherSecurity(dCipherSecurity);
 
+  // decrypt reponse
   try
     if Length(buff) > 0 then
       begin
@@ -7066,13 +7067,10 @@ begin
   Result := Source_.Position;
 
   { trigger }
-  if Assigned(FCurrentQueueData^.OnConsoleMethod) or
-    Assigned(FCurrentQueueData^.OnConsoleParamMethod) or
-    Assigned(FCurrentQueueData^.OnConsoleProc) or
-    Assigned(FCurrentQueueData^.OnConsoleParamProc) then
+  if (FCurrentQueueData^.State = TQueueState.qsSendConsoleCMD) then // safe check. fixed by.qq600585 2023-9-8
     begin
       { safe check. fixed by qq600585,2022-4-19 }
-      if (Length(buff) = 1) and (buff[0] = 0) then
+      if (Length(buff) = 0) or ((Length(buff) = 1) and (buff[0] = 0)) then
         begin
           ResultText := '';
         end
@@ -7088,15 +7086,10 @@ begin
             exit;
           end;
         end;
-
       Internal_ExecuteResult();
-
       AtomInc(OwnerFramework.Statistics[TStatisticsType.stResponse]);
     end
-  else if Assigned(FCurrentQueueData^.OnStreamMethod) or
-    Assigned(FCurrentQueueData^.OnStreamParamMethod) or
-    Assigned(FCurrentQueueData^.OnStreamProc) or
-    Assigned(FCurrentQueueData^.OnStreamParamProc) then
+  else if (FCurrentQueueData^.State = TQueueState.qsSendStreamCMD) then // safe check. fixed by.qq600585 2023-9-8
     begin
       ResultDataFrame.Clear;
       try
@@ -7108,9 +7101,7 @@ begin
         DelayClose();
         exit;
       end;
-
       Internal_ExecuteResult();
-
       AtomInc(OwnerFramework.Statistics[TStatisticsType.stResponse]);
     end;
 
@@ -10177,7 +10168,7 @@ begin
   if (FProgress_LargeScale_IO_Pool.num <= 0) or (FProgressMaxDelay = 0) then
     begin
       { queue swap technology }
-      while FSend_Queue_Swap_Pool.num > 0 do
+      while (FSend_Queue_Swap_Pool.num > 0) do
         begin
           if self is TZNet_Client then
             begin
@@ -12375,7 +12366,7 @@ end;
 
 procedure TZNet_Server.Send_NULL(P_IO: TPeerIO);
 begin
-  SendConsoleCmdM(P_IO, C_NULL, '', TOnConsole_M(nil));
+  SendConsoleCmd(P_IO, C_NULL, '');
 end;
 
 function TZNet_Server.WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
@@ -13920,7 +13911,7 @@ end;
 
 procedure TZNet_Client.Send_NULL;
 begin
-  SendConsoleCmdM(C_NULL, '', TOnConsole_M(nil));
+  SendConsoleCmd(C_NULL, '');
 end;
 
 function TZNet_Client.WaitSendConsoleCmd(const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
