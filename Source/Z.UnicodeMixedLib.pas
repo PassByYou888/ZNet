@@ -40,7 +40,7 @@ const
   C_MD5_Size = 16;
 
   C_PrepareReadCacheSize = 512;
-  C_MaxBufferFragmentSize = $FFFF * 10;
+  C_Buffer_Chunk_Size = $F000;
 
   C_Flush_And_Seek_Error = -912;
   C_StringError = -911;
@@ -2445,6 +2445,15 @@ begin
   IOHnd.IsOnlyRead := OnlyRead_;
   IOHnd.AutoFree := False;
   Result := True;
+  if IOHnd.FileName = '' then
+    begin
+      if IOHnd.Handle is TCore_FileStream then
+          IOHnd.FileName := TCore_FileStream(IOHnd.Handle).FileName
+      else if IOHnd.Handle is TReliableFileStream then
+          IOHnd.FileName := TReliableFileStream(IOHnd.Handle).FileName
+      else if IOHnd.Handle is TSafe_Flush_Stream then
+          IOHnd.FileName := TSafe_Flush_Stream(IOHnd.Handle).FileName;
+    end;
 end;
 
 function umlFileCreateAsStream(const FileName: TPascalString; stream: U_Stream; var IOHnd: TIOHnd): Boolean;
@@ -2483,6 +2492,15 @@ begin
   IOHnd.IsOnlyRead := OnlyRead_;
   IOHnd.AutoFree := False;
   Result := True;
+  if IOHnd.FileName = '' then
+    begin
+      if IOHnd.Handle is TCore_FileStream then
+          IOHnd.FileName := TCore_FileStream(IOHnd.Handle).FileName
+      else if IOHnd.Handle is TReliableFileStream then
+          IOHnd.FileName := TReliableFileStream(IOHnd.Handle).FileName
+      else if IOHnd.Handle is TSafe_Flush_Stream then
+          IOHnd.FileName := TSafe_Flush_Stream(IOHnd.Handle).FileName;
+    end;
 end;
 
 function umlFileCreateAsMemory(var IOHnd: TIOHnd): Boolean;
@@ -2715,7 +2733,7 @@ end;
 function umlFileRead(var IOHnd: TIOHnd; const Size: Int64; var buff): Boolean;
 var
   BuffPointer: Pointer;
-  i: NativeInt;
+  i: Int64;
 begin
   if not umlFileFlushWriteCache(IOHnd) then
     begin
@@ -2738,28 +2756,30 @@ begin
     end;
 
   try
-    if Size > C_MaxBufferFragmentSize then
+    if Size > C_Buffer_Chunk_Size then
       begin
         // process Chunk buffer
         BuffPointer := @buff;
-        for i := 1 to (Size div C_MaxBufferFragmentSize) do
+        i := Size;
+        while i >= C_Buffer_Chunk_Size do
           begin
-            if IOHnd.Handle.Read(BuffPointer^, C_MaxBufferFragmentSize) <> C_MaxBufferFragmentSize then
+            if IOHnd.Handle.Read(BuffPointer^, C_Buffer_Chunk_Size) <> C_Buffer_Chunk_Size then
               begin
                 IOHnd.Return := C_FileReadError;
                 Result := False;
                 exit;
               end;
-            BuffPointer := GetOffset(BuffPointer, C_MaxBufferFragmentSize);
+            BuffPointer := GetOffset(BuffPointer, C_Buffer_Chunk_Size);
+            dec(i, C_Buffer_Chunk_Size);
           end;
         // process buffer rest
-        i := Size mod C_MaxBufferFragmentSize;
-        if IOHnd.Handle.Read(BuffPointer^, i) <> i then
-          begin
-            IOHnd.Return := C_FileReadError;
-            Result := False;
-            exit;
-          end;
+        if i > 0 then
+          if IOHnd.Handle.Read(BuffPointer^, i) <> i then
+            begin
+              IOHnd.Return := C_FileReadError;
+              Result := False;
+              exit;
+            end;
         inc(IOHnd.Position, Size);
         IOHnd.Return := C_NotError;
         Result := True;
@@ -2818,7 +2838,7 @@ end;
 function umlFileWrite(var IOHnd: TIOHnd; const Size: Int64; const buff): Boolean;
 var
   BuffPointer: Pointer;
-  i: NativeInt;
+  i: Int64;
 begin
   if (IOHnd.IsOnlyRead) or (not IOHnd.IsOpen) then
     begin
@@ -2862,28 +2882,30 @@ begin
     end;
 
   try
-    if Size > C_MaxBufferFragmentSize then
+    if Size > C_Buffer_Chunk_Size then
       begin
         // process buffer chunk
         BuffPointer := @buff;
-        for i := 1 to (Size div C_MaxBufferFragmentSize) do
+        i := Size;
+        while i >= C_Buffer_Chunk_Size do
           begin
-            if IOHnd.Handle.Write(BuffPointer^, C_MaxBufferFragmentSize) <> C_MaxBufferFragmentSize then
+            if IOHnd.Handle.Write(BuffPointer^, C_Buffer_Chunk_Size) <> C_Buffer_Chunk_Size then
               begin
                 IOHnd.Return := C_FileWriteError;
                 Result := False;
                 exit;
               end;
-            BuffPointer := GetOffset(BuffPointer, C_MaxBufferFragmentSize);
+            BuffPointer := GetOffset(BuffPointer, C_Buffer_Chunk_Size);
+            dec(i, C_Buffer_Chunk_Size);
           end;
         // process buffer rest
-        i := Size mod C_MaxBufferFragmentSize;
-        if IOHnd.Handle.Write(BuffPointer^, i) <> i then
-          begin
-            IOHnd.Return := C_FileWriteError;
-            Result := False;
-            exit;
-          end;
+        if i > 0 then
+          if IOHnd.Handle.Write(BuffPointer^, i) <> i then
+            begin
+              IOHnd.Return := C_FileWriteError;
+              Result := False;
+              exit;
+            end;
 
         inc(IOHnd.Position, Size);
         if IOHnd.Position > IOHnd.Size then
