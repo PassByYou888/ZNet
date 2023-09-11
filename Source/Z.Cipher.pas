@@ -282,7 +282,7 @@ type
       'AES128', 'AES192', 'AES256'
       );
 
-    cCipherKeyStyle: array [TCipherSecurity] of TCipherKeyStyle =
+    CCipherKeyStyle: array [TCipherSecurity] of TCipherKeyStyle =
       (
       cksNone, // csNone
       cksKey64, // csDES64
@@ -303,6 +303,29 @@ type
       ckyDynamicKey, // csAES128
       ckyDynamicKey, // csAES192
       ckyDynamicKey // csAES256
+      );
+
+    CCipher_Data_Length: array [TCipherSecurity] of Integer =
+      (
+      1, // csNone
+      8, // csDES64
+      8, // csDES128
+      8, // csDES192
+      8, // csBlowfish
+      16, // csLBC
+      8, // csLQC
+      4, // csRNG32
+      8, // csRNG64
+      1, // csLSC
+      64, // csXXTea512
+      16, // csRC6
+      16, // csSerpent
+      16, // csMars
+      16, // csRijndael
+      16, // csTwoFish
+      16, // csAES128
+      16, // csAES192
+      16 // csAES256
       );
   public
     class function AllCipher: TCipherSecurityArray;
@@ -3045,7 +3068,7 @@ end;
 
 class procedure TCipher.GenerateKey(cs: TCipherSecurity; buffPtr: Pointer; Size: NativeInt; var output: TCipherKeyBuffer);
 begin
-  case cCipherKeyStyle[cs] of
+  case CCipherKeyStyle[cs] of
     cksNone: GenerateNoneKey(output);
     cksKey64: GenerateKey64(buffPtr, Size, output);
     cks3Key64: Generate3Key64(buffPtr, Size, output);
@@ -7587,7 +7610,8 @@ begin
   i := Context.index;
   a := Context.Accumulator;
 
-  for L := 0 to BufSize - 1 do begin
+  for L := 0 to BufSize - 1 do
+    begin
       i := i + 1;
 
       x := Context.SBox[Byte(i)];
