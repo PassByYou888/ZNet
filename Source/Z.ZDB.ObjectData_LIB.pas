@@ -166,11 +166,11 @@ type
     CurrentHeader: Int64; // dynamic runtime
     //
     NextHeader, PrevHeader, DataPosition: Int64; // store position
-    ID: Byte;                                    // DB_Header_Field_ID, DB_Header_Item_ID
-    PositionID: Byte;                            // DB_Header_First, DB_Header_Medium, DB_Header_Last, DB_Header_1
-    CreateTime, ModificationTime: Double;        // time
-    UserProperty: Cardinal;                      // external define
-    Name: U_String;                              // header name
+    ID: Byte; // DB_Header_Field_ID, DB_Header_Item_ID
+    PositionID: Byte; // DB_Header_First, DB_Header_Medium, DB_Header_Last, DB_Header_1
+    CreateTime, ModificationTime: Double; // time
+    UserProperty: Cardinal; // external define
+    Name: U_String; // header name
     //
     State: Integer; // dynamic runtime
   end;
@@ -178,9 +178,9 @@ type
   PHeader = ^THeader;
 
   TItemBlock = record
-    ID: Byte;                                                         // block ID
+    ID: Byte; // block ID
     CurrentBlockPOS, NextBlockPOS, PrevBlockPOS, DataPosition: Int64; // data pos
-    Size: Int64;                                                      // block size
+    Size: Int64; // block size
     //
     State: Integer; // dynamic runtime
   end;
@@ -188,27 +188,27 @@ type
   PItemBlock = ^TItemBlock;
 
   TItem = record
-    RHeader: THeader;                   // header
-    Description: U_String;              // descript
-    ExtID: Byte;                        // item external ID
+    RHeader: THeader; // header
+    Description: U_String; // descript
+    ExtID: Byte; // item external ID
     FirstBlockPOS, LastBlockPOS: Int64; // item block pos
-    Size: Int64;                        // size
-    BlockCount: Int64;                  // block count
+    Size: Int64; // size
+    BlockCount: Int64; // block count
     //
-    CurrentBlockSeekPOS: Int64;   // dynamic runtime
-    CurrentFileSeekPOS: Int64;    // dynamic runtime
+    CurrentBlockSeekPOS: Int64; // dynamic runtime
+    CurrentFileSeekPOS: Int64; // dynamic runtime
     CurrentItemBlock: TItemBlock; // dynamic runtime
-    DataModification: Boolean;    // dynamic runtime
-    State: Integer;               // dynamic runtime
+    DataModification: Boolean; // dynamic runtime
+    State: Integer; // dynamic runtime
   end;
 
   PItem = ^TItem;
 
   TField = record
-    RHeader: THeader;                     // header
-    UpFieldPOS: Int64;                    // up level field
-    Description: U_String;                // description
-    HeaderCount: Int64;                   // children
+    RHeader: THeader; // header
+    UpFieldPOS: Int64; // up level field
+    Description: U_String; // description
+    HeaderCount: Int64; // children
     FirstHeaderPOS, LastHeaderPOS: Int64; // header pos
     //
     State: Integer; // dynamic runtime
@@ -251,15 +251,15 @@ type
   TObjectDataHandle_Reserved_Data = array [0 .. DB_ReservedData_Size - 1] of Byte;
 
   TObjectDataHandle = record
-    IOHnd: TIOHnd;                                         // IO handle
-    ReservedData: TObjectDataHandle_Reserved_Data;         // file: reserved struct
-    FixedStringL: Byte;                                    // file: fixed string length
-    MajorVer, MinorVer: SmallInt;                          // file: version info
-    CreateTime, ModificationTime: Double;                  // file: time
-    RootHeaderCount: Int64;                                // file: header counter
+    IOHnd: TIOHnd; // IO handle
+    ReservedData: TObjectDataHandle_Reserved_Data; // file: reserved struct
+    FixedStringL: Byte; // file: fixed string length
+    MajorVer, MinorVer: SmallInt; // file: version info
+    CreateTime, ModificationTime: Double; // file: time
+    RootHeaderCount: Int64; // file: header counter
     DefaultFieldPOS, FirstHeaderPOS, LastHeaderPOS: Int64; // file: field struct pos
-    CurrentFieldPOS: Int64;                                // file: current field pos
-    CurrentFieldLevel: Word;                               // file: current field level
+    CurrentFieldPOS: Int64; // file: current field pos
+    CurrentFieldLevel: Word; // file: current field level
 
     OverWriteItem: Boolean;
     AllowSameHeaderName: Boolean;
@@ -4649,9 +4649,9 @@ end;
 
 function dbField_CopyItem(var Item_: TItem; var IOHnd: TIOHnd; const DestFieldPos: Int64; var DestIOHnd: TIOHnd): Boolean;
 var
-  i: Integer;
+  i: Int64;
   NewItemHnd: TItem;
-  buff: array [0 .. C_MaxBufferFragmentSize] of Byte;
+  buff: array [0 .. C_Buffer_Chunk_Size] of Byte;
 begin
   Init_TItem(NewItemHnd);
   NewItemHnd := Item_;
@@ -4666,51 +4666,37 @@ begin
       Result := False;
       exit;
     end;
-  if Item_.Size > C_MaxBufferFragmentSize then
+  i := Item_.Size;
+  while i >= C_Buffer_Chunk_Size do
     begin
-      for i := 1 to (Item_.Size div C_MaxBufferFragmentSize) do
-        begin
-          if dbItem_BlockReadData(IOHnd, Item_, buff, C_MaxBufferFragmentSize) = False then
-            begin
-              Result := False;
-              exit;
-            end;
-          if dbItem_BlockAppendWriteData(DestIOHnd, NewItemHnd, buff, C_MaxBufferFragmentSize) = False then
-            begin
-              Item_.State := NewItemHnd.State;
-              Result := False;
-              exit;
-            end;
-        end;
-      if (Item_.Size mod C_MaxBufferFragmentSize) > 0 then
-        begin
-          if dbItem_BlockReadData(IOHnd, Item_, buff, Item_.Size mod C_MaxBufferFragmentSize) = False then
-            begin
-              Result := False;
-              exit;
-            end;
-          if dbItem_BlockAppendWriteData(DestIOHnd, NewItemHnd, buff, Item_.Size mod C_MaxBufferFragmentSize) = False then
-            begin
-              Item_.State := NewItemHnd.State;
-              Result := False;
-              exit;
-            end;
-        end;
-    end
-  else
-    begin
-      if dbItem_BlockReadData(IOHnd, Item_, buff, Item_.Size) = False then
+      if dbItem_BlockReadData(IOHnd, Item_, buff, C_Buffer_Chunk_Size) = False then
         begin
           Result := False;
           exit;
         end;
-      if dbItem_BlockAppendWriteData(DestIOHnd, NewItemHnd, buff, Item_.Size) = False then
+      if dbItem_BlockAppendWriteData(DestIOHnd, NewItemHnd, buff, C_Buffer_Chunk_Size) = False then
+        begin
+          Item_.State := NewItemHnd.State;
+          Result := False;
+          exit;
+        end;
+      dec(i, C_Buffer_Chunk_Size);
+    end;
+  if i > 0 then
+    begin
+      if dbItem_BlockReadData(IOHnd, Item_, buff, i) = False then
+        begin
+          Result := False;
+          exit;
+        end;
+      if dbItem_BlockAppendWriteData(DestIOHnd, NewItemHnd, buff, i) = False then
         begin
           Item_.State := NewItemHnd.State;
           Result := False;
           exit;
         end;
     end;
+
   if dbItem_WriteRec(NewItemHnd.RHeader.CurrentHeader, DestIOHnd, NewItemHnd) = False then
     begin
       Item_.State := NewItemHnd.State;
@@ -4723,53 +4709,38 @@ end;
 
 function dbField_CopyItemBuffer(var Item_: TItem; var IOHnd: TIOHnd; var DestItem_: TItem; var DestIOHnd: TIOHnd): Boolean;
 var
-  i: Integer;
-  buff: array [0 .. C_MaxBufferFragmentSize] of Byte;
+  i: Int64;
+  buff: array [0 .. C_Buffer_Chunk_Size] of Byte;
 begin
   if dbItem_BlockSeekStartPOS(IOHnd, Item_) = False then
     begin
       Result := False;
       exit;
     end;
-  if Item_.Size > C_MaxBufferFragmentSize then
+  i := Item_.Size;
+  while i >= C_Buffer_Chunk_Size do
     begin
-      for i := 1 to (Item_.Size div C_MaxBufferFragmentSize) do
-        begin
-          if dbItem_BlockReadData(IOHnd, Item_, buff, C_MaxBufferFragmentSize) = False then
-            begin
-              Result := False;
-              exit;
-            end;
-          if dbItem_BlockAppendWriteData(DestIOHnd, DestItem_, buff, C_MaxBufferFragmentSize) = False then
-            begin
-              Item_.State := DestItem_.State;
-              Result := False;
-              exit;
-            end;
-        end;
-      if (Item_.Size mod C_MaxBufferFragmentSize) > 0 then
-        begin
-          if dbItem_BlockReadData(IOHnd, Item_, buff, Item_.Size mod C_MaxBufferFragmentSize) = False then
-            begin
-              Result := False;
-              exit;
-            end;
-          if dbItem_BlockAppendWriteData(DestIOHnd, DestItem_, buff, Item_.Size mod C_MaxBufferFragmentSize) = False then
-            begin
-              Item_.State := DestItem_.State;
-              Result := False;
-              exit;
-            end;
-        end;
-    end
-  else
-    begin
-      if dbItem_BlockReadData(IOHnd, Item_, buff, Item_.Size) = False then
+      if dbItem_BlockReadData(IOHnd, Item_, buff, C_Buffer_Chunk_Size) = False then
         begin
           Result := False;
           exit;
         end;
-      if dbItem_BlockAppendWriteData(DestIOHnd, DestItem_, buff, Item_.Size) = False then
+      if dbItem_BlockAppendWriteData(DestIOHnd, DestItem_, buff, C_Buffer_Chunk_Size) = False then
+        begin
+          Item_.State := DestItem_.State;
+          Result := False;
+          exit;
+        end;
+      dec(i, C_Buffer_Chunk_Size);
+    end;
+  if i > 0 then
+    begin
+      if dbItem_BlockReadData(IOHnd, Item_, buff, i) = False then
+        begin
+          Result := False;
+          exit;
+        end;
+      if dbItem_BlockAppendWriteData(DestIOHnd, DestItem_, buff, i) = False then
         begin
           Item_.State := DestItem_.State;
           Result := False;
@@ -6612,8 +6583,8 @@ end;
 
 function db_AppendItemSize(var ItemHnd_: TItemHandle_; const Size: Int64; var DB_: TObjectDataHandle): Boolean;
 var
-  SwapBuffers: array [0 .. C_MaxBufferFragmentSize] of Byte;
-  i: Integer;
+  SwapBuffers: array [0 .. C_Buffer_Chunk_Size] of Byte;
+  i: Int64;
 begin
   if ItemHnd_.OpenFlags = False then
     begin
@@ -6627,32 +6598,25 @@ begin
       Result := False;
       exit;
     end;
-  if Size > C_MaxBufferFragmentSize then
+  i := Size;
+  while i >= C_Buffer_Chunk_Size do
     begin
-      for i := 1 to (Size div C_MaxBufferFragmentSize) do
-        begin
-          if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, SwapBuffers, C_MaxBufferFragmentSize) = False then
-            begin
-              DB_.State := ItemHnd_.Item.State;
-              Result := False;
-              exit;
-            end;
-        end;
-      if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, SwapBuffers, (Size mod C_MaxBufferFragmentSize)) = False then
+      if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, SwapBuffers, C_Buffer_Chunk_Size) = False then
         begin
           DB_.State := ItemHnd_.Item.State;
           Result := False;
           exit;
         end;
-      DB_.State := DB_ok;
-      Result := True;
-      exit;
+      dec(i, C_Buffer_Chunk_Size);
     end;
-  if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, SwapBuffers, Size) = False then
+  if i > 0 then
     begin
-      DB_.State := ItemHnd_.Item.State;
-      Result := False;
-      exit;
+      if dbItem_BlockWriteData(DB_.IOHnd, ItemHnd_.Item, SwapBuffers, i) = False then
+        begin
+          DB_.State := ItemHnd_.Item.State;
+          Result := False;
+          exit;
+        end;
     end;
   DB_.State := DB_ok;
   Result := True;
