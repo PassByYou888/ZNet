@@ -126,7 +126,6 @@ type
     FIsWrite: Boolean;
     Source_IO: TCore_Stream;
     FFlush_Num: Int64;
-    FMax_Flush_History_Line_Time: TTimeTick;
     FMax_Flush_History_Num: Int64;
     FHistory: TFragment_Space_Tool_History;
     FFragment_Space: TFragment_Space_Tool;
@@ -148,7 +147,6 @@ type
     property Read_Buffer_Cache: Boolean read FRead_Buffer_Cache write FRead_Buffer_Cache;
     property Space_Span: Int64 read FSpace_Span write FSpace_Span; // 1024*1024
     property Flush_Num: Int64 read FFlush_Num;
-    property Max_Flush_History_Line_Time: TTimeTick read FMax_Flush_History_Line_Time write FMax_Flush_History_Line_Time; // 10 minute
     property Max_Flush_History_Num: Int64 read FMax_Flush_History_Num write FMax_Flush_History_Num; // 10
     property History: TFragment_Space_Tool_History read FHistory; // flush history
     procedure Flush;
@@ -859,7 +857,6 @@ begin
       Source_IO := TCore_FileStream.Create(FFileName, mode_);
 
   FFlush_Num := 1;
-  FMax_Flush_History_Line_Time := C_Tick_Minute * 10;
   FMax_Flush_History_Num := 10;
 
   FHistory := TFragment_Space_Tool_History.Create(True);
@@ -941,7 +938,7 @@ begin
   if FHistory.Num = 0 then
       exit;
   // check and remove history
-  while (FHistory.Num > FMax_Flush_History_Num) or (GetTimeTick - FHistory.First^.Data.FFLushTime > FMax_Flush_History_Line_Time) do
+  while (FHistory.Num > FMax_Flush_History_Num) do
     begin
       umlDeleteFile(FHistory.First^.Data.FFlushFileName);
       FHistory.Next;
@@ -1002,7 +999,7 @@ var
   tmp: TMS64;
 begin
   fs := TSafe_Flush_Stream.Create(umlCombineFileName(umlCurrentPath, 'test.dat'), False, True);
-  fs.Max_Flush_History_Line_Time := 5000;
+  fs.Max_Flush_History_Num := 5;
   mirror := TMS64.CustomCreate(1024 * 1024);
   setLength(buff, 500 * 1024);
   TMT19937.Rand32(MaxInt, @buff[0], length(buff) div 4);
