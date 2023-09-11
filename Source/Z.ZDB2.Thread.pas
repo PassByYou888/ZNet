@@ -305,7 +305,7 @@ type
     procedure Flush_Temp_Swap_Pool();
   private
     // flush state
-    FFlash_Run_Num: Integer;
+    FFlush_Run_Num: Integer;
   public
     // base
     Name: U_String; // default is ''
@@ -379,7 +379,7 @@ type
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
     procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
-    property Flash_Run_Num: Integer read FFlash_Run_Num;
+    property Flush_Run_Num: Integer read FFlush_Run_Num;
     procedure Flush(WaitQueue_: Boolean);
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
@@ -583,6 +583,7 @@ type
     // flush
     procedure Flush; overload;
     procedure Flush(WaitQueue_: Boolean); overload;
+    function Flush_Is_Busy: Boolean;
     // remove and rebuild datgabase
     procedure Format_Database;
     // parallel data model
@@ -2088,7 +2089,7 @@ begin
   FCopy_Is_Busy := False;
   FBackup_Directory := '';
   Temp_Swap_Pool := TZDB2_Th_Engine_Data_BigList___.Create; // temp data pool
-  FFlash_Run_Num := 0;
+  FFlush_Run_Num := 0;
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
@@ -2961,7 +2962,7 @@ begin
           end;
         if Engine.Sync_Get_And_Reset_External_Header(External_Header_Data) then
           begin
-            DoStatus('"%s" load external header data', [umlGetFileName(Database_File).Text]);
+            DoStatus('"%s" load external header data %s', [umlGetFileName(Database_File).Text, umlSizeToStr(External_Header_Data.Size).Text]);
           end;
         DoStatus('"%s" open done.', [umlGetFileName(Database_File).Text]);
       end
@@ -3080,7 +3081,7 @@ begin
       Engine.Async_Flush_Backcall_Sequence_Table({$IFDEF FPC}@{$ENDIF FPC}Do_Get_Sequence_Table);
       Engine.Async_Flush_External_Header(External_Header_Data, False);
       Engine.Async_Flush();
-      Engine.Async_NOP(FFlash_Run_Num);
+      Engine.Async_NOP(FFlush_Run_Num);
 
       if WaitQueue_ then
         while Engine.QueueNum > 0 do
@@ -4276,6 +4277,23 @@ begin
   if WaitQueue_ then
       Wait_Busy_Task;
   Check_Recycle_Pool;
+end;
+
+function TZDB2_Th_Engine_Marshal.Flush_Is_Busy: Boolean;
+begin
+  Result := False;
+  Lock;
+  if Engine_Pool.num > 0 then
+    begin
+      try
+        with Engine_Pool.Repeat_ do
+          repeat
+              Result := Result or (Queue^.Data.Flush_Run_Num > 0);
+          until not Next;
+      except
+      end;
+    end;
+  UnLock;
 end;
 
 procedure TZDB2_Th_Engine_Marshal.Format_Database;
