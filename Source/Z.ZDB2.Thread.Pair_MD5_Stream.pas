@@ -75,6 +75,7 @@ type
     procedure Backup_If_No_Exists();
     // flush
     procedure Flush;
+    function Flush_Is_Busy: Boolean;
     // fragment number
     function Num: NativeInt;
     // recompute totalfragment number
@@ -426,6 +427,11 @@ end;
 procedure TZDB2_Pair_MD5_Stream_Tool.Flush;
 begin
   ZDB2_Marshal.Flush;
+end;
+
+function TZDB2_Pair_MD5_Stream_Tool.Flush_Is_Busy: Boolean;
+begin
+  Result := ZDB2_Marshal.Flush_Is_Busy;
 end;
 
 function TZDB2_Pair_MD5_Stream_Tool.Num: NativeInt;
