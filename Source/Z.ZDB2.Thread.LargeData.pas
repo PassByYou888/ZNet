@@ -444,6 +444,7 @@ type
     procedure Backup_If_No_Exists(); virtual;
     { Clear cache }
     procedure Flush(WaitQueue_: Boolean); virtual;
+    function Flush_Is_Busy: Boolean;
     { database space state }
     function Database_Size: Int64;
     function Database_Physics_Size: Int64;
@@ -2140,6 +2141,14 @@ begin
   FS_DB.Flush(WaitQueue_);
   FM_DB.Flush(WaitQueue_);
   FL_DB.Flush(WaitQueue_);
+end;
+
+function TZDB2_Large.Flush_Is_Busy: Boolean;
+begin
+  Result :=
+    FS_DB.Flush_Is_Busy or
+    FM_DB.Flush_Is_Busy or
+    FL_DB.Flush_Is_Busy;
 end;
 
 function TZDB2_Large.Database_Size: Int64;
