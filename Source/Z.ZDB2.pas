@@ -559,14 +559,14 @@ begin
       Sender.ErrorInfo('TZDB2_Block_File_Data_Instance.Write head error.');
       exit;
     end;
-  // write space table
+  // prpeare space table
   tmp := TMem64.Create;
   tmp.Size := SizeOf(TZDB2_Block_File) * length(Buffer);
   if tmp.Size > 0 then
       CopyPtr(@Buffer[0], tmp.Memory, tmp.Size);
   if Assigned(Cipher_) then
       Cipher_.Encrypt(tmp.Memory, tmp.Size);
-  // optmized
+  // optmized write space table
   if tmp.Size = Last_Update_Encrypt_Buffer_Copy.Size then
     begin
       bPos := Position_ + SizeOf(TZDB2_Block_File_Header);
@@ -617,14 +617,11 @@ begin
           exit;
         end;
     end
-  else
+  else if not umlBlockWrite(Hnd_, tmp.Memory^, tmp.Size) then // direct write space table
     begin
-      if not umlBlockWrite(Hnd_, tmp.Memory^, tmp.Size) then
-        begin
-          Sender.ErrorInfo('TZDB2_Block_File_Data_Instance.Write Buffer error.');
-          DisposeObject(tmp);
-          exit;
-        end;
+      Sender.ErrorInfo('TZDB2_Block_File_Data_Instance.Write Buffer error.');
+      DisposeObject(tmp);
+      exit;
     end;
   Last_Update_Encrypt_Buffer_Copy.SwapInstance(tmp);
   Last_Update_Encrypt_Buffer_Copy.Position := 0;
