@@ -345,6 +345,11 @@ type
     Last_Build_Class: TZDB2_Th_Engine_Data_Class; // default is TZDB2_Th_Engine_Data
     // external-header-data
     External_Header_Data: TMem64;
+    // fragment space
+    Fragment_Space_Space_Span: Int64;
+    Fragment_Space_Read_Buffer_Cache: Boolean;
+    Fragment_Space_Wait_hardware: Boolean;
+    Fragment_Space_Restore_Mode: TSafe_Flush_Restore_Mode;
     // api
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
@@ -378,9 +383,11 @@ type
     // create or open
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
+    // flush
     procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
     property Flush_Run_Num: Integer read FFlush_Run_Num;
     procedure Flush(WaitQueue_: Boolean);
+    // append
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
     procedure Progress();
@@ -2118,6 +2125,10 @@ begin
   Owner.Engine_Pool.Add(Self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
   External_Header_Data := TMem64.CustomCreate(1024 * 1024);
+  Fragment_Space_Space_Span := 1024 * 1024;
+  Fragment_Space_Read_Buffer_Cache := True;
+  Fragment_Space_Wait_hardware := True;
+  Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfLastHistory;
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -2193,6 +2204,17 @@ begin
   Static_Copy_Tech_Physics_Limit := EStrToInt64(cfg.GetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit)), Static_Copy_Tech_Physics_Limit);
   Dynamic_Copy_Tech_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue)), Dynamic_Copy_Tech_Max_Queue);
   FBackup_Directory := cfg.GetDefaultValue('Backup_Directory', FBackup_Directory);
+
+  Fragment_Space_Space_Span := EStrToInt64(cfg.GetDefaultValue('Fragment_Space_Space_Span', umlIntToStr(Fragment_Space_Space_Span)), Fragment_Space_Space_Span);
+  Fragment_Space_Read_Buffer_Cache := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Read_Buffer_Cache', umlBoolToStr(Fragment_Space_Read_Buffer_Cache)), Fragment_Space_Read_Buffer_Cache);
+  Fragment_Space_Wait_hardware := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Wait_hardware', umlBoolToStr(Fragment_Space_Wait_hardware)), Fragment_Space_Wait_hardware);
+  n := cfg.GetDefaultValue('Fragment_Space_Restore_Mode', '');
+  if n.Same('Last') then
+      Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfLastHistory
+  else if n.Same('All') then
+      Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfAllHistory
+  else
+      Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfIgnore;
 end;
 
 procedure TZDB2_Th_Engine.ReadConfig(cfg: THashStringList);
@@ -2233,6 +2255,15 @@ begin
   cfg.SetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit));
   cfg.SetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue));
   cfg.SetDefaultValue('Backup_Directory', FBackup_Directory);
+  cfg.SetDefaultValue('Fragment_Space_Space_Span', umlIntToStr(Fragment_Space_Space_Span));
+  cfg.SetDefaultValue('Fragment_Space_Read_Buffer_Cache', umlBoolToStr(Fragment_Space_Read_Buffer_Cache));
+  cfg.SetDefaultValue('Fragment_Space_Wait_hardware', umlBoolToStr(Fragment_Space_Wait_hardware));
+  cfg.SetDefaultValue('// Restore_Mode', 'Last,All,Ignore');
+  case Fragment_Space_Restore_Mode of
+    sfLastHistory: cfg.SetDefaultValue('Fragment_Space_Restore_Mode', 'Last');
+    sfAllHistory: cfg.SetDefaultValue('Fragment_Space_Restore_Mode', 'All');
+    sfIgnore: cfg.SetDefaultValue('Fragment_Space_Restore_Mode', 'Ignore');
+  end;
 end;
 
 procedure TZDB2_Th_Engine.Update_Engine_Data_Ptr();
@@ -2919,7 +2950,14 @@ begin
         else
           begin
 {$IFDEF ZDB2_Thread_Engine_Safe_Flush}
-            Stream := TSafe_Flush_Stream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead, False);
+            Stream := TSafe_Flush_Stream.Create(Database_File,
+              not umlFileExists(Database_File),
+              not OnlyRead,
+              False,
+              Fragment_Space_Wait_hardware, Fragment_Space_Restore_Mode);
+            TSafe_Flush_Stream(Stream).Fragment_Space_Space_Span := Fragment_Space_Space_Span;
+            TSafe_Flush_Stream(Stream).Fragment_Space_Read_Buffer_Cache := Fragment_Space_Read_Buffer_Cache;
+            TSafe_Flush_Stream(Stream).Flush;
 {$ELSE ZDB2_Thread_Engine_Safe_Flush}
             Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
 {$ENDIF ZDB2_Thread_Engine_Safe_Flush}
@@ -5223,7 +5261,7 @@ begin
     with Engine_Pool.Repeat_ do
       repeat
         if Queue^.Data.Engine <> nil then
-            Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s Frag:%d/%s' + #13#10,
+            Result.Append('%d: %s Data-Num:%d IO-Queue:%d Size:%s/%s Fragment:%d/%s' + #13#10,
             [I__ + 1, umlGetFileName(Queue^.Data.Database_File).Text,
             Queue^.Data.Th_Engine_Data_Pool.num,
             Queue^.Data.Engine.QueueNum,
