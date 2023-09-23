@@ -54,7 +54,7 @@ type
   TOn_CMD_Done = procedure() of object;
 
   TZDB2_Th_CMD = class
-  private
+  protected
     OnDone: TOn_CMD_Done;
     Engine: TZDB2_Th_Queue;
     State_Ptr: PCMD_State;
@@ -69,7 +69,7 @@ type
   end;
 
   TZDB2_Th_CMD_Get_Block_As_Mem64 = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_M64: TMem64;
     Param_ID, Param_Block_Index, Param_Block_Offset, Param_Block_Read_Size: Integer;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -78,7 +78,7 @@ type
   end;
 
   TZDB2_Th_CMD_Get_Data_As_Mem64 = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_M64: TMem64;
     Param_ID: Integer;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -87,7 +87,7 @@ type
   end;
 
   TZDB2_Th_CMD_Get_Data_As_Stream = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Stream: TCore_Stream;
     Param_ID: Integer;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -96,7 +96,7 @@ type
   end;
 
   TZDB2_Th_CMD_Set_Data_From_Mem64 = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_M64: TMem64;
     Param_ID_Ptr: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -106,7 +106,7 @@ type
   end;
 
   TZDB2_Th_CMD_Set_Data_From_Stream = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Stream: TCore_Stream;
     Param_ID_Ptr: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -116,7 +116,7 @@ type
   end;
 
   TZDB2_Th_CMD_Append_From_Mem64 = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_M64: TMem64;
     Param_ID_Ptr: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -126,7 +126,7 @@ type
   end;
 
   TZDB2_Th_CMD_Append_From_Stream = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Stream: TCore_Stream;
     Param_ID_Ptr: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -136,7 +136,7 @@ type
   end;
 
   TZDB2_Th_CMD_Remove = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_ID: Integer;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -144,22 +144,40 @@ type
   end;
 
   TZDB2_Th_CMD_Exit = class(TZDB2_Th_CMD)
-  private
+  protected
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
     constructor Create(const ThEng_: TZDB2_Th_Queue);
   end;
 
   TZDB2_Th_CMD_NOP = class(TZDB2_Th_CMD)
-  private
+  protected
     NOP_Num: PInteger;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
     constructor Create(const ThEng_: TZDB2_Th_Queue; NOP_Num_: PInteger);
   end;
 
+  TOn_ZDB2_Th_CMD_Custom_Execute_C = procedure(Sender: TZDB2_Th_Queue; CoreSpace__: TZDB2_Core_Space);
+  TOn_ZDB2_Th_CMD_Custom_Execute_M = procedure(Sender: TZDB2_Th_Queue; CoreSpace__: TZDB2_Core_Space) of object;
+{$IFDEF FPC}
+  TOn_ZDB2_Th_CMD_Custom_Execute_P = procedure(Sender: TZDB2_Th_Queue; CoreSpace__: TZDB2_Core_Space) is nested;
+{$ELSE FPC}
+  TOn_ZDB2_Th_CMD_Custom_Execute_P = reference to procedure(Sender: TZDB2_Th_Queue; CoreSpace__: TZDB2_Core_Space);
+{$ENDIF FPC}
+
+  TZDB2_Th_CMD_Custom_Execute = class(TZDB2_Th_CMD)
+  protected
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    On_Execute_C: TOn_ZDB2_Th_CMD_Custom_Execute_C;
+    On_Execute_M: TOn_ZDB2_Th_CMD_Custom_Execute_M;
+    On_Execute_P: TOn_ZDB2_Th_CMD_Custom_Execute_P;
+    constructor Create(const ThEng_: TZDB2_Th_Queue);
+  end;
+
   TZDB2_Th_CMD_Flush = class(TZDB2_Th_CMD)
-  private
+  protected
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
     constructor Create(const ThEng_: TZDB2_Th_Queue);
@@ -173,7 +191,7 @@ type
   PSequence_Table_Head = ^TSequence_Table_Head;
 
   TZDB2_Th_CMD_Rebuild_And_Get_Sequence_Table = class(TZDB2_Th_CMD)
-  private
+  protected
     Table_Ptr: PZDB2_BlockHandle;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -181,7 +199,7 @@ type
   end;
 
   TZDB2_Th_CMD_Get_And_Clean_Sequence_Table = class(TZDB2_Th_CMD)
-  private
+  protected
     Table_Ptr: PZDB2_BlockHandle;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -192,7 +210,7 @@ type
   PSequence_Table_ID_Size_Buffer = ^TSequence_Table_ID_Size_Buffer;
 
   TZDB2_Th_CMD_Get_ID_Size_From_Sequence_Table = class(TZDB2_Th_CMD)
-  private
+  protected
     Table_Ptr: PZDB2_BlockHandle;
     ID_Size_Buffer_Ptr: PSequence_Table_ID_Size_Buffer;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -203,7 +221,7 @@ type
   TOn_ZDB2_Th_CMD_Flush_Backcall_Sequence_Table_Event = procedure(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle) of object;
 
   TZDB2_Th_CMD_Flush_Backcall_Sequence_Table = class(TZDB2_Th_CMD)
-  private
+  protected
     OnEvent: TOn_ZDB2_Th_CMD_Flush_Backcall_Sequence_Table_Event;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -211,7 +229,7 @@ type
   end;
 
   TZDB2_Th_CMD_Flush_Sequence_Table = class(TZDB2_Th_CMD)
-  private
+  protected
     Table_Ptr: PZDB2_BlockHandle;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -227,7 +245,7 @@ type
   PExternal_Head = ^TExternal_Head;
 
   TZDB2_Th_CMD_Flush_External_Header = class(TZDB2_Th_CMD)
-  private
+  protected
     Header_Data: TMem64;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -236,7 +254,7 @@ type
   end;
 
   TZDB2_Th_CMD_Get_And_Reset_External_Header = class(TZDB2_Th_CMD)
-  private
+  protected
     Header_Data: TMem64;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
@@ -244,7 +262,7 @@ type
   end;
 
   TZDB2_Th_CMD_Extract_To = class(TZDB2_Th_CMD)
-  private
+  protected
     Input_Ptr: PZDB2_BlockHandle;
     Dest_Th_Engine: TZDB2_Th_Queue;
     Output_Ptr: PZDB2_Th_CMD_ID_And_State_Array;
@@ -260,7 +278,7 @@ type
   end;
 
   TZDB2_Th_CMD_Format_Custom_Space = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Space: Int64;
     Param_Block: Word;
     Param_OnProgress: TZDB2_OnProgress;
@@ -270,7 +288,7 @@ type
   end;
 
   TZDB2_Th_CMD_Fast_Format_Custom_Space = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Space: Int64;
     Param_Block: Word;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -279,7 +297,7 @@ type
   end;
 
   TZDB2_Th_CMD_Append_Custom_Space = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Space: Int64;
     Param_Block: Word;
     Param_OnProgress: TZDB2_OnProgress;
@@ -289,7 +307,7 @@ type
   end;
 
   TZDB2_Th_CMD_Fast_Append_Custom_Space = class(TZDB2_Th_CMD)
-  private
+  protected
     Param_Space: Int64;
     Param_Block: Word;
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
@@ -307,7 +325,7 @@ type
 {$ENDIF FPC}
 
   TZDB2_Th_CMD_Bridge_Mem64_And_State = class
-  private
+  protected
     OnResult_C: TOn_Mem64_And_State_Event_C;
     OnResult_M: TOn_Mem64_And_State_Event_M;
     OnResult_P: TOn_Mem64_And_State_Event_P;
@@ -329,7 +347,7 @@ type
 {$ENDIF FPC}
 
   TZDB2_Th_CMD_Bridge_Stream_And_State = class
-  private
+  protected
     OnResult_C: TOn_Stream_And_State_Event_C;
     OnResult_M: TOn_Stream_And_State_Event_M;
     OnResult_P: TOn_Stream_And_State_Event_P;
@@ -351,7 +369,7 @@ type
 {$ENDIF FPC}
 
   TZDB2_Th_CMD_Bridge_ID_And_State = class
-  private
+  protected
     OnResult_C: TOn_ID_And_State_Event_C;
     OnResult_M: TOn_ID_And_State_Event_M;
     OnResult_P: TOn_ID_And_State_Event_P;
@@ -373,7 +391,7 @@ type
 {$ENDIF FPC}
 
   TZDB2_Th_CMD_Bridge_State = class
-  private
+  protected
     OnResult_C: TOn_State_Event_C;
     OnResult_M: TOn_State_Event_M;
     OnResult_P: TOn_State_Event_P;
@@ -393,7 +411,7 @@ type
   TZDB2_Th_Queue_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Queue>;
 
   TZDB2_Th_Queue = class
-  private
+  protected
     FInstance_Pool_Ptr: TZDB2_Th_Queue_Instance_Pool.PQueueStruct;
     FCMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
@@ -488,6 +506,9 @@ type
     procedure Async_Flush();
     procedure Async_NOP(); overload;
     procedure Async_NOP(var NOP_Num_: Integer); overload;
+    procedure Async_Execute_C(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_C);
+    procedure Async_Execute_M(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_M);
+    procedure Async_Execute_P(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_P);
     procedure Async_Flush_Sequence_Table(const Table_: TZDB2_BlockHandle); overload;
     procedure Async_Flush_Sequence_Table(const L: TZDB2_ID_List); overload;
     procedure Async_Flush_External_Header(Header_Data: TMem64; AutoFree_Data: Boolean);
@@ -778,6 +799,25 @@ begin
   NOP_Num := NOP_Num_;
   if NOP_Num <> nil then
       AtomInc(NOP_Num^);
+  Init();
+end;
+
+procedure TZDB2_Th_CMD_Custom_Execute.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+begin
+  if Assigned(On_Execute_C) then
+      On_Execute_C(Engine, CoreSpace__);
+  if Assigned(On_Execute_M) then
+      On_Execute_M(Engine, CoreSpace__);
+  if Assigned(On_Execute_P) then
+      On_Execute_P(Engine, CoreSpace__);
+end;
+
+constructor TZDB2_Th_CMD_Custom_Execute.Create(const ThEng_: TZDB2_Th_Queue);
+begin
+  inherited Create(ThEng_);
+  On_Execute_C := nil;
+  On_Execute_M := nil;
+  On_Execute_P := nil;
   Init();
 end;
 
@@ -2069,6 +2109,42 @@ var
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.Init(TZDB2_Th_CMD_NOP.Create(self, @NOP_Num_));
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Execute_C(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_C);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+  inst: TZDB2_Th_CMD_Custom_Execute;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  inst := TZDB2_Th_CMD_Custom_Execute.Create(self);
+  inst.On_Execute_C := On_Execute;
+  tmp.Init(inst);
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Execute_M(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_M);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+  inst: TZDB2_Th_CMD_Custom_Execute;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  inst := TZDB2_Th_CMD_Custom_Execute.Create(self);
+  inst.On_Execute_M := On_Execute;
+  tmp.Init(inst);
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_Execute_P(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_P);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+  inst: TZDB2_Th_CMD_Custom_Execute;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  inst := TZDB2_Th_CMD_Custom_Execute.Create(self);
+  inst.On_Execute_P := On_Execute;
+  tmp.Init(inst);
   tmp.Ready;
 end;
 
