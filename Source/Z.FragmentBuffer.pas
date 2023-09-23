@@ -15,6 +15,7 @@ uses
   Winapi.Windows,
 {$ENDIF FPC}
 {$ENDIF MSWINDOWS}
+  DateUtils,
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.MemoryStream;
 
 type
@@ -55,7 +56,7 @@ type
 
     TFragment_Space_Stream_Head = packed record
       Edition: Byte;
-      TimeTick: TTimeTick;
+      TimeTick: TDateTime;
       MD5: TMD5;
       Num: Int64;
     end;
@@ -66,7 +67,7 @@ type
     FRead_Buffer_Cache: Boolean;
     FMin_Pos, FMax_Pos: Int64;
     FFlushFileName: TPascalString;
-    FFLushTime: TTimeTick;
+    FFLushTime: TDateTime;
     FLoad_Error: Boolean;
     FOn_Get_Fragment: TOn_Get_Fragment;
     procedure DoFree(var Data: TPart_Data);
@@ -85,7 +86,7 @@ type
     function Read_Buffer(bPos: Int64; p: Pointer; Size: Int64): Boolean;
     procedure Flush_To_Stream_And_Clear_Buffer(stream: TCore_Stream);
     property FlushFileName: TPascalString read FFlushFileName;
-    property FLushTime: TTimeTick read FFLushTime;
+    property FLushTime: TDateTime read FFLushTime;
     procedure Save_To_Stream(stream: TCore_Stream);
     procedure Save_To_File(FileName_: TPascalString);
     function Load_From_Stream(stream: TCore_Stream): Boolean;
@@ -119,36 +120,44 @@ type
     procedure Sort();
   end;
 
+  TSafe_Flush_Restore_Mode = (sfLastHistory, sfAllHistory, sfIgnore);
+
   TSafe_Flush_Stream = class(TCore_Stream)
   private
+    FCritical: TCritical;
     FFileName: TPascalString;
     FIsNew: Boolean;
     FIsWrite: Boolean;
+    FWait_Hardware: Boolean;
     Source_IO: TCore_Stream;
     FFlush_Num: Int64;
     FMax_Flush_History_Num: Int64;
     FHistory: TFragment_Space_Tool_History;
     FFragment_Space: TFragment_Space_Tool;
-    FSpace_Span: Int64;
-    FRead_Buffer_Cache: Boolean;
+    FFragment_Space_Space_Span: Int64;
+    FFragment_Space_Read_Buffer_Cache: Boolean;
     procedure Do_Get_Fragment(Sender: TFragment_Space_Tool; Position_: Int64; buff_: Pointer; Size_: Int64; var successed: Boolean);
+    procedure Fixed_From_Last_Flush_History; // restore last history
+    procedure Fixed_From_Sequence_Flush_History; // restore sequence history
+  protected
     procedure SetSize(const NewSize: Int64); overload; override;
     procedure SetSize(NewSize: longint); overload; override;
-    procedure Fixed_Flush_History;
   public
+    constructor Create(const FileName_: TPascalString; IsNew_, IsWrite_, IsReliableFile_, Wait_Hardware_: Boolean; RMode: TSafe_Flush_Restore_Mode); overload;
     constructor Create(const FileName_: TPascalString; IsNew_, IsWrite_, IsReliableFile_: Boolean); overload;
     constructor Create(const FileName_: TPascalString; IsNew_, IsWrite_: Boolean); overload;
     destructor Destroy; override;
     property IsNew: Boolean read FIsNew;
     property IsWrite: Boolean read FIsWrite;
+    property Wait_Hardware: Boolean read FWait_Hardware write FWait_Hardware;
     function IsOnlyRead: Boolean;
     property FileName: TPascalString read FFileName;
     property Fragment_Space: TFragment_Space_Tool read FFragment_Space;
-    property Read_Buffer_Cache: Boolean read FRead_Buffer_Cache write FRead_Buffer_Cache;
-    property Space_Span: Int64 read FSpace_Span write FSpace_Span; // 1024*1024
+    property Fragment_Space_Read_Buffer_Cache: Boolean read FFragment_Space_Read_Buffer_Cache write FFragment_Space_Read_Buffer_Cache;
+    property Fragment_Space_Space_Span: Int64 read FFragment_Space_Space_Span write FFragment_Space_Space_Span;
     property Flush_Num: Int64 read FFlush_Num;
-    property Max_Flush_History_Num: Int64 read FMax_Flush_History_Num write FMax_Flush_History_Num; // 10
-    property History: TFragment_Space_Tool_History read FHistory; // flush history
+    property Max_Flush_History_Num: Int64 read FMax_Flush_History_Num write FMax_Flush_History_Num;
+    property History: TFragment_Space_Tool_History read FHistory;
     procedure Flush;
 
     function Write(const Buffer; Count: longint): longint; override;
@@ -498,7 +507,7 @@ var
   head: TFragment_Space_Stream_Head;
   inst: TPart_Data;
 begin
-  FFLushTime := GetTimeTick();
+  FFLushTime := umlNow();
   m64 := TMem64.CustomCreate(SizeOf(TFragment_Space_Stream_Head) + (Num * 16) + Fragment_Memory);
   head.Edition := 1;
   head.TimeTick := FFLushTime;
@@ -548,57 +557,58 @@ var
   inst: TPart_Data;
   n: TPascalString;
 begin
+  FLoad_Error := True;
   Result := False;
   Clear;
   m64 := TMem64.Create;
   m64.LoadFromStream(stream);
   m64.Position := 0;
-  m64.ReadPtr(@head, SizeOf(TFragment_Space_Stream_Head));
-  if head.Edition = 1 then
-    begin
-      MD5 := umlMD5(m64.PosAsPtr(SizeOf(TFragment_Space_Stream_Head)), m64.Size - SizeOf(TFragment_Space_Stream_Head));
-      if umlCompareMD5(MD5, head.MD5) then
-        begin
-          i := 0;
-          while i < head.Num do
-            begin
-              inst := TPart_Data.Create;
-              inst.bPos := m64.ReadInt64;
-              inst.Size := m64.ReadInt64;
-              inst.Mem.Size := inst.Size;
-              m64.ReadPtr(inst.Mem.Memory, inst.Size);
-              inst.Owner_Buffer := FBuffer.Add(inst);
-              if (FMin_Pos = 0) and (FMax_Pos = 0) then
-                begin
-                  FMin_Pos := inst.bPos;
-                  FMax_Pos := inst.ePos;
-                end
-              else
-                begin
-                  FMin_Pos := umlMin(FMin_Pos, inst.bPos);
-                  FMax_Pos := umlMax(FMax_Pos, inst.ePos);
-                end;
-              inc(i);
-              Update_Space_Span(inst.bPos, inst.ePos, True);
-            end;
-          FFLushTime := head.TimeTick;
-          FLoad_Error := False;
-          Result := True;
-        end
-      else
-        begin
-          FLoad_Error := True;
-          if stream is TCore_FileStream then
-              n := TCore_FileStream(stream).FileName
-          else if stream is TReliableFileStream then
-              n := TReliableFileStream(stream).FileName
-          else if stream is TSafe_Flush_Stream then
-              n := TSafe_Flush_Stream(stream).FileName
-          else
-              n := '<Memory>';
-          DoStatus('"%s" Data is corrupt.', [n.Text]);
-        end;
-    end;
+  if m64.ReadPtr(@head, SizeOf(TFragment_Space_Stream_Head)) = SizeOf(TFragment_Space_Stream_Head) then
+    if head.Edition = 1 then
+      begin
+        MD5 := umlMD5(m64.PosAsPtr(SizeOf(TFragment_Space_Stream_Head)), m64.Size - SizeOf(TFragment_Space_Stream_Head));
+        if umlCompareMD5(MD5, head.MD5) then
+          begin
+            i := 0;
+            while i < head.Num do
+              begin
+                inst := TPart_Data.Create;
+                inst.bPos := m64.ReadInt64;
+                inst.Size := m64.ReadInt64;
+                inst.Mem.Size := inst.Size;
+                m64.ReadPtr(inst.Mem.Memory, inst.Size);
+                inst.Owner_Buffer := FBuffer.Add(inst);
+                if (FMin_Pos = 0) and (FMax_Pos = 0) then
+                  begin
+                    FMin_Pos := inst.bPos;
+                    FMax_Pos := inst.ePos;
+                  end
+                else
+                  begin
+                    FMin_Pos := umlMin(FMin_Pos, inst.bPos);
+                    FMax_Pos := umlMax(FMax_Pos, inst.ePos);
+                  end;
+                inc(i);
+                Update_Space_Span(inst.bPos, inst.ePos, True);
+              end;
+            FFLushTime := head.TimeTick;
+            FLoad_Error := False;
+            Result := True;
+          end
+        else
+          begin
+            FLoad_Error := True;
+            if stream is TCore_FileStream then
+                n := TCore_FileStream(stream).FileName
+            else if stream is TReliableFileStream then
+                n := TReliableFileStream(stream).FileName
+            else if stream is TSafe_Flush_Stream then
+                n := TSafe_Flush_Stream(stream).FileName
+            else
+                n := '<Memory>';
+            DoStatus('"%s" Data is corrupt.', [n.Text]);
+          end;
+      end;
   DisposeObject(m64);
 end;
 
@@ -746,7 +756,7 @@ end;
 
 function TFragment_Space_Tool_History.do_sort(var L, R: TFragment_Space_Tool): Integer;
 begin
-  Result := CompareUInt64(L.FFLushTime, R.FFLushTime);
+  Result := CompareDateTime(L.FFLushTime, R.FFLushTime);
 end;
 
 procedure TFragment_Space_Tool_History.Sort;
@@ -764,26 +774,13 @@ begin
   Source_IO.Position := bak_pos;
 end;
 
-procedure TSafe_Flush_Stream.SetSize(const NewSize: Int64);
-begin
-  Source_IO.Size := NewSize;
-end;
-
-procedure TSafe_Flush_Stream.SetSize(NewSize: longint);
-begin
-  SetSize(Int64(NewSize));
-end;
-
-procedure TSafe_Flush_Stream.Fixed_Flush_History;
+procedure TSafe_Flush_Stream.Fixed_From_Last_Flush_History;
 var
   tmp: TFragment_Space_Tool;
-  temp_history_tool: TFragment_Space_Tool_History;
   file_path: U_String;
   file_arry: U_StringArray;
   fn: U_SystemString;
 begin
-  temp_history_tool := TFragment_Space_Tool_History.Create(True);
-
   file_path := umlGetFilePath(FFileName);
   if file_path = '' then
       file_path := umlCurrentPath;
@@ -796,7 +793,7 @@ begin
         tmp := TFragment_Space_Tool.Create;
         if tmp.Load_From_File(umlCombineFileName(file_path, fn)) then
           begin
-            temp_history_tool.Add(tmp);
+            FHistory.Add(tmp);
           end
         else
           begin
@@ -806,37 +803,113 @@ begin
       end;
 
   // write .~SafeFlush
-  if temp_history_tool.Num > 0 then
+  if FHistory.Num > 0 then
     begin
       // sort
-      temp_history_tool.Sort;
+      FHistory.Sort;
       // write last update
-      if Source_IO.Size < temp_history_tool.Last^.Data.FMax_Pos then
-          Source_IO.Size := temp_history_tool.Last^.Data.FMax_Pos;
-      temp_history_tool.Last^.Data.Flush_To_Stream_And_Clear_Buffer(Source_IO);
+      if Source_IO.Size < FHistory.Last^.Data.FMax_Pos then
+          Source_IO.Size := FHistory.Last^.Data.FMax_Pos;
+      FHistory.Last^.Data.Flush_To_Stream_And_Clear_Buffer(Source_IO);
+
 {$IFDEF MSWINDOWS}
-      if Source_IO is TCore_FileStream then
-          FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
+      if FWait_Hardware then
+        if Source_IO is TCore_FileStream then
+            FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
 {$ENDIF MSWINDOWS}
-      // remove .~SafeFlush
-      with temp_history_tool.Repeat_ do
+      with FHistory.Repeat_ do
         repeat
-          umlDeleteFile(Queue^.Data.FFlushFileName);
-          Queue^.Data.Clear;
+            Queue^.Data.Clear;
         until not Next;
       Source_IO.Position := 0;
     end;
-  DisposeObject(temp_history_tool);
 end;
 
-constructor TSafe_Flush_Stream.Create(const FileName_: TPascalString; IsNew_, IsWrite_, IsReliableFile_: Boolean);
+procedure TSafe_Flush_Stream.Fixed_From_Sequence_Flush_History;
+var
+  tmp: TFragment_Space_Tool;
+  file_path: U_String;
+  file_arry: U_StringArray;
+  fn: U_SystemString;
+begin
+  file_path := umlGetFilePath(FFileName);
+  if file_path = '' then
+      file_path := umlCurrentPath;
+
+  // search .~SafeFlush
+  file_arry := umlGet_File_Array(file_path);
+  for fn in file_arry do
+    if umlMultipleMatch(True, umlGetFileName(FFileName) + '.~SafeFlush(*)', fn) then
+      begin
+        tmp := TFragment_Space_Tool.Create;
+        if tmp.Load_From_File(umlCombineFileName(file_path, fn)) then
+          begin
+            FHistory.Add(tmp);
+          end
+        else
+          begin
+            umlDeleteFile(tmp.FFlushFileName);
+            DisposeObject(tmp);
+          end;
+      end;
+
+  // write .~SafeFlush
+  if FHistory.Num > 0 then
+    begin
+      // sort
+      FHistory.Sort;
+
+      // sequence write history
+      with FHistory.Repeat_ do
+        repeat
+          if not Queue^.Data.Load_Error then
+            begin
+              if Source_IO.Size < Queue^.Data.FMax_Pos then
+                  Source_IO.Size := Queue^.Data.FMax_Pos;
+              Queue^.Data.Flush_To_Stream_And_Clear_Buffer(Source_IO);
+              Queue^.Data.Clear;
+            end;
+        until not Next;
+
+{$IFDEF MSWINDOWS}
+      if FWait_Hardware then
+        if Source_IO is TCore_FileStream then
+            FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
+{$ENDIF MSWINDOWS}
+      with FHistory.Repeat_ do
+        repeat
+            Queue^.Data.Clear;
+        until not Next;
+      Source_IO.Position := 0;
+    end;
+end;
+
+procedure TSafe_Flush_Stream.SetSize(const NewSize: Int64);
+begin
+  FCritical.Lock;
+  try
+      Source_IO.Size := NewSize;
+  finally
+      FCritical.UnLock;
+  end;
+end;
+
+procedure TSafe_Flush_Stream.SetSize(NewSize: longint);
+begin
+  SetSize(Int64(NewSize));
+end;
+
+constructor TSafe_Flush_Stream.Create(const FileName_: TPascalString; IsNew_, IsWrite_, IsReliableFile_, Wait_Hardware_: Boolean; RMode: TSafe_Flush_Restore_Mode);
 var
   mode_: Word;
 begin
   inherited Create;
+  FCritical := TCritical.Create;
+
   FFileName := FileName_;
   FIsNew := IsNew_;
   FIsWrite := IsWrite_;
+  FWait_Hardware := Wait_Hardware_;
 
   if umlGetFilePath(FFileName) = '' then
       FFileName := umlCombineFileName(umlCurrentPath, FFileName);
@@ -864,11 +937,21 @@ begin
   FFragment_Space := TFragment_Space_Tool.Create;
   FFragment_Space.Read_Buffer_Cache := True;
   FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
-  FSpace_Span := FFragment_Space.FSpace_Span;
-  FRead_Buffer_Cache := True;
+  FFragment_Space_Space_Span := FFragment_Space.FSpace_Span;
+  FFragment_Space_Read_Buffer_Cache := True;
 
   if (not FIsNew) and (FIsWrite) then
-      Fixed_Flush_History();
+    begin
+      if RMode = TSafe_Flush_Restore_Mode.sfLastHistory then
+          Fixed_From_Last_Flush_History()
+      else if RMode = TSafe_Flush_Restore_Mode.sfAllHistory then
+          Fixed_From_Sequence_Flush_History();
+    end;
+end;
+
+constructor TSafe_Flush_Stream.Create(const FileName_: TPascalString; IsNew_, IsWrite_, IsReliableFile_: Boolean);
+begin
+  Create(FileName_, IsNew_, IsWrite_, False, True, TSafe_Flush_Restore_Mode.sfLastHistory);
 end;
 
 constructor TSafe_Flush_Stream.Create(const FileName_: TPascalString; IsNew_, IsWrite_: Boolean);
@@ -888,6 +971,7 @@ begin
       until not Next;
   DisposeObject(FHistory);
   DisposeObject(FFragment_Space);
+  DisposeObject(FCritical);
   inherited Destroy;
 end;
 
@@ -903,8 +987,17 @@ begin
   if not FIsWrite then
       exit;
   if FFragment_Space.Num <= 0 then
+    begin
+      // rebuild instance
+      DisposeObject(FFragment_Space);
+      FFragment_Space := TFragment_Space_Tool.Create;
+      FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
+      FFragment_Space.Space_Span := FFragment_Space_Space_Span;
+      FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
       exit;
+    end;
 
+  FCritical.Lock;
   try
     // Save .~SafeFlush
     FFragment_Space.Sort();
@@ -918,31 +1011,32 @@ begin
     FFragment_Space.Flush_To_Stream_And_Clear_Buffer(Source_IO);
     Source_IO.Position := bak_pos;
     FFragment_Space.Clear;
-  except
-  end;
 
 {$IFDEF MSWINDOWS}
-  if Source_IO is TCore_FileStream then
-      FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
+    if FWait_Hardware then
+      if Source_IO is TCore_FileStream then
+          FlushFileBuffers(TCore_FileStream(Source_IO).Handle);
 {$ENDIF MSWINDOWS}
-  // save to history
-  FFragment_Space.On_Get_Fragment := nil;
-  FHistory.Add(FFragment_Space);
+    // save to history
+    FFragment_Space.On_Get_Fragment := nil;
+    FHistory.Add(FFragment_Space);
 
-  // rebuild instance
-  FFragment_Space := TFragment_Space_Tool.Create;
-  FFragment_Space.Read_Buffer_Cache := FRead_Buffer_Cache;
-  FFragment_Space.Space_Span := FSpace_Span;
-  FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
+    // rebuild instance
+    FFragment_Space := TFragment_Space_Tool.Create;
+    FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
+    FFragment_Space.Space_Span := FFragment_Space_Space_Span;
+    FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
 
-  if FHistory.Num = 0 then
-      exit;
-  // check and remove history
-  while (FHistory.Num > FMax_Flush_History_Num) do
-    begin
-      umlDeleteFile(FHistory.First^.Data.FFlushFileName);
-      FHistory.Next;
-    end;
+    // check and remove history
+    if FHistory.Num > 0 then
+      while (FHistory.Num > FMax_Flush_History_Num) do
+        begin
+          umlDeleteFile(FHistory.First^.Data.FFlushFileName);
+          FHistory.Next;
+        end;
+  finally
+      FCritical.UnLock;
+  end;
 end;
 
 function TSafe_Flush_Stream.Write(const Buffer; Count: longint): longint;
@@ -951,34 +1045,49 @@ var
 begin
   if not FIsWrite then
       exit(0);
-  pos_ := Source_IO.Position;
-  FFragment_Space.Write_Buffer(pos_, @Buffer, Count);
-  if Source_IO.Size < FFragment_Space.FMax_Pos then
-      Source_IO.Size := FFragment_Space.FMax_Pos;
-  Source_IO.Position := pos_ + Count;
-  Result := Count;
+  FCritical.Lock;
+  try
+    pos_ := Source_IO.Position;
+    FFragment_Space.Write_Buffer(pos_, @Buffer, Count);
+    if Source_IO.Size < FFragment_Space.FMax_Pos then
+        Source_IO.Size := FFragment_Space.FMax_Pos;
+    Source_IO.Position := pos_ + Count;
+    Result := Count;
+  finally
+      FCritical.UnLock;
+  end;
 end;
 
 function TSafe_Flush_Stream.Read(var Buffer; Count: longint): longint;
 var
   pos_: Int64;
 begin
-  if FIsWrite then
-      pos_ := Source_IO.Position;
-  if FIsWrite and FFragment_Space.Read_Buffer(pos_, @Buffer, Count) then
-    begin
-      Source_IO.Position := pos_ + Count;
-      Result := Count;
-    end
-  else
-    begin
-      Result := Source_IO.Read(Buffer, Count);
-    end;
+  FCritical.Lock;
+  try
+    if FIsWrite then
+        pos_ := Source_IO.Position;
+    if FIsWrite and FFragment_Space.Read_Buffer(pos_, @Buffer, Count) then
+      begin
+        Source_IO.Position := pos_ + Count;
+        Result := Count;
+      end
+    else
+      begin
+        Result := Source_IO.Read(Buffer, Count);
+      end;
+  finally
+      FCritical.UnLock;
+  end;
 end;
 
 function TSafe_Flush_Stream.Seek(const Offset: Int64; origin: TSeekOrigin): Int64;
 begin
-  Result := Source_IO.Seek(Offset, origin);
+  FCritical.Lock;
+  try
+      Result := Source_IO.Seek(Offset, origin);
+  finally
+      FCritical.UnLock;
+  end;
 end;
 
 class procedure TSafe_Flush_Stream.Test;
@@ -1012,6 +1121,11 @@ begin
       W(@buff[umlRR(0, length(buff) - 400)], umlRR(4, 400));
     end;
   fs.Flush;
+
+  if not umlCompareMD5(umlStreamMD5(fs), umlStreamMD5(mirror)) then
+      DoStatus('TSafe_Flush_Stream test failed!')
+  else
+      DoStatus('TSafe_Flush_Stream test passed!');
 
   DisposeObject(fs);
   DisposeObject(mirror);
