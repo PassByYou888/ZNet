@@ -75,6 +75,7 @@ var
   ConsoleOutput: Boolean;
   OnDoStatusHook: TDoStatus_C;
   StatusThreadID: Boolean;
+  One_Step_Status_Limit: Integer;
 
 implementation
 
@@ -482,6 +483,8 @@ begin
 end;
 
 procedure CheckDoStatus(Th: TCore_Thread);
+var
+  i: Integer;
 begin
   if Status_Critical__ = nil then
       exit;
@@ -489,10 +492,12 @@ begin
       exit;
   Status_Critical__.Acquire;
   try
-    while Text_Queue_Data_Pool__.Num > 0 do
+    i := 0;
+    while (Text_Queue_Data_Pool__.Num > 0) and (i < One_Step_Status_Limit) do
       begin
         _InternalOutput(Text_Queue_Data_Pool__.First^.Data^.S, Text_Queue_Data_Pool__.First^.Data^.ID);
         Text_Queue_Data_Pool__.Next;
+        inc(i);
       end;
   finally
       Status_Critical__.Release;
@@ -650,6 +655,7 @@ begin
   ConsoleOutput := True;
   OnDoStatusHook := {$IFDEF FPC}@{$ENDIF FPC}InternalDoStatus;
   StatusThreadID := True;
+  One_Step_Status_Limit := 20;
 
   Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
   Z.Core.OnCheckThreadSynchronize := {$IFDEF FPC}@{$ENDIF FPC}DoCheckThreadSynchronize;
