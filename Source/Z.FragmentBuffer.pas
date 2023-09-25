@@ -16,7 +16,7 @@ uses
 {$ENDIF FPC}
 {$ENDIF MSWINDOWS}
   DateUtils,
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.ListEngine, Z.MemoryStream;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.MemoryStream;
 
 type
   TPart_Data = class;
@@ -28,7 +28,7 @@ type
   public
     Owner_Buffer: TPart_Buffer_Tool_.PQueueStruct;
     bPos: Int64;
-    Mem: TMem64;
+    Memory: TMem64;
     Size: Int64;
     constructor Create;
     destructor Destroy; override;
@@ -45,7 +45,7 @@ type
     constructor Create(Owner_: TFragment_Space_Tool);
     destructor Destroy; override;
     procedure Sort;
-    procedure Extract_To_Mem(Mem: TMem64; Mem_Pos: Int64);
+    procedure Extract_To_Mem(Memory: TMem64; Mem_Pos: Int64);
   end;
 
   TOn_Get_Fragment = procedure(Sender: TFragment_Space_Tool; Position_: Int64; buff_: Pointer; Size_: Int64; var successed: Boolean) of object;
@@ -176,13 +176,13 @@ begin
   inherited Create;
   Owner_Buffer := nil;
   bPos := 0;
-  Mem := TMem64.CustomCreate(1024);
+  Memory := TMem64.CustomCreate(1024);
   Size := 0;
 end;
 
 destructor TPart_Data.Destroy;
 begin
-  DisposeObjectAndNil(Mem);
+  DisposeObjectAndNil(Memory);
   inherited Destroy;
 end;
 
@@ -203,9 +203,9 @@ end;
 procedure TPart_Data.Copy_To_Ptr(b, buff_size: Int64; p: Pointer);
 begin
   if bPos >= b then
-      CopyPtr(Mem.Memory, GetOffset(p, bPos - b), umlMin(buff_size - (bPos - b), Size))
+      CopyPtr(Memory.Memory, GetOffset(p, bPos - b), umlMin(buff_size - (bPos - b), Size))
   else
-      CopyPtr(Mem.PosAsPtr(b - bPos), p, umlMin(buff_size, Size - (b - bPos)));
+      CopyPtr(Memory.PosAsPtr(b - bPos), p, umlMin(buff_size, Size - (b - bPos)));
 end;
 
 function TPart_Buffer_Tool.Do_Sort_bPos(var L, R: TPart_Data): Integer;
@@ -231,7 +231,7 @@ begin
   Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort_bPos);
 end;
 
-procedure TPart_Buffer_Tool.Extract_To_Mem(Mem: TMem64; Mem_Pos: Int64);
+procedure TPart_Buffer_Tool.Extract_To_Mem(Memory: TMem64; Mem_Pos: Int64);
 var
   bPos, ePos: Int64;
 begin
@@ -239,10 +239,10 @@ begin
       exit;
   bPos := First^.Data.bPos;
   ePos := Last^.Data.ePos;
-  Mem.Size := Mem_Pos + (ePos - bPos);
+  Memory.Size := Mem_Pos + (ePos - bPos);
   with Repeat_ do
     repeat
-        CopyPtr(Queue^.Data.Mem.Memory, Mem.PosAsPtr(Mem_Pos + (Queue^.Data.bPos - bPos)), Queue^.Data.Size);
+        CopyPtr(Queue^.Data.Memory.Memory, Memory.PosAsPtr(Mem_Pos + (Queue^.Data.bPos - bPos)), Queue^.Data.Size);
     until not Next;
 end;
 
@@ -329,7 +329,7 @@ begin
       inst := L.First^.Data;
       if (inst.bPos <= bPos) and (inst.ePos >= bPos + Size) then // overwrite
         begin
-          CopyPtr(p, inst.Mem.PosAsPtr(bPos - inst.bPos), Size);
+          CopyPtr(p, inst.Memory.PosAsPtr(bPos - inst.bPos), Size);
           DisposeObject(L);
           Result := True;
           Update_Space_Span(bPos, bPos + Size, True);
@@ -337,9 +337,9 @@ begin
         end;
       if (inst.ePos = bPos) then // append
         begin
-          inst.Mem.Delta := umlMin(1024 * 1024, inst.Size);
-          inst.Mem.Position := inst.Size;
-          inst.Mem.WritePtr(p, Size);
+          inst.Memory.Delta := umlMin(1024 * 1024, inst.Size);
+          inst.Memory.Position := inst.Size;
+          inst.Memory.WritePtr(p, Size);
           inst.Size := inst.Size + Size;
           DisposeObject(L);
           Result := True;
@@ -352,18 +352,18 @@ begin
   if L.First^.Data.bPos < bPos then
     begin
       inst.bPos := L.First^.Data.bPos;
-      L.Extract_To_Mem(inst.Mem, 0);
-      inst.Mem.Position := bPos - L.First^.Data.bPos;
+      L.Extract_To_Mem(inst.Memory, 0);
+      inst.Memory.Position := bPos - L.First^.Data.bPos;
     end
   else
     begin
       inst.bPos := bPos;
-      L.Extract_To_Mem(inst.Mem, L.First^.Data.bPos - bPos);
-      inst.Mem.Position := 0;
+      L.Extract_To_Mem(inst.Memory, L.First^.Data.bPos - bPos);
+      inst.Memory.Position := 0;
     end;
   // overwrite overlap buffer
-  inst.Mem.WritePtr(p, Size);
-  inst.Size := inst.Mem.Size;
+  inst.Memory.WritePtr(p, Size);
+  inst.Size := inst.Memory.Size;
   // new queue
   inst.Owner_Buffer := FBuffer.Add(inst);
   if (FMin_Pos = 0) and (FMax_Pos = 0) then
@@ -434,7 +434,7 @@ begin
       exit;
   inst := TPart_Data.Create;
   inst.bPos := bPos;
-  inst.Mem.WritePtr(p, Size);
+  inst.Memory.WritePtr(p, Size);
   inst.Size := Size;
   inst.Owner_Buffer := FBuffer.Add(inst);
   if (FMin_Pos = 0) and (FMax_Pos = 0) then
@@ -465,7 +465,7 @@ begin
       inst := L.First^.Data;
       if (inst.bPos <= bPos) and (inst.ePos >= bPos + Size) then
         begin
-          CopyPtr(inst.Mem.PosAsPtr(bPos - inst.bPos), p, Size);
+          CopyPtr(inst.Memory.PosAsPtr(bPos - inst.bPos), p, Size);
           DisposeObject(L);
           Result := True;
           exit;
@@ -495,7 +495,7 @@ begin
       with Repeat_ do
         repeat
           stream.Position := Queue^.Data.bPos;
-          stream.Write(Queue^.Data.Mem.Memory^, Queue^.Data.Size);
+          stream.Write(Queue^.Data.Memory.Memory^, Queue^.Data.Size);
         until not Next;
       Clear;
     end;
@@ -521,7 +521,7 @@ begin
         inst := Queue^.Data;
         m64.WriteInt64(inst.bPos);
         m64.WriteInt64(inst.Size);
-        m64.WritePtr(inst.Mem.Memory, inst.Size);
+        m64.WritePtr(inst.Memory.Memory, inst.Size);
       until not Next;
   head.MD5 := umlMD5(m64.PosAsPtr(SizeOf(TFragment_Space_Stream_Head)), m64.Size - SizeOf(TFragment_Space_Stream_Head));
   m64.Position := 0;
@@ -575,8 +575,8 @@ begin
                 inst := TPart_Data.Create;
                 inst.bPos := m64.ReadInt64;
                 inst.Size := m64.ReadInt64;
-                inst.Mem.Size := inst.Size;
-                m64.ReadPtr(inst.Mem.Memory, inst.Size);
+                inst.Memory.Size := inst.Size;
+                m64.ReadPtr(inst.Memory.Memory, inst.Size);
                 inst.Owner_Buffer := FBuffer.Add(inst);
                 if (FMin_Pos = 0) and (FMax_Pos = 0) then
                   begin
@@ -687,7 +687,7 @@ var
     Result := True;
     repeat___ := t_.tool.Repeat_;
     repeat
-      if not CompareMemory(repeat___.Queue^.Data.Mem.Memory, t_.mirror.PosAsPtr(repeat___.Queue^.Data.bPos), repeat___.Queue^.Data.Size) then
+      if not CompareMemory(repeat___.Queue^.Data.Memory.Memory, t_.mirror.PosAsPtr(repeat___.Queue^.Data.bPos), repeat___.Queue^.Data.Size) then
         begin
           Result := False;
           break;
