@@ -923,6 +923,8 @@ type
     function Do_Reg(var OP_Param: TOpParam): Variant;
     function Do_KillNet(var OP_Param: TOpParam): Variant;
     function Do_SetQuiet(var OP_Param: TOpParam): Variant;
+    function Do_Save_All_C4Service_Config(var OP_Param: TOpParam): Variant;
+    function Do_Save_All_C4Client_Config(var OP_Param: TOpParam): Variant;
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
     function Do_ZDB2_Info(var OP_Param: TOpParam): Variant;
@@ -980,6 +982,8 @@ var
   C40_VM_Client_Pool: TC40_Custom_VM_Client_Pool;
   { default configure }
   C40_DefaultConfig: THashStringList;
+  { ignore command-line parameter }
+  Ignore_Command_Line: TPascalStringList;
 {$ENDREGION 'Var'}
 {$REGION 'API'}
 procedure C40Progress(sleep_: Integer); overload; { C4 main progress }
@@ -6476,6 +6480,42 @@ begin
   Result := True;
 end;
 
+function TC40_Console_Help.Do_Save_All_C4Service_Config(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  serv: TC40_Custom_Service;
+  ph, fn: U_String;
+begin
+  for i := 0 to C40_ServicePool.Count - 1 do
+    begin
+      serv := C40_ServicePool[i];
+      ph := umlCombinePath(C40_RootPath, serv.ServiceInfo.ServiceTyp);
+      if not umlDirectoryExists(ph) then
+          ph := C40_RootPath;
+      fn := umlCombineFileName(ph, PFormat('S_%s.conf', [serv.ServiceInfo.ServiceTyp.Text]));
+      serv.ParamList.SaveToFile(fn);
+      DoStatus('save class "%s" %s to %s', [serv.ClassName, serv.ServiceInfo.ServiceTyp.Text, fn.Text]);
+    end;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Save_All_C4Client_Config(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+  cli: TC40_Custom_Client;
+  ph, fn: U_String;
+begin
+  for i := 0 to C40_ClientPool.Count - 1 do
+    begin
+      cli := C40_ClientPool[i];
+      ph := C40_RootPath;
+      fn := umlCombineFileName(ph, PFormat('C_%s.conf', [cli.ClientInfo.ServiceTyp.Text]));
+      cli.ParamList.SaveToFile(fn);
+      DoStatus('save class "%s" %s to %s', [cli.ClassName, cli.ClientInfo.ServiceTyp.Text, fn.Text]);
+    end;
+  Result := True;
+end;
+
 function TC40_Console_Help.Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
 var
   hpc_: THPC_Base;
@@ -6762,13 +6802,15 @@ begin
   opRT.RegOpM('cli', 'cli(ip, port), tunnel report.', {$IFDEF FPC}@{$ENDIF FPC}Do_Tunnel, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('RegInfo', 'C4 registed info.', {$IFDEF FPC}@{$ENDIF FPC}Do_Reg, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', {$IFDEF FPC}@{$ENDIF FPC}Do_KillNet, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Save_All_C4Service_Config', 'Save_All_C4Service_Config(), save all c4 service config to file', {$IFDEF FPC}@{$ENDIF FPC}Do_Save_All_C4Service_Config, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Save_All_C4Client_Config', 'Save_All_C4Client_Config(), save all c4 client config to file', {$IFDEF FPC}@{$ENDIF FPC}Do_Save_All_C4Client_Config, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZDB2_Flush', 'ZDB2_Flush), flush all zdb2 thread engine.', {$IFDEF FPC}@{$ENDIF FPC}Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', {$IFDEF FPC}@{$ENDIF FPC}Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
@@ -6886,6 +6928,9 @@ RegisterC40('DD', TC40_Base_DataStore_Service, TC40_Base_DataStore_Client);
 C40_DefaultConfig := THashStringList.CustomCreate(8);
 C40WriteConfig(C40_DefaultConfig);
 
+{ ignore command-line parameter }
+Ignore_Command_Line := TPascalStringList.Create;
+
 { hook on check thread }
 Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
 Z.Core.OnCheckThreadSynchronize := {$IFDEF FPC}@{$ENDIF FPC}DoCheckThreadSynchronize;
@@ -6902,6 +6947,7 @@ DisposeObjectAndNil(C40_VM_Service_Pool);
 DisposeObjectAndNil(C40_VM_Client_Pool);
 DisposeObjectAndNil(C40_Registed);
 DisposeObjectAndNil(C40_DefaultConfig);
+DisposeObjectAndNil(Ignore_Command_Line);
 
 Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
 
