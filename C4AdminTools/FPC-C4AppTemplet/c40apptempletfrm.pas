@@ -1487,22 +1487,16 @@ begin
     for i := low(param_) to high(param_) do
     begin
       // ignore none c4 param
-      if not umlMultipleMatch([
-          '-Task:*', '-TaskID:*', // Protected Param
-          '-minimized', 'minimized', '-min', 'min', // Protected Param
-          '-Max_Mem_Protected:*', '-Max_Memory:*', '-Memory:*', '-Mem:*', 'mem:*', 'memory:*', // Protected Param
-          '-NUMA:*', 'NUMA:*', '-NODE:*', 'Node:*', // Protected Param
-          '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme', '-DefaultTheme' // fmx app param
-          ], C40AppParam[i]) then
-        begin
-          if (Ignore_Command_Line.Count > 0) then
-            begin
-              if not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]) then
-                  cs.Parsing(C40AppParam[i]);
-            end
-          else
-              cs.Parsing(C40AppParam[i]);
-        end;
+      if (not umlMultipleMatch(['-Task:*', '-TaskID:*', // Protected Param
+        '-minimized', 'minimized', '-min', 'min', // Protected Param
+        '-Max_Mem_Protected:*', '-Max_Memory:*', '-Memory:*',
+        '-Mem:*', 'mem:*', 'memory:*', // Protected Param
+        '-NUMA:*', 'NUMA:*', '-NODE:*', 'Node:*', // Protected Param
+        '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme',
+        '-DefaultTheme' // fmx app param
+        ], C40AppParam[i])) and ((Ignore_Command_Line.Count <= 0) or
+        (not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]))) then
+        cs.Parsing(C40AppParam[i]);
     end;
 
     if (not error_) and (cs.Client_NetInfo_List.Count > 0) then
