@@ -430,6 +430,7 @@ function umlMultipleMatch(IgnoreCase: Boolean; const source, target, Multiple_, 
 function umlMultipleMatch(IgnoreCase: Boolean; const source, target: TPascalString): Boolean; overload;
 function umlMultipleMatch(const source, target: TPascalString): Boolean; overload;
 function umlMultipleMatch(const source: array of TPascalString; const target: TPascalString): Boolean; overload;
+function umlMultipleMatch(const source: TPascalStringList; const target: TPascalString): Boolean; overload;
 function umlSearchMatch(const source, target: TPascalString): Boolean; overload;
 function umlSearchMatch(const source, exclude, target: TPascalString): Boolean; overload;
 function umlSearchMatch(const source: TArrayPascalString; target: TPascalString): Boolean; overload;
@@ -4666,6 +4667,28 @@ begin
         begin
           Result := False;
           for i := low(source) to high(source) do
+            begin
+              Result := umlMultipleMatch(True, source[i], target);
+              if Result then
+                  exit;
+            end;
+        end
+      else
+          Result := True;
+    end;
+end;
+
+function umlMultipleMatch(const source: TPascalStringList; const target: TPascalString): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if target.L > 0 then
+    begin
+      if source.Count > 0 then
+        begin
+          Result := False;
+          for i := 0 to source.Count - 1 do
             begin
               Result := umlMultipleMatch(True, source[i], target);
               if Result then
