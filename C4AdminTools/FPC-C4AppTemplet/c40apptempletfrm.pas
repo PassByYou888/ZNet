@@ -666,11 +666,11 @@ begin
   begin
     if JoinAuto_CheckBox.Checked then
       param.Add(Format('AutoTunnel(%s,%s,%s,%s)',
-        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text),
-        umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
+        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text),
+        conv_(DependEdit.Text), umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
     else
-      param.Add(Format('Tunnel(%s,%s,%s)',
-        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+      param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text),
+        conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
   end;
 
   final_param := '';
@@ -735,11 +735,11 @@ begin
   begin
     if JoinAuto_CheckBox.Checked then
       param.Add(Format('AutoTunnel(%s,%s,%s,%s)',
-        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text),
-        umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
+        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text),
+        conv_(DependEdit.Text), umlBoolToStr(JoinMinWorkload_CheckBox.Checked).Text]))
     else
-      param.Add(Format('Tunnel(%s,%s,%s)',
-        [conv_(JoinHostEdit.Text), conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
+      param.Add(Format('Tunnel(%s,%s,%s)', [conv_(JoinHostEdit.Text),
+        conv_(JoinPortEdit.Text), conv_(DependEdit.Text)]));
   end;
 
   final_param := '';
@@ -1040,7 +1040,8 @@ begin
     phy_serv := C40_PhysicsServicePool[i];
     if ServInfoPhyAddrListBox.Items.IndexOfObject(phy_serv) < 0 then
       ServInfoPhyAddrListBox.Items.AddObject(
-        Format('service "%s" port:%d', [phy_serv.PhysicsAddr.Text, phy_serv.PhysicsPort]),
+        Format('service "%s" port:%d', [phy_serv.PhysicsAddr.Text,
+        phy_serv.PhysicsPort]),
         phy_serv);
   end;
 
@@ -1113,7 +1114,8 @@ begin
     phy_tunnel := C40_PhysicsTunnelPool[i];
     if TunnelInfoPhyAddrListBox.Items.IndexOfObject(phy_tunnel) < 0 then
       TunnelInfoPhyAddrListBox.Items.AddObject(
-        Format('tunnel "%s" port:%d', [phy_tunnel.PhysicsAddr.Text, phy_tunnel.PhysicsPort]),
+        Format('tunnel "%s" port:%d', [phy_tunnel.PhysicsAddr.Text,
+        phy_tunnel.PhysicsPort]),
         phy_tunnel);
   end;
 
@@ -1240,8 +1242,8 @@ begin
   begin
     cs := C40_ServicePool[i];
     nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d',
-      [cs.ServiceInfo.PhysicsAddr.Text, cs.ServiceInfo.PhysicsPort]), '|',
-      SaaS_Info_TreeView, nil);
+      [cs.ServiceInfo.PhysicsAddr.Text, cs.ServiceInfo.PhysicsPort]),
+      '|', SaaS_Info_TreeView, nil);
     nd2 := GetPathTreeNode(Format('Type: %s', [cs.ServiceInfo.ServiceTyp.Text]),
       '|', SaaS_Info_TreeView, nd1);
     nd3 := GetPathTreeNode(Format('local service is running, class: %s unit: %s',
@@ -1253,7 +1255,8 @@ begin
       [umlSizeToStr(cs.C40PhysicsService.PhysicsTunnel.Statistics[stSendSize]).Text]),
       '|', SaaS_Info_TreeView, nd3);
     GetPathTreeNode(Format('workload:*@workload: %d / %d',
-      [cs.ServiceInfo.Workload, cs.ServiceInfo.MaxWorkload]), '|', SaaS_Info_TreeView, nd3);
+      [cs.ServiceInfo.Workload, cs.ServiceInfo.MaxWorkload]), '|',
+      SaaS_Info_TreeView, nd3);
     if cs.Alias_or_Hash___.L > 0 then
       GetPathTreeNode(Format('alias:*@alias: %s', [cs.AliasOrHash.Text]),
         '|', SaaS_Info_TreeView, nd3);
@@ -1262,9 +1265,11 @@ begin
       nd4 := GetPathTreeNode(Format('p2pVM information', []), '|',
         SaaS_Info_TreeView, nd3);
       GetPathTreeNode(Format('receive:*@receive: %s',
-        [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        [umlSizeToStr(s_recv_.Statistics[stReceiveSize]).Text]), '|',
+        SaaS_Info_TreeView, nd4);
       GetPathTreeNode(Format('send:*@send: %s',
-        [umlSizeToStr(s_send_.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        [umlSizeToStr(s_send_.Statistics[stSendSize]).Text]), '|',
+        SaaS_Info_TreeView, nd4);
     end;
   end;
 
@@ -1272,8 +1277,8 @@ begin
   begin
     cc := C40_ClientPool[i];
     nd1 := GetPathTreeNode(Format('Network Nodes|host: %s port: %d',
-      [cc.ClientInfo.PhysicsAddr.Text, cc.ClientInfo.PhysicsPort]), '|',
-      SaaS_Info_TreeView, nil);
+      [cc.ClientInfo.PhysicsAddr.Text, cc.ClientInfo.PhysicsPort]),
+      '|', SaaS_Info_TreeView, nil);
     nd2 := GetPathTreeNode(Format('Type: %s', [cc.ClientInfo.ServiceTyp.Text]),
       '|', SaaS_Info_TreeView, nd1);
     nd3 := GetPathTreeNode(Format('local client is running, class: %s unit: %s',
@@ -1292,9 +1297,11 @@ begin
       nd4 := GetPathTreeNode(Format('p2pVM information', []), '|',
         SaaS_Info_TreeView, nd3);
       GetPathTreeNode(Format('receive:*@receive: %s',
-        [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        [umlSizeToStr(c_recv_.Statistics[stReceiveSize]).Text]), '|',
+        SaaS_Info_TreeView, nd4);
       GetPathTreeNode(Format('send:*@send: %s',
-        [umlSizeToStr(c_send_.Statistics[stSendSize]).Text]), '|', SaaS_Info_TreeView, nd4);
+        [umlSizeToStr(c_send_.Statistics[stSendSize]).Text]), '|',
+        SaaS_Info_TreeView, nd4);
     end;
   end;
 end;
@@ -1478,7 +1485,25 @@ begin
     cs.RegApi;
 
     for i := low(param_) to high(param_) do
-      cs.Parsing(param_[i]);
+    begin
+      // ignore none c4 param
+      if not umlMultipleMatch([
+          '-Task:*', '-TaskID:*', // Protected Param
+          '-minimized', 'minimized', '-min', 'min', // Protected Param
+          '-Max_Mem_Protected:*', '-Max_Memory:*', '-Memory:*', '-Mem:*', 'mem:*', 'memory:*', // Protected Param
+          '-NUMA:*', 'NUMA:*', '-NODE:*', 'Node:*', // Protected Param
+          '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme', '-DefaultTheme' // fmx app param
+          ], C40AppParam[i]) then
+        begin
+          if (Ignore_Command_Line.Count > 0) then
+            begin
+              if not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]) then
+                  cs.Parsing(C40AppParam[i]);
+            end
+          else
+              cs.Parsing(C40AppParam[i]);
+        end;
+    end;
 
     if (not error_) and (cs.Client_NetInfo_List.Count > 0) then
     begin
