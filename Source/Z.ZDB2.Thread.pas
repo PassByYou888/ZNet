@@ -350,6 +350,9 @@ type
     Fragment_Space_Read_Buffer_Cache: Boolean;
     Fragment_Space_Wait_hardware: Boolean;
     Fragment_Space_Restore_Mode: TSafe_Flush_Restore_Mode;
+    Fragment_Space_Max_Flush_History_Num: Integer;
+    // automated
+    Password_Error_Or_Fault_Shutdown_Remove_Database: Boolean;
     // api
     constructor Create(Owner_: TZDB2_Th_Engine_Marshal); virtual;
     destructor Destroy; override;
@@ -2129,6 +2132,8 @@ begin
   Fragment_Space_Read_Buffer_Cache := True;
   Fragment_Space_Wait_hardware := True;
   Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfLastHistory;
+  Fragment_Space_Max_Flush_History_Num := 10;
+  Password_Error_Or_Fault_Shutdown_Remove_Database := True;
 end;
 
 destructor TZDB2_Th_Engine.Destroy;
@@ -2215,6 +2220,8 @@ begin
       Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfAllHistory
   else
       Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfIgnore;
+  Fragment_Space_Max_Flush_History_Num := EStrToInt64(cfg.GetDefaultValue('Fragment_Space_Max_Flush_History_Num', umlIntToStr(Fragment_Space_Max_Flush_History_Num)), Fragment_Space_Max_Flush_History_Num);
+  Password_Error_Or_Fault_Shutdown_Remove_Database := EStrToBool(cfg.GetDefaultValue('Password_Error_Or_Fault_Shutdown_Remove_Database', umlBoolToStr(Password_Error_Or_Fault_Shutdown_Remove_Database)), Password_Error_Or_Fault_Shutdown_Remove_Database);
 end;
 
 procedure TZDB2_Th_Engine.ReadConfig(cfg: THashStringList);
@@ -2264,6 +2271,8 @@ begin
     sfAllHistory: cfg.SetDefaultValue('Fragment_Space_Restore_Mode', 'All');
     sfIgnore: cfg.SetDefaultValue('Fragment_Space_Restore_Mode', 'Ignore');
   end;
+  cfg.SetDefaultValue('Fragment_Space_Max_Flush_History_Num', umlIntToStr(Fragment_Space_Max_Flush_History_Num));
+  cfg.SetDefaultValue('Password_Error_Or_Fault_Shutdown_Remove_Database', umlBoolToStr(Password_Error_Or_Fault_Shutdown_Remove_Database));
 end;
 
 procedure TZDB2_Th_Engine.Update_Engine_Data_Ptr();
@@ -2955,8 +2964,10 @@ begin
               not OnlyRead,
               False,
               Fragment_Space_Wait_hardware, Fragment_Space_Restore_Mode);
+
             TSafe_Flush_Stream(Stream).Fragment_Space_Space_Span := Fragment_Space_Space_Span;
             TSafe_Flush_Stream(Stream).Fragment_Space_Read_Buffer_Cache := Fragment_Space_Read_Buffer_Cache;
+            TSafe_Flush_Stream(Stream).Max_Flush_History_Num := Fragment_Space_Max_Flush_History_Num;
             TSafe_Flush_Stream(Stream).Flush;
 {$ELSE ZDB2_Thread_Engine_Safe_Flush}
             Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
@@ -3016,6 +3027,13 @@ begin
                 Build(Data_Class);
                 exit;
               end;
+          end
+        else if Password_Error_Or_Fault_Shutdown_Remove_Database then
+          begin
+            DoStatus('automation restore: a data error occurred and the system has removed the database: %s', [Database_File.Text]);
+            umlDeleteFile(Database_File);
+            Build(Data_Class);
+            exit;
           end;
         DoStatus('"%s" password error or data corruption.', [Database_File.Text]);
       end;
