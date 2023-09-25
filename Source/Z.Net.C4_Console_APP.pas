@@ -299,7 +299,18 @@ begin
     cmd_script_.RegApi;
 
     for i := low(C40AppParam) to high(C40AppParam) do
-        cmd_script_.Parsing(C40AppParam[i]);
+      begin
+        // ignore none c4 param
+        if (not umlMultipleMatch([
+              '-Task:*', '-TaskID:*', // Protected Param
+              '-minimized', 'minimized', '-min', 'min', // Protected Param
+              '-Max_Mem_Protected:*', '-Max_Memory:*', '-Memory:*', '-Mem:*', 'mem:*', 'memory:*', // Protected Param
+              '-NUMA:*', 'NUMA:*', '-NODE:*', 'Node:*', // Protected Param
+              '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme', '-DefaultTheme' // fmx app param
+              ], C40AppParam[i])) and
+          ((Ignore_Command_Line.Count <= 0) or (not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]))) then
+            cmd_script_.Parsing(C40AppParam[i]);
+      end;
 
     if (not error_) and (cmd_script_.Client_NetInfo_List.Count > 0) then
       begin
