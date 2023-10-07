@@ -414,7 +414,7 @@ begin
                   'SysLog message has invalid date format ("' +
                   String(RawMessage) + '"');
     Inc(Index);
-    SMonth := GetDigits(RawMessage, Index);;
+    SMonth := GetDigits(RawMessage, Index);
     if (SMonth = '') or
        (Index > Length(RawMessage)) or
        (RawMessage[Index] <> '-') then

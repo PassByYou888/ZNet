@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.ListEngine;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -992,7 +993,7 @@ type
   end;
 
   PListPascalStringData = ^TListPascalStringData;
-  TListPascalStringData_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PListPascalStringData>;
+  TListPascalStringData_List = TGenericsList<PListPascalStringData>;
 
   TPascalString_Sort_C = function(var L, R: TPascalString): Integer;
   TPascalString_Sort_M = function(var L, R: TPascalString): Integer of object;
@@ -1084,7 +1085,7 @@ type
     procedure Init;
   end;
 
-  TBackcall_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<POn_Backcall_>;
+  TBackcall_List_Decl = TGenericsList<POn_Backcall_>;
 
   TBackcall_Pool = class(TCore_Object)
   private
@@ -1116,34 +1117,34 @@ type
 {$ENDREGION 'TBackcall_Pool'}
 {$REGION 'Generics decl'}
 
-  TStringBigList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<SystemString>;
+  TStringBigList_Decl = TBigList<SystemString>;
 
   TStringBigList = class(TStringBigList_Decl)
   public
     procedure DoFree(var Data: SystemString); override;
   end;
 
-  TPascalStringBigList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPascalString>;
+  TPascalStringBigList_Decl = TBigList<TPascalString>;
 
   TPascalStringBigList = class(TPascalStringBigList_Decl)
   public
     procedure DoFree(var Data: TPascalString); override;
   end;
 
-  TUInt8List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Byte>;
+  TUInt8List = TGenericsList<Byte>;
   TByteList = TUInt8List;
-  TInt8List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<ShortInt>;
-  TUInt16List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Word>;
+  TInt8List = TGenericsList<ShortInt>;
+  TUInt16List = TGenericsList<Word>;
   TWordList = TUInt16List;
-  TInt16List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<SmallInt>;
-  TUInt32List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Cardinal>;
-  TInt32List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;
-  TUInt64List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<UInt64>;
-  TInt64List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Int64>;
-  TSingleList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Single>;
-  TFloatList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Single>;
-  TDoubleList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Double>;
-  TVariantList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Variant>;
+  TInt16List = TGenericsList<SmallInt>;
+  TUInt32List = TGenericsList<Cardinal>;
+  TInt32List = TGenericsList<Integer>;
+  TUInt64List = TGenericsList<UInt64>;
+  TInt64List = TGenericsList<Int64>;
+  TSingleList = TGenericsList<Single>;
+  TFloatList = TGenericsList<Single>;
+  TDoubleList = TGenericsList<Double>;
+  TVariantList = TGenericsList<Variant>;
 {$ENDREGION 'Generics decl'}
 
 function HashMod(const h: THash; const m: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
@@ -1413,7 +1414,7 @@ begin
   FIgnoreCase := True;
   FAccessOptimization := False;
 
-  FOnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
+  FOnFreePtr := DefaultDataFreeProc;
   FFirst := nil;
   FLast := nil;
   FMaxNameSize := -1;
@@ -2296,7 +2297,7 @@ begin
   FIDSeed := 0;
   FAccessOptimization := False;
   FAutoFreeData := False;
-  FOnObjectFreeProc := {$IFDEF FPC}@{$ENDIF FPC}DefaultObjectFreeProc;
+  FOnObjectFreeProc := DefaultObjectFreeProc;
   FFirst := nil;
   FLast := nil;
   SetLength(FListBuffer, 0);
@@ -2976,7 +2977,7 @@ begin
   FAutoFreeData := False;
   FFirst := nil;
   FLast := nil;
-  FOnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
+  FOnFreePtr := DefaultDataFreeProc;
   FOnAddPtr := nil;
   SetLength(FListBuffer, 0);
   SetHashBlockCount(HashPoolSize_);
@@ -5622,7 +5623,7 @@ begin
   FHashList := THashList.CustomCreate(HashPoolSize_);
   FHashList.FAutoFreeData := True;
 
-  FHashList.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
+  FHashList.OnFreePtr := DefaultDataFreeProc;
   FAutoFreeObject := AutoFreeData_;
   FIncremental := 0;
 end;
@@ -6170,7 +6171,7 @@ begin
   FHashList := THashList.CustomCreate(HashPoolSize_);
   FHashList.FAutoFreeData := True;
 
-  FHashList.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
+  FHashList.OnFreePtr := DefaultDataFreeProc;
   FAutoUpdateDefaultValue := False;
   FOnValueChangeNotify := nil;
 end;
@@ -7222,7 +7223,7 @@ begin
   FHashList := THashList.CustomCreate(HashPoolSize_);
   FHashList.FAutoFreeData := True;
 
-  FHashList.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DefaultDataFreeProc;
+  FHashList.OnFreePtr := DefaultDataFreeProc;
   FAutoUpdateDefaultValue := False;
   FOnValueChangeNotify := nil;
 end;
@@ -8655,7 +8656,7 @@ end;
 
 procedure TListPascalString.Sort;
 begin
-  Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort);
+  Sort_M(Do_Sort);
 end;
 
 procedure TListPascalString.Sort_C(OnSort: TPascalString_Sort_C);

@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.GBKBig;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -38,7 +39,7 @@ var
 begin
   tmp := TBigKeyAnalysis.Create;
   tmp.output := Analysis;
-  bigKeyDict.ProgressM({$IFDEF FPC}@{$ENDIF FPC}tmp.doProgress);
+  bigKeyDict.ProgressM(tmp.doProgress);
   DisposeObject(tmp);
 end;
 

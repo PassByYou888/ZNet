@@ -574,7 +574,7 @@ begin
   lvEndBytes[1] := 10;
   FStream.Clear;
   SetLength(lvBytes, 1024);
-  SetLength(lvArgBytes, 1024);;
+  SetLength(lvArgBytes, 1024);
 
   // arg num
   lvData := Format('*%d' + sLineBreak, [pvRedisCMD.Data.Count + 1]);

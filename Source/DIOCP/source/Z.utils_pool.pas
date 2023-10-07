@@ -734,7 +734,7 @@ end;
 
 function GetValPoolDebugInfo(ABuffPool:PValPool): string;
 begin
-  Result := Format('name:%s, get:%d, put:%d, AddRef:%d, ReleaseRef:%d, size:%d', [ABuffPool.FName, ABuffPool.FGet, ABuffPool.FPut, ABuffPool.FAddRef, ABuffPool.FReleaseRef, ABuffPool.FSize]);;
+  Result := Format('name:%s, get:%d, put:%d, AddRef:%d, ReleaseRef:%d, size:%d', [ABuffPool.FName, ABuffPool.FGet, ABuffPool.FPut, ABuffPool.FAddRef, ABuffPool.FReleaseRef, ABuffPool.FSize]);
 end;
 
 

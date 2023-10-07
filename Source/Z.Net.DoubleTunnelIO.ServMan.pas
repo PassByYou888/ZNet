@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.DoubleTunnelIO.ServMan;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -183,7 +184,7 @@ begin
     begin
       Data1 := Sender;
       Data2 := te;
-      OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}PostExecute_RegServer;
+      OnExecute_M := PostExecute_RegServer;
       Ready();
     end;
 end;
@@ -221,7 +222,7 @@ end;
 
 procedure TServerManager_Client.Command_Offline(Sender: TPeerIO; InData: TDFE);
 begin
-  ProgressEngine.PostExecuteM(InData, {$IFDEF FPC}@{$ENDIF FPC}PostExecute_Offline);
+  ProgressEngine.PostExecuteM(InData, PostExecute_Offline);
 end;
 
 constructor TServerManager_Client.Create(Owner_: TServerManager_ClientPool);
@@ -256,8 +257,8 @@ end;
 procedure TServerManager_Client.RegisterCommand;
 begin
   inherited RegisterCommand;
-  NetRecvTunnelIntf.RegisterDirectStream(C_RegServer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_RegServer;
-  NetRecvTunnelIntf.RegisterDirectStream(C_Offline).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_Offline;
+  NetRecvTunnelIntf.RegisterDirectStream(C_RegServer).OnExecute := Command_RegServer;
+  NetRecvTunnelIntf.RegisterDirectStream(C_Offline).OnExecute := Command_Offline;
 end;
 
 procedure TServerManager_Client.UnRegisterCommand;
@@ -573,7 +574,7 @@ begin
     begin
       DataEng.WriteString(cli.RegAddr);
       DataEng.WriteByte(Byte(cli.ServerType));
-      OnExecute_M := {$IFDEF FPC}@{$ENDIF FPC}PostExecute_ServerOffline;
+      OnExecute_M := PostExecute_ServerOffline;
       Ready();
     end;
 
@@ -592,7 +593,7 @@ begin
       DisposeObject(ns);
 
       { sync all client }
-      ProgressEngine.PostExecuteM(nil, {$IFDEF FPC}@{$ENDIF FPC}PostExecute_RegServer);
+      ProgressEngine.PostExecuteM(nil, PostExecute_RegServer);
     end;
 
   inherited UserOut(UserDefineIO);
@@ -689,7 +690,7 @@ begin
     begin
       OutData.WriteBool(False);
       OutData.WriteString(Format('exists %s same server configure!!', [cli.MakeRegName]));
-      with ProgressEngine.PostExecuteM(False, InData, {$IFDEF FPC}@{$ENDIF FPC}PostExecute_Disconnect) do
+      with ProgressEngine.PostExecuteM(False, InData, PostExecute_Disconnect) do
         begin
           Data1 := Sender;
           Data2 := cli;
@@ -835,8 +836,8 @@ end;
 procedure TServerManager.RegisterCommand;
 begin
   inherited RegisterCommand;
-  FRecvTunnel.RegisterStream(C_EnabledServer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_EnabledServer;
-  FRecvTunnel.RegisterDirectStream(C_AntiIdle).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_AntiIdle;
+  FRecvTunnel.RegisterStream(C_EnabledServer).OnExecute := Command_EnabledServer;
+  FRecvTunnel.RegisterDirectStream(C_AntiIdle).OnExecute := Command_AntiIdle;
 end;
 
 procedure TServerManager.UnRegisterCommand;

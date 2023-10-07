@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.OpCode;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -178,7 +179,7 @@ type
 
   opClass = class of TOpCode;
 
-  TOpCode_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_String_Big_Hash_Pair_Pool<TOpCode>;
+  TOpCode_Pool_Decl = TCritical_String_Big_Hash_Pair_Pool<TOpCode>;
 
   TOpCode_Pool = class(TOpCode_Pool_Decl)
   public
@@ -197,7 +198,7 @@ type
       ValueType: TOpValueType;
     end;
 
-    TOpData_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<POpData__>;
+    TOpData_List = TGenericsList<POpData__>;
   protected
     FParam: TOpData_List;
     FAutoFreeLink: Boolean;
@@ -387,7 +388,7 @@ type
   end;
 
   POpRegData = ^opRegData;
-  TOpList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<POpRegData>;
+  TOpList = TGenericsList<POpRegData>;
 
 var
   OpList: TOpList;
@@ -1195,88 +1196,88 @@ end;
 
 procedure TOpSystemAPI.RegistationSystemAPI(RunTime: TOpCustomRunTime);
 begin
-  RunTime.RegOpM('Int', 'Int(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoInt)^.Category := 'Base Math';
-  RunTime.RegOpM('Frac', 'Frac(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoFrac)^.Category := 'Base Math';
-  RunTime.RegOpM('Exp', 'Exp(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoExp)^.Category := 'Base Math';
-  RunTime.RegOpM('Cos', 'Cos(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoCos)^.Category := 'Base Math';
-  RunTime.RegOpM('Sin', 'Sin(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSin)^.Category := 'Base Math';
-  RunTime.RegOpM('Ln', 'Ln(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoLn)^.Category := 'Base Math';
-  RunTime.RegOpM('ArcTan', 'ArcTan(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoArcTan)^.Category := 'Base Math';
-  RunTime.RegOpM('Sqrt', 'Sqrt(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSqrt)^.Category := 'Base Math';
-  RunTime.RegOpM('Sqr', 'Sqr(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSqr)^.Category := 'Base Math';
-  RunTime.RegOpM('Tan', 'Tan(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoTan)^.Category := 'Base Math';
-  RunTime.RegOpM('Round', 'Round(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoRound)^.Category := 'Base Math';
-  RunTime.RegOpM('Trunc', 'Trunc(0..n): math function', {$IFDEF FPC}@{$ENDIF FPC}DoTrunc)^.Category := 'Base Math';
-  RunTime.RegOpM('Deg', 'Deg(0..n): NormalizeDegAngle function', {$IFDEF FPC}@{$ENDIF FPC}DoDeg)^.Category := 'Base Math';
-  RunTime.RegOpM('Power', 'Power(float,float): Power: Raise base to any power function', {$IFDEF FPC}@{$ENDIF FPC}DoPower)^.Category := 'Base Math';
-  RunTime.RegOpM('Pow', 'Pow(float,float): Power: Raise base to any power function', {$IFDEF FPC}@{$ENDIF FPC}DoPower)^.Category := 'Base Math';
-  RunTime.RegOpM('Single', 'Single(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSingle)^.Category := 'Base Math';
-  RunTime.RegOpM('Double', 'Double(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoDouble)^.Category := 'Base Math';
-  RunTime.RegOpM('Float', 'Float(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoDouble)^.Category := 'Base Math';
-  RunTime.RegOpM('Extended', 'Extended(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoExtended)^.Category := 'Base Math';
-  RunTime.RegOpM('Byte', 'Byte(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoByte)^.Category := 'Base Math';
-  RunTime.RegOpM('Word', 'Word(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoWord)^.Category := 'Base Math';
-  RunTime.RegOpM('Cardinal', 'Cardinal(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoCardinal)^.Category := 'Base Math';
-  RunTime.RegOpM('UInt64', 'UInt64(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoUInt64)^.Category := 'Base Math';
-  RunTime.RegOpM('ShortInt', 'ShortInt(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoShortInt)^.Category := 'Base Math';
-  RunTime.RegOpM('SmallInt', 'SmallInt(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSmallInt)^.Category := 'Base Math';
-  RunTime.RegOpM('Integer', 'Integer(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoInteger)^.Category := 'Base Math';
-  RunTime.RegOpM('Int64', 'Int64(value): math function', {$IFDEF FPC}@{$ENDIF FPC}DoInt64)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL8', 'ROL8(byte,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROL8)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL16', 'ROL16(word,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROL16)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL32', 'ROL32(cardinal,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROL32)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL64', 'ROL64(uint64,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROL64)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR8', 'ROR8(byte,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROR8)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR16', 'ROR16(word,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROR16)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR32', 'ROR32(cardinal,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROR32)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR64', 'ROR64(uint64,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoROR64)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian16', 'Endian16(smallint): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndian16)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian32', 'Endian32(integer): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndian32)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian64', 'Endian64(int64): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndian64)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU16', 'EndianU16(word): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndianU16)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU32', 'EndianU32(cardinal): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndianU32)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU64', 'EndianU64(uint64): math function', {$IFDEF FPC}@{$ENDIF FPC}DoEndianU64)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR16', 'SAR16(word,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSAR16)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR32', 'SAR32(cardinal,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSAR32)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR64', 'SAR64(uint64,Shift): math function', {$IFDEF FPC}@{$ENDIF FPC}DoSAR64)^.Category := 'Base Math';
-  RunTime.RegOpM('Not', 'Not(Ordinal): not math function', {$IFDEF FPC}@{$ENDIF FPC}DoNot)^.Category := 'Base Math';
-  RunTime.RegOpM('~', '~(Ordinal): not math function', {$IFDEF FPC}@{$ENDIF FPC}DoNot)^.Category := 'Base Math';
-  RunTime.RegOpM('PI', 'PI(): return PI', {$IFDEF FPC}@{$ENDIF FPC}DoPI)^.Category := 'Base Math';
-  RunTime.RegOpM('Bool', 'Bool(n..n): convert any variant as bool', {$IFDEF FPC}@{$ENDIF FPC}DoBool)^.Category := 'Base Math';
-  RunTime.RegOpM('Boolean', 'Boolean(n..n): convert any variant as bool', {$IFDEF FPC}@{$ENDIF FPC}DoBool)^.Category := 'Base Math';
-  RunTime.RegOpM('True', 'True(): return true', {$IFDEF FPC}@{$ENDIF FPC}DoTrue)^.Category := 'Base Math';
-  RunTime.RegOpM('False', 'False(): return false', {$IFDEF FPC}@{$ENDIF FPC}DoFalse)^.Category := 'Base Math';
-  RunTime.RegOpM('RColor', 'RColor(R,G,B,A): return RColor string', {$IFDEF FPC}@{$ENDIF FPC}DoRColor)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec2', 'Vec2(X,Y): return Vec2 string', {$IFDEF FPC}@{$ENDIF FPC}DoVec2)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec3', 'Vec3(X,Y,Z): return Vec3 string', {$IFDEF FPC}@{$ENDIF FPC}DoVec3)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec4', 'Vec4(X,Y,Z,W): return Vec4 string', {$IFDEF FPC}@{$ENDIF FPC}DoVec4)^.Category := 'Base Math';
-  RunTime.RegOpM('Random', 'Random(0..n): return number', {$IFDEF FPC}@{$ENDIF FPC}DoRandom)^.Category := 'Base Math';
-  RunTime.RegOpM('RandomFloat', 'RandomFloat(): return float', {$IFDEF FPC}@{$ENDIF FPC}DoRandomFloat)^.Category := 'Base Math';
-  RunTime.RegOpM('RandomF', 'RandomF(): return float', {$IFDEF FPC}@{$ENDIF FPC}DoRandomFloat)^.Category := 'Base Math';
-  RunTime.RegOpM('Max', 'Max(0..n): return max value', {$IFDEF FPC}@{$ENDIF FPC}DoMax)^.Category := 'Base Math';
-  RunTime.RegOpM('Min', 'Min(0..n): return min value', {$IFDEF FPC}@{$ENDIF FPC}DoMin)^.Category := 'Base Math';
-  RunTime.RegOpM('Clamp', 'Clamp(value, min, max): return clamp value', {$IFDEF FPC}@{$ENDIF FPC}DoClamp)^.Category := 'Base Math';
-  RunTime.RegOpM('IfThen', 'IfThen(bool, if true then of value, if false then of value): return if value', {$IFDEF FPC}@{$ENDIF FPC}DoIfThen)^.Category := 'Base Math';
-  RunTime.RegOpM('if_', 'if_(bool, if true then of value, if false then of value): return if value', {$IFDEF FPC}@{$ENDIF FPC}DoIfThen)^.Category := 'Base Math';
-  RunTime.RegOpM('FitXY', 'FitXY(width, height, new_width, new_height): return size', {$IFDEF FPC}@{$ENDIF FPC}FitXY)^.Category := 'Base Math';
-  RunTime.RegOpM('Str', 'Str(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('String', 'String(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('Text', 'Text(n..n): convert any variant as string', {$IFDEF FPC}@{$ENDIF FPC}DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('MultipleMatch', 'MultipleMatch(multile exp, n..n): return bool', {$IFDEF FPC}@{$ENDIF FPC}DoMultiple)^.Category := 'Base String';
-  RunTime.RegOpM('Multiple', 'MultipleMatch(multile exp, n..n): return bool', {$IFDEF FPC}@{$ENDIF FPC}DoMultiple)^.Category := 'Base String';
-  RunTime.RegOpM('Print', 'Print(multile exp, n..n): return text', {$IFDEF FPC}@{$ENDIF FPC}DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('DoStatus', 'DoStatus(multile exp, n..n): return text', {$IFDEF FPC}@{$ENDIF FPC}DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('Status', 'Status(multile exp, n..n): return text', {$IFDEF FPC}@{$ENDIF FPC}DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('ToHex', 'ToHex(multile exp, n..n): return hex text', {$IFDEF FPC}@{$ENDIF FPC}ToHex)^.Category := 'Hex';
-  RunTime.RegOpM('Hex8', 'Hex8(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Hex8)^.Category := 'Hex';
-  RunTime.RegOpM('Hex16', 'Hex16(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Hex16)^.Category := 'Hex';
-  RunTime.RegOpM('Hex32', 'Hex32(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Hex32)^.Category := 'Hex';
-  RunTime.RegOpM('Hex64', 'Hex64(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Hex64)^.Category := 'Hex';
-  RunTime.RegOpM('ToBin', 'ToBin(multile exp, n..n): return Binary text', {$IFDEF FPC}@{$ENDIF FPC}ToBin)^.Category := 'Binary';
-  RunTime.RegOpM('Bin8', 'Bin8(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin8)^.Category := 'Binary';
-  RunTime.RegOpM('Bin16', 'Bin16(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin16)^.Category := 'Binary';
-  RunTime.RegOpM('Bin32', 'Bin32(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin32)^.Category := 'Binary';
-  RunTime.RegOpM('Bin64', 'Bin64(text): return byte', {$IFDEF FPC}@{$ENDIF FPC}Bin64)^.Category := 'Binary';
+  RunTime.RegOpM('Int', 'Int(0..n): math function', DoInt)^.Category := 'Base Math';
+  RunTime.RegOpM('Frac', 'Frac(0..n): math function', DoFrac)^.Category := 'Base Math';
+  RunTime.RegOpM('Exp', 'Exp(0..n): math function', DoExp)^.Category := 'Base Math';
+  RunTime.RegOpM('Cos', 'Cos(0..n): math function', DoCos)^.Category := 'Base Math';
+  RunTime.RegOpM('Sin', 'Sin(0..n): math function', DoSin)^.Category := 'Base Math';
+  RunTime.RegOpM('Ln', 'Ln(0..n): math function', DoLn)^.Category := 'Base Math';
+  RunTime.RegOpM('ArcTan', 'ArcTan(0..n): math function', DoArcTan)^.Category := 'Base Math';
+  RunTime.RegOpM('Sqrt', 'Sqrt(0..n): math function', DoSqrt)^.Category := 'Base Math';
+  RunTime.RegOpM('Sqr', 'Sqr(0..n): math function', DoSqr)^.Category := 'Base Math';
+  RunTime.RegOpM('Tan', 'Tan(0..n): math function', DoTan)^.Category := 'Base Math';
+  RunTime.RegOpM('Round', 'Round(0..n): math function', DoRound)^.Category := 'Base Math';
+  RunTime.RegOpM('Trunc', 'Trunc(0..n): math function', DoTrunc)^.Category := 'Base Math';
+  RunTime.RegOpM('Deg', 'Deg(0..n): NormalizeDegAngle function', DoDeg)^.Category := 'Base Math';
+  RunTime.RegOpM('Power', 'Power(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
+  RunTime.RegOpM('Pow', 'Pow(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
+  RunTime.RegOpM('Single', 'Single(value): math function', DoSingle)^.Category := 'Base Math';
+  RunTime.RegOpM('Double', 'Double(value): math function', DoDouble)^.Category := 'Base Math';
+  RunTime.RegOpM('Float', 'Float(value): math function', DoDouble)^.Category := 'Base Math';
+  RunTime.RegOpM('Extended', 'Extended(value): math function', DoExtended)^.Category := 'Base Math';
+  RunTime.RegOpM('Byte', 'Byte(value): math function', DoByte)^.Category := 'Base Math';
+  RunTime.RegOpM('Word', 'Word(value): math function', DoWord)^.Category := 'Base Math';
+  RunTime.RegOpM('Cardinal', 'Cardinal(value): math function', DoCardinal)^.Category := 'Base Math';
+  RunTime.RegOpM('UInt64', 'UInt64(value): math function', DoUInt64)^.Category := 'Base Math';
+  RunTime.RegOpM('ShortInt', 'ShortInt(value): math function', DoShortInt)^.Category := 'Base Math';
+  RunTime.RegOpM('SmallInt', 'SmallInt(value): math function', DoSmallInt)^.Category := 'Base Math';
+  RunTime.RegOpM('Integer', 'Integer(value): math function', DoInteger)^.Category := 'Base Math';
+  RunTime.RegOpM('Int64', 'Int64(value): math function', DoInt64)^.Category := 'Base Math';
+  RunTime.RegOpM('ROL8', 'ROL8(byte,Shift): math function', DoROL8)^.Category := 'Base Math';
+  RunTime.RegOpM('ROL16', 'ROL16(word,Shift): math function', DoROL16)^.Category := 'Base Math';
+  RunTime.RegOpM('ROL32', 'ROL32(cardinal,Shift): math function', DoROL32)^.Category := 'Base Math';
+  RunTime.RegOpM('ROL64', 'ROL64(uint64,Shift): math function', DoROL64)^.Category := 'Base Math';
+  RunTime.RegOpM('ROR8', 'ROR8(byte,Shift): math function', DoROR8)^.Category := 'Base Math';
+  RunTime.RegOpM('ROR16', 'ROR16(word,Shift): math function', DoROR16)^.Category := 'Base Math';
+  RunTime.RegOpM('ROR32', 'ROR32(cardinal,Shift): math function', DoROR32)^.Category := 'Base Math';
+  RunTime.RegOpM('ROR64', 'ROR64(uint64,Shift): math function', DoROR64)^.Category := 'Base Math';
+  RunTime.RegOpM('Endian16', 'Endian16(smallint): math function', DoEndian16)^.Category := 'Base Math';
+  RunTime.RegOpM('Endian32', 'Endian32(integer): math function', DoEndian32)^.Category := 'Base Math';
+  RunTime.RegOpM('Endian64', 'Endian64(int64): math function', DoEndian64)^.Category := 'Base Math';
+  RunTime.RegOpM('EndianU16', 'EndianU16(word): math function', DoEndianU16)^.Category := 'Base Math';
+  RunTime.RegOpM('EndianU32', 'EndianU32(cardinal): math function', DoEndianU32)^.Category := 'Base Math';
+  RunTime.RegOpM('EndianU64', 'EndianU64(uint64): math function', DoEndianU64)^.Category := 'Base Math';
+  RunTime.RegOpM('SAR16', 'SAR16(word,Shift): math function', DoSAR16)^.Category := 'Base Math';
+  RunTime.RegOpM('SAR32', 'SAR32(cardinal,Shift): math function', DoSAR32)^.Category := 'Base Math';
+  RunTime.RegOpM('SAR64', 'SAR64(uint64,Shift): math function', DoSAR64)^.Category := 'Base Math';
+  RunTime.RegOpM('Not', 'Not(Ordinal): not math function', DoNot)^.Category := 'Base Math';
+  RunTime.RegOpM('~', '~(Ordinal): not math function', DoNot)^.Category := 'Base Math';
+  RunTime.RegOpM('PI', 'PI(): return PI', DoPI)^.Category := 'Base Math';
+  RunTime.RegOpM('Bool', 'Bool(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
+  RunTime.RegOpM('Boolean', 'Boolean(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
+  RunTime.RegOpM('True', 'True(): return true', DoTrue)^.Category := 'Base Math';
+  RunTime.RegOpM('False', 'False(): return false', DoFalse)^.Category := 'Base Math';
+  RunTime.RegOpM('RColor', 'RColor(R,G,B,A): return RColor string', DoRColor)^.Category := 'Base Math';
+  RunTime.RegOpM('Vec2', 'Vec2(X,Y): return Vec2 string', DoVec2)^.Category := 'Base Math';
+  RunTime.RegOpM('Vec3', 'Vec3(X,Y,Z): return Vec3 string', DoVec3)^.Category := 'Base Math';
+  RunTime.RegOpM('Vec4', 'Vec4(X,Y,Z,W): return Vec4 string', DoVec4)^.Category := 'Base Math';
+  RunTime.RegOpM('Random', 'Random(0..n): return number', DoRandom)^.Category := 'Base Math';
+  RunTime.RegOpM('RandomFloat', 'RandomFloat(): return float', DoRandomFloat)^.Category := 'Base Math';
+  RunTime.RegOpM('RandomF', 'RandomF(): return float', DoRandomFloat)^.Category := 'Base Math';
+  RunTime.RegOpM('Max', 'Max(0..n): return max value', DoMax)^.Category := 'Base Math';
+  RunTime.RegOpM('Min', 'Min(0..n): return min value', DoMin)^.Category := 'Base Math';
+  RunTime.RegOpM('Clamp', 'Clamp(value, min, max): return clamp value', DoClamp)^.Category := 'Base Math';
+  RunTime.RegOpM('IfThen', 'IfThen(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
+  RunTime.RegOpM('if_', 'if_(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
+  RunTime.RegOpM('FitXY', 'FitXY(width, height, new_width, new_height): return size', FitXY)^.Category := 'Base Math';
+  RunTime.RegOpM('Str', 'Str(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.RegOpM('String', 'String(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.RegOpM('Text', 'Text(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.RegOpM('MultipleMatch', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
+  RunTime.RegOpM('Multiple', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
+  RunTime.RegOpM('Print', 'Print(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.RegOpM('DoStatus', 'DoStatus(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.RegOpM('Status', 'Status(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.RegOpM('ToHex', 'ToHex(multile exp, n..n): return hex text', ToHex)^.Category := 'Hex';
+  RunTime.RegOpM('Hex8', 'Hex8(text): return byte', Hex8)^.Category := 'Hex';
+  RunTime.RegOpM('Hex16', 'Hex16(text): return byte', Hex16)^.Category := 'Hex';
+  RunTime.RegOpM('Hex32', 'Hex32(text): return byte', Hex32)^.Category := 'Hex';
+  RunTime.RegOpM('Hex64', 'Hex64(text): return byte', Hex64)^.Category := 'Hex';
+  RunTime.RegOpM('ToBin', 'ToBin(multile exp, n..n): return Binary text', ToBin)^.Category := 'Binary';
+  RunTime.RegOpM('Bin8', 'Bin8(text): return byte', Bin8)^.Category := 'Binary';
+  RunTime.RegOpM('Bin16', 'Bin16(text): return byte', Bin16)^.Category := 'Binary';
+  RunTime.RegOpM('Bin32', 'Bin32(text): return byte', Bin32)^.Category := 'Binary';
+  RunTime.RegOpM('Bin64', 'Bin64(text): return byte', Bin64)^.Category := 'Binary';
 
 end;
 
@@ -1297,7 +1298,7 @@ begin
   ProcList := THashList.CustomCreate(maxHashSiz_);
   ProcList.AutoFreeData := True;
   ProcList.AccessOptimization := False;
-  ProcList.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}FreeNotifyProc;
+  ProcList.OnFreePtr := FreeNotifyProc;
   Trigger := nil;
   UserObject := nil;
   UserData := nil;
@@ -1861,9 +1862,9 @@ begin
       bridge_.OD := p;
       bridge_.R_ := Result;
       if p^.Mode = rtmPost then
-          TCompute.Sync_Wait_PostM1({$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Sync_Run)
+          TCompute.Sync_Wait_PostM1(bridge_.Do_Sync_Run)
       else
-          TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}bridge_.Do_Sync_Run);
+          TCompute.SyncM(bridge_.Do_Sync_Run);
       Result := bridge_.R_;
       DisposeObject(bridge_);
     end;

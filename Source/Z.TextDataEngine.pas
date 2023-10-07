@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.TextDataEngine;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -128,9 +129,9 @@ type
   TTextDataEngine = THashTextEngine;
   TSectionTextData = THashTextEngine;
 
-  THashTextEngineList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<THashTextEngine>;
+  THashTextEngineList_ = TGenericsList<THashTextEngine>;
 
-  THashTextEngineList = class(THashTextEngineList_Decl)
+  THashTextEngineList = class(THashTextEngineList_)
   end;
 
 implementation

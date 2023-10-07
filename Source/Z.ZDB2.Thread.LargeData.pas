@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2.Thread.LargeData;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -31,15 +32,15 @@ type
   TZDB2_Custom_Large_Data_Class = class of TZDB2_Custom_Large_Data;
 
   { Sequence ID pool structure, providing reverse lookup function }
-  TZDB2_Custom_Small_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Small_Data>;
-  TZDB2_Custom_Medium_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Medium_Data>;
-  TZDB2_Custom_Large_Sequence_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Large_Data>;
+  TZDB2_Custom_Small_Sequence_ID_Pool = TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Small_Data>;
+  TZDB2_Custom_Medium_Sequence_ID_Pool = TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Medium_Data>;
+  TZDB2_Custom_Large_Sequence_ID_Pool = TCritical_Big_Hash_Pair_Pool<Int64, TZDB2_Custom_Large_Data>;
 
   { Chain tools, data exchange, caching, batching, computation, classification }
-  TZDB2_Custom_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Custom_Small_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
-  TZDB2_Custom_Medium_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
-  TZDB2_Custom_Large_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Int64>;
+  TZDB2_Custom_Data_Pool = TBigList<TZDB2_Th_Engine_Data>;
+  TZDB2_Custom_Small_Data_Pool = TBigList<Int64>;
+  TZDB2_Custom_Medium_Data_Pool = TBigList<Int64>;
+  TZDB2_Custom_Large_Data_Pool = TBigList<Int64>;
 
   TZDB2_Custom_Batch_Data_Post_Bridge = class;
 
@@ -215,6 +216,7 @@ type
   { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
   TS_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
+    Owner_Large_Marshal: TZDB2_Large;
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
@@ -228,6 +230,7 @@ type
   { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
   TM_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
+    Owner_Large_Marshal: TZDB2_Large;
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
@@ -241,6 +244,7 @@ type
   { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
   TL_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
+    Owner_Large_Marshal: TZDB2_Large;
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
@@ -487,7 +491,7 @@ procedure TZDB2_Custom_Batch_Data_Post_Bridge.Do_Check_Post_Done;
 begin
   FCritical.Lock;
   if (Post_Busy <= 0) and (Successed_Num + Error_Num >= Total_Post) then
-      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_All_Post_Done);
+      TCompute.RunM_NP(Do_All_Post_Done);
   FCritical.UnLock;
 end;
 
@@ -558,19 +562,19 @@ end;
 function TZDB2_Custom_Batch_Data_Post_Bridge.Post_Data_To_S_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Small_Data;
 begin
   FCritical.Inc_(Total_Post);
-  Result := FOwner_Large_Marshal.Post_Data_To_S_DB_M(data, AutoFree_, {$IFDEF FPC}@{$ENDIF FPC}Do_Save_Data_Result);
+  Result := FOwner_Large_Marshal.Post_Data_To_S_DB_M(data, AutoFree_, Do_Save_Data_Result);
 end;
 
 function TZDB2_Custom_Batch_Data_Post_Bridge.Post_Data_To_M_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Medium_Data;
 begin
   FCritical.Inc_(Total_Post);
-  Result := FOwner_Large_Marshal.Post_Data_To_M_DB_M(data, AutoFree_, {$IFDEF FPC}@{$ENDIF FPC}Do_Save_Data_Result);
+  Result := FOwner_Large_Marshal.Post_Data_To_M_DB_M(data, AutoFree_, Do_Save_Data_Result);
 end;
 
 function TZDB2_Custom_Batch_Data_Post_Bridge.Post_Data_To_L_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Large_Data;
 begin
   FCritical.Inc_(Total_Post);
-  Result := FOwner_Large_Marshal.Post_Data_To_L_DB_M(data, AutoFree_, {$IFDEF FPC}@{$ENDIF FPC}Do_Save_Data_Result);
+  Result := FOwner_Large_Marshal.Post_Data_To_L_DB_M(data, AutoFree_, Do_Save_Data_Result);
 end;
 
 procedure TZDB2_Custom_Batch_Data_Post_Bridge.End_Post;
@@ -842,6 +846,7 @@ begin
           break;
         end;
       try
+        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -886,7 +891,7 @@ begin
       SetLength(Signal_, Engine_Pool.Num);
       with Engine_Pool.Repeat_ do
         repeat
-            TCompute.RunM(@Error_Num, Queue^.data, {$IFDEF FPC}@{$ENDIF FPC}Do_Extract_Th_Eng, @Signal_[I__], nil);
+            TCompute.RunM(@Error_Num, Queue^.data, Do_Extract_Th_Eng, @Signal_[I__], nil);
         until not Next;
       Wait_All_Signal(Signal_, False);
     end;
@@ -952,6 +957,7 @@ begin
           break;
         end;
       try
+        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -996,7 +1002,7 @@ begin
       SetLength(Signal_, Engine_Pool.Num);
       with Engine_Pool.Repeat_ do
         repeat
-            TCompute.RunM(@Error_Num, Queue^.data, {$IFDEF FPC}@{$ENDIF FPC}Do_Extract_Th_Eng, @Signal_[I__], nil);
+            TCompute.RunM(@Error_Num, Queue^.data, Do_Extract_Th_Eng, @Signal_[I__], nil);
         until not Next;
       Wait_All_Signal(Signal_, False);
     end;
@@ -1062,6 +1068,7 @@ begin
           break;
         end;
       try
+        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -1106,7 +1113,7 @@ begin
       SetLength(Signal_, Engine_Pool.Num);
       with Engine_Pool.Repeat_ do
         repeat
-            TCompute.RunM(@Error_Num, Queue^.data, {$IFDEF FPC}@{$ENDIF FPC}Do_Extract_Th_Eng, @Signal_[I__], nil);
+            TCompute.RunM(@Error_Num, Queue^.data, Do_Extract_Th_Eng, @Signal_[I__], nil);
         until not Next;
       Wait_All_Signal(Signal_, False);
     end;
@@ -1207,14 +1214,17 @@ begin
 
   FS_DB := FS_Th_Engine_Marshal_Class.Create(Self);
   FS_DB.Current_Data_Class := FSmall_Data_Class;
+  FS_DB.Owner_Large_Marshal := Self;
   FS_DB_Sequence_Pool := TZDB2_Custom_Small_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FM_DB := FM_Th_Engine_Marshal_Class.Create(Self);
   FM_DB.Current_Data_Class := FMedium_Data_Class;
+  FM_DB.Owner_Large_Marshal := Self;
   FM_DB_Sequence_Pool := TZDB2_Custom_Medium_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FL_DB := FL_Th_Engine_Marshal_Class.Create(Self);
   FL_DB.Current_Data_Class := FLarge_Data_Class;
+  FL_DB.Owner_Large_Marshal := Self;
   FL_DB_Sequence_Pool := TZDB2_Custom_Large_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FS_DB_Engine_External_Header_Optimzied_Technology := False;
@@ -1244,14 +1254,17 @@ begin
 
   FS_DB := FS_Th_Engine_Marshal_Class.Create(Self);
   FS_DB.Current_Data_Class := FSmall_Data_Class;
+  FS_DB.Owner_Large_Marshal := Self;
   FS_DB_Sequence_Pool := TZDB2_Custom_Small_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FM_DB := FM_Th_Engine_Marshal_Class.Create(Self);
   FM_DB.Current_Data_Class := FMedium_Data_Class;
+  FM_DB.Owner_Large_Marshal := Self;
   FM_DB_Sequence_Pool := TZDB2_Custom_Medium_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FL_DB := FL_Th_Engine_Marshal_Class.Create(Self);
   FL_DB.Current_Data_Class := FLarge_Data_Class;
+  FL_DB.Owner_Large_Marshal := Self;
   FL_DB_Sequence_Pool := TZDB2_Custom_Large_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FS_DB_Engine_External_Header_Optimzied_Technology := False;
@@ -1284,14 +1297,17 @@ begin
 
   FS_DB := FS_Th_Engine_Marshal_Class.Create(Self);
   FS_DB.Current_Data_Class := FSmall_Data_Class;
+  FS_DB.Owner_Large_Marshal := Self;
   FS_DB_Sequence_Pool := TZDB2_Custom_Small_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FM_DB := FM_Th_Engine_Marshal_Class.Create(Self);
   FM_DB.Current_Data_Class := FMedium_Data_Class;
+  FM_DB.Owner_Large_Marshal := Self;
   FM_DB_Sequence_Pool := TZDB2_Custom_Medium_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FL_DB := FL_Th_Engine_Marshal_Class.Create(Self);
   FL_DB.Current_Data_Class := FLarge_Data_Class;
+  FL_DB.Owner_Large_Marshal := Self;
   FL_DB_Sequence_Pool := TZDB2_Custom_Large_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FS_DB_Engine_External_Header_Optimzied_Technology := False;
@@ -1543,14 +1559,17 @@ begin
 
   FS_DB := FS_Th_Engine_Marshal_Class.Create(Self);
   FS_DB.Current_Data_Class := FSmall_Data_Class;
+  FS_DB.Owner_Large_Marshal := Self;
   FS_DB_Sequence_Pool := TZDB2_Custom_Small_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FM_DB := FM_Th_Engine_Marshal_Class.Create(Self);
   FM_DB.Current_Data_Class := FMedium_Data_Class;
+  FM_DB.Owner_Large_Marshal := Self;
   FM_DB_Sequence_Pool := TZDB2_Custom_Medium_Sequence_ID_Pool.Create(1024 * 1024, nil);
 
   FL_DB := FL_Th_Engine_Marshal_Class.Create(Self);
   FL_DB.Current_Data_Class := FLarge_Data_Class;
+  FL_DB.Owner_Large_Marshal := Self;
   FL_DB_Sequence_Pool := TZDB2_Custom_Large_Sequence_ID_Pool.Create(1024 * 1024, nil);
 end;
 
@@ -1565,7 +1584,7 @@ begin
       FS_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FS_DB.Parallel_Load_M(ThNum_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_S_DB_Data_Loaded, nil);
+      FS_DB.Parallel_Load_M(ThNum_, Do_Th_S_DB_Data_Loaded, nil);
     end;
 
   FCurrent_S_DB_Sequence_ID := 1;
@@ -1573,7 +1592,7 @@ begin
     begin
       { Restore structure pools in order }
       DoStatus('Rebuild Small Sequence..');
-      FS_DB.Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_S_DB_Data_Sort_By_Sequence_ID);
+      FS_DB.Sort_M(Do_S_DB_Data_Sort_By_Sequence_ID);
       FCurrent_S_DB_Sequence_ID := TZDB2_Custom_Small_Data(FS_DB.Data_Marshal.Last^.data).FSequence_ID + 1;
       { Build Sequence_ID reverse lookup structure }
       with FS_DB.Data_Marshal.Repeat_ do
@@ -1594,7 +1613,7 @@ begin
       FM_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FM_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Medium_Data.Get_Prepare_Block_Read_Size, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_M_DB_Data_Loaded, nil);
+      FM_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Medium_Data.Get_Prepare_Block_Read_Size, Do_Th_M_DB_Data_Loaded, nil);
     end;
 
   FCurrent_M_DB_Sequence_ID := 1;
@@ -1602,7 +1621,7 @@ begin
     begin
       { Restore structure pools in order }
       DoStatus('Rebuild Medium Sequence..');
-      FM_DB.Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_M_DB_Data_Sort_By_Sequence_ID);
+      FM_DB.Sort_M(Do_M_DB_Data_Sort_By_Sequence_ID);
       FCurrent_M_DB_Sequence_ID := TZDB2_Custom_Medium_Data(FM_DB.Data_Marshal.Last^.data).FSequence_ID + 1;
       { Build Sequence_ID reverse lookup structure }
       with FM_DB.Data_Marshal.Repeat_ do
@@ -1623,7 +1642,7 @@ begin
       FL_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FL_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Large_Data.Get_Prepare_Block_Read_Size, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_L_DB_Data_Loaded, nil);
+      FL_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Large_Data.Get_Prepare_Block_Read_Size, Do_Th_L_DB_Data_Loaded, nil);
     end;
 
   FCurrent_L_DB_Sequence_ID := 1;
@@ -1631,7 +1650,7 @@ begin
     begin
       { Restore structure pools in order }
       DoStatus('Rebuild Large Sequence..');
-      FL_DB.Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_L_DB_Data_Sort_By_Sequence_ID);
+      FL_DB.Sort_M(Do_L_DB_Data_Sort_By_Sequence_ID);
       FCurrent_L_DB_Sequence_ID := TZDB2_Custom_Large_Data(FL_DB.Data_Marshal.Last^.data).FSequence_ID + 1;
       { Build Sequence_ID reverse lookup structure }
       with FL_DB.Data_Marshal.Repeat_ do

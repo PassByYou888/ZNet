@@ -410,6 +410,15 @@ begin
   v2 := v;
 end;
 
+procedure Swap(var v1, v2: TDateTime);
+var
+  v: TDateTime;
+begin
+  v := v1;
+  v1 := v2;
+  v2 := v;
+end;
+
 procedure Swap(var v1, v2: Pointer);
 var
   v: Pointer;

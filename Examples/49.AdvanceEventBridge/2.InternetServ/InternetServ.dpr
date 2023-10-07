@@ -1,5 +1,7 @@
 program InternetServ;
 
+
+{$APPTYPE CONSOLE}
 {$APPTYPE CONSOLE}
 
 {$R *.res}
@@ -105,7 +107,7 @@ var
   dbName: U_String;
   dataID: Cardinal;
   stream: TMS64;
-  Bridge: TStreamEventBridge;
+  Bridge: TStream_Event_Bridge;
 begin
   if not DatabaseClient.LinkOk then
       exit;
@@ -119,7 +121,7 @@ begin
   DatabaseClient.PostAssembleStream(dbName, stream, dataID, True);
   // TStreamEventBridge是通过异步事件，把Datastore服务器反馈的数据直接转发给客户端
   // TStreamEventBridge的实现原理为延迟反馈，细节技术去看文档和相关demo
-  Bridge := TStreamEventBridge.Create(Sender, True);
+  Bridge := TStream_Event_Bridge.Create(Sender, True);
   DatabaseClient.GetPostAssembleStreamStateM(Bridge.DoStreamEvent);
   DatabaseClient.EndAssembleStream;
 end;
@@ -152,13 +154,13 @@ end;
 
 procedure cmd_MySaveState(Sender: TPeerIO; InData, OutData: TDataFrameEngine);
 var
-  Bridge: TStreamEventBridge;
+  Bridge: TStream_Event_Bridge;
 begin
   if not DatabaseClient.LinkOk then
       exit;
   if not DatabasePhyCli.Connected then
       exit;
-  Bridge := TStreamEventBridge.Create(Sender, True);
+  Bridge := TStream_Event_Bridge.Create(Sender, True);
   DatabaseClient.GetPostAssembleStreamStateM(Bridge.DoStreamEvent);
 end;
 
@@ -173,7 +175,7 @@ end;
 
 type
   // 使用异步事件桥接口来自DatastoreService查询
-  TMyQueryBridge = class(TCustomEventBridge)
+  TMyQueryBridge = class(TCustom_Event_Bridge)
   public
     procedure DoFillQueryData(dataBaseName_, pipeN: SystemString; StorePos: Int64; ID: Cardinal; DataSour: TMemoryStream64);
     procedure DoQueryDone(dataBaseName_, outN, pipeN: SystemString; TotalResult: Int64);
@@ -229,7 +231,7 @@ end;
 
 type
   // 使用异步事件桥接口来自DatastoreService下载
-  TMyDownloadBridge = class(TCustomEventBridge)
+  TMyDownloadBridge = class(TCustom_Event_Bridge)
   public
     procedure DoDownloadDone(dataBaseName_: SystemString; dStorePos: Int64; stream: TMemoryStream64);
   end;

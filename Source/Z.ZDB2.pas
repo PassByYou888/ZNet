@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -45,9 +46,9 @@ type
     FlushThisCacheToFile: Boolean;
   end;
 
-  TZDB2_ID_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<Integer>;
-  TZDB2_ID_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;
-  TZDB2_BlockPtrList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PZDB2_Block>;
+  TZDB2_ID_Pool = TBigList<Integer>;
+  TZDB2_ID_List = TGenericsList<Integer>;
+  TZDB2_BlockPtrList_Decl = TGenericsList<PZDB2_Block>;
 
   TZDB2_BlockPtrList = class(TZDB2_BlockPtrList_Decl)
   public
@@ -108,7 +109,7 @@ type
     class function ComputeSize(BlockNum_: Integer): Int64;
   end;
 
-  TZDB2_Block_File_Data_Instance_List_ = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZDB2_Block_File_Data_Instance>;
+  TZDB2_Block_File_Data_Instance_List_ = TGenericsList<TZDB2_Block_File_Data_Instance>;
 
   TZDB2_Block_File_Data_Instance_List = class(TZDB2_Block_File_Data_Instance_List_)
   public
@@ -179,11 +180,17 @@ type
     ReadSize: Int64;
     WriteNum: Int64;
     WriteSize: Int64;
+    procedure Reset;
+  end;
+
+  TZDB2_Atom_SpaceState = class(TAtomVar<TZDB2_SpaceState>)
+  public
+    constructor Create;
   end;
 
   PZDB2_Core_SpaceState = ^TZDB2_SpaceState;
 
-  TZDB2_Core_Space_Info_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<SystemString>;
+  TZDB2_Core_Space_Info_Decl = TCritical_BigList<SystemString>;
 
   TZDB2_Core_Space_Info = class(TZDB2_Core_Space_Info_Decl)
   public
@@ -242,6 +249,7 @@ type
 
     // Last_Modification=0 indicates no write IO operations, else it is the last TimeTick
     property Last_Modification: TTimeTick read FLast_Modification;
+    function Is_Modification: Boolean;
     // error
     property Last_Error_Info: TZDB2_Core_Space_Error_Info read FLast_Error_Info;
     procedure ErrorInfo(const Text_: SystemString);
@@ -1220,6 +1228,25 @@ begin
     end;
 end;
 
+procedure TZDB2_SpaceState.Reset;
+begin
+  Physics := 0;
+  FreeSpace := 0;
+  Cache := 0;
+  ReadNum := 0;
+  ReadSize := 0;
+  WriteNum := 0;
+  WriteSize := 0;
+end;
+
+constructor TZDB2_Atom_SpaceState.Create;
+var
+  tmp: TZDB2_SpaceState;
+begin
+  tmp.Reset;
+  inherited Create(tmp);
+end;
+
 procedure TZDB2_Core_Space_Info.DoFree(var Data: SystemString);
 begin
   Data := '';
@@ -1411,13 +1438,7 @@ begin
   FFreeSpaceIndexProbe := 0;
   FBlockCount := length(FBlockBuffer);
   SetLength(FBlockWriteCache, FBlockCount);
-  FState.Physics := 0;
-  FState.FreeSpace := 0;
-  FState.Cache := 0;
-  FState.ReadNum := 0;
-  FState.ReadSize := 0;
-  FState.WriteNum := 0;
-  FState.WriteSize := 0;
+  FState.Reset;
 
   i := 0;
   while i < FBlockCount do
@@ -1551,13 +1572,7 @@ begin
   FCipher := nil;
   FCipherMem := TMem64.Create;
 
-  FState.Physics := 0;
-  FState.FreeSpace := 0;
-  FState.Cache := 0;
-  FState.ReadNum := 0;
-  FState.ReadSize := 0;
-  FState.WriteNum := 0;
-  FState.WriteSize := 0;
+  FState.Reset;
 
   FLast_Modification := GetTimeTick();
   FLast_Error_Info := TZDB2_Core_Space_Error_Info.Create;
@@ -1589,6 +1604,11 @@ begin
   DisposeObject(FLast_Error_Info);
   DisposeObject(FLast_Warning_Info);
   inherited Destroy;
+end;
+
+function TZDB2_Core_Space.Is_Modification: Boolean;
+begin
+  Result := FHeader.Modification;
 end;
 
 procedure TZDB2_Core_Space.ErrorInfo(const Text_: SystemString);
@@ -3201,7 +3221,7 @@ type
 
   PTest_ = ^TTest_;
 
-  TTestList_ = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PTest_>;
+  TTestList_ = TGenericsList<PTest_>;
 
 var
   Cipher_: TZDB2_Cipher;

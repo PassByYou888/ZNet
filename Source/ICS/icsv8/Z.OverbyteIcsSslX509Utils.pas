@@ -2473,7 +2473,7 @@ begin
 
        { set version, serial number, expiry }
         if f_X509_set_version(FNewCert, 2) = 0 then   // v3
-            RaiseLastOpenSslError(ECertToolsException, FALSE, 'Failed to set version to certificate');;
+            RaiseLastOpenSslError(ECertToolsException, FALSE, 'Failed to set version to certificate');
         if FSerialNum = 0 then begin
             TempSerial.LowPart := IcsRandomInt($7FFFFFFF);
             TempSerial.HighPart := IcsRandomInt($7FFFFFFF);

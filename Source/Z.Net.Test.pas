@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.Test;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -56,6 +57,9 @@ const
   C_TestCompleteBuffer: SystemString = '__@TestCompleteBuffer';
   C_RemoteInfo: SystemString = '__@RemoteInfo';
   C_RunTestReponse: SystemString = '__@RunTestReponse';
+  C_Test_Complete_Stream: SystemString = '__@Test_Complete_Stream';
+  C_Test_Complete_DirectStream: SystemString = '__@Test_Complete_DirectStream';
+  C_Test_Complete_Async_DirectStream: SystemString = '__@Test_Complete_Async_DirectStream';
 
 implementation
 
@@ -150,7 +154,7 @@ end;
 
 procedure TCommunicationTestIntf.Cmd_RunTestReponse(Sender: TPeerIO; InData: TDFE);
 begin
-  with Sender.OwnerFramework.PostProgress.PostExecuteM(False, 3, {$IFDEF FPC}@{$ENDIF FPC}Delay_RunTestReponse) do
+  with Sender.OwnerFramework.PostProgress.PostExecuteM(False, 3, Delay_RunTestReponse) do
     begin
       Data1 := Sender;
       ready();
@@ -171,15 +175,18 @@ end;
 
 procedure TCommunicationTestIntf.RegCmd(Intf: TZNet);
 begin
-  Intf.RegisterStream(C_TestStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestStream;
-  Intf.RegisterConsole(C_TestConsole).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestConsole;
-  Intf.RegisterDirectStream(C_TestDirectStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestDirectStream;
-  Intf.RegisterDirectConsole(C_TestDirectConsole).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestDirectConsole;
-  Intf.RegisterBigStream(C_TestBigStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestBigStream;
-  Intf.RegisterDirectConsole(C_BigStreamPostInfo).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_BigStreamPostInfo;
-  Intf.RegisterCompleteBuffer(C_TestCompleteBuffer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_TestCompleteBuffer;
-  Intf.RegisterDirectConsole(C_RemoteInfo).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_RemoteInfo;
-  Intf.RegisterDirectStream(C_RunTestReponse).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Cmd_RunTestReponse;
+  Intf.RegisterStream(C_TestStream).OnExecute := Cmd_TestStream;
+  Intf.RegisterConsole(C_TestConsole).OnExecute := Cmd_TestConsole;
+  Intf.RegisterDirectStream(C_TestDirectStream).OnExecute := Cmd_TestDirectStream;
+  Intf.RegisterDirectConsole(C_TestDirectConsole).OnExecute := Cmd_TestDirectConsole;
+  Intf.RegisterBigStream(C_TestBigStream).OnExecute := Cmd_TestBigStream;
+  Intf.RegisterDirectConsole(C_BigStreamPostInfo).OnExecute := Cmd_BigStreamPostInfo;
+  Intf.RegisterCompleteBuffer(C_TestCompleteBuffer).OnExecute := Cmd_TestCompleteBuffer;
+  Intf.RegisterDirectConsole(C_RemoteInfo).OnExecute := Cmd_RemoteInfo;
+  Intf.RegisterDirectStream(C_RunTestReponse).OnExecute := Cmd_RunTestReponse;
+  Intf.RegisterCompleteBuffer_DirectStream(C_Test_Complete_DirectStream).OnExecute := Cmd_TestDirectStream;
+  Intf.RegisterCompleteBuffer_Asynchronous_DirectStream(C_Test_Complete_Async_DirectStream).OnExecute := Cmd_TestDirectStream;
+  Intf.RegisterCompleteBuffer_NoWait_Stream(C_Test_Complete_Stream).OnExecute := Cmd_TestStream;
 
   FLastReg := Intf;
 end;
@@ -188,13 +195,15 @@ procedure TCommunicationTestIntf.ExecuteTest(Intf: TPeerIO);
 var
   tmpdf: TDFE;
 begin
-  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestConsole);
-  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestStream);
+  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, CmdResult_TestConsole);
+  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, CmdResult_TestStream);
   Intf.SendDirectConsoleCmd(C_TestDirectConsole, FPrepareSendConsole);
   Intf.SendDirectStreamCmd(C_TestDirectStream, FPrepareSendDataFrame);
   Intf.SendBigStream(C_TestBigStream, TestStreamData, False);
   Intf.SendDirectConsoleCmd(C_BigStreamPostInfo, umlStreamMD5String(TestStreamData).Text);
   Intf.SendCompleteBuffer(C_TestCompleteBuffer, TestBuff, TestBuffSize, False);
+  Intf.SendCompleteBuffer(C_Test_Complete_DirectStream, FPrepareSendDataFrame);
+  Intf.SendCompleteBuffer(C_Test_Complete_Async_DirectStream, FPrepareSendDataFrame);
 
   if Intf.OwnerFramework is TZNet_Client then
     begin
@@ -213,20 +222,24 @@ end;
 
 procedure TCommunicationTestIntf.ExecuteAsyncTest(Intf: TPeerIO);
 begin
-  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestConsole);
-  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestStream);
+  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, CmdResult_TestConsole);
+  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, CmdResult_TestStream);
   Intf.SendDirectConsoleCmd(C_TestDirectConsole, FPrepareSendConsole);
   Intf.SendDirectStreamCmd(C_TestDirectStream, FPrepareSendDataFrame);
+  Intf.SendCompleteBuffer(C_Test_Complete_DirectStream, FPrepareSendDataFrame);
+  Intf.SendCompleteBuffer(C_Test_Complete_Async_DirectStream, FPrepareSendDataFrame);
 
   Intf.SendDirectConsoleCmd(C_RemoteInfo, 'client id[' + IntToStr(Intf.ID) + '] test over!');
 end;
 
 procedure TCommunicationTestIntf.ExecuteAsyncTestWithBigStream(Intf: TPeerIO);
 begin
-  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestConsole);
-  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, {$IFDEF FPC}@{$ENDIF FPC}CmdResult_TestStream);
+  Intf.SendConsoleCmdM(C_TestConsole, FPrepareSendConsole, CmdResult_TestConsole);
+  Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, CmdResult_TestStream);
   Intf.SendDirectConsoleCmd(C_TestDirectConsole, FPrepareSendConsole);
   Intf.SendDirectStreamCmd(C_TestDirectStream, FPrepareSendDataFrame);
+  Intf.SendCompleteBuffer(C_Test_Complete_DirectStream, FPrepareSendDataFrame);
+  Intf.SendCompleteBuffer(C_Test_Complete_Async_DirectStream, FPrepareSendDataFrame);
 
   Intf.SendBigStream(C_TestBigStream, TestStreamData, False);
   Intf.SendDirectConsoleCmd(C_BigStreamPostInfo, TestStreamMD5);

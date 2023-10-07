@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.BulletMovementEngine;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -44,7 +45,7 @@ type
     Angle: TGeoFloat;
   end;
 
-  TBulletMovementStepHistory = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TStepHistoryData>;
+  TBulletMovementStepHistory = TOrderStruct<TStepHistoryData>;
 
   TBulletMovementEngine = class(TCore_Object)
   private

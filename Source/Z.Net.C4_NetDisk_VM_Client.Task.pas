@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_NetDisk_VM_Client.Task;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -32,7 +33,7 @@ type
   TC40_NetDisk_VM_Client_Task_Auto_Get_File = class;
   TC40_NetDisk_VM_Client_Task_Auto_Get_Directory = class;
   TC40_NetDisk_VM_Client_Task_Auto_Post_Directory = class;
-  TC40_NetDisk_VM_Client_Task_List = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TC40_NetDisk_VM_Client_Task>;
+  TC40_NetDisk_VM_Client_Task_List = TCritical_BigList<TC40_NetDisk_VM_Client_Task>;
 
   TC40_NetDisk_VM_Client_Task_Tool = class;
   TC40_NetDisk_VM_Client_Task_Pool_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Tool) of object;
@@ -256,7 +257,7 @@ constructor TC40_NetDisk_VM_Client_Task_Tool.Create(Client_: TC40_NetDisk_VM_Cli
 begin
   inherited Create;
   FList := TC40_NetDisk_VM_Client_Task_List.Create;
-  FList.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  FList.OnFree := DoFree;
   Client := Client_;
   All_Done_Do_Auto_Free_Self := True;
   All_Done_Do_Auto_Free_Client := False;
@@ -388,7 +389,7 @@ begin
   task_.OwnerPool := self;
   if Assigned(On_Add_Task) then
       On_Add_Task(task_);
-  TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}task_.Th_Encrypt);
+  TCompute.RunM_NP(task_.Th_Encrypt);
   Result := task_;
 end;
 
@@ -576,7 +577,7 @@ begin
       Pool_Ptr^.Data := nil;
       OwnerPool.FList.Remove_P(Pool_Ptr);
       if (OwnerPool.Task_Num = 0) then
-          Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}OwnerPool.Do_All_Done);
+          Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, OwnerPool.Do_All_Done);
     end;
   inherited Destroy;
 end;
@@ -597,7 +598,7 @@ end;
 
 procedure TC40_NetDisk_VM_Client_Task.Go_Next_Task;
 begin
-  Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Go_Next_Task);
+  Client.DTNoAuth.ProgressEngine.PostExecuteM_NP(0, Do_Go_Next_Task);
 end;
 
 function TC40_NetDisk_VM_Client_Task.Client: TC40_NetDisk_VM_Client;
@@ -623,7 +624,7 @@ end;
 
 procedure TC40_NetDisk_VM_Client_Task_Clone_Connection.Do_Run_Task;
 begin
-  Client.Clone_M({$IFDEF FPC}@{$ENDIF FPC}Do_Clone_Done);
+  Client.Clone_M(Do_Clone_Done);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Create;
@@ -646,7 +647,7 @@ end;
 
 procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Stream.Do_Run_Task;
 begin
-  Client.Auto_Post_File_M(self, Stream, AutoFreeStream, umlNow(), DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Post_File);
+  Client.Auto_Post_File_M(self, Stream, AutoFreeStream, umlNow(), DB_Field, DB_Item, Do_Usr_Auto_Post_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Create;
@@ -671,9 +672,9 @@ end;
 procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Stream.Do_Run_Task;
 begin
   if Share_Directory_DB_Name <> '' then
-      Client.Auto_Get_File_From_Share_Disk_M(self, Stream, AutoFreeStream, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
+      Client.Auto_Get_File_From_Share_Disk_M(self, Stream, AutoFreeStream, Share_Directory_DB_Name, DB_Field, DB_Item, Do_Usr_Auto_Get_File)
   else
-      Client.Auto_Get_File_M(self, Stream, AutoFreeStream, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
+      Client.Auto_Get_File_M(self, Stream, AutoFreeStream, DB_Field, DB_Item, Do_Usr_Auto_Get_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Create;
@@ -735,7 +736,7 @@ procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Encrypt_Stream.Do_Run_Task;
 begin
   while not Prepare_Done do
       TCompute.Sleep(1);
-  Client.Auto_Post_File_M(self, Encrypt_Stream, False, umlNow(), DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Post_File);
+  Client.Auto_Post_File_M(self, Encrypt_Stream, False, umlNow(), DB_Field, DB_Item, Do_Usr_Auto_Post_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Create;
@@ -795,9 +796,9 @@ end;
 procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Decrypt_Stream.Do_Run_Task;
 begin
   if Share_Directory_DB_Name <> '' then
-      Client.Auto_Get_File_From_Share_Disk_M(self, TMS64.Create, True, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
+      Client.Auto_Get_File_From_Share_Disk_M(self, TMS64.Create, True, Share_Directory_DB_Name, DB_Field, DB_Item, Do_Usr_Auto_Get_File)
   else
-      Client.Auto_Get_File_M(self, TMS64.Create, True, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
+      Client.Auto_Get_File_M(self, TMS64.Create, True, DB_Field, DB_Item, Do_Usr_Auto_Get_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Post_File.Create;
@@ -829,7 +830,7 @@ begin
     Go_Next_Task;
     exit;
   end;
-  Client.Auto_Post_File_M(self, fs, True, umlGetFileTime(Local_File), DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Post_File);
+  Client.Auto_Post_File_M(self, fs, True, umlGetFileTime(Local_File), DB_Field, DB_Item, Do_Usr_Auto_Post_File);
 end;
 
 constructor TC40_NetDisk_VM_Client_Task_Auto_Get_File.Create;
@@ -864,9 +865,9 @@ begin
   end;
 
   if Share_Directory_DB_Name <> '' then
-      Client.Auto_Get_File_From_Share_Disk_M(self, fs, True, Share_Directory_DB_Name, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File)
+      Client.Auto_Get_File_From_Share_Disk_M(self, fs, True, Share_Directory_DB_Name, DB_Field, DB_Item, Do_Usr_Auto_Get_File)
   else
-      Client.Auto_Get_File_M(self, fs, True, DB_Field, DB_Item, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_Auto_Get_File);
+      Client.Auto_Get_File_M(self, fs, True, DB_Field, DB_Item, Do_Usr_Auto_Get_File);
 end;
 
 procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Directory.Do_Done_Get_Directory_Task_Pool(sender: TC40_NetDisk_VM_Client_Task_Tool);
@@ -932,15 +933,15 @@ procedure TC40_NetDisk_VM_Client_Task_Auto_Get_Directory.Do_Run_Task;
 begin
   Get_Directory_Task_Pool := TC40_NetDisk_VM_Client_Task_Tool.Create(Client);
   Get_Directory_Task_Pool.All_Done_Do_Auto_Free_Self := False;
-  Get_Directory_Task_Pool.On_All_Done := {$IFDEF FPC}@{$ENDIF FPC}Do_Done_Get_Directory_Task_Pool;
+  Get_Directory_Task_Pool.On_All_Done := Do_Done_Get_Directory_Task_Pool;
   Get_Directory_Task_Pool.On_Add_Task := OwnerPool.On_Add_Task;
   Get_Directory_Task_Pool.On_Run := OwnerPool.On_Run;
   Get_Directory_Task_Pool.On_Done := OwnerPool.On_Done;
 
   if Share_Directory_DB_Name <> '' then
-      Client.Search_Share_NetDisk_File_M(Share_Directory_DB_Name, DB_Field, '*', {$IFDEF FPC}@{$ENDIF FPC}Do_Search_NetDisk_File)
+      Client.Search_Share_NetDisk_File_M(Share_Directory_DB_Name, DB_Field, '*', Do_Search_NetDisk_File)
   else
-      Client.Search_NetDisk_File_M(DB_Field, '*', {$IFDEF FPC}@{$ENDIF FPC}Do_Search_NetDisk_File);
+      Client.Search_NetDisk_File_M(DB_Field, '*', Do_Search_NetDisk_File);
 end;
 
 procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Directory.Do_Done_Post_Directory_Task_Pool(sender: TC40_NetDisk_VM_Client_Task_Tool);
@@ -981,7 +982,7 @@ procedure TC40_NetDisk_VM_Client_Task_Auto_Post_Directory.Do_Run_Task;
 begin
   Post_Directory_Task_Pool := TC40_NetDisk_VM_Client_Task_Tool.Create(Client);
   Post_Directory_Task_Pool.All_Done_Do_Auto_Free_Self := False;
-  Post_Directory_Task_Pool.On_All_Done := {$IFDEF FPC}@{$ENDIF FPC}Do_Done_Post_Directory_Task_Pool;
+  Post_Directory_Task_Pool.On_All_Done := Do_Done_Post_Directory_Task_Pool;
   Post_Directory_Task_Pool.On_Add_Task := OwnerPool.On_Add_Task;
   Post_Directory_Task_Pool.On_Run := OwnerPool.On_Run;
   Post_Directory_Task_Pool.On_Done := OwnerPool.On_Done;

@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB.FilePackage_LIB;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -572,7 +573,7 @@ end;
 initialization
 
 C_MD5_File := '____md5.txt';
-FP_EncryptStream := {$IFDEF FPC}@{$ENDIF FPC}DoEncryptStream_;
-FP_DecryptStream := {$IFDEF FPC}@{$ENDIF FPC}DoDecryptStream_;
+FP_EncryptStream := DoEncryptStream_;
+FP_DecryptStream := DoDecryptStream_;
 
 end.

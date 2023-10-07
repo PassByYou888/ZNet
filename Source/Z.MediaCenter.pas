@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.MediaCenter;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -28,7 +29,7 @@ type
     Alias: THashStringList;
   end;
 
-  TSearchConfigInfo_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PSearchConfigInfo>;
+  TSearchConfigInfo_List_Decl = TGenericsList<PSearchConfigInfo>;
 
   TFileIO = class
   private
@@ -463,28 +464,28 @@ begin
             if p^.Intf is TObjectDataManager then
               begin
                 Result := ((p^.Alias <> nil) and (p^.Alias.Exists(n)) and
-                  (ExistsObjData(p^.Info, p^.Alias[n], p^.Recursion, p^.Intf as TObjectDataManager))) or
+                    (ExistsObjData(p^.Info, p^.Alias[n], p^.Recursion, p^.Intf as TObjectDataManager))) or
                   (ExistsObjData(p^.Info, n, p^.Recursion, p^.Intf as TObjectDataManager));
               end
             else if p^.Intf is TObjectDataHashField then
               begin
                 Result := ((p^.Alias <> nil) and (p^.Alias.Exists(n)) and
-                  (ExistsLib(p^.Info, p^.Alias[n], p^.Intf as TObjectDataHashField))) or (ExistsLib(p^.Info, n, p^.Intf as TObjectDataHashField));
+                    (ExistsLib(p^.Info, p^.Alias[n], p^.Intf as TObjectDataHashField))) or (ExistsLib(p^.Info, n, p^.Intf as TObjectDataHashField));
               end
             else if p^.Intf is TObjectDataHashItem then
               begin
                 Result := ((p^.Alias <> nil) and (p^.Alias.Exists(n)) and
-                  (ExistsStreamList(p^.Alias[n], p^.Intf as TObjectDataHashItem))) or (ExistsStreamList(n, p^.Intf as TObjectDataHashItem));
+                    (ExistsStreamList(p^.Alias[n], p^.Intf as TObjectDataHashItem))) or (ExistsStreamList(n, p^.Intf as TObjectDataHashItem));
               end
             else if p^.Intf is TZDB2_File_Decoder then
               begin
                 Result := ((p^.Alias <> nil) and (p^.Alias.Exists(n)) and
-                  (Exists_ZDB2_File_Decoder(p^.Alias[n], p^.Intf as TZDB2_File_Decoder))) or (Exists_ZDB2_File_Decoder(n, p^.Intf as TZDB2_File_Decoder));
+                    (Exists_ZDB2_File_Decoder(p^.Alias[n], p^.Intf as TZDB2_File_Decoder))) or (Exists_ZDB2_File_Decoder(n, p^.Intf as TZDB2_File_Decoder));
               end
             else if p^.Intf = nil then
               begin
                 Result := ((p^.Alias <> nil) and (p^.Alias.Exists(n)) and
-                  (umlFileExists(umlCombineFileName(p^.Info, p^.Alias[n])))) or (umlFileExists(umlCombineFileName(p^.Info, n)));
+                    (umlFileExists(umlCombineFileName(p^.Info, p^.Alias[n])))) or (umlFileExists(umlCombineFileName(p^.Info, n)));
               end;
             if Result then
                 Exit;

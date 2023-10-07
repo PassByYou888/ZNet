@@ -934,7 +934,7 @@ end;
 
 function GetBufferPoolDebugInfo(ABuffPool:PBufferPool): string;
 begin
-  Result := Format('name:%s, get:%d, put:%d, addRef:%d, releaseRef:%d, size:%d', [ABuffPool.FName, ABuffPool.FGet, ABuffPool.FPut, ABuffPool.FAddRef, ABuffPool.FReleaseRef, ABuffPool.FSize]);;
+  Result := Format('name:%s, get:%d, put:%d, addRef:%d, releaseRef:%d, size:%d', [ABuffPool.FName, ABuffPool.FGet, ABuffPool.FPut, ABuffPool.FAddRef, ABuffPool.FReleaseRef, ABuffPool.FSize]);
 end;
 
 function GetBuffer(pvSize:Integer): Pointer;

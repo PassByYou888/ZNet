@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.UnicodeMixedLib;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -465,7 +466,7 @@ type
     dest_bPos, dest_ePos: Integer;
   end;
 
-  TBatchInfoList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TBatchInfo>;
+  TBatchInfoList = TGenericsList<TBatchInfo>;
 
 {$IFDEF FPC}
   TOnBatchProc = procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean) is nested;
@@ -582,10 +583,10 @@ function umlDivisionBase64Text(const buffer: TPascalString; width: Integer; Divi
 function umlTestBase64(const text: TPascalString): Boolean;
 
 type
-  TMD5_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMD5>;
-  TMD5_Big_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TMD5>;
+  TMD5_Pool = TGenericsList<TMD5>;
+  TMD5_Big_Pool = TBigList<TMD5>;
   TArrayMD5 = array of TMD5;
-  TMD5_Pair_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TMD5, TMD5>;
+  TMD5_Pair_Pool_Decl = TBig_Hash_Pair_Pool<TMD5, TMD5>;
 
   TMD5_Pair_Pool = class(TMD5_Pair_Pool_Decl)
   public
@@ -6938,7 +6939,7 @@ constructor TFileMD5Cache.Create;
 begin
   inherited Create;
   FHash := THashList.CustomCreate($FFFF);
-  FHash.OnFreePtr := {$IFDEF FPC}@{$ENDIF FPC}DoDataFreeProc;
+  FHash.OnFreePtr := DoDataFreeProc;
   FHash.IgnoreCase := True;
   FHash.AccessOptimization := True;
   Critical := TCritical.Create;
@@ -6976,7 +6977,7 @@ var
 begin
   new(p);
   p^ := FileName;
-  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_ThCacheFileMD5);
+  TCompute.RunC(p, nil, Do_ThCacheFileMD5);
 end;
 
 type
@@ -7024,7 +7025,7 @@ begin
   new(p);
   p^.Directory_ := Directory_;
   p^.Filter_ := Filter_;
-  TCompute.RunC(p, nil, {$IFDEF FPC}@{$ENDIF FPC}DoCacheFileMD5FromDirectory);
+  TCompute.RunC(p, nil, DoCacheFileMD5FromDirectory);
 end;
 
 function umlCRC16(const Value: PByte; const Count: NativeUInt): Word;

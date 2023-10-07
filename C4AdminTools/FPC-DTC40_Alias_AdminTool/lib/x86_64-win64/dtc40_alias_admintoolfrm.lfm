@@ -1,0 +1,235 @@
+object DTC40_Alias_AdminToolForm: TDTC40_Alias_AdminToolForm
+  Left = 449
+  Height = 497
+  Top = 191
+  Width = 1069
+  Caption = 'Alias Administrator tool.'
+  ClientHeight = 497
+  ClientWidth = 1069
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnClose = FormClose
+  Position = poDesktopCenter
+  LCLVersion = '2.0.12.0'
+  object _B_Splitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 3
+    Top = 344
+    Width = 1069
+    Align = alBottom
+    AutoSnap = False
+    ResizeAnchor = akBottom
+  end
+  object logMemo: TMemo
+    Left = 0
+    Height = 150
+    Top = 347
+    Width = 1069
+    Align = alBottom
+    BorderStyle = bsNone
+    DoubleBuffered = True
+    ParentDoubleBuffered = False
+    ScrollBars = ssVertical
+    TabOrder = 0
+    WordWrap = False
+  end
+  object TopBarPanel: TPanel
+    Left = 0
+    Height = 31
+    Top = 0
+    Width = 1069
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 31
+    ClientWidth = 1069
+    TabOrder = 1
+    object JoinHostEdit: TLabeledEdit
+      Left = 56
+      Height = 21
+      Top = 5
+      Width = 105
+      EditLabel.Height = 13
+      EditLabel.Width = 44
+      EditLabel.Caption = 'Join Host'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 0
+    end
+    object JoinPortEdit: TLabeledEdit
+      Left = 190
+      Height = 21
+      Top = 5
+      Width = 49
+      EditLabel.Height = 13
+      EditLabel.Width = 20
+      EditLabel.Caption = 'Port'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 1
+    end
+    object DependEdit: TLabeledEdit
+      Left = 284
+      Height = 21
+      Top = 5
+      Width = 147
+      EditLabel.Height = 13
+      EditLabel.Width = 37
+      EditLabel.Caption = 'Depend'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      TabOrder = 2
+    end
+    object BuildDependNetButton: TButton
+      Left = 935
+      Height = 25
+      Top = 2
+      Width = 76
+      Anchors = [akTop, akRight]
+      Caption = 'Build Tunnel'
+      OnClick = BuildDependNetButtonClick
+      TabOrder = 6
+    end
+    object resetDependButton: TButton
+      Left = 1017
+      Height = 25
+      Top = 2
+      Width = 42
+      Anchors = [akTop, akRight]
+      Caption = 'Reset'
+      OnClick = resetDependButtonClick
+      TabOrder = 7
+    end
+    object serviceComboBox: TComboBox
+      Left = 528
+      Height = 21
+      Top = 4
+      Width = 236
+      Anchors = [akTop, akLeft, akRight]
+      ItemHeight = 13
+      Style = csDropDownList
+      TabOrder = 4
+    end
+    object queryButton: TButton
+      Left = 437
+      Height = 25
+      Top = 2
+      Width = 85
+      Caption = 'query to ->'
+      OnClick = queryButtonClick
+      TabOrder = 3
+    end
+    object DTC4PasswdEdit: TLabeledEdit
+      Left = 825
+      Height = 21
+      Top = 4
+      Width = 104
+      Anchors = [akTop, akRight]
+      EchoMode = emPassword
+      EditLabel.Height = 13
+      EditLabel.Width = 52
+      EditLabel.Caption = 'C4 Passwd'
+      EditLabel.ParentColor = False
+      LabelPosition = lpLeft
+      PasswordChar = '*'
+      TabOrder = 5
+    end
+  end
+  object cliPanel: TPanel
+    Left = 0
+    Height = 313
+    Top = 31
+    Width = 1069
+    Align = alClient
+    BevelOuter = bvNone
+    ClientHeight = 313
+    ClientWidth = 1069
+    TabOrder = 2
+    object logDBToolBarPanel: TPanel
+      Left = 0
+      Height = 33
+      Top = 0
+      Width = 1069
+      Align = alTop
+      BevelOuter = bvNone
+      ClientHeight = 33
+      ClientWidth = 1069
+      TabOrder = 0
+      object AliasFilterEdit: TLabeledEdit
+        Left = 56
+        Height = 21
+        Top = 6
+        Width = 128
+        EditLabel.Height = 13
+        EditLabel.Width = 26
+        EditLabel.Caption = 'Alias:'
+        EditLabel.ParentColor = False
+        LabelPosition = lpLeft
+        TabOrder = 0
+      end
+      object searchAliasButton: TButton
+        Left = 190
+        Height = 25
+        Top = 2
+        Width = 54
+        Caption = 'Serach'
+        OnClick = searchAliasButtonClick
+        TabOrder = 1
+      end
+      object removeAliasButton: TButton
+        Left = 250
+        Height = 25
+        Top = 2
+        Width = 54
+        Caption = 'Remove'
+        OnClick = removeAliasButtonClick
+        TabOrder = 2
+      end
+      object NewAliasButton: TButton
+        Left = 310
+        Height = 25
+        Top = 2
+        Width = 63
+        Caption = 'New Alias'
+        OnClick = NewAliasButtonClick
+        TabOrder = 3
+      end
+    end
+    object AliasListView: TListView
+      Left = 0
+      Height = 280
+      Top = 33
+      Width = 1069
+      Align = alClient
+      BorderStyle = bsNone
+      Columns = <      
+        item
+          AutoSize = True
+          Caption = 'Alias'
+          Width = 44
+        end      
+        item
+          AutoSize = True
+          Caption = 'Name'
+          Width = 52
+        end>
+      HideSelection = False
+      MultiSelect = True
+      ParentColor = True
+      ReadOnly = True
+      RowSelect = True
+      TabOrder = 1
+      ViewStyle = vsReport
+      OnDblClick = AliasListViewDblClick
+      OnKeyUp = AliasListViewKeyUp
+    end
+  end
+  object netTimer: TTimer
+    Interval = 10
+    OnTimer = netTimerTimer
+    Left = 74
+    Top = 242
+  end
+end

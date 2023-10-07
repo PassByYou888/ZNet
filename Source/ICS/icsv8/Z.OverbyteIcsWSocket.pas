@@ -19113,7 +19113,7 @@ var
                     if (curDate + ExpireDays) > InterList[J].ValidNotAfter then begin
                         ErrStr := 'SSL certificate expires on ' +
                               DateToStr(InterList[J].ValidNotAfter) +
-                                           ' - ' + InterList[J].SubjectCName;;
+                                           ' - ' + InterList[J].SubjectCName;
                     end;
                 end;
                 Result := True;
@@ -19185,7 +19185,7 @@ begin
  { self signed means nothing to check }
     if SelfSigned then begin
         Result := chainWarn;
-        ErrStr := 'SSL certificate is self signed - ' + SubjectCName;;
+        ErrStr := 'SSL certificate is self signed - ' + SubjectCName;
         Exit;
     end;
 
@@ -19250,7 +19250,7 @@ begin
         end;
         if CertIssuer <> '' then begin
             Result := chainWarn;
-            ErrStr := 'Issuer ' + CertIssuer + ' not found for SSL certificate - ' + SubjectCName;;
+            ErrStr := 'Issuer ' + CertIssuer + ' not found for SSL certificate - ' + SubjectCName;
         end
         else if (NextIssuer <> '') then begin
             Result := chainWarn;

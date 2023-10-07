@@ -45,10 +45,10 @@ interface
 {$WEAKPACKAGEUNIT ON}
 
 // Define PCRE_STATICLINK to link the OBJ files with PCRE 7.9.
-{$DEFINE PCRE_STATICLINK}
+{.$DEFINE PCRE_STATICLINK}
 
 // Define PCRE_LINKDLL to use pcrelib.dll
-{.$DEFINE PCRE_LINKDLL}
+{$DEFINE PCRE_LINKDLL}
 
 // The supplied pcrelib.dll compiled PCRE 7.9 using the C calling convention
 {$IFDEF PCRE_LINKDLL}

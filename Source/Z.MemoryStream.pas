@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.MemoryStream;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -130,14 +131,14 @@ type
   TStream64 = TMS64;
   TMemoryStream64 = TMS64;
 
-  TMemoryStream64List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMS64>;
+  TMemoryStream64List_Decl = TGenericsList<TMS64>;
 
   TMemoryStream64List = class(TMemoryStream64List_Decl)
   public
     procedure Clean;
   end;
 
-  TMS64_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Object_List<TMS64>;
+  TMS64_Pool = TBig_Object_List<TMS64>;
 
   TStream64List = TMemoryStream64List;
   TMS64List = TMemoryStream64List;
@@ -307,7 +308,7 @@ type
 
   TM64 = TMem64;
 
-  TMem64List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TMem64>;
+  TMem64List_Decl = TGenericsList<TMem64>;
 
   TMem64List = class(TMem64List_Decl)
   public
@@ -2444,7 +2445,7 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
+      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, Nested_ParallelFor);
 {$ELSE FPC}
       DelphiParallelFor(ThNum, True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin
@@ -2602,7 +2603,7 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, @Nested_ParallelFor);
+      FPCParallelFor(ThNum, True, 0, Length(StripArry) - 1, Nested_ParallelFor);
 {$ELSE FPC}
       DelphiParallelFor(ThNum, True, 0, Length(StripArry) - 1, procedure(pass: Integer)
         begin

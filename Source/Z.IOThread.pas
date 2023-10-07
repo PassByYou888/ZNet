@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.IOThread;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -41,7 +42,7 @@ type
     property On_P: TIO_Thread_On_P read FOn_P write FOn_P;
   end;
 
-  TIO_Thread_Queue = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TIO_Thread_Data>;
+  TIO_Thread_Queue = TOrderStruct<TIO_Thread_Data>;
 
   TIO_Thread_Base = class
   public
@@ -104,7 +105,7 @@ type
 
   TThread_Event_Pool__ = class;
 
-  TThread_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TThread_Event_Pool__>;
+  TThread_Pool_Decl = TBigList<TThread_Event_Pool__>;
 
   TThread_Pool = class(TThread_Pool_Decl)
   private
@@ -276,7 +277,7 @@ begin
   n := if_(ThNum_ < 2, 1, ThNum_);
 
   for i := 0 to n - 1 do
-      TCompute.RunM({$IFDEF FPC}@{$ENDIF FPC}ThRun);
+      TCompute.RunM(ThRun);
   while FThNum < n do
       TCompute.Sleep(1);
 end;
@@ -299,7 +300,7 @@ begin
   ThEnd();
   FThNum := 0;
   for i := 0 to n - 1 do
-      TCompute.RunM({$IFDEF FPC}@{$ENDIF FPC}ThRun);
+      TCompute.RunM(ThRun);
   while FThNum < n do
       TCompute.Sleep(1);
 end;
@@ -393,7 +394,7 @@ begin
   with TIO_Thread.Create(Get_Parallel_Granularity) do
     begin
       for i := 1 to 1000000 do
-          Enqueue_C(TIO_Thread_Data.Create, Pointer(i), {$IFDEF FPC}@{$ENDIF FPC}Test_IOData__C);
+          Enqueue_C(TIO_Thread_Data.Create, Pointer(i), Test_IOData__C);
 
       j := 1;
       while Count > 0 do
@@ -504,7 +505,7 @@ begin
   with TIO_Direct.Create do
     begin
       for i := 1 to 1000000 do
-          Enqueue_C(TIO_Thread_Data.Create, nil, {$IFDEF FPC}@{$ENDIF FPC}Test_IOData__C);
+          Enqueue_C(TIO_Thread_Data.Create, nil, Test_IOData__C);
       while Count > 0 do
         begin
           d := Dequeue;
@@ -624,7 +625,7 @@ begin
   Eng_ := nil;
   try
 {$IFDEF FPC}
-    For_P(@do_fpc_Progress);
+    For_P(do_fpc_Progress);
 {$ELSE FPC}
     For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
       begin
@@ -668,7 +669,7 @@ begin
   Eng_ := nil;
   try
 {$IFDEF FPC}
-    For_P(@do_fpc_Progress);
+    For_P(do_fpc_Progress);
 {$ELSE FPC}
     For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
       begin
@@ -701,10 +702,10 @@ var
 begin
   pool := TThread_Pool.Create(2);
   for i := 0 to 9 do
-      pool.Next_Thread.PostM1({$IFDEF FPC}@{$ENDIF FPC}pool.DoTest_C);
+      pool.Next_Thread.PostM1(pool.DoTest_C);
   pool.Wait;
   for i := 0 to 9 do
-      pool.MinLoad_Thread.PostM1({$IFDEF FPC}@{$ENDIF FPC}pool.DoTest_C);
+      pool.MinLoad_Thread.PostM1(pool.DoTest_C);
   pool.Wait;
   DisposeObject(pool);
 end;
@@ -756,7 +757,7 @@ begin
   FBindTh := nil;
   FPost := nil;
   FActivted := nil;
-  TCompute.RunM(nil, Self, {$IFDEF FPC}@{$ENDIF FPC}ThRun);
+  TCompute.RunM(nil, Self, ThRun);
 end;
 
 destructor TThread_Event_Pool__.Destroy;

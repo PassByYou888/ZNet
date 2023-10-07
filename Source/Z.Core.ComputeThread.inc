@@ -1,6 +1,6 @@
 type
   PComputeDispatchData = ^TComputeDispatch;
-  TCompute_Dispatch_Queue_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PComputeDispatchData>;
+  TCompute_Dispatch_Queue_Pool = TBigList<PComputeDispatchData>;
 
   TComputeDispatch = record
     OnRun_C: TRun_Thread_C;
@@ -22,7 +22,7 @@ type
     procedure AssignTo(Th: TCompute);
   end;
 
-  TCompute_Dispatch_Order = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TComputeDispatch>;
+  TCompute_Dispatch_Order = TCriticalOrderStruct<TComputeDispatch>;
 
   TParallelOverflow = record
   public
@@ -333,6 +333,8 @@ begin
       if IsExit <> nil then
           IsExit^ := False;
 
+      FThread_Info := '<none>'; // reset thread-info
+
       try
         if Assigned(OnRun_C) then
             OnRun_C(Self);
@@ -355,7 +357,7 @@ begin
           IsExit^ := True;
 
       if Assigned(OnDone_C) or Assigned(OnDone_M) or Assigned(OnDone_P) then
-          Synchronize({$IFDEF FPC}@{$ENDIF FPC}Done_Sync);
+          Synchronize(Done_Sync);
 
       // check for idle thread, and again run.
       NoTask := True;
@@ -412,6 +414,18 @@ begin
   Th := TCore_Thread.CurrentThread;
   if (Th is TCompute) then
       TCompute(Th).FThread_Info := Thread_Info_;
+end;
+
+class procedure TCompute.Set_Thread_Info(const Fmt: string; const Args: array of const);
+var
+  n: string;
+begin
+  try
+      n := Format(Fmt, Args);
+  except
+      n := Fmt;
+  end;
+  TCompute.Set_Thread_Info(n);
 end;
 
 constructor TCompute.Create;
@@ -530,7 +544,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
 class procedure TCompute.Sync(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
@@ -539,7 +553,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncC(OnRun_: TRun_Thread_C_NP);
@@ -548,7 +562,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunC := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncC(const Thread_: TThread; OnRun_: TRun_Thread_C_NP);
@@ -557,7 +571,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunC := OnRun_;
-  TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncM(OnRun_: TRun_Thread_M_NP);
@@ -566,7 +580,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunM := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncM(const Thread_: TThread; OnRun_: TRun_Thread_M_NP);
@@ -575,7 +589,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunM := OnRun_;
-  TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncP(const OnRun_: TRun_Thread_P_NP);
@@ -584,7 +598,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncP(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
@@ -593,7 +607,7 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(Thread_, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoSync);
+  TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C);
@@ -959,7 +973,7 @@ class procedure TCompute.PostFreeObjectInThread(const Obj: TObject);
 begin
   if Obj = nil then
       exit;
-  TCompute.RunC(nil, Obj, {$IFDEF FPC}@{$ENDIF FPC}Do_PostFreeObjectInThread, nil);
+  TCompute.RunC(nil, Obj, Do_PostFreeObjectInThread, nil);
 end;
 
 class procedure TCompute.PostFreeObjectInThreadAndNil(var Obj);

@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Pascal_Code_Tool;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -48,7 +49,7 @@ type
 
   PSource_Define = ^TSource_Define;
 
-  TSource_Define_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PSource_Define>;
+  TSource_Define_Pool_Decl = TGenericsList<PSource_Define>;
 
   TSource_Define_Pool = class(TSource_Define_Pool_Decl)
   public
@@ -71,7 +72,7 @@ type
 
   PSource_Processor_Data = ^TSource_Processor_Data;
 
-  TSource_Processor_Data_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PSource_Processor_Data>;
+  TSource_Processor_Data_Pool_Decl = TGenericsList<PSource_Processor_Data>;
 
   TSource_Processor_Data_Pool = class(TSource_Processor_Data_Pool_Decl)
   public
@@ -97,7 +98,7 @@ type
 
   PCustom_After_Source_Processor_Data = ^TCustom_After_Source_Processor_Data;
 
-  TCustom_After_Source_Processor_Data_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PCustom_After_Source_Processor_Data>;
+  TCustom_After_Source_Processor_Data_Pool_Decl = TGenericsList<PCustom_After_Source_Processor_Data>;
 
   TCustom_After_Source_Processor_Data_Pool = class(TCustom_After_Source_Processor_Data_Pool_Decl)
   public
@@ -208,7 +209,7 @@ type
     destructor Destroy; override;
   end;
 
-  TRewrite_Trace_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TRewrite_Trace>;
+  TRewrite_Trace_Pool_Decl = TGenericsList<TRewrite_Trace>;
 
   TRewrite_Trace_Pool = class(TRewrite_Trace_Pool_Decl)
   public
@@ -254,7 +255,7 @@ type
     procedure Do_Run;
   end;
 
-  TThread_RewritePascal_Process_ZDB_File_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TThread_RewritePascal_Process_ZDB_File>;
+  TThread_RewritePascal_Process_ZDB_File_Pool = TBigList<TThread_RewritePascal_Process_ZDB_File>;
 
 procedure Th_RewritePascal_ZDB_Include_File_Processor(Eng_: TObjectDataManager; UnitHash_, PatternHash_: THashStringList; Trace_Pool: TRewrite_Trace_Pool; OnStatus: TOnRewriteStatus);
 procedure Th_RewritePascal_Process_ZDB_Directory(Eng_: TObjectDataManager; directory_: U_String; UnitHash_, PatternHash_: THashStringList; CustomPattern_: TCustom_After_Source_Processor_Data_Pool; OnStatus: TOnRewriteStatus); overload;
@@ -310,6 +311,7 @@ var
 
 
 begin
+  Result := False;
   if PatternHash_ = nil then
       Exit;
   if PatternHash_.Count = 0 then
@@ -322,7 +324,7 @@ begin
   L := TU_BatchInfoList.Create;
 
 {$IFDEF FPC}
-  Code_.Text := U_BatchReplace(u_TP.Text.TrimChar(#0#13#10#32#9), arry, OnlyWord, IgnoreCase, 0, 0, L, @fpc_progress_);
+  Code_.Text := U_BatchReplace(u_TP.Text.TrimChar(#0#13#10#32#9), arry, OnlyWord, IgnoreCase, 0, 0, L, fpc_progress_);
 {$ELSE FPC}
   Code_.Text := U_BatchReplace(u_TP.Text.TrimChar(#0#13#10#32#9), arry, OnlyWord, IgnoreCase, 0, 0, L,
       procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean)
@@ -344,6 +346,7 @@ var
   arry: TU_ArrayBatch;
   L: TU_BatchInfoList;
 begin
+  Result := False;
   if PatternHash_ = nil then
       Exit;
   if PatternHash_.Count = 0 then
@@ -422,7 +425,7 @@ var
     U_SortBatch(arry);
 
 {$IFDEF FPC}
-    Result := U_BatchReplace(p, arry, True, True, 0, 0, nil, @fpc_progress_);
+    Result := U_BatchReplace(p, arry, True, True, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
     Result := U_BatchReplace(p, arry, True, True, 0, 0, nil,
       procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean)
@@ -900,7 +903,10 @@ begin
           Trace_.IsCode_ := True;
       if Result then
         begin
-          Code.SaveToFile(new_fn, LEncode);
+          try
+              Code.SaveToFile(new_fn, LEncode);
+          except
+          end;
           if Assigned(OnStatus) then
               OnStatus(FileInfo__ + 'rebuild code %s', [New_Feature.Text]);
           umlSetFileTime(new_fn, ft);
@@ -1006,11 +1012,15 @@ begin
         if Replace_Pascal_Code(N, incl_Trace.marco_hash_, [ttAscii], True, True, 0, 0, PFormat('"%s" ', [incl_Trace.Current_.Text]), OnStatus) then
           begin
             Code.Text := N;
-
-            Code.SaveToFile(incl_Trace.Current_, LEncode);
+            try
+                Code.SaveToFile(incl_Trace.Current_, LEncode);
+            except
+            end;
             if Assigned(OnStatus) then
                 OnStatus('rebuild code %s', [incl_Trace.Current_.Text]);
+
             umlSetFileTime(incl_Trace.Current_, ft);
+
             if Assigned(OnStatus) then
                 OnStatus('rewrite file time %s -> %s', [incl_Trace.Current_.Text, DateTimeToStr(ft)]);
           end;
@@ -1064,7 +1074,10 @@ begin
     begin
       Code.Text := N;
       tmp_m64 := TMS64.Create;
-      Code.SaveToStream(tmp_m64, LEncode);
+      try
+          Code.SaveToStream(tmp_m64, LEncode);
+      except
+      end;
       tmp_m64.SaveToFile(fn);
       disposeObject(tmp_m64);
 
@@ -1160,14 +1173,14 @@ begin
     begin
 {$IFDEF Parallel}
 {$IFDEF FPC}
-      FPCParallelFor(@Nested_ParallelFor_File, 0, Length(arry) - 1);
+      FPCParallelFor(Nested_ParallelFor_File, 0, Length(arry) - 1);
       RewritePascal_Include_File_Processor(UnitHash_, PatternHash_, Trace_Pool, OnStatus);
       Trace_Pool.Clean;
       disposeObject(Trace_Pool);
       arry := umlGet_File_Full_Array(directory_);
-      FPCParallelFor(@Nested_ParallelFor_File_Custom_Pattern, 0, Length(arry) - 1);
+      FPCParallelFor(Nested_ParallelFor_File_Custom_Pattern, 0, Length(arry) - 1);
       arry := umlGet_Path_Full_Array(directory_);
-      FPCParallelFor(@Nested_ParallelFor_Dir, 0, Length(arry) - 1);
+      FPCParallelFor(Nested_ParallelFor_Dir, 0, Length(arry) - 1);
 {$ELSE FPC}
       DelphiParallelFor(0, Length(arry) - 1, procedure(pass: Integer)
         var
@@ -1329,7 +1342,10 @@ begin
   if Result_RewritePascal_Process_ZDB_File then
     begin
       tmp_m64 := TMS64.Create;
-      Code.SaveToStream(tmp_m64, LEncode);
+      try
+          Code.SaveToStream(tmp_m64, LEncode);
+      except
+      end;
       tmp_m64.SaveTo_ZDB_File(Eng_, new_fn);
       disposeObject(tmp_m64);
       umlSetFileTime(new_fn, ft);
@@ -1345,7 +1361,7 @@ begin
   if Assigned(OnStatus) then
       OnStatus('prepare %s -> %s', [OLD_Feature.Text, New_Feature.Text]);
   Result_RewritePascal_Process_ZDB_File := RewritePascal_Process_Code(Code, UnitHash_, PatternHash_, Trace_, OLD_Feature, OnStatus);
-  th_Post.PostM1({$IFDEF FPC}@{$ENDIF FPC}Do_Sync);
+  th_Post.PostM1(Do_Sync);
 end;
 
 procedure TThread_RewritePascal_Process_ZDB_File.Do_Run;
@@ -1425,7 +1441,7 @@ begin
       checkAndLoadFile(new_fn);
       if Trace_ <> nil then
           Trace_.Current_ := new_fn;
-      TCompute.RunM_NP({$IFDEF FPC}@{$ENDIF FPC}Do_RewritePascal_Process_Code);
+      TCompute.RunM_NP(Do_RewritePascal_Process_Code);
     end
   else
       Busy := False;
@@ -1529,7 +1545,10 @@ begin
           begin
             Code.Text := N;
             tmp_m64 := TMS64.Create;
-            Code.SaveToStream(tmp_m64, LEncode);
+            try
+                Code.SaveToStream(tmp_m64, LEncode);
+            except
+            end;
             tmp_m64.SaveTo_ZDB_File(Eng_, incl_Trace.Current_);
             disposeObject(tmp_m64);
 
@@ -1800,7 +1819,10 @@ begin
       if Result then
         begin
           tmp_m64 := TMS64.Create;
-          Code.SaveToStream(tmp_m64, LEncode);
+          try
+              Code.SaveToStream(tmp_m64, LEncode);
+          except
+          end;
           tmp_m64.SaveTo_ZDB_File(Eng_, new_fn);
           disposeObject(tmp_m64);
           if Assigned(OnStatus) then
@@ -1911,7 +1933,10 @@ begin
           begin
             Code.Text := N;
             tmp_m64 := TMS64.Create;
-            Code.SaveToStream(tmp_m64, LEncode);
+            try
+                Code.SaveToStream(tmp_m64, LEncode);
+            except
+            end;
             tmp_m64.SaveTo_ZDB_File(Eng_, incl_Trace.Current_);
             disposeObject(tmp_m64);
 
@@ -1969,7 +1994,10 @@ begin
     begin
       Code.Text := N;
       tmp_m64 := TMS64.Create;
-      Code.SaveToStream(tmp_m64, LEncode);
+      try
+          Code.SaveToStream(tmp_m64, LEncode);
+      except
+      end;
       tmp_m64.SaveTo_ZDB_File(Eng_, fn);
       disposeObject(tmp_m64);
 
@@ -2037,6 +2065,7 @@ var
   UnitHash_, PatternHash_: THashStringList;
   i: Integer;
 begin
+  Result := 0;
   if not TZDB2_File_Decoder.Check(Model_) then
       Exit;
 
@@ -2103,7 +2132,7 @@ begin
   PatternData_.Build_Hash_Pool(PatternHash_);
   disposeObject(PatternData_);
 
-  RewritePascal_Process_ZDB_Directory(Eng_, directory_, UnitHash_, PatternHash_, CustomPattern_, OnStatus);
+  Result := RewritePascal_Process_ZDB_Directory(Eng_, directory_, UnitHash_, PatternHash_, CustomPattern_, OnStatus);
 
   disposeObject(UnitHash_);
   disposeObject(PatternHash_);
@@ -2306,7 +2335,7 @@ begin
       p := items[i];
       num := 0;
 {$IFDEF FPC}
-      N := umlReplace(@p^.NewName, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+      N := umlReplace(@p^.NewName, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
       N := umlReplace(@p^.NewName, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
         procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
@@ -2521,7 +2550,7 @@ begin
       p := items[i];
       num := 0;
 {$IFDEF FPC}
-      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
       N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
         procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
@@ -2559,7 +2588,7 @@ begin
       p := items[i];
       num := 0;
 {$IFDEF FPC}
-      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
       N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
         procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
@@ -2734,7 +2763,7 @@ begin
       p := items[i];
       num := 0;
 {$IFDEF FPC}
-      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+      N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
       N := umlReplace(@p^.OLD_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
         procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)
@@ -2772,7 +2801,7 @@ begin
       p := items[i];
       num := 0;
 {$IFDEF FPC}
-      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, @fpc_progress_);
+      N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil, fpc_progress_);
 {$ELSE FPC}
       N := umlReplace(@p^.New_Feature, OLD_, New_, OnlyWord, IgnoreCase, 0, 0, nil,
         procedure(bPos, ePos: Integer; sour, dest: PPascalString; var Accept: Boolean)

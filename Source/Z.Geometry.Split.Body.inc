@@ -1584,7 +1584,7 @@ begin
   SL := TSortedList.Create(false);
   try
     // Sort the triangles by their left position
-    SL.OnCompare := {$IFDEF FPC}@{$ENDIF FPC}TriangleCompareLeft;
+    SL.OnCompare := TriangleCompareLeft;
     // Add all triangles to the sortlist
     for i := 0 to FTriangles.Count - 1 do
         SL.Add(FTriangles[i]);

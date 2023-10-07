@@ -4,6 +4,7 @@
 
 unit Z.Json;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -187,7 +188,7 @@ type
     class procedure Test;
   end;
 
-  TZ_JsonObject_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TZ_JsonObject>;
+  TZ_JsonObject_List_Decl = TGenericsList<TZ_JsonObject>;
 
   TZ_JsonObject_List = class(TZ_JsonObject_List_Decl)
   public

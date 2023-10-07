@@ -2686,7 +2686,7 @@ begin
    end;
 
    if fsBold in FFont.Style then
-      Att := Att or F_INTENSE;;
+      Att := Att or F_INTENSE;
 
    if fAttribute = fDefAttribute then
    begin

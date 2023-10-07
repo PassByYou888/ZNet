@@ -30,7 +30,7 @@ begin
   FCritical := TCritical.Create;
   FThreadID := ThreadID_;
   FSyncPool := TThread_Post_Data_Order_Struct__.Create;
-  FSyncPool.OnFree := {$IFDEF FPC}@{$ENDIF FPC}FreeThreadProgressPostData;
+  FSyncPool.OnFree := FreeThreadProgressPostData;
   FProgressing := TAtomBool.Create(False);
   FOneStep := True;
   FResetRandomSeed := False;

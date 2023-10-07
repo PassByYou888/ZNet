@@ -1,6 +1,6 @@
 type
   PCritical_Struct = ^TCritical_Struct;
-  TCritical_Struct_Pool_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PCritical_Struct>;
+  TCritical_Struct_Pool_Decl__ = TBigList<PCritical_Struct>;
 
   TCritical_Struct_Pool__ = class(TCritical_Struct_Pool_Decl__)
   public

@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4.VM_Var;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -43,8 +44,8 @@ type
   TOn_C40_Var_VM_Service_NM_Change = procedure(Sender: TC40_Var_VM_Service; NMPool_: TC40_Var_VM_Service_NM_Pool; NM: TNumberModule) of object;
   TOn_C40_Var_VM_Service_NMPool_Event = procedure(Sender: TC40_Var_VM_Service; NMPool_: TC40_Var_VM_Service_NM_Pool) of object;
 
-  TVAR_Service_NMBigPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_Var_VM_Service_NM_Pool>;
-  TC40_Var_VM_NumberModulePool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Var_VM_Service_NM_Pool>;
+  TVAR_Service_NMBigPool = TGeneric_String_Object_Hash<TC40_Var_VM_Service_NM_Pool>;
+  TC40_Var_VM_NumberModulePool_List = TGenericsList<TC40_Var_VM_Service_NM_Pool>;
 
   TC40_Var_VM_Service_IO_Define = class(TService_RecvTunnel_UserDefine_NoAuth)
   public
@@ -112,7 +113,7 @@ type
   TC40_Var_VM_Client_NM_GetP = reference to procedure(Sender: TC40_Var_VM_Client; L: TC40_Var_VM_NumberModulePool_List);
 {$ENDIF FPC}
 
-  TC40_Var_VM_Client_NM_Get = class(TOnResultBridge)
+  TC40_Var_VM_Client_NM_Get = class(TOnResult_Bridge)
   public
     Client: TC40_Var_VM_Client;
     OnResultC: TC40_Var_VM_Client_NM_GetC;
@@ -131,7 +132,7 @@ type
   TC40_Var_VM_Client_NM_GetValueP = reference to procedure(Sender: TC40_Var_VM_Client; NM: TNumberModule);
 {$ENDIF FPC}
 
-  TC40_Var_VM_Client_NM_GetValue = class(TOnResultBridge)
+  TC40_Var_VM_Client_NM_GetValue = class(TOnResult_Bridge)
   public
     Client: TC40_Var_VM_Client;
     NM_Name: U_String;
@@ -151,7 +152,7 @@ type
   TC40_Var_VM_Client_NM_OpenP = reference to procedure(Sender: TC40_Var_VM_Client; NMPool_: TC40_Var_VM_Service_NM_Pool);
 {$ENDIF FPC}
 
-  TC40_Var_VM_Client_NM_Open = class(TOnResultBridge)
+  TC40_Var_VM_Client_NM_Open = class(TOnResult_Bridge)
   public
     Client: TC40_Var_VM_Client;
     OnResultC: TC40_Var_VM_Client_NM_OpenC;
@@ -170,7 +171,7 @@ type
   TC40_Var_VM_Client_NM_ScriptP = reference to procedure(Sender: TC40_Var_VM_Client; Result_: TExpressionValueVector);
 {$ENDIF FPC}
 
-  TC40_Var_VM_Client_NM_Script = class(TOnResultBridge)
+  TC40_Var_VM_Client_NM_Script = class(TOnResult_Bridge)
   public
     Client: TC40_Var_VM_Client;
     OnResultC: TC40_Var_VM_Client_NM_ScriptC;
@@ -189,7 +190,7 @@ type
   TC40_Var_VM_Client_NM_SearchP = reference to procedure(Sender: TC40_Var_VM_Client; NMPool_: TC40_Var_VM_NumberModulePool_List);
 {$ENDIF FPC}
 
-  TC40_Var_VM_Client_NM_Search = class(TOnResultBridge)
+  TC40_Var_VM_Client_NM_Search = class(TOnResult_Bridge)
   public
     Client: TC40_Var_VM_Client;
     OnResultC: TC40_Var_VM_Client_NM_SearchC;
@@ -255,7 +256,7 @@ type
     procedure NM_SearchAndRunScript(filter: U_String; ExpressionTexts_: U_StringArray);
   end;
 
-  TC40_Var_VM_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Var_VM_Client>;
+  TC40_Var_VM_Client_List = TGenericsList<TC40_Var_VM_Client>;
 
 implementation
 
@@ -376,10 +377,10 @@ procedure TC40_Var_VM_Service.SaveNMBigPoolAsOX(DB_: TObjectDataManagerOfCache);
 
 begin
 {$IFDEF FPC}
-  NMBigPool.ProgressP(@fpc_Progress_);
+  NMBigPool.ProgressP(fpc_Progress_);
 {$ELSE FPC}
   NMBigPool.ProgressP(
-    procedure(const Name: PSystemString; Obj: TC40_Var_VM_Service_NM_Pool)
+      procedure(const Name: PSystemString; Obj: TC40_Var_VM_Service_NM_Pool)
     var
       itmHnd: TItemHandle;
       s_: TItemStream;
@@ -433,8 +434,8 @@ end;
 
 procedure TC40_Var_VM_Service.DoNMCreateOpRunTime(Sender: TNumberModulePool; OP_: TOpCustomRunTime);
 begin
-  OP_.RegObjectOpM('SetSys', '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoSetSysNM);
-  OP_.RegObjectOpM('GetSys', '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoGetSysNM);
+  OP_.RegObjectOpM('SetSys', '', OP_DoSetSysNM);
+  OP_.RegObjectOpM('GetSys', '', OP_DoGetSysNM);
 end;
 
 procedure TC40_Var_VM_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
@@ -848,7 +849,7 @@ begin
   MaxNum := InData.R.ReadInteger;
   AutoOpen := InData.R.ReadBool;
 {$IFDEF FPC}
-  NMBigPool.ProgressP(@fpc_Progress_);
+  NMBigPool.ProgressP(fpc_Progress_);
 {$ELSE FPC}
   NMBigPool.ProgressP(procedure(const Name: PSystemString; Obj: TC40_Var_VM_Service_NM_Pool)
     begin
@@ -913,7 +914,7 @@ begin
   filter_ := InData.R.ReadString;
   Do_Read_Exp_Arry;
 {$IFDEF FPC}
-  NMBigPool.ProgressP(@fpc_Progress_);
+  NMBigPool.ProgressP(fpc_Progress_);
 {$ELSE FPC}
   NMBigPool.ProgressP(procedure(const Name: PSystemString; Obj: TC40_Var_VM_Service_NM_Pool)
     var
@@ -953,21 +954,21 @@ end;
 constructor TC40_Var_VM_Service.Create(Param_: U_String);
 begin
   inherited Create(Param_);
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Init').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Init;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_InitAsTemp').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_InitAsTemp;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Remove').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Remove;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_RemoveKey').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_RemoveKey;
-  DTNoAuthService.RecvTunnel.RegisterStream('NM_Get').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Get;
-  DTNoAuthService.RecvTunnel.RegisterStream('NM_GetValue').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_GetValue;
-  DTNoAuthService.RecvTunnel.RegisterStream('NM_Open').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Open;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Close').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Close;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_CloseAll').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_CloseAll;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Change').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Change;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Keep').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Keep;
-  DTNoAuthService.RecvTunnel.RegisterStream('NM_Script').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Script;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Save').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Save;
-  DTNoAuthService.RecvTunnel.RegisterStream('NM_Search').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Search;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_SearchAndRunScript').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_SearchAndRunScript;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Init').OnExecute := cmd_NM_Init;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_InitAsTemp').OnExecute := cmd_NM_InitAsTemp;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Remove').OnExecute := cmd_NM_Remove;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_RemoveKey').OnExecute := cmd_NM_RemoveKey;
+  DTNoAuthService.RecvTunnel.RegisterStream('NM_Get').OnExecute := cmd_NM_Get;
+  DTNoAuthService.RecvTunnel.RegisterStream('NM_GetValue').OnExecute := cmd_NM_GetValue;
+  DTNoAuthService.RecvTunnel.RegisterStream('NM_Open').OnExecute := cmd_NM_Open;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Close').OnExecute := cmd_NM_Close;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_CloseAll').OnExecute := cmd_NM_CloseAll;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Change').OnExecute := cmd_NM_Change;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Keep').OnExecute := cmd_NM_Keep;
+  DTNoAuthService.RecvTunnel.RegisterStream('NM_Script').OnExecute := cmd_NM_Script;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_Save').OnExecute := cmd_NM_Save;
+  DTNoAuthService.RecvTunnel.RegisterStream('NM_Search').OnExecute := cmd_NM_Search;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NM_SearchAndRunScript').OnExecute := cmd_NM_SearchAndRunScript;
   DTNoAuthService.RecvTunnel.PeerIOUserDefineClass := TC40_Var_VM_Service_IO_Define;
 
   ProgressTempNMList := TC40_Var_VM_NumberModulePool_List.Create;
@@ -1005,7 +1006,7 @@ begin
   inherited Progress;
 
   ProgressTempNMList.Clear;
-  NMBigPool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}Progress_NMPool);
+  NMBigPool.ProgressM(Progress_NMPool);
   try
     for i := 0 to ProgressTempNMList.Count - 1 do
       begin
@@ -1042,7 +1043,7 @@ begin
       Result := TC40_Var_VM_Service_NM_Pool.Create;
       Result.Name := Name_;
       Result.Service := self;
-      Result.OnNMCreateOpRunTime := {$IFDEF FPC}@{$ENDIF FPC}DoNMCreateOpRunTime;
+      Result.OnNMCreateOpRunTime := DoNMCreateOpRunTime;
       NMBigPool.FastAdd(Name_, Result);
     end;
 end;
@@ -1348,8 +1349,8 @@ end;
 constructor TC40_Var_VM_Client.Create(Param_: U_String);
 begin
   inherited Create(Param_);
-  DTNoAuthClient.RecvTunnel.RegisterDirectStream('NM_Change').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Change;
-  DTNoAuthClient.RecvTunnel.RegisterDirectConsole('NM_Remove').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NM_Remove;
+  DTNoAuthClient.RecvTunnel.RegisterDirectStream('NM_Change').OnExecute := cmd_NM_Change;
+  DTNoAuthClient.RecvTunnel.RegisterDirectConsole('NM_Remove').OnExecute := cmd_NM_Remove;
   NMBigPool := TVAR_Service_NMBigPool.Create(True, 1024, nil);
   NMBigPool.AccessOptimization := True;
   NMBigPool.IgnoreCase := True;
@@ -1441,7 +1442,7 @@ begin
   d := TDFE.Create;
   for i := 0 to length(arry) - 1 do
       d.WriteString(arry[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Get', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Get', d, TStream_Event_Bridge.Create(Bridge_IO_).DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -1458,7 +1459,7 @@ begin
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Get', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1475,7 +1476,7 @@ begin
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Get', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1492,7 +1493,7 @@ begin
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Get', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1505,7 +1506,7 @@ begin
   d.WriteString(NMName_);
   for i := 0 to length(ValueNames_) - 1 do
       d.WriteString(ValueNames_[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_GetValue', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_GetValue', d, TStream_Event_Bridge.Create(Bridge_IO_).DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -1524,7 +1525,7 @@ begin
   tmp.NM_Name := NMName_;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_GetValue', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1543,7 +1544,7 @@ begin
   tmp.NM_Name := NMName_;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_GetValue', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1562,7 +1563,7 @@ begin
   tmp.NM_Name := NMName_;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_GetValue', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1574,7 +1575,7 @@ begin
   d := TDFE.Create;
   for i := 0 to length(arry) - 1 do
       d.WriteString(arry[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Open', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Open', d, TStream_Event_Bridge.Create(Bridge_IO_).DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -1591,7 +1592,7 @@ begin
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Open', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1608,7 +1609,7 @@ begin
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Open', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1625,7 +1626,7 @@ begin
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Open', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1691,7 +1692,7 @@ begin
   d.WriteString(NMName_);
   for i := 0 to length(ExpressionTexts_) - 1 do
       d.WriteString(ExpressionTexts_[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Script', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Script', d, TStream_Event_Bridge.Create(Bridge_IO_).DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -1709,7 +1710,7 @@ begin
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Script', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1727,7 +1728,7 @@ begin
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Script', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1745,7 +1746,7 @@ begin
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Script', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1763,7 +1764,7 @@ begin
   d.WriteString(filter);
   d.WriteInteger(MaxNum);
   d.WriteBool(AutoOpen);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Search', d, {$IFDEF FPC}@{$ENDIF FPC}TStreamEventBridge.Create(Bridge_IO_).DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Search', d, TStream_Event_Bridge.Create(Bridge_IO_).DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -1781,7 +1782,7 @@ begin
   tmp.Client := self;
   tmp.OnResultC := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1799,7 +1800,7 @@ begin
   tmp.Client := self;
   tmp.OnResultM := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1817,7 +1818,7 @@ begin
   tmp.Client := self;
   tmp.OnResultP := OnResult;
   DTNoAuthClient.SendTunnel.SendStreamCmdM('NM_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 

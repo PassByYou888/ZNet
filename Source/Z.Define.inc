@@ -203,6 +203,8 @@
       {$O+} { open optimization }
       {$INLINE ON} { inline }
     {$IFEND}
+    {$STRINGCHECKS OFF}
+    {$W-}
   {$ELSE release}
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
@@ -224,13 +226,13 @@
   {$ELSE}
     // PhysicsIO interface
     // {$DEFINE PhysicsIO_On_ICS}
+    // {$DEFINE PhysicsIO_On_ICS9}
     {$DEFINE PhysicsIO_On_CrossSocket}
     // {$DEFINE PhysicsIO_On_DIOCP}
     // {$DEFINE PhysicsIO_On_Indy}
     // {$DEFINE PhysicsIO_On_Synapse}
   {$IFEND}
 
-  {$X+} { Extended syntax }
   {$Z1} { Minimum enum size }
 {$ENDIF FPC}
 
@@ -290,6 +292,7 @@
 // ZDB2-HPC support system defaults to using Safe Flush.
 // Safe flush can effectively solve the problem of data loss during power outages, and on the other hand, it can reduce IO performance
 {$DEFINE ZDB2_Thread_Engine_Safe_Flush}
+
 // When using the ZDB2 engine in the ZNet-C4 framework Safe Flush technology, prioritize the use of Safe Flush technology
 {$DEFINE C4_Safe_Flush}
 
@@ -357,6 +360,8 @@
 {$Q-} { Overflow checking }
 {$B-} { Complete boolean evaluation }
 {$J-} { Writeable typed constants }
+{$T-} { Type-checked Pointers }
+{$X+} { Extended Syntax with Pointers }
 
 (*
   Pointer math is simply treating any given typed pointer in some narrow,

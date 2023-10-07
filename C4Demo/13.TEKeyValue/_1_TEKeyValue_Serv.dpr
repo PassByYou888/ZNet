@@ -26,24 +26,6 @@ uses
   Z.Net.C4_TEKeyValue,
   Z.Net.C4_Console_APP;
 
-var
-  exit_signal: Boolean;
-
-procedure Do_Check_On_Exit;
-var
-  n: string;
-  cH: TC40_Console_Help;
-begin
-  cH := TC40_Console_Help.Create;
-  repeat
-    TCompute.Sleep(100);
-    Readln(n);
-    cH.Run_HelpCmd(n);
-  until cH.IsExit;
-  disposeObject(cH);
-  exit_signal := True;
-end;
-
 begin
   StatusThreadID := False;
   // TEKeyValue服务等同于KeyValue数据库
@@ -52,10 +34,7 @@ begin
 
   if Z.Net.C4_Console_APP.C40_Extract_CmdLine then
     begin
-      exit_signal := False;
-      TCompute.RunC_NP(@Do_Check_On_Exit);
-      while not exit_signal do
-          Z.Net.C4.C40Progress;
+      C40_Execute_Main_Loop;
     end;
   Z.Net.C4.C40Clean;
 

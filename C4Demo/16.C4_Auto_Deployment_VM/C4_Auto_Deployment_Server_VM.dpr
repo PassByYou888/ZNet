@@ -2,6 +2,7 @@ program C4_Auto_Deployment_Server_VM;
 
 {$APPTYPE CONSOLE}
 
+
 uses
   Z.Core,
   Z.PascalStrings,
@@ -34,24 +35,6 @@ uses
 {$R *.res}
 
 
-var
-  exit_signal: Boolean;
-
-procedure Do_Check_On_Exit;
-var
-  n: string;
-  cH: TC40_Console_Help;
-begin
-  cH := TC40_Console_Help.Create;
-  repeat
-    TCompute.Sleep(100);
-    Readln(n);
-    cH.Run_HelpCmd(n);
-  until cH.IsExit;
-  disposeObject(cH);
-  exit_signal := True;
-end;
-
 begin
   StatusThreadID := False;
 
@@ -66,10 +49,7 @@ begin
     begin
       with TAuto_Deployment_Service.Create('') do
           StartService('0.0.0.0', '8990', '123456');
-      exit_signal := False;
-      TCompute.RunC_NP(@Do_Check_On_Exit);
-      while not exit_signal do
-          Z.Net.C4.C40Progress;
+      C40_Execute_Main_Loop;
     end;
   Z.Net.C4.C40Clean;
 

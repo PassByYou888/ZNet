@@ -300,7 +300,6 @@ object C40AppTempletForm: TC40AppTempletForm
           TabOrder = 1
           ViewStyle = vsReport
           OnChange = ServiceListViewChange
-          ExplicitTop = 33
         end
       end
     end

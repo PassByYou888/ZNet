@@ -7,6 +7,7 @@
 
 unit Z.Net.Server.Refrence;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I ..\Z.Define.inc}
 
 interface

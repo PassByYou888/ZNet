@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.XNAT.Client;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -91,8 +92,8 @@ type
     destructor Destroy; override;
   end;
 
-  TXClientMappingList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TXClientMapping>;
-  TXClientHashMapping = {$IFDEF FPC}specialize {$ENDIF FPC} TGeneric_String_Object_Hash<TXClientMapping>;
+  TXClientMappingList = TGenericsList<TXClientMapping>;
+  TXClientHashMapping = TGeneric_String_Object_Hash<TXClientMapping>;
 
   TXNATClient = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
   private
@@ -167,7 +168,7 @@ begin
     begin
       DoStatus('[%s] Send Tunnel connect success.', [Mapping.Text]);
       if not RecvTunnel.Connected then
-          RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, {$IFDEF FPC}@{$ENDIF FPC}RecvTunnel_ConnectResult)
+          RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, RecvTunnel_ConnectResult)
       else
           RecvTunnel_ConnectResult(True);
     end
@@ -180,7 +181,7 @@ begin
   if cState then
     begin
       DoStatus('[%s] Receive Tunnel connect success.', [Mapping.Text]);
-      SendTunnel.ProgressPost.PostExecuteM(0, {$IFDEF FPC}@{$ENDIF FPC}delay_RequestListen);
+      SendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
     end
   else
       DoStatus('error: [%s] Receive Tunnel connect failed!', [Mapping.Text]);
@@ -204,7 +205,7 @@ begin
   de := TDFE.Create;
   de.WriteCardinal(SendTunnel.RemoteID);
   de.WriteCardinal(RecvTunnel.RemoteID);
-  SendTunnel.SendStreamCmdM(C_RequestListen, de, {$IFDEF FPC}@{$ENDIF FPC}RequestListen_Result);
+  SendTunnel.SendStreamCmdM(C_RequestListen, de, RequestListen_Result);
   disposeObject(de);
 end;
 
@@ -262,16 +263,16 @@ begin
   RecvTunnel.CompleteBufferCompressed := XClientTunnel.ProtocolCompressed;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Connect_request) then
-      RecvTunnel.RegisterDirectStream(C_Connect_request).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_connect_request;
+      RecvTunnel.RegisterDirectStream(C_Connect_request).OnExecute := cmd_connect_request;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Disconnect_request) then
-      RecvTunnel.RegisterDirectStream(C_Disconnect_request).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_disconnect_request;
+      RecvTunnel.RegisterDirectStream(C_Disconnect_request).OnExecute := cmd_disconnect_request;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Data) then
-      RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_data;
+      RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
 
   if not SendTunnel.Connected then
-      SendTunnel.AsyncConnectM(SendTunnel_IPV6, SendTunnel_Port, {$IFDEF FPC}@{$ENDIF FPC}SendTunnel_ConnectResult)
+      SendTunnel.AsyncConnectM(SendTunnel_IPV6, SendTunnel_Port, SendTunnel_ConnectResult)
   else
       SendTunnel_ConnectResult(True);
 
@@ -309,7 +310,7 @@ begin
   xCli.Activted := False;
 
   { async connection }
-  xCli.AsyncConnectM(Addr, umlStrToInt(Port), {$IFDEF FPC}@{$ENDIF FPC}xCli.OnConnect_Result);
+  xCli.AsyncConnectM(Addr, umlStrToInt(Port), xCli.OnConnect_Result);
 end;
 
 procedure TXClientMapping.cmd_disconnect_request(Sender: TPeerIO; InData: TDFE);
@@ -507,7 +508,7 @@ end;
 procedure TPhysicsEngine_Special.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      Owner.BuildP2PAuthTokenM({$IFDEF FPC}@{$ENDIF FPC}PhysicsVMBuildAuthToken_Result)
+      Owner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
   else
       XNAT.WaitAsyncConnecting := False;
 end;
@@ -533,7 +534,7 @@ begin
     ref wiki
     https://en.wikipedia.org/wiki/SHA-3
   }
-  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), {$IFDEF FPC}@{$ENDIF FPC}PhysicsOpenVM_Result)
+  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), PhysicsOpenVM_Result)
 end;
 
 procedure TPhysicsEngine_Special.PhysicsOpenVM_Result(const cState: Boolean);
@@ -541,7 +542,7 @@ begin
   if cState then
     begin
       Owner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(XNAT.MaxVMFragment, Owner.p2pVMTunnel.MaxVMFragmentSize);
-      Owner.SendStreamCmdM(C_IPV6Listen, nil, {$IFDEF FPC}@{$ENDIF FPC}IPV6Listen_Result);
+      Owner.SendStreamCmdM(C_IPV6Listen, nil, IPV6Listen_Result);
     end
   else
       XNAT.WaitAsyncConnecting := False;
@@ -664,7 +665,7 @@ procedure TXNATClient.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P
 begin
   if PhysicsEngine is TZNet_Server then
     begin
-      Sender.SendStreamCmdM(C_IPV6Listen, nil, {$IFDEF FPC}@{$ENDIF FPC}TPhysicsEngine_Special(Sender.UserSpecial).IPV6Listen_Result);
+      Sender.SendStreamCmdM(C_IPV6Listen, nil, TPhysicsEngine_Special(Sender.UserSpecial).IPV6Listen_Result);
     end
   else if PhysicsEngine is TZNet_Client then
     begin
@@ -777,7 +778,7 @@ begin
         begin
           WaitAsyncConnecting := True;
           WaitAsyncConnecting_BeginTime := GetTimeTick;
-          TZNet_Client(PhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), {$IFDEF FPC}@{$ENDIF FPC}PhysicsConnect_Result_BuildP2PToken);
+          TZNet_Client(PhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), PhysicsConnect_Result_BuildP2PToken);
         end;
     end;
 end;

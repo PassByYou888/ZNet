@@ -20,7 +20,7 @@ const
 type
   TMTVector = array [0 .. MT19937N - 1] of Integer;
   PMD19937Core = ^TMT19937Core;
-  TMT19937_Pool_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PMD19937Core>;
+  TMT19937_Pool_Decl__ = TBigList<PMD19937Core>;
 
   TMT19937_Pool__ = class(TMT19937_Pool_Decl__)
   public
@@ -196,7 +196,7 @@ begin
   try
     MT19937_POOL__.Free_Recycle_Pool;
 {$IFDEF FPC}
-    MT19937_POOL__.For_P(@do_fpc_progress);
+    MT19937_POOL__.For_P(do_fpc_progress);
 {$ELSE FPC}
     MT19937_POOL__.For_P(procedure(Index_: NativeInt; p: TMT19937_Pool__.PQueueStruct; var Aborted: Boolean)
       begin

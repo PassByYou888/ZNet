@@ -6,6 +6,7 @@
 *)
 unit Z.Net.Client.Indy;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I ..\Z.Define.inc}
 
 interface

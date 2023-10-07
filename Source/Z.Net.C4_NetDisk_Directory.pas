@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_NetDisk_Directory;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -28,14 +29,14 @@ type
 
   TDirectory_MD5_Data_Frag_Struct = record
     FS_AliasOrHash: U_String; // C4 alias or Hash
-    FS_File: U_String;        // file name
-    Pos_: Int64;              // position info
-    Size_: Int64;             // size info
+    FS_File: U_String; // file name
+    Pos_: Int64; // position info
+    Size_: Int64; // size info
   end;
 
   PDirectory_MD5_Data_Frag_Struct = ^TDirectory_MD5_Data_Frag_Struct;
 
-  TDirectory_MD5_Data_Frag_Struct_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PDirectory_MD5_Data_Frag_Struct>;
+  TDirectory_MD5_Data_Frag_Struct_List_Decl = TGenericsList<PDirectory_MD5_Data_Frag_Struct>;
 
   TDirectory_MD5_Data_Frag_Struct_List = class(TDirectory_MD5_Data_Frag_Struct_List_Decl)
   public
@@ -61,7 +62,7 @@ type
     procedure ReadInfo;
   end;
 
-  TDirectory_Service_MD5_DataPool = {$IFDEF FPC}specialize {$ENDIF FPC} TGeneric_String_Object_Hash<TDirectory_Service_MD5_Data_Frag>;
+  TDirectory_Service_MD5_DataPool = TGeneric_String_Object_Hash<TDirectory_Service_MD5_Data_Frag>;
 
   TDirectory_Service_User_File_DB = class
   public
@@ -78,7 +79,7 @@ type
     procedure ComputeFragSpace;
   end;
 
-  TDirectory_Service_User_File_DB_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TDirectory_Service_User_File_DB>;
+  TDirectory_Service_User_File_DB_Pool = TGeneric_String_Object_Hash<TDirectory_Service_User_File_DB>;
 
   TTemp_Compute_SpaceInfo = class
   public
@@ -101,7 +102,7 @@ type
 
   POpti_Directory_File_Hash_Item_Data = ^TOpti_Directory_File_Hash_Item_Data;
 
-  TOpti_Directory_File_Hash_Item_Data_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<POpti_Directory_File_Hash_Item_Data>;
+  TOpti_Directory_File_Hash_Item_Data_List_Decl = TGenericsList<POpti_Directory_File_Hash_Item_Data>;
 
   TOpti_Directory_File_Hash_Item_Data_List = class(TOpti_Directory_File_Hash_Item_Data_List_Decl)
   public
@@ -111,8 +112,8 @@ type
     procedure Add_Item_Data(DB_Name, DB_Field, DB_Item: SystemString; Item_Size: Int64; Item_Time: TDateTime);
   end;
 
-  TOpti_Directory_File_Hash = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TOpti_Directory_File_Hash_Item_Data_List>;
-  TDirectory_Service_Num_Hash = {$IFDEF FPC}specialize {$ENDIF FPC}TString_Big_Hash_Pair_Pool<Integer>;
+  TOpti_Directory_File_Hash = TGeneric_String_Object_Hash<TOpti_Directory_File_Hash_Item_Data_List>;
+  TDirectory_Service_Num_Hash = TString_Big_Hash_Pair_Pool<Integer>;
 
 {$ENDREGION 'service struct define'}
 
@@ -194,7 +195,7 @@ type
   TON_ExistsDB_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
 {$ENDIF FPC}
 
-  TON_Temp_ExistsDB = class(TOnResultBridge)
+  TON_Temp_ExistsDB = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_ExistsDB_C;
@@ -212,7 +213,7 @@ type
   TON_NewDB_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
 {$ENDIF FPC}
 
-  TON_Temp_NewDB = class(TOnResultBridge)
+  TON_Temp_NewDB = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_NewDB_C;
@@ -238,7 +239,7 @@ type
   TON_GetItemList_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
 {$ENDIF FPC}
 
-  TON_Temp_GetItemList = class(TOnResultBridge)
+  TON_Temp_GetItemList = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_GetItemList_C;
@@ -256,7 +257,7 @@ type
   TON_GetItemMD5_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
 {$ENDIF FPC}
 
-  TON_Temp_GetItemMD5 = class(TOnResultBridge)
+  TON_Temp_GetItemMD5 = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_GetItemMD5_C;
@@ -274,7 +275,7 @@ type
   TON_GetItemFrag_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
 {$ENDIF FPC}
 
-  TON_Temp_GetItemFrag = class(TOnResultBridge)
+  TON_Temp_GetItemFrag = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_GetItemFrag_C;
@@ -292,7 +293,7 @@ type
   TON_FoundMD5_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean);
 {$ENDIF FPC}
 
-  TON_Temp_FoundMD5 = class(TOnResultBridge)
+  TON_Temp_FoundMD5 = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_FoundMD5_C;
@@ -310,7 +311,7 @@ type
   TON_PutItemFrag_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
 {$ENDIF FPC}
 
-  TON_Temp_PutItemFrag = class(TOnResultBridge)
+  TON_Temp_PutItemFrag = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_PutItemFrag_C;
@@ -328,7 +329,7 @@ type
   TON_PutItemMD5_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
 {$ENDIF FPC}
 
-  TON_Temp_PutItemMD5 = class(TOnResultBridge)
+  TON_Temp_PutItemMD5 = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_PutItemMD5_C;
@@ -346,7 +347,7 @@ type
   TON_SpaceInfo_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Field_Num, Item_Num, ItemSpace: Int64);
 {$ENDIF FPC}
 
-  TON_Temp_SpaceInfo = class(TOnResultBridge)
+  TON_Temp_SpaceInfo = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_SpaceInfo_C;
@@ -372,7 +373,7 @@ type
   TON_SearchItem_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
 {$ENDIF FPC}
 
-  TON_Temp_SearchItem = class(TOnResultBridge)
+  TON_Temp_SearchItem = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_SearchItem_C;
@@ -390,7 +391,7 @@ type
   TON_SearchField_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
 {$ENDIF FPC}
 
-  TON_Temp_SearchField = class(TOnResultBridge)
+  TON_Temp_SearchField = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_SearchField_C;
@@ -406,7 +407,7 @@ type
 
   TCopyItem_Info_Array = array of TCopyItem_Info;
 
-  TCopyItem_Info_Tool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCopyItem_Info>;
+  TCopyItem_Info_Tool_Decl = TBigList<TCopyItem_Info>;
 
   TCopyItem_Info_Tool = class(TCopyItem_Info_Tool_Decl)
   public
@@ -421,7 +422,7 @@ type
 
   TCopyField_Info_Array = array of TCopyField_Info;
 
-  TCopyField_Info_Tool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCopyField_Info>;
+  TCopyField_Info_Tool_Decl = TBigList<TCopyField_Info>;
 
   TCopyField_Info_Tool = class(TCopyField_Info_Tool_Decl)
   public
@@ -438,7 +439,7 @@ type
   TON_SearchInvalidFrag_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
 {$ENDIF FPC}
 
-  TON_Temp_SearchInvalidFrag = class(TOnResultBridge)
+  TON_Temp_SearchInvalidFrag = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_SearchInvalidFrag_C;
@@ -456,7 +457,7 @@ type
   TON_SearchSameItem_P = reference to procedure(Sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString; SearchResult: TOpti_Directory_File_Hash_Item_Data_List);
 {$ENDIF FPC}
 
-  TON_Temp_SearchSameItem = class(TOnResultBridge)
+  TON_Temp_SearchSameItem = class(TOnResult_Bridge)
   public
     Client: TC40_NetDisk_Directory_Client;
     OnResultC: TON_SearchSameItem_C;
@@ -574,7 +575,7 @@ type
     procedure SearchSameItem_P(DB_Name, DB_Field, DB_Item: U_String; OnResult: TON_SearchSameItem_P);
   end;
 
-  TC40_NetDisk_Directory_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Directory_Client>;
+  TC40_NetDisk_Directory_Client_List = TGenericsList<TC40_NetDisk_Directory_Client>;
 
 implementation
 
@@ -795,7 +796,7 @@ var
   ir: TItemRecursionSearch;
   itm_stream: TItemStream;
 begin
-  ThSender.OnDone_M := {$IFDEF FPC}@{$ENDIF FPC}Do_Compute_SpaceInfo_Done;
+  ThSender.OnDone_M := Do_Compute_SpaceInfo_Done;
   dbEng := nil;
   try
     dbEng := TObjectDataManager.CreateAsStream(TMS64(ThSender.UserObject), '', DBMarshal.ID, False, False, True);
@@ -1046,8 +1047,8 @@ begin
   if fd.Stream.Data.FieldFindFirst(DB_Field, '*', fr) then
     begin
       repeat
-        OutData.WriteString('f:%s', [fr.Name.Text]);                  // field
-        OutData.WriteInt64(fr.HeaderCount);                           // children
+        OutData.WriteString('f:%s', [fr.Name.Text]); // field
+        OutData.WriteInt64(fr.HeaderCount); // children
         OutData.WriteDouble(fr.FieldSearch.RHeader.ModificationTime); // time
       until not fd.Stream.Data.FieldFindNext(fr);
     end;
@@ -1059,8 +1060,8 @@ begin
         Size_ := StreamReadInt64(itm_stream);
         DisposeObject(itm_stream);
         OutData.WriteString('i:%s|%s', [ir.Name.Text, md5_name_.Text]); // item
-        OutData.WriteInt64(Size_);                                      // size
-        OutData.WriteDouble(ir.FieldSearch.RHeader.ModificationTime);   // time
+        OutData.WriteInt64(Size_); // size
+        OutData.WriteDouble(ir.FieldSearch.RHeader.ModificationTime); // time
       until not fd.Stream.Data.ItemFindNext(ir);
     end;
 end;
@@ -1306,7 +1307,7 @@ begin
       tmp := TTemp_Compute_SpaceInfo.Create;
       tmp.Service := self;
       tmp.DB_Name := DB_Name;
-      RunHPC_StreamM(Sender, nil, m64, InData, OutData, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Compute_SpaceInfo);
+      RunHPC_StreamM(Sender, nil, m64, InData, OutData, tmp.Do_Compute_SpaceInfo);
     end
   else
     begin
@@ -1654,7 +1655,7 @@ begin
   Opti_Directory_Frag_Hash.Clear;
   Temp_Invalid_MD5_List := TPascalStringList.Create;
 {$IFDEF FPC}
-  MD5_Pool.ProgressP(@fpc_progress_);
+  MD5_Pool.ProgressP(fpc_progress_);
 {$ELSE FPC}
   MD5_Pool.ProgressP(procedure(const Name_: PSystemString; Obj_: TDirectory_Service_MD5_Data_Frag)
     var
@@ -1755,7 +1756,7 @@ procedure TC40_NetDisk_Directory_Service.Opti_Progress();
 begin
   Opti_Directory_File_Hash.Clear;
 {$IFDEF FPC}
-  Directory_HashPool.ProgressP(@do_fpc_progress);
+  Directory_HashPool.ProgressP(do_fpc_progress);
 {$ELSE FPC}
   Directory_HashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TDirectory_Service_User_File_DB)
     var
@@ -1857,28 +1858,28 @@ var
   md5_frag: TDirectory_Service_MD5_Data_Frag;
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
-  DTNoAuthService.RecvTunnel.RegisterStream('ExistsDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ExistsDB;
-  DTNoAuthService.RecvTunnel.RegisterStream('NewDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewDB;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveDB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveDB;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('Download_DB').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Download_DB;
-  DTNoAuthService.RecvTunnel.RegisterStream('GetItemMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemMD5;
-  DTNoAuthService.RecvTunnel.RegisterStream('GetItemList').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemList;
-  DTNoAuthService.RecvTunnel.RegisterStream('GetItemFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetItemFrag;
-  DTNoAuthService.RecvTunnel.RegisterStream('FoundMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FoundMD5;
-  DTNoAuthService.RecvTunnel.RegisterStream('PutItemFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_PutItemFrag;
-  DTNoAuthService.RecvTunnel.RegisterStream('PutItemMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_PutItemMD5;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveField;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveItem;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('NewField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewField;
-  DTNoAuthService.RecvTunnel.RegisterStream('SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SpaceInfo;
-  DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchItem;
-  DTNoAuthService.RecvTunnel.RegisterStream('SearchField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchField;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyItem;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CopyField;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameField;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameItem;
-  DTNoAuthService.RecvTunnel.RegisterStream('SearchInvalidFrag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchInvalidFrag;
-  DTNoAuthService.RecvTunnel.RegisterStream('SearchSameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchSameItem;
+  DTNoAuthService.RecvTunnel.RegisterStream('ExistsDB').OnExecute := cmd_ExistsDB;
+  DTNoAuthService.RecvTunnel.RegisterStream('NewDB').OnExecute := cmd_NewDB;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveDB').OnExecute := cmd_RemoveDB;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Download_DB').OnExecute := cmd_Download_DB;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetItemMD5').OnExecute := cmd_GetItemMD5;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetItemList').OnExecute := cmd_GetItemList;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetItemFrag').OnExecute := cmd_GetItemFrag;
+  DTNoAuthService.RecvTunnel.RegisterStream('FoundMD5').OnExecute := cmd_FoundMD5;
+  DTNoAuthService.RecvTunnel.RegisterStream('PutItemFrag').OnExecute := cmd_PutItemFrag;
+  DTNoAuthService.RecvTunnel.RegisterStream('PutItemMD5').OnExecute := cmd_PutItemMD5;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveField').OnExecute := cmd_RemoveField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveItem').OnExecute := cmd_RemoveItem;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('NewField').OnExecute := cmd_NewField;
+  DTNoAuthService.RecvTunnel.RegisterStream('SpaceInfo').OnExecute := cmd_SpaceInfo;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchItem').OnExecute := cmd_SearchItem;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchField').OnExecute := cmd_SearchField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyItem').OnExecute := cmd_CopyItem;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('CopyField').OnExecute := cmd_CopyField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := cmd_RenameField;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := cmd_RenameItem;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchInvalidFrag').OnExecute := cmd_SearchInvalidFrag;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchSameItem').OnExecute := cmd_SearchSameItem;
 
   // instance
   ServiceInfo.OnlyInstance := True;
@@ -1995,7 +1996,7 @@ begin
 
   Init_Opti();
 
-  Register_ConsoleCommand('Compress_And_Reload', 'Compress and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress and reload.').OnEvent_M := CC_Compress_And_Reload;
 end;
 
 destructor TC40_NetDisk_Directory_Service.Destroy;
@@ -2016,8 +2017,8 @@ begin
   Directory_Database.Flush;
   MD5_Database.Flush;
 {$IFDEF FPC}
-  Directory_HashPool.ProgressP(@fpc_progress_hash_pool_);
-  MD5_Pool.ProgressP(@fpc_progress_md5_pool_);
+  Directory_HashPool.ProgressP(fpc_progress_hash_pool_);
+  MD5_Pool.ProgressP(fpc_progress_md5_pool_);
 {$ELSE FPC}
   Directory_HashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TDirectory_Service_User_File_DB)
     begin
@@ -2634,10 +2635,10 @@ end;
 constructor TC40_NetDisk_Directory_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
-  Client.RecvTunnel.RegisterDirectStream('download_DB_Error').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_download_DB_Error;
-  Client.RecvTunnel.RegisterDirectStream('download_DB_Done').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_download_DB_Done;
-  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Directory_MD5;
-  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_Invalid_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Directory_Invalid_Frag;
+  Client.RecvTunnel.RegisterDirectStream('download_DB_Error').OnExecute := cmd_download_DB_Error;
+  Client.RecvTunnel.RegisterDirectStream('download_DB_Done').OnExecute := cmd_download_DB_Done;
+  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_MD5').OnExecute := cmd_Remove_Directory_MD5;
+  Client.RecvTunnel.RegisterDirectStream('Remove_Directory_Invalid_Frag').OnExecute := cmd_Remove_Directory_Invalid_Frag;
   ON_C40_NetDisk_Directory_Client_Interface := nil;
 end;
 
@@ -2663,7 +2664,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2678,7 +2679,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2693,7 +2694,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('ExistsDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2708,7 +2709,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2723,7 +2724,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2738,7 +2739,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('NewDB', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2809,7 +2810,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2825,7 +2826,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2841,7 +2842,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemList', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2858,7 +2859,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2875,7 +2876,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2892,7 +2893,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2909,7 +2910,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2926,7 +2927,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2943,7 +2944,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('GetItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2958,7 +2959,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2973,7 +2974,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -2988,7 +2989,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('FoundMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3010,7 +3011,7 @@ begin
   L.Encode(nd);
   d.WriteDataFrame(nd);
   DisposeObject(nd);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3032,7 +3033,7 @@ begin
   L.Encode(nd);
   d.WriteDataFrame(nd);
   DisposeObject(nd);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3054,7 +3055,7 @@ begin
   L.Encode(nd);
   d.WriteDataFrame(nd);
   DisposeObject(nd);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3072,7 +3073,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3090,7 +3091,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3108,7 +3109,7 @@ begin
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
   d.WriteString(frag_md5_name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('PutItemMD5', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3158,7 +3159,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3173,7 +3174,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3188,7 +3189,7 @@ begin
 
   d := TDFE.Create;
   d.WriteString(DB_Name);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SpaceInfo', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3205,7 +3206,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3222,7 +3223,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3239,7 +3240,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Search);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3255,7 +3256,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3271,7 +3272,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3287,7 +3288,7 @@ begin
   d := TDFE.Create;
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchField', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3364,7 +3365,7 @@ begin
   d := TDFE.Create;
   for i := low(frag_arry) to high(frag_arry) do
       d.WriteString(frag_arry[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3381,7 +3382,7 @@ begin
   d := TDFE.Create;
   for i := low(frag_arry) to high(frag_arry) do
       d.WriteString(frag_arry[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3398,7 +3399,7 @@ begin
   d := TDFE.Create;
   for i := low(frag_arry) to high(frag_arry) do
       d.WriteString(frag_arry[i]);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchInvalidFrag', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3416,7 +3417,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3434,7 +3435,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 
@@ -3452,7 +3453,7 @@ begin
   d.WriteString(DB_Name);
   d.WriteString(DB_Field);
   d.WriteString(DB_Item);
-  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamEvent);
+  DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchSameItem', d, tmp.DoStreamEvent);
   DisposeObject(d);
 end;
 

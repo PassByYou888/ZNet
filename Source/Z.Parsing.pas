@@ -4,6 +4,7 @@
 
 unit Z.Parsing;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -60,8 +61,8 @@ type
 
   PTokenData = ^TTokenData;
 
-  TTextPosList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PTextPos>;
-  TTokenDataList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PTokenData>;
+  TTextPosList_Decl = TGenericsList<PTextPos>;
+  TTokenDataList_Decl = TGenericsList<PTokenData>;
 
   TTextParsingCache = record
     CommentDecls, TextDecls: TTextPosList_Decl;

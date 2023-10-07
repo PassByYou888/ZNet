@@ -4,6 +4,7 @@
 
 unit Z.Cipher;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 {$O+} // compiler optimization
 
@@ -2502,7 +2503,7 @@ end;
 
 class function TCipher.Random_Select_Cipher(const arry: TCipherSecurityArray): TCipherSecurity;
 begin
-  Result := arry[umlRandomRange(Low(arry), High(arry))];
+  Result := arry[umlRR(Low(arry), High(arry))];
 end;
 
 class function TCipher.NameToHashSecurity(n: SystemString; var hash: THashSecurity): Boolean;
@@ -4188,7 +4189,7 @@ begin
       inc(StepTotal);
 
 {$IFDEF FPC}
-  FPCParallelFor(@Nested_ParallelFor, 0, StepTotal - 1);
+  FPCParallelFor(Nested_ParallelFor, 0, StepTotal - 1);
 {$ELSE FPC}
   DelphiParallelFor(0, StepTotal - 1, procedure(pass: Int64)
     var
@@ -4231,7 +4232,7 @@ begin
           Exit;
 
       TDES.InitEncryptDES(k, Context, Encrypt);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}DES64_Parallel;
+      JobData.cipherFunc := DES64_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 8;
@@ -4270,7 +4271,7 @@ begin
           Exit;
 
       TDES.InitEncryptTripleDES(k, Context, Encrypt);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}DES128_Parallel;
+      JobData.cipherFunc := DES128_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 8;
@@ -4309,7 +4310,7 @@ begin
           Exit;
 
       TDES.InitEncryptTripleDES3Key(k1, k2, k3, Context, Encrypt);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}DES192_Parallel;
+      JobData.cipherFunc := DES192_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 8;
@@ -4348,7 +4349,7 @@ begin
           Exit;
 
       TBlowfish.InitEncryptBF(k, Context);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}Blowfish_Parallel;
+      JobData.cipherFunc := Blowfish_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 8;
@@ -4387,7 +4388,7 @@ begin
           Exit;
 
       TLBC.InitEncryptLBC(k, Context, 16, Encrypt);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}LBC_Parallel;
+      JobData.cipherFunc := LBC_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4424,7 +4425,7 @@ begin
       if not TCipher.GetKey(KeyBuff, k) then
           Exit;
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}LQC_Parallel;
+      JobData.cipherFunc := LQC_Parallel;
       JobData.KeyBuffer := @k;
       JobData.OriginBuffer := sour;
       JobData.L := 8;
@@ -4461,7 +4462,7 @@ begin
       if not TCipher.GetKey(KeyBuff, k) then
           Exit;
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}XXTea512_Parallel;
+      JobData.cipherFunc := XXTea512_Parallel;
       JobData.KeyBuffer := @k;
       JobData.OriginBuffer := sour;
       JobData.L := 64;
@@ -4503,7 +4504,7 @@ begin
       THashMD.GenerateLMDKey((@k256[0])^, 32, k);
 
       TRC6.InitKey(@k256[0], 32, Context);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}RC6_Parallel;
+      JobData.cipherFunc := RC6_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4546,7 +4547,7 @@ begin
 
       TSerpent.InitKey(@k256[0], 32, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}Serpent_Parallel;
+      JobData.cipherFunc := Serpent_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4589,7 +4590,7 @@ begin
 
       TMars.InitKey(@k256[0], 32, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}Mars_Parallel;
+      JobData.cipherFunc := Mars_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4632,7 +4633,7 @@ begin
 
       TRijndael.InitKey(@k256[0], 32, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}Rijndael_Parallel;
+      JobData.cipherFunc := Rijndael_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4674,7 +4675,7 @@ begin
       THashMD.GenerateLMDKey((@k256[0])^, 32, k);
 
       TTwofish.InitKey(@k256[0], 32, Context);
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}TwoFish_Parallel;
+      JobData.cipherFunc := TwoFish_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4720,7 +4721,7 @@ begin
       else
           ExpandAESKeyForDecryption(k128, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES128_Parallel;
+      JobData.cipherFunc := AES128_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4766,7 +4767,7 @@ begin
       else
           ExpandAESKeyForDecryption(k192, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES192_Parallel;
+      JobData.cipherFunc := AES192_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4812,7 +4813,7 @@ begin
       else
           ExpandAESKeyForDecryption(k256, Context);
 
-      JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}AES256_Parallel;
+      JobData.cipherFunc := AES256_Parallel;
       JobData.KeyBuffer := @Context;
       JobData.OriginBuffer := sour;
       JobData.L := 16;
@@ -4850,7 +4851,7 @@ begin
       Exit;
     end;
 
-  JobData.cipherFunc := {$IFDEF FPC}@{$ENDIF FPC}BlockCBC_Parallel;
+  JobData.cipherFunc := BlockCBC_Parallel;
   JobData.KeyBuffer := boxBuff;
   JobData.OriginBuffer := sour;
   JobData.L := boxSiz;

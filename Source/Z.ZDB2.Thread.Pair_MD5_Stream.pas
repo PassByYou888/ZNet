@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2.Thread.Pair_MD5_Stream;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -20,7 +21,7 @@ type
   TZDB2_Pair_MD5_Stream_Tool = class;
   TZDB2_Pair_MD5_Stream_Data = class;
 
-  TZDB2_Pair_MD5_Stream_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_MD5_Big_Hash_Pair_Pool<TZDB2_Pair_MD5_Stream_Data>;
+  TZDB2_Pair_MD5_Stream_Pool__ = TCritical_MD5_Big_Hash_Pair_Pool<TZDB2_Pair_MD5_Stream_Data>;
 
   TZDB2_Pair_MD5_Stream_Pool = class(TZDB2_Pair_MD5_Stream_Pool__)
   public
@@ -74,7 +75,8 @@ type
     procedure Backup(Reserve_: Word);
     procedure Backup_If_No_Exists();
     // flush
-    procedure Flush;
+    procedure Flush; overload;
+    procedure Flush(WaitQueue_: Boolean); overload;
     function Flush_Is_Busy: Boolean;
     // fragment number
     function Num: NativeInt;
@@ -225,7 +227,7 @@ end;
 procedure TZDB2_Pair_MD5_Stream_Tool.Extract_MD5_Pool(ThNum_: Integer);
 begin
   MD5_Pool.Clear;
-  ZDB2_Marshal.Parallel_Load_M(ThNum_, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Data_Loaded, nil);
+  ZDB2_Marshal.Parallel_Load_M(ThNum_, Do_Th_Data_Loaded, nil);
 end;
 
 procedure TZDB2_Pair_MD5_Stream_Tool.Clear(Delete_Data_: Boolean);
@@ -427,6 +429,11 @@ end;
 procedure TZDB2_Pair_MD5_Stream_Tool.Flush;
 begin
   ZDB2_Marshal.Flush;
+end;
+
+procedure TZDB2_Pair_MD5_Stream_Tool.Flush(WaitQueue_: Boolean);
+begin
+  ZDB2_Marshal.Flush(WaitQueue_);
 end;
 
 function TZDB2_Pair_MD5_Stream_Tool.Flush_Is_Busy: Boolean;

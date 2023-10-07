@@ -38,8 +38,6 @@ type
     procedure DoUserReg_Event(Sender: TDTService_VirtualAuth; RegIO: TVirtualRegIO); override;
     procedure DoUserAuth_Event(Sender: TDTService_VirtualAuth; AuthIO: TVirtualAuthIO); override;
   protected
-    // 自动化检测并启用c4的依赖部署系统
-    procedure Do_C40_Deployment_Ready(States: TC40_Custom_ClientPool_Wait_States);
   public
     Log_Client: TC40_Log_DB_Client;
     UserDB_Client: TC40_UserDB_Client;
@@ -102,31 +100,14 @@ begin
   UserDB_Client.Usr_AuthM(AuthIO.UserID, AuthIO.Passwd, tmp.Do_Usr_Auth);
 end;
 
-procedure TAuto_Deployment_Service.Do_C40_Deployment_Ready(States: TC40_Custom_ClientPool_Wait_States);
-var
-  i: Integer;
-  cc: TC40_Custom_Client;
-begin
-  Log_Client := nil;
-  UserDB_Client := nil;
-  for i := 0 to Z.Net.C4.C40_ClientPool.Count - 1 do
-    begin
-      cc := Z.Net.C4.C40_ClientPool[i];
-      if cc is TC40_Log_DB_Client then
-          Log_Client := cc as TC40_Log_DB_Client
-      else if cc is TC40_UserDB_Client then
-          UserDB_Client := cc as TC40_UserDB_Client;
-    end;
-  DoStatus('依赖系统准备就绪.');
-end;
-
 constructor TAuto_Deployment_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited;
   Log_Client := nil;
   UserDB_Client := nil;
-  // 等依赖服务事件
-  C40_ClientPool.WaitConnectedDoneM('UserDB|Log', {$IFDEF FPC}@{$ENDIF FPC}Do_C40_Deployment_Ready);
+  // 自动依赖性部署
+  TC40_Auto_Deployment_Client<TC40_Log_DB_Client>.Create('Log', Log_Client);
+  TC40_Auto_Deployment_Client<TC40_UserDB_Client>.Create('UserDB', UserDB_Client);
 end;
 
 destructor TAuto_Deployment_Service.Destroy;

@@ -33,8 +33,6 @@ type
     procedure WriteBufferFlush; override;
     procedure WriteBufferClose; override;
     function GetPeerIP: SystemString; override;
-
-    procedure ContinueResultSend; override;
   end;
 
   TClientICSContextIntf = class(TCustomICS)
@@ -128,12 +126,6 @@ begin
   Result := Context.FDriver.addr;
 end;
 
-procedure TICSClient_PeerIO.ContinueResultSend;
-begin
-  inherited ContinueResultSend;
-  Process_Send_Buffer();
-end;
-
 procedure TZNet_Client_ICS.DataAvailable(Sender: TObject; ErrCode: Word);
 var
   BuffCount: Integer;
@@ -156,13 +148,11 @@ procedure TZNet_Client_ICS.SessionClosed(Sender: TObject; ErrCode: Word);
 begin
   if FAsyncConnecting then
       TriggerDoConnectFailed;
-  // FClient.Print('client disonnect for %s:%s', [FDriver.addr, FDriver.Port]);
   DoDisconnect(FClient);
 end;
 
 procedure TZNet_Client_ICS.SessionConnectedAndCreateContext(Sender: TObject; ErrCode: Word);
 begin
-  // FClient.Print('client connected %s:%s', [FDriver.addr, FDriver.Port]);
   DoConnected(FClient);
 end;
 

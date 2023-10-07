@@ -167,17 +167,17 @@ type
 
   // hit-test result for hit-testing triangles
   THitTestTriangle_ = (
-    httNone,   // Not on the triangle
-    httBody,   // On the body of the triangle
-    httVtx0,   // On or close to triangle's vertex 0
-    httVtx1,   // On or close to triangle's vertex 1
-    httVtx2,   // On or close to triangle's vertex 2
-    httEdge0,  // On the body, and on edge 0
-    httEdge1,  // On the body, and on edge 1
-    httEdge2,  // On the body, and on edge 2
+    httNone, // Not on the triangle
+    httBody, // On the body of the triangle
+    httVtx0, // On or close to triangle's vertex 0
+    httVtx1, // On or close to triangle's vertex 1
+    httVtx2, // On or close to triangle's vertex 2
+    httEdge0, // On the body, and on edge 0
+    httEdge1, // On the body, and on edge 1
+    httEdge2, // On the body, and on edge 2
     httClose0, // Not on the body but close to edge 0
     httClose1, // Not on the body but close to edge 1
-    httClose2  // Not on the body but close to edge 2
+    httClose2 // Not on the body but close to edge 2
     );
 
   // Basic class for triangles that are present in a triangular 2D mesh
@@ -478,7 +478,7 @@ type
 
   // Which triangles should be removed after triangulation?
   TRemovalStyle_ = (
-    rsNone,    // Remove no triagles
+    rsNone, // Remove no triagles
     rsOutside, // Remove all triangles that are connected to construction vertices
     rsEvenOdd, // Even-Odd fillrule removal
     rsNonZero, // Non-Zero fillrule removal
@@ -737,7 +737,7 @@ type
   TQualityMesh2D_ = class(TDelaunayMesh2D_)
   private
     FBadTriangles: TSortedTriangle2DList_; // List of bad triangles
-    FEncroached: TEncroachItemList_;       // List of encroached segments + info
+    FEncroached: TEncroachItemList_; // List of encroached segments + info
     FUpdates: TTriangle2DList_;
     FSteinerPoints: TVertex2DList_;
     FSquaredBeta: double;

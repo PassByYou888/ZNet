@@ -3,6 +3,9 @@
 { ****************************************************************************** }
 unit Z.Pascal_Rewrite_Model_Data;
 
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
+
 interface
 
 uses SysUtils, Classes;

@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.LinearAction;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -37,7 +38,7 @@ type
 
   TLActionClass = class of TLAction;
 
-  TLActionList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLAction>;
+  TLActionList_Decl = TGenericsList<TLAction>;
 
   TLActionList = class
   protected
@@ -63,7 +64,7 @@ type
     property List: TLActionList_Decl read FSequenceList;
   end;
 
-  TLActionList_Decl_List_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLActionList>;
+  TLActionList_Decl_List_Decl = TGenericsList<TLActionList>;
 
   TLAction_Linear = class
   protected
@@ -254,7 +255,7 @@ begin
   if FCadender = nil then
     begin
       FCadender := TCadencer.Create;
-      FCadender.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}Do_CadencerProgress;
+      FCadender.OnProgress := Do_CadencerProgress;
     end;
   FCadender.Progress;
 end;
@@ -341,7 +342,7 @@ begin
   if FCadender = nil then
     begin
       FCadender := TCadencer.Create;
-      FCadender.OnProgress := {$IFDEF FPC}@{$ENDIF FPC}Do_CadencerProgress;
+      FCadender.OnProgress := Do_CadencerProgress;
     end;
   FCadender.Progress;
 end;

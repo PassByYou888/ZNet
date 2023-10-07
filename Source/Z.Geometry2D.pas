@@ -4,6 +4,7 @@
 
 unit Z.Geometry2D;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -19,7 +20,7 @@ uses
 
 type
   TGeoFloat = Single;
-  TGeoFloatList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TGeoFloat>;
+  TGeoFloatList = TGenericsList<TGeoFloat>;
 
   TGeoInt = Integer;
   TVec2 = array [0 .. 1] of TGeoFloat;
@@ -49,7 +50,7 @@ type
   TRectV2Array = TArrayRectV2;
   TMatrix_RectV2 = array of TArrayRectV2;
 
-  TRectV2List = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TRectV2>;
+  TRectV2List = TGenericsList<TRectV2>;
 
   TLineV2 = array [0 .. 1] of TVec2;
   PLineV2 = ^TLineV2;
@@ -671,7 +672,7 @@ type
 
   PV2Rect4 = ^TV2Rect4;
   PV2R4 = PV2Rect4;
-  TV2Rect4List_ = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<PV2Rect4>;
+  TV2Rect4List_ = TGenericsList<PV2Rect4>;
 
   TV2Rect4List = class(TV2Rect4List_)
   public
@@ -830,7 +831,7 @@ type
 
   TLinesArray = array of TLines;
 
-  TLinesList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TLines>;
+  TLinesList_Decl = TGenericsList<TLines>;
 
   TLinesList = class(TLinesList_Decl)
   public
@@ -854,7 +855,7 @@ type
     destructor Destroy; override;
   end;
 
-  T2DPolygonList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<T2DPolygon>;
+  T2DPolygonList = TGenericsList<T2DPolygon>;
   T2DPolygonArray = array of T2DPolygon;
   TCollapses = T2DPolygonArray;
 
@@ -907,7 +908,7 @@ type
     procedure LoadFromStream(stream: TMS64);
   end;
 
-  T2DPolygonGraphList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<T2DPolygonGraph>;
+  T2DPolygonGraphList_Decl = TGenericsList<T2DPolygonGraph>;
 
   T2DPolygonGraphList = class(T2DPolygonGraphList_Decl)
   end;
@@ -1050,7 +1051,7 @@ type
     property UserData: pointer read FUserData write FUserData;
   end;
 
-  TDeflectionPolygonList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TDeflectionPolygon>;
+  TDeflectionPolygonList_Decl = TGenericsList<TDeflectionPolygon>;
 
   TDeflectionPolygonList = class(TDeflectionPolygonList_Decl)
   public
@@ -1127,7 +1128,7 @@ type
 {$ENDREGION 'DeflectionPolygon'}
 {$REGION 'TriangleList'}
 
-  TTriangleList_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<PTriangle>;
+  TTriangleList_Decl = TGenericsList<PTriangle>;
 
   TTriangleList = class(TTriangleList_Decl)
   public
@@ -1157,7 +1158,7 @@ type
 
   PRectPackData = ^TRectPackData;
 
-  TRectPackData_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PRectPackData>;
+  TRectPackData_List = TGenericsList<PRectPackData>;
 
   TRectPacking_Style = (rsDynamic, rsL2R, rsL2R_Sorted, rsT2B, rsT2B_Sorted);
 
@@ -1218,9 +1219,9 @@ type
 
   PNearest_Box_Data = ^TNearest_Box_Data;
 
-  TNearest_Box_Tool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TNearest_Box_Data>;
+  TNearest_Box_Tool_ = TBigList<TNearest_Box_Data>;
 
-  TNearest_Box_List_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PNearest_Box_Data>;
+  TNearest_Box_List_ = TBigList<PNearest_Box_Data>;
 
   TNearest_Box_List = class(TNearest_Box_List_)
   private
@@ -1232,7 +1233,7 @@ type
     destructor Destroy; override;
   end;
 
-  TNearest_Box_Group_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Integer, TNearest_Box_List>;
+  TNearest_Box_Group_ = TBig_Hash_Pair_Pool<Integer, TNearest_Box_List>;
 
   TNearest_Box_Group = class(TNearest_Box_Group_)
   public
@@ -1280,8 +1281,8 @@ type
       Looped: boolean;
     end;
 
-    TNodeList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<PNode>;
-    TLinkList = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<PLinkedList>;
+    TNodeList = TGenericsList<PNode>;
+    TLinkList = TGenericsList<PLinkedList>;
   private
     FPolygon1, FPolygon2, FOutput: PLinkedList;
     FRoundKOEF: TGeoFloat; { A threshold. This value is used for imprecise comparisons. }
@@ -11001,7 +11002,7 @@ begin
         Queue^.Data^.Data.Second.Update_Convex_Hull(Convex_Hull_Distance_);
     until not Next;
 
-  Nearest_Group.Queue_Pool.Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort_Group);
+  Nearest_Group.Queue_Pool.Sort_M(Do_Sort_Group);
   Nearest_Group.Extract_Queue_Pool_Third;
 end;
 

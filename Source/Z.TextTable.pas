@@ -4,6 +4,7 @@
 
 unit Z.TextTable;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface

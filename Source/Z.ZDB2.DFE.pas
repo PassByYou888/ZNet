@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2.DFE;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -17,7 +18,7 @@ uses Z.Core,
 type
   TZDB2_List_DFE = class;
   TZDB2_DFE = class;
-  TZDB2_Big_List_DFE_Decl__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_DFE>;
+  TZDB2_Big_List_DFE_Decl__ = TBigList<TZDB2_DFE>;
 
   TZDB2_DFE = class
   private
@@ -75,9 +76,9 @@ type
     procedure ExtractTo(Stream_: TCore_Stream);
     procedure Progress;
     procedure Push_To_Recycle_Pool(obj_: TZDB2_DFE; RemoveData_: Boolean); // remove from repeat
-    procedure Free_Recycle_Pool;                                           // remove from repeat
+    procedure Free_Recycle_Pool; // remove from repeat
     function Count: NativeInt;
-    function Repeat_: TZDB2_Big_List_DFE_Decl__.TRepeat___;               // flow simulate
+    function Repeat_: TZDB2_Big_List_DFE_Decl__.TRepeat___; // flow simulate
     function Invert_Repeat_: TZDB2_Big_List_DFE_Decl__.TInvert_Repeat___; // flow simulate
 
     class procedure Test;
@@ -197,7 +198,7 @@ end;
 
 procedure TZDB2_List_DFE.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
 begin
-  retry := Trigger.AppendSpace(DeltaSpace, BlockSize);
+  retry := Trigger.Fast_AppendSpace(DeltaSpace, BlockSize);
 end;
 
 function TZDB2_List_DFE.GetAutoFreeStream: Boolean;
@@ -224,7 +225,7 @@ var
 begin
   inherited Create;
   List := TZDB2_Big_List_DFE_Decl__.Create;
-  List.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free;
+  List.OnFree := Do_Free;
 
   DFE_Class := DFE_Class_;
   TimeOut := TimeOut_;
@@ -236,7 +237,7 @@ begin
   CoreSpace.Cipher := Cipher_;
   CoreSpace.Mode := smNormal;
   CoreSpace.AutoCloseIOHnd := True;
-  CoreSpace.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
+  CoreSpace.OnNoSpace := DoNoSpace;
   if umlFileSize(IOHnd) > 0 then
     begin
       if not CoreSpace.Open then
@@ -385,7 +386,7 @@ begin
   TmpSpace := TZDB2_Core_Space.Create(@TmpIOHnd);
   TmpSpace.Cipher := CoreSpace.Cipher;
   TmpSpace.Mode := smBigData;
-  TmpSpace.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
+  TmpSpace.OnNoSpace := DoNoSpace;
 
   if List.num > 0 then
     begin

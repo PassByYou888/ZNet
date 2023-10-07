@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB.FileIndexPackage_LIB;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -232,7 +233,7 @@ end;
 
 procedure BuildIndexPackage(sour, dest: TObjectDataManager; dataOutputPath: U_String);
 begin
-  BuildIndexPackage(sour, dest, {$IFDEF FPC}@{$ENDIF FPC}ParallelCompressStream_C, dataOutputPath);
+  BuildIndexPackage(sour, dest, ParallelCompressStream_C, dataOutputPath);
 end;
 
 procedure BuildIndexPackage(sourDB, destDB, dataOutputPath: U_String);

@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.FastGBK;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -561,7 +562,7 @@ end;
 initialization
 
 GBKCache_Inited := TAtomBool.Create(False);
-TCompute.RunC({$IFDEF FPC}@{$ENDIF FPC}InitFastGBKThread);
+TCompute.RunC(InitFastGBKThread);
 
 Chinese_Number := #65296#65297#65298#65299#65300#65301#65302#65303#65304#65305;
 Chinese_Letter :=

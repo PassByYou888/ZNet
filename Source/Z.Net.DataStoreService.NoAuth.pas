@@ -4,10 +4,10 @@
 
 unit Z.Net.DataStoreService.NoAuth;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
-
 
 uses Z.Core, Z.ListEngine, Z.UnicodeMixedLib, Z.DFE, Z.MemoryStream, Z.Net, Z.TextDataEngine,
   Z.Status, Z.Cadencer, Z.Notify, Z.PascalStrings, Z.UPascalStrings, Z.Cipher, Z.ZDB.Engine, Z.ZDB.ItemStream_LIB, Z.Compress,
@@ -190,7 +190,7 @@ type
 
     procedure QueryDBC(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
       fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-      RemoteParams: THashVariantList;                                           { service ref remote parameter }
+      RemoteParams: THashVariantList; { service ref remote parameter }
       UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
       OnQuery_C: TUserFillQueryData_C; OnDone_C: TUserQueryDoneNotify_C); overload;
 
@@ -201,7 +201,7 @@ type
 
     procedure QueryDBM(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
       fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-      RemoteParams: THashVariantList;                                           { service ref remote parameter }
+      RemoteParams: THashVariantList; { service ref remote parameter }
       UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
       OnQuery_M: TUserFillQueryData_M; OnDone_M: TUserQueryDoneNotify_M); overload;
 
@@ -212,7 +212,7 @@ type
 
     procedure QueryDBP(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
       fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-      RemoteParams: THashVariantList;                                           { service ref remote parameter }
+      RemoteParams: THashVariantList; { service ref remote parameter }
       UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
       OnQuery_P: TUserFillQueryData_P; OnDone_P: TUserQueryDoneNotify_P); overload;
 
@@ -652,7 +652,7 @@ begin
   new(p);
   p^.Client_SendTunnel_ID := RT.SendTunnelID;
   p^.BackcallPtr := BackcallPtr;
-  FZDBLocal.CopyDB(dataBaseName_, copy2N, p, {$IFDEF FPC}@{$ENDIF FPC}StorePosTransform);
+  FZDBLocal.CopyDB(dataBaseName_, copy2N, p, StorePosTransform);
 end;
 
 procedure TDataStoreService_NoAuth.Command_CompressDB(Sender: TPeerIO; InData: TDFE);
@@ -672,7 +672,7 @@ begin
   new(p);
   p^.Client_SendTunnel_ID := RT.SendTunnelID;
   p^.BackcallPtr := BackcallPtr;
-  FZDBLocal.CompressDB(dataBaseName_, p, {$IFDEF FPC}@{$ENDIF FPC}StorePosTransform);
+  FZDBLocal.CompressDB(dataBaseName_, p, StorePosTransform);
 end;
 
 procedure TDataStoreService_NoAuth.Command_ReplaceDB(Sender: TPeerIO; InData: TDFE);
@@ -742,7 +742,7 @@ begin
       AutoDestoryOutputDB := False;
 
   pl := TTDataStoreService_DBPipeline(FZDBLocal.QueryDB(WriteResultToOutputDB, InMem, ReverseQuery, dataBaseName_, OutputDatabaseName_,
-    AutoDestoryOutputDB, FPerQueryPipelineDelayFreeTime, fragmentReponseTime, MaxWait, 0, MaxQueryResult));
+      AutoDestoryOutputDB, FPerQueryPipelineDelayFreeTime, fragmentReponseTime, MaxWait, 0, MaxQueryResult));
   pl.SendTunnel := RT.SendTunnelDefine;
   pl.RecvTunnel := RT;
   pl.BackcallPtr := InData.Reader.ReadPointer;
@@ -760,7 +760,7 @@ begin
     end
   else
     begin
-      pl.OnDataFilter_M := {$IFDEF FPC}@{$ENDIF FPC}DownloadQueryFilterMethod;
+      pl.OnDataFilter_M := DownloadQueryFilterMethod;
     end;
   ClearBatchStream(RT.SendTunnelDefine.Owner);
 end;
@@ -789,7 +789,7 @@ begin
   pl.SyncToClient := True;
   pl.WriteFragmentBuffer := pl.SyncToClient;
 
-  pl.OnDataFilter_M := {$IFDEF FPC}@{$ENDIF FPC}DownloadQueryFilterMethod;
+  pl.OnDataFilter_M := DownloadQueryFilterMethod;
   ClearBatchStream(RT.SendTunnelDefine.Owner);
 end;
 
@@ -822,7 +822,7 @@ begin
   { user download with ID }
   pl.UserVariant := downloadWithID;
 
-  pl.OnDataFilter_M := {$IFDEF FPC}@{$ENDIF FPC}DownloadQueryWithIDFilterMethod;
+  pl.OnDataFilter_M := DownloadQueryWithIDFilterMethod;
   ClearBatchStream(RT.SendTunnelDefine.Owner);
 end;
 
@@ -1292,35 +1292,35 @@ procedure TDataStoreService_NoAuth.RegisterCommand;
 begin
   inherited RegisterCommand;
 
-  FRecvTunnel.RegisterDirectStream(C_InitDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_InitDB;
-  FRecvTunnel.RegisterDirectStream(C_CloseDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CloseDB;
+  FRecvTunnel.RegisterDirectStream(C_InitDB).OnExecute := Command_InitDB;
+  FRecvTunnel.RegisterDirectStream(C_CloseDB).OnExecute := Command_CloseDB;
 
-  FRecvTunnel.RegisterDirectStream(C_CopyDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CopyDB;
-  FRecvTunnel.RegisterDirectStream(C_CompressDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompressDB;
-  FRecvTunnel.RegisterDirectStream(C_ReplaceDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_ReplaceDB;
-  FRecvTunnel.RegisterDirectStream(C_ResetData).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_ResetData;
+  FRecvTunnel.RegisterDirectStream(C_CopyDB).OnExecute := Command_CopyDB;
+  FRecvTunnel.RegisterDirectStream(C_CompressDB).OnExecute := Command_CompressDB;
+  FRecvTunnel.RegisterDirectStream(C_ReplaceDB).OnExecute := Command_ReplaceDB;
+  FRecvTunnel.RegisterDirectStream(C_ResetData).OnExecute := Command_ResetData;
 
-  FRecvTunnel.RegisterDirectStream(C_QueryDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_QueryDB;
-  FRecvTunnel.RegisterDirectStream(C_DownloadDB).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_DownloadDB;
-  FRecvTunnel.RegisterDirectStream(C_DownloadDBWithID).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_DownloadDBWithID;
-  FRecvTunnel.RegisterDirectStream(C_RequestDownloadAssembleStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_RequestDownloadAssembleStream;
-  FRecvTunnel.RegisterDirectStream(C_RequestFastDownloadAssembleStrea).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_RequestFastDownloadAssembleStream;
+  FRecvTunnel.RegisterDirectStream(C_QueryDB).OnExecute := Command_QueryDB;
+  FRecvTunnel.RegisterDirectStream(C_DownloadDB).OnExecute := Command_DownloadDB;
+  FRecvTunnel.RegisterDirectStream(C_DownloadDBWithID).OnExecute := Command_DownloadDBWithID;
+  FRecvTunnel.RegisterDirectStream(C_RequestDownloadAssembleStream).OnExecute := Command_RequestDownloadAssembleStream;
+  FRecvTunnel.RegisterDirectStream(C_RequestFastDownloadAssembleStrea).OnExecute := Command_RequestFastDownloadAssembleStream;
 
-  FRecvTunnel.RegisterCompleteBuffer(C_FastPostCompleteBuffer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_FastPostCompleteBuffer;
-  FRecvTunnel.RegisterCompleteBuffer(C_FastInsertCompleteBuffer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_FastInsertCompleteBuffer;
-  FRecvTunnel.RegisterCompleteBuffer(C_FastModifyCompleteBuffer).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_FastModifyCompleteBuffer;
+  FRecvTunnel.RegisterCompleteBuffer(C_FastPostCompleteBuffer).OnExecute := Command_FastPostCompleteBuffer;
+  FRecvTunnel.RegisterCompleteBuffer(C_FastInsertCompleteBuffer).OnExecute := Command_FastInsertCompleteBuffer;
+  FRecvTunnel.RegisterCompleteBuffer(C_FastModifyCompleteBuffer).OnExecute := Command_FastModifyCompleteBuffer;
 
-  FRecvTunnel.RegisterDirectStream(C_CompletedPostAssembleStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedPostAssembleStream;
-  FRecvTunnel.RegisterDirectStream(C_CompletedInsertAssembleStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedInsertAssembleStream;
-  FRecvTunnel.RegisterDirectStream(C_CompletedModifyAssembleStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedModifyAssembleStream;
-  FRecvTunnel.RegisterDirectStream(C_DeleteData).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_DeleteData;
+  FRecvTunnel.RegisterDirectStream(C_CompletedPostAssembleStream).OnExecute := Command_CompletedPostAssembleStream;
+  FRecvTunnel.RegisterDirectStream(C_CompletedInsertAssembleStream).OnExecute := Command_CompletedInsertAssembleStream;
+  FRecvTunnel.RegisterDirectStream(C_CompletedModifyAssembleStream).OnExecute := Command_CompletedModifyAssembleStream;
+  FRecvTunnel.RegisterDirectStream(C_DeleteData).OnExecute := Command_DeleteData;
 
-  FRecvTunnel.RegisterStream(C_GetDBList).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_GetDBList;
-  FRecvTunnel.RegisterStream(C_GetQueryList).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_GetQueryList;
-  FRecvTunnel.RegisterStream(C_GetQueryState).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_GetQueryState;
-  FRecvTunnel.RegisterDirectStream(C_QueryStop).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_QueryStop;
-  FRecvTunnel.RegisterDirectStream(C_QueryPause).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_QueryPause;
-  FRecvTunnel.RegisterDirectStream(C_QueryPlay).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_QueryPlay;
+  FRecvTunnel.RegisterStream(C_GetDBList).OnExecute := Command_GetDBList;
+  FRecvTunnel.RegisterStream(C_GetQueryList).OnExecute := Command_GetQueryList;
+  FRecvTunnel.RegisterStream(C_GetQueryState).OnExecute := Command_GetQueryState;
+  FRecvTunnel.RegisterDirectStream(C_QueryStop).OnExecute := Command_QueryStop;
+  FRecvTunnel.RegisterDirectStream(C_QueryPause).OnExecute := Command_QueryPause;
+  FRecvTunnel.RegisterDirectStream(C_QueryPlay).OnExecute := Command_QueryPlay;
 end;
 
 procedure TDataStoreService_NoAuth.UnRegisterCommand;
@@ -1723,12 +1723,12 @@ end;
 procedure TDataStoreClient_NoAuth.RegisterCommand;
 begin
   inherited RegisterCommand;
-  FRecvTunnel.RegisterDirectStream(C_DataStoreSecurity).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_DataStoreSecurity;
-  FRecvTunnel.RegisterDirectStream(C_CompletedFragmentBigStream).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedFragmentBigStream;
-  FRecvTunnel.RegisterDirectStream(C_CompletedQuery).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedQuery;
-  FRecvTunnel.RegisterDirectStream(C_CompletedDownloadAssemble).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedDownloadAssemble;
-  FRecvTunnel.RegisterDirectStream(C_CompletedFastDownloadAssemble).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedFastDownloadAssemble;
-  FRecvTunnel.RegisterDirectStream(C_CompletedStorePosTransform).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}Command_CompletedStorePosTransform;
+  FRecvTunnel.RegisterDirectStream(C_DataStoreSecurity).OnExecute := Command_DataStoreSecurity;
+  FRecvTunnel.RegisterDirectStream(C_CompletedFragmentBigStream).OnExecute := Command_CompletedFragmentBigStream;
+  FRecvTunnel.RegisterDirectStream(C_CompletedQuery).OnExecute := Command_CompletedQuery;
+  FRecvTunnel.RegisterDirectStream(C_CompletedDownloadAssemble).OnExecute := Command_CompletedDownloadAssemble;
+  FRecvTunnel.RegisterDirectStream(C_CompletedFastDownloadAssemble).OnExecute := Command_CompletedFastDownloadAssemble;
+  FRecvTunnel.RegisterDirectStream(C_CompletedStorePosTransform).OnExecute := Command_CompletedStorePosTransform;
 end;
 
 procedure TDataStoreClient_NoAuth.UnRegisterCommand;
@@ -1897,7 +1897,7 @@ begin
 
   de.WriteString(RegistedQuerier_);
   de.WriteBool(False); { sync to client }
-  de.WriteBool(True);  { write output Database_ }
+  de.WriteBool(True); { write output Database_ }
   de.WriteBool(False); { in memory }
   de.WriteBool(ReverseQuery);
   de.WriteString(dataBaseName_);
@@ -1953,7 +1953,7 @@ end;
 
 procedure TDataStoreClient_NoAuth.QueryDBC(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
   fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-  RemoteParams: THashVariantList;                                           { service ref remote parameter }
+  RemoteParams: THashVariantList; { service ref remote parameter }
   UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
   OnQuery_C: TUserFillQueryData_C; OnDone_C: TUserQueryDoneNotify_C);
 var
@@ -1984,7 +1984,7 @@ end;
 
 procedure TDataStoreClient_NoAuth.QueryDBM(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
   fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-  RemoteParams: THashVariantList;                                           { service ref remote parameter }
+  RemoteParams: THashVariantList; { service ref remote parameter }
   UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
   OnQuery_M: TUserFillQueryData_M; OnDone_M: TUserQueryDoneNotify_M);
 var
@@ -2015,7 +2015,7 @@ end;
 
 procedure TDataStoreClient_NoAuth.QueryDBP(RegistedQuerier_: SystemString; SyncToClient, WriteResultToOutputDB, InMem, ReverseQuery: Boolean; dataBaseName_, OutputDatabaseName_: SystemString;
   fragmentReponseTime, MaxWait: Double; MaxQueryResult: Int64;
-  RemoteParams: THashVariantList;                                           { service ref remote parameter }
+  RemoteParams: THashVariantList; { service ref remote parameter }
   UserPointer: Pointer; UserObject: TCore_Object; UserVariant: Variant; { local event parameter }
   OnQuery_P: TUserFillQueryData_P; OnDone_P: TUserQueryDoneNotify_P);
 var

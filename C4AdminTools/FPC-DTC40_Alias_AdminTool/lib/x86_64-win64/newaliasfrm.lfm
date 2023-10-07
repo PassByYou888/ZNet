@@ -1,0 +1,64 @@
+object NewAliasForm: TNewAliasForm
+  Left = 597
+  Height = 182
+  Top = 277
+  Width = 435
+  Caption = 'New Alias.'
+  ClientHeight = 182
+  ClientWidth = 435
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  KeyPreview = True
+  OnClose = FormClose
+  OnKeyUp = FormKeyUp
+  PopupMode = pmExplicit
+  PopupParent = DTC40_Alias_AdminToolForm.Owner
+  Position = poMainFormCenter
+  LCLVersion = '2.0.12.0'
+  object AliasEdit: TLabeledEdit
+    Left = 87
+    Height = 21
+    Top = 27
+    Width = 285
+    Anchors = [akTop, akLeft, akRight]
+    EditLabel.Height = 13
+    EditLabel.Width = 26
+    EditLabel.Caption = 'Alias:'
+    EditLabel.ParentColor = False
+    LabelPosition = lpLeft
+    TabOrder = 0
+  end
+  object NameEdit: TLabeledEdit
+    Left = 87
+    Height = 21
+    Top = 66
+    Width = 285
+    Anchors = [akTop, akLeft, akRight]
+    EditLabel.Height = 13
+    EditLabel.Width = 31
+    EditLabel.Caption = 'Name:'
+    EditLabel.ParentColor = False
+    LabelPosition = lpLeft
+    TabOrder = 1
+  end
+  object OKButton: TButton
+    Left = 87
+    Height = 25
+    Top = 120
+    Width = 75
+    Caption = '&OK'
+    ModalResult = 1
+    TabOrder = 2
+  end
+  object cancelButton: TButton
+    Left = 168
+    Height = 25
+    Top = 120
+    Width = 75
+    Caption = '&Cancel'
+    ModalResult = 2
+    TabOrder = 3
+  end
+end

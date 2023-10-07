@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_PascalRewrite_Client;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -32,7 +33,7 @@ type
     destructor Destroy; override;
   end;
 
-  TPascal_Code_Table_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TPascal_Source_>;
+  TPascal_Code_Table_Decl = TGenericsList<TPascal_Source_>;
   TPascal_Rewrite_Tool_CodePool = class;
 
   TON_Pascal_Rewrite_DoneC = procedure(Sender: TPascal_Rewrite_Tool_CodePool);
@@ -74,7 +75,7 @@ type
     function Build_CodePool: TPascal_Rewrite_Tool_CodePool;
   end;
 
-  TC40_Pascal_Rewrite_Tool_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Pascal_Rewrite_Tool>;
+  TC40_Pascal_Rewrite_Tool_List = TGenericsList<TC40_Pascal_Rewrite_Tool>;
 
 implementation
 
@@ -125,7 +126,7 @@ begin
           inc(i);
         end;
     end;
-  Owner.DTNoAuth.PostProgress.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Done);
+  Owner.DTNoAuth.PostProgress.PostExecuteM_NP(0, Do_Done);
 end;
 
 procedure TPascal_Rewrite_Tool_CodePool.DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
@@ -134,7 +135,7 @@ var
 begin
   for i := 0 to CodeTable.Count - 1 do
       CodeTable[i].NewCode.Clear;
-  Owner.DTNoAuth.PostProgress.PostExecuteM_NP(0, {$IFDEF FPC}@{$ENDIF FPC}Do_Done);
+  Owner.DTNoAuth.PostProgress.PostExecuteM_NP(0, Do_Done);
 end;
 
 constructor TPascal_Rewrite_Tool_CodePool.Create(Owner_: TC40_Pascal_Rewrite_Tool);
@@ -214,7 +215,7 @@ begin
       CodeTable[i].Status.Clear;
     end;
   Owner.DTNoAuthClient.SendTunnel.SendStreamCmdM('RewritePascal', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}DoStreamFailedEvent);
+    DoStreamParamEvent, DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -227,7 +228,7 @@ end;
 constructor TC40_Pascal_Rewrite_Tool.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
-  DTNoAuthClient.RecvTunnel.RegisterDirectConsole('Rewrite_Status').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Rewrite_Status;
+  DTNoAuthClient.RecvTunnel.RegisterDirectConsole('Rewrite_Status').OnExecute := cmd_Rewrite_Status;
   DTNoAuth.SendTunnel.SendDataCompressed := True;
 end;
 

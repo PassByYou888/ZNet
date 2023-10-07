@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB.HashItem_LIB;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 

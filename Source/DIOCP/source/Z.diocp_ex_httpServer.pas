@@ -2224,7 +2224,7 @@ begin
       lvObj := TDiocpHttpRequest(FRequestQueue.DeQueue);
       if lvObj = nil then
       begin
-        Break;;
+        Break;
       end;
       InterlockedDecrement(TDiocpHttpServer(FOwner).FRequestQueueSize);
       InnerDoARequest(lvObj);
@@ -2322,7 +2322,7 @@ begin
       lvObj := TDiocpHttpRequest(FRequestQueue.DeQueue);
       if lvObj = nil then
       begin
-        Break;;
+        Break;
       end;
       InterlockedDecrement(TDiocpHttpServer(FOwner).FRequestQueueSize);
       InnerDoARequest(lvObj);
@@ -2358,7 +2358,7 @@ begin
       lvObj := TDiocpHttpRequest(FRequestQueue.DeQueue);
       if lvObj = nil then
       begin
-        Break;;
+        Break;
       end;
       InterlockedDecrement(TDiocpHttpServer(FOwner).FRequestQueueSize);
       InnerDoARequest(lvObj);

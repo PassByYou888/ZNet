@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_NetDisk_VM_Service;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -57,9 +58,9 @@ type
     procedure Reinit;
   end;
 
-  TC40_NetDisk_VM_Service_RecvIO_Define_List = {$IFDEF FPC}specialize {$ENDIF FPC}TGenericsList<TC40_NetDisk_VM_Service_RecvTunnel_NoAuth>;
+  TC40_NetDisk_VM_Service_RecvIO_Define_List = TGenericsList<TC40_NetDisk_VM_Service_RecvTunnel_NoAuth>;
 
-  TC40_NetDisk_VM_Service_Auth_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Auth_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     IO_Def_: TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
@@ -70,7 +71,7 @@ type
     procedure Do_Usr_Exists(sender: TC40_UserDB_Client; State_: Boolean);
   end;
 
-  TC40_NetDisk_VM_Service_Reg_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Reg_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     userName_, Passwd_: U_String;
@@ -81,37 +82,37 @@ type
     procedure Do_Usr_Reg(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
   end;
 
-  TC40_NetDisk_VM_Service_NewIdentifier_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_NewIdentifier_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_Usr_NewIdentifier(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString);
   end;
 
-  TC40_NetDisk_VM_Service_GetAlias_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_GetAlias_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_Usr_Get(sender: TC40_UserDB_Client; State_: Boolean; info_: SystemString; Json_: TZJ);
   end;
 
-  TC40_NetDisk_VM_Service_GetMyFriends_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_GetMyFriends_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_Usr_GetFriends(sender: TC40_UserDB_Client; FriendArry: U_StringArray);
   end;
 
-  TC40_NetDisk_VM_Service_GetOnlineNum_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_GetOnlineNum_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_Usr_OnlineNum(sender: TC40_UserDB_Client; Online_Num, User_Num: Integer);
   end;
 
-  TC40_NetDisk_VM_Service_GetOnlineList_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_GetOnlineList_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_Usr_OnlineList(sender: TC40_UserDB_Client; arry: U_StringArray);
   end;
 
-  TC40_NetDisk_VM_Service_SearchMultiMD5_FS_Service_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_SearchMultiMD5_FS_Service_Bridge = class(TCustom_Event_Bridge)
   private type
     TPair = class
     public
@@ -120,7 +121,7 @@ type
       IsDone: Boolean;
     end;
 
-    TPair_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TPair>;
+    TPair_List = TGenericsList<TPair>;
   public
     VM_Service: TC40_NetDisk_VM_Service;
     FS_Pair: TPair_List;
@@ -128,7 +129,7 @@ type
     procedure Do_FS2_SearchMultiMD5(sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array);
   end;
 
-  TC40_NetDisk_VM_Service_CheckAndCopy_NetDisk_File_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_CheckAndCopy_NetDisk_File_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     file_MD5: TMD5;
@@ -140,7 +141,7 @@ type
     procedure Do_PutItemMD5(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
   end;
 
-  TC40_NetDisk_VM_Service_CheckAndCopy_NetDisk_File_Frag_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_CheckAndCopy_NetDisk_File_Frag_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     frag_md5_: TMD5;
@@ -149,7 +150,7 @@ type
     procedure Do_CheckMD5AndFastCopy(sender: TC40_FS2_Client; State_: Boolean);
   end;
 
-  TC40_NetDisk_VM_Service_Post_NetDisk_File_Frag_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Post_NetDisk_File_Frag_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     RealTime_Reponse_: Boolean;
@@ -158,19 +159,19 @@ type
     procedure Do_FS2_PostFile_Done(sender: TC40_FS2_Client; info_: U_String);
   end;
 
-  TC40_NetDisk_VM_Service_EndPost_NetDisk_File_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_EndPost_NetDisk_File_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_PutItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_Info_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_Info_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_MD5_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_MD5_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     alias_or_hash_: U_String;
@@ -178,7 +179,7 @@ type
     procedure Do_FS2_GetFileMD5(sender: TC40_FS2_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_Multi_File_Frag_MD5_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_Multi_File_Frag_MD5_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     alias_or_hash_: U_String;
@@ -188,7 +189,7 @@ type
     procedure Do_SearchMultiMD5(sender: TC40_FS2_Client; arry: TFS2_SearchMultiMD5_State_Array);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     alias_or_hash_: U_String;
@@ -198,7 +199,7 @@ type
     procedure Do_FS2_GetFile_Done(sender: TC40_FS2_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_File_MD5_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_File_MD5_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     DB_Field: U_String;
@@ -206,33 +207,33 @@ type
     procedure Do_GetItemMD5(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info_: U_String);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_File_List_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_File_List_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     DB_Field: U_String;
     procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
-  TC40_NetDisk_VM_Service_Get_NetDisk_SpaceInfo_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_NetDisk_SpaceInfo_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_SpaceInfo(sender: TC40_NetDisk_Directory_Client; Field_Num, Item_Num, ItemSpace: Int64);
   end;
 
-  TC40_NetDisk_VM_Service_Build_Share_Disk_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Build_Share_Disk_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     Ref_Share_Name: U_String;
     procedure Do_NewDB(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; info: SystemString);
   end;
 
-  TC40_NetDisk_VM_Service_Get_Share_Disk_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_Share_Disk_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_GetKey(sender: TC40_TEKeyValue_Client; arry: U_StringArray);
   end;
 
-  TC40_NetDisk_VM_Service_Get_Share_Disk_File_List_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_Share_Disk_File_List_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     Share_Directory_DB_Name: U_String;
@@ -240,20 +241,20 @@ type
     procedure Do_GetItemList(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; Field_Path: U_String; arry: TItemList_Data_Array);
   end;
 
-  TC40_NetDisk_VM_Service_Get_Share_Disk_File_Frag_Info_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Get_Share_Disk_File_Frag_Info_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     procedure Do_GetItemFrag(sender: TC40_NetDisk_Directory_Client; Successed: Boolean; L: TDirectory_MD5_Data_Frag_Struct_List);
   end;
 
-  TC40_NetDisk_VM_Service_Search_NetDisk_File_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Search_NetDisk_File_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     DB_Field, DB_Search: U_String;
     procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
   end;
 
-  TC40_NetDisk_VM_Service_Search_Share_NetDisk_File_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Search_Share_NetDisk_File_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     Share_Directory_DB_Name: U_String;
@@ -261,14 +262,14 @@ type
     procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: TSearchItem_Data_array);
   end;
 
-  TC40_NetDisk_VM_Service_Search_NetDisk_Field_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Search_NetDisk_Field_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     DB_Field: U_String;
     procedure Do_SearchItem(sender: TC40_NetDisk_Directory_Client; SearchResult: U_StringArray);
   end;
 
-  TC40_NetDisk_VM_Service_Search_Share_NetDisk_Field_Bridge = class(TCustomEventBridge)
+  TC40_NetDisk_VM_Service_Search_Share_NetDisk_Field_Bridge = class(TCustom_Event_Bridge)
   public
     VM_Service: TC40_NetDisk_VM_Service;
     Share_Directory_DB_Name: U_String;
@@ -277,7 +278,7 @@ type
   end;
 {$ENDREGION 'define_bridge'}
 
-  TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TC40_NetDisk_VM_Service_RecvIO_Define_List>;
+  TC40_NetDisk_VM_Service_PrimaryIdentifier_Pool = TGeneric_String_Object_Hash<TC40_NetDisk_VM_Service_RecvIO_Define_List>;
 
   TC40_NetDisk_VM_Service = class(TC40_NoAuth_VM_Service, I_ON_C40_UserDB_Client_Notify, I_ON_C40_NetDisk_Directory_Client_Interface)
   protected
@@ -492,7 +493,7 @@ begin
           if (VM_Service.Directory_Client <> nil) and (VM_Service.Directory_Client.Connected) then
             begin
               VM_Service.Directory_Client.ExistsDB_M(
-                VM_Service.PrimaryIdentifierToDirectory(IO_Def_.PrimaryIdentifier), {$IFDEF FPC}@{$ENDIF FPC}Do_ExistsDB);
+                VM_Service.PrimaryIdentifierToDirectory(IO_Def_.PrimaryIdentifier), Do_ExistsDB);
               exit;
             end;
           IO.OutDataFrame.WriteBool(False);
@@ -518,7 +519,7 @@ begin
       if State_ and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
         begin
           IO_Def_.PrimaryIdentifier := PrimaryIdentifier_;
-          VM_Service.UserDB_Client.Usr_GetM(IO_Def_.UserName, 'Detail', {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetDetail);
+          VM_Service.UserDB_Client.Usr_GetM(IO_Def_.UserName, 'Detail', Do_Usr_GetDetail);
           exit;
         end;
       IO.OutDataFrame.WriteBool(False);
@@ -535,7 +536,7 @@ begin
     begin
       if (State_) and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
         begin
-          VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetPrimaryIdentifier);
+          VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, Do_Usr_GetPrimaryIdentifier);
           exit;
         end;
       IO.OutDataFrame.WriteBool(False);
@@ -552,7 +553,7 @@ begin
     begin
       if (State_) and (VM_Service.UserDB_Client <> nil) and (VM_Service.UserDB_Client.Connected) then
         begin
-          VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, {$IFDEF FPC}@{$ENDIF FPC}Do_Usr_GetPrimaryIdentifier);
+          VM_Service.UserDB_Client.Usr_GetPrimaryIdentifierM(IO_Def_.UserName, Do_Usr_GetPrimaryIdentifier);
           exit;
         end;
       IO.OutDataFrame.WriteBool(False);
@@ -620,7 +621,7 @@ begin
           VM_Service.UserDB_Client.Usr_Set(userName_, 'Detail', j_);
           DisposeObject(j_);
           // create directory db
-          VM_Service.Directory_Client.NewDB_M(VM_Service.PrimaryIdentifierToDirectory(userName_), {$IFDEF FPC}@{$ENDIF FPC}Do_NewDB);
+          VM_Service.Directory_Client.NewDB_M(VM_Service.PrimaryIdentifierToDirectory(userName_), Do_NewDB);
           VM_Service.PostLog('%s reg successed.', [userName_.Text], info_);
           exit;
         end;
@@ -1521,7 +1522,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_Auth_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.IO_Def_ := IO_Def_;
-  UserDB_Client.Usr_AuthM(userName_, Passwd_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Auth);
+  UserDB_Client.Usr_AuthM(userName_, Passwd_, tmp.Do_Usr_Auth);
   sender.PauseResultSend;
 end;
 
@@ -1547,7 +1548,7 @@ begin
   tmp.Passwd_ := InData.R.ReadString;
   if not InData.R.IsEnd then
       InData.R.ReadHashStringList(tmp.key_value_data_);
-  UserDB_Client.Usr_RegM(tmp.userName_, tmp.Passwd_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Reg);
+  UserDB_Client.Usr_RegM(tmp.userName_, tmp.Passwd_, tmp.Do_Usr_Reg);
   sender.PauseResultSend;
 end;
 
@@ -1571,7 +1572,7 @@ begin
     end;
   tmp := TC40_NetDisk_VM_Service_NewIdentifier_Bridge.Create(sender);
   tmp.VM_Service := self;
-  UserDB_Client.Usr_NewIdentifierM(IO_Def.PrimaryIdentifier, InData.R.ReadString, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_NewIdentifier);
+  UserDB_Client.Usr_NewIdentifierM(IO_Def.PrimaryIdentifier, InData.R.ReadString, tmp.Do_Usr_NewIdentifier);
   sender.PauseResultSend;
 end;
 
@@ -1605,7 +1606,7 @@ begin
       exit;
   tmp := TC40_NetDisk_VM_Service_GetAlias_Bridge.Create(sender);
   tmp.VM_Service := self;
-  UserDB_Client.Usr_GetM(usr_Name, 'Detail', {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Get);
+  UserDB_Client.Usr_GetM(usr_Name, 'Detail', tmp.Do_Usr_Get);
   sender.PauseResultSend;
 end;
 
@@ -1683,7 +1684,7 @@ begin
       exit;
   tmp := TC40_NetDisk_VM_Service_GetMyFriends_Bridge.Create(sender);
   tmp.VM_Service := self;
-  UserDB_Client.Usr_GetFriendsM(IO_Def.PrimaryIdentifier, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_GetFriends);
+  UserDB_Client.Usr_GetFriendsM(IO_Def.PrimaryIdentifier, tmp.Do_Usr_GetFriends);
   sender.PauseResultSend;
 end;
 
@@ -1699,7 +1700,7 @@ begin
       exit;
   tmp := TC40_NetDisk_VM_Service_GetOnlineNum_Bridge.Create(sender);
   tmp.VM_Service := self;
-  UserDB_Client.Usr_OnlineNumM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_OnlineNum);
+  UserDB_Client.Usr_OnlineNumM(tmp.Do_Usr_OnlineNum);
   sender.PauseResultSend;
 end;
 
@@ -1717,7 +1718,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_GetOnlineList_Bridge.Create(sender);
   tmp.VM_Service := self;
   Max_Num := InData.R.ReadInteger;
-  UserDB_Client.Usr_OnlineListM(Max_Num, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_OnlineList);
+  UserDB_Client.Usr_OnlineListM(Max_Num, tmp.Do_Usr_OnlineList);
   sender.PauseResultSend;
 end;
 
@@ -1823,7 +1824,7 @@ begin
 
   // search all FS
   for i := 0 to tmp.FS_Pair.Count - 1 do
-      tmp.FS_Pair[i].FS2.FS2_SearchMultiMD5M(MD5_arry, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_SearchMultiMD5);
+      tmp.FS_Pair[i].FS2.FS2_SearchMultiMD5M(MD5_arry, tmp.Do_FS2_SearchMultiMD5);
 
   // pause result
   sender.PauseResultSend;
@@ -1871,7 +1872,7 @@ begin
     PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
     tmp.file_Field,
     tmp.file_item,
-    umlMD5ToStr(tmp.file_MD5), {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemMD5);
+    umlMD5ToStr(tmp.file_MD5), tmp.Do_PutItemMD5);
   sender.PauseResultSend;
 end;
 
@@ -1931,11 +1932,11 @@ begin
   IO_Def.NetDisk_File_Frag.Clean;
   // init file info
   IO_Def.NetDisk_File_Frag.MD5 := InData.R.ReadMD5; // 2, file md5
-  IO_Def.NetDisk_File_Name := InData.R.ReadString;  // 3, remote full file name
+  IO_Def.NetDisk_File_Name := InData.R.ReadString; // 3, remote full file name
   IO_Def.NetDisk_File_Field := umlGetUnixFilePath(IO_Def.NetDisk_File_Name);
   IO_Def.NetDisk_File_Item := umlGetUnixFileName(IO_Def.NetDisk_File_Name);
   IO_Def.NetDisk_File_Frag.Time_ := InData.R.ReadDouble; // 4, remote file time
-  IO_Def.NetDisk_File_Frag.Size := InData.R.ReadInt64;   // 5, file size
+  IO_Def.NetDisk_File_Frag.Size := InData.R.ReadInt64; // 5, file size
 
   OutData.WriteBool(True);
   OutData.WriteString('prepare net-disk file.');
@@ -1995,11 +1996,11 @@ begin
     end;
   tmp := TC40_NetDisk_VM_Service_CheckAndCopy_NetDisk_File_Frag_Bridge.Create(sender);
   tmp.VM_Service := self;
-  tmp.frag_md5_ := InData.R.ReadMD5;    // 2, file md5
-  tmp.frag_pos_ := InData.R.ReadInt64;  // 3, fragment pos
+  tmp.frag_md5_ := InData.R.ReadMD5; // 2, file md5
+  tmp.frag_pos_ := InData.R.ReadInt64; // 3, fragment pos
   tmp.frag_size_ := InData.R.ReadInt64; // 4, file size
   IO_Def.NetDisk_File_Client.FS2_CheckMD5AndFastCopyM(
-    umlMD5ToStr(tmp.frag_md5_), tmp.frag_md5_, tmp.frag_size_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_CheckMD5AndFastCopy);
+    umlMD5ToStr(tmp.frag_md5_), tmp.frag_md5_, tmp.frag_size_, tmp.Do_CheckMD5AndFastCopy);
   sender.PauseResultSend;
 end;
 
@@ -2021,9 +2022,9 @@ begin
       exit;
 
   alias_or_hash_ := InData.R.ReadString; // 1, service alias or hash
-  frag_md5_ := InData.R.ReadMD5;         // 2, file md5
-  frag_pos_ := InData.R.ReadInt64;       // 3, fragment pos
-  frag_size_ := InData.R.ReadInt64;      // 4, file size
+  frag_md5_ := InData.R.ReadMD5; // 2, file md5
+  frag_pos_ := InData.R.ReadInt64; // 3, fragment pos
+  frag_size_ := InData.R.ReadInt64; // 4, file size
 
   new(p);
   p^.FS_AliasOrHash := alias_or_hash_;
@@ -2047,8 +2048,8 @@ var
   m64: TMS64;
   tmp: TC40_NetDisk_VM_Service_Post_NetDisk_File_Frag_Bridge;
 begin
-  RealTime_Reponse_ := PBoolean(InData)^;   // 0, reponse
-  Pos_ := PInt64(GetOffset(InData, 1))^;    // 1-8, pos
+  RealTime_Reponse_ := PBoolean(InData)^; // 0, reponse
+  Pos_ := PInt64(GetOffset(InData, 1))^; // 1-8, pos
   Event_ := PUInt64(GetOffset(InData, 9))^; // 9-16, event backcall data
 
   IO_Def := sender.UserDefine as TC40_NetDisk_VM_Service_RecvTunnel_NoAuth;
@@ -2092,7 +2093,7 @@ begin
   tmp.RealTime_Reponse_ := RealTime_Reponse_;
   tmp.Event_ := Event_;
   tmp.p := p;
-  IO_Def.NetDisk_File_Client.FS2_PostFile_M(True, p^.FS_File, m64, True, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_PostFile_Done);
+  IO_Def.NetDisk_File_Client.FS2_PostFile_M(True, p^.FS_File, m64, True, tmp.Do_FS2_PostFile_Done);
 end;
 
 procedure TC40_NetDisk_VM_Service.cmd_EndPost_NetDisk_File(sender: TPeerIO; InData, OutData: TDFE);
@@ -2134,7 +2135,7 @@ begin
     PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
     IO_Def.NetDisk_File_Field,
     IO_Def.NetDisk_File_Item,
-    IO_Def.NetDisk_File_Frag, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PutItemFrag);
+    IO_Def.NetDisk_File_Frag, tmp.Do_PutItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -2176,7 +2177,7 @@ begin
   FDirectory_Client.GetItemFrag_M(
     PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
     DB_Field,
-    DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemFrag);
+    DB_Item, tmp.Do_GetItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -2217,7 +2218,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_MD5_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.alias_or_hash_ := InData.R.ReadString; // 1, service alias or hash
-  tmp.FS_File := InData.R.ReadString;        // 2, file name
+  tmp.FS_File := InData.R.ReadString; // 2, file name
 
   // search service
   fs_ := nil;
@@ -2231,7 +2232,7 @@ begin
       DisposeObject(tmp);
       exit;
     end;
-  fs_.FS2_GetFileMD5M(tmp.FS_File, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_GetFileMD5);
+  fs_.FS2_GetFileMD5M(tmp.FS_File, tmp.Do_FS2_GetFileMD5);
   sender.PauseResultSend;
 end;
 
@@ -2293,7 +2294,7 @@ begin
       DisposeObject(tmp);
       exit;
     end;
-  fs_.FS2_SearchMultiMD5M(tmp.MD5_arry, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchMultiMD5);
+  fs_.FS2_SearchMultiMD5M(tmp.MD5_arry, tmp.Do_SearchMultiMD5);
   sender.PauseResultSend;
 end;
 
@@ -2312,9 +2313,9 @@ begin
   tmp := TC40_NetDisk_VM_Service_Get_NetDisk_File_Frag_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.alias_or_hash_ := InData.R.ReadString; // 1, service alias or hash
-  tmp.FS_File := InData.R.ReadString;        // 2, file name
-  tmp.Pos_ := InData.R.ReadInt64;            // 3, pos
-  tmp.Event_ := InData.R.ReadPointer;        // 4, event
+  tmp.FS_File := InData.R.ReadString; // 2, file name
+  tmp.Pos_ := InData.R.ReadInt64; // 3, pos
+  tmp.Event_ := InData.R.ReadPointer; // 4, event
 
   // search service
   fs_ := nil;
@@ -2332,7 +2333,7 @@ begin
       exit;
     end;
 
-  fs_.FS2_GetFile_M(True, tmp.FS_File, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_FS2_GetFile_Done);
+  fs_.FS2_GetFile_M(True, tmp.FS_File, tmp.Do_FS2_GetFile_Done);
 end;
 
 procedure TC40_NetDisk_VM_Service.cmd_Get_NetDisk_File_MD5(sender: TPeerIO; InData, OutData: TDFE);
@@ -2375,7 +2376,7 @@ begin
     PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier),
     tmp.DB_Field,
     tmp.DB_Item,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemMD5);
+    tmp.Do_GetItemMD5);
 
   sender.PauseResultSend;
 end;
@@ -2415,7 +2416,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_Get_NetDisk_File_List_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.DB_Field := InData.R.ReadString;
-  FDirectory_Client.GetItemList_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
+  FDirectory_Client.GetItemList_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, tmp.Do_GetItemList);
 
   sender.PauseResultSend;
 end;
@@ -2454,7 +2455,7 @@ begin
 
   tmp := TC40_NetDisk_VM_Service_Get_NetDisk_SpaceInfo_Bridge.Create(sender);
   tmp.VM_Service := self;
-  FDirectory_Client.SpaceInfo_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SpaceInfo);
+  FDirectory_Client.SpaceInfo_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.Do_SpaceInfo);
   sender.PauseResultSend;
 end;
 
@@ -2680,7 +2681,7 @@ begin
   tmp.VM_Service := self;
   tmp.Ref_Share_Name := InData.R.ReadString;
   tmp.Ref_Share_Name := ShareToDirectory(IO_Def.PrimaryIdentifier, tmp.Ref_Share_Name);
-  FDirectory_Client.NewDB_M(tmp.Ref_Share_Name, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_NewDB);
+  FDirectory_Client.NewDB_M(tmp.Ref_Share_Name, tmp.Do_NewDB);
 
   sender.PauseResultSend;
 end;
@@ -2724,7 +2725,7 @@ begin
 
   tmp := TC40_NetDisk_VM_Service_Get_Share_Disk_Bridge.Create(sender);
   tmp.VM_Service := self;
-  TEKeyValue_Client.GetTextKey_M(IO_Def.PrimaryIdentifier, 'Share', {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetKey);
+  TEKeyValue_Client.GetTextKey_M(IO_Def.PrimaryIdentifier, 'Share', tmp.Do_GetKey);
 
   sender.PauseResultSend;
 end;
@@ -2799,7 +2800,7 @@ begin
       tmp.Free;
       exit;
     end;
-  FDirectory_Client.GetItemList_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemList);
+  FDirectory_Client.GetItemList_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, tmp.Do_GetItemList);
 
   sender.PauseResultSend;
 end;
@@ -2851,7 +2852,7 @@ begin
   FDirectory_Client.GetItemFrag_M(
     Share_Directory_DB_Name,
     DB_Field,
-    DB_Item, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_GetItemFrag);
+    DB_Item, tmp.Do_GetItemFrag);
   sender.PauseResultSend;
 end;
 
@@ -2892,7 +2893,7 @@ begin
   tmp.DB_Field := InData.R.ReadString;
   tmp.DB_Search := InData.R.ReadString;
   FDirectory_Client.SearchItem_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, tmp.DB_Search,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+    tmp.Do_SearchItem);
   sender.PauseResultSend;
 end;
 
@@ -2943,7 +2944,7 @@ begin
     end;
 
   FDirectory_Client.SearchItem_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, tmp.DB_Search,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+    tmp.Do_SearchItem);
   sender.PauseResultSend;
 end;
 
@@ -2982,7 +2983,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_Search_NetDisk_Field_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.DB_Field := InData.R.ReadString;
-  FDirectory_Client.SearchField_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+  FDirectory_Client.SearchField_M(PrimaryIdentifierToDirectory(IO_Def.PrimaryIdentifier), tmp.DB_Field, tmp.Do_SearchItem);
   sender.PauseResultSend;
 end;
 
@@ -3031,7 +3032,7 @@ begin
       exit;
     end;
 
-  FDirectory_Client.SearchField_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchItem);
+  FDirectory_Client.SearchField_M(tmp.Share_Directory_DB_Name, tmp.DB_Field, tmp.Do_SearchItem);
   sender.PauseResultSend;
 end;
 
@@ -3075,7 +3076,7 @@ begin
   tmp := TC40_NetDisk_VM_Service_Auth_Bridge.Create(sender);
   tmp.VM_Service := self;
   tmp.IO_Def_ := IO_Def_;
-  UserDB_Client.Usr_ExistsM(userName_, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_Usr_Exists);
+  UserDB_Client.Usr_ExistsM(userName_, tmp.Do_Usr_Exists);
   sender.PauseResultSend;
 end;
 
@@ -3224,56 +3225,56 @@ begin
   File_Chunk_Size := EStrToInt(ParamList.GetDefaultValue('File_Chunk_Size', '1*1024*1024'), 1 * 1024 * 1024);
 
   // IM
-  DTNoAuth.RecvTunnel.RegisterStream('Auth').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Auth;
-  DTNoAuth.RecvTunnel.RegisterStream('Reg').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Reg;
-  DTNoAuth.RecvTunnel.RegisterStream('NewLoginName').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewLoginName;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('NewAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_NewAlias;
-  DTNoAuth.RecvTunnel.RegisterStream('GetAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetAlias;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Msg').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Msg;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('RequestFriend').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RequestFriend;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('ReponseFriend').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_ReponseFriend;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('RemoveFriend').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveFriend;
-  DTNoAuth.RecvTunnel.RegisterStream('GetMyFriends').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetMyFriends;
-  DTNoAuth.RecvTunnel.RegisterStream('GetOnlineNum').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetOnlineNum;
-  DTNoAuth.RecvTunnel.RegisterStream('GetOnlineList').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetOnlineList;
+  DTNoAuth.RecvTunnel.RegisterStream('Auth').OnExecute := cmd_Auth;
+  DTNoAuth.RecvTunnel.RegisterStream('Reg').OnExecute := cmd_Reg;
+  DTNoAuth.RecvTunnel.RegisterStream('NewLoginName').OnExecute := cmd_NewLoginName;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('NewAlias').OnExecute := cmd_NewAlias;
+  DTNoAuth.RecvTunnel.RegisterStream('GetAlias').OnExecute := cmd_GetAlias;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Msg').OnExecute := cmd_Msg;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('RequestFriend').OnExecute := cmd_RequestFriend;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('ReponseFriend').OnExecute := cmd_ReponseFriend;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('RemoveFriend').OnExecute := cmd_RemoveFriend;
+  DTNoAuth.RecvTunnel.RegisterStream('GetMyFriends').OnExecute := cmd_GetMyFriends;
+  DTNoAuth.RecvTunnel.RegisterStream('GetOnlineNum').OnExecute := cmd_GetOnlineNum;
+  DTNoAuth.RecvTunnel.RegisterStream('GetOnlineList').OnExecute := cmd_GetOnlineList;
 
   // network VM
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Config').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_Config;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_FS_Service').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_FS_Service;
-  DTNoAuth.RecvTunnel.RegisterStream('SearchMultiMD5_FS_Service').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchMultiMD5_FS_Service;
-  DTNoAuth.RecvTunnel.RegisterStream('CheckAndCopy_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CheckAndCopy_NetDisk_File;
-  DTNoAuth.RecvTunnel.RegisterStream('BeginPost_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_BeginPost_NetDisk_File;
-  DTNoAuth.RecvTunnel.RegisterStream('CheckAndCopy_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CheckAndCopy_NetDisk_File_Frag;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Fast_Copy_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Fast_Copy_NetDisk_File_Frag;
-  DTNoAuth.RecvTunnel.RegisterCompleteBuffer('Post_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Post_NetDisk_File_Frag;
-  DTNoAuth.RecvTunnel.RegisterStream('EndPost_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_EndPost_NetDisk_File;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_Frag_Info').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag_Info;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_Frag_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag_MD5;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Multi_File_Frag_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_Multi_File_Frag_MD5;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Get_NetDisk_File_Frag').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_Frag;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_MD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_MD5;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_File_List;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_SpaceInfo').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_NetDisk_SpaceInfo;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Item;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Field;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Item').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Item;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Copy_Field;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('CreateField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_CreateField;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameField;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RenameItem;
-  DTNoAuth.RecvTunnel.RegisterStream('Build_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Build_Share_Disk;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Share_Disk').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Remove_Share_Disk;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_List').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_List;
-  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_Frag_Info').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Get_Share_Disk_File_Frag_Info;
-  DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_NetDisk_File;
-  DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_File').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_Share_NetDisk_File;
-  DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_NetDisk_Field;
-  DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_Field').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Search_Share_NetDisk_Field;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Config').OnExecute := cmd_Get_NetDisk_Config;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_FS_Service').OnExecute := cmd_Get_FS_Service;
+  DTNoAuth.RecvTunnel.RegisterStream('SearchMultiMD5_FS_Service').OnExecute := cmd_SearchMultiMD5_FS_Service;
+  DTNoAuth.RecvTunnel.RegisterStream('CheckAndCopy_NetDisk_File').OnExecute := cmd_CheckAndCopy_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('BeginPost_NetDisk_File').OnExecute := cmd_BeginPost_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('CheckAndCopy_NetDisk_File_Frag').OnExecute := cmd_CheckAndCopy_NetDisk_File_Frag;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Fast_Copy_NetDisk_File_Frag').OnExecute := cmd_Fast_Copy_NetDisk_File_Frag;
+  DTNoAuth.RecvTunnel.RegisterCompleteBuffer('Post_NetDisk_File_Frag').OnExecute := cmd_Post_NetDisk_File_Frag;
+  DTNoAuth.RecvTunnel.RegisterStream('EndPost_NetDisk_File').OnExecute := cmd_EndPost_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_Frag_Info').OnExecute := cmd_Get_NetDisk_File_Frag_Info;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_Frag_MD5').OnExecute := cmd_Get_NetDisk_File_Frag_MD5;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_Multi_File_Frag_MD5').OnExecute := cmd_Get_NetDisk_Multi_File_Frag_MD5;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Get_NetDisk_File_Frag').OnExecute := cmd_Get_NetDisk_File_Frag;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_MD5').OnExecute := cmd_Get_NetDisk_File_MD5;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_File_List').OnExecute := cmd_Get_NetDisk_File_List;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_NetDisk_SpaceInfo').OnExecute := cmd_Get_NetDisk_SpaceInfo;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Item').OnExecute := cmd_Remove_Item;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Field').OnExecute := cmd_Remove_Field;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Item').OnExecute := cmd_Copy_Item;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Copy_Field').OnExecute := cmd_Copy_Field;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('CreateField').OnExecute := cmd_CreateField;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('RenameField').OnExecute := cmd_RenameField;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('RenameItem').OnExecute := cmd_RenameItem;
+  DTNoAuth.RecvTunnel.RegisterStream('Build_Share_Disk').OnExecute := cmd_Build_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk').OnExecute := cmd_Get_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Remove_Share_Disk').OnExecute := cmd_Remove_Share_Disk;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_List').OnExecute := cmd_Get_Share_Disk_File_List;
+  DTNoAuth.RecvTunnel.RegisterStream('Get_Share_Disk_File_Frag_Info').OnExecute := cmd_Get_Share_Disk_File_Frag_Info;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_File').OnExecute := cmd_Search_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_File').OnExecute := cmd_Search_Share_NetDisk_File;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_NetDisk_Field').OnExecute := cmd_Search_NetDisk_Field;
+  DTNoAuth.RecvTunnel.RegisterStream('Search_Share_NetDisk_Field').OnExecute := cmd_Search_Share_NetDisk_Field;
 
   // admin
-  DTNoAuth.RecvTunnel.RegisterStream('Auth_Admin').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Auth_Admin;
-  DTNoAuth.RecvTunnel.RegisterDirectStream('Close_Auth_Admin').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Close_Auth_Admin;
+  DTNoAuth.RecvTunnel.RegisterStream('Auth_Admin').OnExecute := cmd_Auth_Admin;
+  DTNoAuth.RecvTunnel.RegisterDirectStream('Close_Auth_Admin').OnExecute := cmd_Close_Auth_Admin;
 
   FUserDB_Client := nil;
   FDirectory_Client := nil;

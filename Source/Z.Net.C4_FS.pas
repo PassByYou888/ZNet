@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_FS;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -35,7 +36,7 @@ type
     destructor Destroy; override;
   end;
 
-  TFS_Service_File_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TFS_Service_File_Data>;
+  TFS_Service_File_Data_Pool = TGeneric_String_Object_Hash<TFS_Service_File_Data>;
 
   TC40_FS_Service = class(TC40_Base_NoAuth_Service)
   protected
@@ -83,7 +84,7 @@ type
     destructor Destroy; override;
   end;
 
-  TFS_Client_CacheHashPool = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TFS_Client_CacheData>;
+  TFS_Client_CacheHashPool = TGeneric_String_Object_Hash<TFS_Client_CacheData>;
 
   TON_FS_PostFile_DoneC = procedure(Sender: TC40_FS_Client; info_: U_String);
   TON_FS_PostFile_DoneM = procedure(Sender: TC40_FS_Client; info_: U_String) of object;
@@ -141,7 +142,7 @@ type
   TFS_Temp_GetFileMD5P = reference to procedure(Sender: TC40_FS_Client; State_: Boolean; info_: SystemString; MD5_: TMD5);
 {$ENDIF FPC}
 
-  TFS_Temp_GetFileMD5 = class(TOnResultBridge)
+  TFS_Temp_GetFileMD5 = class(TOnResult_Bridge)
   public
     Client: TC40_FS_Client;
     OnResultC: TFS_Temp_GetFileMD5C;
@@ -180,7 +181,7 @@ type
   TFS_Temp_SizeP = reference to procedure(Sender: TC40_FS_Client; arry: TFS_FileSizeInfo_Array);
 {$ENDIF FPC}
 
-  TFS_Temp_Size = class(TOnResultBridge)
+  TFS_Temp_Size = class(TOnResult_Bridge)
   public
     Client: TC40_FS_Client;
     OnResultC: TFS_Temp_SizeC;
@@ -208,7 +209,7 @@ type
   TFS_Temp_SearchP = reference to procedure(Sender: TC40_FS_Client; arry: TFS_FileInfo_Array);
 {$ENDIF FPC}
 
-  TFS_Temp_Search = class(TOnResultBridge)
+  TFS_Temp_Search = class(TOnResult_Bridge)
   public
     Client: TC40_FS_Client;
     OnResultC: TFS_Temp_SearchC;
@@ -272,7 +273,7 @@ type
     procedure FS_SearchP(filter: U_String; MaxNum: Integer; OnResult: TFS_Temp_SearchP);
   end;
 
-  TC40_FS_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_FS_Client>;
+  TC40_FS_Client_List = TGenericsList<TC40_FS_Client>;
 
 implementation
 
@@ -411,7 +412,7 @@ begin
   MaxNum := InData.R.ReadInteger;
 
 {$IFDEF FPC}
-  FileHashPool.ProgressP(@fpc_progress_);
+  FileHashPool.ProgressP(fpc_progress_);
 {$ELSE FPC}
   FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TFS_Service_File_Data)
     begin
@@ -449,12 +450,12 @@ begin
   // max complete buffer 2M
   DTNoAuthService.RecvTunnel.MaxCompleteBufferSize := EStrToInt64(ParamList.GetDefaultValue('MaxBuffer', '2*1024*1024'), 2 * 1024 * 1024);
   DTNoAuthService.RecvTunnel.CompleteBufferCompressed := False;
-  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('FS_PostFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_PostFile;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('FS_GetFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_GetFile;
-  DTNoAuthService.RecvTunnel.RegisterStream('FS_GetFileMD5').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_GetFileMD5;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('FS_RemoveFile').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_RemoveFile;
-  DTNoAuthService.RecvTunnel.RegisterStream('FS_Size').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_Size;
-  DTNoAuthService.RecvTunnel.RegisterStream('FS_Search').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_FS_Search;
+  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('FS_PostFile').OnExecute := cmd_FS_PostFile;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('FS_GetFile').OnExecute := cmd_FS_GetFile;
+  DTNoAuthService.RecvTunnel.RegisterStream('FS_GetFileMD5').OnExecute := cmd_FS_GetFileMD5;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('FS_RemoveFile').OnExecute := cmd_FS_RemoveFile;
+  DTNoAuthService.RecvTunnel.RegisterStream('FS_Size').OnExecute := cmd_FS_Size;
+  DTNoAuthService.RecvTunnel.RegisterStream('FS_Search').OnExecute := cmd_FS_Search;
   // instance
   ServiceInfo.OnlyInstance := True;
   UpdateToGlobalDispatch;
@@ -520,7 +521,7 @@ begin
         FileHashPool.Add(fd.FileName, fd);
       until not Next;
 
-  Register_ConsoleCommand('Compress_And_Reload', 'Compress file system and reload.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Compress_And_Reload;
+  Register_ConsoleCommand('Compress_And_Reload', 'Compress file system and reload.').OnEvent_M := CC_Compress_And_Reload;
 end;
 
 destructor TC40_FS_Service.Destroy;
@@ -534,7 +535,7 @@ destructor TC40_FS_Service.Destroy;
 
 begin
 {$IFDEF FPC}
-  FileHashPool.ProgressP(@fpc_progress_);
+  FileHashPool.ProgressP(fpc_progress_);
 {$ELSE FPC}
   FileHashPool.ProgressP(procedure(const Name_: PSystemString; Obj_: TFS_Service_File_Data)
     begin
@@ -609,7 +610,7 @@ begin
   Sender.Print('update cache "%s"', [File_Name.Text]);
 
   p2pClient := Sender;
-  p2pClient.RegisterDirectConsole('PostDone').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_PostDone;
+  p2pClient.RegisterDirectConsole('PostDone').OnExecute := cmd_PostDone;
   Sender.SendCompleteBuffer('FS_PostFile', Stream.Memory, Stream.Size, True);
   Stream.DiscardMemory;
 end;
@@ -702,8 +703,8 @@ var
   d: TDFE;
 begin
   p2pClient := Sender;
-  Sender.RegisterCompleteBuffer('Save').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Save;
-  Sender.RegisterDirectConsole('Error').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Error;
+  Sender.RegisterCompleteBuffer('Save').OnExecute := cmd_Save;
+  Sender.RegisterDirectConsole('Error').OnExecute := cmd_Error;
   d := TDFE.Create;
   d.WriteString(File_Name);
   d.WriteCardinal(Sender.ClientIO.id);
@@ -834,7 +835,7 @@ begin
   tmp.OnResultC := OnResultC;
   tmp.OnResultM := OnResultM;
   tmp.OnResultP := OnResultP;
-  Client.Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+  Client.Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndGetFile);
   Client.DTNoAuth.ProgressEngine.PostDelayFreeObject(1.0, self, nil);
 end;
 
@@ -1023,7 +1024,7 @@ var
 begin
   inherited SafeCheck;
   FRemoveCacheList.Clear;
-  FileCacheHashPool.ProgressM({$IFDEF FPC}@{$ENDIF FPC}Do_Progress_FileCachePool);
+  FileCacheHashPool.ProgressM(Do_Progress_FileCachePool);
   if FRemoveCacheList.Count > 0 then
     begin
       for i := 0 to FRemoveCacheList.Count - 1 do
@@ -1069,7 +1070,7 @@ begin
   tmp.Stream.WriteDouble(umlNow);
   Stream.Position := 0;
   tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+  Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndPostFile);
   if doneFree then
       DisposeObject(Stream);
 end;
@@ -1092,7 +1093,7 @@ begin
   tmp.Stream.WriteDouble(umlNow);
   Stream.Position := 0;
   tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+  Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndPostFile);
   if doneFree then
       DisposeObject(Stream);
 end;
@@ -1115,7 +1116,7 @@ begin
   tmp.Stream.WriteDouble(umlNow);
   Stream.Position := 0;
   tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+  Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndPostFile);
   if doneFree then
       DisposeObject(Stream);
 end;
@@ -1138,7 +1139,7 @@ begin
   tmp.Stream.WriteDouble(umlNow);
   Stream.Position := 0;
   tmp.Stream.CopyFrom(Stream, Stream.Size);
-  Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndPostFile);
+  Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndPostFile);
   if doneFree then
       DisposeObject(Stream);
 end;
@@ -1154,7 +1155,7 @@ begin
       tmp_cache_.Client := self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultC := OnResult;
-      FS_GetFileMD5M(File_Name, {$IFDEF FPC}@{$ENDIF FPC}tmp_cache_.Do_FS_GetFileMD5);
+      FS_GetFileMD5M(File_Name, tmp_cache_.Do_FS_GetFileMD5);
     end
   else
     begin
@@ -1162,7 +1163,7 @@ begin
       tmp.Client := self;
       tmp.File_Name := File_Name;
       tmp.OnResultC := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
@@ -1177,7 +1178,7 @@ begin
       tmp_cache_.Client := self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultM := OnResult;
-      FS_GetFileMD5M(File_Name, {$IFDEF FPC}@{$ENDIF FPC}tmp_cache_.Do_FS_GetFileMD5);
+      FS_GetFileMD5M(File_Name, tmp_cache_.Do_FS_GetFileMD5);
     end
   else
     begin
@@ -1185,7 +1186,7 @@ begin
       tmp.Client := self;
       tmp.File_Name := File_Name;
       tmp.OnResultM := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
@@ -1200,7 +1201,7 @@ begin
       tmp_cache_.Client := self;
       tmp_cache_.File_Name := File_Name;
       tmp_cache_.OnResultP := OnResult;
-      FS_GetFileMD5M(File_Name, {$IFDEF FPC}@{$ENDIF FPC}tmp_cache_.Do_FS_GetFileMD5);
+      FS_GetFileMD5M(File_Name, tmp_cache_.Do_FS_GetFileMD5);
     end
   else
     begin
@@ -1208,7 +1209,7 @@ begin
       tmp.Client := self;
       tmp.File_Name := File_Name;
       tmp.OnResultP := OnResult;
-      Client.SendTunnel.CloneConnectM({$IFDEF FPC}@{$ENDIF FPC}tmp.DoP2PVM_CloneConnectAndGetFile);
+      Client.SendTunnel.CloneConnectM(tmp.DoP2PVM_CloneConnectAndGetFile);
     end;
 end;
 
@@ -1223,7 +1224,7 @@ begin
   d := TDFE.Create;
   d.WriteString(File_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_GetFileMD5', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1238,7 +1239,7 @@ begin
   d := TDFE.Create;
   d.WriteString(File_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_GetFileMD5', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1253,7 +1254,7 @@ begin
   d := TDFE.Create;
   d.WriteString(File_Name);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_GetFileMD5', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1296,7 +1297,7 @@ begin
   for i := 0 to length(FileNames) - 1 do
       d.WriteString(FileNames[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Size', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1313,7 +1314,7 @@ begin
   for i := 0 to length(FileNames) - 1 do
       d.WriteString(FileNames[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Size', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1330,7 +1331,7 @@ begin
   for i := 0 to length(FileNames) - 1 do
       d.WriteString(FileNames[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Size', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1347,7 +1348,7 @@ begin
   d.WriteString(filter);
   d.WriteInteger(MaxNum);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1364,7 +1365,7 @@ begin
   d.WriteString(filter);
   d.WriteInteger(MaxNum);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -1381,7 +1382,7 @@ begin
   d.WriteString(filter);
   d.WriteInteger(MaxNum);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('FS_Search', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 

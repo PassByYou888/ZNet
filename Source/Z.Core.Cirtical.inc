@@ -21,11 +21,13 @@ begin
 {$IFDEF ANTI_DEAD_ATOMIC_LOCK}
   d := GetTimeTick;
   while L do
-    if GetTimeTick - d >= 5000 then
-        RaiseInfo('dead lock');
+    if GetTimeTick - d < 5000 then
+        TCompute.Sleep(1)
+    else
+        RaiseInfo('dead lock')
 {$ELSE ANTI_DEAD_ATOMIC_LOCK}
   while L do
-      NOP;
+    TCompute.Sleep(1);
 {$ENDIF ANTI_DEAD_ATOMIC_LOCK}
   L := True;
 end;
@@ -56,7 +58,7 @@ begin
 end;
 
 type
-  TSystem_Critical_Recycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TSystem_Critical>;
+  TSystem_Critical_Recycle_Pool__ = TOrderStruct<TSystem_Critical>;
 
 var
   System_Critical__: TSystem_Critical;
@@ -100,7 +102,6 @@ begin
   else
       Instance__ := TSystem_Critical.Create;
   System_Critical__.Release;
-
   LNum := 0;
 end;
 

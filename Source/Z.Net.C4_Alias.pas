@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_Alias;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -54,7 +55,7 @@ type
   TON_GetAliasP = reference to procedure(Sender: TC40_Alias_Client; NameKey_: THashStringList);
 {$ENDIF FPC}
 
-  TON_Temp_GetAlias = class(TOnResultBridge)
+  TON_Temp_GetAlias = class(TOnResult_Bridge)
   public
     Client: TC40_Alias_Client;
     OnResultC: TON_GetAliasC;
@@ -81,7 +82,7 @@ type
     procedure SearchAlias_P(Filter_: U_String; OnResult: TON_GetAliasP);
   end;
 
-  TC40_Alias_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_Alias_Client>;
+  TC40_Alias_Client_List = TGenericsList<TC40_Alias_Client>;
 
 implementation
 
@@ -179,10 +180,10 @@ begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
 
   // cmd
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('SetAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SetAlias;
-  DTNoAuthService.RecvTunnel.RegisterStream('GetAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_GetAlias;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RemoveAlias;
-  DTNoAuthService.RecvTunnel.RegisterStream('SearchAlias').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_SearchAlias;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('SetAlias').OnExecute := cmd_SetAlias;
+  DTNoAuthService.RecvTunnel.RegisterStream('GetAlias').OnExecute := cmd_GetAlias;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('RemoveAlias').OnExecute := cmd_RemoveAlias;
+  DTNoAuthService.RecvTunnel.RegisterStream('SearchAlias').OnExecute := cmd_SearchAlias;
 
   // init DB
   ZDB2RecycleMemoryTimeOut := EStrToInt64(ParamList.GetDefaultValue('RecycleMemory', '5*1000'), 5 * 1000);
@@ -201,17 +202,17 @@ begin
   if EStrToBool(ParamList.GetDefaultValue('ForeverSave', 'True'), true) and umlFileExists(C40_Alias_DB_FileName) then
     begin
 {$IFDEF C4_Safe_Flush}
-      FS := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, False, True);
+      fs := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, False, true);
 {$ELSE C4_Safe_Flush}
-      FS := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite);
+      fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmOpenReadWrite);
 {$ENDIF C4_Safe_Flush}
     end
   else
     begin
 {$IFDEF C4_Safe_Flush}
-      FS := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, True, True);
+      fs := TSafe_Flush_Stream.Create(C40_Alias_DB_FileName, true, true);
 {$ELSE C4_Safe_Flush}
-      FS := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
+      fs := TCore_FileStream.Create(C40_Alias_DB_FileName, fmCreate);
 {$ENDIF C4_Safe_Flush}
     end;
 
@@ -347,7 +348,7 @@ begin
   for i := low(arry) to high(arry) do
       d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -364,7 +365,7 @@ begin
   for i := low(arry) to high(arry) do
       d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -381,7 +382,7 @@ begin
   for i := low(arry) to high(arry) do
       d.WriteString(arry[i]);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('GetAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -406,7 +407,7 @@ begin
   d := TDFE.Create;
   d.WriteString(Filter_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -421,7 +422,7 @@ begin
   d := TDFE.Create;
   d.WriteString(Filter_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 
@@ -436,7 +437,7 @@ begin
   d := TDFE.Create;
   d.WriteString(Filter_);
   DTNoAuthClient.SendTunnel.SendStreamCmdM('SearchAlias', d, nil, nil,
-{$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamParamEvent, {$IFDEF FPC}@{$ENDIF FPC}tmp.DoStreamFailedEvent);
+    tmp.DoStreamParamEvent, tmp.DoStreamFailedEvent);
   DisposeObject(d);
 end;
 

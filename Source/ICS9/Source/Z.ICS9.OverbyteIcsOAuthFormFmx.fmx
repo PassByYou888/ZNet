@@ -1,0 +1,52 @@
+object OAuthLoginForm: TOAuthLoginForm
+  Left = 0
+  Top = 0
+  Caption = 'OAuthLoginForm'
+  ClientHeight = 627
+  ClientWidth = 684
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  DesignerMasterStyle = 0
+  object PanelTitle: TPanel
+    Align = Top
+    Size.Width = 684.000000000000000000
+    Size.Height = 51.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object LabelTitle: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 3.000000000000000000
+      Size.Width = 563.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'LabelTitle'
+      TabOrder = 0
+    end
+    object doClose: TButton
+      Position.X = 585.000000000000000000
+      Position.Y = 15.000000000000000000
+      TabOrder = 1
+      Text = 'Close'
+      OnClick = doCloseClick
+    end
+    object LabelAccount: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 28.000000000000000000
+      Size.Width = 563.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'LabelAccount'
+      TabOrder = 3
+    end
+  end
+  object PanelBrowser: TPanel
+    Align = Client
+    Size.Width = 684.000000000000000000
+    Size.Height = 576.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+  end
+end

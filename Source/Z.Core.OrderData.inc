@@ -1,4 +1,4 @@
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(const p: POrderStruct);
+procedure TOrderStruct<T_>.DoInternalFree(const p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -7,7 +7,7 @@ begin
   end;
 end;
 
-constructor TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
+constructor TOrderStruct<T_>.Create;
 begin
   inherited Create;
   FFirst := nil;
@@ -16,19 +16,19 @@ begin
   FOnFreeOrderStruct := nil;
 end;
 
-destructor TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TOrderStruct<T_>.Destroy;
 begin
   Clear;
   inherited Destroy;
 end;
 
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Data: T_);
+procedure TOrderStruct<T_>.DoFree(var Data: T_);
 begin
   if Assigned(FOnFreeOrderStruct) then
       FOnFreeOrderStruct(Data);
 end;
 
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
+procedure TOrderStruct<T_>.Clear;
 var
   p, N_P: POrderStruct;
 begin
@@ -47,7 +47,7 @@ begin
   FNum := 0;
 end;
 
-procedure TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
+procedure TOrderStruct<T_>.Next;
 var
   N_P: POrderStruct;
 begin
@@ -65,7 +65,7 @@ begin
     end;
 end;
 
-function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderStruct;
+function TOrderStruct<T_>.Push(const Data: T_): POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -87,7 +87,7 @@ begin
   Result := p;
 end;
 
-function TOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_Null: POrderStruct;
+function TOrderStruct<T_>.Push_Null: POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -109,7 +109,7 @@ begin
   Result := p;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
+procedure TOrderPtrStruct<T_>.DoInternalFree(p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);
@@ -118,7 +118,7 @@ begin
   end;
 end;
 
-constructor TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
+constructor TOrderPtrStruct<T_>.Create;
 begin
   inherited Create;
   FFirst := nil;
@@ -127,13 +127,13 @@ begin
   FOnFreeOrderStruct := nil;
 end;
 
-destructor TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TOrderPtrStruct<T_>.Destroy;
 begin
   Clear;
   inherited Destroy;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(Data: PT_);
+procedure TOrderPtrStruct<T_>.DoFree(Data: PT_);
 begin
   if Assigned(FOnFreeOrderStruct) then
       FOnFreeOrderStruct(Data)
@@ -141,7 +141,7 @@ begin
       Dispose(Data);
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
+procedure TOrderPtrStruct<T_>.Clear;
 var
   p, N_P: POrderPtrStruct;
 begin
@@ -160,7 +160,7 @@ begin
   FNum := 0;
 end;
 
-procedure TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
+procedure TOrderPtrStruct<T_>.Next;
 var
   N_P: POrderPtrStruct;
 begin
@@ -178,7 +178,7 @@ begin
     end;
 end;
 
-function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderPtrStruct;
+function TOrderPtrStruct<T_>.Push(const Data: T_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin
@@ -201,7 +201,7 @@ begin
   Result := p;
 end;
 
-function TOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_): POrderPtrStruct;
+function TOrderPtrStruct<T_>.PushPtr(Data: PT_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin
@@ -223,7 +223,7 @@ begin
   Result := p;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(const p: POrderStruct);
+procedure TCriticalOrderStruct<T_>.DoInternalFree(const p: POrderStruct);
 begin
   try
     DoFree(p^.Data);
@@ -232,7 +232,7 @@ begin
   end;
 end;
 
-constructor TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
+constructor TCriticalOrderStruct<T_>.Create;
 begin
   inherited Create;
   FCritical__ := TCritical.Create;
@@ -242,20 +242,20 @@ begin
   FOnFreeCriticalOrderStruct := nil;
 end;
 
-destructor TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TCriticalOrderStruct<T_>.Destroy;
 begin
   Clear;
   FCritical__.Free;
   inherited Destroy;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(var Data: T_);
+procedure TCriticalOrderStruct<T_>.DoFree(var Data: T_);
 begin
   if Assigned(FOnFreeCriticalOrderStruct) then
       FOnFreeCriticalOrderStruct(Data);
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
+procedure TCriticalOrderStruct<T_>.Clear;
 var
   p, N_P: POrderStruct;
 begin
@@ -276,14 +276,14 @@ begin
   FCritical__.UnLock;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderStruct;
+function TCriticalOrderStruct<T_>.GetCurrent: POrderStruct;
 begin
   FCritical__.Lock;
   Result := FFirst;
   FCritical__.UnLock;
 end;
 
-procedure TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
+procedure TCriticalOrderStruct<T_>.Next;
 var
   N_P: POrderStruct;
 begin
@@ -303,7 +303,7 @@ begin
   FCritical__.UnLock;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderStruct;
+function TCriticalOrderStruct<T_>.Push(const Data: T_): POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -327,7 +327,7 @@ begin
   Result := p;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push_Null: POrderStruct;
+function TCriticalOrderStruct<T_>.Push_Null: POrderStruct;
 var
   p: POrderStruct;
 begin
@@ -351,14 +351,14 @@ begin
   Result := p;
 end;
 
-function TCriticalOrderStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;
+function TCriticalOrderStruct<T_>.GetNum: NativeInt;
 begin
   FCritical__.Lock;
   Result := FNum;
   FCritical__.UnLock;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoInternalFree(p: POrderPtrStruct);
+procedure TCriticalOrderPtrStruct<T_>.DoInternalFree(p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);
@@ -367,7 +367,7 @@ begin
   end;
 end;
 
-constructor TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create;
+constructor TCriticalOrderPtrStruct<T_>.Create;
 begin
   inherited Create;
   FCritical__ := TCritical.Create;
@@ -377,14 +377,14 @@ begin
   FOnFreeCriticalOrderStruct := nil;
 end;
 
-destructor TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TCriticalOrderPtrStruct<T_>.Destroy;
 begin
   Clear;
   FCritical__.Free;
   inherited Destroy;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.DoFree(Data: PT_);
+procedure TCriticalOrderPtrStruct<T_>.DoFree(Data: PT_);
 begin
   if Assigned(FOnFreeCriticalOrderStruct) then
       FOnFreeCriticalOrderStruct(Data)
@@ -392,7 +392,7 @@ begin
       Dispose(Data);
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Clear;
+procedure TCriticalOrderPtrStruct<T_>.Clear;
 var
   p, N_P: POrderPtrStruct;
 begin
@@ -413,14 +413,14 @@ begin
   FCritical__.UnLock;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetCurrent: POrderPtrStruct;
+function TCriticalOrderPtrStruct<T_>.GetCurrent: POrderPtrStruct;
 begin
   FCritical__.Lock;
   Result := FFirst;
   FCritical__.UnLock;
 end;
 
-procedure TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Next;
+procedure TCriticalOrderPtrStruct<T_>.Next;
 var
   N_P: POrderPtrStruct;
 begin
@@ -440,7 +440,7 @@ begin
   FCritical__.UnLock;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.Push(const Data: T_): POrderPtrStruct;
+function TCriticalOrderPtrStruct<T_>.Push(const Data: T_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin
@@ -465,7 +465,7 @@ begin
   Result := p;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.PushPtr(Data: PT_): POrderPtrStruct;
+function TCriticalOrderPtrStruct<T_>.PushPtr(Data: PT_): POrderPtrStruct;
 var
   p: POrderPtrStruct;
 begin
@@ -489,7 +489,7 @@ begin
   Result := p;
 end;
 
-function TCriticalOrderPtrStruct{$IFNDEF FPC}<T_>{$ENDIF FPC}.GetNum: NativeInt;
+function TCriticalOrderPtrStruct<T_>.GetNum: NativeInt;
 begin
   FCritical__.Lock;
   Result := FNum;

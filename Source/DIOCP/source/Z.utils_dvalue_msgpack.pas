@@ -5,7 +5,7 @@ interface
 uses
   Z.utils_dvalue, Z.utils_strings, classes,
   {$IFDEF USE_AES}
-  Z.AES, 
+  Z.diocp.AES, 
   {$ENDIF}
   SysUtils, Z.utils_BufferAdapter;
 

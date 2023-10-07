@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2.Thread.Queue;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -156,6 +157,14 @@ type
     procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
   public
     constructor Create(const ThEng_: TZDB2_Th_Queue; NOP_Num_: PInteger);
+  end;
+
+  TZDB2_Th_CMD_INC = class(TZDB2_Th_CMD)
+  protected
+    Inc_Num: PInteger;
+    procedure DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State); override;
+  public
+    constructor Create(const ThEng_: TZDB2_Th_Queue; Inc_Num_: PInteger);
   end;
 
   TOn_ZDB2_Th_CMD_Custom_Execute_C = procedure(Sender: TZDB2_Th_Queue; CoreSpace__: TZDB2_Core_Space);
@@ -405,13 +414,13 @@ type
   end;
   // bridge **********************************************************************************
 
-  TZDB2_Th_CMD_Queue = {$IFDEF FPC}specialize {$ENDIF FPC} TCriticalOrderStruct<TZDB2_Th_CMD>;
+  TZDB2_Th_CMD_Queue = TCriticalOrderStruct<TZDB2_Th_CMD>;
 {$ENDREGION 'Command_Queue'}
 {$REGION 'Command_Dispatch'}
-  TZDB2_Th_Queue_Instance_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<TZDB2_Th_Queue>;
+  TZDB2_Th_Queue_Instance_Pool = TCritical_BigList<TZDB2_Th_Queue>;
 
   TZDB2_Th_Queue = class
-  protected
+  private
     FInstance_Pool_Ptr: TZDB2_Th_Queue_Instance_Pool.PQueueStruct;
     FCMD_Queue: TZDB2_Th_CMD_Queue;
     FCMD_Execute_Thread_Is_Runing, FCMD_Execute_Thread_Is_Exit: Boolean;
@@ -425,11 +434,22 @@ type
     FCoreSpace_Cipher: IZDB2_Cipher;
     FCoreSpace_IOHnd: TIOHnd;
     CoreSpace__: TZDB2_Core_Space;
+    // db state
+    FCoreSpace_State: TZDB2_Atom_SpaceState;
+    FLast_Modification: TTimeTick;
+    FIs_Modification: Boolean;
+    FCoreSpace_File_Size: Int64;
+    FCoreSpace_BlockCount: Integer;
+    FIs_OnlyRead: Boolean;
+    FIs_Memory_Database: Boolean;
+    FIs_File_Database: Boolean;
+    FDatabase_FileName: U_String;
     FFragment_Buffer_Num: Int64;
     FFragment_Buffer_Memory: Int64;
+  private
     procedure Do_Th_Queue(ThSender: TCompute);
     procedure Do_Free_CMD(var p: TZDB2_Th_CMD);
-    procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
+    procedure Do_No_Space(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
   public
     class function CheckStream(Stream_: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
     constructor Create(Mode_: TZDB2_SpaceMode; CacheMemory_: Int64;
@@ -439,25 +459,24 @@ type
     // internal thread instance. Be careful and practical to avoid assignment
     property CMD_Queue: TZDB2_Th_CMD_Queue read FCMD_Queue;
     property CoreSpace: TZDB2_Core_Space read CoreSpace__;
-    function CoreSpace_IOHnd: PIOHnd;
 
     property Fast_Append_Space: Boolean read FCoreSpace_Fast_Append_Space write FCoreSpace_Fast_Append_Space; // default is true
     property CoreSpace_Max_File_Size: Int64 read FCoreSpace_Max_File_Size write FCoreSpace_Max_File_Size; // CoreSpace_Max_File_Size <= 0 is infinite
     property Auto_Append_Space: Boolean read FCoreSpace_Auto_Append_Space write FCoreSpace_Auto_Append_Space; // default is true
 
     // queue state
-    function Last_Modification: TTimeTick;
+    property Last_Modification: TTimeTick read FLast_Modification;
+    property Is_Modification: Boolean read FIs_Modification;
+    property CoreSpace_File_Size: Int64 read FCoreSpace_File_Size;
+    property CoreSpace_BlockCount: Integer read FCoreSpace_BlockCount;
+    property Is_OnlyRead: Boolean read FIs_OnlyRead;
+    property Is_Memory_Database: Boolean read FIs_Memory_Database;
+    property Is_File_Database: Boolean read FIs_File_Database;
+    property Database_FileName: U_String read FDatabase_FileName;
     function QueueNum: NativeInt;
-    function CoreSpace_File_Size: Int64;
     function CoreSpace_Size: Int64;
     function CoreSpace_Physics_Size: Int64;
     function CoreSpace_Free_Space_Size: Int64;
-    function CoreSpace_BlockCount: Integer;
-    function IsOnlyRead: Boolean;
-    function Is_Memory_Database: Boolean;
-    function Is_File_Database: Boolean;
-    function Get_Database_FileName: U_String;
-    function Get_CoreSpace_State(): TZDB2_SpaceState;
     property Fragment_Buffer_Num: Int64 read FFragment_Buffer_Num;
     property Fragment_Buffer_Memory: Int64 read FFragment_Buffer_Memory;
     procedure Wait_Queue;
@@ -506,6 +525,7 @@ type
     procedure Async_Flush();
     procedure Async_NOP(); overload;
     procedure Async_NOP(var NOP_Num_: Integer); overload;
+    procedure Async_INC(var Inc_Num: Integer);
     procedure Async_Execute_C(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_C);
     procedure Async_Execute_M(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_M);
     procedure Async_Execute_P(On_Execute: TOn_ZDB2_Th_CMD_Custom_Execute_P);
@@ -802,6 +822,19 @@ begin
   Init();
 end;
 
+procedure TZDB2_Th_CMD_INC.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
+begin
+  if Inc_Num <> nil then
+      AtomInc(Inc_Num^);
+end;
+
+constructor TZDB2_Th_CMD_INC.Create(const ThEng_: TZDB2_Th_Queue; Inc_Num_: PInteger);
+begin
+  inherited Create(ThEng_);
+  Inc_Num := Inc_Num_;
+  Init();
+end;
+
 procedure TZDB2_Th_CMD_Custom_Execute.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 begin
   if Assigned(On_Execute_C) then
@@ -1092,13 +1125,13 @@ begin
       // read identifier
       if not CoreSpace__.ReadData(Header_Data, PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID) then
         begin
-          DoStatus('"%s" no found External Header.', [Engine.Get_Database_FileName.Text]);
+          DoStatus('"%s" no found External Header.', [Engine.FDatabase_FileName.Text]);
         end;
       if not Engine.FCoreSpace_IOHnd.IsOnlyRead then
         begin
           // remove identifier
           if not CoreSpace__.RemoveData(PExternal_Head(@CoreSpace__.UserCustomHeader^[6])^.ID, False) then
-              DoStatus('"%s" remove external header failed, safe exception, you can be ignored.', [Engine.Get_Database_FileName.Text]);
+              DoStatus('"%s" remove external header failed, safe exception, you can be ignored.', [Engine.FDatabase_FileName.Text]);
           FillPtr(@CoreSpace__.UserCustomHeader^[6], SizeOf(TExternal_Head), 0);
         end;
     end;
@@ -1282,7 +1315,7 @@ end;
 procedure TZDB2_Th_CMD_Bridge_Mem64_And_State.Init(CMD_: TZDB2_Th_CMD);
 begin
   CMD := CMD_;
-  CMD.OnDone := {$IFDEF FPC}@{$ENDIF FPC}CMD_Done;
+  CMD.OnDone := CMD_Done;
 end;
 
 procedure TZDB2_Th_CMD_Bridge_Mem64_And_State.Ready;
@@ -1315,7 +1348,7 @@ end;
 procedure TZDB2_Th_CMD_Bridge_Stream_And_State.Init(CMD_: TZDB2_Th_CMD);
 begin
   CMD := CMD_;
-  CMD.OnDone := {$IFDEF FPC}@{$ENDIF FPC}CMD_Done;
+  CMD.OnDone := CMD_Done;
 end;
 
 procedure TZDB2_Th_CMD_Bridge_Stream_And_State.Ready;
@@ -1348,7 +1381,7 @@ end;
 procedure TZDB2_Th_CMD_Bridge_ID_And_State.Init(CMD_: TZDB2_Th_CMD);
 begin
   CMD := CMD_;
-  CMD.OnDone := {$IFDEF FPC}@{$ENDIF FPC}CMD_Done;
+  CMD.OnDone := CMD_Done;
 end;
 
 procedure TZDB2_Th_CMD_Bridge_ID_And_State.Ready;
@@ -1380,7 +1413,7 @@ end;
 procedure TZDB2_Th_CMD_Bridge_State.Init(CMD_: TZDB2_Th_CMD);
 begin
   CMD := CMD_;
-  CMD.OnDone := {$IFDEF FPC}@{$ENDIF FPC}CMD_Done;
+  CMD.OnDone := CMD_Done;
 end;
 
 procedure TZDB2_Th_CMD_Bridge_State.Ready;
@@ -1400,7 +1433,7 @@ begin
   CoreSpace__.Mode := FCoreSpace_Mode;
   CoreSpace__.MaxCacheMemory := FCoreSpace_CacheMemory;
   CoreSpace__.AutoCloseIOHnd := True;
-  CoreSpace__.OnNoSpace := {$IFDEF FPC}@{$ENDIF FPC}DoNoSpace;
+  CoreSpace__.OnNoSpace := Do_No_Space;
   if umlFileSize(FCoreSpace_IOHnd) > 0 then
     if not CoreSpace__.Open then
       begin
@@ -1454,6 +1487,11 @@ begin
             end;
           L_State_TK := GetTimeTick();
         end;
+      FCoreSpace_State.V := CoreSpace__.State^;
+      FLast_Modification := CoreSpace__.Last_Modification;
+      FIs_Modification := CoreSpace__.Is_Modification;
+      FCoreSpace_File_Size := FCoreSpace_IOHnd.Size;
+      FCoreSpace_BlockCount := CoreSpace__.BlockCount;
     end;
 
   DisposeObjectAndNil(CoreSpace__);
@@ -1466,9 +1504,9 @@ begin
   DisposeObjectAndNil(p);
 end;
 
-procedure TZDB2_Th_Queue.DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
+procedure TZDB2_Th_Queue.Do_No_Space(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
 begin
-  if FCoreSpace_Auto_Append_Space and ((FCoreSpace_Max_File_Size <= 0) or (FCoreSpace_Max_File_Size < CoreSpace_File_Size() + FCoreSpace_Delta)) then
+  if FCoreSpace_Auto_Append_Space and ((FCoreSpace_Max_File_Size <= 0) or (FCoreSpace_Max_File_Size < FCoreSpace_File_Size + FCoreSpace_Delta)) then
     begin
       if FCoreSpace_Fast_Append_Space then
           retry := Trigger.Fast_AppendSpace(FCoreSpace_Delta, CoreSpace_BlockSize)
@@ -1490,7 +1528,7 @@ begin
   inherited Create;
   FInstance_Pool_Ptr := ZDB2_Th_Queue_Instance_Pool__.Add(self);
   FCMD_Queue := TZDB2_Th_CMD_Queue.Create;
-  FCMD_Queue.OnFree := {$IFDEF FPC}@{$ENDIF FPC}Do_Free_CMD;
+  FCMD_Queue.OnFree := Do_Free_CMD;
   FCMD_Execute_Thread_Is_Runing := False;
   FCMD_Execute_Thread_Is_Exit := False;
   FCoreSpace_Fast_Append_Space := True;
@@ -1505,15 +1543,29 @@ begin
   umlFileCreateAsStream(Stream_, FCoreSpace_IOHnd, OnlyRead_);
   FCoreSpace_IOHnd.AutoFree := AutoFree_;
   CoreSpace__ := nil;
+
+  // init db state
+  FCoreSpace_State := TZDB2_Atom_SpaceState.Create();
+  FLast_Modification := GetTimeTick;
+  FIs_Modification := False;
+  FCoreSpace_File_Size := FCoreSpace_IOHnd.Size;
+  FCoreSpace_BlockCount := 0;
+  FIs_OnlyRead := OnlyRead_;
+  FIs_Memory_Database := (Stream_ is TMS64) or (Stream_ is TCore_MemoryStream);
+  FIs_File_Database := (Stream_ is TCore_FileStream) or (Stream_ is TReliableFileStream) or (Stream_ is TSafe_Flush_Stream);
+  if Stream_ is TCore_FileStream then
+      FDatabase_FileName := TCore_FileStream(Stream_).FileName
+  else if Stream_ is TReliableFileStream then
+      FDatabase_FileName := TReliableFileStream(Stream_).FileName
+  else if Stream_ is TSafe_Flush_Stream then
+      FDatabase_FileName := TSafe_Flush_Stream(Stream_).FileName
+  else
+      FDatabase_FileName := '';
   FFragment_Buffer_Num := 0;
   FFragment_Buffer_Memory := 0;
 
-  // test
-  FCoreSpace_IOHnd.Cache.UsedWriteCache := True;
-  FCoreSpace_IOHnd.Cache.UsedReadCache := True;
-
   // thread
-  TCompute.RunM(nil, nil, {$IFDEF FPC}@{$ENDIF FPC}Do_Th_Queue);
+  TCompute.RunM(nil, nil, Do_Th_Queue);
   while not FCMD_Execute_Thread_Is_Runing do
       TCompute.Sleep(1);
 end;
@@ -1528,22 +1580,8 @@ begin
   while not FCMD_Execute_Thread_Is_Exit do
       TCompute.Sleep(1);
   FCMD_Queue.Free;
+  disposeObject(FCoreSpace_State);
   inherited Destroy;
-end;
-
-function TZDB2_Th_Queue.CoreSpace_IOHnd: PIOHnd;
-begin
-  Result := @FCoreSpace_IOHnd;
-end;
-
-function TZDB2_Th_Queue.Last_Modification: TTimeTick;
-begin
-  FCMD_Queue.Critical__.Lock;
-  if (CoreSpace__ <> nil) then
-      Result := CoreSpace__.Last_Modification
-  else
-      Result := GetTimeTick();
-  FCMD_Queue.Critical__.UnLock;
 end;
 
 function TZDB2_Th_Queue.QueueNum: NativeInt;
@@ -1554,95 +1592,25 @@ begin
       Result := 0;
 end;
 
-function TZDB2_Th_Queue.CoreSpace_File_Size: Int64;
-begin
-  FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
-      Result := FCoreSpace_IOHnd.Size
-  else
-      Result := 0;
-  FCMD_Queue.Critical__.UnLock;
-end;
-
 function TZDB2_Th_Queue.CoreSpace_Size: Int64;
 begin
-  FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
-      Result := CoreSpace__.State^.Physics - CoreSpace__.State^.FreeSpace
-  else
-      Result := 0;
-  FCMD_Queue.Critical__.UnLock;
+  with FCoreSpace_State.Lock do
+      Result := Physics - FreeSpace;
+  FCoreSpace_State.UnLock;
 end;
 
 function TZDB2_Th_Queue.CoreSpace_Physics_Size: Int64;
 begin
-  FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
-      Result := CoreSpace__.State^.Physics
-  else
-      Result := 0;
-  FCMD_Queue.Critical__.UnLock;
+  with FCoreSpace_State.Lock do
+      Result := Physics;
+  FCoreSpace_State.UnLock;
 end;
 
 function TZDB2_Th_Queue.CoreSpace_Free_Space_Size: Int64;
 begin
-  FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
-      Result := CoreSpace__.State^.FreeSpace
-  else
-      Result := 0;
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.CoreSpace_BlockCount: Integer;
-begin
-  FCMD_Queue.Critical__.Lock;
-  Result := CoreSpace__.BlockCount;
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.IsOnlyRead: Boolean;
-begin
-  FCMD_Queue.Critical__.Lock;
-  Result := FCoreSpace_IOHnd.IsOnlyRead;
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.Is_Memory_Database: Boolean;
-begin
-  FCMD_Queue.Critical__.Lock;
-  Result := (FCoreSpace_IOHnd.Handle is TMS64) or (FCoreSpace_IOHnd.Handle is TCore_MemoryStream);
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.Is_File_Database: Boolean;
-begin
-  FCMD_Queue.Critical__.Lock;
-  Result := (FCoreSpace_IOHnd.Handle is TCore_FileStream) or (FCoreSpace_IOHnd.Handle is TReliableFileStream) or (FCoreSpace_IOHnd.Handle is TSafe_Flush_Stream);
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.Get_Database_FileName: U_String;
-begin
-  Result := '';
-  FCMD_Queue.Critical__.Lock;
-  if FCoreSpace_IOHnd.Handle is TCore_FileStream then
-      Result := TCore_FileStream(FCoreSpace_IOHnd.Handle).FileName
-  else if FCoreSpace_IOHnd.Handle is TReliableFileStream then
-      Result := TReliableFileStream(FCoreSpace_IOHnd.Handle).FileName
-  else if FCoreSpace_IOHnd.Handle is TSafe_Flush_Stream then
-      Result := TSafe_Flush_Stream(FCoreSpace_IOHnd.Handle).FileName;
-  FCMD_Queue.Critical__.UnLock;
-end;
-
-function TZDB2_Th_Queue.Get_CoreSpace_State(): TZDB2_SpaceState;
-begin
-  FCMD_Queue.Critical__.Lock;
-  if CoreSpace__ <> nil then
-      Result := CoreSpace__.State^
-  else
-      FillPtr(@Result, SizeOf(TZDB2_SpaceState), 0);
-  FCMD_Queue.Critical__.UnLock;
+  with FCoreSpace_State.Lock do
+      Result := FreeSpace;
+  FCoreSpace_State.UnLock;
 end;
 
 procedure TZDB2_Th_Queue.Wait_Queue;
@@ -2109,6 +2077,15 @@ var
 begin
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   tmp.Init(TZDB2_Th_CMD_NOP.Create(self, @NOP_Num_));
+  tmp.Ready;
+end;
+
+procedure TZDB2_Th_Queue.Async_INC(var Inc_Num: Integer);
+var
+  tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
+begin
+  tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
+  tmp.Init(TZDB2_Th_CMD_INC.Create(self, @Inc_Num));
   tmp.Ready;
 end;
 

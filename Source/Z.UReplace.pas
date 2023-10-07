@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.UReplace;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -32,7 +33,7 @@ type
     dest_bPos, dest_ePos: Integer;
   end;
 
-  TU_BatchInfoList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TU_BatchInfo>;
+  TU_BatchInfoList = TGenericsList<TU_BatchInfo>;
 
 {$IFDEF FPC}
   TOnUBatchProc = procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean) is nested;

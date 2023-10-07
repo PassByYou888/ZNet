@@ -2,7 +2,9 @@
 { * cloud 4.0 console application framework                                    * }
 { ****************************************************************************** }
 unit Z.Net.C4_Console_APP;
-{$I Z.Define.inc}
+
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -35,6 +37,7 @@ procedure C40_Init_AppParamFromSystemCmdLine;
 function C40_Extract_CmdLine(): Boolean; overload;
 function C40_Extract_CmdLine(const Param_: U_StringArray): Boolean; overload;
 function C40_Extract_CmdLine(const TextStyle_: TTextStyle; const Param_: U_StringArray): Boolean; overload;
+procedure C40_Execute_Main_Loop;
 
 implementation
 
@@ -51,7 +54,7 @@ type
     procedure Init;
   end;
 
-  TCmd_Net_Info_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TCmd_Net_Info_>;
+  TCmd_Net_Info_List = TGenericsList<TCmd_Net_Info_>;
 
   TCommand_Script = class
   private
@@ -222,43 +225,44 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
     begin
-      opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config)^.Category := 'C4 Param variant';
+      opRT.RegOpM(L[i], Do_Config)^.Category := 'C4 Param variant';
     end;
   disposeObject(L);
 
-  opRT.RegOpM('KeepAlive', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveClient', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveCli', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveNet', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAlive', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveClient', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveCli', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveTunnel', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveConnect', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveConnection', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveNet', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('KeepAliveBuild', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Auto', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoClient', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoCli', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoTunnel', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoConnect', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoConnection', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoNet', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.RegOpM('AutoBuild', Do_AutoClient)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Client', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Cli', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Tunnel', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Connect', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Connection', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Net', Do_Client)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Build', Do_Client)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Service', Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Server', Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Serv', Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Listen', Do_Service)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Listening', Do_Service)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Wait', Do_Sleep)^.Category := 'C4 Param Command';
+  opRT.RegOpM('Sleep', Do_Sleep)^.Category := 'C4 Param Command';
 end;
 
 procedure TCommand_Script.Parsing(Expression: U_String);
@@ -428,6 +432,54 @@ begin
   C40AppParsingTextStyle := TextStyle_;
   C40AppParam := Param_;
   Result := C40_Extract_CmdLine();
+end;
+
+type
+  TMain_Loop_Instance__ = class
+  private
+    exit_signal: Boolean;
+    procedure Do_Check_On_Exit;
+  public
+    constructor Create;
+    procedure Wait();
+  end;
+
+procedure TMain_Loop_Instance__.Do_Check_On_Exit;
+var
+  n: string;
+  cH: TC40_Console_Help;
+begin
+  cH := nil;
+  repeat
+    TCompute.Sleep(100);
+    Readln(n);
+    n := umlTrimSpace(n);
+    if cH = nil then
+        cH := TC40_Console_Help.Create;
+    if n <> '' then
+        cH.Run_HelpCmd(n);
+  until cH.IsExit;
+  DisposeObjectAndNil(cH);
+  exit_signal := True;
+end;
+
+constructor TMain_Loop_Instance__.Create;
+begin
+  inherited Create;
+  exit_signal := False;
+  TCompute.RunM_NP(Do_Check_On_Exit);
+end;
+
+procedure TMain_Loop_Instance__.Wait;
+begin
+  while not exit_signal do
+      Z.Net.C4.C40Progress;
+end;
+
+procedure C40_Execute_Main_Loop;
+begin
+  with TMain_Loop_Instance__.Create do
+      Wait;
 end;
 
 initialization

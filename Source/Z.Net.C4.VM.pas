@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4.VM;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -210,8 +211,8 @@ begin
   Service.RecvTunnel.SyncOnCompleteBuffer := True;
   Service.QuietMode := C40_QuietMode;
 
-  Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
-  Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.OnLinkSuccess := DoLinkSuccess_Event;
+  Service.DTService.OnUserOut := DoUserOut_Event;
   Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ClassName);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
@@ -273,7 +274,7 @@ begin
   Client.RecvTunnel.SyncOnCompleteBuffer := True;
   Client.QuietMode := C40_QuietMode;
 
-  Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink;
+  Client.OnTunnelLink := Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink;
   DTNoAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;
 end;
@@ -378,10 +379,10 @@ begin
   Service.RecvTunnel.SyncOnCompleteBuffer := True;
   Service.QuietMode := C40_QuietMode;
 
-  Service.DTService.OnUserAuth := {$IFDEF FPC}@{$ENDIF FPC}DoUserAuth_Event;
-  Service.DTService.OnUserReg := {$IFDEF FPC}@{$ENDIF FPC}DoUserReg_Event;
-  Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
-  Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.OnUserAuth := DoUserAuth_Event;
+  Service.DTService.OnUserReg := DoUserReg_Event;
+  Service.DTService.OnLinkSuccess := DoLinkSuccess_Event;
+  Service.DTService.OnUserOut := DoUserOut_Event;
   Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ClassName);
   if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
@@ -443,7 +444,7 @@ begin
   Client.RecvTunnel.SyncOnCompleteBuffer := True;
   Client.QuietMode := C40_QuietMode;
 
-  Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_VirtualAuth_Custom_Client_TunnelLink;
+  Client.OnTunnelLink := Do_DT_P2PVM_VirtualAuth_Custom_Client_TunnelLink;
   DTVirtualAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;
 end;
@@ -538,8 +539,8 @@ begin
   Service.RecvTunnel.SyncOnCompleteBuffer := True;
   Service.QuietMode := C40_QuietMode;
 
-  Service.DTService.OnLinkSuccess := {$IFDEF FPC}@{$ENDIF FPC}DoLinkSuccess_Event;
-  Service.DTService.OnUserOut := {$IFDEF FPC}@{$ENDIF FPC}DoUserOut_Event;
+  Service.DTService.OnLinkSuccess := DoLinkSuccess_Event;
+  Service.DTService.OnUserOut := DoUserOut_Event;
   Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
   Service.DTService.RootPath := umlCombinePath(C40_RootPath, ClassName);
   Service.DTService.PublicPath := Service.DTService.RootPath;
@@ -602,7 +603,7 @@ begin
   Client.RecvTunnel.SyncOnCompleteBuffer := True;
   Client.QuietMode := C40_QuietMode;
 
-  Client.OnTunnelLink := {$IFDEF FPC}@{$ENDIF FPC}Do_DT_P2PVM_Custom_Client_TunnelLink;
+  Client.OnTunnelLink := Do_DT_P2PVM_Custom_Client_TunnelLink;
   DTVirtualAuthClient := Client.DTClient;
   Client.PhysicsTunnel.OnInterface := Self;
 end;

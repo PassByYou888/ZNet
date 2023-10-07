@@ -219,7 +219,7 @@ Oct 2018 - V8.58 - Angus Delphi 10.3 Rio, updated BDB for 10.1 and later
 {$DEFINE BUILTIN_THROTTLE}
 
 { Next symbol removes a lot of debug logging code, to save space }
-{.$DEFINE NO_DEBUG_LOG}
+{$DEFINE NO_DEBUG_LOG}
 
 
 { Do not change anything below this line !                                   }

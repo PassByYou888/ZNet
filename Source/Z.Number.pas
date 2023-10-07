@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Number;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -19,8 +20,8 @@ type
   TNumberModuleEventPool = class;
   TNumberModulePool = class;
   TNumberModule = class;
-  TNumberModuleHookPoolList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TNumberModuleHookPool>;
-  TNumberModuleEventPoolList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TNumberModuleEventPool>;
+  TNumberModuleHookPoolList = TGenericsList<TNumberModuleHookPool>;
+  TNumberModuleEventPoolList = TGenericsList<TNumberModuleEventPool>;
 
   TNumberModuleHook = procedure(Sender: TNumberModuleHookPool; OLD_: Variant; var New_: Variant) of object;
 
@@ -151,7 +152,7 @@ type
     property DirectOriginValue: Variant read FOriginValue write FOriginValue;
   end;
 
-  TNumberModulePool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC}TGeneric_String_Object_Hash<TNumberModule>;
+  TNumberModulePool_Decl = TGeneric_String_Object_Hash<TNumberModule>;
   TOnNMChange = procedure(Sender: TNumberModulePool; NM_: TNumberModule; OLD_, New_: Variant) of object;
   TOnNMCreateOpRunTime = procedure(Sender: TNumberModulePool; OP_: TOpCustomRunTime) of object;
 
@@ -362,7 +363,7 @@ end;
 procedure TNumberModule.DoRegOpProc;
 begin
   if Owner <> nil then
-      Owner.ExpOpRunTime.RegObjectOpM(Name, '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoProc);
+      Owner.ExpOpRunTime.RegObjectOpM(Name, '', OP_DoProc);
 end;
 
 function TNumberModule.OP_DoProc(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
@@ -634,9 +635,9 @@ begin
   if FExpOpRunTime = nil then
     begin
       FExpOpRunTime := TOpCustomRunTime.CustomCreate(64);
-      FExpOpRunTime.RegObjectOpM('Set', '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoNewNM);
-      FExpOpRunTime.RegObjectOpM('Get', '', {$IFDEF FPC}@{$ENDIF FPC}OP_DoGetNM);
-      FList.ProgressM({$IFDEF FPC}@{$ENDIF FPC}DoRebuildOpRunTime_Progress);
+      FExpOpRunTime.RegObjectOpM('Set', '', OP_DoNewNM);
+      FExpOpRunTime.RegObjectOpM('Get', '', OP_DoGetNM);
+      FList.ProgressM(DoRebuildOpRunTime_Progress);
       if Assigned(OnNMCreateOpRunTime) then
           OnNMCreateOpRunTime(Self, FExpOpRunTime);
     end;
@@ -672,8 +673,8 @@ begin
   source.FList := tmp_FList;
   source.FExpOpRunTime := tmp_FExpOpRunTime;
   // Update Owner
-  FList.ProgressM({$IFDEF FPC}@{$ENDIF FPC}DoSwapInstance_Progress);
-  source.FList.ProgressM({$IFDEF FPC}@{$ENDIF FPC}source.DoSwapInstance_Progress);
+  FList.ProgressM(DoSwapInstance_Progress);
+  source.FList.ProgressM(source.DoSwapInstance_Progress);
 end;
 
 procedure TNumberModulePool.DoNMChange(Sender: TNumberModule; OLD_, New_: Variant);
@@ -730,7 +731,7 @@ end;
 
 procedure TNumberModulePool.DoChangeAll;
 begin
-  FList.ProgressM({$IFDEF FPC}@{$ENDIF FPC}DoChangeAll_Progress);
+  FList.ProgressM(DoChangeAll_Progress);
 end;
 
 procedure TNumberModulePool.LoadFromStream(stream: TCore_Stream);

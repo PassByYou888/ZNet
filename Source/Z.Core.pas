@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Core;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -76,7 +77,7 @@ type
     property ListData: PPointerList read GetList;
   end;
 
-  TCore_ListForObj = specialize TGenericsList<TCore_Object>;
+  TCore_ListForObj = TGenericsList<TCore_Object>;
   TCore_ForObjectList = array of TCore_Object;
   PCore_ForObjectList = ^TCore_ForObjectList;
   {$ELSE FPC}
@@ -154,7 +155,6 @@ type
 {$ENDIF SoftCritical}
   TCritical = class;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TAtomVar<T_> = class
   public type
     PT_ = ^T_;
@@ -181,33 +181,33 @@ type
     property Value: T_ read GetValue write SetValue;
   end;
   // Bool
-  TAtomBoolean = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Boolean>;
+  TAtomBoolean = TAtomVar<Boolean>;
   TAtomBool = TAtomBoolean;
   // number
-  TAtomSmallInt = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<SmallInt>;
-  TAtomShortInt = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<ShortInt>;
-  TAtomInteger = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Integer>;
+  TAtomSmallInt = TAtomVar<SmallInt>;
+  TAtomShortInt = TAtomVar<ShortInt>;
+  TAtomInteger = TAtomVar<Integer>;
   TAtomInt8 = TAtomSmallInt;
   TAtomInt16 = TAtomShortInt;
   TAtomInt32 = TAtomInteger;
   TAtomInt = TAtomInteger;
-  TAtomInt64 = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Int64>;
-  TAtomByte = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Byte>;
-  TAtomWord = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Word>;
-  TAtomCardinal = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Cardinal>;
+  TAtomInt64 = TAtomVar<Int64>;
+  TAtomByte = TAtomVar<Byte>;
+  TAtomWord = TAtomVar<Word>;
+  TAtomCardinal = TAtomVar<Cardinal>;
   TAtomUInt8 = TAtomByte;
   TAtomUInt16 = TAtomWord;
   TAtomUInt32 = TAtomCardinal;
   TAtomDWord = TAtomCardinal;
-  TAtomUInt64 = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<UInt64>;
-  TAtomTimeTick = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<TTimeTick>;
+  TAtomUInt64 = TAtomVar<UInt64>;
+  TAtomTimeTick = TAtomVar<TTimeTick>;
   // float
-  TAtomSingle = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Single>;
+  TAtomSingle = TAtomVar<Single>;
   TAtomFloat = TAtomSingle;
-  TAtomDouble = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Double>;
-  TAtomExtended = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<Extended>;
+  TAtomDouble = TAtomVar<Double>;
+  TAtomExtended = TAtomVar<Extended>;
   // string
-  TAtomString = {$IFDEF FPC}specialize {$ENDIF FPC}TAtomVar<string>;
+  TAtomString = TAtomVar<string>;
 
   TCritical = class
   private
@@ -245,7 +245,7 @@ type
   end;
 {$EndRegion 'Critical'}
 {$Region 'OrderStruct'}
-  {$IFDEF FPC}generic{$ENDIF FPC}
+
   TOrderStruct<T_> = class(TCore_Object)
   public type
     POrderStruct = ^TOrderStruct_;
@@ -275,7 +275,6 @@ type
     property OnFree: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TOrderPtrStruct<T_> = class(TCore_Object)
   public type
     PT_ = ^T_;
@@ -306,7 +305,6 @@ type
     property OnFree: TOnFreeOrderPtrStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TCriticalOrderStruct<T_> = class(TCore_Object)
   public type
     POrderStruct = ^TOrderStruct_;
@@ -339,7 +337,6 @@ type
     property OnFree: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TCriticalOrderPtrStruct<T_> = class(TCore_Object)
   public type
     PT_ = ^T_;
@@ -374,14 +371,14 @@ type
   end;
 {$EndRegion 'OrderStruct'}
 {$REGION 'BigList'}
-  {$IFDEF FPC}generic{$ENDIF FPC}
+
   TBigList<T_> = class(TCore_Object)
   public type
 
     P_ = ^T_;
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
-    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<T_>;
+    T___ = TBigList<T_>;
 
     TQueueStruct = record
       Data: T_;
@@ -440,8 +437,8 @@ type
     end;
 
     TArray_T_ = array of T_;
-    TOrder_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<T_>;
-    TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
+    TOrder_Data_Pool = TOrderStruct<T_>;
+    TRecycle_Pool__ = TOrderStruct<PQueueStruct>;
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
@@ -464,12 +461,14 @@ type
     FNum: NativeInt;
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
+    FOnFree_For_Pair_Tool: TOnStruct_Event;
     FAccept_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
+    function Get_Critical__: TCritical;
   public
-    property Critical__: TCritical read FCritical__;
+    property Critical__: TCritical read Get_Critical__;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
@@ -539,14 +538,12 @@ type
 {$ENDIF DEBUG}
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TCritical_BigList<T_> = class(TCore_Object)
   public type
-
     P_ = ^T_;
     PQueueStruct = ^TQueueStruct;
     PPQueueStruct = ^PQueueStruct;
-    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_BigList<T_>;
+    T___ = TCritical_BigList<T_>;
 
     TQueueStruct = record
       Data: T_;
@@ -605,8 +602,8 @@ type
     end;
 
     TArray_T_ = array of T_;
-    TOrder_Data_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<T_>;
-    TRecycle_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<PQueueStruct>;
+    TOrder_Data_Pool = TOrderStruct<T_>;
+    TRecycle_Pool__ = TOrderStruct<PQueueStruct>;
     TQueueArrayStruct = array [0 .. (MaxInt div SizeOf(Pointer) - 1)] of PQueueStruct;
     PQueueArrayStruct = ^TQueueArrayStruct;
     TOnStruct_Event = procedure(var p: T_) of object;
@@ -629,12 +626,14 @@ type
     FNum: NativeInt;
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
+    FOnFree_For_Pair_Tool: TOnStruct_Event;
     FAccept_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
+    function Get_Critical__: TCritical;
   public
-    property Critical__: TCritical read FCritical__;
+    property Critical__: TCritical read Get_Critical__;
     constructor Create;
     destructor Destroy; override;
     procedure DoFree(var Data: T_); virtual;
@@ -707,53 +706,61 @@ type
 {$ENDIF DEBUG}
   end;
 
-{$IFDEF FPC}
-  generic TC_BigList<T_> = class(specialize TCritical_BigList<T_>);
-{$ELSE FPC}
   TC_BigList<T_> = class(TCritical_BigList<T_>);
-{$ENDIF FPC}
 
-{$IFDEF FPC}
-  generic TBig_Object_List<T_: TCore_Object> = class(specialize TBigList<T_>)
-{$ELSE FPC}
   TBig_Object_List<T_: class> = class(TBigList<T_>)
-{$ENDIF FPC}
   public
     AutoFreeObject: Boolean;
     constructor Create(AutoFreeObject_: Boolean);
     procedure DoFree(var Data: T_); override;
   end;
 
-{$IFDEF FPC}
-  generic TCritical_Big_Object_List<T_: TCore_Object> = class(specialize TCritical_BigList<T_>)
-{$ELSE FPC}
   TCritical_Big_Object_List<T_: class> = class(TCritical_BigList<T_>)
-{$ENDIF FPC}
   public
     AutoFreeObject: Boolean;
     constructor Create(AutoFreeObject_: Boolean);
     procedure DoFree(var Data: T_); override;
   end;
 
-{$IFDEF FPC}
-  generic TC_Big_Object_List<T_: TCore_Object> = class(specialize TCritical_Big_Object_List<T_>);
-{$ELSE FPC}
   TC_Big_Object_List<T_: class> = class(TCritical_Big_Object_List<T_>);
-{$ENDIF FPC}
 
 {$ENDREGION 'BigList'}
-{$REGION 'Hash-Pair'}
-  {$IFDEF FPC}generic{$ENDIF FPC}
-  TPair_Pool<T1_, T2_> = class(TCore_Object)
+{$REGION 'Pair'}
+  TPair2<T1, T2> = packed record
+    Primary: T1;
+    Second: T2;
+    class function Init(Primary_: T1; Second_: T2): TPair2<T1, T2>; static;
+  end;
+
+  TPair3<T1, T2, T3> = packed record
+    Primary: T1;
+    Second: T2;
+    Third: T3;
+    class function Init(Primary_: T1; Second_: T2; Third_: T3): TPair3<T1, T2, T3>; static;
+  end;
+
+  TPair4<T1, T2, T3, T4> = packed record
+    Primary: T1;
+    Second: T2;
+    Third: T3;
+    Fourth: T4;
+    class function Init(Primary_: T1; Second_: T2; Third_: T3; Fourth_: T4): TPair4<T1, T2, T3, T4>; static;
+  end;
+
+  TPair5<T1, T2, T3, T4, T5> = packed record
+    Primary: T1;
+    Second: T2;
+    Third: T3;
+    Fourth: T4;
+    Five: T5;
+    class function Init(Primary_: T1; Second_: T2; Third_: T3; Fourth_: T4; Five_: T5): TPair5<T1, T2, T3, T4, T5>; static;
+  end;
+
+  TPair2_Tool<T1_, T2_> = class(TCore_Object)
   public type
-
-    TPair = record
-      Primary: T1_;
-      Second: T2_;
-    end;
-
+    TPair = TPair2<T1_, T2_>;
     PPair = ^TPair;
-    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    TPair_BigList__ = TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
   public
     List: TPair_BigList__;
@@ -765,18 +772,11 @@ type
     function Add_Pair(Primary: T1_; Second: T2_): PPair__;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
-  TPair_Third_Pool<T1_, T2_, T3_> = class(TCore_Object)
+  TPair3_Tool<T1_, T2_, T3_> = class(TCore_Object)
   public type
-
-    TPair = record
-      Primary: T1_;
-      Second: T2_;
-      Third: T3_;
-    end;
-
+    TPair = TPair3<T1_, T2_, T3_>;
     PPair = ^TPair;
-    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    TPair_BigList__ = TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
   public
     List: TPair_BigList__;
@@ -788,19 +788,11 @@ type
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_): PPair__;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
-  TPair_Fourth_Pool<T1_, T2_, T3_, T4_> = class(TCore_Object)
+  TPair4_Tool<T1_, T2_, T3_, T4_> = class(TCore_Object)
   public type
-
-    TPair = record
-      Primary: T1_;
-      Second: T2_;
-      Third: T3_;
-      Fourth: T4_;
-    end;
-
+    TPair = TPair4<T1_, T2_, T3_, T4_>;
     PPair = ^TPair;
-    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    TPair_BigList__ = TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
   public
     List: TPair_BigList__;
@@ -812,20 +804,11 @@ type
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_): PPair__;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
-  TPair_Five_Pool<T1_, T2_, T3_, T4_, T5_> = class(TCore_Object)
+  TPair5_Tool<T1_, T2_, T3_, T4_, T5_> = class(TCore_Object)
   public type
-
-    TPair = record
-      Primary: T1_;
-      Second: T2_;
-      Third: T3_;
-      Fourth: T4_;
-      Five: T5_;
-    end;
-
+    TPair = TPair5<T1_, T2_, T3_, T4_, T5_>;
     PPair = ^TPair;
-    TPair_BigList__ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPair>;
+    TPair_BigList__ = TBigList<TPair>;
     PPair__ = TPair_BigList__.PQueueStruct;
   public
     List: TPair_BigList__;
@@ -836,39 +819,56 @@ type
     procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
   end;
-
-  {$IFDEF FPC}generic{$ENDIF FPC}
+{$ENDREGION 'Pair'}
+{$Region 'Hash-Tool'}
   TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
   public type
     PKey_ = ^TKey_;
-    PValue = ^TValue_;
-    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<TKey_, TValue_>;
-    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Fourth_Pool<TKey_, TValue_, Pointer, THash>;
+    PValue_ = ^TValue_;
+    PKey = PKey_;
+    PValue = PValue_;
+    T___ = TBig_Hash_Pair_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = TPair4_Tool<TKey_, TValue_, Pointer, THash>;
     PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
     TPair = TValue_Pair_Pool__.TPair;
-    TKey_Hash_Buffer = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TValue_Pair_Pool__>;
-    TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TKey_Hash_Buffer = TGenericsList<TValue_Pair_Pool__>;
+    TPool___ = TBigList<PPair_Pool_Value__>;
     TPool_Queue_Ptr___ = TPool___.PQueueStruct;
     TRepeat___ = TPool___.TRepeat___;
     TInvert_Repeat___ = TPool___.TInvert_Repeat___;
     TArray_Key = array of TKey_;
-    TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
+    TOrder_Key = TOrderStruct<TKey_>;
     TArray_Value = array of TValue_;
-    TOrder_Value = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TValue_>;
+    TOrder_Value = TOrderStruct<TValue_>;
+    // event
     TOn_Event = procedure(var Key: TKey_; var Value: TValue_) of object;
+    TOn_Get_Key = procedure(const Key_: PKey_; var Hash:THash) of object;
+    TOn_Compare_Key = procedure(const Key_1, Key_2: PKey_; var IsSame:Boolean) of object;
+    TOn_Compare_Value = procedure(const Value_1, Value_2: PValue_; var IsSame:Boolean) of object;
+    TOn_Sort_Key_C = function(var L, R: TKey_): Integer;
+    TOn_Sort_Key_M = function(var L, R: TKey_): Integer of object;
+    TOn_Sort_Value_C = function(var L, R: TValue_): Integer;
+    TOn_Sort_Value_M = function(var L, R: TValue_): Integer of object;
     TBig_Hash_Pool_For_C = procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
     TBig_Hash_Pool_For_M = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TBig_Hash_Pool_For_P = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) is nested;
+    TOn_Sort_Key_P = function(var L, R: TKey_): Integer is nested;
+    TOn_Sort_Value_P = function(var L, R: TValue_): Integer is nested;
 {$ELSE FPC}
     TBig_Hash_Pool_For_P = reference to procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
+    TOn_Sort_Key_P = reference to function(var L, R: TKey_): Integer;
+    TOn_Sort_Value_P = reference to function(var L, R: TValue_): Integer;
 {$ENDIF FPC}
   private
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
-    FNull_Value: TValue_;
+    FNULL_VALUE: TValue_;
     FOnAdd: TOn_Event;
     FOnFree: TOn_Event;
+    FOn_Get_Key: TOn_Get_Key;
+    FOn_Compare_Key: TOn_Compare_Key;
+    FOn_Compare_Value: TOn_Compare_Value;
     function Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
     procedure Free_Value_List(Key_Hash_: THash);
     procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
@@ -876,11 +876,14 @@ type
     procedure Internal_Do_Free(var Data: TPair);
   public
     class function Null_Key: TKey_;
-    class function Null_Value: TValue_;
+    class function NULL_VALUE: TValue_;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
-    constructor Create(const HashSize_: integer; const Null_Value_: TValue_); overload;
+    property On_Get_Key: TOn_Get_Key read FOn_Get_Key write FOn_Get_Key;
+    property On_Compare_Key: TOn_Compare_Key read FOn_Compare_Key write FOn_Compare_Key;
+    property On_Compare_Value: TOn_Compare_Value read FOn_Compare_Value write FOn_Compare_Value;
+    constructor Create(const HashSize_: integer; const NULL_VALUE_: TValue_); overload;
     constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
@@ -903,8 +906,8 @@ type
     property Count: NativeInt read Num;
     function GetSum: NativeInt;
     property Sum: NativeInt read GetSum;
-    function Get_Value_Ptr(const Key: TKey_): PValue; overload;
-    function Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue; overload;
+    function Get_Value_Ptr(const Key: TKey_): PValue_; overload;
+    function Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue_; overload;
     function Get_Default_Value(const Key: TKey_; const Default_: TValue_): TValue_;
     procedure Set_Default_Value(const Key: TKey_; const Default_: TValue_);
     function Repeat_(): TRepeat___; overload;
@@ -916,6 +919,12 @@ type
     procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
     procedure Push_To_Recycle_Pool(p: PPair_Pool_Value__);
     procedure Free_Recycle_Pool;
+    procedure Sort_Key_C(OnSort: TOn_Sort_Key_C);
+    procedure Sort_Key_M(OnSort: TOn_Sort_Key_M);
+    procedure Sort_Key_P(OnSort: TOn_Sort_Key_P);
+    procedure Sort_Value_C(OnSort: TOn_Sort_Value_C);
+    procedure Sort_Value_M(OnSort: TOn_Sort_Value_M);
+    procedure Sort_Value_P(OnSort: TOn_Sort_Value_P);
     function ToPool(): TPool___;
     function ToArray_Key(): TArray_Key;
     function ToOrder_Key(): TOrder_Key;
@@ -923,39 +932,55 @@ type
     function ToOrder_Value(): TOrder_Value;
   end;
 
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TCritical_Big_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
   public type
     PKey_ = ^TKey_;
-    PValue = ^TValue_;
-    T___ = {$IFDEF FPC}specialize {$ENDIF FPC} TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>;
-    TValue_Pair_Pool__ = {$IFDEF FPC}specialize {$ENDIF FPC} TPair_Fourth_Pool<TKey_, TValue_, Pointer, THash>;
+    PValue_ = ^TValue_;
+    PKey = PKey_;
+    PValue = PValue_;
+    T___ = TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>;
+    TValue_Pair_Pool__ = TPair4_Tool<TKey_, TValue_, Pointer, THash>;
     PPair_Pool_Value__ = TValue_Pair_Pool__.PPair__;
     TPair = TValue_Pair_Pool__.TPair;
-    TKey_Hash_Buffer = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TValue_Pair_Pool__>;
-    TPool___ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PPair_Pool_Value__>;
+    TKey_Hash_Buffer = TGenericsList<TValue_Pair_Pool__>;
+    TPool___ = TBigList<PPair_Pool_Value__>;
     TPool_Queue_Ptr___ = TPool___.PQueueStruct;
     TRepeat___ = TPool___.TRepeat___;
     TInvert_Repeat___ = TPool___.TInvert_Repeat___;
     TArray_Key = array of TKey_;
-    TOrder_Key = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TKey_>;
+    TOrder_Key = TOrderStruct<TKey_>;
     TArray_Value = array of TValue_;
-    TOrder_Value = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderStruct<TValue_>;
+    TOrder_Value = TOrderStruct<TValue_>;
+    // event
     TOn_Event = procedure(var Key: TKey_; var Value: TValue_) of object;
+    TOn_Get_Key = procedure(const Key_: PKey_; var Hash:THash) of object;
+    TOn_Compare_Key = procedure(const Key_1, Key_2: PKey_; var IsSame:Boolean) of object;
+    TOn_Compare_Value = procedure(const Value_1, Value_2: PValue_; var IsSame:Boolean) of object;
+    TOn_Sort_Key_C = function(var L, R: TKey_): Integer;
+    TOn_Sort_Key_M = function(var L, R: TKey_): Integer of object;
+    TOn_Sort_Value_C = function(var L, R: TValue_): Integer;
+    TOn_Sort_Value_M = function(var L, R: TValue_): Integer of object;
     TBig_Hash_Pool_For_C = procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
     TBig_Hash_Pool_For_M = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) of object;
 {$IFDEF FPC}
     TBig_Hash_Pool_For_P = procedure(p: PPair_Pool_Value__; var Aborted: Boolean) is nested;
+    TOn_Sort_Key_P = function(var L, R: TKey_): Integer is nested;
+    TOn_Sort_Value_P = function(var L, R: TValue_): Integer is nested;
 {$ELSE FPC}
     TBig_Hash_Pool_For_P = reference to procedure(p: PPair_Pool_Value__; var Aborted: Boolean);
+    TOn_Sort_Key_P = reference to function(var L, R: TKey_): Integer;
+    TOn_Sort_Value_P = reference to function(var L, R: TValue_): Integer;
 {$ENDIF FPC}
   private
     FCritical__: TCritical;
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
-    FNull_Value: TValue_;
+    FNULL_VALUE: TValue_;
     FOnAdd: TOn_Event;
     FOnFree: TOn_Event;
+    FOn_Get_Key: TOn_Get_Key;
+    FOn_Compare_Key: TOn_Compare_Key;
+    FOn_Compare_Value: TOn_Compare_Value;
     function Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
     procedure Free_Value_List(Key_Hash_: THash);
     procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
@@ -963,12 +988,15 @@ type
     procedure Internal_Do_Free(var Data: TPair);
   public
     class function Null_Key: TKey_;
-    class function Null_Value: TValue_;
+    class function NULL_VALUE: TValue_;
     property Critical__: TCritical read FCritical__;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
-    constructor Create(const HashSize_: integer; const Null_Value_: TValue_); overload;
+    property On_Get_Key: TOn_Get_Key read FOn_Get_Key write FOn_Get_Key;
+    property On_Compare_Key: TOn_Compare_Key read FOn_Compare_Key write FOn_Compare_Key;
+    property On_Compare_Value: TOn_Compare_Value read FOn_Compare_Value write FOn_Compare_Value;
+    constructor Create(const HashSize_: integer; const NULL_VALUE_: TValue_); overload;
     constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
@@ -991,8 +1019,8 @@ type
     property Count: NativeInt read Num;
     function GetSum: NativeInt;
     property Sum: NativeInt read GetSum;
-    function Get_Value_Ptr(const Key: TKey_): PValue; overload;
-    function Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue; overload;
+    function Get_Value_Ptr(const Key: TKey_): PValue_; overload;
+    function Get_Value_Ptr(const Key: TKey_; const Default_: TValue_): PValue_; overload;
     function Get_Default_Value(const Key: TKey_; const Default_: TValue_): TValue_;
     procedure Set_Default_Value(const Key: TKey_; const Default_: TValue_);
     function Repeat_(): TRepeat___; overload;
@@ -1004,6 +1032,12 @@ type
     procedure For_P(OnFor: TBig_Hash_Pool_For_P); overload;
     procedure Push_To_Recycle_Pool(p: PPair_Pool_Value__);
     procedure Free_Recycle_Pool;
+    procedure Sort_Key_C(OnSort: TOn_Sort_Key_C);
+    procedure Sort_Key_M(OnSort: TOn_Sort_Key_M);
+    procedure Sort_Key_P(OnSort: TOn_Sort_Key_P);
+    procedure Sort_Value_C(OnSort: TOn_Sort_Value_C);
+    procedure Sort_Value_M(OnSort: TOn_Sort_Value_M);
+    procedure Sort_Value_P(OnSort: TOn_Sort_Value_P);
     function ToPool(): TPool___;
     function ToArray_Key(): TArray_Key;
     function ToOrder_Key(): TOrder_Key;
@@ -1011,7 +1045,21 @@ type
     function ToOrder_Value(): TOrder_Value;
   end;
 
-{$ENDREGION 'Hash-Pair'}
+  TBig_Hash_Object_Pool<TKey_, TValue_: class> = class(TBig_Hash_Pair_Pool<TKey_, TValue_>)
+  public
+    AutoFree: Boolean;
+    constructor Create(const HashSize_: integer; const AutoFree_: Boolean);
+    procedure DoFree(var Key: TKey_; var Value: TValue_); override;
+  end;
+
+  TCritical_Big_Hash_Object_Pool<TKey_, TValue_: class> = class(TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>)
+  public
+    AutoFree: Boolean;
+    constructor Create(const HashSize_: integer; const AutoFree_: Boolean);
+    procedure DoFree(var Key: TKey_; var Value: TValue_); override;
+  end;
+
+{$EndRegion 'Hash-Tool'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -1055,7 +1103,7 @@ type
       procedure Init;
     end;
 
-    TThread_Post_Data_Order_Struct__ = {$IFDEF FPC}specialize {$ENDIF FPC} TOrderPtrStruct<TThread_Post_Data>;
+    TThread_Post_Data_Order_Struct__ = TOrderPtrStruct<TThread_Post_Data>;
   protected
     FCritical: TCritical;
     FThreadID: TThreadID;
@@ -1120,7 +1168,7 @@ type
   end;
 
 {$EndRegion 'ThreadPost'}
-{$Region 'ComputeThread'}
+{$Region 'Compute'}
   TCompute = class;
 
   TRun_Thread_C = procedure(ThSender: TCompute);
@@ -1134,7 +1182,7 @@ type
   TRun_Thread_P = reference to procedure(ThSender: TCompute);
   TRun_Thread_P_NP = reference to procedure();
   {$ENDIF FPC}
-  TCoreCompute_Thread_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TCompute>;
+  TCoreCompute_Thread_Pool = TBigList<TCompute>;
 
   TCompute = class(TCore_Thread)
   private
@@ -1165,7 +1213,8 @@ type
 
     constructor Create;
     destructor Destroy; override;
-    class procedure Set_Thread_Info(Thread_Info_: string);
+    class procedure Set_Thread_Info(Thread_Info_: string); overload;
+    class procedure Set_Thread_Info(const Fmt: string; const Args: array of const); overload;
     class function Get_Core_Thread_Pool: TCoreCompute_Thread_Pool;
     class function Get_Core_Thread_Dispatch_Critical: TCritical;
     class function Wait_Thread(): NativeInt;
@@ -1261,7 +1310,7 @@ type
 
   // TCompute alias
   TComputeThread = TCompute;
-{$EndRegion 'ComputeThread'}
+{$EndRegion 'Compute'}
 {$Region 'MT19937Random'}
   TMT19937Random = class(TCore_Object)
   private
@@ -1601,6 +1650,7 @@ procedure Swap(var v1, v2: NativeUInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLIN
 procedure Swap(var v1, v2: string); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure Swap(var v1, v2: Single); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure Swap(var v1, v2: Double); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
+procedure Swap(var v1, v2: TDateTime); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure Swap(var v1, v2: Pointer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure SwapVariant(var v1, v2: Variant);
 function Swap(const v: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
@@ -2082,7 +2132,6 @@ end;
 
 {$ELSE}
 
-
 function TCore_InterfacedObject._AddRef: Integer;
 begin
   Result := 1;
@@ -2310,6 +2359,7 @@ begin
       {$ELSEIF defined(VER340)}'Delphi 10.4'
       {$ELSEIF defined(VER350)}'Delphi 11'
       {$ELSEIF defined(VER360)}'Delphi 11.x or 12 last...'
+      {$ELSEIF defined(VER370)}'Delphi 12 or 13 last...'
       {$ELSE}'Unknow Delphi Compiler'
       {$IFEND}
     {$ENDIF CONDITIONALEXPRESSIONS}
@@ -2320,6 +2370,7 @@ end;
 {$I Z.Core.OrderData.inc}
 {$I Z.Core.BigList.inc}
 {$I Z.Core.Hash_Pair.inc}
+{$I Z.Core.Hash_Tool.inc}
 
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);

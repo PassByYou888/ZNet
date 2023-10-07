@@ -10,6 +10,7 @@ unit Z.Net.Server.Indy;
   update history
 *)
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I ..\Z.Define.inc}
 
 interface

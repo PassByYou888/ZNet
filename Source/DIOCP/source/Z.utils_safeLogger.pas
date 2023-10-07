@@ -335,7 +335,7 @@ begin
 {$IFDEF MSWINDOWS}
   Result := GetTickCount;
 {$ELSE}
-  Result := TThread.GetTickCount;;
+  Result := TThread.GetTickCount;
 {$ENDIF}
 end;
 

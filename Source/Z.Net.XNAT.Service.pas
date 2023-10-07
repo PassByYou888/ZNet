@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.XNAT.Service;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -121,7 +122,7 @@ type
     destructor Destroy; override;
   end;
 
-  TXServiceMappingList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TXServiceListen>;
+  TXServiceMappingList = TGenericsList<TXServiceListen>;
 
   TXNATService = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
   private
@@ -270,19 +271,19 @@ begin
   RecvTunnel.PrintParams[C_Workload] := False;
 
   if not RecvTunnel.ExistsRegistedCmd(C_RequestListen) then
-      RecvTunnel.RegisterStream(C_RequestListen).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_RequestListen;
+      RecvTunnel.RegisterStream(C_RequestListen).OnExecute := cmd_RequestListen;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Workload) then
-      RecvTunnel.RegisterDirectStream(C_Workload).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_workload;
+      RecvTunnel.RegisterDirectStream(C_Workload).OnExecute := cmd_workload;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Connect_reponse) then
-      RecvTunnel.RegisterDirectStream(C_Connect_reponse).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_connect_reponse;
+      RecvTunnel.RegisterDirectStream(C_Connect_reponse).OnExecute := cmd_connect_reponse;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Disconnect_reponse) then
-      RecvTunnel.RegisterDirectStream(C_Disconnect_reponse).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_disconnect_reponse;
+      RecvTunnel.RegisterDirectStream(C_Disconnect_reponse).OnExecute := cmd_disconnect_reponse;
 
   if not RecvTunnel.ExistsRegistedCmd(C_Data) then
-      RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_data;
+      RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
 
   { build send tunnel }
   if SendTunnel = nil then
@@ -698,7 +699,7 @@ end;
 procedure TPhysicsEngine_Special.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      Owner.BuildP2PAuthTokenM({$IFDEF FPC}@{$ENDIF FPC}PhysicsVMBuildAuthToken_Result)
+      Owner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
   else
       XNAT.WaitAsyncConnecting := False;
 end;
@@ -724,7 +725,7 @@ begin
     ref wiki
     https://en.wikipedia.org/wiki/SHA-3
   }
-  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), {$IFDEF FPC}@{$ENDIF FPC}PhysicsOpenVM_Result)
+  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), PhysicsOpenVM_Result)
 end;
 
 procedure TPhysicsEngine_Special.PhysicsOpenVM_Result(const cState: Boolean);
@@ -1022,7 +1023,7 @@ begin
 
   { regsiter protocol }
   if not PhysicsEngine.ExistsRegistedCmd(C_IPV6Listen) then
-      PhysicsEngine.RegisterStream(C_IPV6Listen).OnExecute := {$IFDEF FPC}@{$ENDIF FPC}IPV6Listen;
+      PhysicsEngine.RegisterStream(C_IPV6Listen).OnExecute := IPV6Listen;
 
   if PhysicsEngine is TZNet_Server then
     begin
@@ -1046,7 +1047,7 @@ begin
         begin
           WaitAsyncConnecting := True;
           WaitAsyncConnecting_BeginTime := GetTimeTick;
-          TZNet_Client(PhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), {$IFDEF FPC}@{$ENDIF FPC}PhysicsConnect_Result_BuildP2PToken);
+          TZNet_Client(PhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), PhysicsConnect_Result_BuildP2PToken);
         end;
     end;
 end;

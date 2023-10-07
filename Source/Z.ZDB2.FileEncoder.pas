@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.ZDB2.FileEncoder;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -16,7 +17,7 @@ uses Z.Core,
   Z.HashList.Templet, Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
 
 type
-  TZDB2_File_HndList = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<Integer>;
+  TZDB2_File_HndList = TGenericsList<Integer>;
 
   TZDB2_FI = class
   public
@@ -34,8 +35,8 @@ type
     procedure LoadFromStream(stream: TMS64);
   end;
 
-  TZDB2_FI_Pool_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TZDB2_FI>;
-  TZDB2_FI_Hash_Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TPascalString_Big_Hash_Pair_Pool<TZDB2_FI>;
+  TZDB2_FI_Pool_Decl = TBigList<TZDB2_FI>;
+  TZDB2_FI_Hash_Decl = TPascalString_Big_Hash_Pair_Pool<TZDB2_FI>;
 
   TZDB2_FI_Hash = class(TZDB2_FI_Hash_Decl)
   public
@@ -429,7 +430,7 @@ begin
   CompleteSize_ := 0;
 
 {$IFDEF FPC}
-  TCompute.RunP_NP(@FPC_ThRun_);
+  TCompute.RunP_NP(FPC_ThRun_);
 {$ELSE FPC}
   TCompute.RunP_NP(procedure
     var
@@ -818,7 +819,7 @@ begin
   Activted := TAtomBool.Create(True);
 
 {$IFDEF FPC}
-  TCompute.RunP_NP(@FPC_ThRun_);
+  TCompute.RunP_NP(FPC_ThRun_);
 {$ELSE FPC}
   TCompute.RunP_NP(procedure
     var

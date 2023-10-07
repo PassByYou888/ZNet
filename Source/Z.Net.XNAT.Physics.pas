@@ -3,18 +3,16 @@
 { ****************************************************************************** }
 unit Z.Net.XNAT.Physics;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
 uses Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Net.PhysicsIO;
 
 type
-  TXPhysicsServer = class(TPhysicsServer)
-  end;
-
-  TXPhysicsClient = class(TPhysicsClient)
-  end;
+  TXPhysicsServer = TPhysicsServer;
+  TXPhysicsClient = TPhysicsClient;
 
   TXNAT_PHYSICS_MODEL = (XNAT_PHYSICS_SERVICE, XNAT_PHYSICS_CLIENT);
 

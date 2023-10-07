@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.FragmentBuffer;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -22,7 +23,7 @@ type
   TPart_Data = class;
   TFragment_Space_Tool = class;
 
-  TPart_Buffer_Tool_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<TPart_Data>;
+  TPart_Buffer_Tool_ = TBigList<TPart_Data>;
 
   TPart_Data = class
   public
@@ -52,7 +53,7 @@ type
 
   TFragment_Space_Tool = class
   private type
-    TSpace_Span_Tool = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Hash_Pair_Pool<Int64, Boolean>;
+    TSpace_Span_Tool = TBig_Hash_Pair_Pool<Int64, Boolean>;
 
     TFragment_Space_Stream_Head = packed record
       Edition: Byte;
@@ -71,8 +72,8 @@ type
     FLoad_Error: Boolean;
     FOn_Get_Fragment: TOn_Get_Fragment;
     procedure DoFree(var Data: TPart_Data);
-    procedure Update_Space_Span(bPos, ePos: Int64; Is_Cache_: Boolean);
-    function In_Space_Span(bPos, ePos: Int64): Boolean;
+    procedure Update_Space_Span(bPos, ePos: Int64; Is_Cache_: Boolean); // update hash span
+    function In_Space_Span(bPos, ePos: Int64): Boolean; // fast check hash span
     function IsOverlap(b, e: Int64): Boolean;
     function Found_Overlap(bPos, Size: Int64): TPart_Buffer_Tool;
     function Process_Overlap_Buffer(bPos: Int64; p: Pointer; Size: Int64): Boolean;
@@ -111,7 +112,7 @@ type
     class procedure Test();
   end;
 
-  TFragment_Space_Tool_History_ = {$IFDEF FPC}specialize {$ENDIF FPC} TBig_Object_List<TFragment_Space_Tool>;
+  TFragment_Space_Tool_History_ = TBig_Object_List<TFragment_Space_Tool>;
 
   TFragment_Space_Tool_History = class(TFragment_Space_Tool_History_)
   private
@@ -228,7 +229,7 @@ end;
 
 procedure TPart_Buffer_Tool.Sort;
 begin
-  Sort_M({$IFDEF FPC}@{$ENDIF FPC}Do_Sort_bPos);
+  Sort_M(Do_Sort_bPos);
 end;
 
 procedure TPart_Buffer_Tool.Extract_To_Mem(Memory: TMem64; Mem_Pos: Int64);
@@ -401,7 +402,7 @@ begin
   FSpace_Span_Tool := TSpace_Span_Tool.Create($FFFF, False);
   FSpace_Span := 1024 * 1024;
   FBuffer := TPart_Buffer_Tool.Create(self);
-  FBuffer.OnFree := {$IFDEF FPC}@{$ENDIF FPC}DoFree;
+  FBuffer.OnFree := DoFree;
   FRead_Buffer_Cache := False;
   FMin_Pos := 0;
   FMax_Pos := 0;
@@ -659,7 +660,7 @@ begin
   inherited Create;
   tool := TFragment_Space_Tool.Create;
   tool.Space_Span := 10;
-  tool.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
+  tool.On_Get_Fragment := Do_Get_Fragment;
   mirror := TMem64.Create;
 end;
 
@@ -761,7 +762,7 @@ end;
 
 procedure TFragment_Space_Tool_History.Sort;
 begin
-  Sort_M({$IFDEF FPC}@{$ENDIF FPC}do_sort);
+  Sort_M(do_sort);
 end;
 
 procedure TSafe_Flush_Stream.Do_Get_Fragment(Sender: TFragment_Space_Tool; Position_: Int64; buff_: Pointer; Size_: Int64; var successed: Boolean);
@@ -936,7 +937,7 @@ begin
 
   FFragment_Space := TFragment_Space_Tool.Create;
   FFragment_Space.Read_Buffer_Cache := True;
-  FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
+  FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
   FFragment_Space_Space_Span := FFragment_Space.FSpace_Span;
   FFragment_Space_Read_Buffer_Cache := True;
 
@@ -993,7 +994,7 @@ begin
       FFragment_Space := TFragment_Space_Tool.Create;
       FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
       FFragment_Space.Space_Span := FFragment_Space_Space_Span;
-      FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
+      FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
       exit;
     end;
 
@@ -1025,7 +1026,7 @@ begin
     FFragment_Space := TFragment_Space_Tool.Create;
     FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
     FFragment_Space.Space_Span := FFragment_Space_Space_Span;
-    FFragment_Space.On_Get_Fragment := {$IFDEF FPC}@{$ENDIF FPC}Do_Get_Fragment;
+    FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
 
     // check and remove history
     if FHistory.Num > 0 then

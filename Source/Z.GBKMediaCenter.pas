@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.GBKMediaCenter;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -601,7 +602,7 @@ initialization
 
 GBKMediaInited := TAtomBool.Create(False);
 GBKProgressInfo := TAtomString.Create('');
-TCompute.RunC({$IFDEF FPC}@{$ENDIF FPC}InitGBKMediaThread);
+TCompute.RunC(InitGBKMediaThread);
 
 finalization
 

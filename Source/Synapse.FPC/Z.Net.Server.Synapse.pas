@@ -3,11 +3,11 @@
 { ****************************************************************************** }
 (*
   Synapse Server的最大连接被限制到100
-  update history
 *)
 
 unit Z.Net.Server.Synapse;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I ..\Z.Define.inc}
 
 interface
@@ -20,12 +20,18 @@ type
   TZNet_Server_Synapse = class;
   TSynapseSockTh = class;
 
+  // 带锁队列容器,装待发数据
+  TSynapseClient_Send_Buffer_Queue = class(TCritical_Big_Object_List<TMem64>)
+  public
+    constructor Create;
+  end;
+
   TSynapseServer_PeerIO = class(TPeerIO)
   protected
     SockTh: TSynapseSockTh;
     LastPeerIP: SystemString;
-    SendBuffQueue: TCore_ListForObj;
-    CurrentBuff: TMS64;
+    SendBuffQueue: TSynapseClient_Send_Buffer_Queue;
+    CurrentBuff: TMem64;
   public
     procedure CreateAfter; override;
     destructor Destroy; override;
@@ -57,7 +63,7 @@ type
     Activted: Boolean;
     IO: TSynapseServer_PeerIO;
     Sock: TTCPBlockSocket;
-    CurrentSendBuff: TMS64;
+    CurrentSendBuff: TMem64;
     Recv_Buff: Pointer;
     Recv_Siz: Integer;
     procedure Sync_PickBuff;
@@ -88,13 +94,18 @@ type
 
 implementation
 
+constructor TSynapseClient_Send_Buffer_Queue.Create;
+begin
+  inherited Create(True);
+end;
+
 procedure TSynapseServer_PeerIO.CreateAfter;
 begin
   inherited CreateAfter;
   SockTh := nil;
   LastPeerIP := '';
-  SendBuffQueue := TCore_ListForObj.Create;
-  CurrentBuff := TMS64.Create;
+  SendBuffQueue := TSynapseClient_Send_Buffer_Queue.Create;
+  CurrentBuff := TMem64.CustomCreate(8192);
 end;
 
 destructor TSynapseServer_PeerIO.Destroy;
@@ -106,9 +117,6 @@ begin
       SockTh.IO := nil;
       SockTh.Activted := False;
     end;
-
-  for i := 0 to SendBuffQueue.Count - 1 do
-      DisposeObject(SendBuffQueue[i]);
 
   DisposeObject(SendBuffQueue);
 
@@ -154,7 +162,7 @@ begin
   if CurrentBuff.Size > 0 then
     begin
       SendBuffQueue.Add(CurrentBuff);
-      CurrentBuff := TMS64.Create;
+      CurrentBuff := TMem64.CustomCreate(8192);
     end;
 end;
 
@@ -178,7 +186,7 @@ end;
 
 function TSynapseServer_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
-  Result := (SendBuffQueue.Count = 0) and (SockTh <> nil) and (SockTh.CurrentSendBuff = nil);
+  Result := (SendBuffQueue.Num <= 0) and (SockTh <> nil) and (SockTh.CurrentSendBuff = nil);
 end;
 
 procedure TSynapseServer_PeerIO.Progress;
@@ -216,7 +224,7 @@ begin
       begin
         try
           if LSock.CanRead(10) then
-              TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_CreateIO);
+              TCompute.SyncM(Sync_CreateIO);
         except
             Listen := False;
         end;
@@ -229,10 +237,10 @@ end;
 
 procedure TSynapseSockTh.Sync_PickBuff;
 begin
-  if (IO.SendBuffQueue.Count > 0) and (IO <> nil) then
+  if (IO.SendBuffQueue.Num > 0) and (IO <> nil) then
     begin
-      CurrentSendBuff := TMS64(IO.SendBuffQueue[0]);
-      IO.SendBuffQueue.Delete(0);
+      CurrentSendBuff := IO.SendBuffQueue[0].Swap_To_New_Instance;
+      IO.SendBuffQueue.Next;
     end;
 end;
 
@@ -260,10 +268,10 @@ begin
   while (Activted) and (IO <> nil) do
     begin
       try
-        while Activted and (IO.SendBuffQueue.Count > 0) do
+        while Activted and (IO.SendBuffQueue.Num > 0) do
           begin
             CurrentSendBuff := nil;
-            TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_PickBuff);
+            TCompute.SyncM(Sync_PickBuff);
 
             if CurrentSendBuff <> nil then
               begin
@@ -288,7 +296,7 @@ begin
       end;
     end;
   System.FreeMemory(Recv_Buff);
-  TCompute.SyncM({$IFDEF FPC}@{$ENDIF FPC}Sync_CloseIO);
+  TCompute.SyncM(Sync_CloseIO);
 end;
 
 procedure TZNet_Server_Synapse.All_Disconnect(PeerClient: TPeerIO);
@@ -351,7 +359,7 @@ end;
 
 procedure TZNet_Server_Synapse.CloseAll;
 begin
-  ProgressPeerIOM({$IFDEF FPC}@{$ENDIF FPC}All_Disconnect);
+  ProgressPeerIOM(All_Disconnect);
 end;
 
 function TZNet_Server_Synapse.WaitSendConsoleCmd(p_io: TPeerIO;

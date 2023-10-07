@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Expression;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -57,7 +58,7 @@ type
     nttSingle, nttDouble, nttCurrency,
     nttUnknow);
 
-  TExpressionData_Pool = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<PExpressionListData>;
+  TExpressionData_Pool = TGenericsList<PExpressionListData>;
 
   TSymbolExpression = class sealed(TCore_Object)
   protected
@@ -2950,7 +2951,7 @@ begin
       exp_const_vl.VL := const_vl;
 
       Result := NULL;
-      sym := ParseTextExpressionAsSymbol(Special_ASCII_, TextStyle, '', ExpressionText, {$IFDEF FPC}@{$ENDIF FPC}exp_const_vl.GetValue, opRT);
+      sym := ParseTextExpressionAsSymbol(Special_ASCII_, TextStyle, '', ExpressionText, exp_const_vl.GetValue, opRT);
 
       if sym <> nil then
         begin

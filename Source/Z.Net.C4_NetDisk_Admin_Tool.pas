@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.C4_NetDisk_Admin_Tool;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -118,7 +119,7 @@ type
     procedure Check_And_Recycle_Fragment_For_FS2;
   end;
 
-  TC40_NetDisk_Admin_Tool_Client_List = {$IFDEF FPC}specialize {$ENDIF FPC} TGenericsList<TC40_NetDisk_Admin_Tool_Client>;
+  TC40_NetDisk_Admin_Tool_Client_List = TGenericsList<TC40_NetDisk_Admin_Tool_Client>;
 
 implementation
 
@@ -187,7 +188,7 @@ begin
           tmp := TSearch_And_Remove_InvalidFrag_Bridge.Create(Framework);
           tmp.Admin_Service := Admin_Service;
           tmp.FS2_Cli := Sender;
-          Admin_Service.FDirectory_Client.SearchInvalidFrag_M(new_arry, {$IFDEF FPC}@{$ENDIF FPC}tmp.Do_SearchInvalidFrag);
+          Admin_Service.FDirectory_Client.SearchInvalidFrag_M(new_arry, tmp.Do_SearchInvalidFrag);
           SetLength(new_arry, 0);
         end;
       disposeObject(L);
@@ -382,8 +383,8 @@ begin
   UpdateToGlobalDispatch;
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('Enabled_Automated_Admin_Program').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Enabled_Automated_Admin_Program;
-  DTNoAuthService.RecvTunnel.RegisterDirectStream('Check_And_Recycle_Fragment_For_FS2').OnExecute := {$IFDEF FPC}@{$ENDIF FPC}cmd_Check_And_Recycle_Fragment_For_FS2;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Enabled_Automated_Admin_Program').OnExecute := cmd_Enabled_Automated_Admin_Program;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Check_And_Recycle_Fragment_For_FS2').OnExecute := cmd_Check_And_Recycle_Fragment_For_FS2;
 
   Enabled_Automated_Admin_Program := EStrToBool(ParamList.GetDefaultValue('Enabled_Automated_Admin_Program', 'False'), False);
 
@@ -393,7 +394,7 @@ begin
   FLog_Client := nil;
   FFS2_Client_Pool := TC40_NetDisk_FS2_Client_List.Create;
 
-  Register_ConsoleCommand('Check_And_Recycle_Fragment', 'Now recycle netdisk Fragment.').OnEvent_M := {$IFDEF FPC}@{$ENDIF FPC}CC_Check_And_Recycle_Fragment;
+  Register_ConsoleCommand('Check_And_Recycle_Fragment', 'Now recycle netdisk Fragment.').OnEvent_M := CC_Check_And_Recycle_Fragment;
 end;
 
 destructor TC40_NetDisk_Admin_Tool_Service.Destroy;
@@ -451,7 +452,7 @@ begin
       exit;
   tmp := TCheck_And_Recycle_Fragment_For_FS2_Bridge.Create(FS2_Cli.Client.SendTunnel);
   tmp.Admin_Service := self;
-  FS2_Cli.FS2_PoolFragM({$IFDEF FPC}@{$ENDIF FPC}tmp.Do_PoolFrag);
+  FS2_Cli.FS2_PoolFragM(tmp.Do_PoolFrag);
 end;
 
 procedure TC40_NetDisk_Admin_Tool_Service.Check_And_Recycle_Fragment_For_FS2;

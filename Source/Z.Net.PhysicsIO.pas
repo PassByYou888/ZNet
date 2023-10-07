@@ -3,7 +3,8 @@
 { ****************************************************************************** }
 unit Z.Net.PhysicsIO;
 
-{$I Z.Define.inc}
+{$DEFINE FPC_DELPHI_MODE}
+{$I ..\Z.Define.inc}
 
 interface
 
@@ -11,9 +12,13 @@ uses
 {$IFDEF FPC}
   Z.Net.Server.Synapse, Z.Net.Client.Synapse,
 {$ELSE FPC}
+
 {$IFDEF PhysicsIO_On_ICS}
   Z.Net.Server.ICS, Z.Net.Client.ICS,
 {$ENDIF PhysicsIO_On_ICS}
+{$IFDEF PhysicsIO_On_ICS9}
+  Z.Net.Server.ICS9, Z.Net.Client.ICS9,
+{$ENDIF PhysicsIO_On_ICS9}
 {$IFDEF PhysicsIO_On_CrossSocket}
   Z.Net.Server.CrossSocket, Z.Net.Client.CrossSocket,
 {$ENDIF PhysicsIO_On_CrossSocket}
@@ -39,6 +44,10 @@ type
   TPhysicsServer = TZNet_Server_ICS;
   TPhysicsClient = TZNet_Client_ICS;
 {$ENDIF PhysicsIO_On_ICS}
+{$IFDEF PhysicsIO_On_ICS9}
+  TPhysicsServer = TZNet_Server_ICS9;
+  TPhysicsClient = TZNet_Client_ICS9;
+{$ENDIF PhysicsIO_On_ICS9}
 {$IFDEF PhysicsIO_On_CrossSocket}
   TPhysicsServer = TZNet_Server_CrossSocket;
   TPhysicsClient = TZNet_Client_CrossSocket;

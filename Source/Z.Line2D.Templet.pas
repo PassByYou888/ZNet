@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Line2D.Templet;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -10,13 +11,13 @@ interface
 uses Z.Core;
 
 type
-  {$IFDEF FPC}generic{$ENDIF FPC}
   TLine_2D_Templet<T_> = class(TCore_Object)
   public type
     TTArry_ = array [0 .. 0] of T_;
     PTArry_ = ^TTArry_;
     PT_ = ^T_;
-  private var
+  private
+  var
     FData: PTArry_;
     FWidth, FHeight: NativeInt;
     FValue: T_;
@@ -39,11 +40,11 @@ implementation
 {$IFDEF OverflowCheck}{$Q-}{$ENDIF}
 
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.CreateDone;
+procedure TLine_2D_Templet<T_>.CreateDone;
 begin
 end;
 
-constructor TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.Create(const data_: Pointer; const width_, height_: NativeInt; const Value_: T_; const LineTail_: Boolean);
+constructor TLine_2D_Templet<T_>.Create(const data_: Pointer; const width_, height_: NativeInt; const Value_: T_; const LineTail_: Boolean);
 begin
   inherited Create;
   FData := PTArry_(data_);
@@ -54,12 +55,12 @@ begin
   CreateDone();
 end;
 
-destructor TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.Destroy;
+destructor TLine_2D_Templet<T_>.Destroy;
 begin
   inherited Destroy;
 end;
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.VertLine(X, y1, y2: NativeInt);
+procedure TLine_2D_Templet<T_>.VertLine(X, y1, y2: NativeInt);
 var
   i: NativeInt;
   p: PT_;
@@ -88,7 +89,7 @@ begin
     end;
 end;
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.HorzLine(x1, Y, x2: NativeInt);
+procedure TLine_2D_Templet<T_>.HorzLine(x1, Y, x2: NativeInt);
 var
   i: NativeInt;
   p: PT_;
@@ -118,7 +119,7 @@ begin
     end;
 end;
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.Line(x1, y1, x2, y2: NativeInt);
+procedure TLine_2D_Templet<T_>.Line(x1, y1, x2, y2: NativeInt);
 var
   dy, dx, SY, SX, i, Delta: NativeInt;
   pi, pl: NativeInt;
@@ -210,7 +211,7 @@ begin
       Process(@FData^[pi], FValue);
 end;
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.FillBox(x1, y1, x2, y2: NativeInt);
+procedure TLine_2D_Templet<T_>.FillBox(x1, y1, x2, y2: NativeInt);
 var
   i: Integer;
 begin
@@ -220,11 +221,12 @@ begin
       HorzLine(x1, i, x2);
 end;
 
-procedure TLine_2D_Templet{$IFNDEF FPC}<T_>{$ENDIF FPC}.Process(const vp: PT_; const v: T_);
+procedure TLine_2D_Templet<T_>.Process(const vp: PT_; const v: T_);
 begin
   vp^ := v;
 end;
 {$IFDEF RangeCheck}{$R+}{$ENDIF}
 {$IFDEF OverflowCheck}{$Q+}{$ENDIF}
+
 
 end.

@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.Status;
 
+{$DEFINE FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface
@@ -190,12 +191,19 @@ end;
 
 procedure DoStatus(const v: Pointer);
 begin
-  DoStatus(Format('0x%p', [v]));
+  try
+      DoStatus(Format('0x%p', [v]));
+  except
+  end;
 end;
 
 procedure DoStatus(const v: SystemString; const Args: array of const);
 begin
-  DoStatus(Format(v, Args));
+  try
+      DoStatus(Format(v, Args));
+  except
+      DoStatus('format text error %s', [v]);
+  end;
 end;
 
 procedure DoStatus(const v: SystemString);
@@ -250,21 +258,21 @@ type
 
   PNo_Ln_Text = ^TNo_Ln_Text;
 
-  TEvent_Pool___Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PEvent_Struct__>;
+  TEvent_Pool___Decl = TBigList<PEvent_Struct__>;
 
   TEvent_Pool__ = class(TEvent_Pool___Decl)
   public
     procedure DoFree(var Data: PEvent_Struct__); override;
   end;
 
-  TText_Queue_Data_Pool___Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PText_Queue_Data>;
+  TText_Queue_Data_Pool___Decl = TBigList<PText_Queue_Data>;
 
   TText_Queue_Data_Pool__ = class(TText_Queue_Data_Pool___Decl)
   public
     procedure DoFree(var Data: PText_Queue_Data); override;
   end;
 
-  TNo_Ln_Text_Pool___Decl = {$IFDEF FPC}specialize {$ENDIF FPC} TBigList<PNo_Ln_Text>;
+  TNo_Ln_Text_Pool___Decl = TBigList<PNo_Ln_Text>;
 
   TNo_Ln_Text_Pool__ = class(TNo_Ln_Text_Pool___Decl)
   public
@@ -380,7 +388,11 @@ end;
 
 procedure DoStatusNoLn(const v: SystemString; const Args: array of const);
 begin
-  DoStatusNoLn(Format(v, Args));
+  try
+      DoStatusNoLn(Format(v, Args));
+  except
+      DoStatusNoLn('format text error %s', [v]);
+  end;
 end;
 
 procedure DoStatusNoLn;
@@ -653,12 +665,12 @@ begin
   LastDoStatus := '';
   IDEOutput := False;
   ConsoleOutput := True;
-  OnDoStatusHook := {$IFDEF FPC}@{$ENDIF FPC}InternalDoStatus;
+  OnDoStatusHook := InternalDoStatus;
   StatusThreadID := True;
   One_Step_Status_Limit := 20;
 
   Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
-  Z.Core.OnCheckThreadSynchronize := {$IFDEF FPC}@{$ENDIF FPC}DoCheckThreadSynchronize;
+  Z.Core.OnCheckThreadSynchronize := DoCheckThreadSynchronize;
 end;
 
 procedure _DoFree;
