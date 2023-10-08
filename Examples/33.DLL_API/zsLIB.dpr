@@ -27,7 +27,7 @@ begin
   // 寻找使用SyncEvent做同步的地方，我们可以在finalization事件中慢慢追出来
 
   // crossSocket的接口有个clientPool，它在finalization释放，会使用SyncEvent
-  DisposeObject(ClientPool);
+  // DisposeObjectAndNil(ClientPool);
 end;
 
 procedure DLL_ThreadSync_Proc(); stdcall;
@@ -38,20 +38,20 @@ end;
 procedure DLL_Demo_Proc(); stdcall;
 var
   cli: TZNet_Client;
-  test: TCommunicationTestIntf;
+  Test: TCommunicationTestIntf;
 begin
   cli := TPhysicsClient.Create;
-  test := TCommunicationTestIntf.Create;
-  test.RegCmd(cli);
+  Test := TCommunicationTestIntf.Create;
+  Test.RegCmd(cli);
   if cli.Connect('127.0.0.1', 8191) then
     begin
-      test.ExecuteTest(cli.ClientIO);
-      test.ExecuteAsyncTest(cli.ClientIO);
-      test.ExecuteAsyncTestWithBigStream(cli.ClientIO);
+      Test.ExecuteTest(cli.ClientIO);
+      Test.ExecuteAsyncTest(cli.ClientIO);
+      Test.ExecuteAsyncTestWithBigStream(cli.ClientIO);
       cli.Wait(5000);
     end;
   DisposeObject(cli);
-  DisposeObject(test);
+  DisposeObject(Test);
 end;
 
 procedure DLL_DemoAsyncThread_Proc(); stdcall;

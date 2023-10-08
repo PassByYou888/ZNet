@@ -3,7 +3,7 @@ program DLL_Test;
 {$APPTYPE CONSOLE}
 
 
-uses Windows, Classes;
+uses Windows, Classes, SysUtils;
 
 procedure Test2;
 var
@@ -16,6 +16,7 @@ var
   DLL_DemoAsyncThread_Proc: procedure(); stdcall;
 
 begin
+  Writeln('Main Thread ID:' + IntToStr(MainThreadID));
   hnd := LoadLibrary('zsLib.DLL');
 
   DLL_Init_Proc := GetProcAddress(hnd, 'DLL_Init_Proc');
@@ -34,9 +35,9 @@ begin
 
   DLL_Exit_Proc();
 
-  writeln('dll call over.');
-  writeln('press return to exit.');
-  readln;
+  Writeln('dll call over.');
+  Writeln('press return to exit.');
+  // readln;
 
   freeLibrary(hnd);
 end;
