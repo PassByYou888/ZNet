@@ -4,7 +4,7 @@
 unit Z.Net.C4_NetDisk_Admin_Tool;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

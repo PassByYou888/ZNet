@@ -5,7 +5,7 @@
 unit Z.Net.DoubleTunnelIO.VirtualAuth;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

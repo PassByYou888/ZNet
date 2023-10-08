@@ -4,7 +4,7 @@
 unit Z.ZDB2.Thread.Pair_MD5_Stream;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

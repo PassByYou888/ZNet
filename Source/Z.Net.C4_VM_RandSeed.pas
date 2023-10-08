@@ -4,7 +4,7 @@
 unit Z.Net.C4_VM_RandSeed;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

@@ -4,7 +4,7 @@
 unit Z.Net.Test;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 
@@ -226,6 +226,9 @@ begin
   Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, CmdResult_TestStream);
   Intf.SendDirectConsoleCmd(C_TestDirectConsole, FPrepareSendConsole);
   Intf.SendDirectStreamCmd(C_TestDirectStream, FPrepareSendDataFrame);
+  Intf.SendBigStream(C_TestBigStream, TestStreamData, False);
+  Intf.SendDirectConsoleCmd(C_BigStreamPostInfo, umlStreamMD5String(TestStreamData).Text);
+  Intf.SendCompleteBuffer(C_TestCompleteBuffer, TestBuff, TestBuffSize, False);
   Intf.SendCompleteBuffer(C_Test_Complete_DirectStream, FPrepareSendDataFrame);
   Intf.SendCompleteBuffer(C_Test_Complete_Async_DirectStream, FPrepareSendDataFrame);
 
@@ -238,6 +241,9 @@ begin
   Intf.SendStreamCmdM(C_TestStream, FPrepareSendDataFrame, CmdResult_TestStream);
   Intf.SendDirectConsoleCmd(C_TestDirectConsole, FPrepareSendConsole);
   Intf.SendDirectStreamCmd(C_TestDirectStream, FPrepareSendDataFrame);
+  Intf.SendBigStream(C_TestBigStream, TestStreamData, False);
+  Intf.SendDirectConsoleCmd(C_BigStreamPostInfo, umlStreamMD5String(TestStreamData).Text);
+  Intf.SendCompleteBuffer(C_TestCompleteBuffer, TestBuff, TestBuffSize, False);
   Intf.SendCompleteBuffer(C_Test_Complete_DirectStream, FPrepareSendDataFrame);
   Intf.SendCompleteBuffer(C_Test_Complete_Async_DirectStream, FPrepareSendDataFrame);
 

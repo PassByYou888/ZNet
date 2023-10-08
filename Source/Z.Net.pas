@@ -5,7 +5,7 @@
 unit Z.Net;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 
@@ -12459,7 +12459,26 @@ begin
   if P_IO = nil then
       exit;
   if FProgressWaitRuning then
+    begin
+      P_IO.PrintError('ProgressWaitSend: dead loop');
+      P_IO.Disconnect; // anti dead loop.
+      try
+        { progress local instance }
+        Progress;
+        { progress global instance }
+        if ZNet_Instance_Pool.num > 0 then
+          with ZNet_Instance_Pool.Repeat_ do
+            repeat
+              try
+                if (Queue^.data <> self) and (Queue^.data <> nil) then
+                    Queue^.data.Progress;
+              except
+              end;
+            until not Next;
+      except
+      end;
       exit;
+    end;
 
   FProgressWaitRuning := True;
 
@@ -12467,14 +12486,10 @@ begin
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
 
-  { progress local instance }
   try
-      Progress;
-  except
-  end;
-
-  { progress global instance }
-  try
+    { progress local instance }
+    Progress;
+    { progress global instance }
     if ZNet_Instance_Pool.num > 0 then
       with ZNet_Instance_Pool.Repeat_ do
         repeat

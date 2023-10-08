@@ -4,7 +4,7 @@
 unit Z.Net.C4.VM_Var;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

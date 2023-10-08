@@ -4,7 +4,7 @@
 unit Z.Net.XNAT.Physics;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 

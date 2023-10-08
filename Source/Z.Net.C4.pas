@@ -4,7 +4,7 @@
 unit Z.Net.C4;
 
 {$DEFINE FPC_DELPHI_MODE}
-{$I ..\Z.Define.inc}
+{$I Z.Define.inc}
 
 interface
 
@@ -558,17 +558,36 @@ type
   TC40_Auto_Deployment_Client<T_: class> = class
   public type
     PT_ = ^T_;
-    TOn_Ready = procedure(var Sender: T_) of object;
+    TOn_Ready_C = procedure(var Sender: T_);
+    TOn_Ready_M = procedure(var Sender: T_) of object;
+{$IFDEF FPC}
+    TOn_Ready_P = procedure(var Sender: T_) is nested;
+{$ELSE FPC}
+    TOn_Ready_P = reference to procedure(var Sender: T_);
+{$ENDIF FPC}
   private
     FClient: PT_;
     FDependNetwork: U_String;
-    FOn_Ready: TOn_Ready;
+    FOn_Ready_C: TOn_Ready_C;
+    FOn_Ready_M: TOn_Ready_M;
+    FOn_Ready_P: TOn_Ready_P;
     procedure Do_Deployment_Ready(States: TC40_Custom_ClientPool_Wait_States);
   public
-    constructor Create(dependNetwork_: U_String; var Client: T_);
+    constructor Create(dependNetwork_: U_String; var Client: T_); overload;
+    constructor Create(var Client: T_); overload;
     destructor Destroy; override;
-    property On_Ready: TOn_Ready read FOn_Ready write FOn_Ready;
+    property On_Ready: TOn_Ready_M read FOn_Ready_M write FOn_Ready_M;
+    property On_Ready_C: TOn_Ready_C read FOn_Ready_C write FOn_Ready_C;
+    property On_Ready_M: TOn_Ready_M read FOn_Ready_M write FOn_Ready_M;
+    property On_Ready_P: TOn_Ready_P read FOn_Ready_P write FOn_Ready_P;
   end;
+
+  TC40_Auto_Deploy_Client<T_: class> = class(TC40_Auto_Deployment_Client<T_>)
+  end;
+
+  TC40_Auto_Deploy<T_: class> = class(TC40_Auto_Deployment_Client<T_>)
+  end;
+
 {$ENDREGION 'Auto_Deployment_Client'}
 {$REGION 'DispatchService'}
 
@@ -1045,6 +1064,7 @@ procedure C40CheckAndKillDeadPhysicsTunnel();
 { register }
 function RegisterC40(ServiceTyp: U_String; ServiceClass: TC40_Custom_Service_Class; ClientClass: TC40_Custom_Client_Class): Boolean;
 function FindRegistedC40(ServiceTyp: U_String): PC40_RegistedData;
+function GetRegisterClientTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String; overload;
 function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String; overload;
 function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String; overload;
 
@@ -1527,7 +1547,7 @@ begin
       end;
 end;
 
-function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String;
+function GetRegisterClientTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String;
 var
   i: Integer;
   p: PC40_RegistedData;
@@ -1543,6 +1563,11 @@ begin
           Result.Append(p^.ServiceTyp);
         end;
     end;
+end;
+
+function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String;
+begin
+  Result:=GetRegisterClientTypFromClass(ClientClass);
 end;
 
 function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String;
@@ -4811,8 +4836,15 @@ begin
     begin
       if TC40_Custom_Client(FClient^).Connected then
         begin
-          if Assigned(FOn_Ready) then
-              FOn_Ready(FClient^);
+          try
+            if Assigned(FOn_Ready_M) then
+                FOn_Ready_M(FClient^);
+            if Assigned(FOn_Ready_C) then
+                FOn_Ready_C(FClient^);
+            if Assigned(FOn_Ready_P) then
+                FOn_Ready_P(FClient^);
+          except
+          end;
           DoStatus('deployment "%s"::%s ready ok.', [TC40_Custom_Client(FClient^).ClientInfo.ServiceTyp.Text, TC40_Custom_Client(FClient^).ClassName]);
         end
       else
@@ -4825,9 +4857,17 @@ constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; var
 begin
   inherited Create;
   FClient := @Client;
+  FClient^ := nil;
   FDependNetwork := dependNetwork_;
-  FOn_Ready := nil;
+  FOn_Ready_C := nil;
+  FOn_Ready_M := nil;
+  FOn_Ready_P := nil;
   C40_ClientPool.WaitConnectedDoneM(FDependNetwork, Do_Deployment_Ready);
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create(var Client: T_);
+begin
+  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), Client);
 end;
 
 destructor TC40_Auto_Deployment_Client<T_>.Destroy;
