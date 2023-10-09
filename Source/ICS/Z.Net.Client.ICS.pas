@@ -202,6 +202,7 @@ end;
 destructor TZNet_Client_ICS.Destroy;
 begin
   Disconnect;
+  Check_Soft_Thread_Synchronize;
   DisposeObject(FDriver);
   DisposeObject(FClient);
   inherited Destroy;
@@ -343,7 +344,9 @@ end;
 
 procedure TZNet_Client_ICS.Disconnect;
 begin
+  Check_Soft_Thread_Synchronize;
   FDriver.Close;
+  Check_Soft_Thread_Synchronize;
   DisposeObject(FClient);
   FClient := TICSClient_PeerIO.Create(Self, Self);
 end;

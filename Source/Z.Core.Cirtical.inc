@@ -63,11 +63,13 @@ type
 var
   System_Critical__: TSystem_Critical;
   System_Critical_Recycle_Pool__: TSystem_Critical_Recycle_Pool__;
+  System_Critical_Num__: NativeInt;
 
 procedure Init_System_Critical_Recycle_Pool;
 begin
   System_Critical__ := TSystem_Critical.Create;
   System_Critical_Recycle_Pool__ := TSystem_Critical_Recycle_Pool__.Create;
+  System_Critical_Num__ := 0;
 end;
 
 procedure Free_System_Critical_Recycle_Pool;
@@ -83,11 +85,14 @@ begin
   System_Critical__ := nil;
 end;
 
+function Get_System_Critical_Num: NativeInt;
+begin
+  Result := System_Critical_Num__;
+end;
+
 function Get_System_Critical_Recycle_Pool_Num: NativeInt;
 begin
-  System_Critical__.Acquire;
   Result := System_Critical_Recycle_Pool__.Num;
-  System_Critical__.Release;
 end;
 
 constructor TCritical.Create;
@@ -100,13 +105,18 @@ begin
       System_Critical_Recycle_Pool__.Next;
     end
   else
+    begin
       Instance__ := TSystem_Critical.Create;
+      Inc(System_Critical_Num__);
+    end;
   System_Critical__.Release;
   LNum := 0;
 end;
 
 destructor TCritical.Destroy;
 begin
+  while LNum > 0 do
+      Release();
   System_Critical__.Acquire;
   System_Critical_Recycle_Pool__.Push(Instance__);
   System_Critical__.Release;

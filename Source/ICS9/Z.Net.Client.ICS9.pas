@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * ics support                                                                * }
+{ * ics9 support                                                               * }
 { ****************************************************************************** }
 unit Z.Net.Client.ICS9;
 
@@ -340,7 +340,9 @@ end;
 
 procedure TZNet_Client_ICS9.Disconnect;
 begin
+  Check_Soft_Thread_Synchronize;
   FDriver.Close;
+  Check_Soft_Thread_Synchronize;
   DisposeObject(FClient);
   FClient := TICS9_Client_PeerIO.Create(Self, Self);
 end;
@@ -357,14 +359,11 @@ end;
 
 procedure TZNet_Client_ICS9.Progress;
 begin
-  FClient.Process_Send_Buffer();
-
-  inherited Progress;
-
   try
       FDriver.ProcessMessages;
   except
   end;
+  inherited Progress;
 end;
 
 initialization

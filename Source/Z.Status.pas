@@ -500,7 +500,7 @@ var
 begin
   if Status_Critical__ = nil then
       exit;
-  if (Th = nil) or (Th.ThreadID <> MainThreadID) then
+  if (Th = nil) or (Th.ThreadID <> Core_Main_Thread_ID) then
       exit;
   Status_Critical__.Acquire;
   try
@@ -527,7 +527,7 @@ var
   pSS: PText_Queue_Data;
 begin
   Th := TCore_Thread.CurrentThread;
-  if (Th = nil) or (Th.ThreadID <> MainThreadID) then
+  if (Th = nil) or (Th.ThreadID <> Core_Main_Thread_ID) then
     begin
       new(pSS);
       if StatusThreadID then
@@ -632,7 +632,7 @@ end;
 
 procedure Wait_DoStatus_Queue;
 begin
-  if TCompute.CurrentThread.ThreadID <> MainThreadID then
+  if TCompute.CurrentThread.ThreadID <> Core_Main_Thread_ID then
     begin
       while Get_DoStatus_Queue_Num > 0 do
           TCompute.Sleep(1);

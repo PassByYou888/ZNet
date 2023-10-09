@@ -16,6 +16,7 @@ unit Z.Net.CrossSocket.Iocp;
 interface
 
 uses
+  Z.Core,
   System.SysUtils,
   System.Classes,
   Winapi.Windows,
@@ -349,8 +350,7 @@ begin
   if (FIoThreads = nil) then Exit;
 
   CloseAll;
-
-  while (ListensCount > 0) or (ConnectionsCount > 0) do Sleep(1);
+  while (ListensCount > 0) or (ConnectionsCount > 0) do Sleep(1); // 等全部连接关闭
 
   for I := 0 to Length(FIoThreads) - 1 do
     PostQueuedCompletionStatus(FIocpHandle, 0, 0, POverlapped(SHUTDOWN_FLAG));
@@ -361,7 +361,9 @@ begin
     if (FIoThreads[I].ThreadID = LCurrentThreadID) then
       raise ECrossSocket.Create('不能在IO线程中执行StopLoop!');
 
-    FIoThreads[I].WaitFor;
+    // 等线程完全关闭,目前这种模型可以工作与静态库与DLL,特别适用于把通讯放在DLL做插件
+    while FIoThreads[I].IO_Is_Busy do
+      Check_Soft_Thread_Synchronize(10);
     FreeAndNil(FIoThreads[I]);
   end;
   FIoThreads := nil;

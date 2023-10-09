@@ -53,12 +53,14 @@ type
     LSock: TTCPBlockSocket;
     Activted: Boolean;
     Listen: Boolean;
-    procedure Sync_CreateIO;
+    Sock_Th_Num: TAtomInt;
+    procedure Do_CreateIO;
     procedure Execute; override;
   end;
 
   TSynapseSockTh = class(TCore_Thread)
   public
+    Sock_Th_Num: TAtomInt;
     ClientSockID: TSocket;
     Activted: Boolean;
     IO: TSynapseServer_PeerIO;
@@ -66,8 +68,8 @@ type
     CurrentSendBuff: TMem64;
     Recv_Buff: Pointer;
     Recv_Siz: Integer;
-    procedure Sync_PickBuff;
-    procedure Sync_CloseIO;
+    procedure Do_PickBuff;
+    procedure Do_CloseIO;
     procedure Execute; override;
   end;
 
@@ -195,11 +197,13 @@ begin
   Self.Process_Send_Buffer;
 end;
 
-procedure TSynapseListenTh.Sync_CreateIO;
+procedure TSynapseListenTh.Do_CreateIO;
 var
   CurrentAcceptSockTh: TSynapseSockTh;
 begin
+  Sock_Th_Num.UnLock(Sock_Th_Num.LockP^ + 1);
   CurrentAcceptSockTh := TSynapseSockTh.Create(True);
+  CurrentAcceptSockTh.Sock_Th_Num := Sock_Th_Num;
   CurrentAcceptSockTh.ClientSockID := LSock.Accept;
   CurrentAcceptSockTh.Activted := False;
   CurrentAcceptSockTh.IO := TSynapseServer_PeerIO.Create(Server, CurrentAcceptSockTh);
@@ -223,8 +227,8 @@ begin
     if (Listen) and (Server.Count <= 100) then
       begin
         try
-          if LSock.CanRead(10) then
-              TCompute.SyncM(Sync_CreateIO);
+          if LSock.CanRead(15) then
+              Do_CreateIO();
         except
             Listen := False;
         end;
@@ -232,10 +236,14 @@ begin
 
   LSock.CloseSocket;
   DisposeObject(LSock);
+
+  while Sock_Th_Num.V > 0 do
+      Sleep(1);
+  DisposeObjectAndNil(Sock_Th_Num);
   Server.FListenTh := nil;
 end;
 
-procedure TSynapseSockTh.Sync_PickBuff;
+procedure TSynapseSockTh.Do_PickBuff;
 begin
   if (IO.SendBuffQueue.Num > 0) and (IO <> nil) then
     begin
@@ -244,7 +252,7 @@ begin
     end;
 end;
 
-procedure TSynapseSockTh.Sync_CloseIO;
+procedure TSynapseSockTh.Do_CloseIO;
 begin
   if IO <> nil then
     begin
@@ -256,7 +264,7 @@ end;
 
 procedure TSynapseSockTh.Execute;
 const
-  memSiz: Integer = 1024 * 1024;
+  MemSiz: Integer = 64 * 1024;
 begin
   FreeOnTerminate := True;
   Sock := TTCPBlockSocket.Create;
@@ -264,14 +272,14 @@ begin
   Sock.GetSins;
   Activted := True;
 
-  Recv_Buff := System.GetMemory(memSiz);
+  Recv_Buff := System.GetMemory(MemSiz);
   while (Activted) and (IO <> nil) do
     begin
       try
         while Activted and (IO.SendBuffQueue.Num > 0) do
           begin
             CurrentSendBuff := nil;
-            TCompute.SyncM(Sync_PickBuff);
+            Do_PickBuff;
 
             if CurrentSendBuff <> nil then
               begin
@@ -281,9 +289,9 @@ begin
               end;
           end;
 
-        if Activted and Sock.CanRead(100) then
+        if Activted and Sock.CanRead(15) then
           begin
-            Recv_Siz := Sock.RecvBuffer(Recv_Buff, memSiz);
+            Recv_Siz := Sock.RecvBuffer(Recv_Buff, MemSiz);
 
             if Sock.LastError <> 0 then
                 break;
@@ -296,7 +304,8 @@ begin
       end;
     end;
   System.FreeMemory(Recv_Buff);
-  TCompute.SyncM(Sync_CloseIO);
+  Do_CloseIO;
+  Sock_Th_Num.UnLock(Sock_Th_Num.LockP^ - 1);
 end;
 
 procedure TZNet_Server_Synapse.All_Disconnect(PeerClient: TPeerIO);
@@ -313,8 +322,9 @@ begin
   FListenTh.Server := Self;
   FListenTh.Activted := False;
   FListenTh.Suspended := False;
+  FListenTh.Sock_Th_Num := TAtomInt.Create(0);
   while not FListenTh.Activted do
-      Z.Core.CheckThreadSynchronize(1);
+      Z.Core.Check_Soft_Thread_Synchronize(1);
 
   name := 'Synapse-Server';
 end;
@@ -324,7 +334,7 @@ begin
   StopService;
   FListenTh.Activted := False;
   while FListenTh <> nil do
-      Z.Core.CheckThreadSynchronize(1);
+      Z.Core.Check_Soft_Thread_Synchronize(1);
   inherited Destroy;
 end;
 

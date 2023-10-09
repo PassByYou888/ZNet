@@ -432,6 +432,13 @@ end;
 destructor TZNet_Server_CrossSocket.Destroy;
 begin
   StopService;
+  // CrossSocket使用了RTL的Synchronize机制,这是兼容UI的机制,在服务器领域这是非常蛋疼的东西
+  // soft_synchronize_technology是Synchronize硬件仿真技术,用于DLL和静态库使用独立线程仿真RTL主线程,
+  // 使用soft_synchronize_technology系技术,必须非常小心,同步队列一旦出问题都是传导型的问题
+  // 如果开启了soft_synchronize_technology,这里必须同步一下
+  // 同步的作用是清理IO同步事件,以免卡端口,导致PostQueuedCompletionStatus消息过去卡队列
+  // 无论Used_Soft_Synchronize是否开启Check_Soft_Thread_Synchronize都会清理掉当前的UI同步队列.
+  Check_Soft_Thread_Synchronize;
   try
       DisposeObject(FDriver);
   except
@@ -456,7 +463,7 @@ begin
       end);
 
     while not Completed do
-        CheckThreadSynchronize(5);
+        Check_Soft_Thread_Synchronize(5);
 
     FBindPort := Port;
     FBindHost := Host;

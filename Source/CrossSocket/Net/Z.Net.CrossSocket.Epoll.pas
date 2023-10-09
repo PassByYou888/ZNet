@@ -16,6 +16,7 @@ unit Z.Net.CrossSocket.Epoll;
 interface
 
 uses
+  Z.Core,
   System.SysUtils,
   System.Classes,
   System.Generics.Collections,
@@ -645,8 +646,7 @@ begin
   if (FIoThreads = nil) then Exit;
 
   CloseAll;
-
-  while (FListensCount > 0) or (FConnectionsCount > 0) do Sleep(1);
+  while (FListensCount > 0) or (FConnectionsCount > 0) do Sleep(1); // 等全部连接关闭
 
   _PostStopCommand;
 
@@ -656,7 +656,9 @@ begin
     if (FIoThreads[I].ThreadID = LCurrentThreadID) then
       raise ECrossSocket.Create('不能在IO线程中执行StopLoop!');
 
-    FIoThreads[I].WaitFor;
+    // 等线程完全关闭,目前这种模型可以工作与静态库与DLL,特别适用于把通讯放在DLL做插件
+    while FIoThreads[I].IO_Is_Busy do
+      Check_Soft_Thread_Synchronize(10);
     FreeAndNil(FIoThreads[I]);
   end;
   FIoThreads := nil;

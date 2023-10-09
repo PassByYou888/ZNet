@@ -694,6 +694,7 @@ type
   protected
     procedure Execute; override;
   public
+    IO_Is_Busy: Boolean;
     constructor Create(ACrossSocket: ICrossSocket); reintroduce;
   end;
 
@@ -882,6 +883,8 @@ constructor TIoEventThread.Create(ACrossSocket: ICrossSocket);
 begin
   inherited Create(True);
   FCrossSocket := ACrossSocket;
+  FreeOnTerminate := False;
+  IO_Is_Busy := True;
   Suspended := False;
 end;
 
@@ -910,8 +913,9 @@ begin
     Inc(LRunCount)
     {$ENDIF};
   end;
+  IO_Is_Busy := False;
   {$IFDEF DEBUG}
-//  _Log('%s Io线程ID %d, 被调用了 %d 次', [TAbstractCrossSocket(FCrossSocket).ClassName, Self.ThreadID, LRunCount]);
+  _Log('%s Io线程ID %d, 被调用了 %d 次', [TAbstractCrossSocket(FCrossSocket).ClassName, Self.ThreadID, LRunCount]);
   {$ENDIF}
 end;
 

@@ -3309,6 +3309,8 @@ end;
 
 procedure Free_ZNet_Instance_Pool;
 begin
+  while ZNet_Instance_Pool.Num > 0 do
+      DisposeObjectAndNil(ZNet_Instance_Pool.First^.data);
   DisposeObjectAndNil(ZNet_Instance_Pool);
 end;
 
@@ -7543,7 +7545,7 @@ var
   StartPos, EndPos: Int64;
   tmpPos: Int64;
   j: Int64;
-  num: Int64;
+  Num: Int64;
   Rest: Int64;
   BigStream_Chunk: PByte;
 begin
@@ -7553,14 +7555,14 @@ begin
   EndPos := Queue.BigStream.Size;
   tmpPos := StartPos;
   { Calculate number of full chunks that will fit into the buffer }
-  num := (EndPos - StartPos) div ZNet_Def_BigStream_ChunkSize;
+  Num := (EndPos - StartPos) div ZNet_Def_BigStream_ChunkSize;
   { Calculate remaining bytes }
   Rest := (EndPos - StartPos) mod ZNet_Def_BigStream_ChunkSize;
   { init buffer }
   BigStream_Chunk := GetMemory(ZNet_Def_BigStream_ChunkSize);
   { Process full chunks }
   j := 0;
-  while j < num do
+  while j < Num do
     begin
       if not Connected then
           exit;
@@ -8929,7 +8931,7 @@ begin
 
   FSend_Queue_Critical.Lock;
   try
-    while FQueuePool.num > 0 do
+    while FQueuePool.Num > 0 do
       begin
         if not Connected then
             Break;
@@ -9230,7 +9232,7 @@ begin
   OwnerFramework.UnLock_All_IO;
 
   FSend_Queue_Critical.Lock;
-  while FQueuePool.num > 0 do
+  while FQueuePool.Num > 0 do
     begin
       DisposeQueueData(FQueuePool.current^.data);
       FQueuePool.Next;
@@ -9281,7 +9283,7 @@ begin
     (IOSendBuffer.Size > 0) or
     (SendingSequencePacketHistory.Count > 0) or
     (SequencePacketReceivedPool.Count > 0) or
-    (FQueuePool.num > 0) or
+    (FQueuePool.Num > 0) or
     (FReceivedBuffer.Size > 0) or
     (FReceivedBuffer_Busy.Size > 0) or
     (FWaitOnResult) or
@@ -9289,13 +9291,13 @@ begin
     (FCompleteBufferReceiveProcessing) or
     (FPause_Result_Send) or
     (FReceiveTriggerRuning) or
-    (FReceived_Physics_Fragment_Pool.num > 0);
+    (FReceived_Physics_Fragment_Pool.Num > 0);
   if not Result then
     begin
       if FOwnerFramework.InheritsFrom(TZNet_Client) then
         begin
           FReceived_Physics_Critical.Lock;
-          Result := FOwnerFramework.FSend_Queue_Swap_Pool.num > 0;
+          Result := FOwnerFramework.FSend_Queue_Swap_Pool.Num > 0;
           FReceived_Physics_Critical.UnLock;
         end;
     end;
@@ -9843,6 +9845,9 @@ begin
 
   IOBusy();
 
+  { send buffer }
+  Process_Send_Buffer;
+
   { optimize physics model }
   try
     if not FLast_Process_Receive_Buffer_CPU_Is_Full then
@@ -9928,7 +9933,7 @@ var
 begin
   AtomInc(OwnerFramework.Statistics[TStatisticsType.stPhysicsFragmentCache], siz);
   FReceived_Physics_Critical.Lock;
-  if OwnerFramework.FPhysicsFragmentSwapSpaceTechnology and (FReceived_Physics_Fragment_Pool.num > OwnerFramework.FPhysicsFragmentSwapSpaceTrigger) then
+  if OwnerFramework.FPhysicsFragmentSwapSpaceTechnology and (FReceived_Physics_Fragment_Pool.Num > OwnerFramework.FPhysicsFragmentSwapSpaceTrigger) then
       m64 := TZDB2_Swap_Space_Technology.RunTime_Pool.Create_Memory(p, siz, True)
   else
       m64 := TMem64.Create;
@@ -9941,7 +9946,7 @@ function TPeerIO.Extract_Physics_Fragment_To_Receive_Buffer(): Int64;
 begin
   Result := 0;
   FReceived_Physics_Critical.Lock;
-  if FReceived_Physics_Fragment_Pool.num > 0 then
+  if FReceived_Physics_Fragment_Pool.Num > 0 then
     begin
       repeat
         if OwnerFramework.FPhysicsFragmentSwapSpaceTechnology and (FReceived_Physics_Fragment_Pool.First^.data is TZDB2_Swap_Space_Technology_Memory) then
@@ -9957,7 +9962,7 @@ begin
           end;
         inc(Result, FReceived_Physics_Fragment_Pool.First^.data.Size);
         FReceived_Physics_Fragment_Pool.Next;
-      until (Result > OwnerFramework.FExtract_Physics_Fragment_Max_Size) or (FReceived_Physics_Fragment_Pool.num <= 0);
+      until (Result > OwnerFramework.FExtract_Physics_Fragment_Max_Size) or (FReceived_Physics_Fragment_Pool.Num <= 0);
       UpdateLastCommunicationTime;
       LastCommunicationTick_Received := FLastCommunicationTick;
       LastCommunicationTick_KeepAlive := LastCommunicationTick_Received;
@@ -10732,7 +10737,7 @@ procedure TZNet_Instance_Pool.Print_Status;
     p: PUInt32HashListObjectStruct;
     i: Integer;
   begin
-    if Net.IOPool.num > 0 then
+    if Net.IOPool.Num > 0 then
       with Net.IOPool.Repeat_ do
         repeat
           if Queue^.data^.data.Second.P2PVM = nil then
@@ -10749,7 +10754,7 @@ procedure TZNet_Instance_Pool.Print_Status;
                   p := L[i];
                   if (p <> nil) and (p^.data <> nil) and (p^.data is TZNet) then
                     begin
-                      DoStatus(prefix_ + #9'pspVM:%s <%s> IO:%d', [p^.data.ClassName, TZNet(p^.data).name, TZNet(p^.data).IOPool.num]);
+                      DoStatus(prefix_ + #9'pspVM:%s <%s> IO:%d', [p^.data.ClassName, TZNet(p^.data).name, TZNet(p^.data).IOPool.Num]);
                     end;
                 end;
               DisposeObject(L);
@@ -10760,11 +10765,11 @@ procedure TZNet_Instance_Pool.Print_Status;
 begin
   Lock;
   try
-    if num > 0 then
+    if Num > 0 then
       begin
         with Repeat_ do
           repeat
-            DoStatus('%s <%s> IO:%d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.num]);
+            DoStatus('%s <%s> IO:%d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num]);
             do_print_io_info(#9, Queue^.data);
           until not Next;
       end;
@@ -10781,7 +10786,7 @@ procedure TZNet_Instance_Pool.Print_Service_Statistics_Info;
     for st := low(TStatisticsType) to high(TStatisticsType) do
         DoStatus(prefix_ + '%s (state) = %d (Num)', [GetEnumName(TypeInfo(TStatisticsType), Ord(st)), Net.Statistics[st]]);
 
-    if Net.CmdRecvStatistics.num > 0 then
+    if Net.CmdRecvStatistics.Num > 0 then
       begin
         Net.CmdRecvStatistics.Critical__.Lock;
         try
@@ -10794,7 +10799,7 @@ procedure TZNet_Instance_Pool.Print_Service_Statistics_Info;
         end
       end;
 
-    if Net.CmdSendStatistics.num > 0 then
+    if Net.CmdSendStatistics.Num > 0 then
       begin
         Net.CmdSendStatistics.Critical__.Lock;
         try
@@ -10811,13 +10816,13 @@ procedure TZNet_Instance_Pool.Print_Service_Statistics_Info;
 begin
   Lock;
   try
-    if num > 0 then
+    if Num > 0 then
       begin
         with Repeat_ do
           repeat
             if Queue^.data is TZNet_Server then
               begin
-                DoStatus('%s <%s> connected: %d, statistics:', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.num]);
+                DoStatus('%s <%s> connected: %d, statistics:', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num]);
                 do_print_statistics_info(#9, Queue^.data);
               end;
           until not Next;
@@ -10830,7 +10835,7 @@ end;
 procedure TZNet_Instance_Pool.Print_Service_CMD_Info;
   procedure do_print_cmd_info(prefix_: SystemString; Net: TZNet);
   begin
-    if Net.CmdMaxExecuteConsumeStatistics.num > 0 then
+    if Net.CmdMaxExecuteConsumeStatistics.Num > 0 then
       begin
         Net.CmdMaxExecuteConsumeStatistics.Critical__.Lock;
         try
@@ -10842,7 +10847,7 @@ procedure TZNet_Instance_Pool.Print_Service_CMD_Info;
             Net.CmdMaxExecuteConsumeStatistics.Critical__.UnLock;
         end;
       end;
-    if Net.CmdSendStatistics.num > 0 then
+    if Net.CmdSendStatistics.Num > 0 then
       begin
         Net.CmdSendStatistics.Critical__.Lock;
         try
@@ -10859,13 +10864,13 @@ procedure TZNet_Instance_Pool.Print_Service_CMD_Info;
 begin
   Lock;
   try
-    if num > 0 then
+    if Num > 0 then
       begin
         with Repeat_ do
           repeat
             if Queue^.data is TZNet_Server then
               begin
-                DoStatus('%s <%s> connected: %d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.num]);
+                DoStatus('%s <%s> connected: %d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num]);
                 do_print_cmd_info(#9, Queue^.data);
               end;
           until not Next;
@@ -10883,7 +10888,7 @@ procedure TZNet_Instance_Pool.Print_Client_Statistics_Info;
     for st := low(TStatisticsType) to high(TStatisticsType) do
         DoStatus(prefix_ + '%s (state) = %d (Num)', [GetEnumName(TypeInfo(TStatisticsType), Ord(st)), Net.Statistics[st]]);
 
-    if Net.CmdRecvStatistics.num > 0 then
+    if Net.CmdRecvStatistics.Num > 0 then
       begin
         Net.CmdRecvStatistics.Critical__.Lock;
         try
@@ -10896,7 +10901,7 @@ procedure TZNet_Instance_Pool.Print_Client_Statistics_Info;
         end
       end;
 
-    if Net.CmdSendStatistics.num > 0 then
+    if Net.CmdSendStatistics.Num > 0 then
       begin
         Net.CmdSendStatistics.Critical__.Lock;
         try
@@ -10915,7 +10920,7 @@ var
 begin
   Lock;
   try
-    if num > 0 then
+    if Num > 0 then
       begin
         with Repeat_ do
           repeat
@@ -10938,7 +10943,7 @@ end;
 procedure TZNet_Instance_Pool.Print_Client_CMD_Info;
   procedure do_print_cmd_info(prefix_: SystemString; Net: TZNet);
   begin
-    if Net.CmdMaxExecuteConsumeStatistics.num > 0 then
+    if Net.CmdMaxExecuteConsumeStatistics.Num > 0 then
       begin
         Net.CmdMaxExecuteConsumeStatistics.Critical__.Lock;
         try
@@ -10950,7 +10955,7 @@ procedure TZNet_Instance_Pool.Print_Client_CMD_Info;
             Net.CmdMaxExecuteConsumeStatistics.Critical__.UnLock;
         end;
       end;
-    if Net.CmdSendStatistics.num > 0 then
+    if Net.CmdSendStatistics.Num > 0 then
       begin
         Net.CmdSendStatistics.Critical__.Lock;
         try
@@ -10969,7 +10974,7 @@ var
 begin
   Lock;
   try
-    if num > 0 then
+    if Num > 0 then
       begin
         with Repeat_ do
           repeat
@@ -11002,7 +11007,7 @@ procedure TCommand_Tick_Hash_Pool.SetMax(Source: TCommand_Tick_Hash_Pool);
 var
   __repeat__: TCommand_Tick_Hash_Pool_Decl.TRepeat___;
 begin
-  if Source.num <= 0 then
+  if Source.Num <= 0 then
       exit;
   __repeat__ := Source.Repeat_;
   repeat
@@ -11014,7 +11019,7 @@ procedure TCommand_Tick_Hash_Pool.GetKeyList(output: TPascalStringList);
 var
   __repeat__: TCommand_Tick_Hash_Pool_Decl.TRepeat___;
 begin
-  if num <= 0 then
+  if Num <= 0 then
       exit;
   __repeat__ := Repeat_;
   repeat
@@ -11034,7 +11039,7 @@ procedure TCommand_Num_Hash_Pool.IncValue(Source: TCommand_Num_Hash_Pool);
 var
   __repeat__: TCommand_Num_Hash_Pool_Decl.TRepeat___;
 begin
-  if Source.num <= 0 then
+  if Source.Num <= 0 then
       exit;
   __repeat__ := Source.Repeat_;
   repeat
@@ -11046,7 +11051,7 @@ procedure TCommand_Num_Hash_Pool.GetKeyList(output: TPascalStringList);
 var
   __repeat__: TCommand_Num_Hash_Pool_Decl.TRepeat___;
 begin
-  if num <= 0 then
+  if Num <= 0 then
       exit;
   __repeat__ := Repeat_;
   repeat
@@ -11787,9 +11792,9 @@ var
   tk: TTimeTick;
   P_IO: TPeerIO;
 begin
-  if FPeerIO_HashPool.num <= 0 then
+  if FPeerIO_HashPool.Num <= 0 then
     begin
-      while FSend_Queue_Swap_Pool.num > 0 do
+      while FSend_Queue_Swap_Pool.Num > 0 do
         begin
           PrintError('loss send queue dest ip %s cmd %s', [FSend_Queue_Swap_Pool.First^.data^.IP, FSend_Queue_Swap_Pool.First^.data^.Cmd]);
           DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
@@ -11799,10 +11804,10 @@ begin
     end;
 
   tk := GetTimeTick();
-  if (FProgress_LargeScale_IO_Pool.num <= 0) or (FProgressMaxDelay = 0) then
+  if (FProgress_LargeScale_IO_Pool.Num <= 0) or (FProgressMaxDelay = 0) then
     begin
       { queue swap technology }
-      while (FSend_Queue_Swap_Pool.num > 0) do
+      while (FSend_Queue_Swap_Pool.Num > 0) do
         begin
           if self is TZNet_Client then
             begin
@@ -11836,7 +11841,7 @@ begin
       GetIO_Order(FProgress_LargeScale_IO_Pool);
     end;
 
-  while FProgress_LargeScale_IO_Pool.num > 0 do
+  while FProgress_LargeScale_IO_Pool.Num > 0 do
     begin
       P_IO := FPeerIO_HashPool[FProgress_LargeScale_IO_Pool.First^.data];
       FProgress_LargeScale_IO_Pool.Next;
@@ -11971,8 +11976,9 @@ begin
   Print('%s.%s(%s) destroy', [FPrefixName, FName, ClassName]);
 {$ENDIF DEBUG}
   try
-    ZNet_Instance_Pool.Remove_P(FZNet_Instance_Ptr__);
-    while FSend_Queue_Swap_Pool.num > 0 do
+    if FZNet_Instance_Ptr__ <> nil then
+        ZNet_Instance_Pool.Remove_P(FZNet_Instance_Ptr__);
+    while FSend_Queue_Swap_Pool.Num > 0 do
       begin
         DisposeQueueData(FSend_Queue_Swap_Pool.First^.data);
         FSend_Queue_Swap_Pool.Next;
@@ -12303,7 +12309,7 @@ begin
 
   { progress event pool }
   try
-    if FProgress_Pool.num > 0 then
+    if FProgress_Pool.Num > 0 then
       begin
         with FProgress_Pool.Repeat_ do
           repeat
@@ -12466,7 +12472,7 @@ begin
         { progress local instance }
         Progress;
         { progress global instance }
-        if ZNet_Instance_Pool.num > 0 then
+        if ZNet_Instance_Pool.Num > 0 then
           with ZNet_Instance_Pool.Repeat_ do
             repeat
               try
@@ -12490,7 +12496,7 @@ begin
     { progress local instance }
     Progress;
     { progress global instance }
-    if ZNet_Instance_Pool.num > 0 then
+    if ZNet_Instance_Pool.Num > 0 then
       with ZNet_Instance_Pool.Repeat_ do
         repeat
           try
@@ -12616,7 +12622,7 @@ end;
 
 procedure TZNet.PrintRegistedCMD(prefix: SystemString; incl_internalCMD: Boolean);
 begin
-  if FCommand_Hash_Pool.num > 0 then
+  if FCommand_Hash_Pool.Num > 0 then
     with FCommand_Hash_Pool.Queue_Pool.Repeat_ do
       repeat
         if incl_internalCMD or (not umlMultipleMatch('__@*', Queue^.data^.data.Primary)) then
@@ -13290,7 +13296,7 @@ begin
 
   tk := GetTimeTick();
   while (FCMD_Thread_Runing_Num > 0) and (GetTimeTick() - tk < 5000) do // fixed long wait, by.qq600585,
-      CheckThreadSynchronize(100);
+      Check_Soft_Thread_Synchronize(100);
 
   DeleteRegistedCMD(C_CipherModel);
   DeleteRegistedCMD(C_Wait);
@@ -15202,7 +15208,7 @@ begin
   if ClientIO = nil then
       exit;
   ClientIO.FSend_Queue_Critical.Lock;
-  if ClientIO.FQueuePool.num > 0 then
+  if ClientIO.FQueuePool.Num > 0 then
       Result := PQueueData(ClientIO.FQueuePool.Last^.data);
   ClientIO.FSend_Queue_Critical.UnLock;
 end;
@@ -15224,7 +15230,7 @@ begin
   if ClientIO = nil then
       exit;
   ClientIO.FSend_Queue_Critical.Lock;
-  Result := ClientIO.FQueuePool.num;
+  Result := ClientIO.FQueuePool.Num;
   ClientIO.FSend_Queue_Critical.UnLock;
 end;
 
@@ -16276,7 +16282,7 @@ begin
         end;
     end;
 
-  while FSendQueue.num > 0 do
+  while FSendQueue.Num > 0 do
     begin
       TZNet_P2PVM.FreeP2PVMPacket(FSendQueue.current^.data);
       FSendQueue.Next;
@@ -16361,7 +16367,7 @@ end;
 
 function TP2PVM_PeerIO.WriteBuffer_is_NULL: Boolean;
 begin
-  Result := (FRealSendBuff.Size <= 0) and (FSendQueue.num <= 0);
+  Result := (FRealSendBuff.Size <= 0) and (FSendQueue.Num <= 0);
 end;
 
 function TP2PVM_PeerIO.WriteBuffer_State(var WriteBuffer_Queue_Num, WriteBuffer_Size: Int64): Boolean;
@@ -16370,12 +16376,12 @@ var
   i: NativeInt;
 begin
   Result := not WriteBuffer_is_NULL;
-  WriteBuffer_Queue_Num := FSendQueue.num;
+  WriteBuffer_Queue_Num := FSendQueue.Num;
   WriteBuffer_Size := 0;
 
-  if FSendQueue.num > 0 then
+  if FSendQueue.Num > 0 then
     begin
-      i := FSendQueue.num;
+      i := FSendQueue.Num;
       p := FSendQueue.First;
       while True do
         begin
@@ -16747,7 +16753,7 @@ begin
     FP2PVM_CloneOwner := nil;
     FP2PVM_ClonePool_Ptr := nil;
 
-    while FP2PVM_ClonePool.num > 0 do
+    while FP2PVM_ClonePool.Num > 0 do
       begin
         FP2PVM_ClonePool.First^.data.FP2PVM_CloneOwner := nil;
         FP2PVM_ClonePool.First^.data.FP2PVM_ClonePool_Ptr := nil;
@@ -16887,7 +16893,7 @@ var
   __repeat__: TZNet_WithP2PVM_Client_Clone_Pool.TRepeat___;
 begin
   inherited Progress;
-  if FP2PVM_ClonePool.num > 0 then
+  if FP2PVM_ClonePool.Num > 0 then
     begin
       __repeat__ := FP2PVM_ClonePool.Repeat_();
       repeat
@@ -17228,7 +17234,7 @@ procedure TZNet_WithP2PVM_Client.Disconnect;
 var
   __repeat__: TZNet_WithP2PVM_Client_Clone_Pool.TRepeat___;
 begin
-  if FP2PVM_ClonePool.num > 0 then
+  if FP2PVM_ClonePool.Num > 0 then
     begin
       __repeat__ := FP2PVM_ClonePool.Repeat_();
       repeat
@@ -17810,7 +17816,7 @@ begin
   if TP2PVM_PeerIO(P_IO).FLinkVM <> self then
       exit;
 
-  if TP2PVM_PeerIO(P_IO).FSendQueue.num > 0 then
+  if TP2PVM_PeerIO(P_IO).FSendQueue.Num > 0 then
     begin
       p := TP2PVM_PeerIO(P_IO).FSendQueue.current^.data;
       TP2PVM_PeerIO(P_IO).FSendQueue.Next;

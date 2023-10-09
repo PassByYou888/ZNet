@@ -258,7 +258,7 @@ begin
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
 
-  name:='INDY-Client';
+  name := 'INDY-Client';
 end;
 
 destructor TZNet_Client_Indy.Destroy;

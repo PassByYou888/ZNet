@@ -183,6 +183,7 @@ end;
 procedure TZDBBatchDataServiceForm.Timer1Timer(Sender: TObject);
 begin
   DBService.Progress;
+  Check_Soft_Thread_Synchronize(10);
 end;
 
 procedure TZDBBatchDataServiceForm.Timer2Timer(Sender: TObject);

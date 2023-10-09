@@ -175,12 +175,13 @@ begin
   // client interface
   Driver.OnSessionAvailable := SessionAvailable;
 
-  name:='ICS-Server';
+  name := 'ICS-Server';
 end;
 
 destructor TZNet_Server_ICS.Destroy;
 begin
   StopService;
+  Check_Soft_Thread_Synchronize;
   try
       DisposeObject(Driver);
   except
@@ -197,10 +198,12 @@ begin
           cli.Disconnect;
         end);
       Progress;
+      Check_Soft_Thread_Synchronize;
     end;
 
   try
-      Driver.Close;
+    Check_Soft_Thread_Synchronize;
+    Driver.Close;
   except
   end;
 end;

@@ -13,7 +13,8 @@ interface
 uses SysUtils, Classes,
   Z.PascalStrings,
   Z.Net, Z.Core, Z.UnicodeMixedLib, Z.MemoryStream, Z.Notify,
-  Z.diocp_tcp_client;
+  Z.diocp_tcp_client,
+  Z.diocp_core_engine;
 
 type
   TDIOCPClient_PeerIO = class;
@@ -277,7 +278,7 @@ begin
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
 
-  name:='DIOCP-Client';
+  name := 'DIOCP-Client';
 end;
 
 destructor TZNet_Client_DIOCP.Destroy;
@@ -285,9 +286,9 @@ begin
   DCIntf.Link.CanTriggerDoDisconnect := False;
   DisposeObject(DCIntf.Link);
   DIOCPClientPool.RemoveAllContext;
-
   DIOCPClientPool.Close;
   DisposeObject(DIOCPClientPool);
+  Check_Soft_Thread_Synchronize;
   inherited Destroy;
 end;
 
@@ -343,7 +344,7 @@ procedure TZNet_Client_DIOCP.Progress;
 begin
   inherited Progress;
   try
-      Z.Core.CheckThreadSynchronize;
+      Z.Core.Check_Soft_Thread_Synchronize;
   except
   end;
 end;
@@ -458,6 +459,7 @@ begin
   DCIntf.OwnerFramework := Self;
   DCIntf.Link := TDIOCPClient_PeerIO.Create(Self, DCIntf);
   DCIntf.Link.Link := DCIntf;
+  Check_Soft_Thread_Synchronize;
 end;
 
 initialization

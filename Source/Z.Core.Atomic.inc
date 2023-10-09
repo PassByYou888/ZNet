@@ -60,7 +60,7 @@ begin
 {$ENDIF DEBUG}
 end;
 
-function Get_Object_Lock_Pool_Num: NativeInt;
+function Get_Atom_Lock_Pool_Num: NativeInt;
 begin
   Lock_Pool_Cirtical__.Acquire;
   Result := Lock_Pool__.Num;

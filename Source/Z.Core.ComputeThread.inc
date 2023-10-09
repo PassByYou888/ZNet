@@ -295,7 +295,7 @@ begin
 
   while (TCompute.ActivtedTask() > 0) do
     begin
-      CheckThreadSynchronize(10);
+      Check_Soft_Thread_Synchronize(10);
     end;
 
   Core_Thread_Pool__.Free;
@@ -357,7 +357,7 @@ begin
           IsExit^ := True;
 
       if Assigned(OnDone_C) or Assigned(OnDone_M) or Assigned(OnDone_P) then
-          Synchronize(Done_Sync);
+          SyncM(Self, Done_Sync);
 
       // check for idle thread, and again run.
       NoTask := True;
@@ -432,6 +432,7 @@ constructor TCompute.Create;
 begin
   inherited Create(True);
   FreeOnTerminate := True;
+  FSync_Tool := nil;
   Thread_Pool_Queue_Data_Ptr := nil;
   OnRun_C := nil;
   OnRun_M := nil;
@@ -453,7 +454,20 @@ end;
 
 destructor TCompute.Destroy;
 begin
+  DisposeObjectAndNil(FSync_Tool);
   inherited Destroy;
+end;
+
+function TCompute.Sync_Tool: TSoft_Synchronize_Tool;
+begin
+  if Self = Core_Main_Thread then
+      Result := MainThread_Sync_Tool
+  else
+    begin
+      if FSync_Tool = nil then
+          Sync_Tool := TSoft_Synchronize_Tool.Create(Self);
+      Result := Sync_Tool;
+    end;
 end;
 
 class function TCompute.Get_Core_Thread_Pool: TCoreCompute_Thread_Pool;
@@ -488,11 +502,12 @@ end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Compute:%d Activted:%d/%d Suspend:%d Wait_Thread:%d Critical:%d MT19937:%d Lock:%d Parallel:%d/%d Post:%d',
+  Result := Format('Task:%d Thread:%d/%d Wait:%d/%d Critical:%d/%d 19937:%d Atom:%d Parallel:%d/%d Post:%d SS:%d',
     [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), Wait_Thread(),
-      Get_System_Critical_Recycle_Pool_Num(), Get_MT19937_POOL_Num(), Get_Object_Lock_Pool_Num(),
+      Get_System_Critical_Num - Get_System_Critical_Recycle_Pool_Num, Get_System_Critical_Recycle_Pool_Num,
+      Get_MT19937_POOL_Num(), Get_Atom_Lock_Pool_Num(),
       Parallel_Overflow__.ActivtedParallel, Max_Activted_Parallel__,
-      MainThreadProgress.Num]);
+      MainThreadProgress.Num, MainThread_Sync_Tool.SyncQueue__.Num]);
 end;
 
 class function TCompute.GetParallelGranularity: Integer;
@@ -538,22 +553,28 @@ begin
   OnRunP := nil;
 end;
 
-class procedure TCompute.Sync(const OnRun_: TRun_Thread_P_NP);
+class procedure TCompute.Sync(OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(TCompute.CurrentThread, tmp.DoSync)
+  else
+      TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
-class procedure TCompute.Sync(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
+class procedure TCompute.Sync(Thread_: TThread; OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(Thread_, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(Thread_, tmp.DoSync)
+  else
+      TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncC(OnRun_: TRun_Thread_C_NP);
@@ -562,16 +583,22 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunC := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(TCompute.CurrentThread, tmp.DoSync)
+  else
+      TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
-class procedure TCompute.SyncC(const Thread_: TThread; OnRun_: TRun_Thread_C_NP);
+class procedure TCompute.SyncC(Thread_: TThread; OnRun_: TRun_Thread_C_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunC := OnRun_;
-  TCompute.Synchronize(Thread_, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(Thread_, tmp.DoSync)
+  else
+      TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
 class procedure TCompute.SyncM(OnRun_: TRun_Thread_M_NP);
@@ -580,34 +607,66 @@ var
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunM := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(TCompute.CurrentThread, tmp.DoSync)
+  else
+      TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
-class procedure TCompute.SyncM(const Thread_: TThread; OnRun_: TRun_Thread_M_NP);
+class procedure TCompute.SyncM(Thread_: TThread; OnRun_: TRun_Thread_M_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunM := OnRun_;
-  TCompute.Synchronize(Thread_, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(Thread_, tmp.DoSync)
+  else
+      TCompute.Synchronize(Thread_, tmp.DoSync);
 end;
 
-class procedure TCompute.SyncP(const OnRun_: TRun_Thread_P_NP);
+class procedure TCompute.SyncP(OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(TCompute.CurrentThread, tmp.DoSync)
+  else
+      TCompute.Synchronize(TCompute.CurrentThread, tmp.DoSync);
 end;
 
-class procedure TCompute.SyncP(const Thread_: TThread; OnRun_: TRun_Thread_P_NP);
+class procedure TCompute.SyncP(Thread_: TThread; OnRun_: TRun_Thread_P_NP);
 var
   tmp: TSyncTmp;
 begin
   tmp := TSyncTmp.Create;
   tmp.OnRunP := OnRun_;
-  TCompute.Synchronize(Thread_, tmp.DoSync);
+  if Used_Soft_Synchronize then
+      MainThread_Sync_Tool.Synchronize_M(Thread_, tmp.DoSync)
+  else
+      TCompute.Synchronize(Thread_, tmp.DoSync);
+end;
+
+class procedure TCompute.Sync_To(Dest_Thread_: TCompute; OnRun_: TRun_Thread_P_NP);
+begin
+  Dest_Thread_.Sync_Tool.Synchronize(TCompute.CurrentThread, OnRun_);
+end;
+
+class procedure TCompute.SyncC_To(Dest_Thread_: TCompute; OnRun_: TRun_Thread_C_NP);
+begin
+  Dest_Thread_.Sync_Tool.Synchronize_C(TCompute.CurrentThread, OnRun_);
+end;
+
+class procedure TCompute.SyncM_To(Dest_Thread_: TCompute; OnRun_: TRun_Thread_M_NP);
+begin
+  Dest_Thread_.Sync_Tool.Synchronize_M(TCompute.CurrentThread, OnRun_);
+end;
+
+class procedure TCompute.SyncP_To(Dest_Thread_: TCompute; OnRun_: TRun_Thread_P_NP);
+begin
+  Dest_Thread_.Sync_Tool.Synchronize_P(TCompute.CurrentThread, OnRun_);
 end;
 
 class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C);

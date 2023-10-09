@@ -556,7 +556,7 @@ end;
 procedure WaitFastGBKInit;
 begin
   while not GBKCache_Inited.V do
-      Z.Core.CheckThreadSynchronize(1);
+      TCompute.Sleep(1);
 end;
 
 initialization

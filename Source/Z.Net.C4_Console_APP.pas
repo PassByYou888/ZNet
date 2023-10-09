@@ -449,6 +449,7 @@ var
   n: string;
   cH: TC40_Console_Help;
 begin
+  TCompute.Set_Thread_Info('C4 Console-help Thread');
   cH := nil;
   repeat
     TCompute.Sleep(100);
@@ -479,7 +480,10 @@ end;
 procedure C40_Execute_Main_Loop;
 begin
   with TMain_Loop_Instance__.Create do
+    begin
       Wait;
+      Free;
+    end;
 end;
 
 initialization

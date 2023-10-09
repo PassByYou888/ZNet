@@ -120,6 +120,14 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2023-10-9 新增线程支持体系**
+
+- 新增双主线程技术支持体系
+- 重新梳理了cross/diocp/ics8/ics9/synapse/indy的通讯接口,全部test passed.
+- cross新版本还没有正式接入,缓冲几天
+- 新增双主线程的服务器demo,位于Examples目录
+- 更新技术手册
+
 **2023-10-7 ZNet立项以来的最大更新**
 
 - 全面万兆以太支持

@@ -756,6 +756,16 @@ type
     class function Init(Primary_: T1; Second_: T2; Third_: T3; Fourth_: T4; Five_: T5): TPair5<T1, T2, T3, T4, T5>; static;
   end;
 
+  TPair6<T1, T2, T3, T4, T5, T6> = packed record
+    Primary: T1;
+    Second: T2;
+    Third: T3;
+    Fourth: T4;
+    Five: T5;
+    Six: T6;
+    class function Init(Primary_: T1; Second_: T2; Third_: T3; Fourth_: T4; Five_: T5; Six_: T6): TPair6<T1, T2, T3, T4, T5, T6>; static;
+  end;
+
   TPair2_Tool<T1_, T2_> = class(TCore_Object)
   public type
     TPair = TPair2<T1_, T2_>;
@@ -818,6 +828,22 @@ type
     procedure DoFree(var Data: TPair); virtual;
     procedure DoAdd(var Data: TPair); virtual;
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
+  end;
+
+  TPair6_Tool<T1_, T2_, T3_, T4_, T5_, T6_> = class(TCore_Object)
+  public type
+    TPair = TPair6<T1_, T2_, T3_, T4_, T5_, T6_>;
+    PPair = ^TPair;
+    TPair_BigList__ = TBigList<TPair>;
+    PPair__ = TPair_BigList__.PQueueStruct;
+  public
+    List: TPair_BigList__;
+    property L: TPair_BigList__ read List;
+    constructor Create;
+    destructor Destroy; override;
+    procedure DoFree(var Data: TPair); virtual;
+    procedure DoAdd(var Data: TPair); virtual;
+    function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_; Six: T6_): PPair__;
   end;
 {$ENDREGION 'Pair'}
 {$Region 'Hash-Tool'}
@@ -1060,6 +1086,33 @@ type
   end;
 
 {$EndRegion 'Hash-Tool'}
+{$REGION 'soft_synchronize_technology'}
+  // soft thread-synchronize simulator
+  TOnSynchronize_C_NP = procedure();
+  TOnSynchronize_M_NP = procedure() of object;
+{$IFDEF FPC}
+  TOnSynchronize_P_NP = procedure() is nested;
+{$ELSE FPC}
+  TOnSynchronize_P_NP = reference to procedure();
+{$ENDIF FPC}
+
+  TSoft_Synchronize_Tool = class
+  private type
+    TSynchronize_Data___ = TPair4<TOnSynchronize_C_NP, TOnSynchronize_M_NP, TOnSynchronize_P_NP, PBoolean>;
+    TSynchronize_Queue___ = TCritical_BigList<TSynchronize_Data___>;
+  private
+    SyncQueue__: TSynchronize_Queue___;
+  public
+    Soft_Synchronize_Main_Thread: TCore_Thread;
+    constructor Create(Soft_Synchronize_Main_Thread_: TCore_Thread);
+    destructor Destroy; override;
+    function Check_Synchronize(Check_Time_: TTimeTick): NativeInt;
+    procedure Synchronize(Thread_: TCore_Thread; OnSync: TOnSynchronize_P_NP);
+    procedure Synchronize_C(Thread_: TCore_Thread; OnSync: TOnSynchronize_C_NP);
+    procedure Synchronize_M(Thread_: TCore_Thread; OnSync: TOnSynchronize_M_NP);
+    procedure Synchronize_P(Thread_: TCore_Thread; OnSync: TOnSynchronize_P_NP);
+  end;
+{$ENDREGION 'soft_synchronize_technology'}
 {$Region 'ThreadPost'}
   TThreadPost_C1 = procedure();
   TThreadPost_C2 = procedure(Data1: Pointer);
@@ -1168,24 +1221,24 @@ type
   end;
 
 {$EndRegion 'ThreadPost'}
-{$Region 'Compute'}
+{$Region 'Compute_Thread'}
   TCompute = class;
 
   TRun_Thread_C = procedure(ThSender: TCompute);
   TRun_Thread_M = procedure(ThSender: TCompute) of object;
-  TRun_Thread_C_NP = procedure();
-  TRun_Thread_M_NP = procedure() of object;
+  TRun_Thread_C_NP = TOnSynchronize_C_NP;
+  TRun_Thread_M_NP = TOnSynchronize_M_NP;
+  TRun_Thread_P_NP = TOnSynchronize_P_NP;
   {$IFDEF FPC}
   TRun_Thread_P = procedure(ThSender: TCompute) is nested;
-  TRun_Thread_P_NP = procedure() is nested;
   {$ELSE FPC}
   TRun_Thread_P = reference to procedure(ThSender: TCompute);
-  TRun_Thread_P_NP = reference to procedure();
   {$ENDIF FPC}
   TCoreCompute_Thread_Pool = TBigList<TCompute>;
 
   TCompute = class(TCore_Thread)
   private
+    FSync_Tool: TSoft_Synchronize_Tool;
     Thread_Pool_Queue_Data_Ptr: TCoreCompute_Thread_Pool.PQueueStruct;
     OnRun_C: TRun_Thread_C;
     OnRun_M: TRun_Thread_M;
@@ -1213,6 +1266,7 @@ type
 
     constructor Create;
     destructor Destroy; override;
+    function Sync_Tool: TSoft_Synchronize_Tool;
     class procedure Set_Thread_Info(Thread_Info_: string); overload;
     class procedure Set_Thread_Info(const Fmt: string; const Args: array of const); overload;
     class function Get_Core_Thread_Pool: TCoreCompute_Thread_Pool;
@@ -1226,14 +1280,20 @@ type
     class function GetMaxActivtedParallel(): Integer;
 
     // build-in synchronization
-    class procedure Sync(const OnRun_: TRun_Thread_P_NP); overload;
-    class procedure Sync(const Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
+    class procedure Sync(OnRun_: TRun_Thread_P_NP); overload;
+    class procedure Sync(Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
     class procedure SyncC(OnRun_: TRun_Thread_C_NP); overload;
-    class procedure SyncC(const Thread_: TThread; OnRun_: TRun_Thread_C_NP); overload;
+    class procedure SyncC(Thread_: TThread; OnRun_: TRun_Thread_C_NP); overload;
     class procedure SyncM(OnRun_: TRun_Thread_M_NP); overload;
-    class procedure SyncM(const Thread_: TThread; OnRun_: TRun_Thread_M_NP); overload;
-    class procedure SyncP(const OnRun_: TRun_Thread_P_NP); overload;
-    class procedure SyncP(const Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
+    class procedure SyncM(Thread_: TThread; OnRun_: TRun_Thread_M_NP); overload;
+    class procedure SyncP(OnRun_: TRun_Thread_P_NP); overload;
+    class procedure SyncP(Thread_: TThread; OnRun_: TRun_Thread_P_NP); overload;
+
+    // build-in synchronization to
+    class procedure Sync_To(Dest_Thread_:TCompute; OnRun_: TRun_Thread_P_NP);
+    class procedure SyncC_To(Dest_Thread_:TCompute; OnRun_: TRun_Thread_C_NP);
+    class procedure SyncM_To(Dest_Thread_:TCompute; OnRun_: TRun_Thread_M_NP);
+    class procedure SyncP_To(Dest_Thread_:TCompute; OnRun_: TRun_Thread_P_NP);
 
     // build-in asynchronous thread
     class procedure RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C); overload;
@@ -1310,7 +1370,7 @@ type
 
   // TCompute alias
   TComputeThread = TCompute;
-{$EndRegion 'Compute'}
+{$EndRegion 'Compute_Thread'}
 {$Region 'MT19937Random'}
   TMT19937Random = class(TCore_Object)
   private
@@ -1365,9 +1425,10 @@ type
 {$Region 'Parallel-API'}
 
 function Max_Thread_Supported: Integer;
+function Get_System_Critical_Num: NativeInt;
 function Get_System_Critical_Recycle_Pool_Num: NativeInt;
 function Get_MT19937_POOL_Num: NativeInt;
-function Get_Object_Lock_Pool_Num: NativeInt;
+function Get_Atom_Lock_Pool_Num: NativeInt;
 function Get_Parallel_Granularity: Integer;
 procedure Set_Parallel_Granularity(Thread_Num: Integer);
 procedure Set_IDLE_Compute_Wait_Time_Tick(Tick_: TTimeTick);
@@ -1451,21 +1512,39 @@ procedure ParallelFor(parallel: Boolean; OnFor: TDelphiParallel_P64; b, e: Int64
 {$EndRegion 'Parallel-API'}
 {$Region 'core api'}
 
+// dual main-thread Simulator
+procedure Begin_Simulator_Main_Thread(Simulator_Main_Proc_: TOnSynchronize_C_NP);
+function Simulator_Main_Thread_Activted: Boolean;
+
 // NoP = No Operation. It's the empty function, whose purpose is only for the
 // debugging, or for the piece of code where intentionaly nothing is planned to be.
 procedure Nop;
-
 // debug state
 function IsDebuging: Boolean;
 
-// process Synchronize
+// check soft thread phototype
+var On_Check_Soft_Thread_Synchronize: function(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+function Do_Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+
+// check system thread phototype
+var On_Check_System_Thread_Synchronize: function(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+function Do_Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+
+// check synchronize api
 function IsMainThread: Boolean;
+function Check_Soft_Thread_Synchronize: Boolean; overload;
+function Check_Soft_Thread_Synchronize(Timeout: TTimeTick): Boolean; overload;
+function Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean; overload;
+procedure Check_System_Thread_Synchronize; overload;
+function Check_System_Thread_Synchronize(Timeout: TTimeTick): Boolean; overload;
+function Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean; overload;
 procedure CheckThreadSynchronize; overload;
-function CheckThreadSynchronize(Timeout: Integer): Boolean; overload;
+function CheckThreadSynchronize(Timeout: TTimeTick): Boolean; overload;
 procedure CheckThreadSync; overload;
-function CheckThreadSync(Timeout: Integer): Boolean; overload;
+function CheckThreadSync(Timeout: TTimeTick): Boolean; overload;
 procedure CheckThread; overload;
-function CheckThread(Timeout: Integer): Boolean; overload;
+function CheckThread(Timeout: TTimeTick): Boolean; overload;
+
 function Get_Compiler_Version: string;
 
 // core thread pool
@@ -1683,9 +1762,14 @@ function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDEF I
 {$Region 'core var'}
 
 type TOnCheckThreadSynchronize = procedure();
-
 var
-  // Synchronize
+  // Soft-Synchronize
+  Core_Main_Thread: TCore_Thread; // custom main-thread
+  Core_Main_Thread_ID: TThreadID; // custom main-thread-id
+  Used_Soft_Synchronize: Boolean; // used soft thread synchronize simulator
+  MainThread_Sync_Tool: TSoft_Synchronize_Tool; // soft synchronize tool for main-thread
+
+  // Check Synchronize for main-thread
   Enabled_Check_Thread_Synchronize_System: Boolean;
   Main_Thread_Synchronize_Running: Boolean;
   Main_Thread_OnCheck_Runing: Boolean;
@@ -2223,17 +2307,6 @@ begin
   inherited Clear;
 end;
 
-{$I Z.Core.ThreadPost.inc}
-{$I Z.Core.ComputeThread.inc}
-
-{$IFDEF FPC}
-  {$I Z.Core.FPCParallelFor.inc}
-{$ELSE FPC}
-  {$I Z.Core.DelphiParallelFor.inc}
-{$ENDIF FPC}
-
-{$I Z.Core.AtomVar.inc}
-
 procedure Nop;
 begin
 end;
@@ -2254,19 +2327,58 @@ end;
 
 function IsMainThread: Boolean;
 begin
-  Result := TCore_Thread.CurrentThread.ThreadID = MainThreadID;
+  Result := TCore_Thread.CurrentThread.ThreadID = Core_Main_Thread_ID;
 end;
 
-procedure CheckThreadSynchronize;
+function Do_Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
 begin
-  CheckThreadSynchronize(0);
+  Result := False;
+  if Used_Soft_Synchronize then
+    begin
+      if (TCore_Thread.CurrentThread <> MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
+        begin
+          if Timeout > 0 then
+              TCore_Thread.Sleep(Timeout);
+          Result := False;
+        end
+      else
+        begin
+          MainThreadProgress.Progress(Core_Main_Thread_ID);
+
+          if not Main_Thread_Synchronize_Running then
+            begin
+              Main_Thread_Synchronize_Running := True;
+              try
+                MainThread_Sync_Tool.Check_Synchronize(Timeout);
+                Result := True;
+              finally
+                Main_Thread_Synchronize_Running := False;
+              end;
+            end;
+
+          if Run_Hook_Event_ and (not Main_Thread_OnCheck_Runing) then
+            begin
+              Main_Thread_OnCheck_Runing := True;
+              try
+                if Assigned(OnCheckThreadSynchronize) then
+                    OnCheckThreadSynchronize();
+              finally
+                Main_Thread_OnCheck_Runing := False;
+              end;
+            end;
+        end;
+    end
+  else
+    begin
+      Result := Check_System_Thread_Synchronize(Timeout, Run_Hook_Event_);
+    end;
 end;
 
-function CheckThreadSynchronize(Timeout: Integer): Boolean;
+function Do_Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
 begin
   Result := False;
 
-  if (TCore_Thread.CurrentThread.ThreadID <> MainThreadID) then
+  if (TCore_Thread.CurrentThread.ThreadID <> Core_Main_Thread_ID) then
     begin
       if Timeout > 0 then
           TCore_Thread.Sleep(Timeout);
@@ -2274,20 +2386,23 @@ begin
     end
   else if Enabled_Check_Thread_Synchronize_System then
     begin
-      MainThreadProgress.Progress(MainThreadID);
+      MainThreadProgress.Progress(Core_Main_Thread_ID);
 
       if not Main_Thread_Synchronize_Running then
         begin
           Main_Thread_Synchronize_Running := True;
           try
-              Result := CheckSynchronize(Timeout);
+              if Core_Main_Thread_ID = MainThreadID then
+                Result := CheckSynchronize(Timeout);
+              if Used_Soft_Synchronize and (MainThread_Sync_Tool.Soft_Synchronize_Main_Thread = Core_Main_Thread) then
+                Result := (MainThread_Sync_Tool.Check_Synchronize(Timeout) > 0) or Result;
           except
               Result := False;
           end;
           Main_Thread_Synchronize_Running := False;
         end;
 
-      if not Main_Thread_OnCheck_Runing then
+      if Run_Hook_Event_ and (not Main_Thread_OnCheck_Runing) then
         begin
           Main_Thread_OnCheck_Runing := True;
           try
@@ -2301,24 +2416,70 @@ begin
     end;
 end;
 
-procedure CheckThreadSync;
+function Check_Soft_Thread_Synchronize: Boolean;
 begin
-  CheckThreadSynchronize(0);
+  Result := Check_Soft_Thread_Synchronize(10);
 end;
 
-function CheckThreadSync(Timeout: Integer): Boolean;
+function Check_Soft_Thread_Synchronize(Timeout: TTimeTick): Boolean;
 begin
-  Result := CheckThreadSynchronize(Timeout);
+  Result := Check_Soft_Thread_Synchronize(Timeout, False);
+end;
+
+function Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+begin
+  if Assigned(On_Check_Soft_Thread_Synchronize) then
+    Result := On_Check_Soft_Thread_Synchronize(Timeout, Run_Hook_Event_)
+  else
+    Result := False;
+end;
+
+procedure Check_System_Thread_Synchronize;
+begin
+  Check_System_Thread_Synchronize(5);
+end;
+
+function Check_System_Thread_Synchronize(Timeout: TTimeTick): Boolean;
+begin
+  Check_System_Thread_Synchronize(Timeout, True);
+end;
+
+function Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
+begin
+  if Assigned(On_Check_System_Thread_Synchronize) then
+    Result := On_Check_System_Thread_Synchronize(Timeout, Run_Hook_Event_)
+  else
+    Result := False;
+end;
+
+procedure CheckThreadSynchronize;
+begin
+  Check_System_Thread_Synchronize(0);
+end;
+
+function CheckThreadSynchronize(Timeout: TTimeTick): Boolean;
+begin
+  Result := Check_System_Thread_Synchronize(Timeout);
+end;
+
+procedure CheckThreadSync;
+begin
+  Check_System_Thread_Synchronize(0);
+end;
+
+function CheckThreadSync(Timeout: TTimeTick): Boolean;
+begin
+  Result := Check_System_Thread_Synchronize(Timeout);
 end;
 
 procedure CheckThread;
 begin
-  CheckThreadSynchronize(0);
+  Check_System_Thread_Synchronize(0);
 end;
 
-function CheckThread(Timeout: Integer): Boolean;
+function CheckThread(Timeout: TTimeTick): Boolean;
 begin
-  Result := CheckThreadSynchronize(Timeout);
+  Result := Check_System_Thread_Synchronize(Timeout);
 end;
 
 function Get_Compiler_Version: string;
@@ -2367,6 +2528,17 @@ begin
   {$IFDEF CPU64} + ' 64 bit' {$ELSE CPU64} + ' 32 bit' {$ENDIF CPU64};
 end;
 
+{$I Z.Core.SoftSynchronize.inc}
+{$I Z.Core.ThreadPost.inc}
+{$I Z.Core.ComputeThread.inc}
+
+{$IFDEF FPC}
+  {$I Z.Core.FPCParallelFor.inc}
+{$ELSE FPC}
+  {$I Z.Core.DelphiParallelFor.inc}
+{$ENDIF FPC}
+
+{$I Z.Core.AtomVar.inc}
 {$I Z.Core.OrderData.inc}
 {$I Z.Core.BigList.inc}
 {$I Z.Core.Hash_Pair.inc}
@@ -2374,7 +2546,13 @@ end;
 
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+  Core_Main_Thread := TCore_Thread.CurrentThread;
+  Core_Main_Thread_ID := MainThreadID;
   Init_System_Critical_Recycle_Pool();
+  Used_Soft_Synchronize := {$IFDEF Core_Thread_Soft_Synchronize}True{$ELSE Core_Thread_Soft_Synchronize}False{$ENDIF Core_Thread_Soft_Synchronize};
+  MainThread_Sync_Tool := TSoft_Synchronize_Tool.Create(Core_Main_Thread);
+  On_Check_Soft_Thread_Synchronize := Do_Check_Soft_Thread_Synchronize;
+  On_Check_System_Thread_Synchronize := Do_Check_System_Thread_Synchronize;
   OnCheckThreadSynchronize := nil;
   WorkInParallelCore := TAtomBool.Create(True);
   ParallelCore := WorkInParallelCore;
@@ -2387,13 +2565,14 @@ initialization
   InitCoreThreadPool(
     if_(IsDebuging, 2, CpuCount * 2),
     if_(IsDebuging, 2, {$IFDEF LimitMaxParallelThread}8{$ELSE LimitMaxParallelThread}CpuCount * 2{$ENDIF LimitMaxParallelThread}));
-  MainThreadProgress := TThreadPost.Create(MainThreadID);
+  MainThreadProgress := TThreadPost.Create(Core_Main_Thread_ID);
   MainThreadProgress.OneStep := False;
   Enabled_Check_Thread_Synchronize_System := True;
   Main_Thread_Synchronize_Running := False;
   Main_Thread_OnCheck_Runing := False;
   MainThreadPost := MainThreadProgress;
 finalization
+  Check_Soft_Thread_Synchronize(0);
   FreeCoreThreadPool;
   MainThreadProgress.Free;
   FreeMT19937Rand();
@@ -2402,5 +2581,7 @@ finalization
   WorkInParallelCore := nil;
   GlobalMemoryHook.Free;
   GlobalMemoryHook := nil;
+  DisposeObjectAndNil(MainThread_Sync_Tool);
   Free_System_Critical_Recycle_Pool();
 end.
+

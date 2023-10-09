@@ -590,7 +590,7 @@ end;
 procedure WaitGBKMediaInit;
 begin
   while not GBKMediaInited.V do
-      Z.Core.CheckThreadSynchronize(10);
+      TCompute.Sleep(10);
 end;
 
 function GBKIsBusy: Boolean;

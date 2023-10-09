@@ -1094,7 +1094,7 @@ begin
       except
       end;
     end;
-  C40Progress(0);
+  C40Progress();
 end;
 
 procedure C40Progress(sleep_: Integer);
@@ -1106,7 +1106,7 @@ begin
   C40Progress_Working := True;
   if sleep_ > 0 then
       TCompute.Sleep(sleep_);
-  CheckThread;
+  Check_Soft_Thread_Synchronize(sleep_, True);
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
   try
@@ -1125,7 +1125,7 @@ end;
 
 procedure C40Progress;
 begin
-  C40Progress(1);
+  C40Progress(10);
 end;
 
 function C40_Online_DP: TC40_Dispatch_Client;
@@ -1567,7 +1567,7 @@ end;
 
 function GetRegisterServiceTypFromClass(ClientClass: TC40_Custom_Client_Class): U_String;
 begin
-  Result:=GetRegisterClientTypFromClass(ClientClass);
+  Result := GetRegisterClientTypFromClass(ClientClass);
 end;
 
 function GetRegisterServiceTypFromClass(ServiceClass: TC40_Custom_Service_Class): U_String;
@@ -1866,7 +1866,12 @@ end;
 
 procedure TC40_PhysicsService.StartService;
 begin
-  FActivted := PhysicsTunnel.StartService(ListeningAddr, PhysicsPort);
+  try
+      FActivted := PhysicsTunnel.StartService(ListeningAddr, PhysicsPort);
+  except
+      FActivted := False;
+  end;
+
   if FActivted then
     begin
       PhysicsTunnel.Print('Physics Service Listening successed, internet addr: %s port: %d', [ListeningAddr.Text, PhysicsPort]);
@@ -1881,7 +1886,11 @@ procedure TC40_PhysicsService.StopService;
 begin
   if not FActivted then
       exit;
-  PhysicsTunnel.StopService;
+  try
+      PhysicsTunnel.StopService;
+  except
+  end;
+  FActivted := False;
   PhysicsTunnel.Print('Physics Service Listening Stop.', []);
   if Assigned(OnEvent) then
       OnEvent.C40_PhysicsService_Stop(Self);

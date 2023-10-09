@@ -84,9 +84,20 @@ type
   end;
 
 var
-  ClientPool: TGlobalCrossSocketClientPool = nil;
+  Global_CrossSocket_ClientPool: TGlobalCrossSocketClientPool = nil;
+  CrossSocket_Instance_Num: TAtomInt;
 
 implementation
+
+function ClientPool: TGlobalCrossSocketClientPool;
+begin
+  if Global_CrossSocket_ClientPool = nil then
+    begin
+      Global_CrossSocket_ClientPool := TGlobalCrossSocketClientPool.Create;
+      TCompute.Sleep(100);
+    end;
+  Result := Global_CrossSocket_ClientPool;
+end;
 
 procedure TCrossSocketClient_PeerIO.CreateAfter;
 begin
@@ -138,7 +149,7 @@ end;
 constructor TZNet_Client_CrossSocket.Create;
 begin
   inherited Create;
-  EnabledAtomicLockAndMultiThread := False;
+  CrossSocket_Instance_Num.UnLock(CrossSocket_Instance_Num.LockP^ + 1);
   FOnAsyncConnectNotify_C := nil;
   FOnAsyncConnectNotify_M := nil;
   FOnAsyncConnectNotify_P := nil;
@@ -148,6 +159,9 @@ end;
 destructor TZNet_Client_CrossSocket.Destroy;
 begin
   Disconnect;
+  CrossSocket_Instance_Num.UnLock(CrossSocket_Instance_Num.LockP^ - 1);
+  if CrossSocket_Instance_Num.V <= 0 then
+      DisposeObjectAndNil(Global_CrossSocket_ClientPool);
   inherited Destroy;
 end;
 
@@ -204,7 +218,7 @@ begin
   inherited Progress;
 
   try
-      Z.Core.CheckThreadSynchronize;
+      Z.Core.Check_Soft_Thread_Synchronize;
   except
   end;
 end;
@@ -269,8 +283,6 @@ begin
   driver.OnReceived := DoReceived;
 
   AutoReconnect := False;
-
-  ClientPool := Self;
 end;
 
 destructor TGlobalCrossSocketClientPool.Destroy;
@@ -279,8 +291,14 @@ begin
       ICrossSocket(driver).DisconnectAll;
   except
   end;
+  // CrossSocket使用了RTL的Synchronize机制,这是兼容UI的机制,在服务器领域这是非常蛋疼的东西
+  // soft_synchronize_technology是Synchronize硬件仿真技术,用于DLL和静态库使用独立线程仿RTL真主线程,
+  // 使用soft_synchronize_technology系技术,必须非常小心,同步队列一旦出问题都是传导型的问题
+  // 如果开启了soft_synchronize_technology,这里必须同步一下
+  // 同步的作用是清理IO同步事件,以免卡端口,导致PostQueuedCompletionStatus消息过去卡队列
+  // 无论Used_Soft_Synchronize是否开启Check_Soft_Thread_Synchronize都会清理掉当前的UI同步队列.
+  Check_Soft_Thread_Synchronize;
   DisposeObject(driver);
-  ClientPool := nil;
   inherited Destroy;
 end;
 
@@ -290,32 +308,28 @@ begin
 end;
 
 procedure TGlobalCrossSocketClientPool.DoDisconnect(Sender: TObject; AConnection: ICrossConnection);
+var
+  p_io: TCrossSocketClient_PeerIO;
 begin
-  TCore_Thread.Synchronize(TCore_Thread.CurrentThread,
-      procedure
-    var
-      p_io: TCrossSocketClient_PeerIO;
+  if AConnection.UserObject is TCrossSocketClient_PeerIO then
     begin
-      if AConnection.UserObject is TCrossSocketClient_PeerIO then
+      p_io := TCrossSocketClient_PeerIO(AConnection.UserObject);
+
+      if p_io = nil then
+          Exit;
+
+      p_io.IOInterface := nil;
+
+      if p_io.OwnerClient <> nil then
         begin
-          p_io := TCrossSocketClient_PeerIO(AConnection.UserObject);
-
-          if p_io = nil then
-              Exit;
-
-          p_io.IOInterface := nil;
-
-          if p_io.OwnerClient <> nil then
-            begin
-              try
-                  DisposeObject(p_io);
-              except
-              end;
-            end;
-
-          AConnection.UserObject := nil;
+          try
+              DisposeObject(p_io);
+          except
+          end;
         end;
-    end);
+
+      AConnection.UserObject := nil;
+    end;
 end;
 
 procedure TGlobalCrossSocketClientPool.DoReceived(Sender: TObject; AConnection: ICrossConnection; aBuf: Pointer; ALen: Integer);
@@ -359,7 +373,7 @@ begin
   LastConnection := nil;
 
   if BuildIntf.ClientIOIntf <> nil then
-      Z.Core.CheckThreadSynchronize(10);
+      Z.Core.Check_Soft_Thread_Synchronize(10);
 
   if BuildIntf.ClientIOIntf <> nil then
     begin
@@ -370,13 +384,13 @@ begin
       end;
       while BuildIntf.ClientIOIntf <> nil do
         begin
-          CheckThreadSynchronize(10);
+          Check_Soft_Thread_Synchronize(10);
           BuildIntf.Progress;
         end;
     end;
 
   ICrossSocket(driver).Connect(addr, Port,
-    procedure(AConnection: ICrossConnection; ASuccess: Boolean)
+      procedure(AConnection: ICrossConnection; ASuccess: Boolean)
     begin
       LastCompleted := True;
       LastResult := ASuccess;
@@ -390,7 +404,7 @@ begin
   while (not LastCompleted) and (GetTimeTick < dt) do
     begin
       BuildIntf.Progress;
-      CheckThreadSynchronize(5);
+      Check_Soft_Thread_Synchronize(5);
     end;
 
   if LastResult then
@@ -425,7 +439,7 @@ procedure TGlobalCrossSocketClientPool.BuildAsyncConnect(addr: SystemString; Por
 begin
   try
     if BuildIntf.ClientIOIntf <> nil then
-        Z.Core.CheckThreadSynchronize(10);
+        Z.Core.Check_Soft_Thread_Synchronize(10);
     if BuildIntf.ClientIOIntf <> nil then
       begin
         try
@@ -449,20 +463,17 @@ begin
 
   ICrossSocket(driver).Connect(addr, Port,
     procedure(AConnection: ICrossConnection; ASuccess: Boolean)
+    var
+      p_io: TCrossSocketClient_PeerIO;
     begin
       if ASuccess then
         begin
-          TCompute.SyncP(procedure
-            var
-              p_io: TCrossSocketClient_PeerIO;
-            begin
-              p_io := TCrossSocketClient_PeerIO.Create(BuildIntf, AConnection.ConnectionIntf);
-              p_io.OwnerClient := BuildIntf;
-              AConnection.UserObject := p_io;
-              p_io.OwnerClient.ClientIOIntf := p_io;
-              p_io.OnSendBackcall := DoSendBuffResult;
-              BuildIntf.DoConnected(p_io);
-            end);
+          p_io := TCrossSocketClient_PeerIO.Create(BuildIntf, AConnection.ConnectionIntf);
+          p_io.OwnerClient := BuildIntf;
+          AConnection.UserObject := p_io;
+          p_io.OwnerClient.ClientIOIntf := p_io;
+          p_io.OnSendBackcall := DoSendBuffResult;
+          BuildIntf.DoConnected(p_io);
         end
       else
         begin
@@ -479,10 +490,12 @@ end;
 
 initialization
 
-TGlobalCrossSocketClientPool.Create;
+Global_CrossSocket_ClientPool := nil;
+CrossSocket_Instance_Num := TAtomInt.Create(0);
 
 finalization
 
-DisposeObject(ClientPool);
+DisposeObjectAndNil(Global_CrossSocket_ClientPool);
+DisposeObjectAndNil(CrossSocket_Instance_Num);
 
 end.

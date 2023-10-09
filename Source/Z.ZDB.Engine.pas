@@ -10,7 +10,7 @@ unit Z.ZDB.Engine;
 interface
 
 uses SysUtils, Classes,
-  Z.ListEngine, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.TextDataEngine,
+  Z.ListEngine, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib, Z.TextDataEngine, Z.Notify,
   Z.Json,
   Z.Core, Z.MemoryStream, Z.ZDB.ObjectData_LIB, Z.ZDB,
   Z.DFE, Z.ZDB.ItemStream_LIB;
@@ -368,6 +368,7 @@ type
   TQueryThread = class(TCore_Thread)
   public
     StoreEngine: TDBStore;
+    Activted: Boolean;
     Paused: Boolean;
     PausedIdleTime: Double;
     RemoveQueue, RemoveCompletedQueue: TInt64HashPointerList;
@@ -383,7 +384,7 @@ type
 
     procedure Execute; override;
 
-    constructor Create(CreateSuspended: Boolean);
+    constructor Create(StoreEngine_: TDBStore);
     destructor Destroy; override;
 
     procedure RemoveDeleteProc(p: Pointer);
@@ -453,7 +454,7 @@ type
     FUserString: SystemString;
   protected
     procedure ReadHeaderInfo;
-    procedure ThreadFreeEvent(Sender: TObject);
+    procedure ThreadFreeEvent;
     procedure DoCreateInit; virtual;
     procedure InstanceCacheObjectFreeProc(Obj: TCore_Object);
     procedure ProcessNewInstanceCache(StorePos: Int64; Obj: TCore_Object; siz: NativeInt);
@@ -693,7 +694,7 @@ procedure ZDB_ThSync(t: TCore_Thread; Sync: Boolean; proc: TThreadMethod);
 begin
   try
     if Sync then
-        TCore_Thread.Synchronize(t, proc)
+        TCompute.SyncM(t, proc)
     else
         proc();
   except
@@ -2106,14 +2107,13 @@ var
   cloop: NativeInt;
 begin
   cloop := 0;
-  while StoreEngine <> nil do
+  while Activted do
     begin
       PausedIdleTime := 0;
       while Paused do
         begin
           Sleep(10);
           PausedIdleTime := PausedIdleTime + 0.01;
-
           ZDB_ThSync(Self, True, SyncCheckCache);
         end;
 
@@ -2126,12 +2126,16 @@ begin
 
       inc(cloop);
     end;
+  ZDB_ThSync(Self, True, StoreEngine.ThreadFreeEvent);
+  DelayFreeObj(1.0, Self);
 end;
 
-constructor TQueryThread.Create(CreateSuspended: Boolean);
+constructor TQueryThread.Create(StoreEngine_: TDBStore);
 begin
-  inherited Create(CreateSuspended);
-  FreeOnTerminate := True;
+  inherited Create(True);
+  FreeOnTerminate := False;
+  StoreEngine := StoreEngine_;
+  Activted := True;
   Paused := True;
 
   RemoveQueue := TInt64HashPointerList.CustomCreate(1024);
@@ -2237,7 +2241,7 @@ begin
   FCount := f.HeaderCount;
 end;
 
-procedure TDBStore.ThreadFreeEvent(Sender: TObject);
+procedure TDBStore.ThreadFreeEvent();
 begin
   FQueryThreadTerminate := True;
 end;
@@ -2246,8 +2250,7 @@ procedure TDBStore.DoCreateInit;
 begin
   FQueryQueue := TCore_ListForObj.Create;
 
-  FQueryThread := TQueryThread.Create(True);
-  FQueryThread.StoreEngine := Self;
+  FQueryThread := TQueryThread.Create(Self);
 
   FQueryThreadTerminate := False;
   FQueryThreadLastActivtedTime := Now;
@@ -2281,7 +2284,6 @@ begin
   FResultJson := TDBEngineJson.Create;
   FResultPascalString := TDBEnginePascalString.Create;
 
-  FQueryThread.OnTerminate := ThreadFreeEvent;
   FQueryThread.Suspended := False;
 
   FUserPointer := nil;
@@ -2406,12 +2408,12 @@ destructor TDBStore.Destroy;
 var
   i: Integer;
 begin
-  FQueryThread.StoreEngine := nil;
+  FQueryThread.Activted:=False;
   FQueryThread.Paused := False;
 
   // wait thread
   while not FQueryThreadTerminate do
-      CheckThreadSynchronize;
+      Check_Soft_Thread_Synchronize(10);
 
   for i := 0 to FQueryQueue.Count - 1 do
       DisposeObject(FQueryQueue[i]);
@@ -3097,7 +3099,7 @@ end;
 procedure TDBStore.WaitQueryThread;
 begin
   while not FQueryThread.Paused do
-      CheckThreadSynchronize(1);
+      Check_Soft_Thread_Synchronize(10);
 end;
 
 procedure TDBStore.WaitQueryThread(waitTime: TTimeTick);
@@ -3106,7 +3108,7 @@ var
 begin
   st := GetTimeTick + waitTime;
   while (not FQueryThread.Paused) and (waitTime > 0) and (GetTimeTick < st) do
-      CheckThreadSynchronize;
+      Check_Soft_Thread_Synchronize(10);
 end;
 
 function TDBStore.QueryProcessing: Boolean;

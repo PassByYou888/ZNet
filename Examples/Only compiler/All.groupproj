@@ -297,16 +297,19 @@
         <Projects Include="..\135_StringReplaceTech\_135_StringReplaceTech.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj">
+        <Projects Include="..\144_CompleteBuffer\_144_CompleteBuffer_Server.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\145_VeryEasyC4Project\_145_VeryEasyC4Project.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\146_C4_work_in_thread\_146_C4_work_in_thread.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\144_CompleteBuffer\_144_CompleteBuffer_Server.dproj">
-            <Dependencies/>
-        </Projects>
-        <Projects Include="..\145_VeryEasyC4Project\_145_VeryEasyC4Project.dproj">
+        <Projects Include="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -1199,24 +1202,6 @@
     <Target Name="_135_StringReplaceTech:Make">
         <MSBuild Projects="..\135_StringReplaceTech\_135_StringReplaceTech.dproj" Targets="Make"/>
     </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Client">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj"/>
-    </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Clean">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Make">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Make"/>
-    </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj"/>
-    </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Clean">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Make">
-        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Make"/>
-    </Target>
     <Target Name="_144_CompleteBuffer_Server">
         <MSBuild Projects="..\144_CompleteBuffer\_144_CompleteBuffer_Server.dproj"/>
     </Target>
@@ -1235,14 +1220,41 @@
     <Target Name="_145_VeryEasyC4Project:Make">
         <MSBuild Projects="..\145_VeryEasyC4Project\_145_VeryEasyC4Project.dproj" Targets="Make"/>
     </Target>
+    <Target Name="_146_C4_work_in_thread">
+        <MSBuild Projects="..\146_C4_work_in_thread\_146_C4_work_in_thread.dproj"/>
+    </Target>
+    <Target Name="_146_C4_work_in_thread:Clean">
+        <MSBuild Projects="..\146_C4_work_in_thread\_146_C4_work_in_thread.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_146_C4_work_in_thread:Make">
+        <MSBuild Projects="..\146_C4_work_in_thread\_146_C4_work_in_thread.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Clean">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Serv:Make">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Clean">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_500_Multi_Long_Run_In_ZNet_Client:Make">
+        <MSBuild Projects="..\500.Multi_Long_Process_In_ZNet\_500_Multi_Long_Run_In_ZNet_Client.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="EzServer;EzClient;FMXClient;DRClient;DRServer;FMXDRClient;DClient;DServer;FMXDClient;EZLinuxServ;ClientToLinuxServer;FMXADClient;HPC_Client;HPC_Client_FMX;HPC_Server;MHDemo;TextParsingDemo;VirtualAuth_Client;VirtualAuth_Server;VMDoubleAuthServer;VMDoubleAuthClient;VMDoubleAuthFMXClient;VMServ;VMCli;XInternet;XLan;XLanMobile;LanNatVirtualServer;ZDBBatchDataService;FMXBatchDataClient;ADClient;ADRestoreClient;ADRestoreServer;ADServer;ARMCPUTest;CustomProtocol;StreamServerOnLinux;StreamClientOnFMX;DatasetSimOnLinuxServer;DatasetSimOnFMX;ChatHome;CustomStableIOServerDemo;CustomStableIOClientDemo;XNAT_Internet;XNATMobileServer;UserClient;reverse_p2pVM_client;reverse_p2pVM_serv;zsServ;zsLIB;DLL_Test;ParallelCompressor;QuantumEncryptDemo;zExpressionSupport;PascalCodeDependencyAnslysis;NumTrans;LargeScale_ZDB_DataBuild;ParallelDemo;Wildcard;AsyncStateDemo;automatedP2PVM_Serv;automatedP2PVM_Cli;AsyncClient;AsyncServer;automatedP2PVM_HPC_Serv;automatedP2PVM_HPC_Cli;reverse_automatedP2PVM_Serv;reverse_automatedP2PVM_Cli;CopyPtrSpeed;FragmentServiceDemo;FragmentClientDemo;DatastoreServ;InternetServ;InternetCli;OrderStructForThread;OrderStructDemo;DT_P2PVM_VirtualAuth_Client;DT_P2PVM_VirtualAuth_Server;DT_P2PVM_VirtualAuth_CustomClient;DT_P2PVM_VirtualAuth_CustomServer;DT_P2PVM_NoAuth_CustomClient;DT_P2PVM_NoAuth_CustomServer;DT_P2PVM_NoAuth_Client;DT_P2PVM_NoAuth_Server;DT_P2PVM_Client;DT_P2PVM_Server;DT_P2PVM_Custom_Client;DT_P2PVM_Custom_Server;_105_MHDemo;_116_RealtimeDataFrameEncoder;_117_ZDB2_Json_DB;_118_SaveMyDocument;_119_BigList_PK_List;_127_MatchedAlgorithm;_129_ZDB2_Thread_App_Demo;_131_PostExecuteTech;_136_TextDataEngine;_135_StringReplaceTech;_500_Multi_Long_Run_In_ZNet_Client;_500_Multi_Long_Run_In_ZNet_Serv;_144_CompleteBuffer_Server;_145_VeryEasyC4Project"/>
+        <CallTarget Targets="EzServer;EzClient;FMXClient;DRClient;DRServer;FMXDRClient;DClient;DServer;FMXDClient;EZLinuxServ;ClientToLinuxServer;FMXADClient;HPC_Client;HPC_Client_FMX;HPC_Server;MHDemo;TextParsingDemo;VirtualAuth_Client;VirtualAuth_Server;VMDoubleAuthServer;VMDoubleAuthClient;VMDoubleAuthFMXClient;VMServ;VMCli;XInternet;XLan;XLanMobile;LanNatVirtualServer;ZDBBatchDataService;FMXBatchDataClient;ADClient;ADRestoreClient;ADRestoreServer;ADServer;ARMCPUTest;CustomProtocol;StreamServerOnLinux;StreamClientOnFMX;DatasetSimOnLinuxServer;DatasetSimOnFMX;ChatHome;CustomStableIOServerDemo;CustomStableIOClientDemo;XNAT_Internet;XNATMobileServer;UserClient;reverse_p2pVM_client;reverse_p2pVM_serv;zsServ;zsLIB;DLL_Test;ParallelCompressor;QuantumEncryptDemo;zExpressionSupport;PascalCodeDependencyAnslysis;NumTrans;LargeScale_ZDB_DataBuild;ParallelDemo;Wildcard;AsyncStateDemo;automatedP2PVM_Serv;automatedP2PVM_Cli;AsyncClient;AsyncServer;automatedP2PVM_HPC_Serv;automatedP2PVM_HPC_Cli;reverse_automatedP2PVM_Serv;reverse_automatedP2PVM_Cli;CopyPtrSpeed;FragmentServiceDemo;FragmentClientDemo;DatastoreServ;InternetServ;InternetCli;OrderStructForThread;OrderStructDemo;DT_P2PVM_VirtualAuth_Client;DT_P2PVM_VirtualAuth_Server;DT_P2PVM_VirtualAuth_CustomClient;DT_P2PVM_VirtualAuth_CustomServer;DT_P2PVM_NoAuth_CustomClient;DT_P2PVM_NoAuth_CustomServer;DT_P2PVM_NoAuth_Client;DT_P2PVM_NoAuth_Server;DT_P2PVM_Client;DT_P2PVM_Server;DT_P2PVM_Custom_Client;DT_P2PVM_Custom_Server;_105_MHDemo;_116_RealtimeDataFrameEncoder;_117_ZDB2_Json_DB;_118_SaveMyDocument;_119_BigList_PK_List;_127_MatchedAlgorithm;_129_ZDB2_Thread_App_Demo;_131_PostExecuteTech;_136_TextDataEngine;_135_StringReplaceTech;_144_CompleteBuffer_Server;_145_VeryEasyC4Project;_146_C4_work_in_thread;_500_Multi_Long_Run_In_ZNet_Serv;_500_Multi_Long_Run_In_ZNet_Client"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="EzServer:Clean;EzClient:Clean;FMXClient:Clean;DRClient:Clean;DRServer:Clean;FMXDRClient:Clean;DClient:Clean;DServer:Clean;FMXDClient:Clean;EZLinuxServ:Clean;ClientToLinuxServer:Clean;FMXADClient:Clean;HPC_Client:Clean;HPC_Client_FMX:Clean;HPC_Server:Clean;MHDemo:Clean;TextParsingDemo:Clean;VirtualAuth_Client:Clean;VirtualAuth_Server:Clean;VMDoubleAuthServer:Clean;VMDoubleAuthClient:Clean;VMDoubleAuthFMXClient:Clean;VMServ:Clean;VMCli:Clean;XInternet:Clean;XLan:Clean;XLanMobile:Clean;LanNatVirtualServer:Clean;ZDBBatchDataService:Clean;FMXBatchDataClient:Clean;ADClient:Clean;ADRestoreClient:Clean;ADRestoreServer:Clean;ADServer:Clean;ARMCPUTest:Clean;CustomProtocol:Clean;StreamServerOnLinux:Clean;StreamClientOnFMX:Clean;DatasetSimOnLinuxServer:Clean;DatasetSimOnFMX:Clean;ChatHome:Clean;CustomStableIOServerDemo:Clean;CustomStableIOClientDemo:Clean;XNAT_Internet:Clean;XNATMobileServer:Clean;UserClient:Clean;reverse_p2pVM_client:Clean;reverse_p2pVM_serv:Clean;zsServ:Clean;zsLIB:Clean;DLL_Test:Clean;ParallelCompressor:Clean;QuantumEncryptDemo:Clean;zExpressionSupport:Clean;PascalCodeDependencyAnslysis:Clean;NumTrans:Clean;LargeScale_ZDB_DataBuild:Clean;ParallelDemo:Clean;Wildcard:Clean;AsyncStateDemo:Clean;automatedP2PVM_Serv:Clean;automatedP2PVM_Cli:Clean;AsyncClient:Clean;AsyncServer:Clean;automatedP2PVM_HPC_Serv:Clean;automatedP2PVM_HPC_Cli:Clean;reverse_automatedP2PVM_Serv:Clean;reverse_automatedP2PVM_Cli:Clean;CopyPtrSpeed:Clean;FragmentServiceDemo:Clean;FragmentClientDemo:Clean;DatastoreServ:Clean;InternetServ:Clean;InternetCli:Clean;OrderStructForThread:Clean;OrderStructDemo:Clean;DT_P2PVM_VirtualAuth_Client:Clean;DT_P2PVM_VirtualAuth_Server:Clean;DT_P2PVM_VirtualAuth_CustomClient:Clean;DT_P2PVM_VirtualAuth_CustomServer:Clean;DT_P2PVM_NoAuth_CustomClient:Clean;DT_P2PVM_NoAuth_CustomServer:Clean;DT_P2PVM_NoAuth_Client:Clean;DT_P2PVM_NoAuth_Server:Clean;DT_P2PVM_Client:Clean;DT_P2PVM_Server:Clean;DT_P2PVM_Custom_Client:Clean;DT_P2PVM_Custom_Server:Clean;_105_MHDemo:Clean;_116_RealtimeDataFrameEncoder:Clean;_117_ZDB2_Json_DB:Clean;_118_SaveMyDocument:Clean;_119_BigList_PK_List:Clean;_127_MatchedAlgorithm:Clean;_129_ZDB2_Thread_App_Demo:Clean;_131_PostExecuteTech:Clean;_136_TextDataEngine:Clean;_135_StringReplaceTech:Clean;_500_Multi_Long_Run_In_ZNet_Client:Clean;_500_Multi_Long_Run_In_ZNet_Serv:Clean;_144_CompleteBuffer_Server:Clean;_145_VeryEasyC4Project:Clean"/>
+        <CallTarget Targets="EzServer:Clean;EzClient:Clean;FMXClient:Clean;DRClient:Clean;DRServer:Clean;FMXDRClient:Clean;DClient:Clean;DServer:Clean;FMXDClient:Clean;EZLinuxServ:Clean;ClientToLinuxServer:Clean;FMXADClient:Clean;HPC_Client:Clean;HPC_Client_FMX:Clean;HPC_Server:Clean;MHDemo:Clean;TextParsingDemo:Clean;VirtualAuth_Client:Clean;VirtualAuth_Server:Clean;VMDoubleAuthServer:Clean;VMDoubleAuthClient:Clean;VMDoubleAuthFMXClient:Clean;VMServ:Clean;VMCli:Clean;XInternet:Clean;XLan:Clean;XLanMobile:Clean;LanNatVirtualServer:Clean;ZDBBatchDataService:Clean;FMXBatchDataClient:Clean;ADClient:Clean;ADRestoreClient:Clean;ADRestoreServer:Clean;ADServer:Clean;ARMCPUTest:Clean;CustomProtocol:Clean;StreamServerOnLinux:Clean;StreamClientOnFMX:Clean;DatasetSimOnLinuxServer:Clean;DatasetSimOnFMX:Clean;ChatHome:Clean;CustomStableIOServerDemo:Clean;CustomStableIOClientDemo:Clean;XNAT_Internet:Clean;XNATMobileServer:Clean;UserClient:Clean;reverse_p2pVM_client:Clean;reverse_p2pVM_serv:Clean;zsServ:Clean;zsLIB:Clean;DLL_Test:Clean;ParallelCompressor:Clean;QuantumEncryptDemo:Clean;zExpressionSupport:Clean;PascalCodeDependencyAnslysis:Clean;NumTrans:Clean;LargeScale_ZDB_DataBuild:Clean;ParallelDemo:Clean;Wildcard:Clean;AsyncStateDemo:Clean;automatedP2PVM_Serv:Clean;automatedP2PVM_Cli:Clean;AsyncClient:Clean;AsyncServer:Clean;automatedP2PVM_HPC_Serv:Clean;automatedP2PVM_HPC_Cli:Clean;reverse_automatedP2PVM_Serv:Clean;reverse_automatedP2PVM_Cli:Clean;CopyPtrSpeed:Clean;FragmentServiceDemo:Clean;FragmentClientDemo:Clean;DatastoreServ:Clean;InternetServ:Clean;InternetCli:Clean;OrderStructForThread:Clean;OrderStructDemo:Clean;DT_P2PVM_VirtualAuth_Client:Clean;DT_P2PVM_VirtualAuth_Server:Clean;DT_P2PVM_VirtualAuth_CustomClient:Clean;DT_P2PVM_VirtualAuth_CustomServer:Clean;DT_P2PVM_NoAuth_CustomClient:Clean;DT_P2PVM_NoAuth_CustomServer:Clean;DT_P2PVM_NoAuth_Client:Clean;DT_P2PVM_NoAuth_Server:Clean;DT_P2PVM_Client:Clean;DT_P2PVM_Server:Clean;DT_P2PVM_Custom_Client:Clean;DT_P2PVM_Custom_Server:Clean;_105_MHDemo:Clean;_116_RealtimeDataFrameEncoder:Clean;_117_ZDB2_Json_DB:Clean;_118_SaveMyDocument:Clean;_119_BigList_PK_List:Clean;_127_MatchedAlgorithm:Clean;_129_ZDB2_Thread_App_Demo:Clean;_131_PostExecuteTech:Clean;_136_TextDataEngine:Clean;_135_StringReplaceTech:Clean;_144_CompleteBuffer_Server:Clean;_145_VeryEasyC4Project:Clean;_146_C4_work_in_thread:Clean;_500_Multi_Long_Run_In_ZNet_Serv:Clean;_500_Multi_Long_Run_In_ZNet_Client:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="EzServer:Make;EzClient:Make;FMXClient:Make;DRClient:Make;DRServer:Make;FMXDRClient:Make;DClient:Make;DServer:Make;FMXDClient:Make;EZLinuxServ:Make;ClientToLinuxServer:Make;FMXADClient:Make;HPC_Client:Make;HPC_Client_FMX:Make;HPC_Server:Make;MHDemo:Make;TextParsingDemo:Make;VirtualAuth_Client:Make;VirtualAuth_Server:Make;VMDoubleAuthServer:Make;VMDoubleAuthClient:Make;VMDoubleAuthFMXClient:Make;VMServ:Make;VMCli:Make;XInternet:Make;XLan:Make;XLanMobile:Make;LanNatVirtualServer:Make;ZDBBatchDataService:Make;FMXBatchDataClient:Make;ADClient:Make;ADRestoreClient:Make;ADRestoreServer:Make;ADServer:Make;ARMCPUTest:Make;CustomProtocol:Make;StreamServerOnLinux:Make;StreamClientOnFMX:Make;DatasetSimOnLinuxServer:Make;DatasetSimOnFMX:Make;ChatHome:Make;CustomStableIOServerDemo:Make;CustomStableIOClientDemo:Make;XNAT_Internet:Make;XNATMobileServer:Make;UserClient:Make;reverse_p2pVM_client:Make;reverse_p2pVM_serv:Make;zsServ:Make;zsLIB:Make;DLL_Test:Make;ParallelCompressor:Make;QuantumEncryptDemo:Make;zExpressionSupport:Make;PascalCodeDependencyAnslysis:Make;NumTrans:Make;LargeScale_ZDB_DataBuild:Make;ParallelDemo:Make;Wildcard:Make;AsyncStateDemo:Make;automatedP2PVM_Serv:Make;automatedP2PVM_Cli:Make;AsyncClient:Make;AsyncServer:Make;automatedP2PVM_HPC_Serv:Make;automatedP2PVM_HPC_Cli:Make;reverse_automatedP2PVM_Serv:Make;reverse_automatedP2PVM_Cli:Make;CopyPtrSpeed:Make;FragmentServiceDemo:Make;FragmentClientDemo:Make;DatastoreServ:Make;InternetServ:Make;InternetCli:Make;OrderStructForThread:Make;OrderStructDemo:Make;DT_P2PVM_VirtualAuth_Client:Make;DT_P2PVM_VirtualAuth_Server:Make;DT_P2PVM_VirtualAuth_CustomClient:Make;DT_P2PVM_VirtualAuth_CustomServer:Make;DT_P2PVM_NoAuth_CustomClient:Make;DT_P2PVM_NoAuth_CustomServer:Make;DT_P2PVM_NoAuth_Client:Make;DT_P2PVM_NoAuth_Server:Make;DT_P2PVM_Client:Make;DT_P2PVM_Server:Make;DT_P2PVM_Custom_Client:Make;DT_P2PVM_Custom_Server:Make;_105_MHDemo:Make;_116_RealtimeDataFrameEncoder:Make;_117_ZDB2_Json_DB:Make;_118_SaveMyDocument:Make;_119_BigList_PK_List:Make;_127_MatchedAlgorithm:Make;_129_ZDB2_Thread_App_Demo:Make;_131_PostExecuteTech:Make;_136_TextDataEngine:Make;_135_StringReplaceTech:Make;_500_Multi_Long_Run_In_ZNet_Client:Make;_500_Multi_Long_Run_In_ZNet_Serv:Make;_144_CompleteBuffer_Server:Make;_145_VeryEasyC4Project:Make"/>
+        <CallTarget Targets="EzServer:Make;EzClient:Make;FMXClient:Make;DRClient:Make;DRServer:Make;FMXDRClient:Make;DClient:Make;DServer:Make;FMXDClient:Make;EZLinuxServ:Make;ClientToLinuxServer:Make;FMXADClient:Make;HPC_Client:Make;HPC_Client_FMX:Make;HPC_Server:Make;MHDemo:Make;TextParsingDemo:Make;VirtualAuth_Client:Make;VirtualAuth_Server:Make;VMDoubleAuthServer:Make;VMDoubleAuthClient:Make;VMDoubleAuthFMXClient:Make;VMServ:Make;VMCli:Make;XInternet:Make;XLan:Make;XLanMobile:Make;LanNatVirtualServer:Make;ZDBBatchDataService:Make;FMXBatchDataClient:Make;ADClient:Make;ADRestoreClient:Make;ADRestoreServer:Make;ADServer:Make;ARMCPUTest:Make;CustomProtocol:Make;StreamServerOnLinux:Make;StreamClientOnFMX:Make;DatasetSimOnLinuxServer:Make;DatasetSimOnFMX:Make;ChatHome:Make;CustomStableIOServerDemo:Make;CustomStableIOClientDemo:Make;XNAT_Internet:Make;XNATMobileServer:Make;UserClient:Make;reverse_p2pVM_client:Make;reverse_p2pVM_serv:Make;zsServ:Make;zsLIB:Make;DLL_Test:Make;ParallelCompressor:Make;QuantumEncryptDemo:Make;zExpressionSupport:Make;PascalCodeDependencyAnslysis:Make;NumTrans:Make;LargeScale_ZDB_DataBuild:Make;ParallelDemo:Make;Wildcard:Make;AsyncStateDemo:Make;automatedP2PVM_Serv:Make;automatedP2PVM_Cli:Make;AsyncClient:Make;AsyncServer:Make;automatedP2PVM_HPC_Serv:Make;automatedP2PVM_HPC_Cli:Make;reverse_automatedP2PVM_Serv:Make;reverse_automatedP2PVM_Cli:Make;CopyPtrSpeed:Make;FragmentServiceDemo:Make;FragmentClientDemo:Make;DatastoreServ:Make;InternetServ:Make;InternetCli:Make;OrderStructForThread:Make;OrderStructDemo:Make;DT_P2PVM_VirtualAuth_Client:Make;DT_P2PVM_VirtualAuth_Server:Make;DT_P2PVM_VirtualAuth_CustomClient:Make;DT_P2PVM_VirtualAuth_CustomServer:Make;DT_P2PVM_NoAuth_CustomClient:Make;DT_P2PVM_NoAuth_CustomServer:Make;DT_P2PVM_NoAuth_Client:Make;DT_P2PVM_NoAuth_Server:Make;DT_P2PVM_Client:Make;DT_P2PVM_Server:Make;DT_P2PVM_Custom_Client:Make;DT_P2PVM_Custom_Server:Make;_105_MHDemo:Make;_116_RealtimeDataFrameEncoder:Make;_117_ZDB2_Json_DB:Make;_118_SaveMyDocument:Make;_119_BigList_PK_List:Make;_127_MatchedAlgorithm:Make;_129_ZDB2_Thread_App_Demo:Make;_131_PostExecuteTech:Make;_136_TextDataEngine:Make;_135_StringReplaceTech:Make;_144_CompleteBuffer_Server:Make;_145_VeryEasyC4Project:Make;_146_C4_work_in_thread:Make;_500_Multi_Long_Run_In_ZNet_Serv:Make;_500_Multi_Long_Run_In_ZNet_Client:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
