@@ -116,14 +116,8 @@ end;
 
 begin
   RunCompressorTest(1024 * 1024 * 2);
-  RunCompressorTest(1024 * 1024 * 2);
-
   RunCompressorTest(1024 * 1024 * 4);
-  RunCompressorTest(1024 * 1024 * 4);
-
   RunCompressorTest(1024 * 1024 * 8);
-  RunCompressorTest(1024 * 1024 * 8);
-
   DoStatus('finish.');
   readln;
 

@@ -328,7 +328,7 @@ begin
       // 断线重连机制
       InitOrCheckConnectToDatabaseService;
 
-      TCompute.Sleep(1);
+      CheckThread(10);
     end;
 end;
 

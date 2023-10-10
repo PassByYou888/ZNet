@@ -216,11 +216,6 @@ end;
 procedure TZNet_Client_CrossSocket.Progress;
 begin
   inherited Progress;
-
-  try
-      Z.Core.Check_Soft_Thread_Synchronize;
-  except
-  end;
 end;
 
 procedure TZNet_Client_CrossSocket.AsyncConnect(addr: SystemString; Port: Word);

@@ -99,6 +99,7 @@ end;
 
 procedure TDoubleTunnelClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   client.Progress;
 end;
 

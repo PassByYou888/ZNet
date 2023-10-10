@@ -7741,7 +7741,7 @@ begin
   d.WriteString(FSyncPick^.ConsoleData);
 
   EnSiz := d.ComputeEncodeSize;
-  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 1024, 1024 * 1024));
+  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 8192, 64 * 1024));
 
   if OwnerFramework.FSendDataCompressed then
     begin
@@ -7782,7 +7782,7 @@ begin
   d.WriteStream(FSyncPick^.StreamData);
 
   EnSiz := d.ComputeEncodeSize;
-  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 1024, 1024 * 1024));
+  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 8192, 64 * 1024));
 
   if OwnerFramework.FSendDataCompressed then
     begin
@@ -7823,7 +7823,7 @@ begin
   d.WriteString(FSyncPick^.ConsoleData);
 
   EnSiz := d.ComputeEncodeSize;
-  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 1024, 1024 * 1024));
+  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 8192, 64 * 1024));
 
   if OwnerFramework.FSendDataCompressed then
     begin
@@ -7864,7 +7864,7 @@ begin
   d.WriteStream(FSyncPick^.StreamData);
 
   EnSiz := d.ComputeEncodeSize;
-  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 1024, 1024 * 1024));
+  Stream := TMS64.CustomCreate(umlClamp(EnSiz, 8192, 64 * 1024));
 
   if OwnerFramework.FSendDataCompressed then
     begin
@@ -8011,7 +8011,7 @@ var
 begin
   BeginSend;
   EnSiz := FOutDataFrame.ComputeEncodeSize;
-  m64 := TMS64.CustomCreate(umlClamp(EnSiz, 1024, 1024 * 1024));
+  m64 := TMS64.CustomCreate(umlClamp(EnSiz, 8192, 64 * 1024));
 
   if OwnerFramework.FSendDataCompressed then
     begin
@@ -9102,7 +9102,7 @@ begin
   FCompleteBufferCompressedSize := 0;
   FCompleteBufferCompleted := 0;
   FCompleteBufferCmd := '';
-  FCompleteBufferReceivedStream := TMS64.CustomCreate(umlMax(OwnerFramework.FMaxCompleteBufferSize, 1024 * 1024));
+  FCompleteBufferReceivedStream := TMS64.CustomCreate(umlMin(OwnerFramework.FMaxCompleteBufferSize, 64 * 1024));
   FCompleteBuffer_Current_Trigger := nil;
 
   FCurrentQueueData := nil;
@@ -12513,7 +12513,7 @@ begin
 
   { check thread synchronize }
   try
-      CheckThread;
+      Check_Soft_Thread_Synchronize(0);
   except
   end;
 
@@ -14221,7 +14221,7 @@ procedure TZNet_Server.SendCompleteBuffer_DirectStream(P_IO: TPeerIO; const Cmd:
 var
   tmp: TMS64;
 begin
-  tmp := TMS64.CustomCreate(1024 * 1024);
+  tmp := TMS64.CustomCreate(64 * 1024);
   buff.FastEncodeTo(tmp);
   SendCompleteBuffer(P_IO, Cmd, tmp, True);
 end;
@@ -14253,7 +14253,7 @@ begin
   p^.ID := P_IO.ID;
   p^.OnStreamM := OnResult;
 
-  m64 := TMS64.CustomCreate(1024 * 1024);
+  m64 := TMS64.CustomCreate(64 * 1024);
   m64.WriteUInt64(UInt64(p));
   buff.FastEncodeTo(m64);
 
@@ -14287,7 +14287,7 @@ begin
   p^.ID := P_IO.ID;
   p^.OnStreamP := OnResult;
 
-  m64 := TMS64.CustomCreate(1024 * 1024);
+  m64 := TMS64.CustomCreate(64 * 1024);
   m64.WriteUInt64(UInt64(p));
   buff.FastEncodeTo(m64);
 
@@ -14323,7 +14323,7 @@ procedure TZNet_Server.SendCompleteBuffer(IO_ID: Cardinal; const Cmd: SystemStri
 var
   tmp: TMS64;
 begin
-  tmp := TMS64.CustomCreate(1024 * 1024);
+  tmp := TMS64.CustomCreate(64 * 1024);
   buff.FastEncodeTo(tmp);
   SendCompleteBuffer(IO_ID, Cmd, tmp, True);
 end;
@@ -15984,7 +15984,7 @@ procedure TZNet_Client.SendCompleteBuffer_DirectStream(const Cmd: SystemString; 
 var
   tmp: TMS64;
 begin
-  tmp := TMS64.CustomCreate(1024 * 1024);
+  tmp := TMS64.CustomCreate(64 * 1024);
   buff.FastEncodeTo(tmp);
   SendCompleteBuffer(Cmd, tmp, True);
 end;
@@ -16016,7 +16016,7 @@ begin
   p^.ID := ClientIO.ID;
   p^.OnStreamM := OnResult;
 
-  m64 := TMS64.CustomCreate(1024 * 1024);
+  m64 := TMS64.CustomCreate(64 * 1024);
   m64.WriteUInt64(UInt64(p));
   buff.FastEncodeTo(m64);
 
@@ -16050,7 +16050,7 @@ begin
   p^.ID := ClientIO.ID;
   p^.OnStreamP := OnResult;
 
-  m64 := TMS64.CustomCreate(1024 * 1024);
+  m64 := TMS64.CustomCreate(64 * 1024);
   m64.WriteUInt64(UInt64(p));
   buff.FastEncodeTo(m64);
 
@@ -16246,7 +16246,7 @@ procedure TP2PVM_PeerIO.CreateAfter;
 begin
   inherited CreateAfter;
   FLinkVM := nil;
-  FRealSendBuff := TMem64.CustomCreate(1024);
+  FRealSendBuff := TMem64.CustomCreate(64 * 1024);
   FSendQueue := TP2P_VM_Fragment_Packet_Pool.Create;
   FRemote_frameworkID := 0;
   FRemote_p2pID := 0;
@@ -17451,7 +17451,7 @@ begin
 
   if p64 > 0 then
     begin
-      sourStream := TMS64.CustomCreate(8192);
+      sourStream := TMS64.CustomCreate(64 * 1024);
       FReceiveStream.Position := p64;
       if FReceiveStream.Size - FReceiveStream.Position > 0 then
           sourStream.CopyFrom(FReceiveStream, FReceiveStream.Size - FReceiveStream.Position);
@@ -17846,8 +17846,8 @@ begin
   FFrameworkListenPool := TP2PVM_Listen_List.Create;
   FMaxVMFragmentSize := ZNet_Def_P2PVM_MaxVMFragmentSize;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
-  FReceiveStream := TMS64.CustomCreate(16384);
-  FSendStream := TMS64.CustomCreate(16384);
+  FReceiveStream := TMS64.CustomCreate(64 * 1024);
+  FSendStream := TMS64.CustomCreate(64 * 1024);
   FWaitEchoList := TP2PVM_ECHO_List.Create;
   FVMID := 0;
   OnAuthSuccessOnesNotify := nil;

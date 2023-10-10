@@ -66,6 +66,7 @@ end;
 
 procedure TMobileForm.netTimerTimer(Sender: TObject);
 begin
+  CheckThread(1);
   if XCli <> nil then
       XCli.Progress;
 end;

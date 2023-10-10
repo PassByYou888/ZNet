@@ -230,6 +230,7 @@ end;
 
 procedure TFMXAuthDoubleClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   client.Progress;
   TimeLabel.text := Format('sync time:%f', [client.CadencerEngine.UpdateCurrentTime]);
 end;

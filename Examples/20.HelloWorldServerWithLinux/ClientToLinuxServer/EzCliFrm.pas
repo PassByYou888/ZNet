@@ -188,6 +188,7 @@ end;
 
 procedure TEZClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   Client.Progress;
 end;
 

@@ -82,7 +82,7 @@ object AsyncClientForm: TAsyncClientForm
     OnClick = SendCompletebufferButtonClick
   end
   object Timer1: TTimer
-    Interval = 1
+    Interval = 10
     OnTimer = Timer1Timer
     Left = 368
     Top = 8

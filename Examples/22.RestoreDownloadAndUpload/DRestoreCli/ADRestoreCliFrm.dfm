@@ -10,11 +10,13 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  OldCreateOrder = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   DesignSize = (
     630
     383)
+  PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 119
@@ -70,7 +72,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 121
     Height = 21
     EditLabel.Width = 65
-    EditLabel.Height = 21
+    EditLabel.Height = 13
     EditLabel.Caption = 'host address '
     LabelPosition = lpLeft
     TabOrder = 2
@@ -91,7 +93,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 97
     Height = 21
     EditLabel.Width = 22
-    EditLabel.Height = 21
+    EditLabel.Height = 13
     EditLabel.Caption = 'User'
     LabelPosition = lpLeft
     TabOrder = 4
@@ -103,7 +105,7 @@ object AuthDoubleTunnelClientForm: TAuthDoubleTunnelClientForm
     Width = 97
     Height = 21
     EditLabel.Width = 36
-    EditLabel.Height = 21
+    EditLabel.Height = 13
     EditLabel.Caption = 'Passwd'
     LabelPosition = lpLeft
     TabOrder = 5

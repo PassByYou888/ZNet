@@ -1125,7 +1125,7 @@ end;
 
 procedure C40Progress;
 begin
-  C40Progress(10);
+  C40Progress(1);
 end;
 
 function C40_Online_DP: TC40_Dispatch_Client;

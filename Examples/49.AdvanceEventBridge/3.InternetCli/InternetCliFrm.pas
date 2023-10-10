@@ -263,7 +263,7 @@ procedure TInternetCliForm.fpsTimerTimer(Sender: TObject);
 begin
   InternetClient.Progress;
   InternetPhyCli.Progress;
-  CheckThreadSynchronize;
+  CheckThreadSynchronize(1);
 end;
 
 procedure TInternetCliForm.goButtonClick(Sender: TObject);

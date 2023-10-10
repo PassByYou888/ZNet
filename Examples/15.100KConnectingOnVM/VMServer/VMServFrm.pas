@@ -214,6 +214,7 @@ procedure TVMServForm.ProgressTimerTimer(Sender: TObject);
 var
   connectingcount, InitedCount: Integer;
 begin
+  CheckThread(100);
   ServTunnel.Progress;
   ServWithVM.Progress;
 

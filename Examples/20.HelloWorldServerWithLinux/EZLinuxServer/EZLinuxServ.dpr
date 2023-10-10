@@ -139,7 +139,7 @@ begin
 
       // ÑÓ³ÙÍ¬²½¼ì²é
       try
-          Z.Core.CheckThreadSynchronize(10);
+          CheckThread(10);
       except
       end;
     end;

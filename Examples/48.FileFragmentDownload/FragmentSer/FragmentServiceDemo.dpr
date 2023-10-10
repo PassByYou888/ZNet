@@ -42,7 +42,7 @@ begin
     begin
       phyServ.Progress;
       logic.Progress;
-      CheckThreadSynchronize(1);
+      CheckThreadSynchronize(10);
     end;
 
 end.

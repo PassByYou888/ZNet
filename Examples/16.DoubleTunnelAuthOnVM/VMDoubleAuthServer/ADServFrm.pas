@@ -313,6 +313,7 @@ end;
 
 procedure TAuthDoubleServerForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   VMTunnel.Progress;
   Service.Progress;
   TimeLabel.Caption := Format('sync time:%f', [Service.CadencerEngine.UpdateCurrentTime]);

@@ -27,7 +27,7 @@ end;
 // 模拟构建.CSV格式文件
 procedure BuildRandCSVData;
 const
-  c_MaxFileSize = Int64(8) * Int64(1024 * 1024); // 需要构建的csv文件尺寸
+  c_MaxFileSize = Int64(1) * Int64(1024 * 1024); // 需要构建的csv文件尺寸
 var
   ioHnd: TIOHnd;
   i: Integer;
@@ -90,7 +90,7 @@ begin
   db := LM.InitNewDB('big');
 
   CustomImportCSV_P(
-    procedure(var L: TPascalString; var IsEnd: Boolean)
+      procedure(var L: TPascalString; var IsEnd: Boolean)
     begin
       IsEnd := r.EndOfStream;
       if not IsEnd then
@@ -112,7 +112,7 @@ begin
         begin
           DoStatus('已完成 %d 条构建, 数据库尺寸 %s 内核状态 %s %s',
             [db.Count, umlSizeToStr(db.DBEngine.Size).Text,
-            db.CacheAnnealingState, db.DBEngine.CacheStatus]);
+              db.CacheAnnealingState, db.DBEngine.CacheStatus]);
         end;
 
       // TZDBLocalManager.Progress方法可以每秒保存一次数据库
@@ -168,7 +168,7 @@ begin
   tk := GetTimeTick;
   while db.QueryProcessing do
     begin
-      CheckThreadSynchronize(100);
+      Check_Soft_Thread_Synchronize(100);
       if GetTimeTick - tk > 1000 then
         begin
           DoStatus('loading 载入状态 %d/%d 内核状态 %s %s', [LVT.Count, db.Count, db.CacheAnnealingState, db.DBEngine.CacheStatus]);
@@ -211,22 +211,22 @@ begin
   for i := 0 to 200 - 1 do
     begin
       LM.QueryDBP(
-        False,                                   // 将查询结果写入到一个临时数据库
-      True,                                      // 临时数据库是内存模式
-      Odd(MT19937Rand32(MaxInt)),                // 随机正反方向查询
-      db.Name,                                   // 目标数据库
-      '',                                        // 临时数据库名字，这个名字给空就是随机名字
-      True,                                      // 查询输出的新数据库会自动被释放
-      0.0,                                       // 释放临时数据库的延迟时间
-      0,                                         // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
+      False, // 将查询结果写入到一个临时数据库
+      True, // 临时数据库是内存模式
+      Odd(MT19937Rand32(MaxInt)), // 随机正反方向查询
+      db.Name, // 目标数据库
+      '', // 临时数据库名字，这个名字给空就是随机名字
+      True, // 查询输出的新数据库会自动被释放
+      0.0, // 释放临时数据库的延迟时间
+      0, // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
       ifThen(i = 0, 70, umlRandomRangeD(1, 70)), // 限制查询时间，随机xx-xx秒
-      0,                                         // 限制最大查询的遍历记录
-      0,                                         // 限制最大查询的返回记录
+      0, // 限制最大查询的遍历记录
+      0, // 限制最大查询的返回记录
         procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
         begin
           Allowed := True;
         end,
-        procedure(dPipe: TZDBPipeline)
+          procedure(dPipe: TZDBPipeline)
         begin
           DoStatus('%s 在%s时限中 完成 %d 条记录查询',
             [dPipe.PipelineName, umlTimeTickToStr(round(dPipe.QueryConsumTime * 1000)).Text, dPipe.QueryCounter]);
@@ -239,7 +239,7 @@ begin
   while db.QueryProcessing do
     begin
       LM.Progress;
-      CheckThreadSynchronize(100);
+      Check_Soft_Thread_Synchronize(100);
       if GetTimeTick - tk > 1000 then
         begin
           DoStatus('内核状态 %s %s', [db.CacheAnnealingState, db.DBEngine.CacheStatus]);
@@ -271,23 +271,23 @@ begin
   db.CacheStyle := csAlways;
   // 开始缓冲任务
   LM.QueryDBP(False, // 将查询结果写入到一个临时数据库
-  True,              // 临时数据库是内存模式
-  True,              // 正方向查询
-  db.Name,           // 目标数据库
-  '',                // 临时数据库名字，这个名字给空就是随机名字
-  True,              // 查询输出的新数据库会自动被释放
-  0.0,               // 释放临时数据库的延迟时间
-  0,                 // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
-  0,                 // 限制查询时间，0是无线
-  0,                 // 限制最大查询的遍历记录
-  0,                 // 限制最大查询的返回记录
+  True, // 临时数据库是内存模式
+  True, // 正方向查询
+  db.Name, // 目标数据库
+  '', // 临时数据库名字，这个名字给空就是随机名字
+  True, // 查询输出的新数据库会自动被释放
+  0.0, // 释放临时数据库的延迟时间
+  0, // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
+  0, // 限制查询时间，0是无线
+  0, // 限制最大查询的遍历记录
+  0, // 限制最大查询的返回记录
     procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
     begin
       Allowed := False;
       // GetVT方法是自己缓冲实例
       qState.Eng.GetVT(qState);
     end,
-    procedure(dPipe: TZDBPipeline)
+      procedure(dPipe: TZDBPipeline)
     begin
     end
     );
@@ -297,7 +297,7 @@ begin
   while db.QueryProcessing do
     begin
       LM.Progress;
-      CheckThreadSynchronize(100);
+      Check_Soft_Thread_Synchronize(100);
       if GetTimeTick - tk > 1000 then
         begin
           DoStatus('内核缓冲状态 %s %s', [db.CacheAnnealingState, db.DBEngine.CacheStatus]);
@@ -310,23 +310,23 @@ begin
   // 模拟2个同时查询的任务
   for i := 0 to 2 - 1 do
     begin
-      LM.QueryDBP(False,          // 将查询结果写入到一个临时数据库
-      True,                       // 临时数据库是内存模式
+      LM.QueryDBP(False, // 将查询结果写入到一个临时数据库
+      True, // 临时数据库是内存模式
       Odd(MT19937Rand32(MaxInt)), // 随机正反方向查询
-      db.Name,                    // 目标数据库
-      '',                         // 临时数据库名字，这个名字给空就是随机名字
-      True,                       // 查询输出的新数据库会自动被释放
-      0.0,                        // 释放临时数据库的延迟时间
-      0,                          // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
-      0,                          // 限制查询时间，0是无限
-      0,                          // 限制最大查询的遍历记录
-      0,                          // 限制最大查询的返回记录
+      db.Name, // 目标数据库
+      '', // 临时数据库名字，这个名字给空就是随机名字
+      True, // 查询输出的新数据库会自动被释放
+      0.0, // 释放临时数据库的延迟时间
+      0, // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
+      0, // 限制查询时间，0是无限
+      0, // 限制最大查询的遍历记录
+      0, // 限制最大查询的返回记录
         procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
         begin
           if qState.IsVT then
               Allowed := CompareText(qState.Eng.VT[qState.StorePos]['0'], 'abc') > 0;
         end,
-        procedure(dPipe: TZDBPipeline)
+          procedure(dPipe: TZDBPipeline)
         begin
           DoStatus('%s 在%s时间 完成 %d 条记录查询',
             [dPipe.PipelineName, umlTimeTickToStr(round(dPipe.QueryConsumTime * 1000)).Text, dPipe.QueryCounter]);
@@ -338,7 +338,7 @@ begin
   while db.QueryProcessing do
     begin
       LM.Progress;
-      CheckThreadSynchronize(10);
+      Check_Soft_Thread_Synchronize(10);
     end;
 
   DoStatus('利用内核cache大规模缓冲查询已完成.');
@@ -366,23 +366,23 @@ begin
   db.CacheStyle := csAlways;
   // 开始缓冲任务
   LM.QueryDBP(False, // 将查询结果写入到一个临时数据库
-  True,              // 临时数据库是内存模式
-  True,              // 正方向查询
-  db.Name,           // 目标数据库
-  '',                // 临时数据库名字，这个名字给空就是随机名字
-  True,              // 查询输出的新数据库会自动被释放
-  0.0,               // 释放临时数据库的延迟时间
-  0,                 // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
-  0,                 // 限制查询时间，0是无线
-  0,                 // 限制最大查询的遍历记录
-  0,                 // 限制最大查询的返回记录
+  True, // 临时数据库是内存模式
+  True, // 正方向查询
+  db.Name, // 目标数据库
+  '', // 临时数据库名字，这个名字给空就是随机名字
+  True, // 查询输出的新数据库会自动被释放
+  0.0, // 释放临时数据库的延迟时间
+  0, // 碎片数据反馈时间,这是提供给online机制使用的参数,cs架构的ZDB
+  0, // 限制查询时间，0是无线
+  0, // 限制最大查询的遍历记录
+  0, // 限制最大查询的返回记录
     procedure(dPipe: TZDBPipeline; var qState: TQueryState; var Allowed: Boolean)
     begin
       Allowed := False;
       // GetVT方法是自己缓冲实例
       qState.Eng.GetVT(qState);
     end,
-    procedure(dPipe: TZDBPipeline)
+      procedure(dPipe: TZDBPipeline)
     begin
     end
     );
@@ -392,7 +392,7 @@ begin
   while db.QueryProcessing do
     begin
       LM.Progress;
-      CheckThreadSynchronize(100);
+      Check_Soft_Thread_Synchronize(100);
       if GetTimeTick - tk > 1000 then
         begin
           DoStatus('内核缓冲状态 %s %s', [db.CacheAnnealingState, db.DBEngine.CacheStatus]);

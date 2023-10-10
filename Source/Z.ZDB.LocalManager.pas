@@ -2232,7 +2232,7 @@ begin
   while wait_ do
     begin
       LM.Progress;
-      CheckThread;
+      CheckThread(10);
     end;
 
   DisposeObject(LM);

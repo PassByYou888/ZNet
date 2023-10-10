@@ -502,7 +502,7 @@ end;
 
 class function TCompute.State(): string;
 begin
-  Result := Format('Task:%d Thread:%d/%d Wait:%d/%d Critical:%d/%d 19937:%d Atom:%d Parallel:%d/%d Post:%d SS:%d',
+  Result := Format('Task:%d Thread:%d/%d Wait:%d/%d Critical:%d/%d 19937:%d Atom:%d Parallel:%d/%d Post:%d Sync:%d',
     [TotalTask(), ActivtedTask(), Max_Thread_Supported, WaitTask(), Wait_Thread(),
       Get_System_Critical_Num - Get_System_Critical_Recycle_Pool_Num, Get_System_Critical_Recycle_Pool_Num,
       Get_MT19937_POOL_Num(), Get_Atom_Lock_Pool_Num(),

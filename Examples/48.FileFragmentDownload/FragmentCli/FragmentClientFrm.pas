@@ -446,9 +446,8 @@ end;
 
 procedure TFragmentClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThreadSynchronize(10);
   Session.Progress;
-  DoStatus();
-  CheckThreadSynchronize();
 end;
 
 procedure TFragmentClientForm.DoStatus_Backcall(Text_: SystemString; const id: Integer);

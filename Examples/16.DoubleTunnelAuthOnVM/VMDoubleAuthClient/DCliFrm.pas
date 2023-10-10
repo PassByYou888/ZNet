@@ -155,6 +155,7 @@ end;
 
 procedure TAuthDoubleTunnelClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   VMTunnel.Progress;
   client.Progress;
   TimeLabel.Caption := Format('sync time:%f', [client.CadencerEngine.UpdateCurrentTime]);

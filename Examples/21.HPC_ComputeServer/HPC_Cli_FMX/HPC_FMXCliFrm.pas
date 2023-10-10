@@ -9,7 +9,7 @@ uses
 
   Z.Net.Client.Indy, Z.DFE,
   Z.Net, Z.Core, Z.Status,
-  Z.Net.DoubleTunnelIO.NoAuth;
+  Z.Net.DoubleTunnelIO.NoAuth, FMX.Memo.Types;
 
 type
   TFMXDoubleClientForm = class(TForm)
@@ -141,6 +141,7 @@ end;
 
 procedure TFMXDoubleClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   client.Progress;
 end;
 

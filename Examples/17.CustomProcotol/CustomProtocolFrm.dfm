@@ -88,7 +88,6 @@ object CustomProtocolForm: TCustomProtocolForm
   object IdTCPClient1: TIdTCPClient
     ConnectTimeout = 0
     Host = '127.0.0.1'
-    IPVersion = Id_IPv4
     Port = 9989
     ReadTimeout = -1
     Left = 424

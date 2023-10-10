@@ -10,7 +10,7 @@ uses
 
   Z.Net.Client.Indy, Z.DFE,
   Z.Net, Z.Core, Z.Status,
-  Z.Net.DoubleTunnelIO;
+  Z.Net.DoubleTunnelIO, FMX.Memo.Types;
 
 type
   TFMXAuthDoubleClientForm = class(TForm)
@@ -256,6 +256,7 @@ end;
 
 procedure TFMXAuthDoubleClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   VMTunnel.Progress;
   client.Progress;
   timeLabel.Text := Format('sync time:%f', [client.CadencerEngine.UpdateCurrentTime]);

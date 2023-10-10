@@ -32,11 +32,11 @@ object VirtualServForm: TVirtualServForm
     Size.Height = 280.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
-    Viewport.Width = 545.000000000000000000
-    Viewport.Height = 280.000000000000000000
+    Viewport.Width = 541.000000000000000000
+    Viewport.Height = 276.000000000000000000
   end
   object netTimer: TTimer
-    Interval = 10
+    Interval = 50
     OnTimer = netTimerTimer
     Left = 184
     Top = 48

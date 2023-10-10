@@ -110,8 +110,7 @@ begin
     begin
       DatabaseService.Progress;
       DatabasePhyServ.Progress;
-      CheckThreadSynchronize();
-      TCompute.Sleep(10);
+      CheckThreadSynchronize(10);
     end;
 end;
 

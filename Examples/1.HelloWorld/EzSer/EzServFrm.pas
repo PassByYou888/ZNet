@@ -169,6 +169,7 @@ end;
 
 procedure TEZServerForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   Server.Progress;
 end;
 

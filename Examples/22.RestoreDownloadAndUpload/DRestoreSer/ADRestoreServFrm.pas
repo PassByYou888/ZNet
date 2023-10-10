@@ -132,6 +132,7 @@ end;
 
 procedure TAuthDoubleServerForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   Service.Progress;
 end;
 

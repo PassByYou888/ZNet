@@ -83,7 +83,7 @@ object DoubleTunnelClientForm: TDoubleTunnelClientForm
     OnClick = AsyncConnectButtonClick
   end
   object Timer1: TTimer
-    Interval = 100
+    Interval = 10
     OnTimer = Timer1Timer
     Left = 344
     Top = 16

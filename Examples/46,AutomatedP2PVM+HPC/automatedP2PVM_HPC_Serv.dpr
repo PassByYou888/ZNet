@@ -70,7 +70,7 @@ begin
     begin
       phyServ.Progress;
       DoStatus();
-      CheckThreadSynchronize(1);
+      CheckThreadSynchronize(10);
     end;
 end;
 

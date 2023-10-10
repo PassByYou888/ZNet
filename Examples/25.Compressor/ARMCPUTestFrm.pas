@@ -7,7 +7,7 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.StdCtrls, FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo,
   Z.Core, Z.Compress, Z.MemoryStream, Z.Status, Z.UnicodeMixedLib, Z.PascalStrings,
-  FMX.Layouts;
+  FMX.Layouts, FMX.Memo.Types;
 
 type
   TForm1 = class(TForm)

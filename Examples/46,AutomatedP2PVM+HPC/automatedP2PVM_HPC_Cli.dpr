@@ -78,7 +78,7 @@ begin
     begin
       phyCli.Progress;
       DoStatus();
-      CheckThreadSynchronize(1);
+      CheckThreadSynchronize(10);
     end;
 
   phyCli.Disconnect;

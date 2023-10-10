@@ -9,7 +9,7 @@ uses
   Z.Core, Z.ZDB.Engine, Z.ZDB.LocalManager, Z.Status, Z.DFE, Z.PascalStrings,
   Z.ListEngine, Z.UnicodeMixedLib, Z.MemoryStream, Z.Expression, Z.OpCode,
   Z.Net, Z.Net.DoubleTunnelIO.NoAuth,
-  Z.Net.Client.CrossSocket;
+  Z.Net.Client.CrossSocket, FMX.Memo.Types;
 
 type
   TMyQueryClient = class(TZNet_DoubleTunnelClient_NoAuth)
@@ -165,6 +165,7 @@ end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   myQueryClient.Progress;
 end;
 

@@ -17,7 +17,7 @@ uses
   Z.Notify, Z.Net.Test, Z.ListEngine;
 
 const
-  MaxClient = 50000;
+  MaxClient = 100000;
 
 type
   TMyClient = class(TZNet_WithP2PVM_Client)
@@ -126,6 +126,7 @@ var
   i: Integer;
   TotalCli, connectingCli, ConnectedCli: Integer;
 begin
+  CheckThread(10);
   ClientTunnel.Progress;
 
   for i := low(ClientWithVM) to high(ClientWithVM) do
@@ -164,7 +165,6 @@ begin
   StatusCheckBox.Checked := False;
 
   ClientTunnel.ClientIO.Progress;
-
   for i := low(ClientWithVM) to high(ClientWithVM) do
     begin
       ClientWithVM[i].AsyncConnectTimeout := 10 * 60 * 1000;

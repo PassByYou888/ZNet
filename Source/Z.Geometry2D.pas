@@ -1241,7 +1241,7 @@ type
   end;
 
   TNearest_Box_Tool = class(TNearest_Box_Tool_)
-  var
+  private
     function Do_Sort_Group(var L, R: TNearest_Box_Group_.PPair_Pool_Value__): Integer;
   public
     Nearest_Group: TNearest_Box_Group;

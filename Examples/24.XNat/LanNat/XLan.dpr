@@ -45,7 +45,7 @@ begin
     while True do
       begin
         XCli.Progress;
-        CheckThread(1);
+        CheckThread(10);
       end;
   except
     on E: Exception do

@@ -37,8 +37,7 @@ begin
 
   Writeln('dll call over.');
   Writeln('press return to exit.');
-  // readln;
-
+  readln;
   freeLibrary(hnd);
 end;
 

@@ -53,7 +53,7 @@ begin
   while True do
     begin
       XServ.Progress;
-      CheckThread(1);
+      CheckThread(10);
     end;
 
 end.

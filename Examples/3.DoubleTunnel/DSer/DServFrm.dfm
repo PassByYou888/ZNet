@@ -68,7 +68,7 @@ object DoubleServerForm: TDoubleServerForm
     OnClick = GetClientValueButtonClick
   end
   object Timer1: TTimer
-    Interval = 100
+    Interval = 10
     OnTimer = Timer1Timer
     Left = 360
     Top = 8

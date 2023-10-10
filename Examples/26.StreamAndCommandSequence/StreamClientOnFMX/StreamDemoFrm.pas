@@ -7,7 +7,8 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls, FMX.Edit,
   FMX.Layouts, FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo,
   Z.Core, Z.PascalStrings, Z.UnicodeMixedLib, Z.MemoryStream, Z.DFE, Z.Notify,
-  Z.Net, Z.Net.XNAT.Physics, Z.Status, Z.Cipher, Z.Net.DoubleTunnelIO.NoAuth;
+  Z.Net, Z.Net.XNAT.Physics, Z.Status, Z.Cipher, Z.Net.DoubleTunnelIO.NoAuth,
+  FMX.Memo.Types;
 
 type
   TForm1 = class(TForm)
@@ -174,6 +175,7 @@ end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   SingleTunnelClient.Progress;
   DoubleTunnelClient.Progress;
 

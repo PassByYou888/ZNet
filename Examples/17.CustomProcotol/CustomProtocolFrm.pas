@@ -196,6 +196,7 @@ procedure TCustomProtocolForm.TimerTimer(Sender: TObject);
 var
   iBuf: TIdBytes;
 begin
+  CheckThread;
   myServer.Progress;
   myClient.Progress;
 

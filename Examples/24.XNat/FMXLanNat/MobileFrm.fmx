@@ -22,7 +22,7 @@ object MobileForm: TMobileForm
     Viewport.Height = 476.000000000000000000
   end
   object netTimer: TTimer
-    Interval = 10
+    Interval = 50
     OnTimer = netTimerTimer
     Left = 280
     Top = 152

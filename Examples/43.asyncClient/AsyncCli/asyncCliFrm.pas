@@ -33,7 +33,7 @@ type
   private
     client: TZNet_Client;
     procedure DoStatusNear(AText: string; const ID: Integer);
-    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
   public
   end;
 
@@ -62,7 +62,7 @@ begin
   DeleteDoStatusHook(self);
 end;
 
-procedure TAsyncClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+procedure TAsyncClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
 begin
   if ResultData.Count > 0 then
       DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -74,41 +74,27 @@ begin
   TCompute.RunP(procedure(thSender: TCompute)
     var
       busy_: TAtomBool; // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
+      SendDe, ResultDE: TDFE;
     begin
       busy_ := TAtomBool.Create(True); // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
 
       // 把线程中的异步方法抛给主线程
       // TThread.Synchronize会出现嵌套式卡死, TCompute.PostXX不会出现这种情况
-      TCompute.PostP1(procedure
-        var
-          SendDe, ResultDE: TDataFrameEngine;
+      // 往服务器发送一条console形式的hello world指令
+      client.SendDirectConsoleCmd('helloWorld_Console', '');
+
+      // 往服务器发送一条stream形式的hello world指令
+      client.SendDirectStreamCmd('helloWorld_Stream', TDFE.Create.WriteString('directstream 123456').DelayFree);
+
+      // 异步方式发送，并且接收Stream指令，反馈以方法回调触发
+      client.SendStreamCmdM('helloWorld_Stream_Result', TDFE.Create.WriteString('123456').DelayFree, BackCall_helloWorld_Stream_Result);
+
+      // 异步方式发送，并且接收Stream指令，反馈以proc回调触发
+      client.SendStreamCmdP('helloWorld_Stream_Result', TDFE.Create.WriteString('123456').DelayFree, procedure(Sender: TPeerClient; ResultData: TDFE)
         begin
-          // 往服务器发送一条console形式的hello world指令
-          client.SendDirectConsoleCmd('helloWorld_Console', '');
-
-          // 往服务器发送一条stream形式的hello world指令
-          SendDe := TDataFrameEngine.Create;
-          SendDe.WriteString('directstream 123456');
-          client.SendDirectStreamCmd('helloWorld_Stream', SendDe);
-          DisposeObject([SendDe]);
-
-          // 异步方式发送，并且接收Stream指令，反馈以方法回调触发
-          SendDe := TDataFrameEngine.Create;
-          SendDe.WriteString('123456');
-          client.SendStreamCmdM('helloWorld_Stream_Result', SendDe, BackCall_helloWorld_Stream_Result);
-          DisposeObject([SendDe]);
-
-          // 异步方式发送，并且接收Stream指令，反馈以proc回调触发
-          SendDe := TDataFrameEngine.Create;
-          SendDe.WriteString('123456');
-          client.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-              procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
-            begin
-              if ResultData.Count > 0 then
-                  DoStatus('server response:%s', [ResultData.Reader.ReadString]);
-              busy_.V := False;
-            end);
-          DisposeObject([SendDe]);
+          if ResultData.Count > 0 then
+              DoStatus('server response:%s', [ResultData.Reader.ReadString]);
+          busy_.V := False;
         end);
 
       while busy_.V do
@@ -124,40 +110,30 @@ begin
   TCompute.RunP(procedure(thSender: TCompute)
     var
       busy_: TAtomBool; // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
+      ms: TMemoryStream;
+      p: PInt64;
+      i: Integer;
     begin
       busy_ := TAtomBool.Create(True); // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
 
-      // 把线程中的异步方法抛给主线程
-      // TThread.Synchronize会出现嵌套式卡死, TCompute.PostXX不会出现这种情况
-      TCompute.PostP1(procedure
-        var
-          ms: TMemoryStream;
-          p: PInt64;
-          i: Integer;
+      // 在ms中包含了16M大型数据，在服务器端相当于执行了1条普通命令
+      ms := TMemoryStream.Create;
+      ms.SetSize(16 * 1024 * 1024);
+      DoStatus('创建16M临时大数据流');
+      p := ms.Memory;
+      for i := 1 to ms.Size div SizeOf(Int64) do
         begin
-          // 在ms中包含了16M大型数据，在服务器端相当于执行了1条普通命令
-          ms := TMemoryStream.Create;
-          ms.SetSize(16 * 1024 * 1024);
-
-          DoStatus('创建16M临时大数据流');
-          p := ms.Memory;
-          for i := 1 to ms.Size div SizeOf(Int64) do
-            begin
-              p^ := Random(MaxInt);
-              inc(p);
-            end;
-
-          DoStatus('计算临时大数据流md5');
-          DoStatus('bigstream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
-
-          // 往服务器发送一条Big Stream形式的指令
-          client.SendBigStream('Test128MBigStream', ms, True);
-
-          // waitP是异步等反馈,因为BigStream需要时间完成,我们不能直接做 busy_.V 操作
-          client.WaitP(0, procedure(const wState: Boolean)
-            begin
-              busy_.V := False;
-            end);
+          p^ := Random(MaxInt);
+          inc(p);
+        end;
+      DoStatus('计算临时大数据流md5');
+      DoStatus('bigstream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
+      // 往服务器发送一条Big Stream形式的指令
+      client.SendBigStream('Test128MBigStream', ms, True);
+      // waitP是异步等反馈,因为BigStream需要时间完成,我们不能直接做 busy_.V 操作
+      client.WaitP(0, procedure(const wState: Boolean)
+        begin
+          busy_.V := False;
         end);
 
       while busy_.V do
@@ -173,41 +149,32 @@ begin
   TCompute.RunP(procedure(thSender: TCompute)
     var
       busy_: TAtomBool; // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
+      buff: Pointer;
+      p: PInt64;
+      i: Integer;
     begin
       busy_ := TAtomBool.Create(True); // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
+      // 在ms中包含了16M大型数据，在服务器端相当于执行了1条普通命令
+      buff := GetMemory(16 * 1024 * 1024);
 
-      // 把线程中的异步方法抛给主线程
-      // TThread.Synchronize会出现嵌套式卡死, TCompute.PostXX不会出现这种情况
-      TCompute.PostP1(procedure
-        var
-          buff: Pointer;
-          p: PInt64;
-          i: Integer;
+      DoStatus('创建128M临时大数据流');
+      p := buff;
+      for i := 1 to (16 * 1024 * 1024) div SizeOf(Int64) do
         begin
-          // 在ms中包含了16M大型数据，在服务器端相当于执行了1条普通命令
-          buff := GetMemory(16 * 1024 * 1024);
-
-          DoStatus('创建128M临时大数据流');
-          p := buff;
-          for i := 1 to (16 * 1024 * 1024) div SizeOf(Int64) do
-            begin
-              p^ := Random(MaxInt);
-              inc(p);
-            end;
-
-          DoStatus('计算临时大数据流md5');
-          DoStatus('complete buffer md5:' + umlMD5String(buff, 16 * 1024 * 1024).Text);
-
-          // 往服务器发送一条CompleteBuffer形式的指令
-          // 最后的布尔参数表示是否在完成发送后释放buff
-          client.SendCompleteBuffer('TestCompleteBuffer', buff, 16 * 1024 * 1024, True);
-
-          // waitP是异步等反馈,因为SendCompleteBuffer需要时间完成,我们不能直接做 busy_.V 操作
-          client.WaitP(0, procedure(const wState: Boolean)
-            begin
-              busy_.V := False;
-            end);
+          p^ := Random(MaxInt);
+          inc(p);
+        end;
+      DoStatus('计算临时大数据流md5');
+      DoStatus('complete buffer md5:' + umlMD5String(buff, 16 * 1024 * 1024).Text);
+      // 往服务器发送一条CompleteBuffer形式的指令
+      // 最后的布尔参数表示是否在完成发送后释放buff
+      client.SendCompleteBuffer('TestCompleteBuffer', buff, 16 * 1024 * 1024, True);
+      // waitP是异步等反馈,因为SendCompleteBuffer需要时间完成,我们不能直接做 busy_.V 操作
+      client.WaitP(0, procedure(const wState: Boolean)
+        begin
+          busy_.V := False;
         end);
+
       while busy_.V do
           TCompute.Sleep(1);
       busy_.Free;
@@ -221,43 +188,35 @@ begin
   TCompute.RunP(procedure(thSender: TCompute)
     var
       busy_: TAtomBool; // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
+      ms: TMemoryStream;
+      SendDe: TDFE;
+      p: PInt64;
+      i: Integer;
     begin
       busy_ := TAtomBool.Create(True); // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
 
-      // 把线程中的异步方法抛给主线程
-      // TThread.Synchronize会出现嵌套式卡死, TCompute.PostXX不会出现这种情况
-      TCompute.PostP1(procedure
-        var
-          ms: TMemoryStream;
-          SendDe: TDataFrameEngine;
-          p: PInt64;
-          i: Integer;
+      // 在SendDE中包含了4M大型数据，在服务器端相当于执行了512条普通命令
+      ms := TMemoryStream.Create;
+      ms.SetSize(4 * 1024 * 1024);
+      p := ms.Memory;
+      for i := 1 to ms.Size div SizeOf(Int64) do
         begin
-          // 在SendDE中包含了4M大型数据，在服务器端相当于执行了512条普通命令
-          ms := TMemoryStream.Create;
-          ms.SetSize(4 * 1024 * 1024);
+          p^ := Random(MaxInt);
+          inc(p);
+        end;
+      DoStatus('mini stream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
+      // 往服务器发送一条direct stream形式的指令
+      SendDe := TDFE.Create;
+      SendDe.WriteStream(ms);
+      client.SendDirectStreamCmd('TestMiniStream', SendDe);
+      DisposeObject([SendDe, ms]);
 
-          p := ms.Memory;
-          for i := 1 to ms.Size div SizeOf(Int64) do
-            begin
-              p^ := Random(MaxInt);
-              inc(p);
-            end;
-
-          DoStatus('mini stream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
-
-          // 往服务器发送一条direct stream形式的指令
-          SendDe := TDataFrameEngine.Create;
-          SendDe.WriteStream(ms);
-          client.SendDirectStreamCmd('TestMiniStream', SendDe);
-          DisposeObject([SendDe, ms]);
-
-          // waitP是异步等反馈,因为SendDirectStreamCmd需要时间完成,我们不能直接做 busy_.V 操作
-          client.WaitP(0, procedure(const wState: Boolean)
-            begin
-              busy_.V := False;
-            end);
+      // waitP是异步等反馈,因为SendDirectStreamCmd需要时间完成,我们不能直接做 busy_.V 操作
+      client.WaitP(0, procedure(const wState: Boolean)
+        begin
+          busy_.V := False;
         end);
+
       while busy_.V do
           TCompute.Sleep(1);
       busy_.Free;
@@ -267,13 +226,8 @@ end;
 
 procedure TAsyncClientForm.Timer1Timer(Sender: TObject);
 begin
-  DoStatus();
+  CheckThread;
   client.Progress;
-  // 调度主线程队列主循环,要使用异步技术,必须有这个主循环
-  // TCompute.ProgressPost主循环是使用原子锁构建的无卡机制,设计思路接近STL
-  // TCompute.ProgressPost不会出现TThread.Synchronize卡死情况
-  // TCompute.ProgressPost是线程安全的,它会严格按照触发先后顺序执行
-  TCompute.ProgressPost;
 end;
 
 procedure TAsyncClientForm.ConnectButtonClick(Sender: TObject);
@@ -285,22 +239,16 @@ begin
       busy_: TAtomBool; // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
     begin
       busy_ := TAtomBool.Create(True); // 开辟一个状态机,用于检测异步工作是否结束. TAtom开头都是线程安全的变量状态机
-
-      // 把线程中的异步方法抛给主线程
-      // TThread.Synchronize会出现嵌套式卡死, TCompute.PostXX不会出现这种情况
-      TCompute.PostP1(procedure
+      client.AsyncConnectP(HostEdit.Text, 9818, procedure(const cState: Boolean)
         begin
-          client.AsyncConnectP(HostEdit.Text, 9818, procedure(const cState: Boolean)
+          if cState then
             begin
-              if cState then
-                begin
-                  DoStatus('链接成功');
-                  DoStatus('current client id: %d', [client.ClientIO.ID]);
-                end
-              else
-                  DoStatus('链接失败');
-              busy_.V := False;
-            end)
+              DoStatus('链接成功');
+              DoStatus('current client id: %d', [client.ClientIO.ID]);
+            end
+          else
+              DoStatus('链接失败');
+          busy_.V := False;
         end);
 
       while busy_.V do

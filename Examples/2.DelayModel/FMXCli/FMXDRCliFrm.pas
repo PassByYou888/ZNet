@@ -8,7 +8,7 @@ uses
   FMX.StdCtrls, FMX.Controls.Presentation, FMX.ScrollBox, FMX.Memo,
 
   Z.Net.Client.Indy, Z.DFE,
-  Z.Net, Z.Core, Z.Status;
+  Z.Net, Z.Core, Z.Status, FMX.Memo.Types;
 
 type
   TFMXDRClientForm = class(TForm)
@@ -78,6 +78,7 @@ end;
 
 procedure TFMXDRClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   client.Progress;
 end;
 

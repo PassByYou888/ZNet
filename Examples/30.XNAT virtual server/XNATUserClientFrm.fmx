@@ -95,8 +95,8 @@ object UserClientForm: TUserClientForm
       DefaultItemStyles.ItemStyle = ''
       DefaultItemStyles.GroupHeaderStyle = ''
       DefaultItemStyles.GroupFooterStyle = ''
-      Viewport.Width = 623.000000000000000000
-      Viewport.Height = 427.000000000000000000
+      Viewport.Width = 619.000000000000000000
+      Viewport.Height = 423.000000000000000000
     end
   end
 end

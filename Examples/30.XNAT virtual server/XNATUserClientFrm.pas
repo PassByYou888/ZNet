@@ -1,4 +1,4 @@
-unit UserClientFrm;
+unit XNATUserClientFrm;
 
 interface
 
@@ -130,6 +130,7 @@ procedure TUserClientForm.Timer1Timer(Sender: TObject);
 var
   i, c: Integer;
 begin
+  CheckThread;
   c := 0;
   for i := low(client) to high(client) do
     begin

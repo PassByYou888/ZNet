@@ -364,7 +364,6 @@ end;
 procedure TZNet_Server_Synapse.Progress;
 begin
   inherited Progress;
-  CheckThread;
 end;
 
 procedure TZNet_Server_Synapse.CloseAll;

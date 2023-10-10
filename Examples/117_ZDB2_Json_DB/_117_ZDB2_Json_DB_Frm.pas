@@ -90,7 +90,7 @@ begin
       MakeInfoLabel.Caption := PFormat('数据条目: %d 物理空间（自动扩容） %s 自由空间 %s',
       [JDB.Count, umlSizeToStr(Physics).Text, umlSizeToStr(FreeSpace).Text]);
 
-  CheckThread;
+  CheckThread(1);
   JDB.Progress;
 end;
 

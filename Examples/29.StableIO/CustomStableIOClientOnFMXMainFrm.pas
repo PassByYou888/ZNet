@@ -35,6 +35,7 @@ type
     InfoLabel: TLabel;
     procedure connectButtonClick(Sender: TObject);
     procedure DisconnectButtonClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure RunTestButtonClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
@@ -101,6 +102,11 @@ begin
   MyClient.Disconnect;
 end;
 
+procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  DisposeObject(MyClient);
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   AddDoStatusHook(Self, backcall_DoStatus);
@@ -146,6 +152,7 @@ procedure TForm1.Timer1Timer(Sender: TObject);
 var
   discard, recv, send, sequmem: string;
 begin
+  CheckThread;
   MyClient.Progress;
 
   // IOBusy 是适用于任何平台的IO状态检查机制，当IO有数据在处理时，就会返回true

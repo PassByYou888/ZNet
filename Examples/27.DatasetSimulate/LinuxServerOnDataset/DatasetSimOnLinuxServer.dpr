@@ -279,7 +279,7 @@ begin
       serv.Progress;
       serv.zdb.Progress;
       if serv.RecvTunnel.Count > 0 then
-          Z.Core.CheckThreadSynchronize()
+          Z.Core.CheckThreadSynchronize(1)
       else
           Z.Core.CheckThreadSynchronize(10);
     end;

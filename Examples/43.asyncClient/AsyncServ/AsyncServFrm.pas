@@ -168,6 +168,7 @@ end;
 
 procedure TAsyncServerForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   server.Progress;
 end;
 

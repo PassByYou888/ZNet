@@ -141,6 +141,7 @@ end;
 
 procedure TDRClientForm.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   client.Progress;
 end;
 

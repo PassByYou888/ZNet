@@ -316,6 +316,7 @@ end;
 
 procedure TForm3.Timer1Timer(Sender: TObject);
 begin
+  CheckThread;
   phyServer.Progress;
   phyClient.Progress;
   serv.Progress;

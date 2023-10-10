@@ -128,6 +128,7 @@ procedure TXNATMobileDeviceForm.Timer1Timer(Sender: TObject);
   end;
 
 begin
+  CheckThread;
   if XCli <> nil then
     begin
       InfoLabel.Text := PFormat('connection: %d' + #13#10 + 'physics: %d', [server.Count, server.Count]);

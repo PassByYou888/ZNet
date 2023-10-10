@@ -1,9 +1,9 @@
-program UserClient;
+program XNATUserClient;
 
 uses
   System.StartUpCopy,
   FMX.Forms,
-  UserClientFrm in 'UserClientFrm.pas' {UserClientForm};
+  XNATUserClientFrm in 'XNATUserClientFrm.pas' {UserClientForm};
 
 {$R *.res}
 

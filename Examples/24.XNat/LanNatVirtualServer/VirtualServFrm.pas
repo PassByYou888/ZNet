@@ -126,6 +126,7 @@ end;
 
 procedure TVirtualServForm.netTimerTimer(Sender: TObject);
 begin
+  CheckThread(5);
   if XCli <> nil then
     begin
       XCli.Progress;

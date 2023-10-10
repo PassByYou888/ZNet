@@ -22,12 +22,10 @@ end;
 procedure DLL_Exit_Proc(); stdcall;
 begin
   DeleteDoStatusHook(nil);
-  // 当我们在FreeLibrary时，凡是使用了SyncEvent的调用，都会卡住
-  // 打开debug追出了两个使用SyncEvent的地方
-  // 寻找使用SyncEvent做同步的地方，我们可以在finalization事件中慢慢追出来
 
-  // crossSocket的接口有个clientPool，它在finalization释放，会使用SyncEvent
-  // DisposeObjectAndNil(ClientPool);
+  // 当我们在FreeLibrary时,很多时候都在finalization里面干
+  // 如果使用了线程或线程池,需要系统所支持的CheckSynchronize操作往往会出现卡死
+  // 解决办法办法就是在FreeLibrary时候多调一个Exit的api,让dll去干掉一些东西,方便顺利exit
 end;
 
 procedure DLL_ThreadSync_Proc(); stdcall;

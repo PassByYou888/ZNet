@@ -2337,9 +2337,10 @@ begin
     begin
       if (TCore_Thread.CurrentThread <> MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
         begin
-          if Timeout > 0 then
-              TCore_Thread.Sleep(Timeout);
-          Result := False;
+          if TCore_Thread.CurrentThread.ThreadID = MainThreadID then
+            Result := CheckSynchronize(Timeout)
+          else if Timeout > 0 then
+            TCore_Thread.Sleep(Timeout);
         end
       else
         begin
@@ -2369,9 +2370,7 @@ begin
         end;
     end
   else
-    begin
-      Result := Check_System_Thread_Synchronize(Timeout, Run_Hook_Event_);
-    end;
+    Result := Check_System_Thread_Synchronize(Timeout, Run_Hook_Event_);
 end;
 
 function Do_Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
@@ -2380,9 +2379,10 @@ begin
 
   if (TCore_Thread.CurrentThread.ThreadID <> Core_Main_Thread_ID) then
     begin
-      if Timeout > 0 then
-          TCore_Thread.Sleep(Timeout);
-      Result := False;
+      if Used_Soft_Synchronize and (TCore_Thread.CurrentThread = MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
+        Result := (MainThread_Sync_Tool.Check_Synchronize(Timeout) > 0)
+      else if Timeout > 0 then
+        TCore_Thread.Sleep(Timeout);
     end
   else if Enabled_Check_Thread_Synchronize_System then
     begin
@@ -2395,7 +2395,7 @@ begin
               if Core_Main_Thread_ID = MainThreadID then
                 Result := CheckSynchronize(Timeout);
               if Used_Soft_Synchronize and (MainThread_Sync_Tool.Soft_Synchronize_Main_Thread = Core_Main_Thread) then
-                Result := (MainThread_Sync_Tool.Check_Synchronize(Timeout) > 0) or Result;
+                Result := (MainThread_Sync_Tool.Check_Synchronize(1) > 0) or Result;
           except
               Result := False;
           end;
@@ -2418,7 +2418,7 @@ end;
 
 function Check_Soft_Thread_Synchronize: Boolean;
 begin
-  Result := Check_Soft_Thread_Synchronize(10);
+  Result := Check_Soft_Thread_Synchronize(1);
 end;
 
 function Check_Soft_Thread_Synchronize(Timeout: TTimeTick): Boolean;
@@ -2436,7 +2436,7 @@ end;
 
 procedure Check_System_Thread_Synchronize;
 begin
-  Check_System_Thread_Synchronize(5);
+  Check_System_Thread_Synchronize(1);
 end;
 
 function Check_System_Thread_Synchronize(Timeout: TTimeTick): Boolean;
@@ -2454,7 +2454,7 @@ end;
 
 procedure CheckThreadSynchronize;
 begin
-  Check_System_Thread_Synchronize(0);
+  Check_System_Thread_Synchronize(1);
 end;
 
 function CheckThreadSynchronize(Timeout: TTimeTick): Boolean;
@@ -2464,7 +2464,7 @@ end;
 
 procedure CheckThreadSync;
 begin
-  Check_System_Thread_Synchronize(0);
+  Check_System_Thread_Synchronize(1);
 end;
 
 function CheckThreadSync(Timeout: TTimeTick): Boolean;
@@ -2474,7 +2474,7 @@ end;
 
 procedure CheckThread;
 begin
-  Check_System_Thread_Synchronize(0);
+  Check_System_Thread_Synchronize(1);
 end;
 
 function CheckThread(Timeout: TTimeTick): Boolean;
