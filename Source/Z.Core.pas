@@ -2415,7 +2415,7 @@ begin
               if Core_Main_Thread_ID = MainThreadID then
                 Result := CheckSynchronize(Timeout);
               if Used_Soft_Synchronize and (MainThread_Sync_Tool.Soft_Synchronize_Main_Thread = Core_Main_Thread) then
-                Result := (MainThread_Sync_Tool.Check_Synchronize(1) > 0) or Result;
+                Result := (MainThread_Sync_Tool.Check_Synchronize(if_(Timeout > 0, 1, 0)) > 0) or Result;
           except
               Result := False;
           end;
@@ -2438,7 +2438,7 @@ end;
 
 function Check_Soft_Thread_Synchronize: Boolean;
 begin
-  Result := Check_Soft_Thread_Synchronize(1);
+  Result := Check_Soft_Thread_Synchronize(0);
 end;
 
 function Check_Soft_Thread_Synchronize(Timeout: TTimeTick): Boolean;
@@ -2456,7 +2456,7 @@ end;
 
 procedure Check_System_Thread_Synchronize;
 begin
-  Check_System_Thread_Synchronize(1);
+  Check_System_Thread_Synchronize(0);
 end;
 
 function Check_System_Thread_Synchronize(Timeout: TTimeTick): Boolean;
@@ -2474,7 +2474,7 @@ end;
 
 procedure CheckThreadSynchronize;
 begin
-  Check_System_Thread_Synchronize(1);
+  Check_System_Thread_Synchronize(0);
 end;
 
 function CheckThreadSynchronize(Timeout: TTimeTick): Boolean;
@@ -2484,7 +2484,7 @@ end;
 
 procedure CheckThreadSync;
 begin
-  Check_System_Thread_Synchronize(1);
+  Check_System_Thread_Synchronize(0);
 end;
 
 function CheckThreadSync(Timeout: TTimeTick): Boolean;
@@ -2494,7 +2494,7 @@ end;
 
 procedure CheckThread;
 begin
-  Check_System_Thread_Synchronize(1);
+  Check_System_Thread_Synchronize(0);
 end;
 
 function CheckThread(Timeout: TTimeTick): Boolean;
