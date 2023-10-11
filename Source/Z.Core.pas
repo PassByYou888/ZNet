@@ -134,6 +134,23 @@ type
     procedure Clear;
   end;
 {$EndRegion 'core defines + class'}
+{$Region 'CPS'}
+  // caller per second tool
+  TCPS_Tool = record
+  private
+    First_Caller_Time: TTimeTick;
+    Last_Begin_Caller_Time: TTimeTick;
+    Last_End_Caller_Time: TTimeTick;
+    Last_Analysis_Time: TTimeTick;
+    Caller_Num: Int64;
+  public
+    CPS: Double; // caller per second
+    CPU_Time: TTimeTick; // caller used cpu time
+    procedure Reset;
+    procedure Begin_Caller;
+    procedure End_Caller;
+  end;
+{$EndRegion 'CPS'}
 {$Region 'Critical'}
   TSoftCritical = class
   private
@@ -1775,6 +1792,9 @@ var
   Main_Thread_OnCheck_Runing: Boolean;
   OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
 
+  // caller of per second tool
+  CPS_Check_Soft_Thread, CPS_Check_System_Thread: TCPS_Tool;
+
   // DelphiParallelFor and FPCParallelFor work in parallel
   WorkInParallelCore: TAtomBool;
   // same WorkInParallelCore
@@ -2344,8 +2364,8 @@ begin
         end
       else
         begin
+          CPS_Check_Soft_Thread.Begin_Caller;
           MainThreadProgress.Progress(Core_Main_Thread_ID);
-
           if not Main_Thread_Synchronize_Running then
             begin
               Main_Thread_Synchronize_Running := True;
@@ -2367,6 +2387,7 @@ begin
                 Main_Thread_OnCheck_Runing := False;
               end;
             end;
+          CPS_Check_Soft_Thread.End_Caller;
         end;
     end
   else
@@ -2376,7 +2397,6 @@ end;
 function Do_Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
 begin
   Result := False;
-
   if (TCore_Thread.CurrentThread.ThreadID <> Core_Main_Thread_ID) then
     begin
       if Used_Soft_Synchronize and (TCore_Thread.CurrentThread = MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
@@ -2386,8 +2406,8 @@ begin
     end
   else if Enabled_Check_Thread_Synchronize_System then
     begin
+      CPS_Check_System_Thread.Begin_Caller;
       MainThreadProgress.Progress(Core_Main_Thread_ID);
-
       if not Main_Thread_Synchronize_Running then
         begin
           Main_Thread_Synchronize_Running := True;
@@ -2401,7 +2421,6 @@ begin
           end;
           Main_Thread_Synchronize_Running := False;
         end;
-
       if Run_Hook_Event_ and (not Main_Thread_OnCheck_Runing) then
         begin
           Main_Thread_OnCheck_Runing := True;
@@ -2413,6 +2432,7 @@ begin
           end;
           Main_Thread_OnCheck_Runing := False;
         end;
+      CPS_Check_System_Thread.End_Caller;
     end;
 end;
 
@@ -2554,6 +2574,8 @@ initialization
   On_Check_Soft_Thread_Synchronize := Do_Check_Soft_Thread_Synchronize;
   On_Check_System_Thread_Synchronize := Do_Check_System_Thread_Synchronize;
   OnCheckThreadSynchronize := nil;
+  CPS_Check_Soft_Thread.Reset;
+  CPS_Check_System_Thread.Reset;
   WorkInParallelCore := TAtomBool.Create(True);
   ParallelCore := WorkInParallelCore;
   GlobalMemoryHook := TAtomBool.Create(True);
