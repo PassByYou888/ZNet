@@ -2342,7 +2342,7 @@ end;
 
 function TDFE.DelayFree: TDFE;
 begin
-  DelayFreeObj(1.0, Self);
+  DelayFreeObj(5.0, Self);
   Result := Self;
 end;
 
