@@ -1464,6 +1464,7 @@ type
     FCommand_Hash_Pool: TCommand_Hash_Pool;
     FPeerIO_HashPool: TPeer_IO_Hash_Pool;
     FIDSeed: Cardinal;
+    FProgress_CPS: TCPS_Tool;
     FProgress_Pool: TZNet_Progress_Pool;
     FOnExecuteCommand: TPeerIOCMDNotify;
     FOnSendCommand: TPeerIOCMDNotify;
@@ -1500,6 +1501,7 @@ type
     FFrameworkIsClient: Boolean;
     FFrameworkInfo: SystemString;
     FProgressRuning: Boolean;
+    FProgressEnabled: Boolean;
     FProgressWaitRuning: Boolean;
     FOnProgress: TProgressOnZNet;
     FCMD_Thread_Runing_Num: Integer;
@@ -1687,6 +1689,9 @@ type
     function IOBusy: Boolean;
 
     { mainLoop }
+    property Progress_CPS: TCPS_Tool read FProgress_CPS;
+    procedure Enabled_Progress;
+    procedure Disable_Progress;
     procedure Progress; virtual;
     property OnProgress: TProgressOnZNet read FOnProgress write FOnProgress;
 
@@ -10769,7 +10774,8 @@ begin
       begin
         with Repeat_ do
           repeat
-            DoStatus('%s <%s> IO:%d', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num]);
+            DoStatus('%s <%s> IO:%d, PPS:%f PCPU:%dms',
+              [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num, Queue^.data.Progress_CPS.CPS, Queue^.data.Progress_CPS.CPU_Time]);
             do_print_io_info(#9, Queue^.data);
           until not Next;
       end;
@@ -10822,7 +10828,8 @@ begin
           repeat
             if Queue^.data is TZNet_Server then
               begin
-                DoStatus('%s <%s> connected: %d, statistics:', [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num]);
+                DoStatus('%s <%s> connected:%d, PPS:%f, PCPU:%dms, statistics:',
+                  [Queue^.data.ClassName, Queue^.data.name, Queue^.data.IOPool.Num, Queue^.data.Progress_CPS.CPS, Queue^.data.Progress_CPS.CPU_Time]);
                 do_print_statistics_info(#9, Queue^.data);
               end;
           until not Next;
@@ -10930,7 +10937,8 @@ begin
                     addr := TZNet_Client(Queue^.data).ClientIO.GetPeerIP
                 else
                     addr := '';
-                DoStatus('%s <%s> connected: "%s", statistics:', [Queue^.data.ClassName, Queue^.data.name, addr]);
+                DoStatus('%s <%s> connected:"%s", PPS:%f, PCPU:%dms, statistics:',
+                  [Queue^.data.ClassName, Queue^.data.name, addr, Queue^.data.Progress_CPS.CPS, Queue^.data.Progress_CPS.CPU_Time]);
                 do_print_statistics_info(#9, Queue^.data);
               end;
           until not Next;
@@ -11869,6 +11877,7 @@ begin
   FZNet_Instance_Ptr__ := ZNet_Instance_Pool.Add(self);
   FCommand_Hash_Pool := TCommand_Hash_Pool.Create(1024, nil);
   FIDSeed := 1;
+  FProgress_CPS.Reset;
   FPeerIO_HashPool := TPeer_IO_Hash_Pool.Create(HashPoolSize, nil);
   FProgress_Pool := TZNet_Progress_Pool.Create;
   FOnExecuteCommand := nil;
@@ -11914,6 +11923,7 @@ begin
   FFrameworkInfo := ClassName;
 
   FProgressRuning := False;
+  FProgressEnabled := True;
   FProgressWaitRuning := False;
   FOnProgress := nil;
 
@@ -12255,23 +12265,45 @@ begin
     until not Next;
 end;
 
+procedure TZNet.Enabled_Progress;
+var
+  i: Integer;
+begin
+  FProgressEnabled := True;
+  for i := AutomatedP2PVMServiceBind.Count - 1 downto 0 do
+      AutomatedP2PVMServiceBind[i].Service.Enabled_Progress;
+  for i := AutomatedP2PVMClientBind.Count - 1 downto 0 do
+      AutomatedP2PVMClientBind[i].Client.Enabled_Progress;
+end;
+
+procedure TZNet.Disable_Progress;
+var
+  i: Integer;
+begin
+  FProgressEnabled := False;
+  for i := AutomatedP2PVMServiceBind.Count - 1 downto 0 do
+      AutomatedP2PVMServiceBind[i].Service.Disable_Progress;
+  for i := AutomatedP2PVMClientBind.Count - 1 downto 0 do
+      AutomatedP2PVMClientBind[i].Client.Disable_Progress;
+end;
+
 procedure TZNet.Progress;
 var
   i: Integer;
 begin
-  if FProgressRuning then
+  if FProgressRuning then // anti dead loop
+      exit;
+  if not FProgressEnabled then // enabled progress
       exit;
 
   { anti Dead loop }
   FProgressRuning := True;
 
+  FProgress_CPS.Begin_Caller;
+
   try
     if Assigned(ProgressBackgroundProc) then
         ProgressBackgroundProc();
-  except
-  end;
-
-  try
     if Assigned(ProgressBackgroundMethod) then
         ProgressBackgroundMethod();
   except
@@ -12321,6 +12353,8 @@ begin
       end;
   except
   end;
+
+  FProgress_CPS.End_Caller;
 
   { anti Dead loop }
   FProgressRuning := False;
@@ -12488,10 +12522,6 @@ begin
 
   FProgressWaitRuning := True;
 
-  { disable thread synchronize state }
-  state_ := Enabled_Check_Thread_Synchronize_System;
-  Enabled_Check_Thread_Synchronize_System := False;
-
   try
     { progress local instance }
     Progress;
@@ -12507,9 +12537,6 @@ begin
         until not Next;
   except
   end;
-
-  { restore thread synchronize state }
-  Enabled_Check_Thread_Synchronize_System := state_;
 
   { check thread synchronize }
   try
@@ -13305,12 +13332,6 @@ end;
 
 procedure TZNet_Server.Progress;
 begin
-  if not IsMainThread then
-    begin
-      TCompute.PostM1(Progress);
-      exit;
-    end;
-
   inherited Progress;
 
   if (FStableIO <> nil) and (not FStableIOProgressing) then
@@ -14931,13 +14952,10 @@ end;
 
 procedure TZNet_Client.Progress;
 begin
-  if not IsMainThread then
-    begin
-      TCompute.PostM1(Progress);
-      exit;
-    end;
-
   inherited Progress;
+
+  if not FProgressEnabled then
+      exit;
 
   if (FConnectInitWaiting) and (GetTimeTick > FConnectInitWaitingTimeout) then
     begin
@@ -16893,6 +16911,8 @@ var
   __repeat__: TZNet_WithP2PVM_Client_Clone_Pool.TRepeat___;
 begin
   inherited Progress;
+  if not FProgressEnabled then
+      exit;
   if FP2PVM_ClonePool.Num > 0 then
     begin
       __repeat__ := FP2PVM_ClonePool.Repeat_();
@@ -18885,6 +18905,8 @@ end;
 
 procedure TZNet_CustomStableServer.Progress;
 begin
+  if not FProgressEnabled then
+      exit;
   if CustomStableServerProgressing then
       exit;
 
