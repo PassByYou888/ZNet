@@ -104,6 +104,8 @@ type
   TC40_PhysicsServicePool = class(TC40_PhysicsServicePool_Decl)
   public
     procedure Progress;
+    procedure Enabled_Progress;
+    procedure Disable_Progress;
     function ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
     procedure GetRS(var recv, send: Int64);
   end;
@@ -243,6 +245,8 @@ type
       const Depend_: U_String; const OnEvent_: IC40_PhysicsTunnel_Event): TC40_PhysicsTunnel; overload;
     { progress }
     procedure Progress;
+    procedure Enabled_Progress;
+    procedure Disable_Progress;
     { fast service connection }
     function SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word; FullConnection_: Boolean;
       const ServiceTyp: U_String; const OnEvent_: IC40_PhysicsTunnel_Event): TSearchServiceAndBuildConnection_Bridge; overload;
@@ -1111,14 +1115,19 @@ begin
   Enabled_Check_Thread_Synchronize_System := False;
   try
     C40_PhysicsServicePool.Progress;
+    C40_PhysicsServicePool.Disable_Progress;
     C40_ServicePool.Progress;
     C40_PhysicsTunnelPool.Progress;
+    C40_PhysicsTunnelPool.Disable_Progress;
     C40_ClientPool.Progress;
     C40_VM_Service_Pool.Progress;
     C40_VM_Client_Pool.Progress;
+    C40_PhysicsServicePool.Enabled_Progress;
+    C40_PhysicsTunnelPool.Enabled_Progress;
     C40CheckAndKillDeadPhysicsTunnel();
   except
   end;
+
   Enabled_Check_Thread_Synchronize_System := state_;
   C40Progress_Working := False;
 end;
@@ -1920,6 +1929,22 @@ begin
       except
       end;
     end;
+end;
+
+procedure TC40_PhysicsServicePool.Enabled_Progress;
+var
+  i: Integer;
+begin
+  for i := Count - 1 downto 0 do
+      Items[i].PhysicsTunnel.Enabled_Progress;
+end;
+
+procedure TC40_PhysicsServicePool.Disable_Progress;
+var
+  i: Integer;
+begin
+  for i := Count - 1 downto 0 do
+      Items[i].PhysicsTunnel.Disable_Progress;
 end;
 
 function TC40_PhysicsServicePool.ExistsPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -2980,6 +3005,22 @@ begin
       except
       end;
     end;
+end;
+
+procedure TC40_PhysicsTunnelPool.Enabled_Progress;
+var
+  i: Integer;
+begin
+  for i := Count - 1 downto 0 do
+      Items[i].PhysicsTunnel.Enabled_Progress;
+end;
+
+procedure TC40_PhysicsTunnelPool.Disable_Progress;
+var
+  i: Integer;
+begin
+  for i := Count - 1 downto 0 do
+      Items[i].PhysicsTunnel.Disable_Progress;
 end;
 
 function TC40_PhysicsTunnelPool.SearchServiceAndBuildConnection(PhysicsAddr: U_String; PhysicsPort: Word; FullConnection_: Boolean;
@@ -6698,6 +6739,8 @@ begin
       TCompute.Get_Core_Thread_Dispatch_Critical.UnLock;
   end;
 
+  DoStatus('RTL Main-Thread synchronize of per second:%f MaxCPU:%dms', [CPS_Check_System_Thread.CPS, CPS_Check_System_Thread.CPU_Time]);
+  DoStatus('Soft Main-Thread synchronize of per second:%f MaxCPU:%d', [CPS_Check_Soft_Thread.CPS, CPS_Check_Soft_Thread.CPU_Time]);
   DoStatus('Compute thread summary ' + TCompute.state);
   DoStatus('');
 
