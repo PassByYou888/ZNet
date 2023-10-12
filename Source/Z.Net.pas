@@ -2349,6 +2349,7 @@ type
     FP2PVM_ClonePool_Ptr: TZNet_WithP2PVM_Client_Clone_Pool.PQueueStruct;
     FP2PVM_CloneOwner: TZNet_WithP2PVM_Client;
     FP2PVM_Clone_NextProgressDoFreeSelf: Boolean;
+    FP2PVM_ProgressWaitSend_Busy: Boolean;
   private
     FOnP2PVMAsyncConnectNotify_C: TOnState_C;
     FOnP2PVMAsyncConnectNotify_M: TOnState_M;
@@ -12496,6 +12497,8 @@ procedure TZNet.ProgressWaitSend(P_IO: TPeerIO);
 var
   state_: Boolean;
 begin
+  if not FProgressEnabled then
+      exit;
   if P_IO = nil then
       exit;
   if FProgressWaitRuning then
@@ -16756,6 +16759,7 @@ begin
   FP2PVM_ClonePool_Ptr := nil;
   FP2PVM_CloneOwner := nil;
   FP2PVM_Clone_NextProgressDoFreeSelf := False;
+  FP2PVM_ProgressWaitSend_Busy := False;
   FOnP2PVMAsyncConnectNotify_C := nil;
   FOnP2PVMAsyncConnectNotify_M := nil;
   FOnP2PVMAsyncConnectNotify_P := nil;
@@ -17273,14 +17277,22 @@ end;
 
 procedure TZNet_WithP2PVM_Client.ProgressWaitSend(P_IO: TPeerIO);
 begin
-  if FLinkVM <> nil then
-    begin
-      if FLinkVM.FOwner_IO <> nil then
-          FLinkVM.FOwner_IO.OwnerFramework.ProgressWaitSend(FLinkVM.FOwner_IO);
-      FLinkVM.Progress;
-      FLinkVM.ProgressZNet_M(DoBackCall_Progress);
-    end;
-  inherited ProgressWaitSend(P_IO);
+  if FP2PVM_ProgressWaitSend_Busy then
+      exit;
+
+  FP2PVM_ProgressWaitSend_Busy := True;
+  try
+    if FLinkVM <> nil then
+      begin
+        if FLinkVM.FOwner_IO <> nil then
+            FLinkVM.FOwner_IO.OwnerFramework.ProgressWaitSend(FLinkVM.FOwner_IO);
+        FLinkVM.Progress;
+        FLinkVM.ProgressZNet_M(DoBackCall_Progress);
+      end;
+    inherited ProgressWaitSend(P_IO);
+  finally
+      FP2PVM_ProgressWaitSend_Busy := False;
+  end;
 end;
 
 procedure TZNet_P2PVM.Hook_SendByteBuffer(const Sender: TPeerIO; const buff: PByte; siz: NativeInt);
