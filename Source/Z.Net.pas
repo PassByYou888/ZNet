@@ -11926,7 +11926,8 @@ begin
   FProgressRuning := False;
   FProgressEnabled := True;
   FProgressWaitRuning := False;
-  FOnProgress := nil;
+  FProgressWaitSend_Runing
+    FOnProgress := nil;
 
   FCMD_Thread_Runing_Num := 0;
 
@@ -12497,6 +12498,8 @@ procedure TZNet.ProgressWaitSend(P_IO: TPeerIO);
 var
   state_: Boolean;
 begin
+  if FProgressWaitRuning then
+      exit;
   if not FProgressEnabled then
       exit;
   if P_IO = nil then
