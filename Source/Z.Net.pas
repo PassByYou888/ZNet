@@ -11926,8 +11926,7 @@ begin
   FProgressRuning := False;
   FProgressEnabled := True;
   FProgressWaitRuning := False;
-  FProgressWaitSend_Runing
-    FOnProgress := nil;
+  FOnProgress := nil;
 
   FCMD_Thread_Runing_Num := 0;
 
