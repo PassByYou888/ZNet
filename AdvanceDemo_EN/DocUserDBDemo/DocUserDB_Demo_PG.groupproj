@@ -1,0 +1,84 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{5513B053-9CE9-4ED2-B98A-C71FCD7A0518}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_1_Base_For_MyCustomService.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_2_MyCustomService.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_3_User_Login.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\..\C4AdminTools\Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\..\C4AdminTools\Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_1_Base_For_MyCustomService">
+        <MSBuild Projects="_1_Base_For_MyCustomService.dproj"/>
+    </Target>
+    <Target Name="_1_Base_For_MyCustomService:Clean">
+        <MSBuild Projects="_1_Base_For_MyCustomService.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_Base_For_MyCustomService:Make">
+        <MSBuild Projects="_1_Base_For_MyCustomService.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_MyCustomService">
+        <MSBuild Projects="_2_MyCustomService.dproj"/>
+    </Target>
+    <Target Name="_2_MyCustomService:Clean">
+        <MSBuild Projects="_2_MyCustomService.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_MyCustomService:Make">
+        <MSBuild Projects="_2_MyCustomService.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_3_User_Login">
+        <MSBuild Projects="_3_User_Login.dproj"/>
+    </Target>
+    <Target Name="_3_User_Login:Clean">
+        <MSBuild Projects="_3_User_Login.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_3_User_Login:Make">
+        <MSBuild Projects="_3_User_Login.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool:Clean">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_UserDB_AdminTool:Make">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_UserDB_AdminTool\DTC40_UserDB_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool:Clean">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTC40_Log_AdminTool:Make">
+        <MSBuild Projects="..\..\C4AdminTools\Delphi-DTC40_Log_AdminTool\DTC40_Log_AdminTool.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_1_Base_For_MyCustomService;_2_MyCustomService;_3_User_Login;DTC40_UserDB_AdminTool;DTC40_Log_AdminTool"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_1_Base_For_MyCustomService:Clean;_2_MyCustomService:Clean;_3_User_Login:Clean;DTC40_UserDB_AdminTool:Clean;DTC40_Log_AdminTool:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_1_Base_For_MyCustomService:Make;_2_MyCustomService:Make;_3_User_Login:Make;DTC40_UserDB_AdminTool:Make;DTC40_Log_AdminTool:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -135,7 +135,7 @@ type
     FMax_Flush_History_Num: Int64;
     FHistory: TFragment_Space_Tool_History;
     FFragment_Space: TFragment_Space_Tool;
-    FFragment_Space_Space_Span: Int64;
+    FFragment_Space_Span: Int64;
     FFragment_Space_Read_Buffer_Cache: Boolean;
     procedure Do_Get_Fragment(Sender: TFragment_Space_Tool; Position_: Int64; buff_: Pointer; Size_: Int64; var successed: Boolean);
     procedure Fixed_From_Last_Flush_History; // restore last history
@@ -155,7 +155,7 @@ type
     property FileName: TPascalString read FFileName;
     property Fragment_Space: TFragment_Space_Tool read FFragment_Space;
     property Fragment_Space_Read_Buffer_Cache: Boolean read FFragment_Space_Read_Buffer_Cache write FFragment_Space_Read_Buffer_Cache;
-    property Fragment_Space_Space_Span: Int64 read FFragment_Space_Space_Span write FFragment_Space_Space_Span;
+    property Fragment_Space_Span: Int64 read FFragment_Space_Span write FFragment_Space_Span;
     property Flush_Num: Int64 read FFlush_Num;
     property Max_Flush_History_Num: Int64 read FMax_Flush_History_Num write FMax_Flush_History_Num;
     property History: TFragment_Space_Tool_History read FHistory;
@@ -938,7 +938,7 @@ begin
   FFragment_Space := TFragment_Space_Tool.Create;
   FFragment_Space.Read_Buffer_Cache := True;
   FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
-  FFragment_Space_Space_Span := FFragment_Space.FSpace_Span;
+  FFragment_Space_Span := FFragment_Space.FSpace_Span;
   FFragment_Space_Read_Buffer_Cache := True;
 
   if (not FIsNew) and (FIsWrite) then
@@ -993,7 +993,7 @@ begin
       DisposeObject(FFragment_Space);
       FFragment_Space := TFragment_Space_Tool.Create;
       FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
-      FFragment_Space.Space_Span := FFragment_Space_Space_Span;
+      FFragment_Space.Space_Span := FFragment_Space_Span;
       FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
       exit;
     end;
@@ -1025,7 +1025,7 @@ begin
     // rebuild instance
     FFragment_Space := TFragment_Space_Tool.Create;
     FFragment_Space.Read_Buffer_Cache := FFragment_Space_Read_Buffer_Cache;
-    FFragment_Space.Space_Span := FFragment_Space_Space_Span;
+    FFragment_Space.Space_Span := FFragment_Space_Span;
     FFragment_Space.On_Get_Fragment := Do_Get_Fragment;
 
     // check and remove history

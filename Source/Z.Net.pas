@@ -173,6 +173,8 @@ type
     destructor Destroy; override;
   end;
 
+  TOnResultBridge = TOnResult_Bridge;
+
   { tool: client and service - free bridge }
   TProgress_Bridge = class
   private
@@ -213,6 +215,8 @@ type
     function IO: TPeerIO; virtual;
     procedure Progress(Sender: TZNet_Progress); virtual;
   end;
+
+  TCustomEventBridge = TCustom_Event_Bridge;
 
   { tool: Service - stream bridge }
   TStream_Event_Bridge = class
@@ -1244,7 +1248,8 @@ type
     procedure Encrypt(CS: TCipherSecurity; DataPtr: Pointer; Size: Cardinal; var k: TCipherKeyBuffer; enc: Boolean);
 
     { TimeOut_ Tick }
-    function StopCommunicationTime: TTimeTick;
+    function NoneCommunicationTime: TTimeTick;
+    property StopCommunicationTime: TTimeTick read NoneCommunicationTime;
     procedure UpdateLastCommunicationTime;
     property LastCommunicationTime: TTimeTick read FLastCommunicationTick;
     property LastCommunicationTimeTick: TTimeTick read FLastCommunicationTick;
@@ -10303,7 +10308,7 @@ begin
       AtomInc(OwnerFramework.Statistics[TStatisticsType.stEncrypt]);
 end;
 
-function TPeerIO.StopCommunicationTime: TTimeTick;
+function TPeerIO.NoneCommunicationTime: TTimeTick;
 begin
   Result := GetTimeTick - LastCommunicationTick_Received;
 end;

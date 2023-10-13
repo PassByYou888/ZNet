@@ -351,7 +351,8 @@ type
     // external-header-data
     External_Header_Data: TMem64;
     // fragment space
-    Fragment_Space_Space_Span: Int64;
+    Fragment_Space_Enabled: Boolean;
+    Fragment_Space_Span: Int64;
     Fragment_Space_Read_Buffer_Cache: Boolean;
     Fragment_Space_Wait_hardware: Boolean;
     Fragment_Space_Restore_Mode: TSafe_Flush_Restore_Mode;
@@ -2163,7 +2164,8 @@ begin
   Owner.Engine_Pool.Add(Self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
   External_Header_Data := TMem64.CustomCreate(1024 * 1024);
-  Fragment_Space_Space_Span := 1024 * 1024;
+  Fragment_Space_Enabled := True;
+  Fragment_Space_Span := 1024 * 1024;
   Fragment_Space_Read_Buffer_Cache := True;
   Fragment_Space_Wait_hardware := True;
   Fragment_Space_Restore_Mode := TSafe_Flush_Restore_Mode.sfLastHistory;
@@ -2245,7 +2247,8 @@ begin
   Dynamic_Copy_Tech_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue)), Dynamic_Copy_Tech_Max_Queue);
   FBackup_Directory := cfg.GetDefaultValue('Backup_Directory', FBackup_Directory);
 
-  Fragment_Space_Space_Span := EStrToInt64(cfg.GetDefaultValue('Fragment_Space_Space_Span', umlIntToStr(Fragment_Space_Space_Span)), Fragment_Space_Space_Span);
+  Fragment_Space_Enabled := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Enabled', umlBoolToStr(Fragment_Space_Enabled)), Fragment_Space_Enabled);
+  Fragment_Space_Span := EStrToInt64(cfg.GetDefaultValue('Fragment_Space_Span', umlIntToStr(Fragment_Space_Span)), Fragment_Space_Span);
   Fragment_Space_Read_Buffer_Cache := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Read_Buffer_Cache', umlBoolToStr(Fragment_Space_Read_Buffer_Cache)), Fragment_Space_Read_Buffer_Cache);
   Fragment_Space_Wait_hardware := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Wait_hardware', umlBoolToStr(Fragment_Space_Wait_hardware)), Fragment_Space_Wait_hardware);
   n := cfg.GetDefaultValue('Fragment_Space_Restore_Mode', '');
@@ -2288,6 +2291,8 @@ begin
   cfg.SetDefaultValue('Level', umlIntToStr(Cipher_Level));
   cfg.SetDefaultValue('Tail', umlBoolToStr(Cipher_Tail));
   cfg.SetDefaultValue('CBC', umlBoolToStr(Cipher_CBC));
+
+  // backup
   cfg.SetDefaultValue('// Copy_Mode', 'Static,Dynamic,Auto(default)');
   case Copy_Mode of
     cmStatic: cfg.SetDefaultValue('Copy_Mode', 'Static');
@@ -2297,7 +2302,10 @@ begin
   cfg.SetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit));
   cfg.SetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue));
   cfg.SetDefaultValue('Backup_Directory', FBackup_Directory);
-  cfg.SetDefaultValue('Fragment_Space_Space_Span', umlIntToStr(Fragment_Space_Space_Span));
+
+  // fragment space
+  cfg.SetDefaultValue('Fragment_Space_Enabled', umlBoolToStr(Fragment_Space_Enabled));
+  cfg.SetDefaultValue('Fragment_Space_Span', umlIntToStr(Fragment_Space_Span));
   cfg.SetDefaultValue('Fragment_Space_Read_Buffer_Cache', umlBoolToStr(Fragment_Space_Read_Buffer_Cache));
   cfg.SetDefaultValue('Fragment_Space_Wait_hardware', umlBoolToStr(Fragment_Space_Wait_hardware));
   cfg.SetDefaultValue('// Restore_Mode', 'Last,All,Ignore');
@@ -2994,16 +3002,23 @@ begin
         else
           begin
 {$IFDEF ZDB2_Thread_Engine_Safe_Flush}
-            Stream := TSafe_Flush_Stream.Create(Database_File,
-              not umlFileExists(Database_File),
-              not OnlyRead,
-              False,
-              Fragment_Space_Wait_hardware, Fragment_Space_Restore_Mode);
+            if Fragment_Space_Enabled then
+              begin
+                Stream := TSafe_Flush_Stream.Create(Database_File,
+                  not umlFileExists(Database_File),
+                  not OnlyRead,
+                  False,
+                  Fragment_Space_Wait_hardware, Fragment_Space_Restore_Mode);
 
-            TSafe_Flush_Stream(Stream).Fragment_Space_Space_Span := Fragment_Space_Space_Span;
-            TSafe_Flush_Stream(Stream).Fragment_Space_Read_Buffer_Cache := Fragment_Space_Read_Buffer_Cache;
-            TSafe_Flush_Stream(Stream).Max_Flush_History_Num := Fragment_Space_Max_Flush_History_Num;
-            TSafe_Flush_Stream(Stream).Flush;
+                TSafe_Flush_Stream(Stream).Fragment_Space_Span := Fragment_Space_Span;
+                TSafe_Flush_Stream(Stream).Fragment_Space_Read_Buffer_Cache := Fragment_Space_Read_Buffer_Cache;
+                TSafe_Flush_Stream(Stream).Max_Flush_History_Num := Fragment_Space_Max_Flush_History_Num;
+                TSafe_Flush_Stream(Stream).Flush;
+              end
+            else
+              begin
+                Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
+              end;
 {$ELSE ZDB2_Thread_Engine_Safe_Flush}
             Stream := TReliableFileStream.Create(Database_File, not umlFileExists(Database_File), not OnlyRead);
 {$ENDIF ZDB2_Thread_Engine_Safe_Flush}

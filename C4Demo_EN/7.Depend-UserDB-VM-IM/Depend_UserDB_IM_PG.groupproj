@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{63B50277-CCC7-4D5B-9E33-C470E1215485}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_1_UserDB_IM_Centre_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_2_VM_Auth_IM_serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_3_Auth_IM_Client.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_1_UserDB_IM_Centre_Serv">
+        <MSBuild Projects="_1_UserDB_IM_Centre_Serv.dproj"/>
+    </Target>
+    <Target Name="_1_UserDB_IM_Centre_Serv:Clean">
+        <MSBuild Projects="_1_UserDB_IM_Centre_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_UserDB_IM_Centre_Serv:Make">
+        <MSBuild Projects="_1_UserDB_IM_Centre_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv">
+        <MSBuild Projects="_2_VM_Auth_IM_serv.dproj"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv:Clean">
+        <MSBuild Projects="_2_VM_Auth_IM_serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_VM_Auth_IM_serv:Make">
+        <MSBuild Projects="_2_VM_Auth_IM_serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client">
+        <MSBuild Projects="_3_Auth_IM_Client.dproj"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client:Clean">
+        <MSBuild Projects="_3_Auth_IM_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_3_Auth_IM_Client:Make">
+        <MSBuild Projects="_3_Auth_IM_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_1_UserDB_IM_Centre_Serv;_2_VM_Auth_IM_serv;_3_Auth_IM_Client"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_1_UserDB_IM_Centre_Serv:Clean;_2_VM_Auth_IM_serv:Clean;_3_Auth_IM_Client:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_1_UserDB_IM_Centre_Serv:Make;_2_VM_Auth_IM_serv:Make;_3_Auth_IM_Client:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

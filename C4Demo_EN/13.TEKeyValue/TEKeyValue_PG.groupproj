@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{7675DC1A-37D9-48E4-B09F-395CB9AF0FA6}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="_1_TEKeyValue_Serv.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="_2_TEKeyValue_Cli.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="_1_TEKeyValue_Serv">
+        <MSBuild Projects="_1_TEKeyValue_Serv.dproj"/>
+    </Target>
+    <Target Name="_1_TEKeyValue_Serv:Clean">
+        <MSBuild Projects="_1_TEKeyValue_Serv.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_1_TEKeyValue_Serv:Make">
+        <MSBuild Projects="_1_TEKeyValue_Serv.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="_2_TEKeyValue_Cli">
+        <MSBuild Projects="_2_TEKeyValue_Cli.dproj"/>
+    </Target>
+    <Target Name="_2_TEKeyValue_Cli:Clean">
+        <MSBuild Projects="_2_TEKeyValue_Cli.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="_2_TEKeyValue_Cli:Make">
+        <MSBuild Projects="_2_TEKeyValue_Cli.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="_1_TEKeyValue_Serv;_2_TEKeyValue_Cli"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="_1_TEKeyValue_Serv:Clean;_2_TEKeyValue_Cli:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="_1_TEKeyValue_Serv:Make;_2_TEKeyValue_Cli:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

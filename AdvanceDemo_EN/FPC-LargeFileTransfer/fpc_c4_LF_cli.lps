@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units Count="3">
+      <Unit0>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="397"/>
+        <CursorPos X="55" Y="410"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="..\..\Source\Z.Core.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="10" Y="6"/>
+        <UsageCount Value="10"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\..\Source\Z.Define.inc"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit2>
+    </Units>
+    <JumpHistory Count="11" HistoryIndex="10">
+      <Position1>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="182" Column="63" TopLine="155"/>
+      </Position1>
+      <Position2>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="227" Column="59" TopLine="201"/>
+      </Position2>
+      <Position3>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="275" Column="55" TopLine="251"/>
+      </Position3>
+      <Position4>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="370" Column="65" TopLine="351"/>
+      </Position4>
+      <Position5>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="7" Column="7"/>
+      </Position5>
+      <Position6>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="41" TopLine="13"/>
+      </Position6>
+      <Position7>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="482" TopLine="431"/>
+      </Position7>
+      <Position8>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+      </Position8>
+      <Position9>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="195" Column="63" TopLine="169"/>
+      </Position9>
+      <Position10>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="238" Column="58" TopLine="212"/>
+      </Position10>
+      <Position11>
+        <Filename Value="fpc_c4_LF_cli.lpr"/>
+        <Caret Line="288" Column="55" TopLine="262"/>
+      </Position11>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

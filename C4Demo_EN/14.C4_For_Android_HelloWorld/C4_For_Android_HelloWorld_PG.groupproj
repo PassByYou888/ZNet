@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{C08D79C2-FFF0-4432-BD94-793367EDA1AA}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="C4_For_Android_Server.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="C4_For_Android_HelloWorld.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="C4_For_Android_Server">
+        <MSBuild Projects="C4_For_Android_Server.dproj"/>
+    </Target>
+    <Target Name="C4_For_Android_Server:Clean">
+        <MSBuild Projects="C4_For_Android_Server.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_For_Android_Server:Make">
+        <MSBuild Projects="C4_For_Android_Server.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4_For_Android_HelloWorld">
+        <MSBuild Projects="C4_For_Android_HelloWorld.dproj"/>
+    </Target>
+    <Target Name="C4_For_Android_HelloWorld:Clean">
+        <MSBuild Projects="C4_For_Android_HelloWorld.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_For_Android_HelloWorld:Make">
+        <MSBuild Projects="C4_For_Android_HelloWorld.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="C4_For_Android_Server;C4_For_Android_HelloWorld"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="C4_For_Android_Server:Clean;C4_For_Android_HelloWorld:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="C4_For_Android_Server:Make;C4_For_Android_HelloWorld:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

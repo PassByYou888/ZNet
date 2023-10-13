@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{974B0723-612C-4219-A726-EF3EFB504666}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="C4_Auto_Deployment_Server.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="C4_Auto_Deployment_Client.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="C4_Auto_Deployment_Server">
+        <MSBuild Projects="C4_Auto_Deployment_Server.dproj"/>
+    </Target>
+    <Target Name="C4_Auto_Deployment_Server:Clean">
+        <MSBuild Projects="C4_Auto_Deployment_Server.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_Auto_Deployment_Server:Make">
+        <MSBuild Projects="C4_Auto_Deployment_Server.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="C4_Auto_Deployment_Client">
+        <MSBuild Projects="C4_Auto_Deployment_Client.dproj"/>
+    </Target>
+    <Target Name="C4_Auto_Deployment_Client:Clean">
+        <MSBuild Projects="C4_Auto_Deployment_Client.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="C4_Auto_Deployment_Client:Make">
+        <MSBuild Projects="C4_Auto_Deployment_Client.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="C4_Auto_Deployment_Server;C4_Auto_Deployment_Client"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="C4_Auto_Deployment_Server:Clean;C4_Auto_Deployment_Client:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="C4_Auto_Deployment_Server:Make;C4_Auto_Deployment_Client:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

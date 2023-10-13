@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{9FC5510B-2197-4BB8-BA54-CEAE61594511}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="UnitRewriteTool_S\UnitRewriteService.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="UnitRewriteTool_C\UnitRewriteTool_C.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="UnitRewriteService">
+        <MSBuild Projects="UnitRewriteTool_S\UnitRewriteService.dproj"/>
+    </Target>
+    <Target Name="UnitRewriteService:Clean">
+        <MSBuild Projects="UnitRewriteTool_S\UnitRewriteService.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="UnitRewriteService:Make">
+        <MSBuild Projects="UnitRewriteTool_S\UnitRewriteService.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="UnitRewriteTool_C">
+        <MSBuild Projects="UnitRewriteTool_C\UnitRewriteTool_C.dproj"/>
+    </Target>
+    <Target Name="UnitRewriteTool_C:Clean">
+        <MSBuild Projects="UnitRewriteTool_C\UnitRewriteTool_C.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="UnitRewriteTool_C:Make">
+        <MSBuild Projects="UnitRewriteTool_C\UnitRewriteTool_C.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="UnitRewriteService;UnitRewriteTool_C"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="UnitRewriteService:Clean;UnitRewriteTool_C:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="UnitRewriteService:Make;UnitRewriteTool_C:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
