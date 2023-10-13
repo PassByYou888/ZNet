@@ -36,7 +36,7 @@ In January 2022, I used mechanized modeling technology to upgrade a large projec
 
 The main positioning of ZNet is to provide communication foundation support for SaaS, p2pVM, IOT, big data storage IO, active project group
 
-Please refer to the reference manual for details https://zpascal.net/ZNetManual.pdf
+Please refer to the reference manual for details https://zpascal.net/ZNet_Manual_EN.pdf
 
 #### Major update of ZNet compared to ZServer4D
 
