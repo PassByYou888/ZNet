@@ -63,12 +63,12 @@ end;
 
 procedure TFMXDRClientForm.SendRequestBtnClick(Sender: TObject);
 var
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
 begin
   {  Asynchronous sending and receiving Stream instructions, feedback triggered by proc callback  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   client.SendStreamCmdP('DelayResponse', SendDe,
-    procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       while ResultData.Reader.NotEnd do
           DoStatus('server response:%s', [ResultData.Reader.ReadString]);

@@ -84,7 +84,7 @@ begin
   d.WriteString(dbName);
   d.WriteCardinal(dataID);
   d.WriteStream(stream);
-  SendTunnel.SendStreamCmdP('MyAutoSave', d, procedure(Sender: TPeerIO; ResultData: TDataFrameEngine)
+  SendTunnel.SendStreamCmdP('MyAutoSave', d, procedure(Sender: TPeerIO; ResultData: TDFE)
     var
       tmp: TDFE;
       info: TBigStreamBatchPostData;
@@ -129,7 +129,7 @@ end;
 
 procedure TInternetClient.MySaveState(OnResult: TOnSaveStateResult);
 begin
-  SendTunnel.SendStreamCmdP('MySaveState', nil, procedure(Sender: TPeerIO; ResultData: TDataFrameEngine)
+  SendTunnel.SendStreamCmdP('MySaveState', nil, procedure(Sender: TPeerIO; ResultData: TDFE)
     var
       tmp: TDFE;
       info: TBigStreamBatchPostData;

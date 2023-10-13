@@ -30,7 +30,7 @@ type
   private
     { Private declarations }
     procedure DoStatusNear(AText: string; const ID: Integer);
-    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
   public
     { Public declarations }
     client: TZNet_Client_Indy;
@@ -45,7 +45,7 @@ implementation
 
 { TFMXClientForm }
 
-procedure TFMXClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+procedure TFMXClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
 begin
   if ResultData.Count > 0 then
       DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -92,28 +92,28 @@ end;
 
 procedure TFMXClientForm.HelloWorldBtnClick(Sender: TObject);
 var
-  SendDe, ResultDE: TDataFrameEngine;
+  SendDe, ResultDE: TDFE;
 begin
   // 往服务器发送一条console形式的hello world指令
   client.SendDirectConsoleCmd('helloWorld_Console', '');
 
   // 往服务器发送一条stream形式的hello world指令
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('directstream 123456');
   client.SendDirectStreamCmd('helloWorld_Stream', SendDe);
   DisposeObject([SendDe]);
 
   // 异步方式发送，并且接收Stream指令，反馈以方法回调触发
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   client.SendStreamCmdM('helloWorld_Stream_Result', SendDe, BackCall_helloWorld_Stream_Result);
   DisposeObject([SendDe]);
 
   // 异步方式发送，并且接收Stream指令，反馈以proc回调触发
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   client.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-    procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       if ResultData.Count > 0 then
           DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -121,8 +121,8 @@ begin
   DisposeObject([SendDe]);
 
   // 阻塞方式发送，并且接收Stream指令
-  SendDe := TDataFrameEngine.Create;
-  ResultDE := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
+  ResultDE := TDFE.Create;
   SendDe.WriteString('123456');
   client.WaitSendStreamCmd('helloWorld_Stream_Result', SendDe, ResultDE, 5000);
   if ResultDE.Count > 0 then
@@ -159,7 +159,7 @@ end;
 procedure TFMXClientForm.SendMiniStreamButtonClick(Sender: TObject);
 var
   ms    : TMemoryStream;
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   p     : PInt64;
   i     : Integer;
 begin
@@ -177,7 +177,7 @@ begin
   DoStatus(umlMD5Char(ms.Memory, ms.Size).Text);
 
   // 往服务器发送一条direct stream形式的指令
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteStream(ms);
   client.SendDirectStreamCmd('TestMiniStream', SendDe);
   DisposeObject([SendDe, ms]);

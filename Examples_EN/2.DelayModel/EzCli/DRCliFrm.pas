@@ -52,7 +52,7 @@ type
   PMyDefine = ^TMyDefine;
 
 var
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   p: PMyDefine;
 begin
   {  Due to asynchronous operations, it is often difficult for clients to write using normal processes, so we often need to use exchange structures  }
@@ -62,9 +62,9 @@ begin
   p^.b := 2;
   p^.c := 3;
 
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   client.SendStreamCmdP('DelayResponse', SendDe, p, nil,
-    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, ResultData: TDFE)
     var
       p2: PMyDefine;
     begin
@@ -83,7 +83,7 @@ begin
       {  If the other party goes offline, this event will not be triggered, and the PMyDefine memory we just applied for will also be lost  }
       dispose(p2);
     end,
-    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDataFrameEngine)
+    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE)
     var
       p2: PMyDefine;
     begin
@@ -116,14 +116,14 @@ end;
 
 procedure TDRClientForm.DelayResponseBtnClick(Sender: TObject);
 var
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   a: Integer;
 begin
   {  Asynchronous sending and receiving Stream instructions, feedback triggered by proc callback  }
   a := 123;
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   client.SendStreamCmdP('DelayResponse', SendDe,
-    procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       {  When the event here is triggered, DelayResponseBtnClick has already been executed and variable a no longer exists, at least it is out of the normal program scope  }
       {  When an asynchronous event is triggered, a is in an unbroken stack space, which is out of normal use because it is an asynchronous event  }

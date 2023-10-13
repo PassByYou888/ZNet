@@ -36,8 +36,8 @@ type
     { Private declarations }
     procedure DoStatusNear(AText: string; const ID: Integer);
 
-    procedure cmd_ChangeCaption(Sender: TPeerClient; InData: TDataFrameEngine);
-    procedure cmd_GetClientValue(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_ChangeCaption(Sender: TPeerClient; InData: TDFE);
+    procedure cmd_GetClientValue(Sender: TPeerClient; InData, OutData: TDFE);
   public
     { Public declarations }
     RecvTunnel: TZNet_Client_Indy;
@@ -54,12 +54,12 @@ implementation
 
 { TFMXClientForm }
 
-procedure TFMXAuthDoubleClientForm.cmd_ChangeCaption(Sender: TPeerClient; InData: TDataFrameEngine);
+procedure TFMXAuthDoubleClientForm.cmd_ChangeCaption(Sender: TPeerClient; InData: TDFE);
 begin
   DoStatus('Change Caption:%s', [InData.Reader.ReadString]);
 end;
 
-procedure TFMXAuthDoubleClientForm.cmd_GetClientValue(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TFMXAuthDoubleClientForm.cmd_GetClientValue(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   OutData.WriteString('getclientvalue:abc');
 end;
@@ -135,22 +135,22 @@ end;
 
 procedure TFMXAuthDoubleClientForm.HelloWorldBtnClick(Sender: TObject);
 var
-  SendDe, ResultDE: TDataFrameEngine;
+  SendDe, ResultDE: TDFE;
 begin
   {  Send a console form hello world instruction to the server  }
   client.SendTunnel.SendDirectConsoleCmd('helloWorld_Console', '');
 
   {  Send a hello world instruction in the form of stream to the server  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('directstream 123456');
   client.SendTunnel.SendDirectStreamCmd('helloWorld_Stream', SendDe);
   DisposeObject([SendDe]);
 
   {  Asynchronous sending and receiving Stream instructions, feedback triggered by proc callback  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   client.SendTunnel.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-    procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       if ResultData.Count > 0 then
           DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -158,8 +158,8 @@ begin
   DisposeObject([SendDe]);
 
   {  Blocking sending and receiving Stream instructions  }
-  SendDe := TDataFrameEngine.Create;
-  ResultDE := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
+  ResultDE := TDFE.Create;
   SendDe.WriteString('123456');
   client.SendTunnel.WaitSendStreamCmd('helloWorld_Stream_Result', SendDe, ResultDE, 5000);
   if ResultDE.Count > 0 then

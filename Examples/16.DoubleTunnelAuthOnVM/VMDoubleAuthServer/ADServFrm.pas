@@ -39,8 +39,8 @@ type
   protected
     // reg cmd
     procedure cmd_helloWorld_Console(Sender: TPeerClient; InData: string);
-    procedure cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
-    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDFE);
+    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
   public
     procedure RegisterCommand; override;
     procedure UnRegisterCommand; override;
@@ -161,7 +161,7 @@ begin
   DoStatus('client: %s', [InData]);
 end;
 
-procedure TMyService.cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
+procedure TMyService.cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDFE);
 var
   UserIO: TService_RecvTunnel_UserDefine;
 begin
@@ -177,7 +177,7 @@ begin
   DoStatus('client: %s', [InData.Reader.ReadString]);
 end;
 
-procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
 var
   UserIO: TService_RecvTunnel_UserDefine;
 begin
@@ -211,9 +211,9 @@ end;
 
 procedure TAuthDoubleServerForm.ChangeCaptionButtonClick(Sender: TObject);
 var
-  de: TDataFrameEngine;
+  de: TDFE;
 begin
-  de := TDataFrameEngine.Create;
+  de := TDFE.Create;
   de.WriteString('change caption as hello World,from server!');
   // 广播方法不会区分客户端是否有登录，是否建立成功了双通道
   SendTunnel.BroadcastDirectStreamCmd('ChangeCaption', de);
@@ -263,7 +263,7 @@ begin
   SendTunnel.ProgressPeerIOP(procedure(PeerClient: TPeerClient)
     var
       c: TPeerClient;
-      de: TDataFrameEngine;
+      de: TDFE;
     begin
       c := PeerClient;
       // 如果客户端没有登录成功
@@ -273,10 +273,10 @@ begin
       if not TService_SendTunnel_UserDefine(c.UserDefine).RecvTunnel.LinkOK then
           exit;
 
-      de := TDataFrameEngine.Create;
+      de := TDFE.Create;
       de.WriteString('change caption as hello World,from server!');
       c.SendStreamCmdP('GetClientValue', de,
-        procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+        procedure(Sender: TPeerClient; ResultData: TDFE)
         begin
           if ResultData.Count > 0 then
               DoStatus('getClientValue [%s] response:%s', [c.GetPeerIP, ResultData.Reader.ReadString]);

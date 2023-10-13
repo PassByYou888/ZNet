@@ -24,7 +24,7 @@ type
     procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
     // reg cmd
-    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
   public
     procedure RegisterCommand; override;
     procedure UnRegisterCommand; override;
@@ -72,11 +72,11 @@ begin
   DoStatus('user out!');
 end;
 
-procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   // hpc延迟后台运算机制演示，机制非常简单，可以大规模堆砌工程化代码
   Z.Net.RunHPC_StreamP(Sender, nil, nil, InData, OutData,
-    procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDataFrameEngine)
+    procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE)
     begin
       // 如果在你的后台服务器框架有调度中心服务器：ManagerServer
       TCompute.sync(procedure
@@ -137,9 +137,9 @@ end;
 
 procedure TDoubleServerForm.ChangeCaptionButtonClick(Sender: TObject);
 var
-  de: TDataFrameEngine;
+  de: TDFE;
 begin
-  de := TDataFrameEngine.Create;
+  de := TDFE.Create;
   de.WriteString('change caption as hello World,from server!');
   SendTunnel.BroadcastDirectStreamCmd('ChangeCaption', de);
   disposeObject(de);
@@ -171,13 +171,13 @@ begin
   SendTunnel.ProgressPeerIOP(procedure(PeerClient: TPeerClient)
     var
       c: TPeerClient;
-      de: TDataFrameEngine;
+      de: TDFE;
     begin
       c := PeerClient;
-      de := TDataFrameEngine.Create;
+      de := TDFE.Create;
       de.WriteString('change caption as hello World,from server!');
       c.SendStreamCmdP('GetClientValue', de,
-        procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+        procedure(Sender: TPeerClient; ResultData: TDFE)
         begin
           if ResultData.Count > 0 then
               DoStatus('getClientValue [%s] response:%s', [c.GetPeerIP, ResultData.Reader.ReadString]);

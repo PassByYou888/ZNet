@@ -52,7 +52,7 @@ type
   PMyDefine = ^TMyDefine;
 
 var
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   p: PMyDefine;
 begin
   // 由于异步操作,客户端往往难以用正常流程来编写,因此,我们经常会需要用到交换结构
@@ -62,9 +62,9 @@ begin
   p^.b := 2;
   p^.c := 3;
 
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   client.SendStreamCmdP('DelayResponse', SendDe, p, nil,
-    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, ResultData: TDFE)
     var
       p2: PMyDefine;
     begin
@@ -83,7 +83,7 @@ begin
       // 如果对方离线,该事件不会触发,我们刚才申请的PMyDefine内存也会丢失
       dispose(p2);
     end,
-    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDataFrameEngine)
+    procedure(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE)
     var
       p2: PMyDefine;
     begin
@@ -116,14 +116,14 @@ end;
 
 procedure TDRClientForm.DelayResponseBtnClick(Sender: TObject);
 var
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   a: Integer;
 begin
   // 异步方式发送，并且接收Stream指令，反馈以proc回调触发
   a := 123;
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   client.SendStreamCmdP('DelayResponse', SendDe,
-    procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+    procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       // 这里的事件在触发时,其实DelayResponseBtnClick已经执行完毕,变量a也已经不再存在,至少它脱离了正常程序范围
       // 在异步事件触发时,a在一个未被破坏的堆栈空间中,这是脱离正常使用范围的,因为这是异步事件

@@ -60,7 +60,7 @@ type
     ClientWithVM: TClientArry;
     ClientWithVMTest: TTestArry;
 
-    procedure cmd_SimulateKeepAlivte(Sender: TPeerIO; InData: TDataFrameEngine);
+    procedure cmd_SimulateKeepAlivte(Sender: TPeerIO; InData: TDFE);
   end;
 
 var
@@ -257,7 +257,7 @@ begin
       Memo.Lines.Add(AText);
 end;
 
-procedure TVMCliForm.cmd_SimulateKeepAlivte(Sender: TPeerIO; InData: TDataFrameEngine);
+procedure TVMCliForm.cmd_SimulateKeepAlivte(Sender: TPeerIO; InData: TDFE);
 begin
   OriginDataLabel.Caption := Format('Heartbeat packet:%s', [InData.Reader.ReadString]);
 end;

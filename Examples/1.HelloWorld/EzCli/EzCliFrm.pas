@@ -34,7 +34,7 @@ type
   private
     { Private declarations }
     procedure DoStatusNear(AText: string; const ID: Integer);
-    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
   public
     { Public declarations }
     Client: TZNet_Client;
@@ -68,7 +68,7 @@ begin
   DeleteDoStatusHook(self);
 end;
 
-procedure TEZClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+procedure TEZClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
 begin
   if ResultData.Count > 0 then
       DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -76,29 +76,29 @@ end;
 
 procedure TEZClientForm.HelloWorldBtnClick(Sender: TObject);
 var
-  SendDe, ResultDE: TDataFrameEngine;
+  SendDe, ResultDE: TDFE;
   js: TZ_JsonObject;
 begin
   // 往服务器发送一条console形式的hello world指令
   Client.SendDirectConsoleCmd('helloWorld_Console', '');
 
   // 往服务器发送一条stream形式的hello world指令
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('directstream 123456');
   Client.SendDirectStreamCmd('helloWorld_Stream', SendDe);
   DisposeObject([SendDe]);
 
   // 异步方式发送，并且接收Stream指令，反馈以方法回调触发
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   Client.SendStreamCmdM('helloWorld_Stream_Result', SendDe, BackCall_helloWorld_Stream_Result);
   DisposeObject([SendDe]);
 
   // 异步方式发送，并且接收Stream指令，反馈以proc回调触发
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   Client.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-      procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+      procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       if ResultData.Count > 0 then
           DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -106,8 +106,8 @@ begin
   DisposeObject([SendDe]);
 
   // 阻塞方式发送，并且接收Stream指令
-  SendDe := TDataFrameEngine.Create;
-  ResultDE := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
+  ResultDE := TDFE.Create;
   SendDe.WriteString('123456');
   Client.WaitSendStreamCmd('helloWorld_Stream_Result', SendDe, ResultDE, 5000);
   if ResultDE.Count > 0 then
@@ -117,7 +117,7 @@ begin
   // json收发
   js := TZ_JsonObject.Create;
   js.S['中文测试'] := '你好世界';
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteJson(js);
   Client.SendDirectStreamCmd('Json_Stream', SendDe);
   DisposeObject([js, SendDe]);
@@ -176,7 +176,7 @@ end;
 procedure TEZClientForm.sendMiniStreamButtonClick(Sender: TObject);
 var
   ms: TMemoryStream;
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   p: PInt64;
   i: Integer;
 begin
@@ -194,7 +194,7 @@ begin
   DoStatus('mini stream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
 
   // 往服务器发送一条direct stream形式的指令
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteStream(ms);
   Client.SendDirectStreamCmd('TestMiniStream', SendDe);
   DisposeObject([SendDe, ms]);

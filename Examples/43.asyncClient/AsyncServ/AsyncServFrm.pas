@@ -37,12 +37,12 @@ type
     procedure DoStatusNear(AText: string; const ID: Integer);
 
     procedure cmd_helloWorld_Console(Sender: TPeerClient; InData: string);
-    procedure cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
-    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDFE);
+    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
 
-    procedure cmd_Json_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
+    procedure cmd_Json_Stream(Sender: TPeerClient; InData: TDFE);
 
-    procedure cmd_TestMiniStream(Sender: TPeerClient; InData: TDataFrameEngine);
+    procedure cmd_TestMiniStream(Sender: TPeerClient; InData: TDFE);
 
     procedure cmd_Test128MBigStream(Sender: TPeerClient; InData: TCore_Stream; BigStreamTotal, BigStreamCompleteSize: Int64);
 
@@ -65,17 +65,17 @@ begin
   DoStatus('client: %s', [InData]);
 end;
 
-procedure TAsyncServerForm.cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
+procedure TAsyncServerForm.cmd_helloWorld_Stream(Sender: TPeerClient; InData: TDFE);
 begin
   DoStatus('client: %s', [InData.Reader.ReadString]);
 end;
 
-procedure TAsyncServerForm.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TAsyncServerForm.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   OutData.WriteString('result 654321');
 end;
 
-procedure TAsyncServerForm.cmd_Json_Stream(Sender: TPeerClient; InData: TDataFrameEngine);
+procedure TAsyncServerForm.cmd_Json_Stream(Sender: TPeerClient; InData: TDFE);
 var
   js: TZ_JsonObject;
   ns: TStringList;
@@ -89,7 +89,7 @@ begin
   disposeObject(js);
 end;
 
-procedure TAsyncServerForm.cmd_TestMiniStream(Sender: TPeerClient; InData: TDataFrameEngine);
+procedure TAsyncServerForm.cmd_TestMiniStream(Sender: TPeerClient; InData: TDFE);
 var
   ms: TMemoryStream;
 begin

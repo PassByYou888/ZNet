@@ -29,7 +29,7 @@ type
     procedure DoStatus_backcall(Text_: SystemString; const ID: Integer);
     procedure DoAutomatedP2PVMClientConnectionDone(Sender: TZNet; P_IO: TPeerIO);
     procedure Tunnel_Result(const state:Boolean);
-    procedure RunExpResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
+    procedure RunExpResult(Sender: TPeerIO; ResultData: TDFE);
   public
 
   end;
@@ -91,7 +91,7 @@ begin
   phyIO.AsyncConnectM(hostedit.Text, 7189, nil);
 end;
 
-procedure TcliForm.RunExpResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
+procedure TcliForm.RunExpResult(Sender: TPeerIO; ResultData: TDFE);
 begin
   DoStatus('表达式返回: %s', [ResultData.R.ReadString]);
 end;

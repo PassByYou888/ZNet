@@ -25,7 +25,7 @@ type
     procedure DoStatusNear(AText: string; const ID: Integer);
 
     procedure PostExecute_DelayResponse(Sender: TNPostExecute);
-    procedure cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDFE);
   public
     { Public declarations }
 
@@ -72,7 +72,7 @@ begin
   c.ContinueResultSend;
 end;
 
-procedure TDRServerForm.cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TDRServerForm.cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   // DelayResponse命令被执行完成后，不会立即给客户端反馈
   // 延迟响应机制都采用状态机实现，一旦停止响应，队列中的指令都会处于等待状态

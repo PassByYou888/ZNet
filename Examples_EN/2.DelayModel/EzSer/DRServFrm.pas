@@ -25,7 +25,7 @@ type
     procedure DoStatusNear(AText: string; const ID: Integer);
 
     procedure PostExecute_DelayResponse(Sender: TNPostExecute);
-    procedure cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDFE);
   public
     { Public declarations }
 
@@ -72,7 +72,7 @@ begin
   c.ContinueResultSend;
 end;
 
-procedure TDRServerForm.cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TDRServerForm.cmd_DelayResponse(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   {  After the delayresponse command is executed, it will not give feedback to the client immediately  }
   {  The delayed response mechanism is implemented by state machine. Once the response stops, the instructions in the queue will be in the waiting state  }

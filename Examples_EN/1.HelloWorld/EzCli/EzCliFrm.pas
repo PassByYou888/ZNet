@@ -34,7 +34,7 @@ type
   private
     { Private declarations }
     procedure DoStatusNear(AText: string; const ID: Integer);
-    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+    procedure BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
   public
     { Public declarations }
     Client: TZNet_Client;
@@ -68,7 +68,7 @@ begin
   DeleteDoStatusHook(self);
 end;
 
-procedure TEZClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDataFrameEngine);
+procedure TEZClientForm.BackCall_helloWorld_Stream_Result(Sender: TPeerClient; ResultData: TDFE);
 begin
   if ResultData.Count > 0 then
       DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -76,29 +76,29 @@ end;
 
 procedure TEZClientForm.HelloWorldBtnClick(Sender: TObject);
 var
-  SendDe, ResultDE: TDataFrameEngine;
+  SendDe, ResultDE: TDFE;
   js: TZ_JsonObject;
 begin
   {  Send a console form hello world instruction to the server  }
   Client.SendDirectConsoleCmd('helloWorld_Console', '');
 
   {  Send a hello world instruction in the form of stream to the server  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('directstream 123456');
   Client.SendDirectStreamCmd('helloWorld_Stream', SendDe);
   DisposeObject([SendDe]);
 
   {  Asynchronous sending and receiving Stream instructions, feedback triggered by method callback  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   Client.SendStreamCmdM('helloWorld_Stream_Result', SendDe, BackCall_helloWorld_Stream_Result);
   DisposeObject([SendDe]);
 
   {  Asynchronous sending and receiving Stream instructions, feedback triggered by proc callback  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteString('123456');
   Client.SendStreamCmdP('helloWorld_Stream_Result', SendDe,
-      procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+      procedure(Sender: TPeerClient; ResultData: TDFE)
     begin
       if ResultData.Count > 0 then
           DoStatus('server response:%s', [ResultData.Reader.ReadString]);
@@ -106,8 +106,8 @@ begin
   DisposeObject([SendDe]);
 
   {  Blocking sending and receiving Stream instructions  }
-  SendDe := TDataFrameEngine.Create;
-  ResultDE := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
+  ResultDE := TDFE.Create;
   SendDe.WriteString('123456');
   Client.WaitSendStreamCmd('helloWorld_Stream_Result', SendDe, ResultDE, 5000);
   if ResultDE.Count > 0 then
@@ -117,7 +117,7 @@ begin
   {  JSON transceiver  }
   js := TZ_JsonObject.Create;
   js.S['Chinese test'] := 'Hello world';
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteJson(js);
   Client.SendDirectStreamCmd('Json_Stream', SendDe);
   DisposeObject([js, SendDe]);
@@ -176,7 +176,7 @@ end;
 procedure TEZClientForm.sendMiniStreamButtonClick(Sender: TObject);
 var
   ms: TMemoryStream;
-  SendDe: TDataFrameEngine;
+  SendDe: TDFE;
   p: PInt64;
   i: Integer;
 begin
@@ -194,7 +194,7 @@ begin
   DoStatus('mini stream md5:' + umlMD5Char(ms.Memory, ms.Size).Text);
 
   {  Send an instruction in the form of direct stream to the server  }
-  SendDe := TDataFrameEngine.Create;
+  SendDe := TDFE.Create;
   SendDe.WriteStream(ms);
   Client.SendDirectStreamCmd('TestMiniStream', SendDe);
   DisposeObject([SendDe, ms]);

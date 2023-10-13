@@ -48,8 +48,8 @@ type
     { Private declarations }
   public
     { Public declarations }
-    procedure MyQueryResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
-    procedure MyDownloadPictureResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
+    procedure MyQueryResult(Sender: TPeerIO; ResultData: TDFE);
+    procedure MyDownloadPictureResult(Sender: TPeerIO; ResultData: TDFE);
   end;
 
 var
@@ -130,7 +130,7 @@ begin
   InternetClient.MyDownload(InternetCliForm.DBNameEdit.Text, itm.json.I64['Picture'], MyDownloadPictureResult);
 end;
 
-procedure TQueryForm.MyQueryResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
+procedure TQueryForm.MyQueryResult(Sender: TPeerIO; ResultData: TDFE);
 var
   i: Integer;
   itm: TMyListItem;
@@ -149,7 +149,7 @@ begin
   ListView.Items.EndUpdate;
 end;
 
-procedure TQueryForm.MyDownloadPictureResult(Sender: TPeerIO; ResultData: TDataFrameEngine);
+procedure TQueryForm.MyDownloadPictureResult(Sender: TPeerIO; ResultData: TDFE);
 var
   m64: TMS64;
 begin

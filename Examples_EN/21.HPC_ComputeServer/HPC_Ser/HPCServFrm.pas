@@ -24,7 +24,7 @@ type
     procedure UserOut(UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
     // reg cmd
-    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+    procedure cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
   public
     procedure RegisterCommand; override;
     procedure UnRegisterCommand; override;
@@ -72,11 +72,11 @@ begin
   DoStatus('user out!');
 end;
 
-procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDataFrameEngine);
+procedure TMyService.cmd_helloWorld_Stream_Result(Sender: TPeerClient; InData, OutData: TDFE);
 begin
   {  Demonstration of HPC delay backend computing mechanism, which is very simple and can stack engineering code on a large scale  }
   Z.Net.RunHPC_StreamP(Sender, nil, nil, InData, OutData,
-    procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDataFrameEngine)
+    procedure(ThSender: THPC_Stream; ThInData, ThOutData: TDFE)
     begin
       {  If there is a dispatch center server in your background server framework: managerserver  }
       TCompute.sync(procedure
@@ -137,9 +137,9 @@ end;
 
 procedure TDoubleServerForm.ChangeCaptionButtonClick(Sender: TObject);
 var
-  de: TDataFrameEngine;
+  de: TDFE;
 begin
-  de := TDataFrameEngine.Create;
+  de := TDFE.Create;
   de.WriteString('change caption as hello World,from server!');
   SendTunnel.BroadcastDirectStreamCmd('ChangeCaption', de);
   disposeObject(de);
@@ -171,13 +171,13 @@ begin
   SendTunnel.ProgressPeerIOP(procedure(PeerClient: TPeerClient)
     var
       c: TPeerClient;
-      de: TDataFrameEngine;
+      de: TDFE;
     begin
       c := PeerClient;
-      de := TDataFrameEngine.Create;
+      de := TDFE.Create;
       de.WriteString('change caption as hello World,from server!');
       c.SendStreamCmdP('GetClientValue', de,
-        procedure(Sender: TPeerClient; ResultData: TDataFrameEngine)
+        procedure(Sender: TPeerClient; ResultData: TDFE)
         begin
           if ResultData.Count > 0 then
               DoStatus('getClientValue [%s] response:%s', [c.GetPeerIP, ResultData.Reader.ReadString]);
