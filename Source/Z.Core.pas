@@ -1785,13 +1785,10 @@ var
   Core_Main_Thread_ID: TThreadID; // custom main-thread-id
   Used_Soft_Synchronize: Boolean; // used soft thread synchronize simulator
   MainThread_Sync_Tool: TSoft_Synchronize_Tool; // soft synchronize tool for main-thread
-
   // Check Synchronize for main-thread
   Enabled_Check_Thread_Synchronize_System: Boolean;
   Main_Thread_Synchronize_Running: Boolean;
-  Main_Thread_OnCheck_Runing: Boolean;
   OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
-
   // caller of per second tool
   CPS_Check_Soft_Thread, CPS_Check_System_Thread: TCPS_Tool;
 
@@ -2350,92 +2347,6 @@ begin
   Result := TCore_Thread.CurrentThread.ThreadID = Core_Main_Thread_ID;
 end;
 
-function Do_Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
-begin
-  Result := False;
-  if Used_Soft_Synchronize then
-    begin
-      if (TCore_Thread.CurrentThread <> MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
-        begin
-          if TCore_Thread.CurrentThread.ThreadID = MainThreadID then
-            Result := CheckSynchronize(Timeout)
-          else if Timeout > 0 then
-            TCore_Thread.Sleep(Timeout);
-        end
-      else
-        begin
-          CPS_Check_Soft_Thread.Begin_Caller;
-          MainThreadProgress.Progress(Core_Main_Thread_ID);
-          if not Main_Thread_Synchronize_Running then
-            begin
-              Main_Thread_Synchronize_Running := True;
-              try
-                MainThread_Sync_Tool.Check_Synchronize(Timeout);
-                Result := True;
-              finally
-                Main_Thread_Synchronize_Running := False;
-              end;
-            end;
-
-          if Run_Hook_Event_ and (not Main_Thread_OnCheck_Runing) then
-            begin
-              Main_Thread_OnCheck_Runing := True;
-              try
-                if Assigned(OnCheckThreadSynchronize) then
-                    OnCheckThreadSynchronize();
-              finally
-                Main_Thread_OnCheck_Runing := False;
-              end;
-            end;
-          CPS_Check_Soft_Thread.End_Caller;
-        end;
-    end
-  else
-    Result := Check_System_Thread_Synchronize(Timeout, Run_Hook_Event_);
-end;
-
-function Do_Check_System_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
-begin
-  Result := False;
-  if (TCore_Thread.CurrentThread.ThreadID <> Core_Main_Thread_ID) then
-    begin
-      if Used_Soft_Synchronize and (TCore_Thread.CurrentThread = MainThread_Sync_Tool.Soft_Synchronize_Main_Thread) then
-        Result := (MainThread_Sync_Tool.Check_Synchronize(Timeout) > 0)
-      else if Timeout > 0 then
-        TCore_Thread.Sleep(Timeout);
-    end
-  else if Enabled_Check_Thread_Synchronize_System then
-    begin
-      CPS_Check_System_Thread.Begin_Caller;
-      MainThreadProgress.Progress(Core_Main_Thread_ID);
-      if not Main_Thread_Synchronize_Running then
-        begin
-          Main_Thread_Synchronize_Running := True;
-          try
-              if Core_Main_Thread_ID = MainThreadID then
-                Result := CheckSynchronize(Timeout);
-              if Used_Soft_Synchronize and (MainThread_Sync_Tool.Soft_Synchronize_Main_Thread = Core_Main_Thread) then
-                Result := (MainThread_Sync_Tool.Check_Synchronize(if_(Timeout > 0, 1, 0)) > 0) or Result;
-          except
-              Result := False;
-          end;
-          Main_Thread_Synchronize_Running := False;
-        end;
-      if Run_Hook_Event_ and (not Main_Thread_OnCheck_Runing) then
-        begin
-          Main_Thread_OnCheck_Runing := True;
-          try
-            if Assigned(OnCheckThreadSynchronize) then
-                OnCheckThreadSynchronize();
-          except
-              Result := False;
-          end;
-          Main_Thread_OnCheck_Runing := False;
-        end;
-      CPS_Check_System_Thread.End_Caller;
-    end;
-end;
-
 function Check_Soft_Thread_Synchronize: Boolean;
 begin
   Result := Check_Soft_Thread_Synchronize(0);
@@ -2591,7 +2502,6 @@ initialization
   MainThreadProgress.OneStep := False;
   Enabled_Check_Thread_Synchronize_System := True;
   Main_Thread_Synchronize_Running := False;
-  Main_Thread_OnCheck_Runing := False;
   MainThreadPost := MainThreadProgress;
 finalization
   Check_Soft_Thread_Synchronize(0);
