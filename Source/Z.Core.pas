@@ -2354,7 +2354,7 @@ end;
 
 function Check_Soft_Thread_Synchronize(Timeout: TTimeTick): Boolean;
 begin
-  Result := Check_Soft_Thread_Synchronize(Timeout, False);
+  Result := Check_Soft_Thread_Synchronize(Timeout, True);
 end;
 
 function Check_Soft_Thread_Synchronize(Timeout: TTimeTick; Run_Hook_Event_:Boolean): Boolean;
