@@ -79,26 +79,28 @@ end;
 function TSoft_Synchronize_Tool.Check_Synchronize(Check_Time_: TTimeTick): NativeInt;
 var
   tk: TTimeTick;
+  sync_: TSynchronize_Data___; // anti dead loop
 begin
   Result := 0;
-  if TCore_Thread.CurrentThread <> Soft_Synchronize_Main_Thread then
+  if (TCore_Thread.CurrentThread <> Soft_Synchronize_Main_Thread) then
       exit;
   if Check_Time_ > 0 then
       tk := GetTimeTick;
   repeat
     while SyncQueue__.Num > 0 do
       begin
+        sync_ := SyncQueue__.First^.Data; // anti dead loop
+        SyncQueue__.Next; // anti dead loop
         try
-          if Assigned(SyncQueue__.First^.Data.Primary) then
-              SyncQueue__.First^.Data.Primary();
-          if Assigned(SyncQueue__.First^.Data.Second) then
-              SyncQueue__.First^.Data.Second();
-          if Assigned(SyncQueue__.First^.Data.Third) then
-              SyncQueue__.First^.Data.Third();
+          if Assigned(sync_.Primary) then
+              sync_.Primary();
+          if Assigned(sync_.Second) then
+              sync_.Second();
+          if Assigned(sync_.Third) then
+              sync_.Third();
         except
         end;
-        SyncQueue__.First^.Data.Fourth^ := False;
-        SyncQueue__.Next;
+        sync_.Fourth^ := False;
         inc(Result);
       end;
   until (Check_Time_ = 0) or (GetTimeTick - tk >= Check_Time_);
@@ -184,39 +186,36 @@ begin
           else if Timeout > 0 then
               TCore_Thread.Sleep(Timeout);
         end
-      else
+      else if not Main_Thread_Synchronize_Running then
         begin
-          if not Main_Thread_Synchronize_Running then
-            begin
-              Main_Thread_Synchronize_Running := True;
-              CPS_Check_Soft_Thread.Begin_Caller;
-              MainThreadProgress.Progress(Core_Main_Thread_ID);
+          Main_Thread_Synchronize_Running := True;
+          CPS_Check_Soft_Thread.Begin_Caller;
+          MainThreadProgress.Progress(Core_Main_Thread_ID);
 
+          try
+              MainThread_Sync_Tool.Check_Synchronize(Timeout);
+          except
+          end;
+
+          if Run_Hook_Event_ then
+            begin
               try
-                  MainThread_Sync_Tool.Check_Synchronize(Timeout);
+                if Assigned(OnCheckThreadSynchronize) then
+                    OnCheckThreadSynchronize();
               except
               end;
-
-              if Run_Hook_Event_ then
-                begin
-                  try
-                    if Assigned(OnCheckThreadSynchronize) then
-                        OnCheckThreadSynchronize();
-                  except
-                  end;
-                end;
-
-              if Core_Main_Thread_ID = MainThreadID then
-                begin
-                  try
-                      Result := CheckSynchronize(if_(Timeout > 0, 1, 0)) or Result;
-                  except
-                  end;
-                end;
-
-              CPS_Check_Soft_Thread.End_Caller;
-              Main_Thread_Synchronize_Running := False;
             end;
+
+          if Core_Main_Thread_ID = MainThreadID then
+            begin
+              try
+                  Result := CheckSynchronize(if_(Timeout > 0, 1, 0)) or Result;
+              except
+              end;
+            end;
+
+          CPS_Check_Soft_Thread.End_Caller;
+          Main_Thread_Synchronize_Running := False;
         end;
     end
   else
@@ -241,6 +240,7 @@ begin
 
           CPS_Check_System_Thread.Begin_Caller;
           MainThreadProgress.Progress(Core_Main_Thread_ID);
+
           if Core_Main_Thread_ID = MainThreadID then
             begin
               try
