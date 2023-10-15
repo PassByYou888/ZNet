@@ -8,7 +8,7 @@ unit Z.Notify;
 
 interface
 
-uses Variants,
+uses SysUtils, Classes, Variants,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
@@ -33,7 +33,18 @@ type
 {$ENDIF FPC}
   TN_Post_Execute_List_Struct = TCritical_BigList<TN_Post_Execute>;
   TN_Post_Execute_Temp_Order_Struct = TOrderStruct<TN_Post_Execute>;
+
+{$IFDEF Tracking_Dealy_Free_Object}
+  TN_Post_Execute_Auto_Free_Pool_ = TCritical_Big_Object_List<TObject>;
+
+  TN_Post_Execute_Auto_Free_Pool = class(TN_Post_Execute_Auto_Free_Pool_)
+  public
+    procedure DoAdd(var Data: TObject); override;
+  end;
+{$ELSE Tracking_Dealy_Free_Object}
+
   TN_Post_Execute_Auto_Free_Pool = TCritical_Big_Object_List<TObject>;
+{$ENDIF Tracking_Dealy_Free_Object}
 
   TN_Post_Execute = class(TCore_Object)
   private
@@ -166,8 +177,10 @@ procedure DelayFreeObj(Delay: Double; Obj1_: TCore_Object); overload;
 
 implementation
 
+uses Z.Status, Z.UnicodeMixedLib;
+
 var
-  Hooked_OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
+  Hooked_OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
 
 procedure DoCheckThreadSynchronize();
 begin
@@ -210,6 +223,28 @@ procedure DelayFreeObj(Delay: Double; Obj1_: TCore_Object);
 begin
   SystemPostProgress.PostDelayFreeObject(Delay, Obj1_, nil);
 end;
+
+{$IFDEF Tracking_Dealy_Free_Object}
+
+
+procedure TN_Post_Execute_Auto_Free_Pool.DoAdd(var Data: TObject);
+begin
+  inherited DoAdd(Data);
+  if Data <> nil then
+    begin
+      try
+          DoStatus('delay free Object: %s (0x%s)', [Data.ClassName, umlPointerToStr(Data).Text]);
+      except
+        on E: Exception do
+          begin
+            if Assigned(On_Raise_Info) then
+                On_Raise_Info('delay free Object error ' + E.Message);
+          end;
+      end;
+    end;
+end;
+{$ENDIF Tracking_Dealy_Free_Object}
+
 
 procedure TN_Post_Execute.SetIsExit(const Value: PBoolean);
 begin
@@ -613,7 +648,8 @@ var
 begin
   tmp := PostExecute(False, Delay);
   for i := low(Arry) to high(Arry) do
-      tmp.Auto_Free_Pool.Add(Arry[i]);
+    if Arry[i] <> nil then
+        tmp.Auto_Free_Pool.Add(Arry[i]);
   tmp.Ready;
 end;
 
@@ -622,10 +658,14 @@ var
   tmp: TN_Post_Execute;
 begin
   tmp := PostExecute(False, Delay);
-  tmp.Auto_Free_Pool.Add(Obj1_);
-  tmp.Auto_Free_Pool.Add(Obj2_);
-  tmp.Auto_Free_Pool.Add(Obj3_);
-  tmp.Auto_Free_Pool.Add(Obj4_);
+  if Obj1_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj1_);
+  if Obj2_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj2_);
+  if Obj3_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj3_);
+  if Obj4_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj4_);
   tmp.Ready;
 end;
 
@@ -634,9 +674,12 @@ var
   tmp: TN_Post_Execute;
 begin
   tmp := PostExecute(False, Delay);
-  tmp.Auto_Free_Pool.Add(Obj1_);
-  tmp.Auto_Free_Pool.Add(Obj2_);
-  tmp.Auto_Free_Pool.Add(Obj3_);
+  if Obj1_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj1_);
+  if Obj2_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj2_);
+  if Obj3_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj3_);
   tmp.Ready;
 end;
 
@@ -645,8 +688,10 @@ var
   tmp: TN_Post_Execute;
 begin
   tmp := PostExecute(False, Delay);
-  tmp.Auto_Free_Pool.Add(Obj1_);
-  tmp.Auto_Free_Pool.Add(Obj2_);
+  if Obj1_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj1_);
+  if Obj2_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj2_);
   tmp.Ready;
 end;
 
@@ -655,7 +700,8 @@ var
   tmp: TN_Post_Execute;
 begin
   tmp := PostExecute(False, Delay);
-  tmp.Auto_Free_Pool.Add(Obj1_);
+  if Obj1_ <> nil then
+      tmp.Auto_Free_Pool.Add(Obj1_);
   tmp.Ready;
 end;
 
