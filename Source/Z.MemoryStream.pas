@@ -34,6 +34,7 @@ type
     procedure SetPointer(buffPtr: Pointer; const BuffSize: NativeUInt);
     procedure SetCapacity(NewCapacity: NativeUInt);
     function Realloc(var NewCapacity: NativeUInt): Pointer; virtual;
+    procedure SetDelta(const Value: NativeInt);
     property Capacity: NativeUInt read FCapacity write SetCapacity;
   public
     constructor Create;
@@ -53,7 +54,7 @@ type
     function ToBytes: TBytes;
     function ToMD5: TMD5;
 
-    property Delta: NativeInt read FDelta write FDelta;
+    property Delta: NativeInt read FDelta write SetDelta;
     property ProtectedMode: Boolean read FProtectedMode;
     procedure SetPointerWithProtectedMode(buffPtr: Pointer; const BuffSize: Int64);
     procedure Mapping(buffPtr: Pointer; const BuffSize: Int64); overload;
@@ -437,9 +438,14 @@ begin
           else
               Result := System.ReallocMemory(Result, NewCapacity);
           if Result = nil then
-              RaiseInfo('Out of memory while expanding memory stream');
+              RaiseInfo('%s Out of memory while expanding memory stream', [umlSizeToStr(NewCapacity).Text]);
         end;
     end;
+end;
+
+procedure TMS64.SetDelta(const Value: NativeInt);
+begin
+  FDelta := umlClamp(Value, 64, 1024 * 1024);
 end;
 
 constructor TMS64.Create;
@@ -450,7 +456,7 @@ end;
 constructor TMS64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := umlMax(64, customDelta);
+  Delta := customDelta;
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
@@ -1392,7 +1398,7 @@ begin
           else
               Result := System.ReallocMemory(Result, NewCapacity);
           if Result = nil then
-              RaiseInfo('Out of memory while expanding memory stream');
+              RaiseInfo('%s Out of memory while expanding memory stream', [umlSizeToStr(NewCapacity).Text]);
         end;
     end;
 end;
@@ -1404,7 +1410,7 @@ end;
 
 procedure TMem64.SetDelta(const Value: NativeInt);
 begin
-  FDelta := Value;
+  FDelta := umlClamp(Value, 64, 1024 * 1024);
 end;
 
 function TMem64.GetMemory_: Pointer;
@@ -1453,7 +1459,7 @@ end;
 constructor TMem64.CustomCreate(const customDelta: NativeInt);
 begin
   inherited Create;
-  FDelta := umlMax(64, customDelta);
+  Delta := customDelta;
   FMemory := nil;
   FSize := 0;
   FPosition := 0;
