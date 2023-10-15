@@ -240,6 +240,9 @@
 // When using a DLL or library program, "Core_Thread_Soft_Synchronize" should be used.
 {$DEFINE Core_Thread_Soft_Synchronize}
 
+// tracking delay free object for debug
+{$UNDEF Tracking_Dealy_Free_Object}
+
 {$IFDEF NO_FS}
   // Disable file system for ZNet-DoubleIO
   {$UNDEF DoubleIOFileSystem}
