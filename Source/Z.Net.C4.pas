@@ -1087,7 +1087,7 @@ implementation
 
 var
   C40Progress_Working: Boolean = False;
-  Hooked_OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
+  Hooked_OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
 
 procedure DoCheckThreadSynchronize();
 begin
