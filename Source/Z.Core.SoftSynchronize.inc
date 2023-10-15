@@ -15,7 +15,7 @@ type
 constructor TSimulator_Main_Thread.Create(Simulator_Main_Proc_: TOnSynchronize_C_NP);
 begin
   if (not Used_Soft_Synchronize) or (Simulator_Main_Thread_Activted___) then
-      RaiseInfo('error!');
+      RaiseInfo('Main-Thread Simulator error!');
   inherited Create;
   Running := False;
   MainThreadProgress.Progress();
