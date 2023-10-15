@@ -351,13 +351,13 @@ begin
       except
       end;
 
+      if Assigned(OnDone_C) or Assigned(OnDone_M) or Assigned(OnDone_P) then
+          SyncM(Self, Done_Sync);
+
       if IsRuning <> nil then
           IsRuning^ := False;
       if IsExit <> nil then
           IsExit^ := True;
-
-      if Assigned(OnDone_C) or Assigned(OnDone_M) or Assigned(OnDone_P) then
-          SyncM(Self, Done_Sync);
 
       // check for idle thread, and again run.
       NoTask := True;
