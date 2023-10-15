@@ -1778,8 +1778,11 @@ function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDEF I
 {$EndRegion 'core api'}
 {$Region 'core var'}
 
-type TOnCheckThreadSynchronize = procedure();
+type
+  TOn_Check_Thread_Synchronize = procedure();
+  TOn_Raise_Info = procedure(const n: string);
 var
+  On_Raise_Info: TOn_Raise_Info;
   // Soft-Synchronize
   Core_Main_Thread: TCore_Thread; // custom main-thread
   Core_Main_Thread_ID: TThreadID; // custom main-thread-id
@@ -1788,7 +1791,7 @@ var
   // Check Synchronize for main-thread
   Enabled_Check_Thread_Synchronize_System: Boolean;
   Main_Thread_Synchronize_Running: Boolean;
-  OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
+  OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
   // caller of per second tool
   CPS_Check_Soft_Thread, CPS_Check_System_Thread: TCPS_Tool;
 
@@ -1887,11 +1890,17 @@ begin
   Result := False;
   if Obj = nil then
     exit;
+
   try
     {$IFDEF AUTOREFCOUNT}Obj.DisposeOf;{$ELSE AUTOREFCOUNT}Obj.Free;{$ENDIF AUTOREFCOUNT}
     Result := True;
   except
-    Result := False;
+    on E: Exception do
+      begin
+        if Assigned(On_Raise_Info) then
+          On_Raise_Info('DisposeObject error ' + E.Message);
+        Result := False;
+      end;
   end;
 end;
 
@@ -2143,12 +2152,14 @@ end;
 
 procedure RaiseInfo(const n: string);
 begin
+  if Assigned(On_Raise_Info) then
+    On_Raise_Info(n);
   raise Exception.Create(n);
 end;
 
 procedure RaiseInfo(const n: string; const Args: array of const);
 begin
-  raise Exception.Create(Format(n, Args));
+  RaiseInfo(Format(n, Args));
 end;
 
 function IsMobile: Boolean;
@@ -2477,6 +2488,7 @@ end;
 
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+  On_Raise_Info := nil;
   Core_Main_Thread := TCore_Thread.CurrentThread;
   Core_Main_Thread_ID := MainThreadID;
   Init_System_Critical_Recycle_Pool();
@@ -2504,6 +2516,8 @@ initialization
   Main_Thread_Synchronize_Running := False;
   MainThreadPost := MainThreadProgress;
 finalization
+  On_Raise_Info := nil;
+  OnCheckThreadSynchronize := nil;
   Check_Soft_Thread_Synchronize(0);
   FreeCoreThreadPool;
   MainThreadProgress.Free;
