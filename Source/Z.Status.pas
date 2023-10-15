@@ -305,7 +305,6 @@ var
   Text_Queue_Data_Pool__: TText_Queue_Data_Pool__;
   Status_Critical__: TCritical;
   No_Ln_Text_Pool__: TNo_Ln_Text_Pool__;
-  Hooked_OnCheckThreadSynchronize: TOnCheckThreadSynchronize;
 
 function GetOrCreateStatusNoLnData_(Th_: TCore_Thread): PNo_Ln_Text;
 var
@@ -647,11 +646,20 @@ begin
     end;
 end;
 
+var
+  Hooked_OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
+  Hooked_OnRaiseInfo: TOn_Raise_Info;
+
 procedure DoCheckThreadSynchronize;
 begin
   DoStatus();
   if Assigned(Hooked_OnCheckThreadSynchronize) then
       Hooked_OnCheckThreadSynchronize();
+end;
+
+procedure RaiseInfo(const n: string);
+begin
+  DoStatus('core exception ' + n);
 end;
 
 procedure _DoInit;
@@ -671,6 +679,9 @@ begin
 
   Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
   Z.Core.OnCheckThreadSynchronize := DoCheckThreadSynchronize;
+
+  Hooked_OnRaiseInfo := Z.Core.On_Raise_Info;
+  Z.Core.On_Raise_Info := RaiseInfo;
 end;
 
 procedure _DoFree;
@@ -681,6 +692,8 @@ begin
   Status_Critical__.Free;
   Status_Active__ := True;
   Status_Critical__ := nil;
+  Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
+  Z.Core.On_Raise_Info := Hooked_OnRaiseInfo;
 end;
 
 initialization
