@@ -264,7 +264,7 @@ destructor TZNet_Server_DIOCP.Destroy;
 begin
   StopService;
   DisposeObject(FDIOCPServer);
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
   inherited Destroy;
 end;
 
@@ -284,13 +284,13 @@ end;
 procedure TZNet_Server_DIOCP.StopService;
 begin
   FDIOCPServer.Active := False;
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
 end;
 
 procedure TZNet_Server_DIOCP.Progress;
 begin
   inherited Progress;
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
 end;
 
 function TZNet_Server_DIOCP.WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;

@@ -340,9 +340,9 @@ end;
 
 procedure TZNet_Client_ICS9.Disconnect;
 begin
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(0, False);
   FDriver.Close;
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(0, False);
   DisposeObject(FClient);
   FClient := TICS9_Client_PeerIO.Create(Self, Self);
 end;

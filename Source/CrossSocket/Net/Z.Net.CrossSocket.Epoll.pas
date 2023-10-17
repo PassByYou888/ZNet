@@ -658,7 +658,7 @@ begin
 
     // 等线程完全关闭,目前这种模型可以工作与静态库与DLL,特别适用于把通讯放在DLL做插件
     while FIoThreads[I].IO_Is_Busy do
-      Check_Soft_Thread_Synchronize(10);
+      Check_Soft_Thread_Synchronize(10, False);
     FreeAndNil(FIoThreads[I]);
   end;
   FIoThreads := nil;

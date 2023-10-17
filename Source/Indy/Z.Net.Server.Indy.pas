@@ -245,7 +245,7 @@ begin
   try
     while Count > 0 do
       begin
-        Check_Soft_Thread_Synchronize(1);
+        Check_Soft_Thread_Synchronize(1, False);
       end;
   except
   end;
@@ -269,7 +269,7 @@ procedure TZNet_Server_Indy.StopService;
 begin
   if FDriver.Active then
     begin
-      Check_Soft_Thread_Synchronize(100);
+      Check_Soft_Thread_Synchronize(100, False);
       try
           FDriver.Active := False;
       except

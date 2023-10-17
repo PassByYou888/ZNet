@@ -88,7 +88,8 @@ type
     property Memory: Pointer read FMemory;
 
     function CopyMem64(const source: TMem64; Count: Int64): Int64;
-    function CopyFrom(const source: TCore_Stream; Count: Int64): Int64; virtual;
+    function CopyFrom(const source: TCore_Stream; Count: Int64): Int64; overload;
+    function CopyFrom(const source: TMem64; Count: Int64): Int64; overload;
 
     // Serialized writer
     procedure WriteBool(const buff: Boolean);
@@ -266,7 +267,8 @@ type
     function read(var buffer; Count: Int64): Int64;
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64;
 
-    function CopyFrom(const source: TCore_Stream; Count: Int64): Int64;
+    function CopyFrom(const source: TCore_Stream; Count: Int64): Int64; overload;
+    function CopyFrom(const source: TMem64; Count: Int64): Int64; overload;
 
     // Serialized writer
     procedure WriteBool(const buff: Boolean);
@@ -1006,6 +1008,15 @@ begin
   finally
       System.FreeMem(buffer);
   end;
+end;
+
+function TMS64.CopyFrom(const source: TMem64; Count: Int64): Int64;
+begin
+  if FProtectedMode then
+      RaiseInfo('protected mode');
+  WritePtr(source.PositionAsPtr, Count);
+  source.Position := source.FPosition + Count;
+  Result := Count;
 end;
 
 procedure TMS64.WriteBool(const buff: Boolean);
@@ -1893,6 +1904,15 @@ begin
   finally
       System.FreeMem(buffer);
   end;
+end;
+
+function TMem64.CopyFrom(const source: TMem64; Count: Int64): Int64;
+begin
+  if FProtectedMode then
+      RaiseInfo('protected mode');
+  WritePtr(source.PositionAsPtr, Count);
+  source.Position := source.FPosition + Count;
+  Result := Count;
 end;
 
 procedure TMem64.WriteBool(const buff: Boolean);

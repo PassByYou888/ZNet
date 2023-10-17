@@ -324,7 +324,7 @@ begin
   FListenTh.Suspended := False;
   FListenTh.Sock_Th_Num := TAtomInt.Create(0);
   while not FListenTh.Activted do
-      Z.Core.Check_Soft_Thread_Synchronize(1);
+      Z.Core.Check_Soft_Thread_Synchronize(1, False);
 
   name := 'Synapse-Server';
 end;
@@ -334,7 +334,7 @@ begin
   StopService;
   FListenTh.Activted := False;
   while FListenTh <> nil do
-      Z.Core.Check_Soft_Thread_Synchronize(1);
+      Z.Core.Check_Soft_Thread_Synchronize(1, False);
   inherited Destroy;
 end;
 

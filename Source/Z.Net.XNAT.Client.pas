@@ -21,9 +21,9 @@ type
 
   TXClientMapping = class(TCore_Object)
   private
-    Addr: TPascalString;
-    Port: TPascalString;
-    Mapping: TPascalString;
+    FAddr: TPascalString;
+    FPort: TPascalString;
+    FMapping: TPascalString;
 
     ProtocolPool: TCore_ListForObj;
     LastProtocolID: Cardinal;
@@ -45,6 +45,9 @@ type
 
     XClientTunnel: TXNATClient;
 
+    { complete buffer metric }
+    Complete_Buffer_Sum: Int64;
+
     procedure Init;
     procedure SendTunnel_ConnectResult(const cState: Boolean);
     procedure RecvTunnel_ConnectResult(const cState: Boolean);
@@ -58,6 +61,9 @@ type
     procedure cmd_disconnect_request(Sender: TPeerIO; InData: TDFE);
     procedure cmd_data(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
   public
+    property Addr: TPascalString read FAddr;
+    property Port: TPascalString read FPort;
+    property Mapping: TPascalString read FMapping;
     constructor Create;
     destructor Destroy; override;
     procedure UpdateWorkload(force: Boolean);
@@ -94,15 +100,17 @@ type
 
   TXClientMappingList = TGenericsList<TXClientMapping>;
   TXClientHashMapping = TGeneric_String_Object_Hash<TXClientMapping>;
+  TOn_XNATClient_Open_Tunnel_Done = procedure(Sender: TXNATClient; State: Boolean) of object;
 
   TXNATClient = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
   private
-    MappingList: TXClientMappingList;
-    HashMapping: TXClientHashMapping;
+    FMappingList: TXClientMappingList;
+    FHashMapping: TXClientHashMapping;
     Activted: Boolean;
     WaitAsyncConnecting: Boolean;
     WaitAsyncConnecting_BeginTime: TTimeTick;
-    PhysicsEngine: TZNet;
+    FPhysicsEngine: TZNet;
+    FQuiet: Boolean;
 
     { IO Interface }
     procedure PeerIO_Create(const Sender: TPeerIO);
@@ -115,6 +123,8 @@ type
     procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
     { backcall }
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
+    { trigger open done }
+    procedure Do_Open_Done(State: Boolean);
   public
     { tunnel parameter }
     Host: TPascalString;
@@ -129,7 +139,12 @@ type
       ProtocolCompressed set closed by default.
     }
     ProtocolCompressed: Boolean;
-
+    On_Open_Tunnel_Done: TOn_XNATClient_Open_Tunnel_Done;
+  public
+    property MappingList: TXClientMappingList read FMappingList;
+    property HashMapping: TXClientHashMapping read FHashMapping;
+    property PhysicsEngine: TZNet read FPhysicsEngine;
+    property Quiet: Boolean read FQuiet write FQuiet;
     constructor Create;
     destructor Destroy; override;
     procedure AddMapping(const MAddr, MPort, Mapping: TPascalString; MaxWorkload: Cardinal);
@@ -142,9 +157,9 @@ implementation
 
 procedure TXClientMapping.Init;
 begin
-  Addr := '';
-  Port := '';
-  Mapping := '';
+  FAddr := '';
+  FPort := '';
+  FMapping := '';
   ProtocolPool := nil;
   LastProtocolID := 1;
   ProtocolHash := nil;
@@ -160,38 +175,39 @@ begin
   Remote_ListenAddr := '';
   Remote_ListenPort := '0';
   XClientTunnel := nil;
+  Complete_Buffer_Sum := 0;
 end;
 
 procedure TXClientMapping.SendTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      DoStatus('[%s] Send Tunnel connect success.', [Mapping.Text]);
+      DoStatus('[%s] Send Tunnel connect success.', [FMapping.Text]);
       if not RecvTunnel.Connected then
           RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, RecvTunnel_ConnectResult)
       else
           RecvTunnel_ConnectResult(True);
     end
   else
-      DoStatus('error: [%s] Send Tunnel connect failed!', [Mapping.Text]);
+      DoStatus('error: [%s] Send Tunnel connect failed!', [FMapping.Text]);
 end;
 
 procedure TXClientMapping.RecvTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      DoStatus('[%s] Receive Tunnel connect success.', [Mapping.Text]);
+      DoStatus('[%s] Receive Tunnel connect success.', [FMapping.Text]);
       SendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
     end
   else
-      DoStatus('error: [%s] Receive Tunnel connect failed!', [Mapping.Text]);
+      DoStatus('error: [%s] Receive Tunnel connect failed!', [FMapping.Text]);
 end;
 
 procedure TXClientMapping.RequestListen_Result(Sender: TPeerIO; Result_: TDFE);
 begin
   if Result_.Reader.ReadBool then
     begin
-      DoStatus('success: remote host:%s port:%s mapping to host:%s port:%s', [XClientTunnel.Host.Text, Remote_ListenPort.Text, Addr.Text, Port.Text]);
+      DoStatus('success: remote host:%s port:%s mapping to host:%s port:%s', [XClientTunnel.Host.Text, Remote_ListenPort.Text, FAddr.Text, FPort.Text]);
       UpdateWorkload(True);
     end
   else
@@ -232,10 +248,10 @@ begin
       SendTunnel.CompleteBufferSwapSpace := True;
     end;
 
-  XClientTunnel.PhysicsEngine.GetIO_Array(io_array);
+  XClientTunnel.FPhysicsEngine.GetIO_Array(io_array);
   for p_id in io_array do
     begin
-      p_io := TPeerIO(XClientTunnel.PhysicsEngine.PeerIO_HashPool[p_id]);
+      p_io := TPeerIO(XClientTunnel.FPhysicsEngine.PeerIO_HashPool[p_id]);
       if p_io <> nil then
         begin
           { uninstall p2pVM }
@@ -310,7 +326,7 @@ begin
   xCli.Activted := False;
 
   { async connection }
-  xCli.AsyncConnectM(Addr, umlStrToInt(Port), xCli.OnConnect_Result);
+  xCli.AsyncConnectM(FAddr, umlStrToInt(FPort), xCli.OnConnect_Result);
 end;
 
 procedure TXClientMapping.cmd_disconnect_request(Sender: TPeerIO; InData: TDFE);
@@ -435,6 +451,12 @@ begin
     begin
       Build_XNAT_Buff(buffer, Size, LocalProtocol_ID, RemoteProtocol_ID, nSiz, nBuff);
       Mapping.SendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
+      inc(Mapping.Complete_Buffer_Sum, nSiz);
+      if Mapping.Complete_Buffer_Sum > 10 * 1024 * 1024 then
+        begin
+          Mapping.SendTunnel.Send_NULL;
+          Mapping.Complete_Buffer_Sum := 0;
+        end;
     end
   else
     begin
@@ -510,7 +532,10 @@ begin
   if cState then
       Owner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
   else
+    begin
       XNAT.WaitAsyncConnecting := False;
+      XNAT.Do_Open_Done(False);
+    end;
 end;
 
 procedure TPhysicsEngine_Special.PhysicsVMBuildAuthToken_Result;
@@ -545,7 +570,10 @@ begin
       Owner.SendStreamCmdM(C_IPV6Listen, nil, IPV6Listen_Result);
     end
   else
+    begin
       XNAT.WaitAsyncConnecting := False;
+      XNAT.Do_Open_Done(False);
+    end;
 end;
 
 procedure TPhysicsEngine_Special.IPV6Listen_Result(Sender: TPeerIO; Result_: TDFE);
@@ -567,7 +595,7 @@ begin
       SendTunnel_Port := Result_.Reader.ReadWord;
       RecvTunnel_IPV6 := Result_.Reader.ReadString;
       RecvTunnel_Port := Result_.Reader.ReadWord;
-      tunMp := XNAT.HashMapping[Mapping];
+      tunMp := XNAT.FHashMapping[Mapping];
       if tunMp <> nil then
         begin
           tunMp.RecvTunnel_IPV6 := RecvTunnel_IPV6;
@@ -581,6 +609,7 @@ begin
     end;
   XNAT.Activted := True;
   XNAT.WaitAsyncConnecting := False;
+  XNAT.Do_Open_Done(True);
 end;
 
 constructor TPhysicsEngine_Special.Create(Owner_: TPeerIO);
@@ -625,10 +654,10 @@ begin
     https://en.wikipedia.org/wiki/SHA-3
   }
 
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
     end;
 
@@ -641,10 +670,10 @@ end;
 
 procedure TXNATClient.p2pVMTunnelOpenBefore(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
     end;
   DoStatus('XTunnel Open Before on %s', [Sender.PeerIP]);
@@ -652,10 +681,10 @@ end;
 
 procedure TXNATClient.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
     end;
   DoStatus('XTunnel Open on %s', [Sender.PeerIP]);
@@ -663,11 +692,11 @@ end;
 
 procedure TXNATClient.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
       Sender.SendStreamCmdM(C_IPV6Listen, nil, TPhysicsEngine_Special(Sender.UserSpecial).IPV6Listen_Result);
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
     end;
   DoStatus('XTunnel Open After on %s', [Sender.PeerIP]);
@@ -675,10 +704,10 @@ end;
 
 procedure TXNATClient.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
 begin
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
     end;
   DoStatus('XTunnel Close on %s', [Sender.PeerIP]);
@@ -687,11 +716,24 @@ end;
 procedure TXNATClient.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      TPhysicsEngine_Special(TZNet_Client(PhysicsEngine).ClientIO.UserSpecial).PhysicsConnect_Result_BuildP2PToken(cState)
+      TPhysicsEngine_Special(TZNet_Client(FPhysicsEngine).ClientIO.UserSpecial).PhysicsConnect_Result_BuildP2PToken(cState)
   else
     begin
       DoStatus('P2PVM not connection');
       WaitAsyncConnecting := False;
+      Do_Open_Done(False);
+    end;
+end;
+
+procedure TXNATClient.Do_Open_Done(State: Boolean);
+begin
+  if Assigned(On_Open_Tunnel_Done) then
+    begin
+      try
+          On_Open_Tunnel_Done(Self, State);
+      except
+      end;
+      On_Open_Tunnel_Done := nil;
     end;
 end;
 
@@ -703,31 +745,33 @@ begin
   AuthToken := '';
   MaxVMFragment := '8192';
   ProtocolCompressed := False;
-  MappingList := TXClientMappingList.Create;
-  HashMapping := TXClientHashMapping.Create(False, 64, nil);
+  FMappingList := TXClientMappingList.Create;
+  FHashMapping := TXClientHashMapping.Create(False, $FF, nil);
   Activted := False;
   WaitAsyncConnecting := False;
-  PhysicsEngine := nil;
+  FPhysicsEngine := nil;
+  FQuiet := False;
+  On_Open_Tunnel_Done := nil;
 end;
 
 destructor TXNATClient.Destroy;
 var
   i: integer;
 begin
-  for i := MappingList.Count - 1 downto 0 do
-      disposeObject(MappingList[i]);
-  disposeObject(MappingList);
-  disposeObject(HashMapping);
+  for i := FMappingList.Count - 1 downto 0 do
+      disposeObject(FMappingList[i]);
+  disposeObject(FMappingList);
+  disposeObject(FHashMapping);
 
-  if PhysicsEngine <> nil then
+  if FPhysicsEngine <> nil then
     begin
-      if PhysicsEngine is TZNet_Client then
+      if FPhysicsEngine is TZNet_Client then
         begin
-          TZNet_Client(PhysicsEngine).Disconnect;
+          TZNet_Client(FPhysicsEngine).Disconnect;
         end;
     end;
 
-  disposeObject(PhysicsEngine);
+  disposeObject(FPhysicsEngine);
   inherited Destroy;
 end;
 
@@ -736,13 +780,13 @@ var
   tunMp: TXClientMapping;
 begin
   tunMp := TXClientMapping.Create;
-  tunMp.Addr := MAddr;
-  tunMp.Port := MPort;
-  tunMp.Mapping := Mapping;
+  tunMp.FAddr := MAddr;
+  tunMp.FPort := MPort;
+  tunMp.FMapping := Mapping;
   tunMp.MaxWorkload := MaxWorkload;
   tunMp.XClientTunnel := Self;
-  MappingList.Add(tunMp);
-  HashMapping.Add(tunMp.Mapping, tunMp);
+  FMappingList.Add(tunMp);
+  FHashMapping.Add(tunMp.FMapping, tunMp);
 end;
 
 procedure TXNATClient.OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL);
@@ -750,35 +794,43 @@ begin
   Activted := True;
 
   { init tunnel engine }
-  if PhysicsEngine = nil then
+  if FPhysicsEngine = nil then
     begin
       if MODEL = TXNAT_PHYSICS_MODEL.XNAT_PHYSICS_SERVICE then
-          PhysicsEngine := TXPhysicsServer.Create
+          FPhysicsEngine := TXPhysicsServer.Create
       else
-          PhysicsEngine := TXPhysicsClient.Create;
+          FPhysicsEngine := TXPhysicsClient.Create;
     end;
 
-  PhysicsEngine.UserSpecialClass := TPhysicsEngine_Special;
-  PhysicsEngine.IOInterface := Self;
-  PhysicsEngine.VMInterface := Self;
+  FPhysicsEngine.UserSpecialClass := TPhysicsEngine_Special;
+  FPhysicsEngine.IOInterface := Self;
+  FPhysicsEngine.VMInterface := Self;
+
+  FPhysicsEngine.QuietMode := FQuiet;
 
   { Security protocol }
-  PhysicsEngine.SwitchMaxPerformance;
+  FPhysicsEngine.SwitchMaxPerformance;
 
-  if PhysicsEngine is TZNet_Server then
+  if FPhysicsEngine is TZNet_Server then
     begin
-      if TZNet_Server(PhysicsEngine).StartService(Host, umlStrToInt(Port)) then
-          DoStatus('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text])
+      if TZNet_Server(FPhysicsEngine).StartService(Host, umlStrToInt(Port)) then
+        begin
+          Do_Open_Done(True);
+          DoStatus('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text]);
+        end
       else
+        begin
+          Do_Open_Done(False);
           DoStatus('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
+        end;
     end
-  else if PhysicsEngine is TZNet_Client then
+  else if FPhysicsEngine is TZNet_Client then
     begin
-      if not TZNet_Client(PhysicsEngine).Connected then
+      if not TZNet_Client(FPhysicsEngine).Connected then
         begin
           WaitAsyncConnecting := True;
           WaitAsyncConnecting_BeginTime := GetTimeTick;
-          TZNet_Client(PhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), PhysicsConnect_Result_BuildP2PToken);
+          TZNet_Client(FPhysicsEngine).AsyncConnectM(Host, umlStrToInt(Port), PhysicsConnect_Result_BuildP2PToken);
         end;
     end;
 end;
@@ -794,14 +846,14 @@ var
   tunMp: TXClientMapping;
   xCliProt: TXClientCustomProtocol;
 begin
-  if (PhysicsEngine <> nil) then
+  if (FPhysicsEngine <> nil) then
     begin
-      if (PhysicsEngine is TZNet_Client) then
+      if (FPhysicsEngine is TZNet_Client) then
         begin
           if WaitAsyncConnecting and (GetTimeTick - WaitAsyncConnecting_BeginTime > 15000) then
               WaitAsyncConnecting := False;
 
-          if Activted and (not TZNet_Client(PhysicsEngine).Connected) then
+          if Activted and (not TZNet_Client(FPhysicsEngine).Connected) then
             begin
               if not WaitAsyncConnecting then
                 begin
@@ -809,13 +861,13 @@ begin
                 end;
             end;
         end;
-      PhysicsEngine.Progress;
+      FPhysicsEngine.Progress;
     end;
 
   i := 0;
-  while i < MappingList.Count do
+  while i < FMappingList.Count do
     begin
-      tunMp := MappingList[i] as TXClientMapping;
+      tunMp := FMappingList[i] as TXClientMapping;
 
       tunMp.UpdateWorkload(False);
 

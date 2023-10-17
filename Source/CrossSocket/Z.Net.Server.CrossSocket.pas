@@ -403,13 +403,7 @@ end;
 
 constructor TZNet_Server_CrossSocket.Create;
 begin
-  CreateTh(
-{$IFDEF DEBUG}
-  2
-{$ELSE DEBUG}
-  Z.Core.Get_Parallel_Granularity
-{$ENDIF DEBUG}
-  );
+  CreateTh({$IFDEF DEBUG}1{$ELSE DEBUG}2{$ENDIF DEBUG} ); // ZNet内部走的并发模型,不会阻塞线程,普通服务器并发线程2个就够了,如果高并发服务器,给8个线程
 end;
 
 constructor TZNet_Server_CrossSocket.CreateTh(maxThPool: Word);
@@ -426,7 +420,7 @@ begin
   FBindPort := 0;
   FBindHost := '';
   FMaxConnection := 20000;
-  name:='Cross-Socket-Server';
+  name := 'Cross-Socket-Server';
 end;
 
 destructor TZNet_Server_CrossSocket.Destroy;
@@ -438,7 +432,7 @@ begin
   // 如果开启了soft_synchronize_technology,这里必须同步一下
   // 同步的作用是清理IO同步事件,以免卡端口,导致PostQueuedCompletionStatus消息过去卡队列
   // 无论Used_Soft_Synchronize是否开启Check_Soft_Thread_Synchronize都会清理掉当前的UI同步队列.
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(0, False);
   try
       DisposeObject(FDriver);
   except
@@ -463,7 +457,7 @@ begin
       end);
 
     while not Completed do
-        Check_Soft_Thread_Synchronize(5);
+        Check_Soft_Thread_Synchronize(5, False);
 
     FBindPort := Port;
     FBindHost := Host;

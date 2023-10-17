@@ -292,7 +292,7 @@ begin
   // 如果开启了soft_synchronize_technology,这里必须同步一下
   // 同步的作用是清理IO同步事件,以免卡端口,导致PostQueuedCompletionStatus消息过去卡队列
   // 无论Used_Soft_Synchronize是否开启Check_Soft_Thread_Synchronize都会清理掉当前的UI同步队列.
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
   DisposeObject(driver);
   inherited Destroy;
 end;
@@ -368,7 +368,7 @@ begin
   LastConnection := nil;
 
   if BuildIntf.ClientIOIntf <> nil then
-      Z.Core.Check_Soft_Thread_Synchronize(10);
+      Check_Soft_Thread_Synchronize(10, False);
 
   if BuildIntf.ClientIOIntf <> nil then
     begin
@@ -379,7 +379,7 @@ begin
       end;
       while BuildIntf.ClientIOIntf <> nil do
         begin
-          Check_Soft_Thread_Synchronize(10);
+          Check_Soft_Thread_Synchronize(10, False);
           BuildIntf.Progress;
         end;
     end;
@@ -399,7 +399,7 @@ begin
   while (not LastCompleted) and (GetTimeTick < dt) do
     begin
       BuildIntf.Progress;
-      Check_Soft_Thread_Synchronize(5);
+      Check_Soft_Thread_Synchronize(5, False);
     end;
 
   if LastResult then
@@ -434,7 +434,7 @@ procedure TGlobalCrossSocketClientPool.BuildAsyncConnect(addr: SystemString; Por
 begin
   try
     if BuildIntf.ClientIOIntf <> nil then
-        Z.Core.Check_Soft_Thread_Synchronize(10);
+        Z.Core.Check_Soft_Thread_Synchronize(10, False);
     if BuildIntf.ClientIOIntf <> nil then
       begin
         try

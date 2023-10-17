@@ -5,7 +5,7 @@
         <FrameworkType>None</FrameworkType>
         <MainSource>_500_Multi_Long_Run_In_ZNet_Serv.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Console</AppType>

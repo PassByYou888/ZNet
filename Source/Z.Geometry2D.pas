@@ -4648,19 +4648,24 @@ end;
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2;
 var
   s, d: TRectV2;
+  f: TVec2;
 begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
-  Result := Vec2Add(Vec2Mul(Vec2Sub(sour_pt, s[0]), Vec2Div(RectSize(dest), RectSize(sour))), d[0]);
+  f := Vec2Div(RectSize(dest), RectSize(sour));
+  Result := Vec2Add(Vec2Mul(Vec2Sub(sour_pt, s[0]), f), d[0]);
 end;
 
 function RectProjection(const sour, dest: TRectV2; const sour_rect: TRectV2): TRectV2;
 var
   s, d: TRectV2;
+  f: TVec2;
 begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
-  Result := RectAdd(RectMul(RectSub(sour_rect, s[0]), Vec2Div(RectSize(dest), RectSize(sour))), d[0]);
+  f := Vec2Div(RectSize(dest), RectSize(sour));
+  Result[0] := Vec2Add(Vec2Mul(Vec2Sub(sour_rect[0], s[0]), f), d[0]);
+  Result[1] := Vec2Add(Vec2Mul(Vec2Sub(sour_rect[1], s[0]), f), d[0]);
 end;
 
 function RectProjection(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;

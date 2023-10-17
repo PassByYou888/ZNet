@@ -180,7 +180,7 @@ end;
 destructor TZNet_Server_ICS9.Destroy;
 begin
   StopService;
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(0, False);
   try
       DisposeObject(Driver);
   except
@@ -197,11 +197,11 @@ begin
           cli.Disconnect;
         end);
       Progress;
-      Check_Soft_Thread_Synchronize;
+      Check_Soft_Thread_Synchronize(0, False);
     end;
 
   try
-    Check_Soft_Thread_Synchronize;
+    Check_Soft_Thread_Synchronize(0, False);
     Driver.Close;
   except
   end;

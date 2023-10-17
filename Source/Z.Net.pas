@@ -1307,6 +1307,9 @@ type
     procedure SendCompleteBuffer_DirectStream(const Cmd: SystemString; buff: TDFE);
     procedure SendCompleteBuffer_NoWait_StreamM(const Cmd: SystemString; buff: TDFE; OnResult: TOnStream_M);
     procedure SendCompleteBuffer_NoWait_StreamP(const Cmd: SystemString; buff: TDFE; OnResult: TOnStream_P);
+
+    { send null queue }
+    procedure Send_NULL();
   end;
 
   TPeerIOClass = class of TPeerIO;
@@ -2244,7 +2247,7 @@ type
 
   TZNet_ClientClass = class of TZNet_Client;
 {$ENDREGION 'ZNetClient'}
-{$REGION 'P2pVM'}
+{$REGION 'P2pVM_IO'}
   PP2PVMFragmentPacket = ^TP2PVMFragmentPacket;
 
   TP2PVMFragmentPacket = record
@@ -2254,7 +2257,7 @@ type
     pkType: Byte;
     buff: PByte;
     procedure Init;
-    procedure Build_P2PVM_Send_Buffer(Stream: TMS64);
+    procedure Build_P2PVM_Send_Buffer(Stream: TMem64);
   end;
 
   TP2P_VM_Fragment_Packet_Pool = TOrderStruct<PP2PVMFragmentPacket>;
@@ -2287,6 +2290,8 @@ type
     property Remote_frameworkID: Cardinal read FRemote_frameworkID;
     property Remote_p2pID: Cardinal read FRemote_p2pID;
   end;
+{$ENDREGION 'P2pVM_IO'}
+{$REGION 'P2pVM_Server'}
 
   { p2p VM listen service }
   PP2PVMListen = ^TP2PVMListen;
@@ -2336,6 +2341,8 @@ type
     function WaitSendConsoleCmd(P_IO: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString; override;
     procedure WaitSendStreamCmd(P_IO: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); override;
   end;
+{$ENDREGION 'P2pVM_Server'}
+{$REGION 'P2pVM_Client'}
 
   TZNet_WithP2PVM_Client_Clone_Pool = TBigList<TZNet_WithP2PVM_Client>;
 
@@ -2397,6 +2404,8 @@ type
     property FrameworkWithVM_ID: Cardinal read FFrameworkWithVM_ID;
     property VMClientIO: TP2PVM_PeerIO read FVMClientIO;
   end;
+{$ENDREGION 'P2pVM_Client'}
+{$REGION 'P2pVM'}
 
   TZNet_List_C = procedure(Sender: TZNet);
   TZNet_List_M = procedure(Sender: TZNet) of object;
@@ -2416,9 +2425,10 @@ type
     FFrameworkPool: TUInt32HashObjectList;
     FFrameworkListenPool: TP2PVM_Listen_List;
     FMaxVMFragmentSize: Cardinal;
+    FProgress_Send_Size: Int64;
     FQuietMode: Boolean;
-    FReceiveStream: TMS64;
-    FSendStream: TMS64;
+    FReceiveStream: TMem64;
+    FSendStream: TMem64;
     FWaitEchoList: TP2PVM_ECHO_List;
     FVMID: Cardinal;
     OnAuthSuccessOnesNotify: TP2PVMAuthSuccessMethod;
@@ -2470,6 +2480,9 @@ type
     { p2p VM Peformance support }
     { MaxVMFragmentSize see also MTU }
     property MaxVMFragmentSize: Cardinal read FMaxVMFragmentSize write FMaxVMFragmentSize;
+    { P2PVM progress send size }
+    property Progress_Send_Size: Int64 read FProgress_Send_Size write FProgress_Send_Size;
+    { state }
     property QuietMode: Boolean read FQuietMode write FQuietMode;
 
     { p2p VM safe Support }
@@ -3178,6 +3191,9 @@ var
 
   { P2PVM Fragment size }
   ZNet_Def_P2PVM_MaxVMFragmentSize: Cardinal = 1536;
+
+  { P2PVM progress send size }
+  ZNet_Def_P2PVM_Progress_Send_Size: Int64 = 500 * 1024;
 
   { DoStatus ID }
   ZNet_Def_DoStatusID: Integer = $0FFFFFFF;
@@ -10584,6 +10600,14 @@ begin
       TZNet_Client(OwnerFramework).SendCompleteBuffer_NoWait_StreamP(Cmd, buff, OnResult);
 end;
 
+procedure TPeerIO.Send_NULL();
+begin
+  if OwnerFramework.InheritsFrom(TZNet_Server) then
+      TZNet_Server(OwnerFramework).Send_NULL(self)
+  else if OwnerFramework.InheritsFrom(TZNet_Client) then
+      TZNet_Client(OwnerFramework).Send_NULL;
+end;
+
 procedure TAutomatedP2PVMServiceBind.AddService(Service: TZNet_WithP2PVM_Server; IPV6: SystemString; Port: Word);
 var
   p: PAutomatedP2PVMServiceData;
@@ -13333,7 +13357,7 @@ begin
 
   tk := GetTimeTick();
   while (FCMD_Thread_Runing_Num > 0) and (GetTimeTick() - tk < 5000) do // fixed long wait, by.qq600585,
-      Check_Soft_Thread_Synchronize(100);
+      Check_Soft_Thread_Synchronize(100, False);
 
   DeleteRegistedCMD(C_CipherModel);
   DeleteRegistedCMD(C_Wait);
@@ -16260,7 +16284,7 @@ begin
   buff := nil;
 end;
 
-procedure TP2PVMFragmentPacket.Build_P2PVM_Send_Buffer(Stream: TMS64);
+procedure TP2PVMFragmentPacket.Build_P2PVM_Send_Buffer(Stream: TMem64);
 begin
   Stream.WritePtr(@BuffSiz, 4);
   Stream.WritePtr(@FrameworkID, 4);
@@ -17329,7 +17353,7 @@ begin
 end;
 
 procedure TZNet_P2PVM.Hook_ProcessReceiveBuffer(const Sender: TPeerIO);
-  function Extract_P2PVM_Receive_Buffer(var fPk: TP2PVMFragmentPacket; const Stream: TMS64): Integer;
+  function Extract_P2PVM_Receive_Buffer(var fPk: TP2PVMFragmentPacket; const Stream: TMem64): Integer;
   begin
     Result := 0;
     if Stream.Size < 13 then
@@ -17357,7 +17381,7 @@ var
   i: Integer;
   LP: PP2PVMListen;
   p64: Int64;
-  sourStream: TMS64;
+  sourStream: TMem64;
   fPk: TP2PVMFragmentPacket;
   rPos: Integer;
 begin
@@ -17398,7 +17422,7 @@ begin
 
           { fill fragment buffer }
           p64 := Length(FOwner_IO.FP2PVM_Auth_Token);
-          sourStream := TMS64.Create;
+          sourStream := TMem64.Create;
           FReceiveStream.Position := p64;
           if FReceiveStream.Size - FReceiveStream.Position > 0 then
               sourStream.CopyFrom(FReceiveStream, FReceiveStream.Size - FReceiveStream.Position);
@@ -17426,7 +17450,7 @@ begin
   if FReceiveStream.Size < 13 then
       exit;
 
-  sourStream := TMS64.Create;
+  sourStream := TMem64.Create;
   p64 := 0;
   sourStream.SetPointerWithProtectedMode(FReceiveStream.PositionAsPtr(p64), FReceiveStream.Size - p64);
 
@@ -17490,7 +17514,7 @@ begin
 
   if p64 > 0 then
     begin
-      sourStream := TMS64.CustomCreate(64 * 1024);
+      sourStream := TMem64.CustomCreate(64 * 1024);
       FReceiveStream.Position := p64;
       if FReceiveStream.Size - FReceiveStream.Position > 0 then
           sourStream.CopyFrom(FReceiveStream, FReceiveStream.Size - FReceiveStream.Position);
@@ -17884,9 +17908,10 @@ begin
   FFrameworkPool.AccessOptimization := False;
   FFrameworkListenPool := TP2PVM_Listen_List.Create;
   FMaxVMFragmentSize := ZNet_Def_P2PVM_MaxVMFragmentSize;
+  FProgress_Send_Size := ZNet_Def_P2PVM_Progress_Send_Size;
   FQuietMode := {$IFDEF Communication_QuietMode}True{$ELSE Communication_QuietMode}False{$ENDIF Communication_QuietMode};
-  FReceiveStream := TMS64.CustomCreate(64 * 1024);
-  FSendStream := TMS64.CustomCreate(64 * 1024);
+  FReceiveStream := TMem64.CustomCreate(64 * 1024);
+  FSendStream := TMem64.CustomCreate(64 * 1024);
   FWaitEchoList := TP2PVM_ECHO_List.Create;
   FVMID := 0;
   OnAuthSuccessOnesNotify := nil;
@@ -18046,7 +18071,7 @@ begin
                 p := p^.Next;
               end;
           end;
-      until (FSendStream.Size = lsiz);
+      until (FSendStream.Size = lsiz) or (FSendStream.Size >= lsiz + FProgress_Send_Size);
 
       if FSendStream.Size > 0 then
         begin

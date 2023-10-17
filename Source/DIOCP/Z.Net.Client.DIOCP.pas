@@ -288,7 +288,7 @@ begin
   DIOCPClientPool.RemoveAllContext;
   DIOCPClientPool.Close;
   DisposeObject(DIOCPClientPool);
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
   inherited Destroy;
 end;
 
@@ -344,7 +344,7 @@ procedure TZNet_Client_DIOCP.Progress;
 begin
   inherited Progress;
   try
-      Z.Core.Check_Soft_Thread_Synchronize;
+      Check_Soft_Thread_Synchronize(1, False);
   except
   end;
 end;
@@ -459,7 +459,7 @@ begin
   DCIntf.OwnerFramework := Self;
   DCIntf.Link := TDIOCPClient_PeerIO.Create(Self, DCIntf);
   DCIntf.Link.Link := DCIntf;
-  Check_Soft_Thread_Synchronize;
+  Check_Soft_Thread_Synchronize(1, False);
 end;
 
 initialization

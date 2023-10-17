@@ -429,6 +429,8 @@ type
     ServiceInfo: TC40_Info;
     C40PhysicsService: TC40_PhysicsService;
     ConsoleCommand: TC4_Help_Console_Command;
+
+    property PhysicsService: TC40_PhysicsService read C40PhysicsService;
     constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -492,6 +494,8 @@ type
     C40PhysicsTunnel: TC40_PhysicsTunnel;
     ConsoleCommand: TC4_Help_Console_Command;
     On_Client_Offline: TOn_Client_Offline;
+
+    property PhysicsTunnel: TC40_PhysicsTunnel read C40PhysicsTunnel;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); virtual;
     destructor Destroy; override;
     procedure SafeCheck; virtual;
@@ -570,15 +574,20 @@ type
     TOn_Ready_P = reference to procedure(var Sender: T_);
 {$ENDIF FPC}
   private
-    FClient: PT_;
+    FClient_Second: T_;
+    FClient_Ptr: PT_;
     FDependNetwork: U_String;
     FOn_Ready_C: TOn_Ready_C;
     FOn_Ready_M: TOn_Ready_M;
     FOn_Ready_P: TOn_Ready_P;
     procedure Do_Deployment_Ready(States: TC40_Custom_ClientPool_Wait_States);
   public
+    constructor Create(dependNetwork_: U_String; Client: PT_); overload;
     constructor Create(dependNetwork_: U_String; var Client: T_); overload;
     constructor Create(var Client: T_); overload;
+    constructor Create_C(OnReady: TOn_Ready_C);
+    constructor Create_M(OnReady: TOn_Ready_M);
+    constructor Create_P(OnReady: TOn_Ready_P);
     destructor Destroy; override;
     property On_Ready: TOn_Ready_M read FOn_Ready_M write FOn_Ready_M;
     property On_Ready_C: TOn_Ready_C read FOn_Ready_C write FOn_Ready_C;
@@ -1291,65 +1300,86 @@ end;
 
 procedure C40Clean;
 var
+  bak: TOn_Check_Thread_Synchronize;
   i: Integer;
 begin
-  for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-      C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
-  for i := 0 to C40_PhysicsServicePool.Count - 1 do
-      C40_PhysicsServicePool[i].StopService;
-  for i := 0 to C40_VM_Client_Pool.Count - 1 do
-      C40_VM_Client_Pool[i].Disconnect;
-  for i := 0 to C40_VM_Service_Pool.Count - 1 do
-      C40_VM_Service_Pool[i].StopService;
+  bak := OnCheckThreadSynchronize;
+  OnCheckThreadSynchronize := nil;
+  try
+    for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+        C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
+    for i := 0 to C40_PhysicsServicePool.Count - 1 do
+        C40_PhysicsServicePool[i].StopService;
+    for i := 0 to C40_VM_Client_Pool.Count - 1 do
+        C40_VM_Client_Pool[i].Disconnect;
+    for i := 0 to C40_VM_Service_Pool.Count - 1 do
+        C40_VM_Service_Pool[i].StopService;
 
-  while C40_ClientPool.Count > 0 do
-      DisposeObject_PrintInfo(C40_ClientPool[0]);
-  while C40_ServicePool.Count > 0 do
-      DisposeObject_PrintInfo(C40_ServicePool[0]);
-  C40_ServicePool.FIPV6_Seed := 1;
-  while C40_PhysicsTunnelPool.Count > 0 do
-      DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
-  while C40_PhysicsServicePool.Count > 0 do
-      DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
-  while C40_VM_Client_Pool.Count > 0 do
-      DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
-  while C40_VM_Service_Pool.Count > 0 do
-      DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
+    while C40_ClientPool.Count > 0 do
+        DisposeObject_PrintInfo(C40_ClientPool[0]);
+    while C40_ServicePool.Count > 0 do
+        DisposeObject_PrintInfo(C40_ServicePool[0]);
+    C40_ServicePool.FIPV6_Seed := 1;
+    while C40_PhysicsTunnelPool.Count > 0 do
+        DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
+    while C40_PhysicsServicePool.Count > 0 do
+        DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
+    while C40_VM_Client_Pool.Count > 0 do
+        DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
+    while C40_VM_Service_Pool.Count > 0 do
+        DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
+  finally
+      OnCheckThreadSynchronize := bak;
+  end;
 end;
 
 procedure C40Clean_Service;
 var
+  bak: TOn_Check_Thread_Synchronize;
   i: Integer;
 begin
-  for i := 0 to C40_PhysicsServicePool.Count - 1 do
-      C40_PhysicsServicePool[i].StopService;
-  for i := 0 to C40_VM_Service_Pool.Count - 1 do
-      C40_VM_Service_Pool[i].StopService;
+  bak := OnCheckThreadSynchronize;
+  OnCheckThreadSynchronize := nil;
+  try
+    for i := 0 to C40_PhysicsServicePool.Count - 1 do
+        C40_PhysicsServicePool[i].StopService;
+    for i := 0 to C40_VM_Service_Pool.Count - 1 do
+        C40_VM_Service_Pool[i].StopService;
 
-  while C40_ServicePool.Count > 0 do
-      DisposeObject_PrintInfo(C40_ServicePool[0]);
-  C40_ServicePool.FIPV6_Seed := 1;
-  while C40_PhysicsServicePool.Count > 0 do
-      DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
-  while C40_VM_Service_Pool.Count > 0 do
-      DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
+    while C40_ServicePool.Count > 0 do
+        DisposeObject_PrintInfo(C40_ServicePool[0]);
+    C40_ServicePool.FIPV6_Seed := 1;
+    while C40_PhysicsServicePool.Count > 0 do
+        DisposeObject_PrintInfo(C40_PhysicsServicePool[0]);
+    while C40_VM_Service_Pool.Count > 0 do
+        DisposeObject_PrintInfo(C40_VM_Service_Pool[0]);
+  finally
+      OnCheckThreadSynchronize := bak;
+  end;
 end;
 
 procedure C40Clean_Client;
 var
+  bak: TOn_Check_Thread_Synchronize;
   i: Integer;
 begin
-  for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
-      C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
-  for i := 0 to C40_VM_Client_Pool.Count - 1 do
-      C40_VM_Client_Pool[i].Disconnect;
+  bak := OnCheckThreadSynchronize;
+  OnCheckThreadSynchronize := nil;
+  try
+    for i := 0 to C40_PhysicsTunnelPool.Count - 1 do
+        C40_PhysicsTunnelPool[i].PhysicsTunnel.Disconnect;
+    for i := 0 to C40_VM_Client_Pool.Count - 1 do
+        C40_VM_Client_Pool[i].Disconnect;
 
-  while C40_ClientPool.Count > 0 do
-      DisposeObject_PrintInfo(C40_ClientPool[0]);
-  while C40_PhysicsTunnelPool.Count > 0 do
-      DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
-  while C40_VM_Client_Pool.Count > 0 do
-      DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
+    while C40_ClientPool.Count > 0 do
+        DisposeObject_PrintInfo(C40_ClientPool[0]);
+    while C40_PhysicsTunnelPool.Count > 0 do
+        DisposeObject_PrintInfo(C40_PhysicsTunnelPool[0]);
+    while C40_VM_Client_Pool.Count > 0 do
+        DisposeObject_PrintInfo(C40_VM_Client_Pool[0]);
+  finally
+      OnCheckThreadSynchronize := bak;
+  end;
 end;
 
 procedure C40PrintRegistation;
@@ -4875,39 +4905,46 @@ var
   i: Integer;
   cc: TC40_Custom_Client;
 begin
-  FClient^ := nil;
+  FClient_Ptr^ := nil;
   for i := 0 to Z.Net.C4.C40_ClientPool.Count - 1 do
     begin
       cc := Z.Net.C4.C40_ClientPool[i];
       if cc is T_ then
-          FClient^ := cc as T_;
+          FClient_Ptr^ := cc as T_;
     end;
-  if FClient^ <> nil then
+  if FClient_Ptr^ <> nil then
     begin
-      if TC40_Custom_Client(FClient^).Connected then
+      if TC40_Custom_Client(FClient_Ptr^).Connected then
         begin
           try
             if Assigned(FOn_Ready_M) then
-                FOn_Ready_M(FClient^);
+                FOn_Ready_M(FClient_Ptr^);
             if Assigned(FOn_Ready_C) then
-                FOn_Ready_C(FClient^);
+                FOn_Ready_C(FClient_Ptr^);
             if Assigned(FOn_Ready_P) then
-                FOn_Ready_P(FClient^);
+                FOn_Ready_P(FClient_Ptr^);
           except
           end;
-          DoStatus('deployment "%s"::%s ready ok.', [TC40_Custom_Client(FClient^).ClientInfo.ServiceTyp.Text, TC40_Custom_Client(FClient^).ClassName]);
+          DoStatus('deployment "%s"::%s ready ok.', [TC40_Custom_Client(FClient_Ptr^).ClientInfo.ServiceTyp.Text, TC40_Custom_Client(FClient_Ptr^).ClassName]);
         end
       else
-          DoStatus('deployment "%s"::%s error!', [TC40_Custom_Client(FClient^).ClientInfo.ServiceTyp.Text, TC40_Custom_Client(FClient^).ClassName]);
+          DoStatus('deployment "%s"::%s error!', [TC40_Custom_Client(FClient_Ptr^).ClientInfo.ServiceTyp.Text, TC40_Custom_Client(FClient_Ptr^).ClassName]);
       DelayFreeObj(1.0, Self);
     end;
 end;
 
-constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; var Client: T_);
+constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; Client: PT_);
 begin
   inherited Create;
-  FClient := @Client;
-  FClient^ := nil;
+  FClient_Second := nil;
+  if Client = nil then
+    begin
+      FClient_Ptr := @FClient_Second;
+    end
+  else
+    begin
+      FClient_Ptr := Client;
+    end;
   FDependNetwork := dependNetwork_;
   FOn_Ready_C := nil;
   FOn_Ready_M := nil;
@@ -4915,9 +4952,32 @@ begin
   C40_ClientPool.WaitConnectedDoneM(FDependNetwork, Do_Deployment_Ready);
 end;
 
+constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; var Client: T_);
+begin
+  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), @Client);
+end;
+
 constructor TC40_Auto_Deployment_Client<T_>.Create(var Client: T_);
 begin
   Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), Client);
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create_C(OnReady: TOn_Ready_C);
+begin
+  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  On_Ready_C := OnReady;
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create_M(OnReady: TOn_Ready_M);
+begin
+  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  On_Ready_M := OnReady;
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create_P(OnReady: TOn_Ready_P);
+begin
+  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  On_Ready_P := OnReady;
 end;
 
 destructor TC40_Auto_Deployment_Client<T_>.Destroy;

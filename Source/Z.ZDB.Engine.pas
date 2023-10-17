@@ -2413,7 +2413,7 @@ begin
 
   // wait thread
   while not FQueryThreadTerminate do
-      Check_Soft_Thread_Synchronize(10);
+      Check_Soft_Thread_Synchronize(10, False);
 
   for i := 0 to FQueryQueue.Count - 1 do
       DisposeObject(FQueryQueue[i]);
