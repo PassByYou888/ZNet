@@ -8,7 +8,7 @@ unit Z.Core;
 
 interface
 
-uses SysUtils, Classes, Types, Variants, SyncObjs, TypInfo,
+uses SysUtils, Classes, Types, Variants, SyncObjs,
   {$IFDEF FPC}
   Z.FPC.GenericList, fgl,
   {$ELSE FPC}
@@ -1890,17 +1890,22 @@ begin
   Result := False;
   if Obj = nil then
     exit;
-
   try
     {$IFDEF AUTOREFCOUNT}Obj.DisposeOf;{$ELSE AUTOREFCOUNT}Obj.Free;{$ENDIF AUTOREFCOUNT}
     Result := True;
   except
-    on E: Exception do
-      begin
-        if Assigned(On_Raise_Info) then
-          On_Raise_Info('DisposeObject error ' + E.Message);
-        Result := False;
-      end;
+    {$IFDEF FPC} // fixed fpc 3.2.2 compiler internal error, by.qq600585
+      if Assigned(On_Raise_Info) then
+        On_Raise_Info('DisposeObject error');
+      Result := False;
+    {$ELSE FPC}
+      on E: Exception do
+        begin
+          if Assigned(On_Raise_Info) then
+            On_Raise_Info('DisposeObject error ' + E.Message);
+          Result := False;
+        end;
+    {$ENDIF FPC}
   end;
 end;
 
@@ -2193,7 +2198,7 @@ end;
 
 function GetCrashTimeTick(): TTimeTick;
 begin
-  Result := $FFFFFFFFFFFFFFFF - GetTimeTick();
+  Result := TTimeTick($FFFFFFFFFFFFFFFF) - GetTimeTick();
 end;
 
 function SameF(const A, B: Double; Epsilon: Double = 0): Boolean;
