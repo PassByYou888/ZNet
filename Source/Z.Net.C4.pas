@@ -582,7 +582,7 @@ type
     FOn_Ready_P: TOn_Ready_P;
     procedure Do_Deployment_Ready(States: TC40_Custom_ClientPool_Wait_States);
   public
-    constructor Create(dependNetwork_: U_String; Client: PT_); overload;
+    constructor Create_Ptr(dependNetwork_: U_String; Client_: PT_);
     constructor Create(dependNetwork_: U_String; var Client: T_); overload;
     constructor Create(var Client: T_); overload;
     constructor Create_C(OnReady: TOn_Ready_C);
@@ -4933,17 +4933,17 @@ begin
     end;
 end;
 
-constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; Client: PT_);
+constructor TC40_Auto_Deployment_Client<T_>.Create_Ptr(dependNetwork_: U_String; Client_: PT_);
 begin
   inherited Create;
   FClient_Second := nil;
-  if Client = nil then
+  if Client_ = nil then
     begin
       FClient_Ptr := @FClient_Second;
     end
   else
     begin
-      FClient_Ptr := Client;
+      FClient_Ptr := Client_;
     end;
   FDependNetwork := dependNetwork_;
   FOn_Ready_C := nil;
@@ -4954,29 +4954,47 @@ end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; var Client: T_);
 begin
-  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), @Client);
+  Create_Ptr(dependNetwork_, @Client);  // fixed dependNetwork parameter, by.qq600585
 end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create(var Client: T_);
+var
+  n: U_String;
 begin
-  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), Client);
+  n := GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_));
+  Create(n, Client);
 end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create_C(OnReady: TOn_Ready_C);
+var
+  n: U_String;
+  p: PT_;
 begin
-  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  n := GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_));
+  p := nil;
+  Create_Ptr(n, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
   On_Ready_C := OnReady;
 end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create_M(OnReady: TOn_Ready_M);
+var
+  n: U_String;
+  p: PT_;
 begin
-  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  n := GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_));
+  p := nil;
+  Create_Ptr(n, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
   On_Ready_M := OnReady;
 end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create_P(OnReady: TOn_Ready_P);
+var
+  n: U_String;
+  p: PT_;
 begin
-  Create(GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_)), nil);
+  n := GetRegisterClientTypFromClass(TC40_Custom_Client_Class(T_));
+  p := nil;
+  Create_Ptr(n, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
   On_Ready_P := OnReady;
 end;
 
