@@ -176,6 +176,7 @@ type
     procedure LoadFromLines(L_: TCore_Strings);
     procedure SaveToFile(FileName: SystemString);
     procedure LoadFromFile(FileName: SystemString);
+    procedure LoadFromText(Text_: TPascalString);
 
     function GetMD5: TMD5;
     property MD5: TMD5 read GetMD5;
@@ -407,6 +408,19 @@ begin
   finally
       disposeObject(m64);
   end;
+end;
+
+procedure TZ_JsonObject.LoadFromText(Text_: TPascalString);
+var
+  buff: TBytes;
+  m64: TMS64;
+begin
+  buff := Text_.Bytes;
+  m64 := TMS64.Create;
+  m64.Mapping(buff, length(buff));
+  LoadFromStream(m64);
+  disposeObject(m64);
+  SetLength(buff, 0);
 end;
 
 function TZ_JsonObject.GetMD5: TMD5;
