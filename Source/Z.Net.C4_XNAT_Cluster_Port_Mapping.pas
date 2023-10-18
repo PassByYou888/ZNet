@@ -48,6 +48,8 @@ type
     procedure cmd_Get_CPM_Mapping(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Add_CPM_Service_Listening(Sender: TPeerIO; InData: TDFE);
     procedure cmd_Open_CPM_Service_Tunnel(Sender: TPeerIO; InData: TDFE);
+  protected
+    procedure CC_CPM_Service_Info(var OP_Param: TOpParam);
   public
     XNAT_Physics_Service: TXNATService;
     CPM_List: TC40_CPM_Info_List;
@@ -83,6 +85,8 @@ type
     Client: TC40_CPM_Client_Tool;
     procedure Do_First_Get_CPM_Mapping_And_OpenTunnel(Sender: TC40_CPM_Client_Tool; L: TC40_CPM_Info_List);
     procedure Do_Wait_OpenTunnel_Done(Sender: TXNATClient; State: Boolean);
+    procedure Do_Delay_3_Second_Again_OpenTunnel;
+    procedure Do_Delay_3_Second_Done;
     procedure Do_Last_Get_CPM_Mapping_Final_State(Sender: TC40_CPM_Client_Tool; L: TC40_CPM_Info_List);
   end;
 
@@ -90,14 +94,18 @@ type
   protected
     procedure Do_Get_CPM_Service(Sender: TPeerIO; Result_: TDFE);
     procedure Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client); override;
+  protected
+    procedure CC_CPM_Client_Info(var OP_Param: TOpParam);
   public
     Remote_XNAT_ReadyOK: Boolean;
     Remote_XNAT_Host, Remote_XNAT_Port, Remote_XNAT_Auth: U_String;
     XNAT_Physics_Client: TXNATClient;
+    CPM_Address_Mapping_Report: TPascalStringList;
     constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
     destructor Destroy; override;
     procedure Progress; override;
 
+    procedure Get_CPM_Mapping();
     procedure Get_CPM_MappingC(OnResult: TON_Get_CPM_MappingC);
     procedure Get_CPM_MappingM(OnResult: TON_Get_CPM_MappingM);
     procedure Get_CPM_MappingP(OnResult: TON_Get_CPM_MappingP);
@@ -198,24 +206,36 @@ end;
 
 procedure TC40_CPM_Service_Tool.cmd_Add_CPM_Service_Listening(Sender: TPeerIO; InData: TDFE);
 var
+  NoDistributed: Boolean;
+  ListenPort: Word;
+  Mapping: U_String;
+  TimeOut: TTimeTick;
+  User_Data: U_String;
   info: TC40_CPM_Info;
   i: integer;
 begin
-  info := TC40_CPM_Info.Create;
-  info.NoDistributed := InData.R.ReadBool;
-  info.ListenPort := InData.R.ReadWord;
-  info.Mapping := InData.R.ReadString;
-  info.TimeOut := InData.R.ReadUInt64;
-  info.User_Data := InData.R.ReadString;
+  NoDistributed := InData.R.ReadBool;
+  ListenPort := InData.R.ReadWord;
+  Mapping := InData.R.ReadString;
+  TimeOut := InData.R.ReadUInt64;
+  User_Data := InData.R.ReadString;
 
-  for i := 0 to CPM_List.count - 1 do
-    if (info.ListenPort = CPM_List[i].ListenPort) or (info.Mapping.Same(@CPM_List[i].Mapping)) then
-      begin
-        DisposeObject(info);
-        exit;
-      end;
+  info := nil;
+  for i := CPM_List.count - 1 downto 0 do
+    if Mapping.Same(@CPM_List[i].Mapping) then
+        info := CPM_List[i];
 
-  CPM_List.Add(info);
+  if info = nil then
+    begin
+      info := TC40_CPM_Info.Create;
+      CPM_List.Add(info);
+    end;
+
+  info.NoDistributed := NoDistributed;
+  info.ListenPort := ListenPort;
+  info.Mapping := Mapping;
+  info.TimeOut := TimeOut;
+  info.User_Data := User_Data;
 end;
 
 procedure TC40_CPM_Service_Tool.cmd_Open_CPM_Service_Tunnel(Sender: TPeerIO; InData: TDFE);
@@ -251,6 +271,32 @@ begin
     end;
 end;
 
+procedure TC40_CPM_Service_Tool.CC_CPM_Service_Info(var OP_Param: TOpParam);
+var
+  i: integer;
+  info: TC40_CPM_Info;
+begin
+  for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
+    begin
+      info := XNAT_Physics_Service.ShareListenList[i].UserObject as TC40_CPM_Info;
+      info.Test_Listening_Passed := XNAT_Physics_Service.ShareListenList[i].Test_Listening_Passed;
+      info.Activted := XNAT_Physics_Service.ShareListenList[i].Activted;
+    end;
+
+  for i := 0 to CPM_List.count - 1 do
+    begin
+      info := CPM_List[i];
+      DoStatus('NoDistributed:%s listening port:%d, mapping:%s, timeout:%dms Listening:%s, activted:%s',
+        [umlBoolToStr(info.NoDistributed).Text,
+          info.ListenPort, info.Mapping.Text, info.TimeOut,
+          umlBoolToStr(info.Test_Listening_Passed).Text,
+          umlBoolToStr(info.Activted).Text
+          ]);
+    end;
+  DoStatus('C4 XNAT Host:%s Port:%d', [PhysicsService.PhysicsAddr.Text, PhysicsService.PhysicsPort]);
+  DoStatus('XNAT Host:%s Port:%s Auth:%s', [XNAT_Physics_Service.Host.Text, XNAT_Physics_Service.Port.Text, XNAT_Physics_Service.AuthToken.Text]);
+end;
+
 constructor TC40_CPM_Service_Tool.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
 begin
   inherited Create(PhysicsService_, ServiceTyp, Param_);
@@ -273,6 +319,8 @@ begin
   ServiceInfo.OnlyInstance := False;
   UpdateToGlobalDispatch;
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
+
+  Register_ConsoleCommand('CPM_Service_Info', 'CPM_Service_Info(): service cluster port mapping info').OnEvent_M := CC_CPM_Service_Info;
 end;
 
 destructor TC40_CPM_Service_Tool.Destroy;
@@ -308,6 +356,8 @@ var
   L: TC40_CPM_Info_List;
   tmp: TDFE;
   info: TC40_CPM_Info;
+  i: integer;
+  cli: TXClientMapping;
 begin
   L := TC40_CPM_Info_List.Create;
   while Result_.R.NotEnd do
@@ -319,6 +369,21 @@ begin
       DisposeObject(tmp);
       L.Add(info);
     end;
+
+  Client.CPM_Address_Mapping_Report.Clear;
+  for i := 0 to L.count - 1 do
+    begin
+      info := L[i];
+      cli := Client.XNAT_Physics_Client.HashMapping[info.Mapping];
+      if cli <> nil then
+        begin
+          Client.CPM_Address_Mapping_Report.Add('mapping:"%s" Listening:%s Port:%d -> to:%s to port:%s, test:%s activted:%s',
+            [info.Mapping.Text, Client.Remote_XNAT_Host.Text, info.ListenPort, cli.Addr.Text, cli.Port.Text,
+              if_(info.Test_Listening_Passed, 'ReadyOK', 'error!'),
+              umlBoolToStr(info.Activted).Text]);
+        end;
+    end;
+
   try
     if Assigned(OnResultC) then
         OnResultC(Client, L);
@@ -370,31 +435,26 @@ procedure TON_End_CPM_Address_Mapping.Do_Wait_OpenTunnel_Done(Sender: TXNATClien
 begin
   if State then
     begin
-      Client.Get_CPM_MappingM(Do_Last_Get_CPM_Mapping_Final_State);
+      Client.PhysicsTunnel.PhysicsTunnel.PostProgress.PostExecuteM_NP(3.0, Do_Delay_3_Second_Done);
     end
   else
     begin
-      DelayFreeObj(1.0, Self);
+      Client.PhysicsTunnel.PhysicsTunnel.PostProgress.PostExecuteM_NP(3.0, Do_Delay_3_Second_Again_OpenTunnel);
     end;
 end;
 
-procedure TON_End_CPM_Address_Mapping.Do_Last_Get_CPM_Mapping_Final_State(Sender: TC40_CPM_Client_Tool; L: TC40_CPM_Info_List);
-var
-  i: integer;
-  info: TC40_CPM_Info;
-  cli: TXClientMapping;
+procedure TON_End_CPM_Address_Mapping.Do_Delay_3_Second_Again_OpenTunnel;
 begin
-  for i := 0 to L.count - 1 do
-    begin
-      info := L[i];
-      cli := Sender.XNAT_Physics_Client.HashMapping[info.Mapping];
-      if cli <> nil then
-        begin
-          DoStatus('mapping:"%s" Listening:%s Listening Port:%d -> to:%s to port:%s, proxy state:%s',
-            [info.Mapping.Text, Sender.PhysicsTunnel.PhysicsAddr.Text, info.ListenPort, cli.Addr.Text, cli.Port.Text,
-              if_(info.Test_Listening_Passed, 'ReadyOK', 'error!')]);
-        end;
-    end;
+  Client.XNAT_Physics_Client.OpenTunnel;
+end;
+
+procedure TON_End_CPM_Address_Mapping.Do_Delay_3_Second_Done;
+begin
+  Client.Get_CPM_MappingM(Do_Last_Get_CPM_Mapping_Final_State);
+end;
+
+procedure TON_End_CPM_Address_Mapping.Do_Last_Get_CPM_Mapping_Final_State(Sender: TC40_CPM_Client_Tool; L: TC40_CPM_Info_List);
+begin
   DelayFreeObj(1.0, Self);
 end;
 
@@ -412,6 +472,15 @@ begin
   DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_CPM_Service', nil, Do_Get_CPM_Service);
 end;
 
+procedure TC40_CPM_Client_Tool.CC_CPM_Client_Info(var OP_Param: TOpParam);
+var
+  i: integer;
+begin
+  Get_CPM_Mapping();
+  for i := 0 to CPM_Address_Mapping_Report.count - 1 do
+      DoStatus(CPM_Address_Mapping_Report[i]);
+end;
+
 constructor TC40_CPM_Client_Tool.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
@@ -421,11 +490,15 @@ begin
   Remote_XNAT_Auth := '';
   XNAT_Physics_Client := TXNATClient.Create;
   XNAT_Physics_Client.Quiet := C40_QuietMode;
+  CPM_Address_Mapping_Report := TPascalStringList.Create;
+
+  Register_ConsoleCommand('CPM_Client_Info', 'CPM_Client_Info(): client cluster port mapping info').OnEvent_M := CC_CPM_Client_Info;
 end;
 
 destructor TC40_CPM_Client_Tool.Destroy;
 begin
   DisposeObjectAndNil(XNAT_Physics_Client);
+  DisposeObjectAndNil(CPM_Address_Mapping_Report);
   inherited Destroy;
 end;
 
@@ -433,6 +506,15 @@ procedure TC40_CPM_Client_Tool.Progress;
 begin
   XNAT_Physics_Client.Progress;
   inherited Progress;
+end;
+
+procedure TC40_CPM_Client_Tool.Get_CPM_Mapping();
+var
+  tmp: TON_Get_CPM_Mapping;
+begin
+  tmp := TON_Get_CPM_Mapping.Create;
+  tmp.Client := Self;
+  DTNoAuthClient.SendTunnel.SendStreamCmd('Get_CPM_Mapping', TDFE.Create.DelayFree);
 end;
 
 procedure TC40_CPM_Client_Tool.Get_CPM_MappingC(OnResult: TON_Get_CPM_MappingC);
