@@ -109,6 +109,7 @@ type
     WaitAsyncConnecting: Boolean;
     WaitAsyncConnecting_BeginTime: TTimeTick;
     PhysicsEngine: TZNet;
+    FQuiet: Boolean;
     Progressing: Boolean;
 
     { IO Interface }
@@ -122,6 +123,7 @@ type
     procedure p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
     { backcall }
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
+    procedure Set_Quiet(const Value: Boolean);
   public
     { tunnel parameter }
     Host: TPascalString;
@@ -137,6 +139,7 @@ type
     }
     ProtocolCompressed: Boolean;
 
+    property Quiet: Boolean read FQuiet write Set_Quiet;
     constructor Create;
     destructor Destroy; override;
 
@@ -158,6 +161,8 @@ type
   end;
 
 implementation
+
+uses Z.Net.C4;
 
 procedure TXNAT_MappingOnVirutalService_IO.CreateAfter;
 begin
@@ -263,36 +268,36 @@ procedure TXNAT_MappingOnVirutalService.SendTunnel_ConnectResult(const cState: B
 begin
   if cState then
     begin
-      DoStatus('[%s] Send Tunnel connect success.', [Mapping.Text]);
+      SendTunnel.Print('[%s] Send Tunnel connect success.', [Mapping.Text]);
       if not RecvTunnel.Connected then
           RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, RecvTunnel_ConnectResult)
       else
           RecvTunnel_ConnectResult(True);
     end
   else
-      DoStatus('error: [%s] Send Tunnel connect failed!', [Mapping.Text]);
+      SendTunnel.Print('error: [%s] Send Tunnel connect failed!', [Mapping.Text]);
 end;
 
 procedure TXNAT_MappingOnVirutalService.RecvTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      DoStatus('[%s] Receive Tunnel connect success.', [Mapping.Text]);
+      RecvTunnel.Print('[%s] Receive Tunnel connect success.', [Mapping.Text]);
       SendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
     end
   else
-      DoStatus('error: [%s] Receive Tunnel connect failed!', [Mapping.Text]);
+      RecvTunnel.Print('error: [%s] Receive Tunnel connect failed!', [Mapping.Text]);
 end;
 
 procedure TXNAT_MappingOnVirutalService.RequestListen_Result(Sender: TPeerIO; Result_: TDFE);
 begin
   if Result_.Reader.ReadBool then
     begin
-      DoStatus('success: remote host:%s port:%s mapping to local Service', [XNAT.Host.Text, Remote_ListenPort.Text]);
+      SendTunnel.Print('success: remote host:%s port:%s mapping to local Service', [XNAT.Host.Text, Remote_ListenPort.Text]);
       UpdateWorkload(True);
     end
   else
-      DoStatus('failed: remote host:%s port:%s listen error!', [XNAT.Host.Text, Remote_ListenPort.Text]);
+      SendTunnel.Print('failed: remote host:%s port:%s listen error!', [XNAT.Host.Text, Remote_ListenPort.Text]);
 end;
 
 procedure TXNAT_MappingOnVirutalService.delay_RequestListen(Sender: TN_Post_Execute);
@@ -647,7 +652,7 @@ begin
   else if PhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open Before on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open Before on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNAT_VS_Mapping.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -658,7 +663,7 @@ begin
   else if PhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNAT_VS_Mapping.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -670,7 +675,7 @@ begin
   else if PhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open After on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open After on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNAT_VS_Mapping.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -681,12 +686,31 @@ begin
   else if PhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Close on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Close on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNAT_VS_Mapping.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   TPhysicsEngine_Special(TZNet_Client(PhysicsEngine).ClientIO.UserSpecial).PhysicsConnect_Result_BuildP2PToken(cState);
+end;
+
+procedure TXNAT_VS_Mapping.Set_Quiet(const Value: Boolean);
+var
+  i: Integer;
+  tunMp: TXNAT_MappingOnVirutalService;
+begin
+  FQuiet := Value;
+  i := 0;
+  while i < MappingList.Count do
+    begin
+      tunMp := MappingList[i];
+      if tunMp.RecvTunnel <> nil then
+          C40Set_Instance_QuietMode(tunMp.RecvTunnel, FQuiet);
+
+      if tunMp.SendTunnel <> nil then
+          C40Set_Instance_QuietMode(tunMp.SendTunnel, FQuiet);
+      inc(i);
+    end;
 end;
 
 constructor TXNAT_VS_Mapping.Create;
@@ -702,6 +726,7 @@ begin
   Activted := False;
   WaitAsyncConnecting := False;
   PhysicsEngine := nil;
+  FQuiet := False;
   Progressing := False;
 end;
 
@@ -764,9 +789,9 @@ begin
   if PhysicsEngine is TZNet_Server then
     begin
       if TZNet_Server(PhysicsEngine).StartService(Host, umlStrToInt(Port)) then
-          DoStatus('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text])
+          PhysicsEngine.Print('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text])
       else
-          DoStatus('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
+          PhysicsEngine.Print('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
     end
   else if PhysicsEngine is TZNet_Client then
     begin
