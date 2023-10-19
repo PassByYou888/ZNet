@@ -257,9 +257,9 @@ begin
     begin
       info := CPM_List[i];
       if info.NoDistributed then
-          serv := XNAT_Physics_Service.AddNoDistributedMapping(XNAT_Physics_Service.Host, umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut)
+          serv := XNAT_Physics_Service.AddNoDistributedMapping('0.0.0.0', umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut)
       else
-          serv := XNAT_Physics_Service.AddMapping(XNAT_Physics_Service.Host, umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut);
+          serv := XNAT_Physics_Service.AddMapping('0.0.0.0', umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut);
       serv.UserObject := info;
     end;
   XNAT_Physics_Service.OpenTunnel;
@@ -321,6 +321,7 @@ begin
   ParamList.SetDefaultValue('OnlyInstance', if_(ServiceInfo.OnlyInstance, 'True', 'False'));
 
   Register_ConsoleCommand('CPM_Service_Info', 'CPM_Service_Info(): service cluster port mapping info').OnEvent_M := CC_CPM_Service_Info;
+  Register_ConsoleCommand('CPM_Serv_Info', 'CPM_Serv_Info(): service cluster port mapping info').OnEvent_M := CC_CPM_Service_Info;
 end;
 
 destructor TC40_CPM_Service_Tool.Destroy;
@@ -461,8 +462,12 @@ end;
 procedure TC40_CPM_Client_Tool.Do_Get_CPM_Service(Sender: TPeerIO; Result_: TDFE);
 begin
   Remote_XNAT_ReadyOK := True;
-  Remote_XNAT_Host := Result_.R.ReadString;
+  // Perhaps the remote CPM specifying the physical address is incorrect, forcing the use of an absolutely correct physical address
+  Remote_XNAT_Host := PhysicsTunnel.PhysicsAddr;
+  Result_.R.Next;
+  // physics port
   Remote_XNAT_Port := Result_.R.ReadString;
+  // p2pVM auth
   Remote_XNAT_Auth := Result_.R.ReadString;
 end;
 
@@ -485,7 +490,7 @@ constructor TC40_CPM_Client_Tool.Create(PhysicsTunnel_: TC40_PhysicsTunnel; sour
 begin
   inherited Create(PhysicsTunnel_, source_, Param_);
   Remote_XNAT_ReadyOK := False;
-  Remote_XNAT_Host := '';
+  Remote_XNAT_Host := PhysicsTunnel_.PhysicsAddr;
   Remote_XNAT_Port := '';
   Remote_XNAT_Auth := '';
   XNAT_Physics_Client := TXNATClient.Create;
@@ -493,6 +498,7 @@ begin
   CPM_Address_Mapping_Report := TPascalStringList.Create;
 
   Register_ConsoleCommand('CPM_Client_Info', 'CPM_Client_Info(): client cluster port mapping info').OnEvent_M := CC_CPM_Client_Info;
+  Register_ConsoleCommand('CPM_Cli_Info', 'CPM_Cli_Info(): client cluster port mapping info').OnEvent_M := CC_CPM_Client_Info;
 end;
 
 destructor TC40_CPM_Client_Tool.Destroy;
