@@ -383,6 +383,7 @@ type
     property Owner: TDFE read FOwner;
     function IsEnd: Boolean;
     function NotEnd: Boolean;
+    procedure Next;
     procedure GoNext;
 
     function ReadString: SystemString;
@@ -1948,6 +1949,11 @@ end;
 function TDFEReader.NotEnd: Boolean;
 begin
   Result := FIndex < FOwner.Count;
+end;
+
+procedure TDFEReader.Next;
+begin
+  inc(FIndex);
 end;
 
 procedure TDFEReader.GoNext;
