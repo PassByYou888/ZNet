@@ -1047,6 +1047,7 @@ procedure C40Progress; overload; { C4 main progress }
 function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
 
 { quiet }
+procedure C40Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
 procedure C40SetQuietMode(QuietMode_: Boolean);
 
 { configure }
@@ -1158,19 +1159,24 @@ begin
   SetLength(arry, 0);
 end;
 
+procedure C40Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
+var
+  p2p_: TZNet_WithP2PVM_Client;
+  i: Integer;
+begin
+  Inst.QuietMode := QuietMode_;
+  if Inst is TZNet_WithP2PVM_Client then
+    begin
+      p2p_ := TZNet_WithP2PVM_Client(Inst);
+      for i := 0 to p2p_.ClonePool.Count - 1 do
+          C40Set_Instance_QuietMode(p2p_.ClonePool[i], QuietMode_);
+    end;
+end;
+
 procedure C40SetQuietMode(QuietMode_: Boolean);
-  procedure Do_SetQuietMode(F: TZNet);
-  var
-    p2p_: TZNet_WithP2PVM_Client;
-    i: Integer;
+  procedure Do_SetQuietMode(Inst: TZNet);
   begin
-    F.QuietMode := QuietMode_;
-    if F is TZNet_WithP2PVM_Client then
-      begin
-        p2p_ := TZNet_WithP2PVM_Client(F);
-        for i := 0 to p2p_.ClonePool.Count - 1 do
-            Do_SetQuietMode(p2p_.ClonePool[i]);
-      end;
+    C40Set_Instance_QuietMode(Inst, QuietMode_);
   end;
 
 var
@@ -4954,7 +4960,7 @@ end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create(dependNetwork_: U_String; var Client: T_);
 begin
-  Create_Ptr(dependNetwork_, @Client);  // fixed dependNetwork parameter, by.qq600585
+  Create_Ptr(dependNetwork_, @Client); // fixed dependNetwork parameter, by.qq600585
 end;
 
 constructor TC40_Auto_Deployment_Client<T_>.Create(var Client: T_);
