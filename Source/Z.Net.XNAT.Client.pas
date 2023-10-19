@@ -18,6 +18,8 @@ uses
 
 type
   TXNATClient = class;
+  TXClientCustomProtocol = class;
+  TXClientCustomProtocol_List = TGenericsList<TXClientCustomProtocol>;
 
   TXClientMapping = class(TCore_Object)
   private
@@ -25,7 +27,7 @@ type
     FPort: TPascalString;
     FMapping: TPascalString;
 
-    ProtocolPool: TCore_ListForObj;
+    ProtocolPool: TXClientCustomProtocol_List;
     LastProtocolID: Cardinal;
     ProtocolHash: TUInt32HashObjectList;
 
@@ -125,6 +127,7 @@ type
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
     { trigger open done }
     procedure Do_Open_Done(State: Boolean);
+    procedure Set_Quiet(const Value: Boolean);
   public
     { tunnel parameter }
     Host: TPascalString;
@@ -144,7 +147,7 @@ type
     property MappingList: TXClientMappingList read FMappingList;
     property HashMapping: TXClientHashMapping read FHashMapping;
     property PhysicsEngine: TZNet read FPhysicsEngine;
-    property Quiet: Boolean read FQuiet write FQuiet;
+    property Quiet: Boolean read FQuiet write Set_Quiet;
     constructor Create;
     destructor Destroy; override;
     procedure AddMapping(const MAddr, MPort, Mapping: TPascalString; MaxWorkload: Cardinal);
@@ -154,6 +157,8 @@ type
   end;
 
 implementation
+
+uses Z.Net.C4;
 
 procedure TXClientMapping.Init;
 begin
@@ -182,36 +187,36 @@ procedure TXClientMapping.SendTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      DoStatus('[%s] Send Tunnel connect success.', [FMapping.Text]);
+      SendTunnel.Print('[%s] Send Tunnel connect success.', [FMapping.Text]);
       if not RecvTunnel.Connected then
           RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, RecvTunnel_ConnectResult)
       else
           RecvTunnel_ConnectResult(True);
     end
   else
-      DoStatus('error: [%s] Send Tunnel connect failed!', [FMapping.Text]);
+      SendTunnel.Print('error: [%s] Send Tunnel connect failed!', [FMapping.Text]);
 end;
 
 procedure TXClientMapping.RecvTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      DoStatus('[%s] Receive Tunnel connect success.', [FMapping.Text]);
+      RecvTunnel.Print('[%s] Receive Tunnel connect success.', [FMapping.Text]);
       SendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
     end
   else
-      DoStatus('error: [%s] Receive Tunnel connect failed!', [FMapping.Text]);
+      RecvTunnel.Print('error: [%s] Receive Tunnel connect failed!', [FMapping.Text]);
 end;
 
 procedure TXClientMapping.RequestListen_Result(Sender: TPeerIO; Result_: TDFE);
 begin
   if Result_.Reader.ReadBool then
     begin
-      DoStatus('success: remote host:%s port:%s mapping to host:%s port:%s', [XClientTunnel.Host.Text, Remote_ListenPort.Text, FAddr.Text, FPort.Text]);
+      SendTunnel.Print('success: remote host:%s port:%s mapping to host:%s port:%s', [XClientTunnel.Host.Text, Remote_ListenPort.Text, FAddr.Text, FPort.Text]);
       UpdateWorkload(True);
     end
   else
-      DoStatus('failed: remote host:%s port:%s listen error!', [XClientTunnel.Host.Text, Remote_ListenPort.Text]);
+      SendTunnel.Print('failed: remote host:%s port:%s listen error!', [XClientTunnel.Host.Text, Remote_ListenPort.Text]);
 end;
 
 procedure TXClientMapping.delay_RequestListen(Sender: TN_Post_Execute);
@@ -232,7 +237,7 @@ var
   p_io: TPeerIO;
 begin
   if ProtocolPool = nil then
-      ProtocolPool := TCore_ListForObj.Create;
+      ProtocolPool := TXClientCustomProtocol_List.Create;
 
   if ProtocolHash = nil then
       ProtocolHash := TUInt32HashObjectList.CustomCreate(8192);
@@ -374,7 +379,7 @@ begin
     begin
       for j := 0 to ProtocolPool.Count - 1 do
         begin
-          TXClientCustomProtocol(ProtocolPool[j]).Disconnect;
+          ProtocolPool[j].Disconnect;
           disposeObject(ProtocolPool[j]);
         end;
       disposeObject(ProtocolPool);
@@ -676,7 +681,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open Before on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open Before on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATClient.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -687,7 +692,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATClient.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -699,7 +704,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open After on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open After on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATClient.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -710,16 +715,17 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Close on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Close on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATClient.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      TPhysicsEngine_Special(TZNet_Client(FPhysicsEngine).ClientIO.UserSpecial).PhysicsConnect_Result_BuildP2PToken(cState)
+    begin
+      TPhysicsEngine_Special(TZNet_Client(FPhysicsEngine).ClientIO.UserSpecial).PhysicsConnect_Result_BuildP2PToken(cState);
+    end
   else
     begin
-      DoStatus('P2PVM not connection');
       WaitAsyncConnecting := False;
       Do_Open_Done(False);
     end;
@@ -734,6 +740,41 @@ begin
       except
       end;
       On_Open_Tunnel_Done := nil;
+    end;
+end;
+
+procedure TXNATClient.Set_Quiet(const Value: Boolean);
+var
+  i, j: integer;
+  tunMp: TXClientMapping;
+  xCliProt: TXClientCustomProtocol;
+begin
+  FQuiet := Value;
+
+  if FPhysicsEngine <> nil then
+      C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
+
+  i := 0;
+  while i < FMappingList.Count do
+    begin
+      tunMp := FMappingList[i] as TXClientMapping;
+      if tunMp.RecvTunnel <> nil then
+          C40Set_Instance_QuietMode(tunMp.RecvTunnel, FQuiet);
+
+      if tunMp.SendTunnel <> nil then
+          C40Set_Instance_QuietMode(tunMp.SendTunnel, FQuiet);
+
+      if tunMp.ProtocolPool <> nil then
+        begin
+          j := 0;
+          while j < tunMp.ProtocolPool.Count do
+            begin
+              xCliProt := tunMp.ProtocolPool[j];
+              C40Set_Instance_QuietMode(xCliProt, FQuiet);
+              inc(j);
+            end;
+        end;
+      inc(i);
     end;
 end;
 
@@ -785,6 +826,12 @@ begin
   tunMp.FMapping := Mapping;
   tunMp.MaxWorkload := MaxWorkload;
   tunMp.XClientTunnel := Self;
+
+  if tunMp.RecvTunnel <> nil then
+      C40Set_Instance_QuietMode(tunMp.RecvTunnel, FQuiet);
+  if tunMp.SendTunnel <> nil then
+      C40Set_Instance_QuietMode(tunMp.SendTunnel, FQuiet);
+
   FMappingList.Add(tunMp);
   FHashMapping.Add(tunMp.FMapping, tunMp);
 end;
@@ -806,7 +853,7 @@ begin
   FPhysicsEngine.IOInterface := Self;
   FPhysicsEngine.VMInterface := Self;
 
-  FPhysicsEngine.QuietMode := FQuiet;
+  C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
 
   { Security protocol }
   FPhysicsEngine.SwitchMaxPerformance;
@@ -816,12 +863,12 @@ begin
       if TZNet_Server(FPhysicsEngine).StartService(Host, umlStrToInt(Port)) then
         begin
           Do_Open_Done(True);
-          DoStatus('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text]);
+          FPhysicsEngine.Print('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text]);
         end
       else
         begin
           Do_Open_Done(False);
-          DoStatus('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
+          FPhysicsEngine.Print('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
         end;
     end
   else if FPhysicsEngine is TZNet_Client then
@@ -882,7 +929,7 @@ begin
           j := 0;
           while j < tunMp.ProtocolPool.Count do
             begin
-              xCliProt := TXClientCustomProtocol(tunMp.ProtocolPool[j]);
+              xCliProt := tunMp.ProtocolPool[j];
               try
                 if xCliProt.Activted and (not xCliProt.Connected) then
                   begin
