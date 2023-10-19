@@ -158,6 +158,7 @@ type
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
     { trigger open done }
     procedure Do_Open_Done(State: Boolean);
+    procedure Set_Quiet(const Value: Boolean);
   public
     { tunnel parameter }
     Host: TPascalString;
@@ -176,7 +177,7 @@ type
   public
     property PhysicsEngine: TZNet read FPhysicsEngine;
     property ShareListenList: TXServiceMappingList read FShareListenList;
-    property Quiet: Boolean read FQuiet write FQuiet;
+    property Quiet: Boolean read FQuiet write Set_Quiet;
     constructor Create;
     destructor Destroy; override;
     function AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
@@ -187,6 +188,8 @@ type
   end;
 
 implementation
+
+uses Z.Net.C4;
 
 constructor TXServiceRecvVM_Special.Create(Owner_: TPeerIO);
 begin
@@ -346,7 +349,7 @@ begin
   SetActivted(False);
 
   if not Result then
-      DoStatus('detect listen bind %s:%s failed!', [TranslateBindAddr(ListenAddr), ListenPort.Text]);
+      Protocol.Error('detect listen bind %s:%s failed!', [TranslateBindAddr(ListenAddr), ListenPort.Text]);
 end;
 
 procedure TXServiceListen.PickWorkloadTunnel(var rID, sID: Cardinal);
@@ -570,13 +573,13 @@ begin
   if Value then
     begin
       FActivted := Protocol.StartService(ListenAddr, umlStrToInt(ListenPort));
-      DoStatus('Start listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
+      Protocol.Print('Start listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
     end
   else
     begin
       Protocol.StopService;
       FActivted := False;
-      DoStatus('Close listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
+      Protocol.Print('Close listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
     end;
 end;
 
@@ -882,7 +885,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open Before on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open Before on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATService.p2pVMTunnelOpen(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -893,7 +896,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATService.p2pVMTunnelOpenAfter(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -904,7 +907,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Open After on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Open After on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATService.p2pVMTunnelClose(Sender: TPeerIO; p2pVMTunnel: TZNet_P2PVM);
@@ -924,7 +927,7 @@ begin
   else if FPhysicsEngine is TZNet_Client then
     begin
     end;
-  DoStatus('XTunnel Close on %s', [Sender.PeerIP]);
+  Sender.Print('XTunnel Close on %s', [Sender.PeerIP]);
 end;
 
 procedure TXNATService.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
@@ -955,6 +958,26 @@ begin
       except
       end;
       On_Open_Tunnel_Done := nil;
+    end;
+end;
+
+procedure TXNATService.Set_Quiet(const Value: Boolean);
+var
+  i: Integer;
+  shLt: TXServiceListen;
+begin
+  FQuiet := Value;
+  if FPhysicsEngine <> nil then
+      C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
+  for i := FShareListenList.Count - 1 downto 0 do
+    begin
+      shLt := FShareListenList[i];
+      if shLt.RecvTunnel <> nil then
+          C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
+      if shLt.SendTunnel <> nil then
+          C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
+      if shLt.Protocol <> nil then
+          C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
     end;
 end;
 
@@ -1011,6 +1034,7 @@ begin
       if ListenAddr.Same(@shLt.ListenAddr) and ListenPort.Same(@shLt.ListenPort) then
           exit(shLt);
     end;
+
   shLt := TXServiceListen.Create;
   shLt.ListenAddr := ListenAddr;
   shLt.ListenPort := ListenPort;
@@ -1018,6 +1042,14 @@ begin
   shLt.DistributedWorkload := True;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
+
+  if shLt.RecvTunnel <> nil then
+      C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
+  if shLt.SendTunnel <> nil then
+      C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
+  if shLt.Protocol <> nil then
+      C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+
   FShareListenList.Add(shLt);
 
   if Activted and (FPhysicsEngine is TZNet_Server) then
@@ -1043,7 +1075,16 @@ begin
   shLt.DistributedWorkload := False;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
+
+  if shLt.RecvTunnel <> nil then
+      C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
+  if shLt.SendTunnel <> nil then
+      C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
+  if shLt.Protocol <> nil then
+      C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+
   FShareListenList.Add(shLt);
+
   if Activted and (FPhysicsEngine is TZNet_Server) then
       shLt.Open;
   Result := shLt;
@@ -1070,7 +1111,7 @@ begin
   FPhysicsEngine.IOInterface := Self;
   FPhysicsEngine.VMInterface := Self;
 
-  FPhysicsEngine.QuietMode := FQuiet;
+  C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
 
   { Security protocol }
   FPhysicsEngine.SwitchMaxPerformance;
@@ -1084,15 +1125,21 @@ begin
       { service }
       listening_ := TZNet_Server(FPhysicsEngine).StartService(Host, umlStrToInt(Port));
       if listening_ then
-          DoStatus('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text])
+          FPhysicsEngine.Print('Tunnel Open %s:%s successed', [TranslateBindAddr(Host), Port.Text])
       else
-          DoStatus('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
+          FPhysicsEngine.Print('error: Tunnel is Closed for %s:%s', [TranslateBindAddr(Host), Port.Text]);
 
       { open share listen }
       for i := 0 to FShareListenList.Count - 1 do
         begin
           shLt := FShareListenList[i];
           shLt.Open;
+          if shLt.RecvTunnel <> nil then
+              C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
+          if shLt.SendTunnel <> nil then
+              C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
+          if shLt.Protocol <> nil then
+              C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
         end;
       Do_Open_Done(listening_);
     end
