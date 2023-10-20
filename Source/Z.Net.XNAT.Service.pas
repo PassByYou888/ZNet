@@ -46,6 +46,7 @@ type
 
   TXServiceListen = class(TCore_Object)
   private
+    Owner: TXNATService;
     ListenAddr: TPascalString;
     ListenPort: TPascalString;
     Mapping: TPascalString;
@@ -91,7 +92,7 @@ type
   public
     UserData: Pointer;
     UserObject: TCore_Object;
-    constructor Create;
+    constructor Create(Owner_: TXNATService);
     destructor Destroy; override;
 
     property Test_Listening_Passed: Boolean read FTest_Listening_Passed;
@@ -269,6 +270,7 @@ begin
   if RecvTunnel = nil then
     begin
       RecvTunnel := TXCustomP2PVM_Server.Create;
+      RecvTunnel.QuietMode := Owner.Quiet;
       RecvTunnel.CompleteBufferSwapSpace := True;
     end;
 
@@ -311,6 +313,7 @@ begin
   if SendTunnel = nil then
     begin
       SendTunnel := TXCustomP2PVM_Server.Create;
+      SendTunnel.QuietMode := Owner.Quiet;
       SendTunnel.CompleteBufferSwapSpace := True;
     end;
 
@@ -338,6 +341,7 @@ begin
 
   if Protocol = nil then
       Protocol := TXServerCustomProtocol.Create;
+  Protocol.QuietMode := Owner.Quiet;
   Protocol.ShareListen := Self;
   Protocol.Protocol := cpCustom;
   Protocol.UserSpecialClass := TXServerUserSpecial;
@@ -583,9 +587,10 @@ begin
     end;
 end;
 
-constructor TXServiceListen.Create;
+constructor TXServiceListen.Create(Owner_: TXNATService);
 begin
   inherited Create;
+  Owner := Owner_;
   Init;
 end;
 
@@ -1035,7 +1040,7 @@ begin
           exit(shLt);
     end;
 
-  shLt := TXServiceListen.Create;
+  shLt := TXServiceListen.Create(Self);
   shLt.ListenAddr := ListenAddr;
   shLt.ListenPort := ListenPort;
   shLt.Mapping := Mapping;
@@ -1068,7 +1073,7 @@ begin
       if ListenAddr.Same(@shLt.ListenAddr) and ListenPort.Same(@shLt.ListenPort) then
           exit(shLt);
     end;
-  shLt := TXServiceListen.Create;
+  shLt := TXServiceListen.Create(Self);
   shLt.ListenAddr := ListenAddr;
   shLt.ListenPort := ListenPort;
   shLt.Mapping := Mapping;
