@@ -561,7 +561,7 @@ type
   end;
 
 {$ENDREGION 'p2p_Custom_Client_Templet'}
-{$REGION 'Auto_Deployment_Client'}
+{$REGION 'Auto_Deployment'}
 
   TC40_Auto_Deployment_Client<T_: class> = class
   public type
@@ -601,7 +601,7 @@ type
   TC40_Auto_Deploy<T_: class> = class(TC40_Auto_Deployment_Client<T_>)
   end;
 
-{$ENDREGION 'Auto_Deployment_Client'}
+{$ENDREGION 'Auto_Deployment'}
 {$REGION 'DispatchService'}
 
   TOnRemovePhysicsNetwork = class
@@ -1165,7 +1165,10 @@ var
   i: Integer;
 begin
   Inst.QuietMode := QuietMode_;
-  if Inst is TZNet_WithP2PVM_Client then
+  if Inst is TZNet_Server then
+    begin
+    end
+  else if Inst is TZNet_WithP2PVM_Client then
     begin
       p2p_ := TZNet_WithP2PVM_Client(Inst);
       for i := 0 to p2p_.ClonePool.Count - 1 do
