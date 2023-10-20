@@ -23,6 +23,7 @@ type
 
   TXClientMapping = class(TCore_Object)
   private
+    Owner: TXNATClient;
     FAddr: TPascalString;
     FPort: TPascalString;
     FMapping: TPascalString;
@@ -66,7 +67,7 @@ type
     property Addr: TPascalString read FAddr;
     property Port: TPascalString read FPort;
     property Mapping: TPascalString read FMapping;
-    constructor Create;
+    constructor Create(Owner_: TXNATClient);
     destructor Destroy; override;
     procedure UpdateWorkload(force: Boolean);
   end;
@@ -245,11 +246,13 @@ begin
   if RecvTunnel = nil then
     begin
       RecvTunnel := TZNet_WithP2PVM_Client.Create;
+      RecvTunnel.QuietMode := Owner.Quiet;
       RecvTunnel.CompleteBufferSwapSpace := True;
     end;
   if SendTunnel = nil then
     begin
       SendTunnel := TZNet_WithP2PVM_Client.Create;
+      SendTunnel.QuietMode := Owner.Quiet;
       SendTunnel.CompleteBufferSwapSpace := True;
     end;
 
@@ -317,6 +320,7 @@ begin
   Remote_IP := InData.Reader.ReadString;
 
   xCli := TXClientCustomProtocol.Create;
+  xCli.QuietMode := Owner.Quiet;
   xCli.Protocol := cpCustom;
   while ProtocolHash.Exists(LastProtocolID) do
       inc(LastProtocolID);
@@ -365,9 +369,10 @@ begin
     end;
 end;
 
-constructor TXClientMapping.Create;
+constructor TXClientMapping.Create(Owner_: TXNATClient);
 begin
   inherited Create;
+  Owner := Owner_;
   Init;
 end;
 
@@ -820,7 +825,7 @@ procedure TXNATClient.AddMapping(const MAddr, MPort, Mapping: TPascalString; Max
 var
   tunMp: TXClientMapping;
 begin
-  tunMp := TXClientMapping.Create;
+  tunMp := TXClientMapping.Create(Self);
   tunMp.FAddr := MAddr;
   tunMp.FPort := MPort;
   tunMp.FMapping := Mapping;
