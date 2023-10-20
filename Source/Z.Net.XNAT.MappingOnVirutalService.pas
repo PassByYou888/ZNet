@@ -44,6 +44,7 @@ type
 
   TXNAT_MappingOnVirutalService = class(TZNet_Server)
   private
+    Owner: TXNAT_VS_Mapping;
     Mapping: TPascalString;
 
     RecvTunnel: TZNet_WithP2PVM_Client;
@@ -73,7 +74,7 @@ type
     procedure cmd_disconnect_request(Sender: TPeerIO; InData: TDFE);
     procedure cmd_data(Sender: TPeerIO; InData: PByte; DataSize: nativeInt);
   public
-    constructor Create; override;
+    constructor Create(Owner_: TXNAT_VS_Mapping);
     destructor Destroy; override;
 
     procedure UpdateWorkload(force: Boolean); virtual;
@@ -320,6 +321,7 @@ begin
   if RecvTunnel = nil then
     begin
       RecvTunnel := TZNet_WithP2PVM_Client.Create;
+      RecvTunnel.QuietMode := Owner.Quiet;
       { sequence sync }
       RecvTunnel.SyncOnCompleteBuffer := True;
       RecvTunnel.SyncOnResult := True;
@@ -343,6 +345,7 @@ begin
   if SendTunnel = nil then
     begin
       SendTunnel := TZNet_WithP2PVM_Client.Create;
+      SendTunnel.QuietMode := Owner.Quiet;
       { sequence sync }
       SendTunnel.SyncOnCompleteBuffer := True;
       SendTunnel.SyncOnResult := True;
@@ -427,9 +430,10 @@ begin
     end;
 end;
 
-constructor TXNAT_MappingOnVirutalService.Create;
+constructor TXNAT_MappingOnVirutalService.Create(Owner_: TXNAT_VS_Mapping);
 begin
   inherited Create;
+  Owner := Owner_;
   Init;
 end;
 
@@ -753,7 +757,7 @@ end;
 
 function TXNAT_VS_Mapping.AddMappingService(const Mapping: TPascalString; MaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
 begin
-  Result := TXNAT_MappingOnVirutalService.Create;
+  Result := TXNAT_MappingOnVirutalService.Create(Self);
   Result.Mapping := Mapping;
   Result.MaxWorkload := MaxWorkload;
   Result.XNAT := Self;
