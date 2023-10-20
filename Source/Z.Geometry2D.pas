@@ -611,6 +611,7 @@ type
   public
     LeftTop, RightTop, RightBottom, LeftBottom: TVec2;
 
+    procedure Reset;
     function IsZero: boolean;
     function BoundArea: TGeoFloat;
     function Area: TGeoFloat;
@@ -5113,6 +5114,14 @@ begin
       Result := 0
   else
       Result := globalfactor * (pow3(t + 2) - 4 * pow3(t + 1) + 6 * pow3(t) - 4 * pow3(t - 1));
+end;
+
+procedure TV2Rect4.Reset;
+begin
+  LeftTop := NULLPoint;
+  RightTop := NULLPoint;
+  RightBottom := NULLPoint;
+  LeftBottom := NULLPoint;
 end;
 
 function TV2Rect4.IsZero: boolean;
