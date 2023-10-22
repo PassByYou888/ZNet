@@ -266,13 +266,7 @@ var
   info: TC40_CPM_Info;
   serv: TXServiceListen;
 begin
-  DisposeObjectAndNil(XNAT_Physics_Service);
-  XNAT_Physics_Service := TXNATService.Create;
-  XNAT_Physics_Service.Host := ParamList.GetDefaultValue('XNAT_Host', PhysicsService.PhysicsAddr);
-  XNAT_Physics_Service.Port := ParamList.GetDefaultValue('XNAT_Port', '9087');
-  XNAT_Physics_Service.AuthToken := ParamList.GetDefaultValue('XNAT_Auth', C40_Password);
-  XNAT_Physics_Service.MaxVMFragment := ParamList.GetDefaultValue('XNAT_MaxVMFragment', XNAT_Physics_Service.MaxVMFragment);
-  XNAT_Physics_Service.ProtocolCompressed := EStrToBool(ParamList.GetDefaultValue('XNAT_Compressed', umlBoolToStr(XNAT_Physics_Service.ProtocolCompressed)));
+  XNAT_Physics_Service.Reset;
   XNAT_Physics_Service.Quiet := C40_QuietMode;
 
   for i := 0 to CPM_List.count - 1 do
