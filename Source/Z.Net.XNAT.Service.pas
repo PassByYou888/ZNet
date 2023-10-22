@@ -181,6 +181,7 @@ type
     property Quiet: Boolean read FQuiet write Set_Quiet;
     constructor Create;
     destructor Destroy; override;
+    procedure Reset();
     function AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
     function AddNoDistributedMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
     procedure OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL); overload;
@@ -234,9 +235,12 @@ end;
 
 destructor TXServiceSendVM_Special.Destroy;
 begin
-  if (OwnerMapping <> nil) then
-      OwnerMapping.RecvTunnel.Disconnect(RecvID);
-
+  try
+    if (OwnerMapping <> nil) then
+      if OwnerMapping.RecvTunnel.ExistsID(RecvID) then
+          OwnerMapping.RecvTunnel.Disconnect(RecvID);
+  except
+  end;
   inherited Destroy;
 end;
 
@@ -599,20 +603,21 @@ begin
   if Protocol <> nil then
     begin
       Protocol.StopService;
-      DisposeObject(Protocol);
     end;
 
   if RecvTunnel <> nil then
     begin
       RecvTunnel.StopService;
-      DisposeObject(RecvTunnel);
     end;
 
   if SendTunnel <> nil then
     begin
       SendTunnel.StopService;
-      DisposeObject(SendTunnel);
     end;
+
+  DisposeObject(RecvTunnel);
+  DisposeObject(SendTunnel);
+  DisposeObject(Protocol);
   inherited Destroy;
 end;
 
@@ -1010,7 +1015,7 @@ var
 begin
   for i := 0 to FShareListenList.Count - 1 do
       DisposeObject(FShareListenList[i]);
-  DisposeObject(FShareListenList);
+  DisposeObjectAndNil(FShareListenList);
 
   if FPhysicsEngine <> nil then
     begin
@@ -1022,10 +1027,35 @@ begin
         begin
           TZNet_Client(FPhysicsEngine).Disconnect;
         end;
-      DisposeObject(FPhysicsEngine);
+      DisposeObjectAndNil(FPhysicsEngine);
     end;
 
   inherited Destroy;
+end;
+
+procedure TXNATService.Reset;
+var
+  i: Integer;
+begin
+  Activted := False;
+  WaitAsyncConnecting := False;
+
+  for i := 0 to FShareListenList.Count - 1 do
+      DisposeObject(FShareListenList[i]);
+  FShareListenList.Clear;
+
+  if FPhysicsEngine <> nil then
+    begin
+      if FPhysicsEngine is TZNet_Server then
+        begin
+          TZNet_Server(FPhysicsEngine).StopService;
+        end
+      else if FPhysicsEngine is TZNet_Client then
+        begin
+          TZNet_Client(FPhysicsEngine).Disconnect;
+        end;
+      DisposeObjectAndNil(FPhysicsEngine);
+    end;
 end;
 
 function TXNATService.AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
