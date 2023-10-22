@@ -334,36 +334,27 @@ begin
 end;
 
 procedure TZNet_Server_CrossSocket.DoConnected(Sender: TObject; AConnection: ICrossConnection);
+var
+  p_io: TCrossSocketServer_PeerIO;
 begin
-  TCompute.SyncP(procedure
-    var
-      p_io: TCrossSocketServer_PeerIO;
-    begin
-      p_io := TCrossSocketServer_PeerIO.Create(Self, AConnection.ConnectionIntf);
-      AConnection.UserObject := p_io;
-      p_io.OnSendBackcall := DoSendBuffResult;
-    end);
+  p_io := TCrossSocketServer_PeerIO.Create(Self, AConnection.ConnectionIntf);
+  AConnection.UserObject := p_io;
+  p_io.OnSendBackcall := DoSendBuffResult;
 end;
 
 procedure TZNet_Server_CrossSocket.DoDisconnect(Sender: TObject; AConnection: ICrossConnection);
+var
+  p_io: TCrossSocketServer_PeerIO;
 begin
   if AConnection.UserObject is TCrossSocketServer_PeerIO then
     begin
-      TCompute.SyncP(procedure
-        var
-          p_io: TCrossSocketServer_PeerIO;
+      p_io := TCrossSocketServer_PeerIO(AConnection.UserObject);
+      if p_io <> nil then
         begin
-          try
-            p_io := TCrossSocketServer_PeerIO(AConnection.UserObject);
-            if p_io <> nil then
-              begin
-                p_io.IOInterface := nil;
-                AConnection.UserObject := nil;
-                DisposeObject(p_io);
-              end;
-          except
-          end;
-        end);
+          p_io.IOInterface := nil;
+          AConnection.UserObject := nil;
+          p_io.DelayFree;
+        end;
     end;
 end;
 
@@ -450,7 +441,7 @@ begin
   Successed := False;
   try
     ICrossSocket(FDriver).Listen(Host, Port,
-      procedure(Listen: ICrossListen; Success_: Boolean)
+        procedure(Listen: ICrossListen; Success_: Boolean)
       begin
         Completed := True;
         Successed := Success_;
