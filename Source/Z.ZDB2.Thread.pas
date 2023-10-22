@@ -349,6 +349,7 @@ type
     Th_Engine_ID_Data_Pool: TZDB2_Th_Engine_ID_Data_Pool; // ID data pool
     Last_Build_Class: TZDB2_Th_Engine_Data_Class; // default is TZDB2_Th_Engine_Data
     // external-header-data
+    External_Header_Technology: Boolean;
     External_Header_Data: TMem64;
     // fragment space
     Fragment_Space_Enabled: Boolean;
@@ -393,9 +394,9 @@ type
     procedure Build(Data_Class: TZDB2_Th_Engine_Data_Class);
     procedure Rebuild_Sequence_Data_Pool(Data_Class: TZDB2_Th_Engine_Data_Class); // rebuild sequence
     // flush
-    procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
     property Flush_Activted_Num: Integer read FFlush_Activted_Num;
     property Flush_Total_Run_Num: Integer read FFlush_Total_Run_Num;
+    procedure Do_Get_Sequence_Table(Sender: TZDB2_Th_Queue; var Sequence_Table: TZDB2_BlockHandle); virtual;
     procedure Flush(WaitQueue_: Boolean);
     // append
     property Temp_Swap_Pool_Memory_Size: Int64 read Get_Temp_Swap_Pool_Memory_Size;
@@ -2163,6 +2164,7 @@ begin
   Th_Engine_ID_Data_Pool := TZDB2_Th_Engine_ID_Data_Pool.Create($FFFF, nil); // ID data pool
   Owner.Engine_Pool.Add(Self);
   Last_Build_Class := TZDB2_Th_Engine_Data;
+  External_Header_Technology := True;
   External_Header_Data := TMem64.CustomCreate(1024 * 1024);
   Fragment_Space_Enabled := True;
   Fragment_Space_Span := 1024 * 1024;
@@ -2247,6 +2249,8 @@ begin
   Dynamic_Copy_Tech_Max_Queue := EStrToInt(cfg.GetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue)), Dynamic_Copy_Tech_Max_Queue);
   FBackup_Directory := cfg.GetDefaultValue('Backup_Directory', FBackup_Directory);
 
+  External_Header_Technology := EStrToBool(cfg.GetDefaultValue('External_Header_Technology', umlBoolToStr(External_Header_Technology)), External_Header_Technology);
+
   Fragment_Space_Enabled := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Enabled', umlBoolToStr(Fragment_Space_Enabled)), Fragment_Space_Enabled);
   Fragment_Space_Span := EStrToInt64(cfg.GetDefaultValue('Fragment_Space_Span', umlIntToStr(Fragment_Space_Span)), Fragment_Space_Span);
   Fragment_Space_Read_Buffer_Cache := EStrToBool(cfg.GetDefaultValue('Fragment_Space_Read_Buffer_Cache', umlBoolToStr(Fragment_Space_Read_Buffer_Cache)), Fragment_Space_Read_Buffer_Cache);
@@ -2302,6 +2306,9 @@ begin
   cfg.SetDefaultValue('Static_Copy_Tech_Physics_Limit', umlIntToStr(Static_Copy_Tech_Physics_Limit));
   cfg.SetDefaultValue('Dynamic_Copy_Tech_Max_Queue', umlIntToStr(Dynamic_Copy_Tech_Max_Queue));
   cfg.SetDefaultValue('Backup_Directory', FBackup_Directory);
+
+  // external header technology
+  cfg.SetDefaultValue('External_Header_Technology', umlBoolToStr(External_Header_Technology));
 
   // fragment space
   cfg.SetDefaultValue('Fragment_Space_Enabled', umlBoolToStr(Fragment_Space_Enabled));
@@ -3151,7 +3158,8 @@ begin
   end;
   Th_Engine_Data_Pool.UnLock;
   External_Header_Data.Clear;
-  Owner.Prepare_Flush_External_Header(Self, Sequence_Table, tmp, External_Header_Data); // external header-data
+  if External_Header_Technology then
+      Owner.Prepare_Flush_External_Header(Self, Sequence_Table, tmp, External_Header_Data); // external header-data
   DisposeObject(tmp);
 end;
 
