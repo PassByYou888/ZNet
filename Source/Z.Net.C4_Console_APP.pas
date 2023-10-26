@@ -490,8 +490,12 @@ initialization
 
 SetLength(C40AppParam, 0);
 C40AppParsingTextStyle := TTextStyle.tsPascal;
-On_C40_PhysicsTunnel_Event_Console := nil;
-On_C40_PhysicsService_Event_Console := nil;
+
+try
+  On_C40_PhysicsTunnel_Event_Console := nil;
+  On_C40_PhysicsService_Event_Console := nil;
+except
+end;
 
 finalization
 
