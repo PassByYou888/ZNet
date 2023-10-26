@@ -262,10 +262,28 @@ end;
 
 procedure TC40_CPM_Service_Tool.cmd_Open_CPM_Service_Tunnel(Sender: TPeerIO; InData: TDFE);
 var
+  need_reset: Boolean;
   i: integer;
   info: TC40_CPM_Info;
   serv: TXServiceListen;
 begin
+  need_reset := False;
+
+  for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
+    begin
+      serv := XNAT_Physics_Service.ShareListenList[i];
+      info := CPM_List.Find_Mapping(serv.Mapping);
+      if (info = nil) or (not serv.ListenPort.Same(umlIntToStr(info.ListenPort))) or (not serv.ListenAddr.Same(info.ListenAddr)) then
+        begin
+          need_reset := True;
+          break;
+        end;
+    end;
+
+  if XNAT_Physics_Service.Activted and XNAT_Physics_Service.Open_Done then
+    if (not need_reset) then
+        Exit;
+
   XNAT_Physics_Service.Reset;
   XNAT_Physics_Service.Quiet := C40_QuietMode;
 
