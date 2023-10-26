@@ -47,9 +47,9 @@ type
   TXServiceListen = class(TCore_Object)
   private
     Owner: TXNATService;
-    ListenAddr: TPascalString;
-    ListenPort: TPascalString;
-    Mapping: TPascalString;
+    FListenAddr: TPascalString;
+    FListenPort: TPascalString;
+    FMapping: TPascalString;
 
     Protocol: TXServerCustomProtocol;
     FActivted: Boolean;
@@ -95,6 +95,9 @@ type
     constructor Create(Owner_: TXNATService);
     destructor Destroy; override;
 
+    property ListenAddr: TPascalString read FListenAddr;
+    property ListenPort: TPascalString read FListenPort;
+    property Mapping: TPascalString read FMapping;
     property Test_Listening_Passed: Boolean read FTest_Listening_Passed;
     property Activted: Boolean read FActivted write SetActivted;
   end;
@@ -140,7 +143,7 @@ type
     { internal physics tunnel }
     FPhysicsEngine: TZNet;
     FQuiet: Boolean;
-    Activted: Boolean;
+    FActivted: Boolean;
     WaitAsyncConnecting: Boolean;
     WaitAsyncConnecting_BeginTime: TTimeTick;
 
@@ -175,7 +178,9 @@ type
     }
     ProtocolCompressed: Boolean;
     On_Open_Tunnel_Done: TOn_XNATService_Open_Tunnel_Done;
+    Open_Done: Boolean;
   public
+    property Activted: Boolean read FActivted;
     property PhysicsEngine: TZNet read FPhysicsEngine;
     property ShareListenList: TXServiceMappingList read FShareListenList;
     property Quiet: Boolean read FQuiet write Set_Quiet;
@@ -246,9 +251,9 @@ end;
 
 procedure TXServiceListen.Init;
 begin
-  ListenAddr := '';
-  ListenPort := '0';
-  Mapping := '';
+  FListenAddr := '';
+  FListenPort := '0';
+  FMapping := '';
   Protocol := nil;
   FActivted := False;
   FTest_Listening_Passed := False;
@@ -357,7 +362,7 @@ begin
   SetActivted(False);
 
   if not Result then
-      Protocol.Error('detect listen bind %s:%s failed!', [TranslateBindAddr(ListenAddr), ListenPort.Text]);
+      Protocol.Error('detect listen bind %s:%s failed!', [TranslateBindAddr(FListenAddr), FListenPort.Text]);
 end;
 
 procedure TXServiceListen.PickWorkloadTunnel(var rID, sID: Cardinal);
@@ -432,7 +437,7 @@ begin
           if (not Activted) then
             begin
               OutData.WriteBool(False);
-              OutData.WriteString(PFormat('remote service illegal bind IP %s port:%s', [ListenAddr.Text, ListenPort.Text]));
+              OutData.WriteString(PFormat('remote service illegal bind IP %s port:%s', [FListenAddr.Text, FListenPort.Text]));
               exit;
             end;
         end;
@@ -448,7 +453,7 @@ begin
       sVM.SendID := SendID;
 
       OutData.WriteBool(True);
-      OutData.WriteString(PFormat('bridge XNAT service successed, bind IP %s port:%s', [ListenAddr.Text, ListenPort.Text]));
+      OutData.WriteString(PFormat('bridge XNAT service successed, bind IP %s port:%s', [FListenAddr.Text, FListenPort.Text]));
     end
   else
     begin
@@ -477,7 +482,7 @@ begin
       if (not Activted) then
         begin
           OutData.WriteBool(False);
-          OutData.WriteString(PFormat('remote service illegal bind IP %s port:%s', [ListenAddr.Text, ListenPort.Text]));
+          OutData.WriteString(PFormat('remote service illegal bind IP %s port:%s', [FListenAddr.Text, FListenPort.Text]));
           exit;
         end;
 
@@ -492,7 +497,7 @@ begin
       sVM.SendID := SendID;
 
       OutData.WriteBool(True);
-      OutData.WriteString(PFormat('bridge XNAT service successed, bind IP %s port:%s', [ListenAddr.Text, ListenPort.Text]));
+      OutData.WriteString(PFormat('bridge XNAT service successed, bind IP %s port:%s', [FListenAddr.Text, FListenPort.Text]));
     end;
 end;
 
@@ -580,14 +585,14 @@ procedure TXServiceListen.SetActivted(const Value: Boolean);
 begin
   if Value then
     begin
-      FActivted := Protocol.StartService(ListenAddr, umlStrToInt(ListenPort));
-      Protocol.Print('Start listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
+      FActivted := Protocol.StartService(FListenAddr, umlStrToInt(FListenPort));
+      Protocol.Print('Start listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
     end
   else
     begin
       Protocol.StopService;
       FActivted := False;
-      Protocol.Print('Close listen %s %s', [TranslateBindAddr(ListenAddr.Text), ListenPort.Text]);
+      Protocol.Print('Close listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
     end;
 end;
 
@@ -646,7 +651,7 @@ var
 begin
   if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
-      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.ListenAddr.Text, ShareListen.ListenPort.Text]);
+      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
     end;
 
@@ -681,7 +686,7 @@ var
 begin
   if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
-      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.ListenAddr.Text, ShareListen.ListenPort.Text]);
+      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
     end;
 
@@ -713,7 +718,7 @@ var
 begin
   if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
-      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.ListenAddr.Text, ShareListen.ListenPort.Text]);
+      Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
     end;
 
@@ -777,7 +782,7 @@ begin
   if cState then
     begin
       Owner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(XNAT.MaxVMFragment, Owner.p2pVMTunnel.MaxVMFragmentSize);
-      XNAT.Activted := True;
+      XNAT.FActivted := True;
 
       { open share listen }
       for i := 0 to XNAT.FShareListenList.Count - 1 do
@@ -813,10 +818,10 @@ begin
   for i := 0 to FShareListenList.Count - 1 do
     begin
       shLt := FShareListenList[i];
-      OutData.WriteString(shLt.Mapping);
+      OutData.WriteString(shLt.FMapping);
 
-      OutData.WriteString(shLt.ListenAddr);
-      OutData.WriteString(shLt.ListenPort);
+      OutData.WriteString(shLt.FListenAddr);
+      OutData.WriteString(shLt.FListenPort);
 
       OutData.WriteString(IPv6ToStr(shLt.RecvTunnel_IPV6));
       OutData.WriteWORD(shLt.RecvTunnel_Port);
@@ -968,6 +973,7 @@ begin
       except
       end;
       On_Open_Tunnel_Done := nil;
+      Open_Done := True;
     end;
 end;
 
@@ -998,7 +1004,7 @@ begin
 
   FPhysicsEngine := nil;
   FQuiet := False;
-  Activted := False;
+  FActivted := False;
   WaitAsyncConnecting := False;
 
   { parameter }
@@ -1007,6 +1013,8 @@ begin
   AuthToken := 'ZServer';
   MaxVMFragment := '8192';
   ProtocolCompressed := False;
+  On_Open_Tunnel_Done := nil;
+  Open_Done := False;
 end;
 
 destructor TXNATService.Destroy;
@@ -1037,7 +1045,7 @@ procedure TXNATService.Reset;
 var
   i: Integer;
 begin
-  Activted := False;
+  FActivted := False;
   WaitAsyncConnecting := False;
 
   for i := 0 to FShareListenList.Count - 1 do
@@ -1056,6 +1064,9 @@ begin
         end;
       DisposeObjectAndNil(FPhysicsEngine);
     end;
+
+  On_Open_Tunnel_Done := nil;
+  Open_Done := False;
 end;
 
 function TXNATService.AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
@@ -1066,14 +1077,14 @@ begin
   for i := 0 to FShareListenList.Count - 1 do
     begin
       shLt := FShareListenList[i];
-      if ListenAddr.Same(@shLt.ListenAddr) and ListenPort.Same(@shLt.ListenPort) then
+      if ListenAddr.Same(@shLt.FListenAddr) and ListenPort.Same(@shLt.FListenPort) then
           exit(shLt);
     end;
 
   shLt := TXServiceListen.Create(Self);
-  shLt.ListenAddr := ListenAddr;
-  shLt.ListenPort := ListenPort;
-  shLt.Mapping := Mapping;
+  shLt.FListenAddr := ListenAddr;
+  shLt.FListenPort := ListenPort;
+  shLt.FMapping := Mapping;
   shLt.DistributedWorkload := True;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
@@ -1087,7 +1098,7 @@ begin
 
   FShareListenList.Add(shLt);
 
-  if Activted and (FPhysicsEngine is TZNet_Server) then
+  if FActivted and (FPhysicsEngine is TZNet_Server) then
       shLt.Open;
   Result := shLt;
 end;
@@ -1100,13 +1111,13 @@ begin
   for i := 0 to FShareListenList.Count - 1 do
     begin
       shLt := FShareListenList[i];
-      if ListenAddr.Same(@shLt.ListenAddr) and ListenPort.Same(@shLt.ListenPort) then
+      if ListenAddr.Same(@shLt.FListenAddr) and ListenPort.Same(@shLt.FListenPort) then
           exit(shLt);
     end;
   shLt := TXServiceListen.Create(Self);
-  shLt.ListenAddr := ListenAddr;
-  shLt.ListenPort := ListenPort;
-  shLt.Mapping := Mapping;
+  shLt.FListenAddr := ListenAddr;
+  shLt.FListenPort := ListenPort;
+  shLt.FMapping := Mapping;
   shLt.DistributedWorkload := False;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
@@ -1120,7 +1131,7 @@ begin
 
   FShareListenList.Add(shLt);
 
-  if Activted and (FPhysicsEngine is TZNet_Server) then
+  if FActivted and (FPhysicsEngine is TZNet_Server) then
       shLt.Open;
   Result := shLt;
 end;
@@ -1131,7 +1142,8 @@ var
   shLt: TXServiceListen;
   listening_: Boolean;
 begin
-  Activted := True;
+  FActivted := True;
+  Open_Done := False;
 
   { init tunnel engine }
   if FPhysicsEngine = nil then
@@ -1207,7 +1219,7 @@ begin
           if WaitAsyncConnecting and (GetTimeTick - WaitAsyncConnecting_BeginTime > 15000) then
               WaitAsyncConnecting := False;
 
-          if Activted and (not TZNet_Client(FPhysicsEngine).Connected) then
+          if FActivted and (not TZNet_Client(FPhysicsEngine).Connected) then
             begin
               if not WaitAsyncConnecting then
                 begin
