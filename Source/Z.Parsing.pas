@@ -52,7 +52,6 @@ type
 
   TTokenData = record
     bPos, ePos: Integer;
-    LPos, LCPos: Integer;
     Text: TP_String;
     tokenType: TTokenType;
     Index: Integer;
@@ -355,8 +354,6 @@ procedure TTokenData.Init;
 begin
   bPos := -1;
   ePos := -1;
-  LPos := -1;
-  LCPos := -1;
   Text := '';
   tokenType := ttUnknow;
   Index := -1;
@@ -869,6 +866,7 @@ begin
         end;
     end;
 
+  // rebuild array token
   SetLength(ParsingData.Cache.CharToken, L);
   for i := 0 to ParsingData.Cache.TokenDataList.Count - 1 do
     begin
@@ -877,27 +875,6 @@ begin
           ParsingData.Cache.CharToken[j - 1] := TokenDataPtr;
     end;
 
-  TokenDataPtr := nil;
-  L := 1;
-  j := 1;
-  for i := 1 to ParsingData.Text.L do
-    begin
-      if ParsingData.Cache.CharToken[i - 1] <> TokenDataPtr then
-        begin
-          TokenDataPtr := ParsingData.Cache.CharToken[i - 1];
-          TokenDataPtr^.LPos := L;
-          TokenDataPtr^.LCPos := j;
-        end;
-      if Char_is(ParsingData.Text[i], #10) then
-        begin
-          inc(L);
-          j := 1;
-        end
-      else if Char_is(ParsingData.Text[i], #13) then
-          j := 1
-      else
-          inc(j);
-    end;
   RebuildCacheBusy := False;
 end;
 
@@ -965,7 +942,8 @@ begin
   // sum
   j := 0;
   for i := 0 to ParsingData.Cache.TokenDataList.Count - 1 do
-      inc(j, ParsingData.Cache.TokenDataList[i]^.Text.L);
+    with ParsingData.Cache.TokenDataList[i]^ do
+        inc(j, Text.L);
 
   // extract
   ParsingData.Text.L := j;
@@ -993,7 +971,8 @@ begin
   // sum
   j := 0;
   for i := 0 to ParsingData.Cache.TokenDataList.Count - 1 do
-      inc(j, ParsingData.Cache.TokenDataList[i]^.Text.L);
+    with ParsingData.Cache.TokenDataList[i]^ do
+        inc(j, Text.L);
 
   // extract
   Result.L := j;
@@ -3555,7 +3534,7 @@ begin
       ParsingData.Text := #13#10
   else
       ParsingData.Text := Text_.Text + #32;
-  ParsingData.L := ParsingData.Text.L + 1;
+  ParsingData.L := ParsingData.Text.L;
   TextStyle := Style_;
   SymbolTable := SpacerSymbol_;
   TokenStatistics := NullTokenStatistics;
