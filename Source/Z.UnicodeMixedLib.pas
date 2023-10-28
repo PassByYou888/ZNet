@@ -521,6 +521,7 @@ type
 function umlExtract_RTSP_RTMP_URL(const URL: TPascalString; var prefix, user, passwd, host, port, path: TPascalString): Boolean; overload;
 function umlExtract_RTSP_RTMP_URL(const URL: TPascalString; var To_: TRTSP_RTMP_URL): Boolean; overload;
 function umlEncode_RTSP_RTMP_URL(prefix, user, passwd, host, port, path: TPascalString): TPascalString;
+function umlRemove_Passwd_RTSP_RTMP_URL(const URL: TPascalString): TPascalString;
 
 type
   TBase64Context = record
@@ -5838,6 +5839,16 @@ begin
       else
           Result.Append(path);
     end;
+end;
+
+function umlRemove_Passwd_RTSP_RTMP_URL(const URL: TPascalString): TPascalString;
+var
+  prefix, user, passwd, host, port, path: TPascalString;
+begin
+  if umlExtract_RTSP_RTMP_URL(URL, prefix, user, passwd, host, port, path) then
+      Result := umlEncode_RTSP_RTMP_URL(prefix, '', '', host, port, path)
+  else
+      Result := URL;
 end;
 
 function B64EstimateEncodedSize(cont: TBase64Context; InSize: Integer): Integer;
