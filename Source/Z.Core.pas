@@ -260,6 +260,16 @@ type
     procedure Dec_(var x: Cardinal); overload;
     procedure Dec_(var x: Cardinal; const v: Cardinal); overload;
   end;
+
+  TSwap<T_> = class
+  public
+    class procedure Do_(var v1, v2: T_); static;
+  end;
+
+  TIF<T_> = class
+  public
+    class function Do_(Bool_: Boolean; Yes_, No_: T_): T_; static;
+  end;
 {$EndRegion 'Critical'}
 {$Region 'OrderStruct'}
 
