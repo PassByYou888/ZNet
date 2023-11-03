@@ -311,6 +311,8 @@ type
     // flush state
     FFlush_Activted_Num: Integer;
     FFlush_Total_Run_Num: Integer;
+    // rolling state
+    FRolling_Activted_Num: Integer;
   public
     // base
     Name: U_String; // default NULL
@@ -324,6 +326,8 @@ type
     BlockSize: Word; // blocksize default is 1536
     Fast_Alloc_Space: Boolean; // default is true
     First_Inited_Physics_Space: Int64; // initialized when creating a new database size. default is 16 * 1024 * 1024
+    Limit_Max_Physics_Space: Int64; // Limit the maximum physical storage space, and when the limit is reached, it will enter the rolling model, default is 0
+    Rolling_Space_Step: Integer; // one-step rolling remove num
     Auto_Append_Space: Boolean; // default is true
     // cipher support
     Cipher: TZDB2_Cipher;
@@ -2137,6 +2141,7 @@ begin
   Temp_Swap_Pool := TZDB2_Th_Engine_Data_BigList___.Create; // temp data pool
   FFlush_Activted_Num := 0;
   FFlush_Total_Run_Num := 0;
+  FRolling_Activted_Num := 0;
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
@@ -2148,6 +2153,8 @@ begin
   BlockSize := 1536;
   Fast_Alloc_Space := True;
   First_Inited_Physics_Space := Delta;
+  Limit_Max_Physics_Space := 0;
+  Rolling_Space_Step := 100;
   Auto_Append_Space := True;
   Cipher := nil;
   Cipher_Security := TCipherSecurity.csNone;
@@ -2229,6 +2236,8 @@ begin
   Fast_Alloc_Space := EStrToBool(cfg.GetDefaultValue('Fast_Alloc_Space', umlBoolToStr(Fast_Alloc_Space)), Fast_Alloc_Space);
   BlockSize := EStrToInt(cfg.GetDefaultValue('BlockSize', umlIntToStr(BlockSize)), BlockSize);
   First_Inited_Physics_Space := EStrToInt64(cfg.GetDefaultValue('First_Inited_Physics_Space', umlIntToStr(First_Inited_Physics_Space)), First_Inited_Physics_Space);
+  Limit_Max_Physics_Space := EStrToInt64(cfg.GetDefaultValue('Limit_Max_Physics_Space', umlIntToStr(Limit_Max_Physics_Space)), Limit_Max_Physics_Space);
+  Rolling_Space_Step := EStrToInt(cfg.GetDefaultValue('Rolling_Space_Step', umlIntToStr(Rolling_Space_Step)), Rolling_Space_Step);
   Auto_Append_Space := EStrToBool(cfg.GetDefaultValue('Auto_Append_Space', umlBoolToStr(Auto_Append_Space)), Auto_Append_Space);
   Cipher_Security := TZDB2_Cipher.GetCipherSecurity(cfg.GetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]));
   Cipher_password := cfg.GetDefaultValue('Password', Cipher_password);
@@ -2288,6 +2297,8 @@ begin
   cfg.SetDefaultValue('Fast_Alloc_Space', umlBoolToStr(Fast_Alloc_Space));
   cfg.SetDefaultValue('BlockSize', umlIntToStr(BlockSize));
   cfg.SetDefaultValue('First_Inited_Physics_Space', umlIntToStr(First_Inited_Physics_Space));
+  cfg.SetDefaultValue('Limit_Max_Physics_Space', umlIntToStr(Limit_Max_Physics_Space));
+  cfg.SetDefaultValue('Rolling_Space_Step', umlIntToStr(Rolling_Space_Step));
   cfg.SetDefaultValue('Auto_Append_Space', umlBoolToStr(Auto_Append_Space));
   cfg.SetDefaultValue('// Security', 'None(Default),DES64, DES128, DES192,Blowfish, LBC, LQC, RNG32, RNG64, LSC,XXTea512,RC6, Serpent, Mars, Rijndael, TwoFish,AES128, AES192, AES256');
   cfg.SetDefaultValue('Security', TCipher.CCipherSecurityName[Cipher_Security]);
@@ -3196,6 +3207,9 @@ end;
 function TZDB2_Th_Engine.Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data;
 var
   Data_Instance: TZDB2_Th_Engine_Data;
+  tmp: TZDB2_ID_Pool;
+  __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
+  tmp_Instance: TZDB2_Th_Engine_Data;
 begin
   Result := nil;
   if Engine = nil then
@@ -3229,6 +3243,42 @@ begin
       Data_Instance.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Data_Instance);
       Data_Instance.UnLock;
       Data_Instance.Update_Owner_ID_Pool(-1, Data_Instance.FID);
+
+      // check physics space
+      if (Limit_Max_Physics_Space > 0) and (Engine.CoreSpace_Size >= Limit_Max_Physics_Space) and (FRolling_Activted_Num <= 0) then
+        begin
+          tmp := TZDB2_ID_Pool.Create;
+          Th_Engine_Data_Pool.Lock;
+          try
+            Th_Engine_Data_Pool.Free_Recycle_Pool;
+            if Th_Engine_Data_Pool.num > 0 then
+              begin
+                __repeat__ := Th_Engine_Data_Pool.Repeat_;
+                repeat
+                  if __repeat__.Queue^.Data <> nil then
+                    begin
+                      if __repeat__.Queue^.Data.Can_Free then
+                          tmp.Add(__repeat__.Queue^.Data.ID);
+                    end;
+                until (tmp.num >= Rolling_Space_Step) or (not __repeat__.Next);
+              end;
+          except
+          end;
+          Th_Engine_Data_Pool.UnLock;
+
+          try
+            if tmp.num > 0 then
+              with tmp.Repeat_ do
+                repeat
+                  tmp_Instance := Th_Engine_ID_Data_Pool[Queue^.Data];
+                  if tmp_Instance <> nil then
+                      tmp_Instance.Remove(True);
+                until not Next;
+          except
+          end;
+          DisposeObject(tmp);
+          Engine.Async_NOP(FRolling_Activted_Num);
+        end;
     end;
   Result := Data_Instance;
 end;
