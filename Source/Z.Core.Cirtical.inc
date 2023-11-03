@@ -321,3 +321,20 @@ begin
   Dec(x, v);
   UnLock;
 end;
+
+class procedure TSwap<T_>.Do_(var v1, v2: T_);
+var
+  tmp: T_;
+begin
+  tmp := v1;
+  v1 := v2;
+  v2 := tmp;
+end;
+
+class function TIF<T_>.Do_(Bool_: Boolean; Yes_, No_: T_): T_;
+begin
+  if Bool_ then
+      Result := Yes_
+  else
+      Result := No_;
+end;
