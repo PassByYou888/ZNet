@@ -75,7 +75,7 @@ procedure TU_Batch.Swap_(var inst: TU_Batch);
 begin
   sour.SwapInstance(inst.sour);
   dest.SwapInstance(inst.dest);
-  swap(sum, inst.sum);
+  TSwap<Integer>.Do_(sum, inst.sum);
 end;
 
 function U_BuildBatch(L: THashStringList): TU_ArrayBatch;
