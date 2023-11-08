@@ -157,7 +157,7 @@ var
   ChunkBuff: array [0 .. 63] of Byte;
 begin
   if StartPos > EndPos then
-      Swap(StartPos, EndPos);
+      TSwap<Int64>.Do_(StartPos, EndPos);
   StartPos := umlClamp(StartPos, 0, stream.Size);
   EndPos := umlClamp(EndPos, 0, stream.Size);
   if EndPos - StartPos <= 0 then
