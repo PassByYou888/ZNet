@@ -1278,7 +1278,7 @@ begin
   end;
 
   if EndPos < StartPos then
-      Swap(EndPos, StartPos);
+      TSwap<Int64>.Do_(EndPos, StartPos);
 
   if (EndPos > fs.Size) then
       EndPos := fs.Size;
