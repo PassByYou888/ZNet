@@ -172,7 +172,7 @@ var
   tmp: TDateTime;
 begin
   if CompareDateTime(bDT, eDT) > 0 then
-      Swap(bDT, eDT);
+      TSwap<TDateTime>.Do_(bDT, eDT);
 
   FCritical.Lock;
   try
@@ -304,7 +304,7 @@ var
   swap_obj: TTime_Hash_Pool;
 begin
   if CompareDateTime(bDT, eDT) > 0 then
-      Swap(bDT, eDT);
+      TSwap<TDateTime>.Do_(bDT, eDT);
 
   Result := TTime_List.Create;
   swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
