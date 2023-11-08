@@ -79,7 +79,7 @@ begin
       y2 := FHeight - 1;
 
   if y2 < y1 then
-      Swap(y1, y2);
+      TSwap<NativeInt>.Do_(y1, y2);
 
   p := @FData^[X + y1 * FWidth];
   for i := y1 to y2 do
@@ -108,7 +108,7 @@ begin
       x2 := FWidth - 1;
 
   if x1 > x2 then
-      Swap(x1, x2);
+      TSwap<NativeInt>.Do_(x1, x2);
 
   p := @FData^[x1 + Y * FWidth];
 
@@ -216,7 +216,7 @@ var
   i: Integer;
 begin
   if y1 > y2 then
-      Swap(y1, y2);
+      TSwap<NativeInt>.Do_(y1, y2);
   for i := y1 to y2 do
       HorzLine(x1, i, x2);
 end;
