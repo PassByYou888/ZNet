@@ -24,7 +24,7 @@ begin
   EI___ := EI_;
   // check
   if BI___ > EI___ then
-      Swap(BI___, BI___);
+      TSwap<NativeInt>.Do_(BI___, BI___);
   // Current index
   I___ := 0;
   Instance___ := Instance_;
@@ -88,7 +88,7 @@ begin
   EI___ := EI_;
   // check
   if BI___ < EI___ then
-      Swap(BI___, EI___);
+      TSwap<NativeInt>.Do_(BI___, EI___);
   // Current index
   I___ := Instance_.Num - 1;
   Instance___ := Instance_;
@@ -1302,7 +1302,7 @@ begin
   EI___ := EI_;
   // check
   if BI___ > EI___ then
-      Swap(BI___, BI___);
+      TSwap<NativeInt>.Do_(BI___, BI___);
   // Current index
   I___ := 0;
   Instance___ := Instance_;
@@ -1366,7 +1366,7 @@ begin
   EI___ := EI_;
   // check
   if BI___ < EI___ then
-      Swap(BI___, EI___);
+      TSwap<NativeInt>.Do_(BI___, EI___);
   // Current index
   I___ := Instance_.Num - 1;
   Instance___ := Instance_;
