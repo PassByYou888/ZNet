@@ -3520,17 +3520,17 @@ end;
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoInt>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoInt>.Do_(Right, Left);
 end;
 
 procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoFloat>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoFloat>.Do_(Right, Left);
 end;
 
 function FixRect(R: TRectV2): TRectV2;
@@ -3548,17 +3548,17 @@ end;
 procedure FixedRect(var Left, Top, Right, Bottom: TGeoInt);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoInt>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoInt>.Do_(Right, Left);
 end;
 
 procedure FixedRect(var Left, Top, Right, Bottom: TGeoFloat);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoFloat>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoFloat>.Do_(Right, Left);
 end;
 
 function FixedRect(R: TRectV2): TRectV2;
@@ -3576,17 +3576,17 @@ end;
 procedure ForwardRect(var Left, Top, Right, Bottom: TGeoInt);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoInt>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoInt>.Do_(Right, Left);
 end;
 
 procedure ForwardRect(var Left, Top, Right, Bottom: TGeoFloat);
 begin
   if Bottom < Top then
-      Swap(Bottom, Top);
+      TSwap<TGeoFloat>.Do_(Bottom, Top);
   if Right < Left then
-      Swap(Right, Left);
+      TSwap<TGeoFloat>.Do_(Right, Left);
 end;
 
 function ForwardRect(R: TRectV2): TRectV2;
