@@ -1743,26 +1743,6 @@ function N2LE(const Value: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$END
 function N2LE(const Value: Int64): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 function N2LE(const Value: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-procedure Swap(var v1, v2: Byte); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Word); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Integer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Cardinal); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Int64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: UInt64); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-{$IFDEF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: NativeInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: NativeUInt); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-{$ENDIF OVERLOAD_NATIVEINT}
-procedure Swap(var v1, v2: string); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Single); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Double); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: TDateTime); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure Swap(var v1, v2: Pointer); {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-procedure SwapVariant(var v1, v2: Variant);
-function Swap(const v: Word): Word; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Swap(const v: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-function Swap(const v: UInt64): UInt64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
-
 function SAR16(const Value: SmallInt; const Shift: Byte): SmallInt; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function SAR32(const Value: Integer; Shift: Byte): Integer; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function SAR64(const Value: Int64; Shift: Byte): Int64; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
