@@ -2374,8 +2374,8 @@ begin
   FReader.FOwner := Self;
   source.FReader.FOwner := source;
 
-  Swap(Reader.FIndex, source.Reader.FIndex);
-  Swap(FBit_64_Critical, source.FBit_64_Critical);
+  TSwap<Integer>.Do_(Reader.FIndex, source.Reader.FIndex);
+  TSwap<Int64>.Do_(FBit_64_Critical, source.FBit_64_Critical);
 
   FIsChanged := True;
   source.FIsChanged := True;
