@@ -4867,7 +4867,7 @@ procedure TBatch.Swap_(var inst: TBatch);
 begin
   sour.SwapInstance(inst.sour);
   dest.SwapInstance(inst.dest);
-  swap(sum, inst.sum);
+  TSwap<Integer>.Do_(sum, inst.sum);
 end;
 
 function umlBuildBatch(L: THashStringList): TArrayBatch;
@@ -6751,7 +6751,7 @@ var
   ChunkBuff: array [0 .. 63] of Byte;
 begin
   if StartPos > EndPos then
-      swap(StartPos, EndPos);
+      TSwap<Int64>.Do_(StartPos, EndPos);
   StartPos := umlClamp(StartPos, 0, stream.Size);
   EndPos := umlClamp(EndPos, 0, stream.Size);
   if EndPos - StartPos <= 0 then
