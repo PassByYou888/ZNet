@@ -973,8 +973,8 @@ begin
       except
       end;
       On_Open_Tunnel_Done := nil;
-      Open_Done := True;
     end;
+  Open_Done := True;
 end;
 
 procedure TXNATService.Set_Quiet(const Value: Boolean);
