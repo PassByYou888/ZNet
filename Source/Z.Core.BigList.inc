@@ -882,7 +882,7 @@ end;
 procedure TBigList<T_>.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -890,11 +890,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -908,11 +904,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
@@ -948,7 +940,7 @@ end;
 procedure TBigList<T_>.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -956,11 +948,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -974,11 +962,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
@@ -1014,7 +998,7 @@ end;
 procedure TBigList<T_>.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -1022,11 +1006,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -1040,11 +1020,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
@@ -2269,7 +2245,7 @@ end;
 procedure TCritical_BigList<T_>.Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -2277,11 +2253,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -2295,11 +2267,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
@@ -2337,7 +2305,7 @@ end;
 procedure TCritical_BigList<T_>.Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -2345,11 +2313,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -2363,11 +2327,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
@@ -2405,7 +2365,7 @@ end;
 procedure TCritical_BigList<T_>.Sort_P(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_P);
 var
   i, j: NativeInt;
-  p, tmp: T_;
+  p: T_;
 begin
   if L < R then
     begin
@@ -2413,11 +2373,7 @@ begin
         if (R - L) = 1 then
           begin
             if OnSort(Arry_^[L]^.Data, Arry_^[R]^.Data) > 0 then
-              begin
-                tmp := Arry_^[L]^.Data;
-                Arry_^[L]^.Data := Arry_^[R]^.Data;
-                Arry_^[R]^.Data := tmp;
-              end;
+                TSwap<T_>.Do_(Arry_^[L]^.Data, Arry_^[R]^.Data);
             break;
           end;
         i := L;
@@ -2431,11 +2387,7 @@ begin
           if i <= j then
             begin
               if i <> j then
-                begin
-                  tmp := Arry_^[i]^.Data;
-                  Arry_^[i]^.Data := Arry_^[j]^.Data;
-                  Arry_^[j]^.Data := tmp;
-                end;
+                  TSwap<T_>.Do_(Arry_^[i]^.Data, Arry_^[j]^.Data);
               inc(i);
               Dec(j);
             end;
