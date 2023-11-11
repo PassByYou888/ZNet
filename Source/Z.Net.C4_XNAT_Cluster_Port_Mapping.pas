@@ -309,12 +309,19 @@ procedure TC40_CPM_Service_Tool.CC_CPM_Service_Info(var OP_Param: TOpParam);
 var
   i: integer;
   info: TC40_CPM_Info;
+  successed, failed: integer;
 begin
+  successed := 0;
+  failed := 0;
   for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
     begin
       info := XNAT_Physics_Service.ShareListenList[i].UserObject as TC40_CPM_Info;
       info.Test_Listening_Passed := XNAT_Physics_Service.ShareListenList[i].Test_Listening_Passed;
       info.Activted := XNAT_Physics_Service.ShareListenList[i].Activted;
+      if info.Test_Listening_Passed then
+          inc(successed)
+      else
+          inc(failed);
     end;
 
   for i := 0 to CPM_List.count - 1 do
@@ -327,6 +334,7 @@ begin
     end;
   DoStatus('C4 XNAT Host:%s Port:%d', [PhysicsService.PhysicsAddr.Text, PhysicsService.PhysicsPort]);
   DoStatus('XNAT Host:%s Port:%s Auth:%s', [XNAT_Physics_Service.Host.Text, XNAT_Physics_Service.Port.Text, XNAT_Physics_Service.AuthToken.Text]);
+  DoStatus('XNAT Total:%d successed:%d failed:%d', [CPM_List.count, successed, failed]);
 end;
 
 constructor TC40_CPM_Service_Tool.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
