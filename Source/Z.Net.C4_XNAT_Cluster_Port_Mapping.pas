@@ -30,6 +30,7 @@ type
     User_Data: U_String; // user define
     Test_Listening_Passed: Boolean;
     Activted: Boolean;
+    Is_New_CPM: Boolean;
     constructor Create();
     destructor Destroy; override;
     procedure Encode(d: TDFE);
@@ -136,6 +137,7 @@ begin
   User_Data := '';
   Test_Listening_Passed := False;
   Activted := False;
+  Is_New_CPM := True;
 end;
 
 destructor TC40_CPM_Info.Destroy;
@@ -269,20 +271,45 @@ var
 begin
   need_reset := False;
 
-  for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
-    begin
-      serv := XNAT_Physics_Service.ShareListenList[i];
-      info := CPM_List.Find_Mapping(serv.Mapping);
-      if (info = nil) or (not serv.ListenPort.Same(umlIntToStr(info.ListenPort))) or (not serv.ListenAddr.Same(info.ListenAddr)) then
-        begin
-          need_reset := True;
-          break;
-        end;
-    end;
+  if not need_reset then
+    for i := 0 to CPM_List.count - 1 do
+      begin
+        info := CPM_List[i];
+        if info.Is_New_CPM then
+          begin
+            need_reset := True;
+            break;
+          end;
+      end;
+
+  if not need_reset then
+    for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
+      begin
+        serv := XNAT_Physics_Service.ShareListenList[i];
+        if not serv.Test_Listening_Passed then
+          begin
+            need_reset := True;
+            break;
+          end;
+        info := CPM_List.Find_Mapping(serv.Mapping);
+        if (info = nil) or (not serv.ListenPort.Same(umlIntToStr(info.ListenPort))) or (not serv.ListenAddr.Same(info.ListenAddr)) then
+          begin
+            need_reset := True;
+            break;
+          end;
+      end;
 
   if XNAT_Physics_Service.Activted and XNAT_Physics_Service.Open_Done then
     if (not need_reset) then
+      begin
+        for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
+          begin
+            info := XNAT_Physics_Service.ShareListenList[i].UserObject as TC40_CPM_Info;
+            info.Test_Listening_Passed := XNAT_Physics_Service.ShareListenList[i].Test_Listening_Passed;
+            info.Activted := XNAT_Physics_Service.ShareListenList[i].Activted;
+          end;
         Exit;
+      end;
 
   XNAT_Physics_Service.Reset;
   XNAT_Physics_Service.Quiet := C40_QuietMode;
@@ -290,10 +317,11 @@ begin
   for i := 0 to CPM_List.count - 1 do
     begin
       info := CPM_List[i];
+      info.Is_New_CPM := False;
       if info.NoDistributed then
-          serv := XNAT_Physics_Service.AddNoDistributedMapping('0.0.0.0', umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut)
+          serv := XNAT_Physics_Service.AddNoDistributedMapping(info.ListenAddr, umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut)
       else
-          serv := XNAT_Physics_Service.AddMapping('0.0.0.0', umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut);
+          serv := XNAT_Physics_Service.AddMapping(info.ListenAddr, umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut);
       serv.UserObject := info;
     end;
   XNAT_Physics_Service.OpenTunnel;
@@ -301,7 +329,7 @@ begin
     begin
       info := XNAT_Physics_Service.ShareListenList[i].UserObject as TC40_CPM_Info;
       info.Test_Listening_Passed := XNAT_Physics_Service.ShareListenList[i].Test_Listening_Passed;
-      info.Activted := False;
+      info.Activted := XNAT_Physics_Service.ShareListenList[i].Activted;
     end;
 end;
 
