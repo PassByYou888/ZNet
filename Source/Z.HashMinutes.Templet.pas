@@ -55,13 +55,13 @@ type
     function Get_Key_Hash(const Key_: TDateTime): THash; override;
     function Compare_Key(const Key_1, Key_2: TDateTime): Boolean; override;
     procedure DoFree(var key: TDateTime; var Value: TTime_Hash_Pool); override;
-    procedure Add_Span(bDT, eDT: TDateTime; Value: T_); overload;
+    procedure Add_Span(const bDT_, eDT_: TDateTime; Value: T_); overload;
     procedure Add_Span(L_: Boolean; DT: TDateTime; Value: T_); overload;
     procedure Add_Span(DT: TDateTime; Value: T_); overload;
     procedure Remove_Span(Value: T_);
     function Get_Span_Num(Value: T_): Int64;
     procedure Sort_By_Span;
-    function Search_Span(bDT, eDT: TDateTime): TTime_List; overload;
+    function Search_Span(const bDT_, eDT_: TDateTime): TTime_List; overload;
     function Search_Span(DT: TDateTime): TTime_List; overload;
     function Total: NativeInt;
   end;
@@ -167,10 +167,13 @@ begin
   inherited DoFree(key, Value);
 end;
 
-procedure TMinutes_Buffer_Pool<T_>.Add_Span(bDT, eDT: TDateTime; Value: T_);
+procedure TMinutes_Buffer_Pool<T_>.Add_Span(const bDT_, eDT_: TDateTime; Value: T_);
 var
+  bDT, eDT: TDateTime;
   tmp: TDateTime;
 begin
+  bDT := bDT_;
+  eDT := eDT_;
   if CompareDateTime(bDT, eDT) > 0 then
       TSwap<TDateTime>.Do_(bDT, eDT);
 
@@ -297,12 +300,15 @@ begin
   end;
 end;
 
-function TMinutes_Buffer_Pool<T_>.Search_Span(bDT, eDT: TDateTime): TTime_List;
+function TMinutes_Buffer_Pool<T_>.Search_Span(const bDT_, eDT_: TDateTime): TTime_List;
 var
+  bDT, eDT: TDateTime;
   tmp: TDateTime;
   obj: TTime_Hash_Pool;
   swap_obj: TTime_Hash_Pool;
 begin
+  bDT := bDT_;
+  eDT := eDT_;
   if CompareDateTime(bDT, eDT) > 0 then
       TSwap<TDateTime>.Do_(bDT, eDT);
 
@@ -412,9 +418,16 @@ begin
   L.Add(p);
   m.Add_Span(bDT, eDT, p);
 
+  bDT := umlDT('2013-11-14 1:30:34.000');
+  eDT := umlDT('2013-11-14 2:31:34.000');
+  new(p);
+  p^ := bDT;
+  L.Add(p);
+  m.Add_Span(bDT, eDT, p);
+
   for i := 0 to 10 * 10000 - 1 do // test 1000*10000=40 second.
     begin
-      bDT := IncMinute(umlNow, umlRR(-100000000, 100000000));
+      bDT := IncMinute(umlNow, umlRR(-1000000, 1000000));
       eDT := IncMinute(bDT, umlRR(-10, 10));
       new(p);
       p^ := bDT;
@@ -428,6 +441,11 @@ begin
 
   bDT := umlDT('2009-10-6 1:30:34.000');
   eDT := umlDT('2009-10-6 2:31:34.000');
+  tmp := m.Search_Span(bDT, eDT);
+  disposeObject(tmp);
+
+  bDT := umlDT('2013-11-14 1:30:34.000');
+  eDT := umlDT('2013-11-14 2:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
   disposeObject(tmp);
 
