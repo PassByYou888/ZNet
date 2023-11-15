@@ -406,6 +406,7 @@ type
     property Temp_Swap_Pool_Memory_Size: Int64 read Get_Temp_Swap_Pool_Memory_Size;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
+    function Is_Overflow: Boolean;
     procedure Progress();
     // solved for discontinuous space.
     function Fragment_Buffer_Num: Int64;
@@ -415,6 +416,8 @@ type
   TZDB2_Th_Engine_Pool_ = TCritical_BigList<TZDB2_Th_Engine>;
 
   TZDB2_Th_Engine_Pool = class(TZDB2_Th_Engine_Pool_)
+  private
+    FLast_Minimize_Size_Engine: TZDB2_Th_Engine_Pool_.PQueueStruct;
   public
     constructor Create();
     procedure DoFree(var Data: TZDB2_Th_Engine); override;
@@ -3288,6 +3291,11 @@ begin
   Result := Add(Data_Class, -1, 0);
 end;
 
+function TZDB2_Th_Engine.Is_Overflow: Boolean;
+begin
+  Result := (Limit_Max_Physics_Space > 0) and (Engine.CoreSpace_Size + (Limit_Max_Physics_Space div 10) >= Limit_Max_Physics_Space);
+end;
+
 procedure TZDB2_Th_Engine.Progress();
 begin
   if Engine = nil then
@@ -3328,6 +3336,7 @@ end;
 constructor TZDB2_Th_Engine_Pool.Create;
 begin
   inherited Create;
+  FLast_Minimize_Size_Engine := nil;
 end;
 
 procedure TZDB2_Th_Engine_Pool.DoFree(var Data: TZDB2_Th_Engine);
@@ -3342,19 +3351,41 @@ begin
   Result := nil;
   if num > 0 then
     begin
-      Eng_ := nil;
-      with Repeat_ do
-        repeat
-          if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.Is_OnlyRead) then
-            begin
-              if Eng_ = nil then
-                  Eng_ := Queue
-              else if Queue^.Data.Engine.CoreSpace_Size < Eng_^.Data.Engine.CoreSpace_Size then
-                  Eng_ := Queue;
-            end;
-        until not Next;
-      if Eng_ <> nil then
-          Result := Eng_^.Data;
+      Lock;
+      try
+        Eng_ := nil;
+        with Repeat_ do
+          repeat
+            if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.Is_OnlyRead) and (not Queue^.Data.Is_Overflow) then
+              begin
+                if Eng_ = nil then
+                    Eng_ := Queue
+                else if Queue^.Data.Engine.CoreSpace_Size < Eng_^.Data.Engine.CoreSpace_Size then
+                    Eng_ := Queue;
+              end;
+          until not Next;
+
+        if Eng_ <> nil then
+          begin
+            FLast_Minimize_Size_Engine := Eng_;
+            Result := FLast_Minimize_Size_Engine^.Data;
+            exit;
+          end;
+        // rolling model
+        if FLast_Minimize_Size_Engine = nil then
+          begin
+            if First^.Data.Engine.Is_OnlyRead then
+                exit;
+            FLast_Minimize_Size_Engine := First;
+            Result := FLast_Minimize_Size_Engine^.Data;
+            exit;
+          end;
+        if not FLast_Minimize_Size_Engine^.Data.Engine.Is_OnlyRead then
+            Result := FLast_Minimize_Size_Engine^.Data;
+        FLast_Minimize_Size_Engine := FLast_Minimize_Size_Engine^.Next;
+      finally
+          UnLock;
+      end;
     end;
 end;
 
@@ -3365,19 +3396,24 @@ begin
   Result := nil;
   if num > 0 then
     begin
-      Eng_ := nil;
-      with Repeat_ do
-        repeat
-          if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.Is_OnlyRead) then
-            begin
-              if Eng_ = nil then
-                  Eng_ := Queue
-              else if Queue^.Data.Engine.QueueNum < Eng_^.Data.Engine.QueueNum then
-                  Eng_ := Queue;
-            end;
-        until not Next;
-      if Eng_ <> nil then
-          Result := Eng_^.Data;
+      Lock;
+      try
+        Eng_ := nil;
+        with Repeat_ do
+          repeat
+            if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.Is_OnlyRead) then
+              begin
+                if Eng_ = nil then
+                    Eng_ := Queue
+                else if Queue^.Data.Engine.QueueNum < Eng_^.Data.Engine.QueueNum then
+                    Eng_ := Queue;
+              end;
+          until not Next;
+        if Eng_ <> nil then
+            Result := Eng_^.Data;
+      finally
+          UnLock;
+      end;
     end;
 end;
 
