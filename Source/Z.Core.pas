@@ -263,11 +263,13 @@ type
 
   TSwap<T_> = class
   public
+    class procedure &Do(var v1, v2: T_); static;
     class procedure Do_(var v1, v2: T_); static;
   end;
 
   TIF<T_> = class
   public
+    class function &Do(Bool_: Boolean; Yes_, No_: T_): T_; static;
     class function Do_(Bool_: Boolean; Yes_, No_: T_): T_; static;
   end;
 {$EndRegion 'Critical'}
