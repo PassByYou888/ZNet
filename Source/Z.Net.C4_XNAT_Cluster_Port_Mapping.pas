@@ -318,6 +318,8 @@ begin
     begin
       info := CPM_List[i];
       info.Is_New_CPM := False;
+      info.Test_Listening_Passed := False;
+      info.Activted := False;
       if info.NoDistributed then
           serv := XNAT_Physics_Service.AddNoDistributedMapping(info.ListenAddr, umlIntToStr(info.ListenPort), info.Mapping, info.TimeOut)
       else
