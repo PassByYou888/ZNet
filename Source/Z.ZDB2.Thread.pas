@@ -313,6 +313,8 @@ type
     FFlush_Total_Run_Num: Integer;
     // rolling state
     FRolling_Activted_Num: Integer;
+    // limit Physics Space thread state
+    FLimit_Physics_Space_Is_Running: Boolean;
   public
     // base
     Name: U_String; // default NULL
@@ -404,6 +406,7 @@ type
     procedure Flush(WaitQueue_: Boolean);
     // append
     property Temp_Swap_Pool_Memory_Size: Int64 read Get_Temp_Swap_Pool_Memory_Size;
+    procedure Do_Limit_Physics_Space; // limit physics space run in thread
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data; overload;
     function Add(Data_Class: TZDB2_Th_Engine_Data_Class): TZDB2_Th_Engine_Data; overload;
     function Is_Overflow: Boolean;
@@ -2145,6 +2148,7 @@ begin
   FFlush_Activted_Num := 0;
   FFlush_Total_Run_Num := 0;
   FRolling_Activted_Num := 0;
+  FLimit_Physics_Space_Is_Running := False;
   Name := '';
   Owner := Owner_;
   RemoveDatabaseOnDestroy := False;
@@ -3207,12 +3211,48 @@ begin
     end;
 end;
 
-function TZDB2_Th_Engine.Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data;
+procedure TZDB2_Th_Engine.Do_Limit_Physics_Space;
 var
-  Data_Instance: TZDB2_Th_Engine_Data;
   tmp: TZDB2_ID_Pool;
   __repeat__: TZDB2_Th_Engine_Data_BigList___.TRepeat___;
   tmp_Instance: TZDB2_Th_Engine_Data;
+begin
+  tmp := TZDB2_ID_Pool.Create;
+  Th_Engine_Data_Pool.Lock;
+  try
+    Th_Engine_Data_Pool.Free_Recycle_Pool;
+    if Th_Engine_Data_Pool.num > 0 then
+      begin
+        __repeat__ := Th_Engine_Data_Pool.Repeat_;
+        repeat
+          if __repeat__.Queue^.Data <> nil then
+            begin
+              if __repeat__.Queue^.Data.Can_Free then
+                  tmp.Add(__repeat__.Queue^.Data.ID);
+            end;
+        until (tmp.num >= Rolling_Space_Step) or (not __repeat__.Next);
+      end;
+  except
+  end;
+  Th_Engine_Data_Pool.UnLock;
+
+  try
+    if tmp.num > 0 then
+      with tmp.Repeat_ do
+        repeat
+          tmp_Instance := Th_Engine_ID_Data_Pool[Queue^.Data];
+          if tmp_Instance <> nil then
+              tmp_Instance.Remove(True);
+        until not Next;
+  except
+  end;
+  DisposeObject(tmp);
+  Engine.Async_NOP(FRolling_Activted_Num);
+end;
+
+function TZDB2_Th_Engine.Add(Data_Class: TZDB2_Th_Engine_Data_Class; ID: Integer; ID_Size: Int64): TZDB2_Th_Engine_Data;
+var
+  Data_Instance: TZDB2_Th_Engine_Data;
 begin
   Result := nil;
   if Engine = nil then
@@ -3250,37 +3290,9 @@ begin
       // check physics space
       if (Limit_Max_Physics_Space > 0) and (Engine.CoreSpace_Size >= Limit_Max_Physics_Space) and (FRolling_Activted_Num <= 0) then
         begin
-          tmp := TZDB2_ID_Pool.Create;
-          Th_Engine_Data_Pool.Lock;
-          try
-            Th_Engine_Data_Pool.Free_Recycle_Pool;
-            if Th_Engine_Data_Pool.num > 0 then
-              begin
-                __repeat__ := Th_Engine_Data_Pool.Repeat_;
-                repeat
-                  if __repeat__.Queue^.Data <> nil then
-                    begin
-                      if __repeat__.Queue^.Data.Can_Free then
-                          tmp.Add(__repeat__.Queue^.Data.ID);
-                    end;
-                until (tmp.num >= Rolling_Space_Step) or (not __repeat__.Next);
-              end;
-          except
-          end;
-          Th_Engine_Data_Pool.UnLock;
-
-          try
-            if tmp.num > 0 then
-              with tmp.Repeat_ do
-                repeat
-                  tmp_Instance := Th_Engine_ID_Data_Pool[Queue^.Data];
-                  if tmp_Instance <> nil then
-                      tmp_Instance.Remove(True);
-                until not Next;
-          except
-          end;
-          DisposeObject(tmp);
-          Engine.Async_NOP(FRolling_Activted_Num);
+          if FLimit_Physics_Space_Is_Running then
+              exit;
+          TCompute.RunM_NP(Do_Limit_Physics_Space, @FLimit_Physics_Space_Is_Running, nil);
         end;
     end;
   Result := Data_Instance;
@@ -3346,6 +3358,7 @@ end;
 
 function TZDB2_Th_Engine_Pool.Get_Minimize_Size_Engine: TZDB2_Th_Engine;
 var
+  found_state: Boolean;
   Eng_: PQueueStruct;
 begin
   Result := nil;
@@ -3354,8 +3367,11 @@ begin
       Lock;
       try
         Eng_ := nil;
+        found_state := False;
         with Repeat_ do
           repeat
+            if FLast_Minimize_Size_Engine = Queue then
+                found_state := True;
             if (Queue^.Data.Engine <> nil) and (not Queue^.Data.Engine.Is_OnlyRead) and (not Queue^.Data.Is_Overflow) then
               begin
                 if Eng_ = nil then
@@ -3364,6 +3380,8 @@ begin
                     Eng_ := Queue;
               end;
           until not Next;
+        if not found_state then
+            FLast_Minimize_Size_Engine := nil;
 
         if Eng_ <> nil then
           begin
