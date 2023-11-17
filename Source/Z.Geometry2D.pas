@@ -73,6 +73,7 @@ type
   PGeoFloatArray = ^TGeoFloatArray;
 
   TArrayPoint = array of TPoint;
+
 {$IFDEF FPC}
 
   TPointf = record
@@ -697,6 +698,16 @@ type
   TDeflectionPolygon = class;
   TDeflectionPolygonLines = class;
 
+  TVec2_Buffer_ = TBigList<TVec2>;
+
+  TVec2_Buffer = class(TVec2_Buffer_)
+  private
+    function Do_Sort_(var L, R: TVec2): Integer;
+  public
+    procedure Sort; // sort by X * Y
+    function To_V2L: TV2L;
+  end;
+
   TV2L = class(TCore_Object)
   private
     FList: TCore_List;
@@ -996,6 +1007,7 @@ type
     procedure Rebuild(pl: TV2L; reset_: Boolean); overload;
     procedure Rebuild; overload;
     procedure Rebuild(Scale_: TGeoFloat; angle_: TGeoFloat; ExpandMode_: TExpandMode; Position_: TVec2); overload;
+    procedure Rebuild_From_Projection(Source_Box, Dest_Box: TRectV2); overload;
 
     function BoundBox: TRectV2; overload;
     function Centroid: TVec2; overload;
@@ -1055,28 +1067,23 @@ type
     property UserData: pointer read FUserData write FUserData;
   end;
 
-  TDeflectionPolygonList_Decl = TGenericsList<TDeflectionPolygon>;
+  TDeflectionPolygonList_ = TGenericsList<TDeflectionPolygon>;
 
-  TDeflectionPolygonList = class(TDeflectionPolygonList_Decl)
+  TDeflectionPolygonList = class(TDeflectionPolygonList_)
   public
     AutoFree: Boolean;
     BackgroundBox: TRectV2;
-
     constructor Create;
     destructor Destroy; override;
-
     procedure Remove(obj: TDeflectionPolygon);
     procedure Delete(index: TGeoInt);
     procedure Clear;
-
     function BoundBox: TRectV2;
-
+    procedure Rebuild_From_New_Background_Box(NewBox: TRectV2);
     function FindPolygon(Name: TPascalString): TDeflectionPolygon;
     function MakePolygonName(Name: TPascalString): TPascalString;
-
     procedure SaveToStream(stream: TCore_Stream);
     procedure LoadFromStream(stream: TCore_Stream);
-
     procedure LoadFromBase64(const buff: TPascalString);
   end;
 
@@ -5789,6 +5796,26 @@ begin
   inherited Clear;
 end;
 
+function TVec2_Buffer.Do_Sort_(var L, R: TVec2): Integer;
+begin
+  Result := CompareFloat(L[0] * L[1], R[0] * R[1]);
+end;
+
+procedure TVec2_Buffer.Sort;
+begin
+  Sort_M(Do_Sort_);
+end;
+
+function TVec2_Buffer.To_V2L: TV2L;
+begin
+  Result := TV2L.Create;
+  if Num > 0 then
+    with repeat_ do
+      repeat
+          Result.Add(Queue^.Data);
+      until not Next;
+end;
+
 function TV2L.GetPoints(index: TGeoInt): PVec2;
 begin
   Result := FList[index];
@@ -8798,6 +8825,19 @@ begin
   DisposeObject(pl);
 end;
 
+procedure TDeflectionPolygon.Rebuild_From_Projection(Source_Box, Dest_Box: TRectV2);
+var
+  pl: TV2L;
+  i: TGeoInt;
+begin
+  pl := TV2L.Create;
+  for i := 0 to Count - 1 do
+      pl.Add(RectProjection(Source_Box, Dest_Box, GetPoint(i)));
+  Position := RectProjection(Source_Box, Dest_Box, Position);
+  Rebuild(pl, False);
+  DisposeObject(pl);
+end;
+
 function TDeflectionPolygon.BoundBox: TRectV2;
 var
   p: TVec2;
@@ -9593,7 +9633,7 @@ end;
 constructor TDeflectionPolygonList.Create;
 begin
   inherited Create;
-  AutoFree := False;
+  AutoFree := True;
   BackgroundBox := ZeroRectV2;
 end;
 
@@ -9641,6 +9681,15 @@ begin
       for i := 1 to Count - 1 do
           Result := BoundRect(Result, Items[i].BoundBox);
     end;
+end;
+
+procedure TDeflectionPolygonList.Rebuild_From_New_Background_Box(NewBox: TRectV2);
+var
+  i: Integer;
+begin
+  for i := 0 to Count - 1 do
+      Items[i].Rebuild_From_Projection(BackgroundBox, NewBox);
+  BackgroundBox := NewBox;
 end;
 
 function TDeflectionPolygonList.FindPolygon(Name: TPascalString): TDeflectionPolygon;
@@ -10901,7 +10950,7 @@ begin
   if Num > 0 then
     with repeat_ do
       repeat
-        if ((queue^.Data.p1 = p1) or (queue^.Data.p1 = p2)) and ((queue^.Data.p2 = p1) or (queue^.Data.p2 = p2)) then
+        if ((Queue^.Data.p1 = p1) or (Queue^.Data.p1 = p2)) and ((Queue^.Data.p2 = p1) or (Queue^.Data.p2 = p2)) then
             Exit;
       until not Next;
   with Add_Null^ do
@@ -10932,8 +10981,8 @@ begin
   if Num > 0 then
     with repeat_ do
       repeat
-        Convex_Hull.AddRectangle(RectEdge(queue^.Data^.R^, Extract_Distance_));
-        queue^.Data^.Nearest_Box := Self;
+        Convex_Hull.AddRectangle(RectEdge(Queue^.Data^.R^, Extract_Distance_));
+        Queue^.Data^.Nearest_Box := Self;
       until not Next;
   Convex_Hull.ConvexHull;
 end;
@@ -11047,8 +11096,8 @@ begin
       Exit;
   with repeat_ do
     repeat
-      if queue^.Data.R = R_ then
-          Exit(Nearest_Group[queue^.Data.ID]);
+      if Queue^.Data.R = R_ then
+          Exit(Nearest_Group[Queue^.Data.ID]);
     until not Next;
 end;
 
@@ -11059,8 +11108,8 @@ begin
       Exit;
   with repeat_ do
     repeat
-      if queue^.Data.UserData = UserData then
-          Exit(Nearest_Group[queue^.Data.ID]);
+      if Queue^.Data.UserData = UserData then
+          Exit(Nearest_Group[Queue^.Data.ID]);
     until not Next;
 end;
 
@@ -11071,8 +11120,8 @@ begin
       Exit;
   with repeat_ do
     repeat
-      if queue^.Data.UserObject = UserObject then
-          Exit(Nearest_Group[queue^.Data.ID]);
+      if Queue^.Data.UserObject = UserObject then
+          Exit(Nearest_Group[Queue^.Data.ID]);
     until not Next;
 end;
 
@@ -11085,11 +11134,11 @@ function TNearest_Box_Tool.Compute_Nearest_Box(Nearest_Distance_, Convex_Hull_Di
     box := RectEdge(p^.Data.R^, Nearest_Distance_);
     with repeat_ do
       repeat
-        IoU_Tool.Check_IoU(@queue^.Data, @p^.Data);
-        if (queue <> p) and (queue^.Data.ID < 0) and Rect_Overlap_or_Intersect(box, RectEdge(queue^.Data.R^, Nearest_Distance_)) then
+        IoU_Tool.Check_IoU(@Queue^.Data, @p^.Data);
+        if (Queue <> p) and (Queue^.Data.ID < 0) and Rect_Overlap_or_Intersect(box, RectEdge(Queue^.Data.R^, Nearest_Distance_)) then
           begin
-            queue^.Data.ID := overlap_id;
-            Search_Overlap(queue, overlap_id);
+            Queue^.Data.ID := overlap_id;
+            Search_Overlap(Queue, overlap_id);
           end;
       until not Next;
   end;
@@ -11106,10 +11155,10 @@ begin
   Free_Recycle_Pool;
   with repeat_ do
     repeat
-      if (queue^.Data.R = nil) or LessThanOrEqual(RectArea(queue^.Data.R^), 0) then
-          Push_To_Recycle_Pool(queue)
+      if (Queue^.Data.R = nil) or LessThanOrEqual(RectArea(Queue^.Data.R^), 0) then
+          Push_To_Recycle_Pool(Queue)
       else
-          queue^.Data.ID := -1;
+          Queue^.Data.ID := -1;
     until not Next;
   Free_Recycle_Pool;
 
@@ -11119,10 +11168,10 @@ begin
   overlap_id := 0;
   with repeat_ do
     repeat
-      if queue^.Data.ID < 0 then
+      if Queue^.Data.ID < 0 then
         begin
-          queue^.Data.ID := overlap_id;
-          Search_Overlap(queue, overlap_id);
+          Queue^.Data.ID := overlap_id;
+          Search_Overlap(Queue, overlap_id);
           inc(overlap_id);
         end;
     until not Next;
@@ -11130,14 +11179,14 @@ begin
 
   with repeat_ do
     repeat
-      if not Nearest_Group.Exists_Key(queue^.Data.ID) then
-          Nearest_Group.Add(queue^.Data.ID, TNearest_Box_List.Create(queue^.Data.ID), False);
-      Nearest_Group[queue^.Data.ID].Add(@queue^.Data);
+      if not Nearest_Group.Exists_Key(Queue^.Data.ID) then
+          Nearest_Group.Add(Queue^.Data.ID, TNearest_Box_List.Create(Queue^.Data.ID), False);
+      Nearest_Group[Queue^.Data.ID].Add(@Queue^.Data);
     until not Next;
 
   with Nearest_Group.repeat_ do
     repeat
-        queue^.Data^.Data.Second.Update_Convex_Hull(Convex_Hull_Distance_);
+        Queue^.Data^.Data.Second.Update_Convex_Hull(Convex_Hull_Distance_);
     until not Next;
 
   Nearest_Group.Queue_Pool.Sort_M(Do_Sort_Group);
