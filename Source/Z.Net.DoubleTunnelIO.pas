@@ -3804,6 +3804,12 @@ end;
 
 procedure TDTClient.ClientDisconnect(Sender: TZNet_Client);
 begin
+  if FCurrentStream <> nil then
+    begin
+      DisposeObject(FCurrentStream);
+      FCurrentStream := nil;
+    end;
+  FCurrentReceiveStreamFileName := '';
 end;
 
 procedure TDTClient.AsyncSendConnectResult(const cState: Boolean);
@@ -4037,6 +4043,7 @@ begin
       DisposeObject(FCurrentStream);
       FCurrentStream := nil;
     end;
+  FCurrentReceiveStreamFileName := '';
 
   if FAutoFreeTunnel then
     begin
@@ -7201,4 +7208,3 @@ begin
 end;
 
 end.
-
