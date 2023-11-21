@@ -1725,6 +1725,12 @@ end;
 
 procedure TDTClient_NoAuth.ClientDisconnect(Sender: TZNet_Client);
 begin
+  if FCurrentStream <> nil then
+    begin
+      DisposeObject(FCurrentStream);
+      FCurrentStream := nil;
+    end;
+  FCurrentReceiveStreamFileName := '';
 end;
 
 procedure TDTClient_NoAuth.Command_FileInfo(Sender: TPeerIO; InData: TDFE);
@@ -2217,6 +2223,13 @@ end;
 
 destructor TDTClient_NoAuth.Destroy;
 begin
+  if FCurrentStream <> nil then
+    begin
+      DisposeObject(FCurrentStream);
+      FCurrentStream := nil;
+    end;
+  FCurrentReceiveStreamFileName := '';
+
   FRecvTunnel.NotyifyInterface := nil;
   FSendTunnel.NotyifyInterface := nil;
   if FAutoFreeTunnel then
@@ -4101,4 +4114,3 @@ begin
 end;
 
 end.
-
