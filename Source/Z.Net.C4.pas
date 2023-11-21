@@ -344,12 +344,14 @@ type
     procedure Save(stream: TCore_Stream);
     function Same(Data_: TC40_Info): Boolean;
     function SameServiceTyp(Data_: TC40_Info): Boolean;
+    function SamePhysicsAddr(PhysicsAddr_: U_String): Boolean; overload;
+    function SamePhysicsAddr(Arry_: TArrayPascalString): Boolean; overload;
     function SamePhysicsAddr(PhysicsAddr_: U_String; PhysicsPort_: Word): Boolean; overload;
     function SamePhysicsAddr(Data_: TC40_Info): Boolean; overload;
     function SamePhysicsAddr(Data_: TC40_PhysicsTunnel): Boolean; overload;
     function SamePhysicsAddr(Data_: TC40_PhysicsService): Boolean; overload;
     function SameP2PVMAddr(Data_: TC40_Info): Boolean;
-    function FoundServiceTyp(arry_: TC40_DependNetworkInfoArray): Boolean; overload;
+    function FoundServiceTyp(Arry_: TC40_DependNetworkInfoArray): Boolean; overload;
     function FoundServiceTyp(servTyp_: U_String): Boolean; overload;
     function ReadyC40Client: Boolean;
     function GetOrCreateC40Client(PhysicsTunnel_: TC40_PhysicsTunnel; Param_: U_String): TC40_Custom_Client;
@@ -1736,7 +1738,6 @@ var
   L: TC40_InfoList;
   r_physics_addr: U_String; { remote request physics address }
   r_physics_port: Word; { remote request physcis port }
-  dp_serv_s, dp_cli_s: U_String;
 begin
   if InData.Count >= 2 then
     begin
@@ -1766,29 +1767,17 @@ begin
     if C40_ClientPool[i] is TC40_Dispatch_Client then
         L.MergeAndUpdateWorkload(TC40_Dispatch_Client(C40_ClientPool[i]).Service_Info_Pool);
 
-  { anti dissymmetrical network fixed path }
+  { anti dissymmetrical network patch }
   if not r_physics_addr.Same(PhysicsAddr) then
     begin
       {
         Translating physical addresses in dissymmetrical network environments
         The system processing of c4 is to eliminate non current request server addresses
-        This is a "anti dissymmetrical network" fixed patch
+        This is a "anti dissymmetrical network" patch
       }
-
-      { Remove Dispatch info }
-      dp_serv_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Service);
-      dp_cli_s := GetRegisterServiceTypFromClass(TC40_Dispatch_Client);
       for i := L.Count - 1 downto 0 do
-        if Compare_C40_ServiceTyp(dp_serv_s, L[i].ServiceTyp) or Compare_C40_ServiceTyp(dp_cli_s, L[i].ServiceTyp) then
-            L.Delete(i);
-
-      { Redefine physics info }
-      for i := L.Count - 1 downto 0 do
-        if L[i].SamePhysicsAddr(PhysicsAddr, PhysicsPort) then
-          begin
-            L[i].PhysicsAddr := r_physics_addr; { translate addr }
-            L[i].PhysicsPort := r_physics_port; { translate port }
-          end
+        if L[i].SamePhysicsAddr([PhysicsAddr, '0.0.0.0', 'localhost', '127.0.0.1', '::', '::1', '']) then
+            L[i].PhysicsAddr := r_physics_addr { translate addr }
         else
             L.Delete(i);
     end;
@@ -3188,18 +3177,18 @@ end;
 
 constructor TC40_Custom_ClientPool_Wait.Create(dependNetwork_: U_String);
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
   inherited Create;
-  arry_ := ExtractDependInfo(dependNetwork_);
-  SetLength(States_, length(arry_));
-  for i := 0 to length(arry_) - 1 do
+  Arry_ := ExtractDependInfo(dependNetwork_);
+  SetLength(States_, length(Arry_));
+  for i := 0 to length(Arry_) - 1 do
     begin
-      States_[i].ServiceTyp_ := arry_[i].Typ;
+      States_[i].ServiceTyp_ := Arry_[i].Typ;
       States_[i].Client_ := nil;
     end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 
   Pool_ := nil;
   On_C := nil;
@@ -3438,6 +3427,21 @@ begin
   Result := ServiceTyp.Same(@Data_.ServiceTyp);
 end;
 
+function TC40_Info.SamePhysicsAddr(PhysicsAddr_: U_String): Boolean;
+begin
+  Result := PhysicsAddr.Same(@PhysicsAddr_);
+end;
+
+function TC40_Info.SamePhysicsAddr(Arry_: TArrayPascalString): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  for i := 0 to length(Arry_) - 1 do
+    if PhysicsAddr.Same(@Arry_[i]) then
+        exit(True);
+end;
+
 function TC40_Info.SamePhysicsAddr(PhysicsAddr_: U_String; PhysicsPort_: Word): Boolean;
 begin
   Result := False;
@@ -3492,13 +3496,13 @@ begin
   Result := True;
 end;
 
-function TC40_Info.FoundServiceTyp(arry_: TC40_DependNetworkInfoArray): Boolean;
+function TC40_Info.FoundServiceTyp(Arry_: TC40_DependNetworkInfoArray): Boolean;
 var
   i: Integer;
 begin
   Result := False;
-  for i := low(arry_) to high(arry_) do
-    if ServiceTyp.Same(@arry_[i].Typ) then
+  for i := low(Arry_) to high(Arry_) do
+    if ServiceTyp.Same(@Arry_[i].Typ) then
       begin
         Result := True;
         exit;
@@ -3507,11 +3511,11 @@ end;
 
 function TC40_Info.FoundServiceTyp(servTyp_: U_String): Boolean;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
 begin
-  arry_ := ExtractDependInfo(servTyp_);
-  Result := FoundServiceTyp(arry_);
-  ResetDependInfoBuff(arry_);
+  Arry_ := ExtractDependInfo(servTyp_);
+  Result := FoundServiceTyp(Arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Info.ReadyC40Client: Boolean;
@@ -3584,7 +3588,7 @@ class procedure TC40_InfoList.SortWorkLoad(L_: TC40_InfoList);
         Result := CompareGeoInt(Right.MaxWorkload, Left.MaxWorkload);
   end;
 
-  procedure fastSort_(arry_: TC40_InfoList; L, R: Integer);
+  procedure fastSort_(Arry_: TC40_InfoList; L, R: Integer);
   var
     i, j: Integer;
     p: TC40_Info;
@@ -3592,22 +3596,22 @@ class procedure TC40_InfoList.SortWorkLoad(L_: TC40_InfoList);
     repeat
       i := L;
       j := R;
-      p := arry_[(L + R) shr 1];
+      p := Arry_[(L + R) shr 1];
       repeat
-        while Compare_(arry_[i], p) < 0 do
+        while Compare_(Arry_[i], p) < 0 do
             inc(i);
-        while Compare_(arry_[j], p) > 0 do
+        while Compare_(Arry_[j], p) > 0 do
             dec(j);
         if i <= j then
           begin
             if i <> j then
-                arry_.Exchange(i, j);
+                Arry_.Exchange(i, j);
             inc(i);
             dec(j);
           end;
       until i > j;
       if L < j then
-          fastSort_(arry_, L, j);
+          fastSort_(Arry_, L, j);
       L := i;
     until i >= R;
   end;
@@ -4261,20 +4265,20 @@ end;
 
 function TC40_Custom_ServicePool.ExistsOnlyInstance(ServiceTyp: U_String): Boolean;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
   Result := False;
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
 
   for i := 0 to Count - 1 do
-    if Items[i].ServiceInfo.OnlyInstance and Items[i].ServiceInfo.FoundServiceTyp(arry_) then
+    if Items[i].ServiceInfo.OnlyInstance and Items[i].ServiceInfo.FoundServiceTyp(Arry_) then
       begin
         Result := True;
         break;
       end;
 
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ServicePool.GetC40Array: TC40_Custom_Service_Array;
@@ -4288,18 +4292,18 @@ end;
 
 function TC40_Custom_ServicePool.GetFromServiceTyp(ServiceTyp: U_String): TC40_Custom_Service_Array;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   L: TC40_Custom_ServicePool;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   L := TC40_Custom_ServicePool.Create;
   for i := 0 to Count - 1 do
-    if Items[i].ServiceInfo.FoundServiceTyp(arry_) then
+    if Items[i].ServiceInfo.FoundServiceTyp(Arry_) then
         L.Add(Items[i]);
   Result := L.GetC40Array;
   DisposeObject(L);
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ServicePool.GetFromPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): TC40_Custom_Service_Array;
@@ -4600,18 +4604,18 @@ end;
 
 function TC40_Custom_ClientPool.ExistsServiceTyp(ServiceTyp: U_String): Boolean;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := False;
   for i := 0 to Count - 1 do
-    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := True;
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.ExistsClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
@@ -4636,34 +4640,34 @@ end;
 
 function TC40_Custom_ClientPool.ExistsConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := Items[i];
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.ExistsConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := Items[i];
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.FindPhysicsAddr(PhysicsAddr: U_String; PhysicsPort: Word): Boolean;
@@ -4690,18 +4694,18 @@ end;
 
 function TC40_Custom_ClientPool.FindServiceTyp(ServiceTyp: U_String): Boolean;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := False;
   for i := 0 to Count - 1 do
-    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := True;
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.FindClass(Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
@@ -4726,34 +4730,34 @@ end;
 
 function TC40_Custom_ClientPool.FindConnectedServiceTyp(ServiceTyp: U_String): TC40_Custom_Client;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := Items[i];
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.FindConnectedServiceTypAndClass(ServiceTyp: U_String; Class_: TC40_Custom_Client_Class): TC40_Custom_Client;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   Result := nil;
   for i := 0 to Count - 1 do
-    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].InheritsFrom(Class_) and Items[i].Connected and Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       begin
         Result := Items[i];
         break;
       end;
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.GetClientFromHash(Hash: TMD5): TC40_Custom_Client;
@@ -4774,7 +4778,7 @@ class procedure TC40_Custom_ClientPool.SortWorkLoad(L_: TC40_Custom_ClientPool);
         Result := CompareGeoInt(Right.ClientInfo.MaxWorkload, Left.ClientInfo.MaxWorkload);
   end;
 
-  procedure fastSort_(arry_: TC40_Custom_ClientPool; L, R: Integer);
+  procedure fastSort_(Arry_: TC40_Custom_ClientPool; L, R: Integer);
   var
     i, j: Integer;
     p: TC40_Custom_Client;
@@ -4782,22 +4786,22 @@ class procedure TC40_Custom_ClientPool.SortWorkLoad(L_: TC40_Custom_ClientPool);
     repeat
       i := L;
       j := R;
-      p := arry_[(L + R) shr 1];
+      p := Arry_[(L + R) shr 1];
       repeat
-        while Compare_(arry_[i], p) < 0 do
+        while Compare_(Arry_[i], p) < 0 do
             inc(i);
-        while Compare_(arry_[j], p) > 0 do
+        while Compare_(Arry_[j], p) > 0 do
             dec(j);
         if i <= j then
           begin
             if i <> j then
-                arry_.Exchange(i, j);
+                Arry_.Exchange(i, j);
             inc(i);
             dec(j);
           end;
       until i > j;
       if L < j then
-          fastSort_(arry_, L, j);
+          fastSort_(Arry_, L, j);
       L := i;
     until i >= R;
   end;
@@ -4818,20 +4822,20 @@ end;
 
 function TC40_Custom_ClientPool.SearchServiceTyp(ServiceTyp: U_String; isConnected: Boolean): TC40_Custom_Client_Array;
 var
-  arry_: TC40_DependNetworkInfoArray;
+  Arry_: TC40_DependNetworkInfoArray;
   L: TC40_Custom_ClientPool;
   i: Integer;
 begin
-  arry_ := ExtractDependInfo(ServiceTyp);
+  Arry_ := ExtractDependInfo(ServiceTyp);
   L := TC40_Custom_ClientPool.Create;
   for i := 0 to Count - 1 do
-    if Items[i].ClientInfo.FoundServiceTyp(arry_) then
+    if Items[i].ClientInfo.FoundServiceTyp(Arry_) then
       if (not isConnected) or (isConnected and Items[i].Connected) then
           L.Add(Items[i]);
   SortWorkLoad(L);
   Result := L.GetC40Array;
   DisposeObject(L);
-  ResetDependInfoBuff(arry_);
+  ResetDependInfoBuff(Arry_);
 end;
 
 function TC40_Custom_ClientPool.SearchServiceTyp(ServiceTyp: U_String): TC40_Custom_Client_Array;
@@ -5043,7 +5047,7 @@ var
   info_: TC40_Info;
   i: Integer;
   S_IO: TPeerIO;
-  arry_: TIO_Array;
+  Arry_: TIO_Array;
   ID_: Cardinal;
   IO_: TPeerIO;
 begin
@@ -5078,8 +5082,8 @@ begin
       S_IO := nil;
       if Service.DTService.GetUserDefineRecvTunnel(Sender).LinkOk then
           S_IO := Service.DTService.GetUserDefineRecvTunnel(Sender).SendTunnel.Owner;
-      Service.SendTunnel.GetIO_Array(arry_);
-      for ID_ in arry_ do
+      Service.SendTunnel.GetIO_Array(Arry_);
+      for ID_ in Arry_ do
         begin
           IO_ := Service.SendTunnel[ID_];
           if (IO_ <> nil) and (IO_ <> S_IO) and TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
@@ -5113,7 +5117,7 @@ end;
 procedure TC40_Dispatch_Service.cmd_RemovePhysicsNetwork(Sender: TPeerIO; InData: TDFE);
 var
   tmp: TOnRemovePhysicsNetwork;
-  arry_: TIO_Array;
+  Arry_: TIO_Array;
   ID_: Cardinal;
   IO_: TPeerIO;
   IODef_: TService_RecvTunnel_UserDefine_NoAuth;
@@ -5125,8 +5129,8 @@ begin
 
   if C40ExistsPhysicsNetwork(tmp.PhysicsAddr, tmp.PhysicsPort) then
     begin
-      Service.RecvTunnel.GetIO_Array(arry_);
-      for ID_ in arry_ do
+      Service.RecvTunnel.GetIO_Array(Arry_);
+      for ID_ in Arry_ do
         begin
           IO_ := Service.RecvTunnel[ID_];
           if (IO_ <> nil) and (IO_ <> Sender) and TService_RecvTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
@@ -5147,14 +5151,14 @@ end;
 procedure TC40_Dispatch_Service.UpdateServerInfoToAllClient;
 var
   D: TDFE;
-  arry_: TIO_Array;
+  Arry_: TIO_Array;
   ID_: Cardinal;
   IO_: TPeerIO;
 begin
   D := TDFE.Create;
   Service_Info_Pool.SaveToDF(D);
-  Service.SendTunnel.GetIO_Array(arry_);
-  for ID_ in arry_ do
+  Service.SendTunnel.GetIO_Array(Arry_);
+  for ID_ in Arry_ do
     begin
       IO_ := Service.SendTunnel[ID_];
       if (IO_ <> nil) and TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
@@ -5281,15 +5285,15 @@ end;
 procedure TC40_Dispatch_Service.IgnoreChangeToAllClient(Hash__: TMD5; Ignored: Boolean);
 var
   D: TDFE;
-  arry_: TIO_Array;
+  Arry_: TIO_Array;
   ID_: Cardinal;
   IO_: TPeerIO;
 begin
   D := TDFE.Create;
   D.WriteMD5(Hash__);
   D.WriteBool(Ignored);
-  Service.SendTunnel.GetIO_Array(arry_);
-  for ID_ in arry_ do
+  Service.SendTunnel.GetIO_Array(Arry_);
+  for ID_ in Arry_ do
     begin
       IO_ := Service.SendTunnel[ID_];
       if (IO_ <> nil) and TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
@@ -5303,7 +5307,7 @@ var
   i: Integer;
   D, tmp: TDFE;
   info_: TC40_Info;
-  arry_: TIO_Array;
+  Arry_: TIO_Array;
   ID_: Cardinal;
   IO_: TPeerIO;
 begin
@@ -5320,8 +5324,8 @@ begin
         DisposeObject(tmp);
       end;
 
-  Service.SendTunnel.GetIO_Array(arry_);
-  for ID_ in arry_ do
+  Service.SendTunnel.GetIO_Array(Arry_);
+  for ID_ in Arry_ do
     begin
       IO_ := Service.SendTunnel[ID_];
       if (IO_ <> nil) and TService_SendTunnel_UserDefine_NoAuth(IO_.UserDefine).LinkOk then
@@ -5333,7 +5337,7 @@ end;
 procedure TC40_Dispatch_Client.cmd_UpdateServiceInfo(Sender: TPeerIO; InData: TDFE);
 var
   i: Integer;
-  arry_: TC40_Custom_Client_Array;
+  Arry_: TC40_Custom_Client_Array;
   cc: TC40_Custom_Client;
 begin
   if Service_Info_Pool.MergeFromDF(InData) then
@@ -5342,8 +5346,8 @@ begin
           FOnServiceInfoChange(Self, Service_Info_Pool);
 
       { broadcast to all service }
-      arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
-      for cc in arry_ do
+      Arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
+      for cc in Arry_ do
         if (cc <> Self) then
             TC40_Dispatch_Client(cc).Client.SendTunnel.SendDirectStreamCmd('UpdateServiceInfo', InData);
     end;
@@ -5401,7 +5405,7 @@ var
   Hash__: TMD5;
   Ignored: Boolean;
   info_: TC40_Info;
-  arry_: TC40_Custom_Client_Array;
+  Arry_: TC40_Custom_Client_Array;
   cc: TC40_Custom_Client;
   j: Integer;
 begin
@@ -5418,8 +5422,8 @@ begin
     end;
 
   { broadcast to all service }
-  arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
-  for cc in arry_ do
+  Arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
+  for cc in Arry_ do
     if (cc <> Self) then
         TC40_Dispatch_Client(cc).Client.SendTunnel.SendDirectStreamCmd('IgnoreChange', InData);
 end;
@@ -5427,7 +5431,7 @@ end;
 procedure TC40_Dispatch_Client.cmd_RemovePhysicsNetwork(Sender: TPeerIO; InData: TDFE);
 var
   tmp: TOnRemovePhysicsNetwork;
-  arry_: TC40_Custom_Client_Array;
+  Arry_: TC40_Custom_Client_Array;
   cc: TC40_Custom_Client;
 begin
   tmp := TOnRemovePhysicsNetwork.Create;
@@ -5438,8 +5442,8 @@ begin
   if C40ExistsPhysicsNetwork(tmp.PhysicsAddr, tmp.PhysicsPort) then
     begin
       { broadcast to all service }
-      arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
-      for cc in arry_ do
+      Arry_ := C40_ClientPool.SearchClass(TC40_Dispatch_Client, True);
+      for cc in Arry_ do
         if (cc <> Self) then
             TC40_Dispatch_Client(cc).Client.SendTunnel.SendDirectStreamCmd('RemovePhysicsNetwork', InData);
     end;
