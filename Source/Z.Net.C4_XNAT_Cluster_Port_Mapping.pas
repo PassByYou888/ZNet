@@ -339,9 +339,10 @@ procedure TC40_CPM_Service_Tool.CC_CPM_Service_Info(var OP_Param: TOpParam);
 var
   i: integer;
   info: TC40_CPM_Info;
-  successed, failed: integer;
+  successed, activted_num, failed: integer;
 begin
   successed := 0;
+  activted_num := 0;
   failed := 0;
   for i := 0 to XNAT_Physics_Service.ShareListenList.count - 1 do
     begin
@@ -352,6 +353,8 @@ begin
           inc(successed)
       else
           inc(failed);
+      if info.Activted then
+          inc(activted_num);
     end;
 
   for i := 0 to CPM_List.count - 1 do
@@ -364,7 +367,7 @@ begin
     end;
   DoStatus('C4 XNAT Host:%s Port:%d', [PhysicsService.PhysicsAddr.Text, PhysicsService.PhysicsPort]);
   DoStatus('XNAT Host:%s Port:%s Auth:%s', [XNAT_Physics_Service.Host.Text, XNAT_Physics_Service.Port.Text, XNAT_Physics_Service.AuthToken.Text]);
-  DoStatus('XNAT Total:%d successed:%d failed:%d', [CPM_List.count, successed, failed]);
+  DoStatus('XNAT Total:%d successed:%d failed:%d activted:%d', [CPM_List.count, successed, failed, activted_num]);
 end;
 
 constructor TC40_CPM_Service_Tool.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
@@ -377,7 +380,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('Open_CPM_Service_Tunnel').OnExecute := cmd_Open_CPM_Service_Tunnel;
   // init XNAT
   XNAT_Physics_Service := TXNATService.Create;
-  XNAT_Physics_Service.Host := ParamList.GetDefaultValue('XNAT_Host', PhysicsService_.PhysicsAddr);
+  XNAT_Physics_Service.Host := ParamList.GetDefaultValue('XNAT_Host', PhysicsService_.ListeningAddr);
   XNAT_Physics_Service.Port := ParamList.GetDefaultValue('XNAT_Port', '9087');
   XNAT_Physics_Service.AuthToken := ParamList.GetDefaultValue('XNAT_Auth', C40_Password);
   XNAT_Physics_Service.MaxVMFragment := ParamList.GetDefaultValue('XNAT_MaxVMFragment', XNAT_Physics_Service.MaxVMFragment);
@@ -537,6 +540,7 @@ begin
   Remote_XNAT_Port := Result_.R.ReadString;
   // p2pVM auth
   Remote_XNAT_Auth := Result_.R.ReadString;
+  DoStatus('XNAT Host:%s Port:%s', [Remote_XNAT_Host.Text, Remote_XNAT_Port.Text]);
 end;
 
 procedure TC40_CPM_Client_Tool.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client);
