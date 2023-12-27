@@ -44,7 +44,7 @@ type
     OwnerMapping: TXServiceListen;
   end;
 
-  TXServiceListen = class(TCore_Object)
+  TXServiceListen = class(TCore_Object_Intermediate)
   private
     Owner: TXNATService;
     FListenAddr: TPascalString;
@@ -136,7 +136,7 @@ type
   TXServiceMappingList = TGenericsList<TXServiceListen>;
   TOn_XNATService_Open_Tunnel_Done = procedure(Sender: TXNATService; State: Boolean) of object;
 
-  TXNATService = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
+  TXNATService = class(TCore_InterfacedObject_Intermediate, IIOInterface, IZNet_VMInterface)
   private
     { external tunnel }
     FShareListenList: TXServiceMappingList;

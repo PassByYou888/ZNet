@@ -24,7 +24,7 @@ type
   TService_RecvTunnel_UserDefine_VirtualAuth = class;
   TDTService_VirtualAuthClass = class of TDTService_VirtualAuth;
 
-  TVirtualAuthIO = class(TCore_Object)
+  TVirtualAuthIO = class(TCore_Object_Intermediate)
   private
     RecvIO_ID, SendIO_ID: Cardinal;
     AuthResult: TDFE;
@@ -39,7 +39,7 @@ type
     procedure Bye;
   end;
 
-  TVirtualRegIO = class(TCore_Object)
+  TVirtualRegIO = class(TCore_Object_Intermediate)
   private
     RecvIO_ID, SendIO_ID: Cardinal;
     RegResult: TDFE;
@@ -92,7 +92,7 @@ type
   TVirtualAuth_OnLinkSuccess = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth) of object;
   TVirtualAuth_OnUserOut = procedure(Sender: TDTService_VirtualAuth; UserDefineIO: TService_RecvTunnel_UserDefine_VirtualAuth) of object;
 
-  TDTService_VirtualAuth = class(TCore_InterfacedObject)
+  TDTService_VirtualAuth = class(TCore_InterfacedObject_Intermediate)
   protected
     FRecvTunnel, FSendTunnel: TZNet_Server;
     FCadencerEngine: TCadencer;
@@ -244,7 +244,7 @@ type
     const fileName: SystemString; const StartPos, EndPos: Int64; const DataPtr: Pointer; const DataSize: Int64; const MD5: TMD5);
 {$ENDIF FPC}
 
-  TDTClient_VirtualAuth = class(TCore_InterfacedObject, IZNet_ClientInterface)
+  TDTClient_VirtualAuth = class(TCore_InterfacedObject_Intermediate, IZNet_ClientInterface)
   protected
     FSendTunnel, FRecvTunnel: TZNet_Client;
     FFileSystem: Boolean;
@@ -458,7 +458,7 @@ type
 
   PDT_P2PVM_VirtualAuth_OnState = ^TDT_P2PVM_VirtualAuth_OnState;
 
-  TDT_P2PVM_VirtualAuth_Service = class(TCore_Object)
+  TDT_P2PVM_VirtualAuth_Service = class(TCore_Object_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -479,7 +479,7 @@ type
   TDT_P2PVM_VirtualAuth_ServicePool = TGenericsList<TDT_P2PVM_VirtualAuth_Service>;
   TOn_DT_P2PVM_VirtualAuth_Client_TunnelLink = procedure(Sender: TDT_P2PVM_VirtualAuth_Client) of object;
 
-  TDT_P2PVM_VirtualAuth_Client = class(TCore_Object)
+  TDT_P2PVM_VirtualAuth_Client = class(TCore_Object_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_VirtualAuth_OnState;
     Connecting: Boolean;
@@ -518,7 +518,7 @@ type
   TDT_P2PVM_VirtualAuth_Custom_Service = class;
   TDT_P2PVM_VirtualAuth_Custom_Service_Class = class of TDT_P2PVM_VirtualAuth_Custom_Service;
 
-  TDT_P2PVM_VirtualAuth_Custom_Service = class(TCore_InterfacedObject)
+  TDT_P2PVM_VirtualAuth_Custom_Service = class(TCore_InterfacedObject_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -556,7 +556,7 @@ type
     procedure DoFree(var Data: TDT_P2PVM_VirtualAuth_Custom_Client); override;
   end;
 
-  TDT_P2PVM_VirtualAuth_Custom_Client = class(TCore_InterfacedObject)
+  TDT_P2PVM_VirtualAuth_Custom_Client = class(TCore_InterfacedObject_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_VirtualAuth_OnState;
     Connecting: Boolean;
@@ -655,7 +655,7 @@ type
     OnComplete_P: TFileFragmentData_P_VirtualAuth;
   end;
 
-  TAutomatedDownloadFile_Struct_VirtualAuth = class
+  TAutomatedDownloadFile_Struct_VirtualAuth = class(TCore_Object_Intermediate)
   private
     remoteFile, localFile: SystemString;
     OnDownloadDoneC: TFileComplete_C_VirtualAuth;
@@ -677,7 +677,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutomatedUploadFile_Struct_VirtualAuth = class
+  TAutomatedUploadFile_Struct_VirtualAuth = class(TCore_Object_Intermediate)
   private
     localFile: SystemString;
     Client: TDTClient_VirtualAuth;

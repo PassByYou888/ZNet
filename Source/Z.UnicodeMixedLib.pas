@@ -7046,7 +7046,7 @@ type
 
   PFileMD5_CacheData = ^TFileMD5_CacheData;
 
-  TFileMD5Cache = class
+  TFileMD5Cache = class(TCore_Object_Intermediate)
   private
     Critical: TCritical;
     FHash: THashList;

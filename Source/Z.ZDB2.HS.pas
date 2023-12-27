@@ -20,7 +20,7 @@ type
   TZDB2_HashString = class;
   TZDB2_Big_List_HashString_Decl__ = TBigList<TZDB2_HashString>;
 
-  TZDB2_HashString = class
+  TZDB2_HashString = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZDB2_Big_List_HashString_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
@@ -49,7 +49,7 @@ type
 
   TOnCreate_ZDB2_HashString = procedure(Sender: TZDB2_List_HashString; Obj: TZDB2_HashString) of object;
 
-  TZDB2_List_HashString = class
+  TZDB2_List_HashString = class(TCore_Object_Intermediate)
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;

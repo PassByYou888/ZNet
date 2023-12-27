@@ -31,7 +31,7 @@ type
 
   TSearchConfigInfo_List_Decl = TGenericsList<PSearchConfigInfo>;
 
-  TFileIO = class
+  TFileIO = class(TCore_Object_Intermediate)
   private
     FCritical: TCritical;
     FList: TSearchConfigInfo_List_Decl;

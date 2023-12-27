@@ -39,7 +39,7 @@ type
 
 {$REGION 'Data_Engine'}
 
-  TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge = class
+  TZDB2_Th_Engine_Get_Mem64_Data_Event_Bridge = class(TCore_Object_Intermediate)
   public
     Source: TZDB2_Th_Engine_Data;
     OnResult_C: TOn_Mem64_And_State_Event_C;
@@ -50,7 +50,7 @@ type
     procedure Do_Result(var Sender: TZDB2_Th_CMD_Mem64_And_State);
   end;
 
-  TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge = class
+  TZDB2_Th_Engine_Get_Stream_Data_Event_Bridge = class(TCore_Object_Intermediate)
   public
     Source: TZDB2_Th_Engine_Data;
     OnResult_C: TOn_Stream_And_State_Event_C;
@@ -69,7 +69,7 @@ type
   TOn_ZDB2_Th_Engine_Load_Mem64_Data_Event_P = reference to procedure(Sender: TZDB2_Th_Engine_Data; Mem64: TMem64; Successed: Boolean);
 {$ENDIF FPC}
 
-  TZDB2_Th_Engine_Load_Mem64_Data_Event_Bridge = class
+  TZDB2_Th_Engine_Load_Mem64_Data_Event_Bridge = class(TCore_Object_Intermediate)
   private
     R_State: TCMD_State;
     procedure Do_Event;
@@ -92,7 +92,7 @@ type
   TOn_ZDB2_Th_Engine_Load_Stream_Data_Event_P = reference to procedure(Sender: TZDB2_Th_Engine_Data; Stream: TMS64; Successed: Boolean);
 {$ENDIF FPC}
 
-  TZDB2_Th_Engine_Load_Stream_Data_Event_Bridge = class
+  TZDB2_Th_Engine_Load_Stream_Data_Event_Bridge = class(TCore_Object_Intermediate)
   private
     R_State: TCMD_State;
     procedure Do_Event;
@@ -115,7 +115,7 @@ type
   TOn_ZDB2_Th_Engine_Save_Data_Event_P = reference to procedure(Sender: TZDB2_Th_Engine_Data; Successed: Boolean);
 {$ENDIF FPC}
 
-  TZDB2_Th_Engine_Save_Data_Event_Bridge = class
+  TZDB2_Th_Engine_Save_Data_Event_Bridge = class(TCore_Object_Intermediate)
   public
     Source: TZDB2_Th_Engine_Data;
     OnResult_C: TOn_ZDB2_Th_Engine_Save_Data_Event_C;
@@ -125,7 +125,7 @@ type
     procedure Do_Result(var Sender: TZDB2_Th_CMD_ID_And_State);
   end;
 
-  TZDB2_Th_Engine_Data = class(TCore_Object)
+  TZDB2_Th_Engine_Data = class(TCore_Object_Intermediate)
   private
     FOwner: TZDB2_Th_Engine_Marshal; // marshal
     FOwner_Data_Ptr: TZDB2_Th_Engine_Marshal_BigList___.PQueueStruct; // marshal data ptr
@@ -247,7 +247,7 @@ type
 {$ENDIF FPC}
 
   // static copy technology
-  TZDB2_Th_Engine_Static_Copy_Tech = class
+  TZDB2_Th_Engine_Static_Copy_Tech = class(TCore_Object_Intermediate)
   private
     Instance_Ptr: TZDB2_Th_Engine_Static_Copy_Instance_Pool.PQueueStruct;
   public
@@ -262,7 +262,7 @@ type
   end;
 
   // dynamic copy technology
-  TZDB2_Th_Engine_Dynamic_Copy_Tech = class
+  TZDB2_Th_Engine_Dynamic_Copy_Tech = class(TCore_Object_Intermediate)
   private
     Instance_Ptr: TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool.PQueueStruct;
   public
@@ -293,7 +293,7 @@ type
 
   // this multithreaded model.
   // Try to avoid calling the methods here at the application
-  TZDB2_Th_Engine = class(TCore_InterfacedObject)
+  TZDB2_Th_Engine = class(TCore_InterfacedObject_Intermediate)
   private
     FLast_Backup_Execute_Time: TTimeTick;
     FCopy_Is_Busy: Boolean;
@@ -463,7 +463,7 @@ type
   TOn_ZDB2_Th_Engine_Data_Wait_P = reference to procedure(Load_Inst_: TZDB2_Th_Engine_Data_Load_Instance);
 {$ENDIF FPC}
 
-  TZDB2_Th_Engine_Data_Load_Processor = class
+  TZDB2_Th_Engine_Data_Load_Processor = class(TCore_Object_Intermediate)
   private
     tatal_data_num_: Int64;
     buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
@@ -519,7 +519,7 @@ type
   TOn_ZDB2_Th_Engine_Block_Wait_P = reference to procedure(Load_Inst_: TZDB2_Th_Engine_Block_Load_Instance);
 {$ENDIF FPC}
 
-  TZDB2_Th_Engine_Block_Load_Processor = class
+  TZDB2_Th_Engine_Block_Load_Processor = class(TCore_Object_Intermediate)
   private
     tatal_data_num_: Int64;
     buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
@@ -547,7 +547,7 @@ type
   TZDB2_Th_Engine_Marshal_Pool = TCritical_BigList<TZDB2_Th_Engine_Marshal>;
 
   // TZDB2_Th_Engine_Marshal is a parallel marshal manager.
-  TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject) // all methods is thread safe.
+  TZDB2_Th_Engine_Marshal = class(TCore_InterfacedObject_Intermediate) // all methods is thread safe.
   private
     FCritical: TCritical;
     FLong_Loop_Num: Integer;
@@ -609,7 +609,7 @@ type
     procedure Remove_Backup;
     // copy
     procedure Stop_Copy;
-    // flush-build external-header
+    // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); virtual;
     // flush
     procedure Flush; overload;
@@ -3184,6 +3184,12 @@ end;
 procedure TZDB2_Th_Engine.Flush(WaitQueue_: Boolean);
 begin
   if Engine = nil then
+      exit;
+
+  if RemoveDatabaseOnDestroy then
+      exit;
+
+  if Engine.Is_Memory_Database or Engine.Is_OnlyRead then
       exit;
 
   if WaitQueue_ then

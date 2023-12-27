@@ -200,7 +200,7 @@ type
     function Write64(const buffer; Count: Int64): Int64; override;
   end;
 
-  TMem64 = class(TCore_Object)
+  TMem64 = class(TCore_Object_Intermediate)
   private
     FDelta: NativeInt;
     FMemory: Pointer;
@@ -402,7 +402,7 @@ procedure DoStatus(const v: TMem64); overload;
 
 implementation
 
-uses Z.Status, Z.Compress;
+uses Z.Status, Z.Compress, Z.Instance.Tool;
 
 procedure TMS64.SetPointer(buffPtr: Pointer; const BuffSize: NativeUInt);
 begin

@@ -152,7 +152,7 @@ type
   POnStateStruct = ^TOnStateStruct;
 
   { tool: client - bridge templet }
-  TOnResult_Bridge_Templet = class
+  TOnResult_Bridge_Templet = class(TCore_Object_Intermediate)
   public
     { console event }
     procedure DoConsoleEvent(Sender: TPeerIO; Result_: SystemString); virtual;
@@ -176,7 +176,7 @@ type
   TOnResultBridge = TOnResult_Bridge;
 
   { tool: client and service - free bridge }
-  TProgress_Bridge = class
+  TProgress_Bridge = class(TCore_Object_Intermediate)
   private
     procedure DoFree(Sender: TZNet_Progress);
   public
@@ -188,7 +188,7 @@ type
   end;
 
   { tool: state bridge }
-  TState_Param_Bridge = class
+  TState_Param_Bridge = class(TCore_Object_Intermediate)
   public
     OnNotifyC: TOnParamState_C;
     OnNotifyM: TOnParamState_M;
@@ -202,7 +202,7 @@ type
   end;
 
   { tool: Service - free bridge }
-  TCustom_Event_Bridge = class
+  TCustom_Event_Bridge = class(TCore_Object_Intermediate)
   private
     procedure DoFree(Sender: TZNet_Progress);
   public
@@ -219,7 +219,7 @@ type
   TCustomEventBridge = TCustom_Event_Bridge;
 
   { tool: Service - stream bridge }
-  TStream_Event_Bridge = class
+  TStream_Event_Bridge = class(TCore_Object_Intermediate)
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
     procedure DoFree(Sender: TZNet_Progress);
@@ -245,7 +245,7 @@ type
   end;
 
   { tool: Service - console bridge }
-  TConsole_Event_Bridge = class
+  TConsole_Event_Bridge = class(TCore_Object_Intermediate)
   private
     procedure Init(IO_: TPeerIO; AutoPause_: Boolean);
     procedure DoFree(Sender: TZNet_Progress);
@@ -271,7 +271,7 @@ type
   end;
 
   { tool: Service - free complete-buffer stream bridge }
-  TCustom_CompleteBuffer_Stream_Bridge = class
+  TCustom_CompleteBuffer_Stream_Bridge = class(TCore_Object_Intermediate)
   private
     procedure DoFree(Sender: TZNet_Progress);
   public
@@ -285,7 +285,7 @@ type
   end;
 
   { tool: Service - complete-buffer stream bridge }
-  TCompleteBuffer_Stream_Event_Bridge = class
+  TCompleteBuffer_Stream_Event_Bridge = class(TCore_Object_Intermediate)
   private
     procedure Init(Bridge_: TCommandCompleteBuffer_NoWait_Bridge; AutoPause_: Boolean);
     procedure DoFree(Sender: TZNet_Progress);
@@ -309,7 +309,7 @@ type
   end;
 
   { tool: p2pVM bridge }
-  TP2PVM_CloneConnectEventBridge = class
+  TP2PVM_CloneConnectEventBridge = class(TCore_Object_Intermediate)
   private
     OnResultC: TOnP2PVM_CloneConnectEvent_C;
     OnResultM: TOnP2PVM_CloneConnectEvent_M;
@@ -449,7 +449,7 @@ type
 {$ENDREGION 'Queue'}
 {$REGION 'Command_Instance'}
 
-  TCommand_base = class(TCore_Object)
+  TCommand_base = class(TCore_Object_Intermediate)
   public
   end;
 
@@ -552,7 +552,7 @@ type
 
   TCommandCompleteBuffer_DirectStream = class;
 
-  TCommandCompleteBuffer_DirectStream_Thread = class
+  TCommandCompleteBuffer_DirectStream_Thread = class(TCore_Object_Intermediate)
   protected
     Owner: TCommandCompleteBuffer_DirectStream;
     Framework: TZNet;
@@ -595,7 +595,7 @@ type
 
   PCommandCompleteBuffer_NoWait_Stream_Data = ^TCommandCompleteBuffer_NoWait_Stream_Data;
 
-  TCommandCompleteBuffer_NoWait_Stream_Execute_Thread = class
+  TCommandCompleteBuffer_NoWait_Stream_Execute_Thread = class(TCore_Object_Intermediate)
   protected
     Owner: TCommandCompleteBuffer_NoWait_Stream;
     R_Framework: TZNet;
@@ -643,7 +643,7 @@ type
     property OnExecute_P: TOnCommand_CompleteBuffer_NoWait_Bridge_Stream_P read FOnExecute_P write FOnExecute_P;
   end;
 
-  TCommandCompleteBuffer_NoWait_Bridge = class
+  TCommandCompleteBuffer_NoWait_Bridge = class(TCore_Object_Intermediate)
   private
     Pause_Result_Send: Boolean;
   public
@@ -701,7 +701,7 @@ type
 
   TBigStreamBatchPostData_List = TGenericsList<PBigStreamBatchPostData>;
 
-  TBigStreamBatch = class(TCore_Object)
+  TBigStreamBatch = class(TCore_Object_Intermediate)
   protected
     FOwner: TPeerIO;
     FList: TBigStreamBatchPostData_List;
@@ -720,7 +720,7 @@ type
     procedure Delete(const index: Integer);
   end;
 
-  TPeer_IO_User_Define = class(TCore_InterfacedObject)
+  TPeer_IO_User_Define = class(TCore_InterfacedObject_Intermediate)
   protected
     FOwner: TPeerIO;
     FWorkPlatform: TExecutePlatform;
@@ -745,7 +745,7 @@ type
 
   TPeer_IO_User_Define_Class = class of TPeer_IO_User_Define;
 
-  TPeer_IO_User_Special = class(TCore_InterfacedObject)
+  TPeer_IO_User_Special = class(TCore_InterfacedObject_Intermediate)
   protected
     FOwner: TPeerIO;
     FBusy: Boolean;
@@ -823,7 +823,7 @@ type
 
   TZNet_P2PVM = class;
 
-  TPeerIO = class(TCore_InterfacedObject)
+  TPeerIO = class(TCore_InterfacedObject_Intermediate)
   private
     FOwnerFramework: TZNet;
     FIOInterface: TCore_Object;
@@ -885,7 +885,7 @@ type
     FAllSendProcessing: Boolean;
     FReceiveProcessing: Boolean;
     FSend_Queue_Critical: TCritical;
-    FQueuePool: TQueueData_Pool;
+    FSend_Queue_Pool: TQueueData_Pool;
     FLastCommunicationTick: TTimeTick;
     LastCommunicationTick_Received: TTimeTick;
     LastCommunicationTick_KeepAlive: TTimeTick;
@@ -1413,7 +1413,7 @@ type
     procedure DoFree(var data: TZNet_Progress); override;
   end;
 
-  TZNet_Progress = class
+  TZNet_Progress = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZNet_Progress_Pool_.PQueueStruct;
     FOwnerFramework: TZNet;
@@ -1465,7 +1465,7 @@ type
     procedure DoFree(var Key: SystemString; var Value: TCommand_base); override;
   end;
 
-  TZNet = class(TCore_InterfacedObject)
+  TZNet = class(TCore_InterfacedObject_Intermediate)
   private
     FCritical: TCritical;
     FZNet_Instance_Ptr__: TZNet_Instance_Pool__.PQueueStruct;
@@ -2416,7 +2416,7 @@ type
 {$ENDIF FPC}
   TP2PVMAuthSuccessMethod = procedure(Sender: TZNet_P2PVM) of object;
 
-  TZNet_P2PVM = class(TCore_Object)
+  TZNet_P2PVM = class(TCore_Object_Intermediate)
   protected
     FOwner_IO: TPeerIO;
     FAuthWaiting: Boolean;
@@ -2684,7 +2684,7 @@ type
     procedure DoFree(var data: THPC_Base); override;
   end;
 
-  THPC_Base = class
+  THPC_Base = class(TCore_Object_Intermediate)
   public
     Instance_Ptr: THPC_Instance_Pool_Decl.PQueueStruct;
     constructor Create;
@@ -3480,7 +3480,7 @@ begin
 end;
 
 type
-  TWaitSendConsoleCmdIntf = class(TCore_Object)
+  TWaitSendConsoleCmdIntf = class(TCore_Object_Intermediate)
   public
     NewResult: SystemString;
     Done: Boolean;
@@ -3490,7 +3490,7 @@ type
     procedure DoConsoleParam(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: SystemString);
   end;
 
-  TWaitSendStreamCmdIntf = class(TCore_Object)
+  TWaitSendStreamCmdIntf = class(TCore_Object_Intermediate)
   public
     NewResult: TDFE;
     Done: Boolean;
@@ -8958,13 +8958,13 @@ begin
 
   FSend_Queue_Critical.Lock;
   try
-    while FQueuePool.Num > 0 do
+    while FSend_Queue_Pool.Num > 0 do
       begin
         if not Connected then
             Break;
         if FWaitOnResult then
             Break;
-        p := FQueuePool.current^.data;
+        p := FSend_Queue_Pool.current^.data;
         FCurrentQueueData := p;
         case p^.State of
           qsSendConsoleCMD:
@@ -8974,7 +8974,7 @@ begin
               FWaitOnResult := True;
               Internal_Send_Console_Cmd();
               FSyncPick := nil;
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
               Break;
             end;
           qsSendStreamCMD:
@@ -8984,7 +8984,7 @@ begin
               FWaitOnResult := True;
               Internal_Send_Stream_Cmd();
               FSyncPick := nil;
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
               Break;
             end;
           qsSendDirectConsoleCMD:
@@ -8994,7 +8994,7 @@ begin
               Internal_Send_DirectConsole_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
             end;
           qsSendDirectStreamCMD:
             begin
@@ -9003,7 +9003,7 @@ begin
               Internal_Send_DirectStream_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
             end;
           qsSendBigStream:
             begin
@@ -9013,7 +9013,7 @@ begin
               Internal_Send_BigStream_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
               Break;
             end;
           qsSendCompleteBuffer:
@@ -9023,7 +9023,7 @@ begin
               Internal_Send_CompleteBuffer_Cmd();
               FSyncPick := nil;
               DisposeQueueData(p);
-              FQueuePool.Next;
+              FSend_Queue_Pool.Next;
             end;
           else PrintError('IO Queue state error.');
         end;
@@ -9142,7 +9142,7 @@ begin
   FCanPauseResultSend := False;
 
   FSend_Queue_Critical := TCritical.Create;
-  FQueuePool := TQueueData_Pool.Create;
+  FSend_Queue_Pool := TQueueData_Pool.Create;
 
   UpdateLastCommunicationTime;
   LastCommunicationTick_Received := FLastCommunicationTick;
@@ -9259,10 +9259,10 @@ begin
   OwnerFramework.UnLock_All_IO;
 
   FSend_Queue_Critical.Lock;
-  while FQueuePool.Num > 0 do
+  while FSend_Queue_Pool.Num > 0 do
     begin
-      DisposeQueueData(FQueuePool.current^.data);
-      FQueuePool.Next;
+      DisposeQueueData(FSend_Queue_Pool.current^.data);
+      FSend_Queue_Pool.Next;
     end;
   FSend_Queue_Critical.UnLock;
 
@@ -9277,7 +9277,7 @@ begin
       DisposeObject(FUser_Special);
 
   { free buffer }
-  DisposeObject(FQueuePool);
+  DisposeObject(FSend_Queue_Pool);
   DisposeObject(FSend_Queue_Critical);
   DisposeObject(FReceived_Physics_Critical);
   DisposeObject(FReceived_Physics_Fragment_Pool);
@@ -9310,7 +9310,7 @@ begin
     (IOSendBuffer.Size > 0) or
     (SendingSequencePacketHistory.Count > 0) or
     (SequencePacketReceivedPool.Count > 0) or
-    (FQueuePool.Num > 0) or
+    (FSend_Queue_Pool.Num > 0) or
     (FReceivedBuffer.Size > 0) or
     (FReceivedBuffer_Busy.Size > 0) or
     (FWaitOnResult) or
@@ -10011,7 +10011,7 @@ procedure TPeerIO.PostQueueData(p: PQueueData);
 begin
   OwnerFramework.CmdSendStatistics.IncValue(p^.Cmd, 1);
   FSend_Queue_Critical.Lock;
-  FQueuePool.Push(p);
+  FSend_Queue_Pool.Push(p);
   FSend_Queue_Critical.UnLock;
 end;
 
@@ -15260,8 +15260,8 @@ begin
   if ClientIO = nil then
       exit;
   ClientIO.FSend_Queue_Critical.Lock;
-  if ClientIO.FQueuePool.Num > 0 then
-      Result := PQueueData(ClientIO.FQueuePool.Last^.data);
+  if ClientIO.FSend_Queue_Pool.Num > 0 then
+      Result := PQueueData(ClientIO.FSend_Queue_Pool.Last^.data);
   ClientIO.FSend_Queue_Critical.UnLock;
 end;
 
@@ -15282,7 +15282,7 @@ begin
   if ClientIO = nil then
       exit;
   ClientIO.FSend_Queue_Critical.Lock;
-  Result := ClientIO.FQueuePool.Num;
+  Result := ClientIO.FSend_Queue_Pool.Num;
   ClientIO.FSend_Queue_Critical.UnLock;
 end;
 

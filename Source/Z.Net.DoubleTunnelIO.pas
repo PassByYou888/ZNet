@@ -72,7 +72,7 @@ type
   TOnLinkSuccess = procedure(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine) of object;
   TOnUserOut = procedure(Sender: TDTService; UserDefineIO: TService_RecvTunnel_UserDefine) of object;
 
-  TDTService = class(TCore_InterfacedObject)
+  TDTService = class(TCore_InterfacedObject_Intermediate)
   protected
     FRecvTunnel, FSendTunnel: TZNet_Server;
     FFileSystem: Boolean;
@@ -276,7 +276,7 @@ type
     const fileName: SystemString; const StartPos, EndPos: Int64; const DataPtr: Pointer; const DataSize: Int64; const MD5: TMD5);
 {$ENDIF FPC}
 
-  TDTClient = class(TCore_InterfacedObject, IZNet_ClientInterface)
+  TDTClient = class(TCore_InterfacedObject_Intermediate, IZNet_ClientInterface)
   protected
     FSendTunnel, FRecvTunnel: TZNet_Client;
     FFileSystem: Boolean;
@@ -590,7 +590,7 @@ type
 
   PDT_P2PVM_OnState = ^TDT_P2PVM_OnState;
 
-  TDT_P2PVM_Service = class(TCore_Object)
+  TDT_P2PVM_Service = class(TCore_Object_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -611,7 +611,7 @@ type
   TDT_P2PVM_ServicePool = TGenericsList<TDT_P2PVM_Service>;
   TOn_DT_P2PVM_Client_TunnelLink = procedure(Sender: TDT_P2PVM_Client) of object;
 
-  TDT_P2PVM_Client = class(TCore_Object)
+  TDT_P2PVM_Client = class(TCore_Object_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_OnState;
     Connecting: Boolean;
@@ -650,7 +650,7 @@ type
   TDT_P2PVM_Custom_Service = class;
   TDT_P2PVM_Custom_Service_Class = class of TDT_P2PVM_Custom_Service;
 
-  TDT_P2PVM_Custom_Service = class(TCore_InterfacedObject)
+  TDT_P2PVM_Custom_Service = class(TCore_InterfacedObject_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -688,7 +688,7 @@ type
     procedure DoFree(var Data: TDT_P2PVM_Custom_Client); override;
   end;
 
-  TDT_P2PVM_Custom_Client = class(TCore_InterfacedObject)
+  TDT_P2PVM_Custom_Client = class(TCore_InterfacedObject_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_OnState;
     Connecting: Boolean;
@@ -785,7 +785,7 @@ type
     OnComplete_P: TFileFragmentData_P;
   end;
 
-  TAutomatedDownloadPublicFile_Struct = class
+  TAutomatedDownloadPublicFile_Struct = class(TCore_Object_Intermediate)
   private
     remoteFile, localFile: SystemString;
     OnDownloadDoneC: TFileComplete_C;
@@ -807,7 +807,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutomatedDownloadPrivateFile_Struct = class
+  TAutomatedDownloadPrivateFile_Struct = class(TCore_Object_Intermediate)
   private
     remoteFile, RemoteDirectory, localFile: SystemString;
     OnDownloadDoneC: TFileComplete_C;
@@ -829,7 +829,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutomatedUploadPublicFile_Struct = class
+  TAutomatedUploadPublicFile_Struct = class(TCore_Object_Intermediate)
   private
     localFile: SystemString;
     Client: TDTClient;
@@ -848,7 +848,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutomatedUploadPrivateFile_Struct = class
+  TAutomatedUploadPrivateFile_Struct = class(TCore_Object_Intermediate)
   private
     localFile, RemoteDirectory: SystemString;
     Client: TDTClient;

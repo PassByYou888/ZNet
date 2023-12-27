@@ -11,7 +11,7 @@ interface
 uses Z.ZDB, Z.ZDB.HashItem_LIB, Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
 
 type
-  TObjectDataHashField = class(TCore_Object)
+  TObjectDataHashField = class(TCore_Object_Intermediate)
   private
     FList: TCore_ListForObj;
     FDBEngine: TObjectDataManager;

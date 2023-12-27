@@ -20,7 +20,7 @@ type
   TZDB2_MS64 = class;
   TZDB2_Big_List_MS64_Decl__ = TBigList<TZDB2_MS64>;
 
-  TZDB2_MS64 = class
+  TZDB2_MS64 = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZDB2_Big_List_MS64_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
@@ -49,7 +49,7 @@ type
 
   TOnCreate_ZDB2_MS64 = procedure(Sender: TZDB2_List_MS64; Obj: TZDB2_MS64) of object;
 
-  TZDB2_List_MS64 = class
+  TZDB2_List_MS64 = class(TCore_Object_Intermediate)
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;

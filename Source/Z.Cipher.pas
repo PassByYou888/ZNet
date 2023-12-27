@@ -259,7 +259,7 @@ type
 
   THashSecuritys = set of THashSecurity;
 
-  TCipher = class(TCore_Object)
+  TCipher = class(TCore_Object_Intermediate)
   public const
     CAllHash: THashSecuritys = [
       hsNone,
@@ -461,7 +461,7 @@ type
     Encrypt: Boolean;
   end;
 
-  TParallelCipher = class(TCore_Object)
+  TParallelCipher = class(TCore_Object_Intermediate)
   private
     procedure DES64_Parallel(Job, buff, key: Pointer; Size: NativeInt);
     procedure DES128_Parallel(Job, buff, key: Pointer; Size: NativeInt);
@@ -597,14 +597,14 @@ function QuantumDecrypt(input, output: TCore_Stream; key: TCipherKeyBuffer): Boo
 
 type
   { Blowfish Cipher }
-  TBlowfish = class(TCore_Object)
+  TBlowfish = class(TCore_Object_Intermediate)
   public
     class procedure EncryptBF(const Context: TBFContext; var Block: TBFBlock; Encrypt: Boolean);
     class procedure InitEncryptBF(key: TKey128; var Context: TBFContext);
   end;
 
   { DES Cipher }
-  TDES = class(TCore_Object)
+  TDES = class(TCore_Object_Intermediate)
   strict private
     class procedure JoinBlock(const L, R: DWORD; var Block: TDESBlock);
     class procedure SplitBlock(const Block: TDESBlock; var L, R: DWORD);
@@ -620,7 +620,7 @@ type
   end;
 
   { SHA1 }
-  TSHA1 = class(TCore_Object)
+  TSHA1 = class(TCore_Object_Intermediate)
   strict private
     class procedure SHA1Clear(var Context: TSHA1Context);
     class procedure SHA1Hash(var Context: TSHA1Context);
@@ -635,7 +635,7 @@ type
   end;
 
   { SHA-2-SHA256 }
-  TSHA256 = class(TCore_Object)
+  TSHA256 = class(TCore_Object_Intermediate)
   private
     class procedure SwapDWORD(var a: DWORD);
     class procedure Compute(var Digest: TSHA256Digest; const buff: Pointer);
@@ -644,7 +644,7 @@ type
   end;
 
   { SHA-2-SHA512 }
-  TSHA512 = class(TCore_Object)
+  TSHA512 = class(TCore_Object_Intermediate)
   private
     class procedure SwapQWORD(var a: UInt64);
     class procedure Compute(var Digest: TSHA512Digest; const buff: Pointer);
@@ -653,7 +653,7 @@ type
   end;
 
   { SHA-3:SHA224,SHA256,SHA384,SHA512,SHAKE128,SHAKE256 }
-  TSHA3 = class(TCore_Object)
+  TSHA3 = class(TCore_Object_Intermediate)
   private type
     TSHA3Context = record
       HashLength: DWORD;
@@ -693,7 +693,7 @@ type
   end;
 
   { LBC Cipher }
-  TLBC = class(TCore_Object)
+  TLBC = class(TCore_Object_Intermediate)
   public
     class procedure EncryptLBC(const Context: TLBCContext; var Block: TLBCBlock);
     class procedure EncryptLQC(const key: TKey128; var Block: TLQCBlock; Encrypt: Boolean);
@@ -701,7 +701,7 @@ type
   end;
 
   { MD5 }
-  THashMD5 = class(TCore_Object)
+  THashMD5 = class(TCore_Object_Intermediate)
   public
     class procedure GenerateMD5Key(var key: TKey128; const Bytes_: TBytes);
     class procedure HashMD5(var Digest: TMD5Digest; const Buf; BufSize: NativeInt);
@@ -712,7 +712,7 @@ type
   end;
 
   { message digest }
-  THashMD = class(TCore_Object)
+  THashMD = class(TCore_Object_Intermediate)
   public
     class procedure GenerateLMDKey(var key; KeySize: Integer; const Bytes_: TBytes);
     class procedure HashLMD(var Digest; DigestSize: Integer; const Buf; BufSize: NativeInt);
@@ -723,7 +723,7 @@ type
   end;
 
   { Random Number Cipher }
-  TRNG = class(TCore_Object)
+  TRNG = class(TCore_Object_Intermediate)
   public
     class procedure EncryptRNG32(var Context: TRNG32Context; var Buf; BufSize: Integer);
     class procedure EncryptRNG64(var Context: TRNG64Context; var Buf; BufSize: Integer);
@@ -732,7 +732,7 @@ type
   end;
 
   { LSC Stream Cipher }
-  TLSC = class(TCore_Object)
+  TLSC = class(TCore_Object_Intermediate)
   public
     class procedure EncryptLSC(var Context: TLSCContext; var Buf; BufSize: Integer);
     class procedure InitEncryptLSC(const key; KeySize: Integer; var Context: TLSCContext);
@@ -740,7 +740,7 @@ type
 
   { Miscellaneous algorithms }
   { Misc public utilities }
-  TMISC = class(TCore_Object)
+  TMISC = class(TCore_Object_Intermediate)
   public
     class procedure Mix128(var x: T128Bit); static;
     class function Ran0Prim(var Seed: Integer; IA, IQ, IR: Integer): Integer; static;
@@ -776,7 +776,7 @@ type
   PRC6Block = ^TRC6Block;
   TRC6Block = array [0 .. 15] of Byte;
 
-  TRC6 = class(TCore_Object)
+  TRC6 = class(TCore_Object_Intermediate)
   public
     class function LRot32(x, c: DWORD): DWORD;
     class function RRot32(x, c: DWORD): DWORD;
@@ -792,7 +792,7 @@ type
   PSerpentBlock = ^TSerpentBlock;
   TSerpentBlock = array [0 .. 15] of Byte;
 
-  TSerpent = class(TCore_Object)
+  TSerpent = class(TCore_Object_Intermediate)
   public
     class procedure InitKey(buff: Pointer; Size: Integer; var KeyContext: TSerpentkey);
     class procedure Encrypt(var KeyContext: TSerpentkey; var Data: TSerpentBlock);
@@ -806,7 +806,7 @@ type
   PMarsBlock = ^TMarsBlock;
   TMarsBlock = array [0 .. 15] of Byte;
 
-  TMars = class(TCore_Object)
+  TMars = class(TCore_Object_Intermediate)
   public
     class procedure gen_mask(var x, m: DWORD);
     class procedure InitKey(buff: Pointer; Size: Integer; var KeyContext: TMarskey);
@@ -826,7 +826,7 @@ type
   PRijndaelBlock = ^TRijndaelBlock;
   TRijndaelBlock = array [0 .. 15] of Byte;
 
-  TRijndael = class(TCore_Object)
+  TRijndael = class(TCore_Object_Intermediate)
   private const
 {$REGION 'RijndaelDefine'}
     T1: array [0 .. 255, 0 .. 3] of Byte = (
@@ -1655,7 +1655,7 @@ type
   PTwofishBlock = ^TTwofishBlock;
   TTwofishBlock = array [0 .. 15] of Byte;
 
-  TTwofish = class(TCore_Object)
+  TTwofish = class(TCore_Object_Intermediate)
   private const
 {$REGION 'TwofishDefine'}
     P8x8: array [0 .. 1, 0 .. 255] of Byte =
@@ -1780,7 +1780,7 @@ type
 
 
 type
-  TCipher_Base = class(TCore_Object)
+  TCipher_Base = class(TCore_Object_Intermediate)
   protected
     FCipherSecurity: TCipherSecurity;
     FLastGenerateKey: TCipherKeyBuffer;

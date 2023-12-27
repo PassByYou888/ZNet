@@ -20,7 +20,7 @@ uses Variants,
   Z.Net.XNAT.Client, Z.Net.XNAT.Service, Z.Net.XNAT.Physics;
 
 type
-  TC40_CPM_Info = class
+  TC40_CPM_Info = class(TCore_Object_Intermediate)
   public
     NoDistributed: Boolean;
     ListenAddr: U_String;

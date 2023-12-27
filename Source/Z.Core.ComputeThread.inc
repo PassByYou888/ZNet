@@ -669,7 +669,7 @@ begin
   Dest_Thread_.Sync_Tool.Synchronize_P(TCompute.CurrentThread, OnRun_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_C);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -681,7 +681,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -700,7 +700,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_C);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -711,7 +711,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunC(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunC(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_C; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -787,7 +787,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_M);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -799,7 +799,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -818,7 +818,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_M);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -829,7 +829,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunM(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunM(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_M; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -905,7 +905,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_P);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -917,7 +917,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun, OnDone: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TObject; const OnRun, OnDone: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -936,7 +936,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_P);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -947,7 +947,7 @@ begin
   PostComputeDispatchData(Dispatch_);
 end;
 
-class procedure TCompute.RunP(const Data: Pointer; const Obj: TCore_Object; const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.RunP(const Data: Pointer; const Obj: TObject; const OnRun: TRun_Thread_P; IsRuning_, IsExit_: PBoolean);
 var
   Dispatch_: TComputeDispatch;
 begin
@@ -1069,22 +1069,22 @@ begin
   MainThreadProgress.PostC2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+class procedure TCompute.PostC3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_C3);
 begin
   MainThreadProgress.PostC3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostC3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_C3; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostC3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+class procedure TCompute.PostC4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_C4);
 begin
   MainThreadProgress.PostC4(Data1, Data2, OnSync);
 end;
 
-class procedure TCompute.PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostC4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_C4; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostC4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
@@ -1109,22 +1109,22 @@ begin
   MainThreadProgress.PostM2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+class procedure TCompute.PostM3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_M3);
 begin
   MainThreadProgress.PostM3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostM3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_M3; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostM3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+class procedure TCompute.PostM4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_M4);
 begin
   MainThreadProgress.PostM4(Data1, Data2, OnSync);
 end;
 
-class procedure TCompute.PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostM4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_M4; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostM4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
@@ -1149,22 +1149,22 @@ begin
   MainThreadProgress.PostP2(Data1, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+class procedure TCompute.PostP3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_P3);
 begin
   MainThreadProgress.PostP3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostP3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_P3; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostP3(Data1, Data2, Data3, OnSync, IsRuning_, IsExit_);
 end;
 
-class procedure TCompute.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+class procedure TCompute.PostP4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_P4);
 begin
   MainThreadProgress.PostP4(Data1, Data2, OnSync);
 end;
 
-class procedure TCompute.PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean);
+class procedure TCompute.PostP4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_P4; IsRuning_, IsExit_: PBoolean);
 begin
   MainThreadProgress.PostP4(Data1, Data2, OnSync, IsRuning_, IsExit_);
 end;
@@ -1179,12 +1179,12 @@ begin
   MainThreadProgress.Sync_Wait_PostC2(Data1, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostC3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_C3);
+class procedure TCompute.Sync_Wait_PostC3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_C3);
 begin
   MainThreadProgress.Sync_Wait_PostC3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostC4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_C4);
+class procedure TCompute.Sync_Wait_PostC4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_C4);
 begin
   MainThreadProgress.Sync_Wait_PostC4(Data1, Data2, OnSync);
 end;
@@ -1199,12 +1199,12 @@ begin
   MainThreadProgress.Sync_Wait_PostM2(Data1, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostM3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_M3);
+class procedure TCompute.Sync_Wait_PostM3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_M3);
 begin
   MainThreadProgress.Sync_Wait_PostM3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostM4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_M4);
+class procedure TCompute.Sync_Wait_PostM4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_M4);
 begin
   MainThreadProgress.Sync_Wait_PostM4(Data1, Data2, OnSync);
 end;
@@ -1219,12 +1219,12 @@ begin
   MainThreadProgress.Sync_Wait_PostP2(Data1, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostP3(Data1: Pointer; Data2: TCore_Object; Data3: Variant; OnSync: TThreadPost_P3);
+class procedure TCompute.Sync_Wait_PostP3(Data1: Pointer; Data2: TObject; Data3: Variant; OnSync: TThreadPost_P3);
 begin
   MainThreadProgress.Sync_Wait_PostP3(Data1, Data2, Data3, OnSync);
 end;
 
-class procedure TCompute.Sync_Wait_PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
+class procedure TCompute.Sync_Wait_PostP4(Data1: Pointer; Data2: TObject; OnSync: TThreadPost_P4);
 begin
   MainThreadProgress.Sync_Wait_PostP4(Data1, Data2, OnSync);
 end;

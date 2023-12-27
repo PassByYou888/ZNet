@@ -196,7 +196,7 @@ function Replace_ASCII_Code(var Code_: TP_String; PatternHash_: THashStringList;
 type
   TRewrite_Trace_Pool = class;
 
-  TRewrite_Trace = class
+  TRewrite_Trace = class(TCore_Object_Intermediate)
   public
     Current_: U_String;
     marco_hash_: THashStringList;
@@ -228,7 +228,7 @@ function RewritePascal_ProcessDirectory(Parallel_: Boolean; directory_: U_String
 
 // rewrite ZDB file
 type
-  TThread_RewritePascal_Process_ZDB_File = class
+  TThread_RewritePascal_Process_ZDB_File = class(TCore_Object_Intermediate)
   public
     // runtime param
     Busy: Boolean;

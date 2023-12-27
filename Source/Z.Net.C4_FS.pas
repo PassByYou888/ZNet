@@ -24,7 +24,7 @@ uses
 type
   TC40_FS_Service = class;
 
-  TFS_Service_File_Data = class
+  TFS_Service_File_Data = class(TCore_Object_Intermediate)
   public
     Owner: TC40_FS_Service;
     Stream: TZDB2_MS64;
@@ -76,7 +76,7 @@ type
 
 {$REGION 'bridge_define'}
 
-  TFS_Client_CacheData = class
+  TFS_Client_CacheData = class(TCore_Object_Intermediate)
     Owner: TC40_FS_Client;
     Stream: TZDB2_MS64;
     LastAccess: TTimeTick;
@@ -94,7 +94,7 @@ type
   TON_FS_PostFile_DoneP = reference to procedure(Sender: TC40_FS_Client; info_: U_String);
 {$ENDIF FPC}
 
-  TFS_Temp_Post_File_Tunnel = class
+  TFS_Temp_Post_File_Tunnel = class(TCore_Object_Intermediate)
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS_Client;
@@ -118,7 +118,7 @@ type
   TON_FS_GetFile_DoneP = reference to procedure(Sender: TC40_FS_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
 {$ENDIF FPC}
 
-  TFS_Temp_Get_File_Tunnel = class
+  TFS_Temp_Get_File_Tunnel = class(TCore_Object_Intermediate)
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS_Client;
@@ -153,7 +153,7 @@ type
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
 
-  TFS_Temp_GetFileMD5_Cache = class
+  TFS_Temp_GetFileMD5_Cache = class(TCore_Object_Intermediate)
   public
     Client: TC40_FS_Client;
     File_Name: U_String;

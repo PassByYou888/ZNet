@@ -54,7 +54,7 @@ type
 
   TOn_CMD_Done = procedure() of object;
 
-  TZDB2_Th_CMD = class
+  TZDB2_Th_CMD = class(TCore_Object_Intermediate)
   protected
     OnDone: TOn_CMD_Done;
     Engine: TZDB2_Th_Queue;
@@ -333,7 +333,7 @@ type
   TOn_Mem64_And_State_Event_P = reference to procedure(var Sender: TZDB2_Th_CMD_Mem64_And_State);
 {$ENDIF FPC}
 
-  TZDB2_Th_CMD_Bridge_Mem64_And_State = class
+  TZDB2_Th_CMD_Bridge_Mem64_And_State = class(TCore_Object_Intermediate)
   protected
     OnResult_C: TOn_Mem64_And_State_Event_C;
     OnResult_M: TOn_Mem64_And_State_Event_M;
@@ -355,7 +355,7 @@ type
   TOn_Stream_And_State_Event_P = reference to procedure(var Sender: TZDB2_Th_CMD_Stream_And_State);
 {$ENDIF FPC}
 
-  TZDB2_Th_CMD_Bridge_Stream_And_State = class
+  TZDB2_Th_CMD_Bridge_Stream_And_State = class(TCore_Object_Intermediate)
   protected
     OnResult_C: TOn_Stream_And_State_Event_C;
     OnResult_M: TOn_Stream_And_State_Event_M;
@@ -377,7 +377,7 @@ type
   TOn_ID_And_State_Event_P = reference to procedure(var Sender: TZDB2_Th_CMD_ID_And_State);
 {$ENDIF FPC}
 
-  TZDB2_Th_CMD_Bridge_ID_And_State = class
+  TZDB2_Th_CMD_Bridge_ID_And_State = class(TCore_Object_Intermediate)
   protected
     OnResult_C: TOn_ID_And_State_Event_C;
     OnResult_M: TOn_ID_And_State_Event_M;
@@ -399,7 +399,7 @@ type
   TOn_State_Event_P = reference to procedure(var Sender: TCMD_State);
 {$ENDIF FPC}
 
-  TZDB2_Th_CMD_Bridge_State = class
+  TZDB2_Th_CMD_Bridge_State = class(TCore_Object_Intermediate)
   protected
     OnResult_C: TOn_State_Event_C;
     OnResult_M: TOn_State_Event_M;
@@ -419,7 +419,7 @@ type
 {$REGION 'Command_Dispatch'}
   TZDB2_Th_Queue_Instance_Pool = TCritical_BigList<TZDB2_Th_Queue>;
 
-  TZDB2_Th_Queue = class
+  TZDB2_Th_Queue = class(TCore_Object_Intermediate)
   private
     FInstance_Pool_Ptr: TZDB2_Th_Queue_Instance_Pool.PQueueStruct;
     FCMD_Queue: TZDB2_Th_CMD_Queue;

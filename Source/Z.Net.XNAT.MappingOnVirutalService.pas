@@ -102,7 +102,7 @@ type
   TXVirutalServiceHashMapping = TGeneric_String_Object_Hash<TXNAT_MappingOnVirutalService>;
   TXNAT_VS_Mapping_List_Decl = TGenericsList<TXNAT_VS_Mapping>;
 
-  TXNAT_VS_Mapping = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
+  TXNAT_VS_Mapping = class(TCore_InterfacedObject_Intermediate, IIOInterface, IZNet_VMInterface)
   private
     MappingList: TXVirutalServiceMappingList;
     HashMapping: TXVirutalServiceHashMapping;

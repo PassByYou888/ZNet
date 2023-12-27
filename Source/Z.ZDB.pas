@@ -83,7 +83,7 @@ type
 {$ENDIF FPC}
   TObjectDataManager_Struct_Hash_Info = TString_Big_Hash_Pair_Pool<Int64>;
 
-  TObjectDataManager = class(TCore_Object)
+  TObjectDataManager = class(TCore_Object_Intermediate)
   protected
     FStreamEngine: TCore_Stream;
     FDB_HND: TObjectDataHandle;
@@ -366,7 +366,7 @@ type
     function CacheStatus: SystemString;
   end;
 
-  TObjectDataMarshal = class(TCore_Object)
+  TObjectDataMarshal = class(TCore_Object_Intermediate)
   protected
     FID: Byte;
     FLibList: TCore_Strings;

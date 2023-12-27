@@ -91,7 +91,7 @@ type
     Flag2: Cardinal;
   end;
 
-  TZDB2_Block_File_Data_Instance = class
+  TZDB2_Block_File_Data_Instance = class(TCore_Object_Intermediate)
   private
     Position, NextPosition: Int64;
     Count: Integer;
@@ -125,7 +125,7 @@ type
     procedure Recycle_Memory;
   end;
 
-  TZDB2_Space_Planner = class
+  TZDB2_Space_Planner = class(TCore_Object_Intermediate)
   private
     FCore: TZDB2_Core_Space;
     FStruct: TZDB2_Block_File_Data_Instance_List;
@@ -140,7 +140,7 @@ type
     function Flush: Boolean;
   end;
 
-  TZDB2_CRC16 = class
+  TZDB2_CRC16 = class(TCore_Object_Intermediate)
   public
     CRC16Buffer: array of WORD;
     constructor Create;
@@ -153,7 +153,7 @@ type
     procedure SaveToFile(FileName_: SystemString);
   end;
 
-  TZDB2_Cipher = class(TCore_InterfacedObject, IZDB2_Cipher)
+  TZDB2_Cipher = class(TCore_InterfacedObject_Intermediate, IZDB2_Cipher)
   private
     FCipher_: TCipher_Base;
   public
@@ -200,7 +200,7 @@ type
   TZDB2_Core_Space_Error_Info = class(TZDB2_Core_Space_Info);
   TZDB2_Core_Space_Warning_Info = class(TZDB2_Core_Space_Info);
 
-  TZDB2_Core_Space = class
+  TZDB2_Core_Space = class(TCore_Object_Intermediate)
   private
     FHeader: TZDB2_FileHeader;
     FFault_Shutdown: Boolean;

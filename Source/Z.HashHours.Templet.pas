@@ -36,7 +36,17 @@ type
     end;
 
     TTime_List = TBigList<T_>;
-    TTime_Data_L = TBigList<TTime_Hash_Pool>;
+    TTime_Data_L_ = TBigList<TTime_Hash_Pool>;
+    TDateTime_L = TBigList<TDateTime>;
+
+    TTime_Data_L = class(TTime_Data_L_)
+    private
+      Span_Time_L: TDateTime_L;
+    public
+      constructor Create;
+      destructor Destroy; override;
+    end;
+
     TTime_Data_Pool = TBig_Hash_Pair_Pool<T_, TTime_Data_L>;
   private
     FCritical: TCritical;
@@ -45,6 +55,7 @@ type
     procedure Do_Time_Data_Pool_Free(var key: T_; var Value: TTime_Data_L);
     function Get_Or_Create_Pool(const Key_: TDateTime): TTime_Hash_Pool;
     function Get_Pool(const Key_: TDateTime): TTime_Hash_Pool;
+    procedure Do_Remove_DT_Obj(DT: TDateTime; Value: T_);
   public
     property Critical: TCritical read FCritical;
     property Time_Data_Pool: TTime_Data_Pool read FTime_Data_Pool;
@@ -93,6 +104,18 @@ begin
   Result := EncodeDateTime(data[0], data[1], data[2], data[3], 0, 0, 0);
 end;
 
+constructor THours_Buffer_Pool<T_>.TTime_Data_L.Create;
+begin
+  inherited Create;
+  Span_Time_L := TDateTime_L.Create;
+end;
+
+destructor THours_Buffer_Pool<T_>.TTime_Data_L.Destroy;
+begin
+  DisposeObject(Span_Time_L);
+  inherited Destroy;
+end;
+
 procedure THours_Buffer_Pool<T_>.Do_Time_Data_Pool_Free(var key: T_; var Value: TTime_Data_L);
 begin
   DisposeObjectAndNil(Value);
@@ -117,6 +140,21 @@ begin
   Result := Key_Value[Key_];
 end;
 
+procedure THours_Buffer_Pool<T_>.Do_Remove_DT_Obj(DT: TDateTime; Value: T_);
+var
+  obj: TTime_Hash_Pool;
+begin
+  obj := Get_Key_Value(DT);
+  if obj = nil then
+    begin
+      Delete(DT);
+      exit;
+    end;
+  obj.Delete(Value);
+  if obj.Num <= 0 then
+      Delete(DT);
+end;
+
 constructor THours_Buffer_Pool<T_>.Create(const HashSize_: Integer);
 begin
   inherited Create(HashSize_, nil);
@@ -128,7 +166,7 @@ end;
 
 destructor THours_Buffer_Pool<T_>.Destroy;
 begin
-  disposeObject(FTime_Data_Pool);
+  DisposeObject(FTime_Data_Pool);
   DisposeObjectAndNil(FCritical);
   inherited Destroy;
 end;
@@ -212,6 +250,7 @@ begin
         obj2 := TTime_Data_L.Create;
         FTime_Data_Pool.Add(Value, obj2, False);
       end;
+    obj2.Span_Time_L.Add(DT);
     obj2.Add(obj);
   finally
     if L_ then
@@ -241,16 +280,26 @@ begin
       end
     else
       begin
+        // remove queue
         if obj2.Num > 0 then
-          with obj2.Repeat_ do
+          begin
+            with obj2.Repeat_ do
+              repeat
+                queue^.data.Delete(Value);
+                if queue^.data.Num <= 0 then
+                  begin
+                    queue^.data.Clear;
+                    Discard;
+                  end;
+              until not Next;
+          end;
+        // remove primary key
+        if obj2.Span_Time_L.Num > 0 then
+          with obj2.Span_Time_L.Repeat_ do
             repeat
-              queue^.data.Delete(Value);
-              if queue^.data.Num <= 0 then
-                begin
-                  queue^.data.Clear;
-                  Discard;
-                end;
+                Do_Remove_DT_Obj(queue^.data, Value);
             until not Next;
+        // remove link
         FTime_Data_Pool.Delete(Value);
       end;
   finally
@@ -365,7 +414,7 @@ begin
   end;
   FCritical.UnLock;
 
-  disposeObject(swap_obj);
+  DisposeObject(swap_obj);
 end;
 
 function THours_Buffer_Pool<T_>.Search_Span(DT: TDateTime): TTime_List;
@@ -435,14 +484,14 @@ begin
   bDT := umlDT('2009-10-6 1:30:34.000');
   eDT := umlDT('2009-10-6 22:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
-  disposeObject(tmp);
+  DisposeObject(tmp);
 
   m.Remove_Span(L.First^.data);
 
   bDT := umlDT('2009-10-6 1:30:34.000');
   eDT := umlDT('2009-10-6 2:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
-  disposeObject(tmp);
+  DisposeObject(tmp);
 
   with L.Repeat_ do
     repeat
@@ -454,14 +503,14 @@ begin
         m.Remove_Span(queue^.data);
     until not Next;
 
-  disposeObject(m);
+  DisposeObject(m);
 
   with L.Repeat_ do
     repeat
         dispose(queue^.data);
     until not Next;
   L.Clear;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 end.

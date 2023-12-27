@@ -21,7 +21,7 @@ type
   TXClientCustomProtocol = class;
   TXClientCustomProtocol_List = TGenericsList<TXClientCustomProtocol>;
 
-  TXClientMapping = class(TCore_Object)
+  TXClientMapping = class(TCore_Object_Intermediate)
   private
     Owner: TXNATClient;
     FAddr: TPascalString;
@@ -105,7 +105,7 @@ type
   TXClientHashMapping = TGeneric_String_Object_Hash<TXClientMapping>;
   TOn_XNATClient_Open_Tunnel_Done = procedure(Sender: TXNATClient; State: Boolean) of object;
 
-  TXNATClient = class(TCore_InterfacedObject, IIOInterface, IZNet_VMInterface)
+  TXNATClient = class(TCore_InterfacedObject_Intermediate, IIOInterface, IZNet_VMInterface)
   private
     FMappingList: TXClientMappingList;
     FHashMapping: TXClientHashMapping;

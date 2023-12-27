@@ -27,7 +27,7 @@ type
 
   PHashItemData = ^THashItemData;
 
-  TObjectDataHashItem = class(TCore_Object)
+  TObjectDataHashItem = class(TCore_Object_Intermediate)
   protected
     FCounter: Boolean;
     FCount: Integer;

@@ -54,7 +54,7 @@ type
 
   { TZDB2_Custom_Batch_Data_Post_Bridge solves the optimal storage performance of combined data }
   { It supports saving one batch at a time and returning the stored results. This mechanism can be used for data binding, such as one json small data binding multiple medium data or Big data entries }
-  TZDB2_Custom_Batch_Data_Post_Bridge = class
+  TZDB2_Custom_Batch_Data_Post_Bridge = class(TCore_Object_Intermediate)
   private
     FCritical: TCritical;
     Total_Post: Integer;
@@ -217,7 +217,9 @@ type
   TS_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
+    // user
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
     function Begin_Custom_Build: TZDB2_Th_Engine; virtual;
@@ -231,7 +233,9 @@ type
   TM_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
+    // user
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
     function Begin_Custom_Build: TZDB2_Th_Engine; virtual;
@@ -245,7 +249,9 @@ type
   TL_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
+    // user
     procedure Do_Extract_Th_Eng(ThSender: TCompute); virtual;
     procedure Extract_External_Header(var Extract_Done: Boolean); virtual;
     function Begin_Custom_Build: TZDB2_Th_Engine; virtual;
@@ -256,7 +262,7 @@ type
   TM_Th_Engine_Marshal_Class = class of TM_Th_Engine_Marshal;
   TL_Th_Engine_Marshal_Class = class of TL_Th_Engine_Marshal;
 
-  TZDB2_Large = class
+  TZDB2_Large = class(TCore_Object_Intermediate)
   private
     { Linear lock }
     FCritical: TCritical;

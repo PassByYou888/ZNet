@@ -65,7 +65,7 @@ type
   TTriMesh2D_ = class;
 
   // Basic 2D vertex class, containing an FPoint (TPoing2D_) field with X and Y coordinate.
-  TVertex2D_ = class(TCore_Persistent)
+  TVertex2D_ = class(TCore_Persistent_Intermediate)
   private
     FPoint: TPoing2D_;
     function GetX: double;
@@ -112,7 +112,7 @@ type
 
   // A segment is a boundary that connects two vertices. When a segment is present
   // the triangles bordering it cannot be swapped, thus constraining the triangulation
-  TSegment2D_ = class(TCore_Persistent)
+  TSegment2D_ = class(TCore_Persistent_Intermediate)
   private
     FValidMetrics: boolean;
     FVertex1: TVertex2D_;
@@ -181,7 +181,7 @@ type
     );
 
   // Basic class for triangles that are present in a triangular 2D mesh
-  TTriangle2D_ = class(TCore_Persistent)
+  TTriangle2D_ = class(TCore_Persistent_Intermediate)
   private
     FVertices: array [0 .. 2] of TVertex2D_;
     FNormals: array [0 .. 2] of TPoing2D_;
@@ -264,7 +264,7 @@ type
 
   // The object represents general triangle-edge group.
   // Capacity will be increased when needed, but will never be reduced, to avoid memory fragmentation.
-  TTriangleGroup2D_ = class(TCore_Persistent)
+  TTriangleGroup2D_ = class(TCore_Persistent_Intermediate)
   private
     FTriangles: array of TTriangle2D_;
     FEdges: array of integer;
@@ -337,7 +337,7 @@ type
   end;
 
   // A mesh consisting of triangles and vertices, where each triangle contains reference to 3 vertices.
-  TTriMesh2D_ = class(TCore_Persistent)
+  TTriMesh2D_ = class(TCore_Persistent_Intermediate)
   private
     FPrecision: double;
     FVertices: TVertex2DList_;
@@ -412,7 +412,7 @@ type
 
   TTriMesh2DClass_ = class of TTriMesh2D_;
 
-  TConvexHull_ = class(TCore_Persistent)
+  TConvexHull_ = class(TCore_Persistent_Intermediate)
   private
     FMesh: TTriMesh2D_;
     // Add a new segment in the hull, using vertices with Idx1, Idx2
@@ -429,7 +429,7 @@ type
   end;
 
   // Class encapsulating 2D Planar Straightline Graphs (PSLG)
-  TGraph2D_ = class(TCore_Persistent)
+  TGraph2D_ = class(TCore_Persistent_Intermediate)
   private
     FVertices: TVertex2DList_;
     FSegments: TSegment2DList_;

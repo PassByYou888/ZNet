@@ -25,7 +25,8 @@ uses
   Z.Net.DoubleTunnelIO.VirtualAuth,
   Z.Net.DataStoreService.VirtualAuth,
   Z.Net.DoubleTunnelIO.NoAuth,
-  Z.Net.DataStoreService.NoAuth;
+  Z.Net.DataStoreService.NoAuth,
+  Z.Instance.Tool;
 
 type
   TC40_PhysicsService = class;
@@ -70,7 +71,7 @@ type
   end;
 
   { automated physics service }
-  TC40_PhysicsService = class(TCore_InterfacedObject)
+  TC40_PhysicsService = class(TCore_InterfacedObject_Intermediate)
   private
     FActivted: Boolean;
     FLastDeadConnectionCheckTime_: TTimeTick;
@@ -120,7 +121,7 @@ type
   TDCT40_OnQueryResultP = reference to procedure(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
 {$ENDIF FPC}
 
-  TDCT40_QueryResultData = class
+  TDCT40_QueryResultData = class(TCore_Object_Intermediate)
   private
     procedure DoStreamParam(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);
     procedure DoStreamFailed(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE);
@@ -135,7 +136,7 @@ type
     destructor Destroy; override;
   end;
 
-  TDCT40_QueryResultAndDependProcessor = class
+  TDCT40_QueryResultAndDependProcessor = class(TCore_Object_Intermediate)
   private
     procedure DCT40_OnCheckDepend(Sender: TC40_PhysicsTunnel; L: TC40_InfoList);
     procedure DCT40_OnAutoP2PVMConnectionDone(Sender: TZNet; P_IO: TPeerIO);
@@ -158,7 +159,7 @@ type
   end;
 
   { automated tunnel }
-  TC40_PhysicsTunnel = class(TCore_InterfacedObject, IZNet_ClientInterface)
+  TC40_PhysicsTunnel = class(TCore_InterfacedObject_Intermediate, IZNet_ClientInterface)
   private
     FIsConnecting: Boolean;
     FWait_Build_Depend_Network: Boolean;
@@ -207,7 +208,7 @@ type
 
   TSearchServiceAndBuildConnection_Bridge = class;
 
-  TC40_First_BuildDependNetwork_Fault_Fixed_Bridge = class
+  TC40_First_BuildDependNetwork_Fault_Fixed_Bridge = class(TCore_Object_Intermediate)
   public
     Fault_Fixed_Bridge_Begin_Time: TTimeTick;
     Tunnel: TC40_PhysicsTunnel;
@@ -271,7 +272,7 @@ type
   TOn_C40_Custom_Client_EventP = reference to procedure(States: TC40_Custom_ClientPool_Wait_States);
 {$ENDIF FPC}
 
-  TC40_Custom_ClientPool_Wait = class
+  TC40_Custom_ClientPool_Wait = class(TCore_Object_Intermediate)
   private
     procedure DoRun;
   public
@@ -292,7 +293,7 @@ type
   TOnSearchServiceAndBuildConnection_P = reference to procedure(Done_ClientPool: TC40_Custom_ClientPool);
 {$ENDIF FPC}
 
-  TSearchServiceAndBuildConnection_Bridge = class
+  TSearchServiceAndBuildConnection_Bridge = class(TCore_Object_Intermediate)
   public
     PhysicsPool_: TC40_PhysicsTunnelPool;
     FullConnection_: Boolean;
@@ -312,7 +313,7 @@ type
 {$ENDREGION 'PhysicsTunnel'}
 {$REGION 'infoDefine'}
 
-  TC40_Info = class
+  TC40_Info = class(TCore_Object_Intermediate)
   private
     Ignored: Boolean;
     procedure MakeHash;
@@ -398,7 +399,7 @@ type
   TOn_C4_Help_Console_Command_P = reference to procedure(var OP_Param: TOpParam);
 {$ENDIF FPC}
 
-  TC4_Help_Console_Command_Data = class
+  TC4_Help_Console_Command_Data = class(TCore_Object_Intermediate)
   public
     Cmd: SystemString;
     Desc: SystemString;
@@ -419,7 +420,7 @@ type
 {$ENDREGION 'Help_Console_Command'}
 {$REGION 'p2p_Custom_Service_Templet'}
 
-  TC40_Custom_Service = class(TCore_InterfacedObject)
+  TC40_Custom_Service = class(TCore_InterfacedObject_Intermediate)
   private
     FLastSafeCheckTime: TTimeTick;
   public
@@ -483,7 +484,7 @@ type
 
   TOn_Client_Offline = procedure(Sender: TC40_Custom_Client) of object;
 
-  TC40_Custom_Client = class(TCore_InterfacedObject)
+  TC40_Custom_Client = class(TCore_InterfacedObject_Intermediate)
   private
     FLastSafeCheckTime: TTimeTick;
   public
@@ -565,7 +566,7 @@ type
 {$ENDREGION 'p2p_Custom_Client_Templet'}
 {$REGION 'Auto_Deployment'}
 
-  TC40_Auto_Deployment_Client<T_: class> = class
+  TC40_Auto_Deployment_Client<T_: class> = class(TCore_Object_Intermediate)
   public type
     PT_ = ^T_;
     TOn_Ready_C = procedure(var Sender: T_);
@@ -606,7 +607,7 @@ type
 {$ENDREGION 'Auto_Deployment'}
 {$REGION 'DispatchService'}
 
-  TOnRemovePhysicsNetwork = class
+  TOnRemovePhysicsNetwork = class(TCore_Object_Intermediate)
   public
     PhysicsAddr: U_String;
     PhysicsPort: Word;
@@ -898,7 +899,7 @@ type
   TC40_Custom_VM_Service = class;
   TC40_Custom_VM_Client = class;
 
-  TC40_Custom_VM_Service = class(TCore_InterfacedObject)
+  TC40_Custom_VM_Service = class(TCore_InterfacedObject_Intermediate)
   private
     FLastSafeCheckTime: TTimeTick;
   public
@@ -929,7 +930,7 @@ type
 
   TOn_VM_Client_Event = procedure(Sender: TC40_Custom_VM_Client) of object;
 
-  TC40_Custom_VM_Client = class(TCore_InterfacedObject)
+  TC40_Custom_VM_Client = class(TCore_InterfacedObject_Intermediate)
   private
     FLastSafeCheckTime: TTimeTick;
   public
@@ -962,7 +963,11 @@ type
 {$ENDREGION 'VM_Templet_Define'}
 {$REGION 'C40-Console'}
 
-  TC40_Console_Help = class
+  TC40_Console_Help = class(TCore_Object_Intermediate)
+  private
+    Last_Instance_State: TInstance_State_Tool;
+    function Do_Build_Instance_State(var OP_Param: TOpParam): Variant;
+    function Do_Compare_Instance_State(var OP_Param: TOpParam): Variant;
   private
     procedure UpdateServiceInfo; overload;
     procedure UpdateServiceInfo(phy_serv: TC40_PhysicsService); overload;
@@ -978,6 +983,9 @@ type
     function Do_SetQuiet(var OP_Param: TOpParam): Variant;
     function Do_Save_All_C4Service_Config(var OP_Param: TOpParam): Variant;
     function Do_Save_All_C4Client_Config(var OP_Param: TOpParam): Variant;
+    function Do_Instance_Info(var OP_Param: TOpParam): Variant;
+    function Do_Instance_Info_Sort_Update(var OP_Param: TOpParam): Variant;
+    function Do_Instance_Info_Sort_Time(var OP_Param: TOpParam): Variant;
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
     function Do_Service_Cmd_Info(var OP_Param: TOpParam): Variant;
@@ -6514,6 +6522,38 @@ begin
     end;
 end;
 
+function TC40_Console_Help.Do_Build_Instance_State(var OP_Param: TOpParam): Variant;
+begin
+  DisposeObjectAndNil(Last_Instance_State);
+  Instance_State_Tool.Queue_Pool.Lock;
+  Last_Instance_State := Instance_State_Tool.Clone;
+  Instance_State_Tool.Queue_Pool.UnLock;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Compare_Instance_State(var OP_Param: TOpParam): Variant;
+var
+  tmp: TInstance_State_Tool;
+begin
+  if Last_Instance_State <> nil then
+    begin
+      Instance_State_Tool.Queue_Pool.Lock;
+      tmp := Instance_State_Tool.Compare_State(Last_Instance_State);
+      Instance_State_Tool.Queue_Pool.UnLock;
+      DisposeObjectAndNil(Last_Instance_State);
+      tmp.Sort_By_Instance;
+      if tmp.Num > 0 then
+        with tmp.Repeat_ do
+          repeat
+            if (Queue^.Data^.Data.Second.Instance_Num <> 0) then
+                DoStatus('%s : diff %d',
+                [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.Instance_Num]);
+          until not Next;
+      DisposeObjectAndNil(tmp);
+    end;
+  Result := True;
+end;
+
 procedure TC40_Console_Help.UpdateServiceInfo;
 var
   i: Integer;
@@ -6761,6 +6801,48 @@ begin
       DoStatus('save class "%s" %s to %s', [cli.ClassName, cli.ClientInfo.ServiceTyp.Text, fn.Text]);
     end;
   Result := True;
+end;
+
+function TC40_Console_Help.Do_Instance_Info(var OP_Param: TOpParam): Variant;
+begin
+  Instance_State_Tool.Queue_Pool.Lock;
+  Instance_State_Tool.Sort_By_Instance;
+  if Instance_State_Tool.Num > 0 then
+    with Instance_State_Tool.Repeat_ do
+      repeat
+        if (Queue^.Data^.Data.Second.Instance_Num > 0) then
+            DoStatus('%s : instance %d update %d time %s',
+            [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.Instance_Num, Queue^.Data^.Data.Second.Update_Num, umlTimeTickToStr(GetTimeTick - Queue^.Data^.Data.Second.Update_Time).Text]);
+      until not Next;
+  Instance_State_Tool.Queue_Pool.UnLock;
+end;
+
+function TC40_Console_Help.Do_Instance_Info_Sort_Update(var OP_Param: TOpParam): Variant;
+begin
+  Instance_State_Tool.Queue_Pool.Lock;
+  Instance_State_Tool.Sort_By_Update;
+  if Instance_State_Tool.Num > 0 then
+    with Instance_State_Tool.Repeat_ do
+      repeat
+        if (Queue^.Data^.Data.Second.Instance_Num > 0) then
+            DoStatus('%s : instance %d update %d time %s',
+            [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.Instance_Num, Queue^.Data^.Data.Second.Update_Num, umlTimeTickToStr(GetTimeTick - Queue^.Data^.Data.Second.Update_Time).Text]);
+      until not Next;
+  Instance_State_Tool.Queue_Pool.UnLock;
+end;
+
+function TC40_Console_Help.Do_Instance_Info_Sort_Time(var OP_Param: TOpParam): Variant;
+begin
+  Instance_State_Tool.Queue_Pool.Lock;
+  Instance_State_Tool.Sort_By_Time;
+  if Instance_State_Tool.Num > 0 then
+    with Instance_State_Tool.Repeat_ do
+      repeat
+        if (Queue^.Data^.Data.Second.Instance_Num > 0) then
+            DoStatus('%s : instance %d update %d time %s',
+            [Queue^.Data^.Data.Primary, Queue^.Data^.Data.Second.Instance_Num, Queue^.Data^.Data.Second.Update_Num, umlTimeTickToStr(GetTimeTick - Queue^.Data^.Data.Second.Update_Time).Text]);
+      until not Next;
+  Instance_State_Tool.Queue_Pool.UnLock;
 end;
 
 function TC40_Console_Help.Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
@@ -7049,12 +7131,14 @@ begin
   HelpTextStyle := tsPascal;
   IsExit := False;
   opRT := nil;
+  Last_Instance_State := nil;
   Update_opRT;
 end;
 
 destructor TC40_Console_Help.Destroy;
 begin
   DisposeObjectAndNil(opRT);
+  DisposeObjectAndNil(Last_Instance_State);
   inherited Destroy;
 end;
 
@@ -7082,6 +7166,14 @@ begin
   opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Save_All_C4Service_Config', 'Save_All_C4Service_Config(), save all c4 service config to file', Do_Save_All_C4Service_Config, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Save_All_C4Client_Config', 'Save_All_C4Client_Config(), save all c4 client config to file', Do_Save_All_C4Client_Config, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Instance_Info', 'Instance_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Inst_Info', 'Inst_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Instance_Info_Sort_Update', 'Instance_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Inst_Info_Sort_Update', 'Inst_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Instance_Info_Sort_Time', 'Instance_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Inst_Info_Sort_Time', 'Inst_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Build_Instance_State', 'Build_Instance_State(), build current instance states.', Do_Build_Instance_State, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Compare_Instance_State', 'Compare_Instance_State(), compare current instance states.', Do_Compare_Instance_State, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';

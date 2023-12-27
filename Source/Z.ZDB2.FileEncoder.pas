@@ -19,7 +19,7 @@ uses Z.Core,
 type
   TZDB2_File_HndList = TGenericsList<Integer>;
 
-  TZDB2_FI = class
+  TZDB2_FI = class(TCore_Object_Intermediate)
   public
     FileName: U_String;
     FileMD5: TMD5;
@@ -68,7 +68,7 @@ type
 
   TOn_ZDB2_File_OnProgress = procedure(State_: SystemString; Total, Current1, Current2: Int64) of object;
 
-  TZDB2_File_Encoder = class
+  TZDB2_File_Encoder = class(TCore_Object_Intermediate)
   private
     FCore: TZDB2_Core_Space;
     FPlace: TZDB2_Space_Planner;
@@ -106,7 +106,7 @@ type
     procedure Process; override;
   end;
 
-  TZDB2_File_Decoder = class
+  TZDB2_File_Decoder = class(TCore_Object_Intermediate)
   private
     FCore: TZDB2_Core_Space;
     FIO_Thread: TIO_Thread_Base;

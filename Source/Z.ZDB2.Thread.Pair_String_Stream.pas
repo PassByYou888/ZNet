@@ -37,7 +37,7 @@ type
     destructor Destroy; override;
   end;
 
-  TZDB2_Pair_String_Stream_Tool = class
+  TZDB2_Pair_String_Stream_Tool = class(TCore_Object_Intermediate)
   private
     procedure Do_Th_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
   public

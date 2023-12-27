@@ -20,7 +20,7 @@ uses Variants,
   Z.Net.XNAT.Client, Z.Net.XNAT.MappingOnVirutalService, Z.Net.XNAT.Service, Z.Net.XNAT.Physics;
 
 type
-  TC40_XNAT_Mapping_Info = class
+  TC40_XNAT_Mapping_Info = class(TCore_Object_Intermediate)
   public
     NoDistributed: Boolean;
     ListenPort: Word;
@@ -91,7 +91,7 @@ type
   TON_Build_Physics_ServiceP = reference to procedure(Sender: TC40_XNAT_Client_Tool; Service: TXNAT_MappingOnVirutalService);
 {$ENDIF FPC}
 
-  TBuild_Physics_Service_Bridge = class
+  TBuild_Physics_Service_Bridge = class(TCore_Object_Intermediate)
   public
     Client: TC40_XNAT_Client_Tool;
     Mapping: U_String;

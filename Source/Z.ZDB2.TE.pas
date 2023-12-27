@@ -20,7 +20,7 @@ type
   TZDB2_HashTextEngine = class;
   TZDB2_Big_List_HashTextEngine_Decl__ = TBigList<TZDB2_HashTextEngine>;
 
-  TZDB2_HashTextEngine = class
+  TZDB2_HashTextEngine = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZDB2_Big_List_HashTextEngine_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
@@ -47,7 +47,7 @@ type
 
   TOnCreate_ZDB2_HashTextEngine = procedure(Sender: TZDB2_List_HashTextEngine; Obj: TZDB2_HashTextEngine) of object;
 
-  TZDB2_List_HashTextEngine = class
+  TZDB2_List_HashTextEngine = class(TCore_Object_Intermediate)
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;

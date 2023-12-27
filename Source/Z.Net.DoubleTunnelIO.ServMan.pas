@@ -65,7 +65,7 @@ type
     function EnabledServer(const Regname, ManServAddr, RegAddr: SystemString; const RegRecvPort, RegSendPort: Word; ServerType: TServerType): Boolean;
   end;
 
-  TServerManager_ClientPool = class(TCore_Persistent)
+  TServerManager_ClientPool = class(TCore_Persistent_Intermediate)
   protected
     FClientList: TCore_ListForObj;
     AntiIdleIsRun: Boolean;

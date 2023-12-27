@@ -21,7 +21,7 @@ type
   TLActionList = class;
   TLAction_Linear = class;
 
-  TLAction = class
+  TLAction = class(TCore_Object_Intermediate)
   private
     State: TCoreActionStates;
   public
@@ -40,7 +40,7 @@ type
 
   TLActionList_Decl = TGenericsList<TLAction>;
 
-  TLActionList = class
+  TLActionList = class(TCore_Object_Intermediate)
   protected
     FSequenceList: TLActionList_Decl;
     FIndex: Integer;
@@ -66,7 +66,7 @@ type
 
   TLActionList_Decl_List_Decl = TGenericsList<TLActionList>;
 
-  TLAction_Linear = class
+  TLAction_Linear = class(TCore_Object_Intermediate)
   protected
     FLinear_List: TLActionList_Decl_List_Decl;
     FIndex: Integer;

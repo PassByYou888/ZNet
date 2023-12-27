@@ -54,7 +54,7 @@ type
   THashListLoop_P = reference to procedure(Name_: PSystemString; hData: PHashListData);
 {$ENDIF FPC}
 
-  THashList = class(TCore_Object)
+  THashList = class(TCore_Object_Intermediate)
   private
     FListBuffer: TListBuffer;
     FAutoFreeData: Boolean;
@@ -163,7 +163,7 @@ type
   TInt64HashObjectListLoop_P = reference to procedure(i64: Int64; Value: TCore_Object);
 {$ENDIF FPC}
 
-  TInt64HashObjectList = class(TCore_Object)
+  TInt64HashObjectList = class(TCore_Object_Intermediate)
   private
     FListBuffer: TListBuffer;
     FCount: NativeInt;
@@ -244,7 +244,7 @@ type
   TInt64HashPointerListLoop_P = reference to procedure(i64: Int64; Value: Pointer);
 {$ENDIF FPC}
 
-  TInt64HashPointerList = class(TCore_Object)
+  TInt64HashPointerList = class(TCore_Object_Intermediate)
   private
     FListBuffer: TListBuffer;
     FCount: NativeInt;
@@ -325,7 +325,7 @@ type
   TUInt32HashObjectListLoop_P = reference to procedure(u32: UInt32; Value: TCore_Object);
 {$ENDIF FPC}
 
-  TUInt32HashObjectList = class(TCore_Object)
+  TUInt32HashObjectList = class(TCore_Object_Intermediate)
   private
     FListBuffer: TListBuffer;
     FCount: NativeInt;
@@ -401,7 +401,7 @@ type
   TUInt32HashPointerListLoop_P = reference to procedure(u32: UInt32; pData: Pointer);
 {$ENDIF FPC}
 
-  TUInt32HashPointerList = class(TCore_Object)
+  TUInt32HashPointerList = class(TCore_Object_Intermediate)
   private
     FListBuffer: TListBuffer;
     FCount: NativeInt;
@@ -482,7 +482,7 @@ type
   TPointerHashNativeUIntListLoop_P = reference to procedure(NPtr: Pointer; uData: NativeUInt);
 {$ENDIF FPC}
 
-  TPointerHashNativeUIntList = class(TCore_Object)
+  TPointerHashNativeUIntList = class(TCore_Object_Intermediate)
   public const
     NullValue = 0;
   private
@@ -562,7 +562,7 @@ type
   THashObjectListLoop_P = reference to procedure(const Name_: PSystemString; Obj_: TCore_Object);
 {$ENDIF FPC}
 
-  THashObjectList = class(TCore_Object)
+  THashObjectList = class(TCore_Object_Intermediate)
   private
     FAutoFreeObject: Boolean;
     FHashList: THashList;
@@ -645,7 +645,7 @@ type
   THashStringListLoop_P = reference to procedure(Sender: THashStringList; Name_: PSystemString; const V: SystemString);
 {$ENDIF FPC}
 
-  THashStringList = class(TCore_Object)
+  THashStringList = class(TCore_Object_Intermediate)
   private
     FHashList: THashList;
     FAutoUpdateDefaultValue: Boolean;
@@ -746,7 +746,7 @@ type
     property AsText: SystemString read GetAsText write SetAsText;
   end;
 
-  THashStringTextStream = class(TCore_Object)
+  THashStringTextStream = class(TCore_Object_Intermediate)
   private
     FStringList: THashStringList;
 
@@ -797,7 +797,7 @@ type
   THashVariantListLoop_P = reference to procedure(Sender: THashVariantList; Name_: PSystemString; const V: Variant);
 {$ENDIF FPC}
 
-  THashVariantList = class(TCore_Object)
+  THashVariantList = class(TCore_Object_Intermediate)
   private
     FHashList: THashList;
     FAutoUpdateDefaultValue: Boolean;
@@ -907,7 +907,7 @@ type
     property HashList: THashList read FHashList;
   end;
 
-  THashVariantTextStream = class(TCore_Object)
+  THashVariantTextStream = class(TCore_Object_Intermediate)
   private
     FVariantList: THashVariantList;
 
@@ -953,7 +953,7 @@ type
 
   PListStringData = ^TListStringData;
 
-  TListString = class(TCore_Object)
+  TListString = class(TCore_Object_Intermediate)
   private
     FList: TCore_List;
   protected
@@ -1003,7 +1003,7 @@ type
   TPascalString_Sort_P = reference to function(var L, R: TPascalString): Integer;
 {$ENDIF FPC}
 
-  TListPascalString = class(TCore_Object)
+  TListPascalString = class(TCore_Object_Intermediate)
   private
     FList: TListPascalStringData_List;
   protected
@@ -1087,7 +1087,7 @@ type
 
   TBackcall_List_Decl = TGenericsList<POn_Backcall_>;
 
-  TBackcall_Pool = class(TCore_Object)
+  TBackcall_Pool = class(TCore_Object_Intermediate)
   private
     FList: TBackcall_List_Decl;
     FVariantList: THashVariantList;

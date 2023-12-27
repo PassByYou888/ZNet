@@ -26,7 +26,7 @@ type
   TIO_Thread_On_P = reference to procedure(Sender: TIO_Thread_Data);
 {$ENDIF FPC}
 
-  TIO_Thread_Data = class
+  TIO_Thread_Data = class(TCore_Object_Intermediate)
   private
     FState: TIO_Thread_Data_State;
     FOn_C: TIO_Thread_On_C;
@@ -44,7 +44,7 @@ type
 
   TIO_Thread_Queue = TOrderStruct<TIO_Thread_Data>;
 
-  TIO_Thread_Base = class
+  TIO_Thread_Base = class(TCore_Object_Intermediate)
   public
     function Count(): Integer; virtual; abstract;
     procedure Enqueue(IOData: TIO_Thread_Data); virtual; abstract;
@@ -130,7 +130,7 @@ type
     class procedure Test();
   end;
 
-  TThread_Event_Pool__ = class
+  TThread_Event_Pool__ = class(TCore_Object_Intermediate)
   private
     FOwner: TThread_Pool;
     FBindTh: TCompute;

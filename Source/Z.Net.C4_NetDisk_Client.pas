@@ -536,7 +536,7 @@ type
 
   PON_Usr_Auto_Post_File_Ptr = ^TC40_NetDisk_Client_On_Usr_Auto_Post_File_Ptr_;
 
-  TC40_NetDisk_Client_On_Usr_Auto_Post_File = class
+  TC40_NetDisk_Client_On_Usr_Auto_Post_File = class(TCore_Object_Intermediate)
   private
     Current_FS2_AliasOrHash: U_String;
     Current_Stream_Chunk_Pos: Int64;
@@ -602,7 +602,7 @@ type
 
   PON_Usr_Auto_Get_File_Ptr = ^TC40_NetDisk_Client_On_Usr_Auto_Get_File_Ptr_;
 
-  TC40_NetDisk_Client_On_Usr_Auto_Get_File = class
+  TC40_NetDisk_Client_On_Usr_Auto_Get_File = class(TCore_Object_Intermediate)
   private
     IsBusy, IsExit: Boolean;
     Ptr_: TC40_NetDisk_Client_On_Usr_Auto_Get_File_Ptr_;
@@ -644,7 +644,7 @@ type
   TC40_NetDisk_Client_Clone_Bridge_Event_P = reference to procedure(sender: TC40_NetDisk_Client; New_Instance: TC40_NetDisk_Client);
 {$ENDIF FPC}
 
-  TC40_NetDisk_Client_Clone_Bridge = class
+  TC40_NetDisk_Client_Clone_Bridge = class(TCore_Object_Intermediate)
   private
     procedure Do_BuildDependNetwork_Done(const state: Boolean);
     procedure Do_WaitConnectedDone(States: TC40_Custom_ClientPool_Wait_States);

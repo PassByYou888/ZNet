@@ -149,6 +149,11 @@ begin
       until not Next;
 end;
 
+function TBig_Hash_Pair_Pool<TKey_, TValue_>.GetHashSize: integer;
+begin
+  Result := FHash_Buffer.Count;
+end;
+
 procedure TBig_Hash_Pair_Pool<TKey_, TValue_>.Clear;
 var
   i: integer;
@@ -942,6 +947,11 @@ begin
       repeat
           Queue^.Data^.Data.Third := Queue;
       until not Next;
+end;
+
+function TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.GetHashSize: integer;
+begin
+  Result := FHash_Buffer.Count;
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.Clear;

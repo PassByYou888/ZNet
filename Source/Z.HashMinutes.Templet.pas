@@ -36,7 +36,17 @@ type
     end;
 
     TTime_List = TBigList<T_>;
-    TTime_Data_L = TBigList<TTime_Hash_Pool>;
+    TTime_Data_L_ = TBigList<TTime_Hash_Pool>;
+    TDateTime_L = TBigList<TDateTime>;
+
+    TTime_Data_L = class(TTime_Data_L_)
+    private
+      Span_Time_L: TDateTime_L;
+    public
+      constructor Create;
+      destructor Destroy; override;
+    end;
+
     TTime_Data_Pool = TBig_Hash_Pair_Pool<T_, TTime_Data_L>;
   private
     FCritical: TCritical;
@@ -45,6 +55,7 @@ type
     procedure Do_Time_Data_Pool_Free(var key: T_; var Value: TTime_Data_L);
     function Get_Or_Create_Pool(const Key_: TDateTime): TTime_Hash_Pool;
     function Get_Pool(const Key_: TDateTime): TTime_Hash_Pool;
+    procedure Do_Remove_DT_Obj(DT: TDateTime; Value: T_);
   public
     property Critical: TCritical read FCritical;
     property Time_Data_Pool: TTime_Data_Pool read FTime_Data_Pool;
@@ -93,6 +104,18 @@ begin
   Result := EncodeDateTime(data[0], data[1], data[2], data[3], data[4], 0, 0);
 end;
 
+constructor TMinutes_Buffer_Pool<T_>.TTime_Data_L.Create;
+begin
+  inherited Create;
+  Span_Time_L := TDateTime_L.Create;
+end;
+
+destructor TMinutes_Buffer_Pool<T_>.TTime_Data_L.Destroy;
+begin
+  DisposeObject(Span_Time_L);
+  inherited Destroy;
+end;
+
 procedure TMinutes_Buffer_Pool<T_>.Do_Time_Data_Pool_Free(var key: T_; var Value: TTime_Data_L);
 begin
   DisposeObjectAndNil(Value);
@@ -117,6 +140,21 @@ begin
   Result := Key_Value[Key_];
 end;
 
+procedure TMinutes_Buffer_Pool<T_>.Do_Remove_DT_Obj(DT: TDateTime; Value: T_);
+var
+  obj: TTime_Hash_Pool;
+begin
+  obj := Get_Key_Value(DT);
+  if obj = nil then
+    begin
+      Delete(DT);
+      exit;
+    end;
+  obj.Delete(Value);
+  if obj.Num <= 0 then
+      Delete(DT);
+end;
+
 constructor TMinutes_Buffer_Pool<T_>.Create(const HashSize_: Integer);
 begin
   inherited Create(HashSize_, nil);
@@ -128,7 +166,7 @@ end;
 
 destructor TMinutes_Buffer_Pool<T_>.Destroy;
 begin
-  disposeObject(FTime_Data_Pool);
+  DisposeObject(FTime_Data_Pool);
   DisposeObjectAndNil(FCritical);
   inherited Destroy;
 end;
@@ -202,7 +240,7 @@ begin
       FCritical.Lock;
   try
     obj := Get_Or_Create_Pool(DT);
-    if obj.Exists_Key(Value) then
+    if obj.Exists_Key(Value) then // error
         exit;
 
     obj.Add(Value, Self, False);
@@ -212,6 +250,7 @@ begin
         obj2 := TTime_Data_L.Create;
         FTime_Data_Pool.Add(Value, obj2, False);
       end;
+    obj2.Span_Time_L.Add(DT);
     obj2.Add(obj);
   finally
     if L_ then
@@ -234,23 +273,33 @@ begin
     if obj2 = nil then
       begin
         if Num > 0 then
-          with Repeat_ do
+          with repeat_ do
             repeat
                 queue^.data^.data.Second.Delete(Value);
             until not Next;
       end
     else
       begin
+        // remove queue
         if obj2.Num > 0 then
-          with obj2.Repeat_ do
+          begin
+            with obj2.repeat_ do
+              repeat
+                queue^.data.Delete(Value);
+                if queue^.data.Num <= 0 then
+                  begin
+                    queue^.data.Clear;
+                    Discard;
+                  end;
+              until not Next;
+          end;
+        // remove primary key
+        if obj2.Span_Time_L.Num > 0 then
+          with obj2.Span_Time_L.repeat_ do
             repeat
-              queue^.data.Delete(Value);
-              if queue^.data.Num <= 0 then
-                begin
-                  queue^.data.Clear;
-                  Discard;
-                end;
+                Do_Remove_DT_Obj(queue^.data, Value);
             until not Next;
+        // remove link
         FTime_Data_Pool.Delete(Value);
       end;
   finally
@@ -322,7 +371,7 @@ begin
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
+          with obj.repeat_ do
             repeat
               if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
                   swap_obj.Add(queue^.data^.data.Primary, Self, False);
@@ -335,7 +384,7 @@ begin
         if obj <> nil then
           begin
             if obj.Num > 0 then
-              with obj.Repeat_ do
+              with obj.repeat_ do
                 repeat
                   if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
                       swap_obj.Add(queue^.data^.data.Primary, Self, True);
@@ -349,7 +398,7 @@ begin
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
+          with obj.repeat_ do
             repeat
               if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
                   swap_obj.Add(queue^.data^.data.Primary, Self, True);
@@ -357,7 +406,7 @@ begin
       end;
 
     if swap_obj.Num > 0 then
-      with swap_obj.Repeat_ do
+      with swap_obj.repeat_ do
         repeat
             Result.Add(queue^.data^.data.Primary);
         until not Next;
@@ -365,7 +414,7 @@ begin
   end;
   FCritical.UnLock;
 
-  disposeObject(swap_obj);
+  DisposeObject(swap_obj);
 end;
 
 function TMinutes_Buffer_Pool<T_>.Search_Span(DT: TDateTime): TTime_List;
@@ -380,7 +429,7 @@ begin
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
+          with obj.repeat_ do
             repeat
                 Result.Add(queue^.data^.data.Primary);
             until not Next;
@@ -442,38 +491,38 @@ begin
   bDT := umlDT('2009-10-6 1:30:34.000');
   eDT := umlDT('2009-10-6 2:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
-  disposeObject(tmp);
+  DisposeObject(tmp);
 
   bDT := umlDT('2013-11-14 1:30:34.000');
   eDT := umlDT('2013-11-14 2:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
-  disposeObject(tmp);
+  DisposeObject(tmp);
 
   m.Remove_Span(L.First^.data);
 
   bDT := umlDT('2009-10-6 1:30:34.000');
   eDT := umlDT('2009-10-6 2:31:34.000');
   tmp := m.Search_Span(bDT, eDT);
-  disposeObject(tmp);
+  DisposeObject(tmp);
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         m.Get_Span_Num(queue^.data);
     until not Next;
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         m.Remove_Span(queue^.data);
     until not Next;
 
-  disposeObject(m);
+  DisposeObject(m);
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         dispose(queue^.data);
     until not Next;
   L.Clear;
-  disposeObject(L);
+  DisposeObject(L);
 end;
 
 end.

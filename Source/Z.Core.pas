@@ -18,6 +18,7 @@ uses SysUtils, Classes, Types, Variants, SyncObjs,
 
 {$Region 'core defines + class'}
 type
+  // prototype define
   THash = Cardinal;
   THash64 = UInt64;
   PMD5 = ^TMD5;
@@ -38,6 +39,7 @@ type
   TUInt64Buffer = Array [0 .. MaxInt div SizeOf(UInt64) - 1] of UInt64;
   PUInt64Buffer = ^TUInt64Buffer;
 
+  // class define
   TCore_Object = TObject;
   TCore_Persistent = TPersistent;
   TCore_Stream = TStream;
@@ -96,6 +98,8 @@ type
     TGArry = array of t;
     PGArry = ^TGArry;
   public var Arry: TGArry;
+    constructor Create;
+    destructor Destroy; override;
     function ListData: PGArry;
   end;
 
@@ -104,6 +108,8 @@ type
     TGArry = array of t;
     PGArry = ^TGArry;
   public var Arry: TGArry;
+    constructor Create;
+    destructor Destroy; override;
     function ListData: PGArry;
   end;
 
@@ -111,6 +117,9 @@ type
   PCore_PointerList = ^TCore_PointerList;
 
   TCore_List = class(TGenericsList<Pointer>)
+  public
+    constructor Create;
+    destructor Destroy; override;
     function ListData: PCore_PointerList;
   end;
 
@@ -118,6 +127,9 @@ type
   PCore_ForObjectList = ^TCore_ForObjectList;
 
   TCore_ListForObj = class(TGenericsList<TCore_Object>)
+  public
+    constructor Create;
+    destructor Destroy; override;
     function ListData: PCore_ForObjectList;
   end;
   {$ENDIF FPC}
@@ -134,7 +146,27 @@ type
     procedure Clear;
   end;
 {$EndRegion 'core defines + class'}
-{$Region 'CPS'}
+{$Region 'Intermediate-tool-layer'}
+  TCore_Object_Intermediate = class(TCore_Object)
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TCore_InterfacedObject_Intermediate = class(TCore_InterfacedObject)
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TCore_Persistent_Intermediate = class(TCore_Persistent)
+  public
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+{$EndRegion 'Intermediate-tool-layer'}
+{$Region 'CPS-Tool'}
   // caller per second tool
   TCPS_Tool = record
   private
@@ -150,7 +182,7 @@ type
     procedure Begin_Caller;
     procedure End_Caller;
   end;
-{$EndRegion 'CPS'}
+{$EndRegion 'CPS-Tool'}
 {$Region 'Critical'}
   TSoftCritical = class
   private
@@ -260,22 +292,24 @@ type
     procedure Dec_(var x: Cardinal); overload;
     procedure Dec_(var x: Cardinal; const v: Cardinal); overload;
   end;
-
+{$EndRegion 'Critical'}
+{$Region 'Swap'}
   TSwap<T_> = class
   public
     class procedure &Do(var v1, v2: T_); static;
     class procedure Do_(var v1, v2: T_); static;
   end;
-
+{$EndRegion 'Swap'}
+{$Region 'IF'}
   TIF<T_> = class
   public
     class function &Do(Bool_: Boolean; Yes_, No_: T_): T_; static;
     class function Do_(Bool_: Boolean; Yes_, No_: T_): T_; static;
   end;
-{$EndRegion 'Critical'}
+{$EndRegion 'IF'}
 {$Region 'OrderStruct'}
 
-  TOrderStruct<T_> = class(TCore_Object)
+  TOrderStruct<T_> = class(TCore_Object_Intermediate)
   public type
     POrderStruct = ^TOrderStruct_;
     TOrderStruct_ = record
@@ -304,7 +338,7 @@ type
     property OnFree: TOnFreeOrderStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
-  TOrderPtrStruct<T_> = class(TCore_Object)
+  TOrderPtrStruct<T_> = class(TCore_Object_Intermediate)
   public type
     PT_ = ^T_;
     POrderPtrStruct = ^TOrderPtrStruct_;
@@ -334,7 +368,7 @@ type
     property OnFree: TOnFreeOrderPtrStruct read FOnFreeOrderStruct write FOnFreeOrderStruct;
   end;
 
-  TCriticalOrderStruct<T_> = class(TCore_Object)
+  TCriticalOrderStruct<T_> = class(TCore_Object_Intermediate)
   public type
     POrderStruct = ^TOrderStruct_;
     TOrderStruct_ = record
@@ -366,7 +400,7 @@ type
     property OnFree: TOnFreeCriticalOrderStruct read FOnFreeCriticalOrderStruct write FOnFreeCriticalOrderStruct;
   end;
 
-  TCriticalOrderPtrStruct<T_> = class(TCore_Object)
+  TCriticalOrderPtrStruct<T_> = class(TCore_Object_Intermediate)
   public type
     PT_ = ^T_;
     POrderPtrStruct = ^TOrderPtrStruct_;
@@ -401,7 +435,7 @@ type
 {$EndRegion 'OrderStruct'}
 {$REGION 'BigList'}
 
-  TBigList<T_> = class(TCore_Object)
+  TBigList<T_> = class(TCore_Object_Intermediate)
   public type
 
     P_ = ^T_;
@@ -567,7 +601,7 @@ type
 {$ENDIF DEBUG}
   end;
 
-  TCritical_BigList<T_> = class(TCore_Object)
+  TCritical_BigList<T_> = class(TCore_Object_Intermediate)
   public type
     P_ = ^T_;
     PQueueStruct = ^TQueueStruct;
@@ -795,7 +829,7 @@ type
     class function Init(Primary_: T1; Second_: T2; Third_: T3; Fourth_: T4; Five_: T5; Six_: T6): TPair6<T1, T2, T3, T4, T5, T6>; static;
   end;
 
-  TPair2_Tool<T1_, T2_> = class(TCore_Object)
+  TPair2_Tool<T1_, T2_> = class(TCore_Object_Intermediate)
   public type
     TPair = TPair2<T1_, T2_>;
     PPair = ^TPair;
@@ -811,7 +845,7 @@ type
     function Add_Pair(Primary: T1_; Second: T2_): PPair__;
   end;
 
-  TPair3_Tool<T1_, T2_, T3_> = class(TCore_Object)
+  TPair3_Tool<T1_, T2_, T3_> = class(TCore_Object_Intermediate)
   public type
     TPair = TPair3<T1_, T2_, T3_>;
     PPair = ^TPair;
@@ -827,7 +861,7 @@ type
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_): PPair__;
   end;
 
-  TPair4_Tool<T1_, T2_, T3_, T4_> = class(TCore_Object)
+  TPair4_Tool<T1_, T2_, T3_, T4_> = class(TCore_Object_Intermediate)
   public type
     TPair = TPair4<T1_, T2_, T3_, T4_>;
     PPair = ^TPair;
@@ -843,7 +877,7 @@ type
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_): PPair__;
   end;
 
-  TPair5_Tool<T1_, T2_, T3_, T4_, T5_> = class(TCore_Object)
+  TPair5_Tool<T1_, T2_, T3_, T4_, T5_> = class(TCore_Object_Intermediate)
   public type
     TPair = TPair5<T1_, T2_, T3_, T4_, T5_>;
     PPair = ^TPair;
@@ -859,7 +893,7 @@ type
     function Add_Pair(Primary: T1_; Second: T2_; Third: T3_; Fourth: T4_; Five: T5_): PPair__;
   end;
 
-  TPair6_Tool<T1_, T2_, T3_, T4_, T5_, T6_> = class(TCore_Object)
+  TPair6_Tool<T1_, T2_, T3_, T4_, T5_, T6_> = class(TCore_Object_Intermediate)
   public type
     TPair = TPair6<T1_, T2_, T3_, T4_, T5_, T6_>;
     PPair = ^TPair;
@@ -876,7 +910,7 @@ type
   end;
 {$ENDREGION 'Pair'}
 {$Region 'Hash-Tool'}
-  TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
+  TBig_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object_Intermediate)
   public type
     PKey_ = ^TKey_;
     PValue_ = ^TValue_;
@@ -947,6 +981,7 @@ type
     function Compare_Key(const Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(const Value_1, Value_2: TValue_): Boolean; virtual;
     procedure Extract_Queue_Pool_Third;
+    function GetHashSize: Integer;
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
@@ -987,7 +1022,7 @@ type
     function ToOrder_Value(): TOrder_Value;
   end;
 
-  TCritical_Big_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object)
+  TCritical_Big_Hash_Pair_Pool<TKey_, TValue_> = class(TCore_Object_Intermediate)
   public type
     PKey_ = ^TKey_;
     PValue_ = ^TValue_;
@@ -1060,6 +1095,7 @@ type
     function Compare_Key(const Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(const Value_1, Value_2: TValue_): Boolean; virtual;
     procedure Extract_Queue_Pool_Third;
+    function GetHashSize: Integer;
     procedure Clear;
     function Exists_Key(const Key: TKey_): Boolean;
     function Exists_Value(const Data: TValue_): Boolean;
@@ -1125,7 +1161,7 @@ type
   TOnSynchronize_P_NP = reference to procedure();
 {$ENDIF FPC}
 
-  TSoft_Synchronize_Tool = class
+  TSoft_Synchronize_Tool = class(TCore_Object_Intermediate)
   private type
     TSynchronize_Data___ = TPair4<TOnSynchronize_C_NP, TOnSynchronize_M_NP, TOnSynchronize_P_NP, PBoolean>;
     TSynchronize_Queue___ = TCritical_BigList<TSynchronize_Data___>;
@@ -1163,7 +1199,7 @@ type
   TThreadPost_P4 = reference to procedure(Data1: Pointer; Data2: TCore_Object);
 {$ENDIF FPC}
 
-  TThreadPost = class(TCore_Object)
+  TThreadPost = class(TCore_Object_Intermediate)
   private type
     TThread_Post_Data = record
       On_C1: TThreadPost_C1;
@@ -1401,7 +1437,7 @@ type
   TComputeThread = TCompute;
 {$EndRegion 'Compute_Thread'}
 {$Region 'MT19937Random'}
-  TMT19937Random = class(TCore_Object)
+  TMT19937Random = class(TCore_Object_Intermediate)
   private
     FInternalCritical: TCritical;
     FRndInstance: Pointer;
@@ -1428,7 +1464,7 @@ type
 
   TRandom = TMT19937Random;
 
-  TMT19937 = class
+  TMT19937 = class(TCore_Object_Intermediate)
   public
     class function CoreToDelphi: Boolean; static;
     class function InstanceNum(): Integer; static;
@@ -1773,8 +1809,12 @@ function GetPtr(const p_: Pointer; const offset_: NativeInt): Pointer; {$IFDEF I
 type
   TOn_Check_Thread_Synchronize = procedure();
   TOn_Raise_Info = procedure(const n: string);
+  TOn_Instance_Info = procedure(const Instance_: string);
+
 var
   On_Raise_Info: TOn_Raise_Info;
+  Inc_Instance_Num: TOn_Instance_Info;
+  Dec_Instance_Num: TOn_Instance_Info;
   // Soft-Synchronize
   Core_Main_Thread: TCore_Thread; // custom main-thread
   Core_Main_Thread_ID: TThreadID; // custom main-thread-id
@@ -1873,6 +1913,8 @@ const
 
 implementation
 
+{$I Z.Core.CPS.inc}
+{$I Z.Core.Intermediate.inc}
 {$I Z.Core.Cirtical.inc}
 {$I Z.Core.Atomic.inc}
 {$I Z.Core.MT19937.inc}
@@ -2259,12 +2301,44 @@ procedure TCore_InterfacedObject.BeforeDestruction;
 begin
 end;
 
+constructor TGenericsList<t>.Create;
+begin
+  inherited Create;
+  {$IFDEF Intermediate_Instance_Tool}
+  Inc_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+end;
+
+destructor TGenericsList<t>.Destroy;
+begin
+  {$IFDEF Intermediate_Instance_Tool}
+  Dec_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+  inherited Destroy;
+end;
+
 function TGenericsList<t>.ListData: PGArry;
 begin
   // set array pointer
   Arry := TGArry(Pointer(inherited List));
   // @ array
   Result := @Arry;
+end;
+
+constructor TGenericsObjectList<t>.Create;
+begin
+  inherited Create;
+  {$IFDEF Intermediate_Instance_Tool}
+  Inc_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+end;
+
+destructor TGenericsObjectList<t>.Destroy;
+begin
+  {$IFDEF Intermediate_Instance_Tool}
+  Dec_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+  inherited Destroy;
 end;
 
 function TGenericsObjectList<t>.ListData: PGArry;
@@ -2275,9 +2349,41 @@ begin
   Result := @Arry;
 end;
 
+constructor TCore_List.Create;
+begin
+  inherited Create;
+  {$IFDEF Intermediate_Instance_Tool}
+  Inc_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+end;
+
+destructor TCore_List.Destroy;
+begin
+  {$IFDEF Intermediate_Instance_Tool}
+  Dec_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+  inherited Destroy;
+end;
+
 function TCore_List.ListData: PCore_PointerList;
 begin
   Result := PCore_PointerList(inherited ListData);
+end;
+
+constructor TCore_ListForObj.Create;
+begin
+  inherited Create;
+  {$IFDEF Intermediate_Instance_Tool}
+  Inc_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+end;
+
+destructor TCore_ListForObj.Destroy;
+begin
+  {$IFDEF Intermediate_Instance_Tool}
+  Dec_Instance_Num(UnitName + '.pas (' + ClassName + ')');
+  {$ENDIF Intermediate_Instance_Tool}
+  inherited Destroy;
 end;
 
 function TCore_ListForObj.ListData: PCore_ForObjectList;
@@ -2486,6 +2592,8 @@ end;
 initialization
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
   On_Raise_Info := nil;
+  Inc_Instance_Num := ___Inc_Instance_Num___;
+  Dec_Instance_Num := ___Dec_Instance_Num___;
   Core_Main_Thread := TCore_Thread.CurrentThread;
   Core_Main_Thread_ID := MainThreadID;
   Init_System_Critical_Recycle_Pool();

@@ -11,7 +11,7 @@ interface
 uses Z.Core;
 
 type
-  TLine_2D_Templet<T_> = class(TCore_Object)
+  TLine_2D_Templet<T_> = class(TCore_Object_Intermediate)
   public type
     TTArry_ = array [0 .. 0] of T_;
     PTArry_ = ^TTArry_;

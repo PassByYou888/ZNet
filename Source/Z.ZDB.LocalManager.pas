@@ -53,7 +53,7 @@ type
 
   TZDBStorePosTransformNotify = procedure(const Data: Pointer; const TransformBuff: PZDBStorePosTransformArray) of object;
 
-  TZDBPipeline = class(TCore_InterfacedObject)
+  TZDBPipeline = class(TCore_InterfacedObject_Intermediate)
   private
     FQueryCounter: Int64;
     FCurrentFragmentTime: TTimeTick;
@@ -151,7 +151,7 @@ type
 
   PCompressDoneNotify = ^TCompressDoneNotify;
 
-  TZDBLocalManager = class(TCore_InterfacedObject, IDBStoreBaseNotify, ICadencerProgressInterface)
+  TZDBLocalManager = class(TCore_InterfacedObject_Intermediate, IDBStoreBaseNotify, ICadencerProgressInterface)
   protected
     FRootPath: SystemString;
     FDBPool: THashObjectList;

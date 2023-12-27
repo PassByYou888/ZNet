@@ -13,7 +13,7 @@ uses SysUtils, Z.Net, Z.DFE,
   Z.Cipher, Z.Notify;
 
 type
-  TCommunicationTestIntf = class(TCore_Object)
+  TCommunicationTestIntf = class(TCore_Object_Intermediate)
   private
     FPrepareSendConsole, FPrepareResultConsole: SystemString;
     FPrepareSendDataFrame, FPrepareResultDataFrame: TDFE;

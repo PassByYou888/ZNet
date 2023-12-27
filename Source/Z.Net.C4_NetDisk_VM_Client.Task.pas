@@ -39,7 +39,7 @@ type
   TC40_NetDisk_VM_Client_Task_Pool_Event = procedure(sender: TC40_NetDisk_VM_Client_Task_Tool) of object;
   TC40_NetDisk_VM_Client_Task_Event = procedure(sender: TC40_NetDisk_VM_Client_Task) of object;
 
-  TC40_NetDisk_VM_Client_Task_Tool = class
+  TC40_NetDisk_VM_Client_Task_Tool = class(TCore_Object_Intermediate)
   private
     FList: TC40_NetDisk_VM_Client_Task_List;
     procedure Do_All_Done();
@@ -81,7 +81,7 @@ type
     function Add_Task_Get_Share_Directory(Share_Directory_DB_Name, Local_Directory, DB_Field: U_String): TC40_NetDisk_VM_Client_Task_Auto_Get_Directory;
   end;
 
-  TC40_NetDisk_VM_Client_Task = class
+  TC40_NetDisk_VM_Client_Task = class(TCore_Object_Intermediate)
   private
     OwnerPool: TC40_NetDisk_VM_Client_Task_Tool;
     Pool_Ptr: TC40_NetDisk_VM_Client_Task_List.PQueueStruct;

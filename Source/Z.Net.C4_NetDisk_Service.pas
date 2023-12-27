@@ -142,7 +142,7 @@ type
 
   TC40_NetDisk_Service_SearchMultiMD5_FS_Service_Bridge = class(TCustom_Event_Bridge)
   private type
-    TPair = class
+    TPair = class(TCore_Object_Intermediate)
     public
       FS2: TC40_FS2_Client;
       FoundNum: Integer;

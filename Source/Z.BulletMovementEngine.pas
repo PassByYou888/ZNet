@@ -47,7 +47,7 @@ type
 
   TBulletMovementStepHistory = TOrderStruct<TStepHistoryData>;
 
-  TBulletMovementEngine = class(TCore_Object)
+  TBulletMovementEngine = class(TCore_Object_Intermediate)
   private
     FOnInterface: IBulletMovementInterface;
     FSteps: array of TBulletMovementStepData;

@@ -19,7 +19,7 @@ uses SysUtils, Variants,
   Z.MemoryStream;
 
 type
-  THashTextEngine = class(TCore_Object)
+  THashTextEngine = class(TCore_Object_Intermediate)
   private
     FComment: TCore_Strings;
     FSectionList, FSectionHashVariantList, FSectionHashStringList: THashObjectList;

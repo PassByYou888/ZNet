@@ -26,7 +26,7 @@ type
     procedure Progress(deltaTime: Double); override;
   end;
 
-  TTDataStoreService_Query_C = class(TCore_Object)
+  TTDataStoreService_Query_C = class(TCore_Object_Intermediate)
   private
   public
     OnPipelineQuery: TZDBPipelineFilter_M;

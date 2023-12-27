@@ -31,7 +31,7 @@ type
     constructor Create(CoreSpace_: TZDB2_Core_Space; ID_: Integer); override;
   end;
 
-  TC40_FS2_VM_Service_File_Data = class
+  TC40_FS2_VM_Service_File_Data = class(TCore_Object_Intermediate)
   public
     Owner: TC40_FS2_VM_Service;
     Stream: TC40_FS2_VM_Service_ZDB2_MS64;
@@ -93,7 +93,7 @@ type
 
   TC40_FS2_VM_Client = class;
 
-  TFS2_Client_CacheData = class
+  TFS2_Client_CacheData = class(TCore_Object_Intermediate)
     Owner: TC40_FS2_VM_Client;
     Stream: TZDB2_MS64;
     LastAccess: TTimeTick;
@@ -133,7 +133,7 @@ type
   TC40_FS2_VM_Client_PostFile_DoneP = reference to procedure(Sender: TC40_FS2_VM_Client; info_: U_String);
 {$ENDIF FPC}
 
-  TC40_FS2_VM_Client_Post_File_Tunnel = class
+  TC40_FS2_VM_Client_Post_File_Tunnel = class(TCore_Object_Intermediate)
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS2_VM_Client;
@@ -149,7 +149,7 @@ type
     procedure cmd_PostDone(Sender: TPeerIO; InData: SystemString);
   end;
 
-  TC40_FS2_VM_Client_Post_File_Cache = class
+  TC40_FS2_VM_Client_Post_File_Cache = class(TCore_Object_Intermediate)
   public
     Client: TC40_FS2_VM_Client;
     File_Name: U_String;
@@ -170,7 +170,7 @@ type
   TC40_FS2_VM_Client_GetFile_DoneP = reference to procedure(Sender: TC40_FS2_VM_Client; Stream: TMS64; info_: U_String; Successed: Boolean);
 {$ENDIF FPC}
 
-  TC40_FS2_VM_Client_Get_File_Tunnel = class
+  TC40_FS2_VM_Client_Get_File_Tunnel = class(TCore_Object_Intermediate)
   public
     p2pClient: TZNet_WithP2PVM_Client;
     Client: TC40_FS2_VM_Client;
@@ -250,7 +250,7 @@ type
     procedure DoStreamFailedEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData: TDFE); override;
   end;
 
-  TC40_FS2_VM_Client_GetFileMD5_Cache = class
+  TC40_FS2_VM_Client_GetFileMD5_Cache = class(TCore_Object_Intermediate)
   public
     Client: TC40_FS2_VM_Client;
     File_Name: U_String;

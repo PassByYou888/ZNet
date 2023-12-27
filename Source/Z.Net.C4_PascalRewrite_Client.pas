@@ -22,7 +22,7 @@ uses Variants, SysUtils,
 type
   TC40_Pascal_Rewrite_Tool = class;
 
-  TPascal_Source_ = class
+  TPascal_Source_ = class(TCore_Object_Intermediate)
   public
     FileName: U_String;
     Status: TPascalStringList;
@@ -44,7 +44,7 @@ type
   TON_Pascal_Rewrite_DoneP = reference to procedure(Sender: TPascal_Rewrite_Tool_CodePool);
 {$ENDIF FPC}
 
-  TPascal_Rewrite_Tool_CodePool = class
+  TPascal_Rewrite_Tool_CodePool = class(TCore_Object_Intermediate)
   private
     procedure Do_Done;
     procedure DoStreamParamEvent(Sender: TPeerIO; Param1: Pointer; Param2: TObject; SendData, Result_: TDFE);

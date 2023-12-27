@@ -708,7 +708,7 @@ type
     function To_V2L: TV2L;
   end;
 
-  TV2L = class(TCore_Object)
+  TV2L = class(TCore_Object_Intermediate)
   private
     FList: TCore_List;
     FUserData: pointer;
@@ -874,7 +874,7 @@ type
   T2DPolygonArray = array of T2DPolygon;
   TCollapses = T2DPolygonArray;
 
-  T2DPolygonGraph = class(TCore_Object)
+  T2DPolygonGraph = class(TCore_Object_Intermediate)
   public
     Surround: T2DPolygon;
     Collapses: TCollapses;
@@ -941,7 +941,7 @@ type
 
   TExpandMode = (emConvex, emConcave);
 
-  TDeflectionPolygon = class(TCore_Object)
+  TDeflectionPolygon = class(TCore_Object_Intermediate)
   private
     FList: TCore_List;
     FName: TPascalString;
@@ -1107,7 +1107,7 @@ type
 
   PDeflectionPolygonLine = ^TDeflectionPolygonLine;
 
-  TDeflectionPolygonLines = class(TCore_Persistent)
+  TDeflectionPolygonLines = class(TCore_Persistent_Intermediate)
   private
     FList: TCore_List;
     FUserData: pointer;
@@ -1173,7 +1173,7 @@ type
 
   TRectPacking_Style = (rsDynamic, rsL2R, rsL2R_Sorted, rsT2B, rsT2B_Sorted);
 
-  TRectPacking = class(TCore_Persistent)
+  TRectPacking = class(TCore_Persistent_Intermediate)
   private
     FList: TRectPackData_List;
     function Compute_XY_Pack(width, height: TGeoFloat; var X, Y: TGeoFloat): Boolean;
@@ -1286,7 +1286,7 @@ type
 {$ENDREGION 'Nearest_Box_Tool'}
 {$REGION 'Hausdorf'}
 
-  THausdorf = class
+  THausdorf = class(TCore_Object_Intermediate)
   private type
     PNode = ^TNode;
 

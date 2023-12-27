@@ -97,7 +97,7 @@ type
   end;
 
   // Base Data Struct
-  TDBEnginePascalString = class(TCore_Object)
+  TDBEnginePascalString = class(TCore_Object_Intermediate)
   protected
     FDBStorePos: Int64;
     dbEng: TDBStore;
@@ -123,7 +123,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListDF = class(TCore_Object)
+  TDBListDF = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
   public
@@ -145,7 +145,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListVL = class(TCore_Object)
+  TDBListVL = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
     procedure do_ImportCSV(const sour: TPascalString; const king, Data: TArrayPascalString);
@@ -175,7 +175,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListVT = class(TCore_Object)
+  TDBListVT = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
     procedure do_ImportCSV(const sour: TPascalString; const king, Data: TArrayPascalString);
@@ -205,7 +205,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListTE = class(TCore_Object)
+  TDBListTE = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
   public
@@ -226,7 +226,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListJson = class(TCore_Object)
+  TDBListJson = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
     procedure do_ImportCSV(const sour: TPascalString; const king, Data: TArrayPascalString);
@@ -251,7 +251,7 @@ type
   end;
 
   // Base DataBase Struct
-  TDBListPascalString = class(TCore_Object)
+  TDBListPascalString = class(TCore_Object_Intermediate)
   protected
     FHashListBuff: TCore_ListForObj;
   public
@@ -324,7 +324,7 @@ type
   TRemove_P = reference to procedure(StorePos: Int64; RemoveSuccesed: Boolean);
 {$ENDIF FPC}
 
-  TQueryTask = class(TCore_Object)
+  TQueryTask = class(TCore_Object_Intermediate)
   protected
     FDBEng: TDBStore;
     FInited: Boolean;
@@ -420,7 +420,7 @@ type
     property CacheID: Cardinal read ID;
   end;
 
-  TDBStore = class(TCore_InterfacedObject)
+  TDBStore = class(TCore_InterfacedObject_Intermediate)
   protected
     FDBEngine: TObjectDataManagerOfCache;
     FStoreFieldPos: Int64;

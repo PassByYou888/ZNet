@@ -25,7 +25,7 @@ type
 
   TNumberModuleHook = procedure(Sender: TNumberModuleHookPool; OLD_: Variant; var New_: Variant) of object;
 
-  TNumberModuleHookPool = class(TCore_Object)
+  TNumberModuleHookPool = class(TCore_Object_Intermediate)
   private
     FOwner: TNumberModule;
     FOwnerList: TNumberModuleHookPoolList;
@@ -42,7 +42,7 @@ type
 
   TNumberModuleEvent = procedure(Sender: TNumberModuleEventPool; New_: Variant) of object;
 
-  TNumberModuleEventPool = class(TCore_Object)
+  TNumberModuleEventPool = class(TCore_Object_Intermediate)
   private
     FOwner: TNumberModule;
     FOwnerList: TNumberModuleEventPoolList;
@@ -59,7 +59,7 @@ type
 
   TNumberModuleChangeEvent = procedure(Sender: TNumberModule; OLD_, New_: Variant);
 
-  TNumberModule = class(TCore_Object)
+  TNumberModule = class(TCore_Object_Intermediate)
   private
     FOwner: TNumberModulePool;
     FName: SystemString;
@@ -156,7 +156,7 @@ type
   TOnNMChange = procedure(Sender: TNumberModulePool; NM_: TNumberModule; OLD_, New_: Variant) of object;
   TOnNMCreateOpRunTime = procedure(Sender: TNumberModulePool; OP_: TOpCustomRunTime) of object;
 
-  TNumberModulePool = class(TCore_Object)
+  TNumberModulePool = class(TCore_Object_Intermediate)
   protected
     FList: TNumberModulePool_Decl;
     FIsChanged: Boolean;

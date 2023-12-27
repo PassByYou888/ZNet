@@ -52,7 +52,7 @@ type
     procedure Decode(d: TDFE);
   end;
 
-  TDirectory_Service_MD5_Data_Frag = class
+  TDirectory_Service_MD5_Data_Frag = class(TCore_Object_Intermediate)
   public
     Owner: TC40_NetDisk_Directory_Service;
     Stream: TZDB2_DFE;
@@ -64,7 +64,7 @@ type
 
   TDirectory_Service_MD5_DataPool = TGeneric_String_Object_Hash<TDirectory_Service_MD5_Data_Frag>;
 
-  TDirectory_Service_User_File_DB = class
+  TDirectory_Service_User_File_DB = class(TCore_Object_Intermediate)
   public
     Owner: TC40_NetDisk_Directory_Service;
     Stream: TZDB2_ObjectDataManager;
@@ -81,7 +81,7 @@ type
 
   TDirectory_Service_User_File_DB_Pool = TGeneric_String_Object_Hash<TDirectory_Service_User_File_DB>;
 
-  TTemp_Compute_SpaceInfo = class
+  TTemp_Compute_SpaceInfo = class(TCore_Object_Intermediate)
   public
     Service: TC40_NetDisk_Directory_Service;
     DB_Name: U_String;

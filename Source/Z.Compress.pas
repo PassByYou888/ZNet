@@ -74,7 +74,7 @@ type
       True: (Value: TCCUInt64;);
   end;
 
-  TCompressor = class(TCore_Object)
+  TCompressor = class(TCore_Object_Intermediate)
   private const
     ChunkHeadSize = $3000;
     ChunkSize = $FFFF - ChunkHeadSize;

@@ -21,7 +21,7 @@ type
   TZDB2_ObjectDataManager = class;
   TZDB2_Big_List_ObjectDataManager_Decl__ = TBigList<TZDB2_ObjectDataManager>;
 
-  TZDB2_ObjectDataManager = class
+  TZDB2_ObjectDataManager = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZDB2_Big_List_ObjectDataManager_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
@@ -48,7 +48,7 @@ type
 
   TOnCreate_ZDB2_ObjectDataManager = procedure(Sender: TZDB2_List_ObjectDataManager; Obj: TZDB2_ObjectDataManager) of object;
 
-  TZDB2_List_ObjectDataManager = class
+  TZDB2_List_ObjectDataManager = class(TCore_Object_Intermediate)
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;

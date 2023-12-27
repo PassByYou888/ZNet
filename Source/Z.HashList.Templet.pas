@@ -48,7 +48,7 @@ type
   TSingle_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Single, T_>)
   public
     Epsilon: Single;
-    constructor Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Single);
+    constructor Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Single);
     function Get_Key_Hash(const Key_: Single): THash; override;
     function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
@@ -56,7 +56,7 @@ type
   TDouble_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Double, T_>)
   public
     Epsilon: Double;
-    constructor Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Double);
+    constructor Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Double);
     function Get_Key_Hash(const Key_: Double): THash; override;
     function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
@@ -64,7 +64,7 @@ type
   TPointer_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Pointer, T_>)
   end;
 
-  TInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<integer, T_>)
+  TInt32_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Integer, T_>)
   end;
 
   TInt64_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Int64, T_>)
@@ -104,7 +104,7 @@ type
   TCritical_Single_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Single, T_>)
   public
     Epsilon: Single;
-    constructor Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Single);
+    constructor Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Single);
     function Get_Key_Hash(const Key_: Single): THash; override;
     function Compare_Key(const Key_1, Key_2: Single): Boolean; override;
   end;
@@ -112,7 +112,7 @@ type
   TCritical_Double_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Double, T_>)
   public
     Epsilon: Double;
-    constructor Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Double);
+    constructor Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Double);
     function Get_Key_Hash(const Key_: Double): THash; override;
     function Compare_Key(const Key_1, Key_2: Double): Boolean; override;
   end;
@@ -123,7 +123,7 @@ type
   TCritical_Pointer_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Pointer, T_>)
   end;
 
-  TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<integer, T_>)
+  TCritical_Int32_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Integer, T_>)
   end;
 
   TCritical_Int64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<Int64, T_>)
@@ -135,18 +135,33 @@ type
   TCritical_UInt64_Big_Hash_Pair_Pool<T_> = class(TCritical_Big_Hash_Pair_Pool<UInt64, T_>)
   end;
 
-  TString_Num_Analysis_Tool_Decl = TString_Big_Hash_Pair_Pool<integer>;
+  TString_Num_Analysis_Tool_ = TString_Big_Hash_Pair_Pool<Integer>;
 
-  TString_Num_Analysis_Tool = class(TString_Num_Analysis_Tool_Decl)
+  TString_Num_Analysis_Tool = class(TString_Num_Analysis_Tool_)
   public
-    procedure IncValue(Key_: SystemString; Value_: integer); overload;
+    procedure IncValue(Key_: SystemString; Value_: Integer); overload;
     procedure IncValue(source: TString_Num_Analysis_Tool); overload;
-    function Get_Max_Key_And_Value(var k: SystemString; var v: integer): Boolean;
+    function Get_Max_Key_And_Value(var k: SystemString; var v: Integer): Boolean;
     function Get_Max_Key(): SystemString;
     function Get_Min_Key(): SystemString;
+    function Do_Sort_By_Num(var L, R: Integer): Integer;
+    procedure Sort_By_Num();
   end;
 
-  TGeneric_String_Object_Hash<T_: class> = class(TCore_Object)
+  TString_Num64_Analysis_Tool_ = TString_Big_Hash_Pair_Pool<Int64>;
+
+  TString_Num64_Analysis_Tool = class(TString_Num64_Analysis_Tool_)
+  public
+    procedure IncValue(Key_: SystemString; Value_: Int64); overload;
+    procedure IncValue(source: TString_Num64_Analysis_Tool); overload;
+    function Get_Max_Key_And_Value(var k: SystemString; var v: Int64): Boolean;
+    function Get_Max_Key(): SystemString;
+    function Get_Min_Key(): SystemString;
+    function Do_Sort_By_Num(var L, R: Int64): Integer;
+    procedure Sort_By_Num();
+  end;
+
+  TGeneric_String_Object_Hash<T_: class> = class(TCore_Object_Intermediate)
   public type
     TRefClass_ = TGeneric_String_Object_Hash<T_>;
     TGebnericHashChangeEvent = procedure(Sender: TCore_Object; Name: SystemString; OLD_, New_: T_) of object;
@@ -191,7 +206,7 @@ type
   public
     OnFree: TOnFree;
     procedure DoInited; virtual;
-    constructor Create(AutoFreeData_: Boolean; HashPoolSize_: integer; Default_NULL_VALUE_: T_);
+    constructor Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_NULL_VALUE_: T_);
     destructor Destroy; override;
 
     procedure Assign(sour: TRefClass_);
@@ -310,7 +325,7 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-constructor TSingle_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Single);
+constructor TSingle_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Single);
 begin
   inherited Create(HashSize_, NULL_VALUE_);
   Epsilon := Epsilon_;
@@ -329,7 +344,7 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-constructor TDouble_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Double);
+constructor TDouble_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Double);
 begin
   inherited Create(HashSize_, NULL_VALUE_);
   Epsilon := Epsilon_;
@@ -404,7 +419,7 @@ begin
   inherited DoFree(Key, Value);
 end;
 
-constructor TCritical_Single_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Single);
+constructor TCritical_Single_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Single);
 begin
   inherited Create(HashSize_, NULL_VALUE_);
   Epsilon := Epsilon_;
@@ -423,7 +438,7 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-constructor TCritical_Double_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: integer; const NULL_VALUE_: T_; const Epsilon_: Double);
+constructor TCritical_Double_Big_Hash_Pair_Pool<T_>.Create(const HashSize_: Integer; const NULL_VALUE_: T_; const Epsilon_: Double);
 begin
   inherited Create(HashSize_, NULL_VALUE_);
   Epsilon := Epsilon_;
@@ -442,9 +457,9 @@ begin
   Result := IsEqual__(Key_1, Key_2, Epsilon);
 end;
 
-procedure TString_Num_Analysis_Tool.IncValue(Key_: SystemString; Value_: integer);
+procedure TString_Num_Analysis_Tool.IncValue(Key_: SystemString; Value_: Integer);
 var
-  p: TString_Num_Analysis_Tool_Decl.PValue;
+  p: TString_Num_Analysis_Tool_.PValue;
 begin
   if Value_ = 0 then
       exit;
@@ -454,7 +469,7 @@ end;
 
 procedure TString_Num_Analysis_Tool.IncValue(source: TString_Num_Analysis_Tool);
 var
-  __repeat__: TString_Num_Analysis_Tool_Decl.TRepeat___;
+  __repeat__: TString_Num_Analysis_Tool_.TRepeat___;
 begin
   if source.num <= 0 then
       exit;
@@ -464,9 +479,9 @@ begin
   until not __repeat__.Next;
 end;
 
-function TString_Num_Analysis_Tool.Get_Max_Key_And_Value(var k: SystemString; var v: integer): Boolean;
+function TString_Num_Analysis_Tool.Get_Max_Key_And_Value(var k: SystemString; var v: Integer): Boolean;
 var
-  tmp: integer;
+  tmp: Integer;
 begin
   Result := False;
   if num > 0 then
@@ -489,7 +504,7 @@ end;
 
 function TString_Num_Analysis_Tool.Get_Max_Key: SystemString;
 var
-  tmp: integer;
+  tmp: Integer;
 begin
   if num > 0 then
     begin
@@ -508,7 +523,7 @@ end;
 
 function TString_Num_Analysis_Tool.Get_Min_Key: SystemString;
 var
-  tmp: integer;
+  tmp: Integer;
 begin
   Result := '';
   if num > 0 then
@@ -524,6 +539,110 @@ begin
             end;
         until not Next;
     end;
+end;
+
+function TString_Num_Analysis_Tool.Do_Sort_By_Num(var L, R: Integer): Integer;
+begin
+  Result := CompareInteger(L, R);
+end;
+
+procedure TString_Num_Analysis_Tool.Sort_By_Num;
+begin
+  Sort_Value_M(Do_Sort_By_Num);
+end;
+
+procedure TString_Num64_Analysis_Tool.IncValue(Key_: SystemString; Value_: Int64);
+var
+  p: TString_Num64_Analysis_Tool_.PValue;
+begin
+  if Value_ = 0 then
+      exit;
+  p := Get_Value_Ptr(Key_);
+  p^ := p^ + Value_;
+end;
+
+procedure TString_Num64_Analysis_Tool.IncValue(source: TString_Num64_Analysis_Tool);
+var
+  __repeat__: TString_Num64_Analysis_Tool_.TRepeat___;
+begin
+  if source.num <= 0 then
+      exit;
+  __repeat__ := source.Repeat_;
+  repeat
+      IncValue(__repeat__.queue^.Data^.Data.Primary, __repeat__.queue^.Data^.Data.Second);
+  until not __repeat__.Next;
+end;
+
+function TString_Num64_Analysis_Tool.Get_Max_Key_And_Value(var k: SystemString; var v: Int64): Boolean;
+var
+  tmp: Int64;
+begin
+  Result := False;
+  if num > 0 then
+    begin
+      k := Queue_Pool.First^.Data^.Data.Primary;
+      tmp := Queue_Pool.First^.Data^.Data.Second;
+      v := tmp;
+      with Queue_Pool.Repeat_ do
+        repeat
+          if queue^.Data^.Data.Second > tmp then
+            begin
+              k := queue^.Data^.Data.Primary;
+              tmp := queue^.Data^.Data.Second;
+              v := tmp;
+            end;
+        until not Next;
+      Result := True;
+    end;
+end;
+
+function TString_Num64_Analysis_Tool.Get_Max_Key: SystemString;
+var
+  tmp: Int64;
+begin
+  if num > 0 then
+    begin
+      Result := Queue_Pool.First^.Data^.Data.Primary;
+      tmp := Queue_Pool.First^.Data^.Data.Second;
+      with Queue_Pool.Repeat_ do
+        repeat
+          if queue^.Data^.Data.Second > tmp then
+            begin
+              Result := queue^.Data^.Data.Primary;
+              tmp := queue^.Data^.Data.Second;
+            end;
+        until not Next;
+    end;
+end;
+
+function TString_Num64_Analysis_Tool.Get_Min_Key: SystemString;
+var
+  tmp: Int64;
+begin
+  Result := '';
+  if num > 0 then
+    begin
+      Result := Queue_Pool.First^.Data^.Data.Primary;
+      tmp := Queue_Pool.First^.Data^.Data.Second;
+      with Queue_Pool.Repeat_ do
+        repeat
+          if queue^.Data^.Data.Second < tmp then
+            begin
+              Result := queue^.Data^.Data.Primary;
+              tmp := queue^.Data^.Data.Second;
+            end;
+        until not Next;
+    end;
+end;
+
+function TString_Num64_Analysis_Tool.Do_Sort_By_Num(var L, R: Int64): Integer;
+begin
+  Result := CompareInt64(L, R);
+end;
+
+procedure TString_Num64_Analysis_Tool.Sort_By_Num;
+begin
+  Sort_Value_M(Do_Sort_By_Num);
 end;
 
 function TGeneric_String_Object_Hash<T_>.GetCount: NativeInt;
@@ -610,7 +729,7 @@ procedure TGeneric_String_Object_Hash<T_>.DoInited;
 begin
 end;
 
-constructor TGeneric_String_Object_Hash<T_>.Create(AutoFreeData_: Boolean; HashPoolSize_: integer; Default_NULL_VALUE_: T_);
+constructor TGeneric_String_Object_Hash<T_>.Create(AutoFreeData_: Boolean; HashPoolSize_: Integer; Default_NULL_VALUE_: T_);
 begin
   inherited Create;
   FHashList := THashList.CustomCreate(HashPoolSize_);
@@ -632,7 +751,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.Assign(sour: TRefClass_);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   Clear;
@@ -651,7 +770,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.ProgressC(const OnProgress: TGebnericHashListLoop_C);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -672,7 +791,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.ProgressM(const OnProgress: TGebnericHashListLoop_M);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -693,7 +812,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.ProgressP(const OnProgress: TGebnericHashListLoop_P);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   if HashList.Count > 0 then
@@ -716,7 +835,7 @@ procedure TGeneric_String_Object_Hash<T_>.Clear;
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
-  i: integer;
+  i: Integer;
 begin
   if FAutoFreeObject then
     begin
@@ -744,7 +863,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetNameList(OutputList: TCore_Strings);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -763,7 +882,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetNameList(OutputList: TListString);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -782,7 +901,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetNameList(OutputList: TListPascalString);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -801,7 +920,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetListData(OutputList: TCore_Strings);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -820,7 +939,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetListData(OutputList: TListString);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -839,7 +958,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetListData(OutputList: TListPascalString);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -858,7 +977,7 @@ end;
 
 procedure TGeneric_String_Object_Hash<T_>.GetAsList(OutputList: TCore_ListForObj);
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   OutputList.Clear;
@@ -878,7 +997,7 @@ end;
 
 function TGeneric_String_Object_Hash<T_>.GetObjAsName(Obj: T_): SystemString;
 var
-  i: integer;
+  i: Integer;
   p: PHashListData;
 begin
   Result := '';
@@ -985,7 +1104,7 @@ end;
 function TGeneric_String_Object_Hash<T_>.ExistsObject(Obj: T_): Boolean;
 var
   lst: TCore_List;
-  i: integer;
+  i: Integer;
 begin
   Result := False;
   lst := TCore_List.Create;
@@ -1009,7 +1128,7 @@ procedure TGeneric_String_Object_Hash<T_>.CopyFrom(const source: TRefClass_);
 var
   lst: TCore_List;
   pObjData: PGebnericHashListData;
-  i: integer;
+  i: Integer;
 begin
   lst := TCore_List.Create;
   source.HashList.GetListData(lst);
@@ -1086,10 +1205,10 @@ end;
 
 procedure Test_Single_Big_Hash_Pair_Pool();
 type
-  T_Test = TSingle_Big_Hash_Pair_Pool<integer>;
+  T_Test = TSingle_Big_Hash_Pair_Pool<Integer>;
 var
   tmp: T_Test;
-  i: integer;
+  i: Integer;
 begin
   tmp := T_Test.Create(1000, 0, 0.01);
   for i := 1 to 10000 do

@@ -31,7 +31,7 @@ type
   TZ_Instance_JsonObject = TJsonObject;
 {$ENDIF DELPHI}
 
-  TZ_JsonBase = class
+  TZ_JsonBase = class(TCore_Object_Intermediate)
   protected
     FParent: TZ_JsonBase;
     FList: TCore_ObjectList;

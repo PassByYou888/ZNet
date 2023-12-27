@@ -46,7 +46,7 @@ type
   TN_Post_Execute_Auto_Free_Pool = TCritical_Big_Object_List<TObject>;
 {$ENDIF Tracking_Dealy_Free_Object}
 
-  TN_Post_Execute = class(TCore_Object)
+  TN_Post_Execute = class(TCore_Object_Intermediate)
   private
     FOwner: TN_Progress_Tool;
     FPool_Data_Ptr: TN_Post_Execute_List_Struct.PQueueStruct;
@@ -87,7 +87,7 @@ type
 
   TN_Post_ExecuteClass = class of TN_Post_Execute;
 
-  TN_Progress_Tool = class(TCore_InterfacedObject)
+  TN_Progress_Tool = class(TCore_InterfacedObject_Intermediate)
   protected
     FPostIsRun: Boolean;
     FPostExecute_Pool: TN_Post_Execute_List_Struct;
@@ -103,12 +103,12 @@ type
     procedure ResetPost;
     procedure Clear;
     procedure Clean;
-    // post
+    // post prototype
     function PostExecute(ready_: Boolean): TN_Post_Execute; overload;
     function PostExecute(ready_: Boolean; DataEng: TDFE): TN_Post_Execute; overload;
     function PostExecute(ready_: Boolean; Delay: Double): TN_Post_Execute; overload;
     function PostExecute(ready_: Boolean; Delay: Double; DataEng: TDFE): TN_Post_Execute; overload;
-    //
+    // post call
     function PostExecuteC(DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC(Delay: Double; DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC(Delay: Double; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
@@ -117,7 +117,7 @@ type
     function PostExecuteC(ready_: Boolean; Delay: Double; DataEng: TDFE; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC(ready_: Boolean; Delay: Double; OnExecute_C: TN_Post_Execute_C): TN_Post_Execute; overload;
     function PostExecuteC_NP(ready_: Boolean; Delay: Double; OnExecute_C: TN_Post_Execute_C_NP): TN_Post_Execute; overload;
-    //
+    // post method
     function PostExecuteM(DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
     function PostExecuteM(Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
     function PostExecuteM(Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
@@ -126,7 +126,7 @@ type
     function PostExecuteM(ready_: Boolean; Delay: Double; DataEng: TDFE; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
     function PostExecuteM(ready_: Boolean; Delay: Double; OnExecute_M: TN_Post_Execute_M): TN_Post_Execute; overload;
     function PostExecuteM_NP(ready_: Boolean; Delay: Double; OnExecute_M: TN_Post_Execute_M_NP): TN_Post_Execute; overload;
-    //
+    // post proc
     function PostExecuteP(DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP(Delay: Double; DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP(Delay: Double; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
@@ -135,13 +135,14 @@ type
     function PostExecuteP(ready_: Boolean; Delay: Double; DataEng: TDFE; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP(ready_: Boolean; Delay: Double; OnExecute_P: TN_Post_Execute_P): TN_Post_Execute; overload;
     function PostExecuteP_NP(ready_: Boolean; Delay: Double; OnExecute_P: TN_Post_Execute_P_NP): TN_Post_Execute; overload;
-    // state and dispatch
+    // delay free
     procedure PostDelayFreeObject(Delay: Double; Arry: array of TCore_Object); overload;
     procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_, Obj3_, Obj4_: TCore_Object); overload;
     procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_, Obj3_: TCore_Object); overload;
     procedure PostDelayFreeObject(Delay: Double; Obj1_, Obj2_: TCore_Object); overload;
     procedure PostDelayFreeObject(Delay: Double; Obj1_: TCore_Object); overload;
     procedure Remove(Inst_: TN_Post_Execute); overload; virtual;
+    // state and dispatch
     procedure Progress(deltaTime: Double); overload;
     property Paused: Boolean read FPaused write FPaused;
     property Busy: Boolean read FBusy;

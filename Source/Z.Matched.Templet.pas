@@ -11,7 +11,7 @@ interface
 uses Z.Core;
 
 type
-  TBidirectional_Matched<T_> = class(TCore_Object)
+  TBidirectional_Matched<T_> = class(TCore_Object_Intermediate)
   public type
     TData_Pool___ = TBigList<T_>;
     TPair_Pool___ = TPair2_Tool<T_, T_>;
@@ -26,7 +26,7 @@ type
     function Compute_Matched(): NativeInt; virtual;
   end;
 
-  TBidirectional_Matched_D<T_> = class(TCore_Object)
+  TBidirectional_Matched_D<T_> = class(TCore_Object_Intermediate)
   public type
     TData_Pool___ = TBigList<T_>;
     TPair_Pool___ = TPair2_Tool<T_, T_>;

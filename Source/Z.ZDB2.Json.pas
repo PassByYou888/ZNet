@@ -20,7 +20,7 @@ type
   TZDB2_Json = class;
   TZDB2_Big_List_Json_Decl__ = TBigList<TZDB2_Json>;
 
-  TZDB2_Json = class
+  TZDB2_Json = class(TCore_Object_Intermediate)
   private
     FPool_Ptr: TZDB2_Big_List_Json_Decl__.PQueueStruct;
     FTimeOut: TTimeTick;
@@ -49,7 +49,7 @@ type
 
   TOnCreate_ZDB2_Json = procedure(Sender: TZDB2_List_Json; Obj: TZDB2_Json) of object;
 
-  TZDB2_List_Json = class
+  TZDB2_List_Json = class(TCore_Object_Intermediate)
   private
     procedure DoNoSpace(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
     function GetAutoFreeStream: Boolean;

@@ -57,7 +57,7 @@ type
   TNoAuth_OnLinkSuccess = procedure(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth) of object;
   TNoAuth_OnUserOut = procedure(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth) of object;
 
-  TDTService_NoAuth = class(TCore_InterfacedObject)
+  TDTService_NoAuth = class(TCore_InterfacedObject_Intermediate)
   protected
     FRecvTunnel, FSendTunnel: TZNet_Server;
     FCadencerEngine: TCadencer;
@@ -200,7 +200,7 @@ type
     const fileName: SystemString; const StartPos, EndPos: Int64; const DataPtr: Pointer; const DataSize: Int64; const MD5: TMD5);
 {$ENDIF FPC}
 
-  TDTClient_NoAuth = class(TCore_InterfacedObject, IZNet_ClientInterface)
+  TDTClient_NoAuth = class(TCore_InterfacedObject_Intermediate, IZNet_ClientInterface)
   protected
     FSendTunnel, FRecvTunnel: TZNet_Client;
     FFileSystem: Boolean;
@@ -402,7 +402,7 @@ type
 
   PDT_P2PVM_NoAuth_OnState = ^TDT_P2PVM_NoAuth_OnState;
 
-  TDT_P2PVM_NoAuth_Service = class(TCore_Object)
+  TDT_P2PVM_NoAuth_Service = class(TCore_Object_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -423,7 +423,7 @@ type
   TDT_P2PVM_NoAuth_ServicePool = TGenericsList<TDT_P2PVM_NoAuth_Service>;
   TOn_DT_P2PVM_NoAuth_Client_TunnelLink = procedure(Sender: TDT_P2PVM_NoAuth_Client) of object;
 
-  TDT_P2PVM_NoAuth_Client = class(TCore_Object)
+  TDT_P2PVM_NoAuth_Client = class(TCore_Object_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_NoAuth_OnState;
     Connecting: Boolean;
@@ -458,7 +458,7 @@ type
   TDT_P2PVM_NoAuth_Custom_Service = class;
   TDT_P2PVM_NoAuth_Custom_Service_Class = class of TDT_P2PVM_NoAuth_Custom_Service;
 
-  TDT_P2PVM_NoAuth_Custom_Service = class(TCore_InterfacedObject)
+  TDT_P2PVM_NoAuth_Custom_Service = class(TCore_InterfacedObject_Intermediate)
   private
     function GetQuietMode: Boolean;
     procedure SetQuietMode(const Value: Boolean);
@@ -496,7 +496,7 @@ type
     procedure DoFree(var Data: TDT_P2PVM_NoAuth_Custom_Client); override;
   end;
 
-  TDT_P2PVM_NoAuth_Custom_Client = class(TCore_InterfacedObject)
+  TDT_P2PVM_NoAuth_Custom_Client = class(TCore_InterfacedObject_Intermediate)
   private
     OnConnectResultState: TDT_P2PVM_NoAuth_OnState;
     Connecting: Boolean;
@@ -587,7 +587,7 @@ type
     OnComplete_P: TFileFragmentData_P_NoAuth;
   end;
 
-  TAutomatedDownloadFile_Struct_NoAuth = class
+  TAutomatedDownloadFile_Struct_NoAuth = class(TCore_Object_Intermediate)
   private
     remoteFile, localFile: SystemString;
     OnDownloadDoneC: TFileComplete_C_NoAuth;
@@ -609,7 +609,7 @@ type
     destructor Destroy; override;
   end;
 
-  TAutomatedUploadFile_Struct_NoAuth = class
+  TAutomatedUploadFile_Struct_NoAuth = class(TCore_Object_Intermediate)
   private
     localFile: SystemString;
     Client: TDTClient_NoAuth;

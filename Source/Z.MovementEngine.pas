@@ -35,7 +35,7 @@ type
 
   TMovementOperationMode = (momMovementPath, momStopRollAngle);
 
-  TMovementEngine = class(TCore_Object)
+  TMovementEngine = class(TCore_Object_Intermediate)
   private
     FOnInterface: IMovementEngineInterface;
     FSteps: array of TMovementStepData;

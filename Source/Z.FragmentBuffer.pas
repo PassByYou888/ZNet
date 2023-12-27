@@ -25,7 +25,7 @@ type
 
   TPart_Buffer_Tool_ = TBigList<TPart_Data>;
 
-  TPart_Data = class
+  TPart_Data = class(TCore_Object_Intermediate)
   public
     Owner_Buffer: TPart_Buffer_Tool_.PQueueStruct;
     bPos: Int64;
@@ -51,7 +51,7 @@ type
 
   TOn_Get_Fragment = procedure(Sender: TFragment_Space_Tool; Position_: Int64; buff_: Pointer; Size_: Int64; var successed: Boolean) of object;
 
-  TFragment_Space_Tool = class
+  TFragment_Space_Tool = class(TCore_Object_Intermediate)
   private type
     TSpace_Span_Tool = TBig_Hash_Pair_Pool<Int64, Boolean>;
 
@@ -102,7 +102,7 @@ type
     property On_Get_Fragment: TOn_Get_Fragment read FOn_Get_Fragment write FOn_Get_Fragment;
   end;
 
-  TFragment_Space_Tool_Test = class
+  TFragment_Space_Tool_Test = class(TCore_Object_Intermediate)
   public
     tool: TFragment_Space_Tool;
     mirror: TMem64;

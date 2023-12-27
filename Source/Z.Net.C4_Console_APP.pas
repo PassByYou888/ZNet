@@ -56,7 +56,7 @@ type
 
   TCmd_Net_Info_List = TGenericsList<TCmd_Net_Info_>;
 
-  TCommand_Script = class
+  TCommand_Script = class(TCore_Object_Intermediate)
   private
     function Do_Config(var OP_Param: TOpParam): Variant;
     function Do_KeepAlive_Client(var OP_Param: TOpParam): Variant;
@@ -435,7 +435,7 @@ begin
 end;
 
 type
-  TMain_Loop_Instance__ = class
+  TMain_Loop_Instance__ = class(TCore_Object_Intermediate)
   private
     exit_signal: Boolean;
     procedure Do_Check_On_Exit;

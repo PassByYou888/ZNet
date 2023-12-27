@@ -52,7 +52,7 @@ type
 
   POpRTData = ^TOpRTData;
 
-  TOpRT_Sync_Bridge = class
+  TOpRT_Sync_Bridge = class(TCore_Object_Intermediate)
   public
     opRT: TOpCustomRunTime;
     OC: TOpCode;
@@ -61,7 +61,7 @@ type
     procedure Do_Sync_Run;
   end;
 
-  TOpSystemAPI = class(TCore_Object)
+  TOpSystemAPI = class(TCore_Object_Intermediate)
   private
     function DoInt(var OP_Param: TOpParam): Variant;
     function DoFrac(var OP_Param: TOpParam): Variant;
@@ -138,7 +138,7 @@ type
     procedure RegistationSystemAPI(RunTime: TOpCustomRunTime);
   end;
 
-  TOpCustomRunTime = class(TCore_Object)
+  TOpCustomRunTime = class(TCore_Object_Intermediate)
   protected
     procedure FreeNotifyProc(p: Pointer);
   public
@@ -188,7 +188,7 @@ type
     procedure DoFree(var Key: SystemString; var Value: TOpCode); override;
   end;
 
-  TOpCode = class(TCore_Object)
+  TOpCode = class(TCore_Object_Intermediate)
   private type
     POpData__ = ^TOpData__;
 
@@ -1278,7 +1278,6 @@ begin
   RunTime.RegOpM('Bin16', 'Bin16(text): return byte', Bin16)^.Category := 'Binary';
   RunTime.RegOpM('Bin32', 'Bin32(text): return byte', Bin32)^.Category := 'Binary';
   RunTime.RegOpM('Bin64', 'Bin64(text): return byte', Bin64)^.Category := 'Binary';
-
 end;
 
 procedure TOpCustomRunTime.FreeNotifyProc(p: Pointer);

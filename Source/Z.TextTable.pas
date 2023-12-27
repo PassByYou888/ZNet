@@ -40,7 +40,7 @@ type
 
   PTextTableItem = ^TTextTableItem;
 
-  TTextTable = class(TCore_Object)
+  TTextTable = class(TCore_Object_Intermediate)
   protected
     FList: TCore_List;
     function GetItems(index: Integer): PTextTableItem;

@@ -79,7 +79,7 @@ type
   TSymbolVector = TP_ArrayString;
   TSymbolMatrix = array of TSymbolVector;
 
-  TTextParsing = class(TCore_Object)
+  TTextParsing = class(TCore_Object_Intermediate)
   public
     TextStyle: TTextStyle;
     ParsingData: TTextParsingData;

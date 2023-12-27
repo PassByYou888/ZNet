@@ -23,7 +23,7 @@ implementation
 uses Z.GBKMediaCenter, Z.GBK, Z.GBKVec;
 
 type
-  TBigKeyAnalysis = class
+  TBigKeyAnalysis = class(TCore_Object_Intermediate)
     output: THashVariantList;
     procedure doProgress(Sender: THashStringList; Name: PSystemString; const v: SystemString);
   end;

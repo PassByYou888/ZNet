@@ -60,7 +60,7 @@ type
 
   TExpressionData_Pool = TGenericsList<PExpressionListData>;
 
-  TSymbolExpression = class sealed(TCore_Object)
+  TSymbolExpression = class sealed(TCore_Object_Intermediate)
   protected
     FList: TExpressionData_Pool;
     FTextStyle: TTextStyle;
@@ -2874,7 +2874,7 @@ begin
 end;
 
 type
-  TExpression_ConstVL = class
+  TExpression_ConstVL = class(TCore_Object_Intermediate)
   public
     VL: THashVariantList;
     procedure GetValue(const Decl: SystemString; var ValType: TExpressionDeclType; var Value: Variant);

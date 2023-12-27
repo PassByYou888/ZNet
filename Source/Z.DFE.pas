@@ -27,7 +27,7 @@ type
   TDF = TDFE;
   TDataFrame = TDFE;
 
-  TDFBase = class
+  TDFBase = class(TCore_Object_Intermediate)
   protected
     FID: Byte;
   public
@@ -372,7 +372,7 @@ type
     property Buffer: UInt64 read FBuffer write FBuffer;
   end;
 
-  TDFEReader = class
+  TDFEReader = class(TCore_Object_Intermediate)
   private
     FOwner: TDFE;
     FIndex: Integer;
@@ -460,7 +460,7 @@ type
     procedure Clear;
   end;
 
-  TDFE = class
+  TDFE = class(TCore_Object_Intermediate)
   private
     FBit_64_Critical: Int64;
     FDataList: TDFE_DataList;
@@ -684,7 +684,7 @@ type
     class procedure Test();
   end;
 
-  TDataWriter = class
+  TDataWriter = class(TCore_Object_Intermediate)
   private
     FEngine: TDFE;
     FStream: TCore_Stream;
@@ -746,7 +746,7 @@ type
     procedure write(const Buf_; Count_: Int64);
   end;
 
-  TDataReader = class
+  TDataReader = class(TCore_Object_Intermediate)
   private
     FEngine: TDFE;
   public
@@ -6126,9 +6126,5 @@ procedure TDataReader.Read(var Buf_; Count_: Int64);
 begin
   FEngine.Reader.Read(Buf_, Count_);
 end;
-
-initialization
-
-finalization
 
 end.
