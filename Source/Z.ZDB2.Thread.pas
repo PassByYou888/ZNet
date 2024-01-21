@@ -137,7 +137,7 @@ type
     // temp data swap technology
     // When the data is in a long loop, it is not appended to the data structure, but stored in the underlying ZDB2 database and Temp_Swap_Pool.
     // after the long loop ends, the data will truly become a engine structure
-    FIn_Temp_Swap_Pool: Boolean;
+    FIs_Temp_Swap_Pool: Boolean;
 
     // In a multithreaded instance, data will be busy-loaded by multiple threads, OneWayDataProcessReady indicates that the data is ready
     // If added to the data, it will be false and true after completion
@@ -904,7 +904,7 @@ begin
   FTh_Engine_Data_Ptr := nil;
   FID := -1;
   FSize := 0;
-  FIn_Temp_Swap_Pool := False;
+  FIs_Temp_Swap_Pool := False;
   FOneWayDataProcessReady := False;
   FInstance_Busy := 0;
   FInstance_Last_Busy_Time := 0;
@@ -1012,7 +1012,7 @@ end;
 function TZDB2_Th_Engine_Data.Can_Free: Boolean;
 begin
   Result := ((FInstance_Busy <= 0) or (GetTimeTick - FInstance_Last_Busy_Time > C_Max_Busy_Instance_Recycle_Time))
-    and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0) and (not FIn_Temp_Swap_Pool);
+    and (is_UnLocked) and (FAsync_Load_Num <= 0) and (FAsync_Save_Num <= 0) and (not FIs_Temp_Swap_Pool);
 end;
 
 procedure TZDB2_Th_Engine_Data.MoveToLast;
@@ -2113,7 +2113,7 @@ begin
         repeat
           Queue^.Data.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Queue^.Data);
           Queue^.Data.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Queue^.Data);
-          Queue^.Data.FIn_Temp_Swap_Pool := False;
+          Queue^.Data.FIs_Temp_Swap_Pool := False;
           Queue^.Data.Update_Owner_ID_Pool(-1, Queue^.Data.FID);
           Temp_Swap_Pool.Push_To_Recycle_Pool(Queue);
         until not Next;
@@ -3272,7 +3272,7 @@ begin
 
   if Owner.FLong_Loop_Num > 0 then
     begin
-      Data_Instance.FIn_Temp_Swap_Pool := True;
+      Data_Instance.FIs_Temp_Swap_Pool := True;
       Temp_Swap_Pool.Add(Data_Instance);
     end
   else
@@ -3286,7 +3286,7 @@ begin
       end;
 
       // complete data instance
-      Data_Instance.FIn_Temp_Swap_Pool := False;
+      Data_Instance.FIs_Temp_Swap_Pool := False;
       Data_Instance.Lock;
       Data_Instance.FOwner_Data_Ptr := Owner.Data_Marshal.Add(Data_Instance);
       Data_Instance.FTh_Engine_Data_Ptr := Th_Engine_Data_Pool.Add(Data_Instance);

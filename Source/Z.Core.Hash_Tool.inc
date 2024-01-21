@@ -58,6 +58,7 @@ var
   i: integer;
 begin
   inherited Create;
+  CreateBefore();
   FQueue_Pool := TPool___.Create;
   FQueue_Pool.FOnFree := Internal_Do_Queue_Pool_Free;
   FHash_Buffer := TKey_Hash_Buffer.Create;
@@ -70,6 +71,7 @@ begin
   FOn_Get_Key := nil;
   FOn_Compare_Key := nil;
   FOn_Compare_Value := nil;
+  CreateAfter();
 end;
 
 constructor TBig_Hash_Pair_Pool<TKey_, TValue_>.Create(const HashSize_: integer);
@@ -83,6 +85,14 @@ begin
   FQueue_Pool.Free;
   DisposeObjectAndNil(FHash_Buffer);
   inherited Destroy;
+end;
+
+procedure TBig_Hash_Pair_Pool<TKey_, TValue_>.CreateBefore;
+begin
+end;
+
+procedure TBig_Hash_Pair_Pool<TKey_, TValue_>.CreateAfter;
+begin
 end;
 
 procedure TBig_Hash_Pair_Pool<TKey_, TValue_>.DoFree(var Key: TKey_; var Value: TValue_);
@@ -856,6 +866,7 @@ var
   i: integer;
 begin
   inherited Create;
+  CreateBefore();
   FCritical__ := TCritical.Create;
   FQueue_Pool := TPool___.Create;
   FQueue_Pool.FOnFree := Internal_Do_Queue_Pool_Free;
@@ -869,6 +880,7 @@ begin
   FOn_Get_Key := nil;
   FOn_Compare_Key := nil;
   FOn_Compare_Value := nil;
+  CreateAfter();
 end;
 
 constructor TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.Create(const HashSize_: integer);
@@ -883,6 +895,14 @@ begin
   DisposeObjectAndNil(FHash_Buffer);
   FCritical__.Free;
   inherited Destroy;
+end;
+
+procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.CreateBefore;
+begin
+end;
+
+procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.CreateAfter;
+begin
 end;
 
 procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.DoFree(var Key: TKey_; var Value: TValue_);

@@ -462,7 +462,7 @@ type
 
   TDFE = class(TCore_Object_Intermediate)
   private
-    FBit_64_Critical: Int64;
+    FBit_64_Condition: Int64;
     FDataList: TDFE_DataList;
     FReader: TDFEReader;
     FCompressorDeflate: TCompressorDeflate;
@@ -478,9 +478,8 @@ type
     property Reader: TDFEReader read FReader;
     property R: TDFEReader read FReader;
     property IsChanged: Boolean read FIsChanged write FIsChanged;
-    // Bit_64_Critical determines the data format based on conditions, whether it is 32-bit or 64-bit
-    property Bit_64_Critical: Int64 read FBit_64_Critical write FBit_64_Critical;
-
+    // Bit_64_Condition determines the data format based on conditions, whether it is 32-bit or 64-bit
+    property Bit_64_Condition: Int64 read FBit_64_Condition write FBit_64_Condition;
     procedure SwapInstance(source: TDFE);
 
     procedure Clear;
@@ -808,7 +807,7 @@ implementation
 uses SysUtils, Variants, Z.Notify;
 
 const
-  // data flag
+  // data label
   C_Bit_32 = $FF;
   C_Bit_64 = $FA;
   C_None_Compress = 0;
@@ -2325,7 +2324,7 @@ end;
 constructor TDFE.Create;
 begin
   inherited Create;
-  FBit_64_Critical := C_Max_UInt32;
+  FBit_64_Condition := C_Max_UInt32;
   FDataList := TDFE_DataList.Create;
   FDataList.Owner := Self;
   FReader := TDFEReader.Create(Self);
@@ -2375,7 +2374,7 @@ begin
   source.FReader.FOwner := source;
 
   TSwap<Integer>.Do_(Reader.FIndex, source.Reader.FIndex);
-  TSwap<Int64>.Do_(FBit_64_Critical, source.FBit_64_Critical);
+  TSwap<Int64>.Do_(FBit_64_Condition, source.FBit_64_Condition);
 
   FIsChanged := True;
   source.FIsChanged := True;
@@ -2543,7 +2542,7 @@ begin
       m64.Position := 0;
     end;
   DisposeObject(m64);
-  FBit_64_Critical := source.FBit_64_Critical;
+  FBit_64_Condition := source.FBit_64_Condition;
 end;
 
 function TDFE.Clone: TDFE;
@@ -3080,8 +3079,8 @@ var
 begin
   D_ := TDFE.Create;
   D_.WriteString(NM.Name);
-  D_.WriteVariant(NM.OriginValue);
-  D_.WriteVariant(NM.CurrentValue);
+  D_.WriteVariant(NM.Origin);
+  D_.WriteVariant(NM.Value);
   Result := WriteDataFrame(D_);
   DisposeObject(D_);
 end;
@@ -3097,8 +3096,8 @@ var
   begin
     Tmp_ := TDFE.Create;
     Tmp_.WriteString(NM.Name);
-    Tmp_.WriteVariant(NM.OriginValue);
-    Tmp_.WriteVariant(NM.CurrentValue);
+    Tmp_.WriteVariant(NM.Origin);
+    Tmp_.WriteVariant(NM.Value);
     D_.WriteDataFrame(Tmp_);
     DisposeObject(Tmp_);
   end;
@@ -3117,8 +3116,8 @@ begin
     begin
       Tmp_ := TDFE.Create;
       Tmp_.WriteString(NM.Name);
-      Tmp_.WriteVariant(NM.OriginValue);
-      Tmp_.WriteVariant(NM.CurrentValue);
+      Tmp_.WriteVariant(NM.Origin);
+      Tmp_.WriteVariant(NM.Value);
       D_.WriteDataFrame(Tmp_);
       DisposeObject(Tmp_);
     end);
@@ -3946,8 +3945,8 @@ begin
   D_ := TDFE.Create;
   ReadDataFrame(index_, D_);
   output.Name := D_.Reader.ReadString;
-  output.DirectOriginValue := D_.Reader.ReadVariant;
-  output.DirectCurrentValue := D_.Reader.ReadVariant;
+  output.DirectOrigin := D_.Reader.ReadVariant;
+  output.DirectValue := D_.Reader.ReadVariant;
   DisposeObject(D_);
 end;
 
@@ -3969,8 +3968,8 @@ begin
       N_ := Tmp_.Reader.ReadString;
       DM := output[N_];
       DM.Name := N_;
-      DM.DirectOriginValue := Tmp_.Reader.ReadVariant;
-      DM.DirectCurrentValue := Tmp_.Reader.ReadVariant;
+      DM.DirectOrigin := Tmp_.Reader.ReadVariant;
+      DM.DirectValue := Tmp_.Reader.ReadVariant;
       L_.Add(DM);
       DisposeObject(Tmp_);
     end;
@@ -4119,7 +4118,7 @@ begin
   SizeInfo64 := ComputeEncodeSize;
   if (output is TMS64) then
       TMS64(output).Delta := umlMax(TMS64(output).Delta, SizeInfo64);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       Result := FastEncode64To(output, SizeInfo64)
   else
       Result := FastEncode32To(output, SizeInfo64);
@@ -4180,7 +4179,7 @@ begin
   // make header
   SizeInfo32 := Cardinal(StoreStream.Size);
   SizeInfo64 := StoreStream.Size;
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       EditionToken := C_Bit_64
   else
       EditionToken := C_Bit_32;
@@ -4194,7 +4193,7 @@ begin
   // prepare write header
   nStream.Clear;
   nStream.write(EditionToken, C_Byte_Size);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       nStream.write(SizeInfo64, C_Int64_Size)
   else
       nStream.write(SizeInfo32, C_Cardinal_Size);
@@ -4441,11 +4440,11 @@ begin
   // make header
   SizeInfo32 := Cardinal(compStream.Size);
   SizeInfo64 := compStream.Size;
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       EditionToken := C_Bit_64
   else
       EditionToken := C_Bit_32;
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       compToken := C_Parallel_64_Compress
   else
       compToken := C_Parallel_32_Compress;
@@ -4453,12 +4452,12 @@ begin
   // prepare write header
   nStream.Clear;
   nStream.write(EditionToken, C_Byte_Size);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       nStream.write(SizeInfo64, C_Int64_Size)
   else
       nStream.write(SizeInfo32, C_Cardinal_Size);
   nStream.write(compToken, C_Byte_Size);
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       nStream.write(CompSizeInfo64, C_Int64_Size)
   else
       nStream.write(CompSizeInfo32, C_Cardinal_Size);
@@ -4564,11 +4563,11 @@ begin
   // make header
   SizeInfo32 := compStream.Size;
   SizeInfo64 := compStream.Size;
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       EditionToken := C_Bit_64
   else
       EditionToken := C_Bit_32;
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       compToken := C_ZLIB_64_Compress
   else
       compToken := C_ZLIB_32_Compress;
@@ -4576,12 +4575,12 @@ begin
   // prepare write header
   nStream.Clear;
   nStream.write(EditionToken, C_Byte_Size);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       nStream.write(SizeInfo64, C_Int64_Size)
   else
       nStream.write(SizeInfo32, C_Cardinal_Size);
   nStream.write(compToken, C_Byte_Size);
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       nStream.write(CompSizeInfo64, C_Int64_Size)
   else
       nStream.write(CompSizeInfo32, C_Cardinal_Size);
@@ -4677,11 +4676,11 @@ begin
   // make header
   SizeInfo32 := Cardinal(compStream.Size);
   SizeInfo64 := compStream.Size;
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       EditionToken := C_Bit_64
   else
       EditionToken := C_Bit_32;
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       compToken := C_Deflate_64_Compress
   else
       compToken := C_Deflate_32_Compress;
@@ -4689,12 +4688,12 @@ begin
   // prepare write header
   nStream.Clear;
   nStream.write(EditionToken, C_Byte_Size);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       nStream.write(SizeInfo64, C_Int64_Size)
   else
       nStream.write(SizeInfo32, C_Cardinal_Size);
   nStream.write(compToken, C_Byte_Size);
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       nStream.write(CompSizeInfo64, C_Int64_Size)
   else
       nStream.write(CompSizeInfo32, C_Cardinal_Size);
@@ -4789,11 +4788,11 @@ begin
   // make header
   SizeInfo32 := Cardinal(compStream.Size);
   SizeInfo64 := compStream.Size;
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       EditionToken := C_Bit_64
   else
       EditionToken := C_Bit_32;
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       compToken := C_BRRC_64_Compress
   else
       compToken := C_BRRC_32_Compress;
@@ -4801,12 +4800,12 @@ begin
   // prepare write header
   nStream.Clear;
   nStream.write(EditionToken, C_Byte_Size);
-  if SizeInfo64 > FBit_64_Critical then
+  if SizeInfo64 > FBit_64_Condition then
       nStream.write(SizeInfo64, C_Int64_Size)
   else
       nStream.write(SizeInfo32, C_Cardinal_Size);
   nStream.write(compToken, C_Byte_Size);
-  if CompSizeInfo64 > FBit_64_Critical then
+  if CompSizeInfo64 > FBit_64_Condition then
       nStream.write(CompSizeInfo64, C_Int64_Size)
   else
       nStream.write(CompSizeInfo32, C_Cardinal_Size);
@@ -5486,7 +5485,7 @@ begin
   m5 := inst.GetMD5(True);
 
   // test 32 Bit
-  inst.FBit_64_Critical := 1024 * 1024;
+  inst.FBit_64_Condition := 1024 * 1024;
   Test_Encode_1(inst, m5);
   Test_Encode_2(inst, m5);
   Test_Encode_3(inst, m5);
@@ -5498,7 +5497,7 @@ begin
   Test_Deflate_Encode(inst, m5);
 
   // simulate test 64 Bit
-  inst.FBit_64_Critical := 1024;
+  inst.FBit_64_Condition := 1024;
   m5 := inst.GetMD5(True);
   Test_Encode_1(inst, m5);
   Test_Encode_2(inst, m5);

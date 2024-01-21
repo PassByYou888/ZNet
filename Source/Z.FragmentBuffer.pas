@@ -160,7 +160,6 @@ type
     property Max_Flush_History_Num: Int64 read FMax_Flush_History_Num write FMax_Flush_History_Num;
     property History: TFragment_Space_Tool_History read FHistory;
     procedure Flush;
-
     function Write(const Buffer; Count: longint): longint; override;
     function Read(var Buffer; Count: longint): longint; override;
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64; override;

@@ -17,7 +17,7 @@ uses SysUtils,
 type
   // Core_Instance_Count_Tool is used to count activity instances, which can affect performance after startup.
   // Core_Instance_Count_Tool help debug and analyze the state of large programs
-  // Need "Core_Instance_Count_Tool" of Define
+  // Need "Intermediate_Instance_Tool" of Define
 
   TInstance_State_ = record
     Update_Time: TTimeTick;

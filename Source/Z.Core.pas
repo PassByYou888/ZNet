@@ -296,14 +296,12 @@ type
 {$Region 'Swap'}
   TSwap<T_> = class
   public
-    class procedure &Do(var v1, v2: T_); static;
     class procedure Do_(var v1, v2: T_); static;
   end;
 {$EndRegion 'Swap'}
 {$Region 'IF'}
   TIF<T_> = class
   public
-    class function &Do(Bool_: Boolean; Yes_, No_: T_): T_; static;
     class function Do_(Bool_: Boolean; Yes_, No_: T_): T_; static;
   end;
 {$EndRegion 'IF'}
@@ -352,7 +350,7 @@ type
     FLast: POrderPtrStruct;
     FNum: NativeInt;
     FOnFreeOrderStruct: TOnFreeOrderPtrStruct;
-    procedure DoInternalFree(p: POrderPtrStruct);
+    procedure DoInternalFree(const p: POrderPtrStruct);
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -415,7 +413,7 @@ type
     FLast: POrderPtrStruct;
     FNum: NativeInt;
     FOnFreeCriticalOrderStruct: TOnFreeCriticalOrderPtrStruct;
-    procedure DoInternalFree(p: POrderPtrStruct);
+    procedure DoInternalFree(const p: POrderPtrStruct);
   public
     property Critical__: TCritical read FCritical__;
     constructor Create; virtual;
@@ -975,6 +973,8 @@ type
     constructor Create(const HashSize_: integer; const NULL_VALUE_: TValue_); overload;
     constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
+    procedure CreateBefore; virtual;
+    procedure CreateAfter; virtual;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
     procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;
     function Get_Key_Hash(const Key_: TKey_): THash; virtual;
@@ -1089,6 +1089,8 @@ type
     constructor Create(const HashSize_: integer; const NULL_VALUE_: TValue_); overload;
     constructor Create(const HashSize_: integer); overload;
     destructor Destroy; override;
+    procedure CreateBefore; virtual;
+    procedure CreateAfter; virtual;
     procedure DoFree(var Key: TKey_; var Value: TValue_); virtual;
     procedure DoAdd(var Key: TKey_; var Value: TValue_); virtual;
     function Get_Key_Hash(const Key_: TKey_): THash; virtual;

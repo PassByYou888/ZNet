@@ -109,7 +109,7 @@ begin
   Result := p;
 end;
 
-procedure TOrderPtrStruct<T_>.DoInternalFree(p: POrderPtrStruct);
+procedure TOrderPtrStruct<T_>.DoInternalFree(const p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);
@@ -358,7 +358,7 @@ begin
   FCritical__.UnLock;
 end;
 
-procedure TCriticalOrderPtrStruct<T_>.DoInternalFree(p: POrderPtrStruct);
+procedure TCriticalOrderPtrStruct<T_>.DoInternalFree(const p: POrderPtrStruct);
 begin
   try
     DoFree(p^.Data);

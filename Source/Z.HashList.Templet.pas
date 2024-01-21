@@ -24,25 +24,43 @@ type
   TPascalString_Hash_Pool__ = TBig_Hash_Pair_Pool<TPascalString, TPascalString>;
 
   TPascalString_Hash_Pool = class(TPascalString_Hash_Pool__)
+  private
+    FMaxNameSize: Integer;
+    FMinNameSize: Integer;
   public
+    procedure CreateAfter; override;
     function Get_Key_Hash(const Key_: TPascalString): THash; override;
     function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: TPascalString); override;
     function Compare_Value(const Value_1, Value_2: TPascalString): Boolean; override;
+    property MaxKeySize: Integer read FMaxNameSize;
+    property MinKeySize: Integer read FMinNameSize;
   end;
 
   TString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<SystemString, T_>)
+  private
+    FMaxNameSize: Integer;
+    FMinNameSize: Integer;
   public
+    procedure CreateAfter; override;
     function Get_Key_Hash(const Key_: SystemString): THash; override;
     function Compare_Key(const Key_1, Key_2: SystemString): Boolean; override;
     procedure DoFree(var Key: SystemString; var Value: T_); override;
+    property MaxKeySize: Integer read FMaxNameSize;
+    property MinKeySize: Integer read FMinNameSize;
   end;
 
   TPascalString_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<TPascalString, T_>)
+  private
+    FMaxNameSize: Integer;
+    FMinNameSize: Integer;
   public
+    procedure CreateAfter; override;
     function Get_Key_Hash(const Key_: TPascalString): THash; override;
     function Compare_Key(const Key_1, Key_2: TPascalString): Boolean; override;
     procedure DoFree(var Key: TPascalString; var Value: T_); override;
+    property MaxKeySize: Integer read FMaxNameSize;
+    property MinKeySize: Integer read FMinNameSize;
   end;
 
   TSingle_Big_Hash_Pair_Pool<T_> = class(TBig_Hash_Pair_Pool<Single, T_>)
@@ -269,8 +287,18 @@ begin
   Result := ((-Epsilon_ <= Diff) and (Diff <= Epsilon_));
 end;
 
+procedure TPascalString_Hash_Pool.CreateAfter;
+begin
+  FMaxNameSize := 0;
+  FMinNameSize := 0;
+end;
+
 function TPascalString_Hash_Pool.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
+  if Key_.L > FMaxNameSize then
+      FMaxNameSize := Key_.L;
+  if Key_.L < FMinNameSize then
+      FMinNameSize := Key_.L;
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
@@ -291,8 +319,21 @@ begin
   Result := Value_1.Same(@Value_2);
 end;
 
-function TString_Big_Hash_Pair_Pool<T_>.Get_Key_Hash(const Key_: SystemString): THash;
+procedure TString_Big_Hash_Pair_Pool<T_>.CreateAfter;
 begin
+  FMaxNameSize := 0;
+  FMinNameSize := 0;
+end;
+
+function TString_Big_Hash_Pair_Pool<T_>.Get_Key_Hash(const Key_: SystemString): THash;
+var
+  L_: Integer;
+begin
+  L_ := Length(Key_);
+  if L_ > FMaxNameSize then
+      FMaxNameSize := L_;
+  if L_ < FMinNameSize then
+      FMinNameSize := L_;
   Result := FastHashSystemString(Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;
@@ -308,8 +349,18 @@ begin
   inherited DoFree(Key, Value);
 end;
 
+procedure TPascalString_Big_Hash_Pair_Pool<T_>.CreateAfter;
+begin
+  FMaxNameSize := 0;
+  FMinNameSize := 0;
+end;
+
 function TPascalString_Big_Hash_Pair_Pool<T_>.Get_Key_Hash(const Key_: TPascalString): THash;
 begin
+  if Key_.L > FMaxNameSize then
+      FMaxNameSize := Key_.L;
+  if Key_.L < FMinNameSize then
+      FMinNameSize := Key_.L;
   Result := FastHashPPascalString(@Key_);
   Result := Get_CRC32(@Result, SizeOf(THash));
 end;

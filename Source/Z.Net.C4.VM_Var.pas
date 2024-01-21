@@ -407,7 +407,7 @@ begin
   if NMPool_.Exists(NM_Key_) then
       NMPool_[NM_Key_].AsValue := OP_Param[2]
   else
-      NMPool_[NM_Key_].OriginValue := OP_Param[2];
+      NMPool_[NM_Key_].Origin := OP_Param[2];
   Result := OP_Param[2];
 end;
 
@@ -728,9 +728,9 @@ begin
   VName_ := InData.R.ReadString;
   v := InData.R.ReadVariant;
   if NM.Exists(VName_) then
-      NM[VName_].CurrentValue := v
+      NM[VName_].Value := v
   else
-      NM[VName_].OriginValue := v;
+      NM[VName_].Origin := v;
   if NM.IsTemp then
       NM.OverTime := GetTimeTick + NM.LifeTime;
 end;
