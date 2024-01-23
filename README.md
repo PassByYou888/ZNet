@@ -136,6 +136,10 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2024-1-23 主要补充了一些文档(中文)**
+
+- 更新细节下次来补充
+
 **2023-12-28 微泄漏检测技术支持**
 
 - 修正时间跨度算法内部的内存回收机制(Z.HashMinutes.Templet.pas, Z.HashHours.Templet.pas)
