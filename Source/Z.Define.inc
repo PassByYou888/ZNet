@@ -238,7 +238,7 @@
 
 // Intermediate_Instance_Tool is used to trace activity instances, which can affect performance after startup.
 // Intermediate_Instance_Tool help debug and analyze the state of large programs
-{$DEFINE Intermediate_Instance_Tool}
+{$UNDEF Intermediate_Instance_Tool}
 
 // Core_Thread_Soft_Synchronize is use software to solve atomic hardware synchronization waiting.
 // When using a DLL or library program, "Core_Thread_Soft_Synchronize" should be used.
