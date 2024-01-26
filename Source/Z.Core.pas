@@ -1612,11 +1612,13 @@ function CheckThreadSync(Timeout: TTimeTick): Boolean; overload;
 procedure CheckThread; overload;
 function CheckThread(Timeout: TTimeTick): Boolean; overload;
 
+// compiler define
 function Get_Compiler_Version: string;
 
 // core thread pool
 procedure FreeCoreThreadPool;
 
+// dipose object
 function DisposeObject(const Obj: TObject): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 procedure DisposeObject(const objs: array of TObject); overload;
 function FreeObj(const Obj: TObject): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
@@ -1625,6 +1627,7 @@ procedure FreeObject(const objs: array of TObject); overload;
 function DisposeObjectAndNil(var Obj): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 function FreeObjAndNil(var Obj): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM}
 
+// object lock
 procedure LockObject(Obj: TObject);
 procedure UnLockObject(Obj: TObject);
 
@@ -1718,7 +1721,7 @@ function GetCrashTimeTick(): TTimeTick;
 function SameF(const A, B: Double; Epsilon: Double = 0): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 function SameF(const A, B: Single; Epsilon: Single = 0): Boolean; {$IFDEF INLINE_ASM} inline;{$ENDIF INLINE_ASM} overload;
 
-// MT19937 random num
+// MT19937 random
 function MT19937CoreToDelphi: Boolean;
 function MT19937InstanceNum(): Integer;
 procedure SetMT19937Seed(seed: Integer);
@@ -1828,21 +1831,16 @@ var
   OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
   // caller of per second tool
   CPS_Check_Soft_Thread, CPS_Check_System_Thread: TCPS_Tool;
-
   // DelphiParallelFor and FPCParallelFor work in parallel
   WorkInParallelCore: TAtomBool;
   // same WorkInParallelCore
   ParallelCore: TAtomBool;
-
   // default is True
   GlobalMemoryHook: TAtomBool;
-
   // core init time
   CoreInitedTimeTick: TTimeTick;
-
   // The life time of working in asynchronous thread consistency,
   MT19937LifeTime: TTimeTick;
-
   // MainThread TThreadPost
   MainThreadProgress: TThreadPost;
   MainThreadPost: TThreadPost;
@@ -2592,36 +2590,50 @@ end;
 {$I Z.Core.Hash_Tool.inc}
 
 initialization
+  // float exception
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+  // raise event
   On_Raise_Info := nil;
+  // instance trace
   Inc_Instance_Num := ___Inc_Instance_Num___;
   Dec_Instance_Num := ___Dec_Instance_Num___;
+  // cirtial recycle pool
+  Init_System_Critical_Recycle_Pool();
+  // thread Technology
   Core_Main_Thread := TCore_Thread.CurrentThread;
   Core_Main_Thread_ID := MainThreadID;
-  Init_System_Critical_Recycle_Pool();
   Used_Soft_Synchronize := {$IFDEF Core_Thread_Soft_Synchronize}True{$ELSE Core_Thread_Soft_Synchronize}False{$ENDIF Core_Thread_Soft_Synchronize};
   MainThread_Sync_Tool := TSoft_Synchronize_Tool.Create(Core_Main_Thread);
   On_Check_Soft_Thread_Synchronize := Do_Check_Soft_Thread_Synchronize;
   On_Check_System_Thread_Synchronize := Do_Check_System_Thread_Synchronize;
   OnCheckThreadSynchronize := nil;
+  // cps
   CPS_Check_Soft_Thread.Reset;
   CPS_Check_System_Thread.Reset;
+  // parallel
   WorkInParallelCore := TAtomBool.Create(True);
   ParallelCore := WorkInParallelCore;
+  // MM hook
   GlobalMemoryHook := TAtomBool.Create(True);
+  // timetick
   Core_RunTime_Tick := C_Tick_Day * 3;
   Core_Step_Tick := TCore_Thread.GetTickCount();
+  // global cirtical
   Init_Critical_System();
+  // random
   InitMT19937Rand();
   CoreInitedTimeTick := GetTimeTick();
+  // thread pool
   InitCoreThreadPool(
     if_(IsDebuging, 2, CpuCount * 2),
     if_(IsDebuging, 2, {$IFDEF LimitMaxParallelThread}8{$ELSE LimitMaxParallelThread}CpuCount * 2{$ENDIF LimitMaxParallelThread}));
+  // thread progress
   MainThreadProgress := TThreadPost.Create(Core_Main_Thread_ID);
   MainThreadProgress.OneStep := False;
+  MainThreadPost := MainThreadProgress;
+  // thread Synchronize state
   Enabled_Check_Thread_Synchronize_System := True;
   Main_Thread_Synchronize_Running := False;
-  MainThreadPost := MainThreadProgress;
 finalization
   On_Raise_Info := nil;
   OnCheckThreadSynchronize := nil;
