@@ -110,6 +110,7 @@ function CompareDouble(const Double1, Double2: Double): Integer; {$IFDEF INLINE_
 
 function FAbs(const V: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function FAbs(const V: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function FAbs(const v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function Clamp(const Value_, Min_, Max_: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function MaxF(const v1, v2: TGeoFloat): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM} overload;
 function MaxF(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM} overload;
@@ -207,6 +208,8 @@ function Vec2Div(const v1: TGeoFloat; const v2: TVec2): TVec2; {$IFDEF INLINE_AS
 
 function PointNormalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function Vec2Normalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function NoLoss_PointNormalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function NoLoss_Vec2Normalize(const V: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function PointLength(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function Vec2Length(const V: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -431,6 +434,12 @@ function RectTransform(const sour, dest: TRectV2; const sour_rect: TRectf): TRec
 function RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function RectScaleSpace(const R: TRect; const SS_width, SS_height: TGeoInt): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function ComputeScaleSpace(box: TRectV2; SS: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
+function Rect_ScaleSpace_F(R: TRectV2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
+function MinLoss_Rect(const SS_width, SS_height: TGeoFloat; const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinLoss_Rect(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinLoss_RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinLoss_RectFit(const SS_width, SS_height: TGeoFloat; const R: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function MinLoss_RectFit(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function CalibrationRectInRect(const R, Area: TRectV2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function CalibrationRectInRect(const R, Area: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
@@ -439,6 +448,25 @@ function Make_Jitter_Box(rnd: TMT19937Random; XY_Offset_Scale_, Rotate_, Scale_:
   const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt; overload;
 function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: Boolean;
   const source: TRectV2; var dest: TRectV2; var Angle: TGeoFloat): TGeoInt; overload;
+
+// image jitter
+procedure Make_Image_Jitter_Box(
+  rand: TMT19937Random;
+  image_bound_Box: TRectV2; // image bound box
+  scale_size, scale_pos: TVec2; // matrix box
+  XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
+  var dest: TRectV2; var Angle: TGeoFloat // output
+  ); overload;
+procedure Make_Image_Jitter_Box(
+  image_bound_Box: TRectV2; // image bound box
+  scale_size, scale_pos: TVec2; // matrix box
+  XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
+  var dest: TRectV2; var Angle: TGeoFloat // output
+  ); overload;
 
 function Rect_Overlap_or_Intersect(r1, r2: TRectV2): Boolean;
 
@@ -536,7 +564,9 @@ function MinimumDistanceFromPointToLine(const pt: TVec2; const L: TLineV2): TGeo
 function MinimumDistanceFromPointToLine(const L: TLineV2; const pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function MinimumDistanceFromPointToLine(const lb, le, pt: TVec2): TGeoFloat; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function Compute_Scale_Position(bk: TRectV2; size, sPos: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Compute_Scale_Position_To_Abs_Size(box: TRectV2; size, sPos: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Compute_Scale_Position_To_Box_Size(box: TRectV2; size, sPos: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Compute_Scale_Position_To_Min_Edge_Box_Size(box: TRectV2; size, sPos: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 // projection
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -635,6 +665,16 @@ type
     function BoundRect: TRectV2;
     function BoundRectf: TRectf;
     function Centroid: TVec2;
+    function Mid_LeftTop_RightTop: TVec2;
+    property Mid_RightTop_LeftTop: TVec2 read Mid_LeftTop_RightTop;
+    function Mid_LeftTop_RightBottom: TVec2;
+    property Mid_RightBottom_LeftTop: TVec2 read Mid_LeftTop_RightBottom;
+    function Mid_LeftTop_LeftBottom: TVec2;
+    property Mid_LeftBottom_LeftTop: TVec2 read Mid_LeftTop_LeftBottom;
+    function Mid_RightBottom_LeftBottom: TVec2;
+    property Mid_LeftBottom_RightBottom: TVec2 read Mid_RightBottom_LeftBottom;
+    function Mid_RightTop_RightBottom: TVec2;
+    property Mid_RightBottom_RightTop: TVec2 read Mid_RightTop_RightBottom;
     function Transform(v2: TVec2): TV2Rect4; overload;
     function Transform(X, Y: TGeoFloat): TV2Rect4; overload;
     function Expands(Dist: TGeoFloat): TV2Rect4;
@@ -674,6 +714,7 @@ type
   TV2R4 = TV2Rect4;
   TArrayV2Rect4 = array of TV2Rect4;
   TArrayV2R4 = TArrayV2Rect4;
+  PArrayV2R4 = ^TArrayV2R4;
 
   PV2Rect4 = ^TV2Rect4;
   PV2R4 = PV2Rect4;
@@ -1473,6 +1514,7 @@ function ArrayVec2(const t: TTriangle): TArrayVec2; overload;
 function ArrayBoundRect(arry: TArrayVec2): TRectV2; overload;
 function ArrayBoundRect(arry: TArrayRectV2): TRectV2; overload;
 function ArrayBoundRect(arry: TArrayV2Rect4): TRectV2; overload;
+function RectProjection(const sour, dest: TRectV2; const sour_r4: TV2R4): TV2R4; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM} overload;
 
 const
   XPoint: T2DPoint = (1, 0);
@@ -1538,6 +1580,12 @@ begin
       Result := -V
   else
       Result := V;
+end;
+
+function FAbs(const v2: TVec2): TVec2;
+begin
+  Result[0] := if_(v2[0] < 0, -v2[0], v2[0]);
+  Result[1] := if_(v2[1] < 0, -v2[1], v2[1]);
 end;
 
 function Clamp(const Value_, Min_, Max_: TGeoFloat): TGeoFloat;
@@ -2051,7 +2099,7 @@ var
 begin
   vn := PointNorm(V);
   if vn = 0 then
-      SetVec2(Result, V)
+      Result := V
   else
     begin
       InvLen := 1 / Sqrt(vn);
@@ -2065,15 +2113,33 @@ var
   InvLen: TGeoFloat;
   vn: TGeoFloat;
 begin
-  vn := PointNorm(V);
+  vn := Vec2Norm(V);
   if vn = 0 then
-      SetVec2(Result, V)
+      Result := V
   else
     begin
       InvLen := 1 / Sqrt(vn);
       Result[0] := V[0] * InvLen;
       Result[1] := V[1] * InvLen;
     end;
+end;
+
+function NoLoss_PointNormalize(const V: TVec2): TVec2;
+var
+  f: TGeoFloat;
+begin
+  f := MaxF(V[0], V[1]);
+  Result[0] := V[0] / f;
+  Result[1] := V[1] / f;
+end;
+
+function NoLoss_Vec2Normalize(const V: TVec2): TVec2;
+var
+  f: TGeoFloat;
+begin
+  f := MaxF(V[0], V[1]);
+  Result[0] := V[0] / f;
+  Result[1] := V[1] / f;
 end;
 
 function PointLength(const V: TVec2): TGeoFloat;
@@ -3408,6 +3474,44 @@ begin
   Result := RectScaleSpace(box, SS[0], SS[1]);
 end;
 
+function Rect_ScaleSpace_F(R: TRectV2): TGeoFloat;
+begin
+  Result := RectWidth(R) / RectHeight(R);
+end;
+
+function MinLoss_Rect(const SS_width, SS_height: TGeoFloat; const R: TRectV2): TRectV2;
+var
+  cen, siz: TVec2;
+begin
+  cen := RectCentre(R);
+  siz := RectSize(R);
+  if SS_width < SS_height then
+      siz[0] := siz[1] * (SS_width / SS_height)
+  else
+      siz[1] := siz[0] * (SS_height / SS_width);
+  Result := RectV2(cen, siz[0], siz[1]);
+end;
+
+function MinLoss_Rect(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2;
+begin
+  Result := MinLoss_Rect(SS_width, SS_height, R);
+end;
+
+function MinLoss_RectScaleSpace(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2;
+begin
+  Result := MinLoss_Rect(SS_width, SS_height, R);
+end;
+
+function MinLoss_RectFit(const SS_width, SS_height: TGeoFloat; const R: TRectV2): TRectV2;
+begin
+  Result := MinLoss_Rect(SS_width, SS_height, R);
+end;
+
+function MinLoss_RectFit(const R: TRectV2; const SS_width, SS_height: TGeoFloat): TRectV2;
+begin
+  Result := MinLoss_Rect(SS_width, SS_height, R);
+end;
+
 function CalibrationRectInRect(const R, Area: TRectV2): TRectV2;
 var
   nr: TRectV2;
@@ -3517,6 +3621,35 @@ begin
 
     inc(Result);
   until (not Fit_) or RectInRect(TV2R4.Init(dest, Angle).BoundRect, source);
+end;
+
+procedure Make_Image_Jitter_Box(
+  rand: TMT19937Random;
+  image_bound_Box: TRectV2; // image bound box
+  scale_size, scale_pos: TVec2; // matrix box
+  XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
+  var dest: TRectV2; var Angle: TGeoFloat // output
+  );
+begin
+  Make_Jitter_Box(rand, XY_Offset_Scale_, Rotate_, Scale_, False, Compute_Scale_Position_To_Min_Edge_Box_Size(image_bound_Box, scale_size, scale_pos), dest, Angle);
+  if Fit_Matrix_Box_ then
+      dest := MinLoss_RectFit(output_Size[0], output_Size[1], dest);
+end;
+
+procedure Make_Image_Jitter_Box(
+  image_bound_Box: TRectV2; // image bound box
+  scale_size, scale_pos: TVec2; // matrix box
+  XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
+  var dest: TRectV2; var Angle: TGeoFloat // output
+  );
+begin
+  Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_, False, Compute_Scale_Position_To_Min_Edge_Box_Size(image_bound_Box, scale_size, scale_pos), dest, Angle);
+  if Fit_Matrix_Box_ then
+      dest := MinLoss_RectFit(output_Size[0], output_Size[1], dest);
 end;
 
 function Rect_Overlap_or_Intersect(r1, r2: TRectV2): Boolean;
@@ -4725,10 +4858,20 @@ begin
   Result := MinimumDistanceFromPointToLine(LineV2(lb, le), pt);
 end;
 
-function Compute_Scale_Position(bk: TRectV2; size, sPos: TVec2): TRectV2;
+function Compute_Scale_Position_To_Abs_Size(box: TRectV2; size, sPos: TVec2): TRectV2;
 begin
-  Result[0] := Vec2Add(bk[0], Vec2Mul(Vec2Sub(RectSize(bk), size), sPos));
+  Result[0] := Vec2Add(box[0], Vec2Mul(Vec2Sub(RectSize(box), size), sPos));
   Result[1] := Vec2Add(Result[0], size);
+end;
+
+function Compute_Scale_Position_To_Box_Size(box: TRectV2; size, sPos: TVec2): TRectV2;
+begin
+  Result := Compute_Scale_Position_To_Abs_Size(box, Vec2Mul(FAbs(size), RectSize(box)), sPos);
+end;
+
+function Compute_Scale_Position_To_Min_Edge_Box_Size(box: TRectV2; size, sPos: TVec2): TRectV2;
+begin
+  Result := Compute_Scale_Position_To_Abs_Size(box, Vec2Mul(FAbs(size), MinF(RectSize(box))), sPos);
 end;
 
 function RectProjection(const sour, dest: TRectV2; const sour_pt: TVec2): TVec2;
@@ -4757,6 +4900,11 @@ end;
 function RectProjection(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;
 begin
   Result := RectProjectionArrayV2(sour, dest, sour_arry);
+end;
+
+function RectProjection(const sour, dest: TRectV2; const sour_r4: TV2R4): TV2R4;
+begin
+  Result := sour_r4.Projection(sour, dest);
 end;
 
 function RectProjectionArrayV2(const sour, dest: TRectV2; const sour_arry: TArrayVec2): TArrayVec2;
@@ -5365,6 +5513,31 @@ end;
 function TV2Rect4.Centroid: TVec2;
 begin
   Result := BuffCentroid(LeftTop, RightTop, RightBottom, LeftBottom);
+end;
+
+function TV2Rect4.Mid_LeftTop_RightTop: TVec2;
+begin
+  Result := Vec2Middle(LeftTop, RightTop);
+end;
+
+function TV2Rect4.Mid_LeftTop_RightBottom: TVec2;
+begin
+  Result := Vec2Middle(LeftTop, RightBottom);
+end;
+
+function TV2Rect4.Mid_LeftTop_LeftBottom: TVec2;
+begin
+  Result := Vec2Middle(LeftTop, LeftBottom);
+end;
+
+function TV2Rect4.Mid_RightBottom_LeftBottom: TVec2;
+begin
+  Result := Vec2Middle(RightBottom, LeftBottom);
+end;
+
+function TV2Rect4.Mid_RightTop_RightBottom: TVec2;
+begin
+  Result := Vec2Middle(RightTop, RightBottom);
 end;
 
 function TV2Rect4.Transform(v2: TVec2): TV2Rect4;

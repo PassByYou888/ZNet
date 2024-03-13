@@ -282,6 +282,7 @@ function VecToStr(const v: TVec3): SystemString; overload;
 function VecToStr(const v: TVec4): SystemString; overload;
 function VecToStr(const v: TVector3): SystemString; overload;
 function VecToStr(const v: TVector4): SystemString; overload;
+function VecToStr(const v: TV2R4): SystemString; overload;
 function RectToStr(const v: TRectV2): SystemString; overload;
 function RectToStr(const v: TRect): SystemString; overload;
 
@@ -292,6 +293,7 @@ function StrToVec3(const s: SystemString): TVec3;
 function StrToVec4(const s: SystemString): TVec4;
 function StrToVector3(const s: SystemString): TVector3;
 function StrToVector4(const s: SystemString): TVector4;
+function StrToV2R4(const s: SystemString): TV2R4;
 function StrToRect(const s: SystemString): TRect;
 function StrToRectV2(const s: SystemString): TRectV2;
 
@@ -328,6 +330,8 @@ function BounceVector(const Current: TVector2; Step_Dist: TGeoFloat; const bVec,
 function BounceFloat(const CurrentVal, Step_Dist, bFloat, eFloat: TGeoFloat; var eFlag: Boolean): TGeoFloat; overload;
 
 implementation
+
+uses Z.Expression;
 
 function Vector4(x, y, Z, w: TGeoFloat): TVector4;
 begin
@@ -494,6 +498,11 @@ begin
   Result := VecToStr(v.Buff);
 end;
 
+function VecToStr(const v: TV2R4): SystemString;
+begin
+  Result := PFormat('%s,%s,%s,%s', [VecToStr(v.LeftTop), VecToStr(v.RightTop), VecToStr(v.RightBottom), VecToStr(v.LeftBottom)]);
+end;
+
 function RectToStr(const v: TRectV2): SystemString;
 begin
   Result := PFormat('%g,%g,%g,%g', [v[0][0], v[0][1], v[1][0], v[1][1]]);
@@ -513,8 +522,8 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v2 := umlGetFirstStr(v, ',: ');
 
-  Result[0] := umlStrToFloat(v1, 0);
-  Result[1] := umlStrToFloat(v2, 0);
+  Result[0] := EStrToFloat(v1, 0);
+  Result[1] := EStrToFloat(v2, 0);
 end;
 
 function StrToVector2(const s: SystemString): TVector2;
@@ -526,8 +535,8 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v2 := umlGetFirstStr(v, ',: ');
 
-  Result[0] := umlStrToFloat(v1, 0);
-  Result[1] := umlStrToFloat(v2, 0);
+  Result[0] := EStrToFloat(v1, 0);
+  Result[1] := EStrToFloat(v2, 0);
 end;
 
 function StrToArrayVec2(const s: SystemString): TArrayVec2;
@@ -543,7 +552,7 @@ begin
       n := umlDeleteFirstStr(n, ',: ');
       v2 := umlGetFirstStr(n, ',: ');
       n := umlDeleteFirstStr(n, ',: ');
-      L.Add(umlStrToFloat(v1, 0), umlStrToFloat(v2, 0));
+      L.Add(EStrToFloat(v1, 0), EStrToFloat(v2, 0));
     end;
   Result := L.BuildArray();
   DisposeObject(L);
@@ -560,9 +569,9 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v3 := umlGetFirstStr(v, ',: ');
 
-  Result[0] := umlStrToFloat(v1, 0);
-  Result[1] := umlStrToFloat(v2, 0);
-  Result[2] := umlStrToFloat(v3, 0);
+  Result[0] := EStrToFloat(v1, 0);
+  Result[1] := EStrToFloat(v2, 0);
+  Result[2] := EStrToFloat(v3, 0);
 end;
 
 function StrToVec4(const s: SystemString): TVec4;
@@ -578,10 +587,10 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v4 := umlGetFirstStr(v, ',: ');
 
-  Result[0] := umlStrToFloat(v1, 0);
-  Result[1] := umlStrToFloat(v2, 0);
-  Result[2] := umlStrToFloat(v3, 0);
-  Result[3] := umlStrToFloat(v4, 0);
+  Result[0] := EStrToFloat(v1, 0);
+  Result[1] := EStrToFloat(v2, 0);
+  Result[2] := EStrToFloat(v3, 0);
+  Result[3] := EStrToFloat(v4, 0);
 end;
 
 function StrToVector3(const s: SystemString): TVector3;
@@ -595,9 +604,9 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v3 := umlGetFirstStr(v, ',: ');
 
-  Result.Buff[0] := umlStrToFloat(v1, 0);
-  Result.Buff[1] := umlStrToFloat(v2, 0);
-  Result.Buff[2] := umlStrToFloat(v3, 0);
+  Result.Buff[0] := EStrToFloat(v1, 0);
+  Result.Buff[1] := EStrToFloat(v2, 0);
+  Result.Buff[2] := EStrToFloat(v3, 0);
 end;
 
 function StrToVector4(const s: SystemString): TVector4;
@@ -613,10 +622,29 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v4 := umlGetFirstStr(v, ',: ');
 
-  Result.Buff[0] := umlStrToFloat(v1, 0);
-  Result.Buff[1] := umlStrToFloat(v2, 0);
-  Result.Buff[2] := umlStrToFloat(v3, 0);
-  Result.Buff[3] := umlStrToFloat(v4, 0);
+  Result.Buff[0] := EStrToFloat(v1, 0);
+  Result.Buff[1] := EStrToFloat(v2, 0);
+  Result.Buff[2] := EStrToFloat(v3, 0);
+  Result.Buff[3] := EStrToFloat(v4, 0);
+end;
+
+function StrToV2R4(const s: SystemString): TV2R4;
+var
+  v: TExpressionValueVector;
+begin
+  v := EvaluateExpressionVector(umlTrimSpace(s));
+
+  if length(v) <> 8 then
+      raiseInfo('V2R4 expression error: %s', [s]);
+
+  Result.LeftTop[0] := v[0];
+  Result.LeftTop[1] := v[1];
+  Result.RightTop[0] := v[2];
+  Result.RightTop[1] := v[3];
+  Result.RightBottom[0] := v[4];
+  Result.RightBottom[1] := v[5];
+  Result.LeftBottom[0] := v[6];
+  Result.LeftBottom[1] := v[7];
 end;
 
 function StrToRect(const s: SystemString): TRect;
@@ -637,10 +665,10 @@ begin
   v := umlDeleteFirstStr(v, ',: ');
   v4 := umlGetFirstStr(v, ',: ');
 
-  Result[0][0] := umlStrToFloat(v1, 0);
-  Result[0][1] := umlStrToFloat(v2, 0);
-  Result[1][0] := umlStrToFloat(v3, 0);
-  Result[1][1] := umlStrToFloat(v4, 0);
+  Result[0][0] := EStrToFloat(v1, 0);
+  Result[0][1] := EStrToFloat(v2, 0);
+  Result[1][0] := EStrToFloat(v3, 0);
+  Result[1][1] := EStrToFloat(v4, 0);
 end;
 
 function GetMin(const arry: array of TGeoFloat): TGeoFloat;

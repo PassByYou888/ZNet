@@ -155,49 +155,49 @@ function umlVarToStr(const v: Variant; const Base64Conver: Boolean): TPascalStri
 function umlVarToStr(const v: Variant): TPascalString; overload;
 function umlStrToVar(const S: TPascalString): Variant;
 
-function umlMax(const v1, v2: UInt64): UInt64; overload;
-function umlMax(const v1, v2: Cardinal): Cardinal; overload;
-function umlMax(const v1, v2: Word): Word; overload;
-function umlMax(const v1, v2: Byte): Byte; overload;
-function umlMax(const v1, v2: Int64): Int64; overload;
-function umlMax(const v1, v2: Integer): Integer; overload;
-function umlMax(const v1, v2: SmallInt): SmallInt; overload;
-function umlMax(const v1, v2: ShortInt): ShortInt; overload;
-function umlMax(const v1, v2: Double): Double; overload;
-function umlMax(const v1, v2: Single): Single; overload;
+function umlMax(const v1, v2: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMax(const v1, v2: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function umlMin(const v1, v2: UInt64): UInt64; overload;
-function umlMin(const v1, v2: Cardinal): Cardinal; overload;
-function umlMin(const v1, v2: Word): Word; overload;
-function umlMin(const v1, v2: Byte): Byte; overload;
-function umlMin(const v1, v2: Int64): Int64; overload;
-function umlMin(const v1, v2: Integer): Integer; overload;
-function umlMin(const v1, v2: SmallInt): SmallInt; overload;
-function umlMin(const v1, v2: ShortInt): ShortInt; overload;
-function umlMin(const v1, v2: Double): Double; overload;
-function umlMin(const v1, v2: Single): Single; overload;
+function umlMin(const v1, v2: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlMin(const v1, v2: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function umlClamp(const v, min_, max_: Integer): Integer; overload;
-function umlClamp(const v, min_, max_: UInt64): UInt64; overload;
-function umlClamp(const v, min_, max_: Cardinal): Cardinal; overload;
-function umlClamp(const v, min_, max_: Word): Word; overload;
-function umlClamp(const v, min_, max_: Byte): Byte; overload;
-function umlClamp(const v, min_, max_: Int64): Int64; overload;
-function umlClamp(const v, min_, max_: SmallInt): SmallInt; overload;
-function umlClamp(const v, min_, max_: ShortInt): ShortInt; overload;
-function umlClamp(const v, min_, max_: Double): Double; overload;
-function umlClamp(const v, min_, max_: Single): Single; overload;
+function umlClamp(const v, min_, max_: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlClamp(const v, min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function umlInRange(const v, min_, max_: Integer): Boolean; overload;
-function umlInRange(const v, min_, max_: UInt64): Boolean; overload;
-function umlInRange(const v, min_, max_: Cardinal): Boolean; overload;
-function umlInRange(const v, min_, max_: Word): Boolean; overload;
-function umlInRange(const v, min_, max_: Byte): Boolean; overload;
-function umlInRange(const v, min_, max_: Int64): Boolean; overload;
-function umlInRange(const v, min_, max_: SmallInt): Boolean; overload;
-function umlInRange(const v, min_, max_: ShortInt): Boolean; overload;
-function umlInRange(const v, min_, max_: Double): Boolean; overload;
-function umlInRange(const v, min_, max_: Single): Boolean; overload;
+function umlInRange(const v, min_, max_: Integer): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: UInt64): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Cardinal): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Word): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Byte): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Int64): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: SmallInt): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: ShortInt): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Double): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlInRange(const v, min_, max_: Single): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function umlCompareText(s1, s2: TPascalString): Integer;
 
@@ -206,30 +206,30 @@ function umlGetResourceStream(const FileName: TPascalString): TCore_Stream;
 function umlSameVarValue(const v1, v2: Variant): Boolean;
 function umlSameVariant(const v1, v2: Variant): Boolean;
 
-function umlRandom(const rnd: TMT19937Random): Integer; overload;
-function umlRandom: Integer; overload;
+function umlRandom(const rnd: TMT19937Random): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandom: Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function umlRandomRange(const rnd: TMT19937Random; const min_, max_: Integer): Integer; overload;
-function umlRandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; overload;
-function umlRandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload;
-function umlRandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
-function umlRandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
-function umlRandomRange(const min_, max_: Integer): Integer; overload;
-function umlRandomRange64(const min_, max_: Int64): Int64; overload;
-function umlRandomRangeS(const min_, max_: Single): Single; overload;
-function umlRandomRangeD(const min_, max_: Double): Double; overload;
-function umlRandomRangeF(const min_, max_: Double): Double; overload;
+function umlRandomRange(const rnd: TMT19937Random; const min_, max_: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRange(const min_, max_: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRange64(const min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeS(const min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeD(const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRandomRangeF(const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
-function umlRR(const rnd: TMT19937Random; const min_, max_: Integer): Integer; overload;
-function umlRR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; overload;
-function umlRRS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload;
-function umlRRD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
-function umlRRF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload;
-function umlRR(const min_, max_: Integer): Integer; overload;
-function umlRR64(const min_, max_: Int64): Int64; overload;
-function umlRRS(const min_, max_: Single): Single; overload;
-function umlRRD(const min_, max_: Double): Double; overload;
-function umlRRF(const min_, max_: Double): Double; overload;
+function umlRR(const rnd: TMT19937Random; const min_, max_: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRS(const rnd: TMT19937Random; const min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRD(const rnd: TMT19937Random; const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRF(const rnd: TMT19937Random; const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRR(const min_, max_: Integer): Integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRR64(const min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRS(const min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRD(const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function umlRRF(const min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function umlDefaultTime: Double;
 function umlNow: Double;
@@ -723,6 +723,7 @@ function umlDeleteStrings(const SText: TPascalString; dest: TCore_Strings; Ignor
 function umlDeleteStringsNot(const SText: TPascalString; dest: TCore_Strings; IgnoreCase: Boolean): Integer;
 function umlMergeStrings(source, dest: TCore_Strings; IgnoreCase: Boolean): Integer; overload;
 function umlMergeStrings(source, dest: TListPascalString; IgnoreCase: Boolean): Integer; overload;
+function umlMergeStrings(source: TListPascalString; dest: TCore_Strings; IgnoreCase: Boolean): Integer; overload;
 
 function umlConverStrToFileName(const Value: TPascalString): TPascalString;
 
@@ -7713,6 +7714,23 @@ begin
 end;
 
 function umlMergeStrings(source, dest: TListPascalString; IgnoreCase: Boolean): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  if (source = nil) or (dest = nil) then
+      exit;
+  if source.Count > 0 then
+    begin
+      for i := 0 to source.Count - 1 do
+        begin
+          umlAddNewStrTo(source[i], dest, IgnoreCase);
+          inc(Result);
+        end;
+    end;
+end;
+
+function umlMergeStrings(source: TListPascalString; dest: TCore_Strings; IgnoreCase: Boolean): Integer;
 var
   i: Integer;
 begin

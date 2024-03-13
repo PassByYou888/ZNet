@@ -234,6 +234,12 @@
   {$IFEND}
 
   {$Z1} { Minimum enum size }
+
+  // SSE Optimzied for distance
+  {$IF Defined(MSWINDOWS)}
+  {$DEFINE SSE_Optimize_Distance_Compute}
+  {$ENDIF Defined(MSWINDOWS)}
+
 {$ENDIF FPC}
 
 // Intermediate_Instance_Tool is used to trace activity instances, which can affect performance after startup.
@@ -306,6 +312,7 @@
 
 // When using the ZDB2 engine in the ZNet-C4 framework Safe Flush technology, prioritize the use of Safe Flush technology
 {$DEFINE C4_Safe_Flush}
+
 
 {$IFDEF DEBUG}
   // initialization status prompt

@@ -2308,16 +2308,16 @@ var
   function NewOpValue(uName: SystemString): TOpCode;
   begin
     Result := op_Value.Create(False);
-    Result.ParsedInfo := uName;
-    Result.ParsedLineNo := LineNo;
+    Result.Parsed_Info := uName;
+    Result.Parsed_Line_Num := LineNo;
     OpContainer.Add(Result);
   end;
 
   function NewOpProc(uName: SystemString): TOpCode;
   begin
     Result := op_Proc.Create(False);
-    Result.ParsedInfo := uName;
-    Result.ParsedLineNo := LineNo;
+    Result.Parsed_Info := uName;
+    Result.Parsed_Line_Num := LineNo;
     OpContainer.Add(Result);
   end;
 
@@ -2330,8 +2330,8 @@ var
     end;
     if Result <> nil then
       begin
-        Result.ParsedInfo := uName;
-        Result.ParsedLineNo := LineNo;
+        Result.Parsed_Info := uName;
+        Result.Parsed_Line_Num := LineNo;
         OpContainer.Add(Result);
       end;
   end;
@@ -2361,8 +2361,8 @@ var
     end;
     if Result <> nil then
       begin
-        Result.ParsedInfo := uName;
-        Result.ParsedLineNo := LineNo;
+        Result.Parsed_Info := uName;
+        Result.Parsed_Line_Num := LineNo;
         OpContainer.Add(Result);
       end;
   end;
@@ -2897,7 +2897,7 @@ begin
   Result := False;
   t := TTextParsing.Create(umlDeleteChar(ExpressionText, #13#10#32#9), TextStyle, Special_ASCII_, SpacerSymbol.v);
   L := TPascalStringList.Create;
-  if t.FillSymbolVector(L) then
+  if t.Extract_Symbol_Vector(L) then
     begin
       if (L.Count = 2) and (L[1].L = 0) then
           Result := False
@@ -3088,7 +3088,7 @@ begin
       Exit;
   t := TTextParsing.Create(ExpressionText, TextStyle, Special_ASCII_, SpacerSymbol.v);
   L := TPascalStringList.Create;
-  if t.FillSymbolVector(L) then
+  if t.Extract_Symbol_Vector(L) then
     begin
       SetLength(Result, L.Count);
       for i := 0 to L.Count - 1 do

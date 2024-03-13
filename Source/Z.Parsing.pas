@@ -261,8 +261,8 @@ type
 
     { segmention text as symbol vector, L = output }
     function DetectSymbolVector: Boolean;
-    function FillSymbolVector(L: TPascalStringList): Boolean; overload;
-    function FillSymbolVector: TSymbolVector; overload;
+    function Extract_Symbol_Vector(L: TPascalStringList): Boolean; overload;
+    function Extract_Symbol_Vector: TSymbolVector; overload;
 
     { segmention text as symbol matrix }
     function FillSymbolMatrix(W, H: Integer; var symbolMatrix: TSymbolMatrix): Boolean;
@@ -2809,7 +2809,7 @@ begin
   Result := VectorNum > 1;
 end;
 
-function TTextParsing.FillSymbolVector(L: TPascalStringList): Boolean;
+function TTextParsing.Extract_Symbol_Vector(L: TPascalStringList): Boolean;
 var
   i: Integer;
   p1, p2, paramB, paramE: PTokenData;
@@ -2876,13 +2876,13 @@ begin
   Result := True;
 end;
 
-function TTextParsing.FillSymbolVector: TSymbolVector;
+function TTextParsing.Extract_Symbol_Vector: TSymbolVector;
 var
   L: TPascalStringList;
   i: Integer;
 begin
   L := TPascalStringList.Create;
-  if FillSymbolVector(L) then
+  if Extract_Symbol_Vector(L) then
     begin
       SetLength(Result, L.Count);
       for i := 0 to L.Count - 1 do
@@ -2900,7 +2900,7 @@ var
 begin
   SetLength(symbolMatrix, 0, 0);
   L := TPascalStringList.Create;
-  Result := FillSymbolVector(L);
+  Result := Extract_Symbol_Vector(L);
   if L.Count >= W * H then
     begin
       SetLength(symbolMatrix, H, W);

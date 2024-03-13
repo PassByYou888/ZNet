@@ -123,6 +123,8 @@ type
     function FitXY(var OP_Param: TOpParam): Variant;
     function DoStr(var OP_Param: TOpParam): Variant;
     function DoMultiple(var OP_Param: TOpParam): Variant;
+    function DoSearchStr(var OP_Param: TOpParam): Variant;
+    function DoReplaceStr(var OP_Param: TOpParam): Variant;
     function DoPrint(var OP_Param: TOpParam): Variant;
     function ToHex(var OP_Param: TOpParam): Variant;
     function Hex8(var OP_Param: TOpParam): Variant;
@@ -208,8 +210,8 @@ type
     procedure EvaluateParam(printLog: Boolean; opRT: TOpCustomRunTime); overload;
   public
     Owner: TOpCode;
-    ParsedInfo: SystemString;
-    ParsedLineNo: Integer;
+    Parsed_Info: SystemString;
+    Parsed_Line_Num: Integer;
     constructor Create(FreeLink_: Boolean);
     destructor Destroy; override;
     procedure SaveToStream(stream: TCore_Stream);
@@ -503,8 +505,8 @@ function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
     if RegPtr <> nil then
       begin
         Result := RegPtr^.opClass.Create(True);
-        Result.ParsedInfo := D_.Reader.ReadString;
-        Result.ParsedLineNo := D_.Reader.ReadInteger;
+        Result.Parsed_Info := D_.Reader.ReadString;
+        Result.Parsed_Line_Num := D_.Reader.ReadInteger;
         Num_ := D_.Reader.ReadInteger;
         for i := 0 to Num_ - 1 do
           begin
@@ -539,7 +541,7 @@ begin
   try
     DataEng.DecodeFrom(stream, True);
     DataEdition := DataEng.Reader.ReadInteger;
-    if DataEdition = 1 then
+    if DataEdition = 1 then // edition
       begin
         LoadedOp := LoadFromDataFrame_(DataEng);
         Result := True;
@@ -1092,6 +1094,25 @@ begin
       Result := True;
 end;
 
+function TOpSystemAPI.DoSearchStr(var OP_Param: TOpParam): Variant;
+var
+  i: Integer;
+begin
+  if length(OP_Param) >= 2 then
+    begin
+      Result := True;
+      for i := 1 to length(OP_Param) - 1 do
+          Result := Result and umlSearchMatch(VarToStr(OP_Param[0]), VarToStr(OP_Param[i]));
+    end
+  else
+      Result := True;
+end;
+
+function TOpSystemAPI.DoReplaceStr(var OP_Param: TOpParam): Variant;
+begin
+  Result := umlReplace(VarToStr(OP_Param[0]), VarToStr(OP_Param[1]), VarToStr(OP_Param[2]), OP_Param[3], OP_Param[4]).Text;
+end;
+
 function TOpSystemAPI.DoPrint(var OP_Param: TOpParam): Variant;
 var
   n: TPascalString;
@@ -1265,6 +1286,8 @@ begin
   RunTime.RegOpM('Text', 'Text(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
   RunTime.RegOpM('MultipleMatch', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
   RunTime.RegOpM('Multiple', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
+  RunTime.RegOpM('SearchStr', 'SearchStr(multile exp, n..n): return bool', DoSearchStr)^.Category := 'Base String';
+  RunTime.RegOpM('ReplaceStr', 'ReplaceStr(source, OldPattern, NewPattern: string; OnlyWord, IgnoreCase: Bool): return string', DoReplaceStr)^.Category := 'Base String';
   RunTime.RegOpM('Print', 'Print(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
   RunTime.RegOpM('DoStatus', 'DoStatus(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
   RunTime.RegOpM('Status', 'Status(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
@@ -1609,8 +1632,8 @@ begin
   Owner := nil;
   FParam := TOpData_List.Create;
   FAutoFreeLink := FreeLink_;
-  ParsedInfo := '';
-  ParsedLineNo := 0;
+  Parsed_Info := '';
+  Parsed_Line_Num := 0;
 end;
 
 destructor TOpCode.Destroy;
@@ -1642,8 +1665,8 @@ procedure TOpCode.SaveToStream(stream: TCore_Stream);
     newDataEng: TDFE;
   begin
     D_.WriteString(Op.ClassName);
-    D_.WriteString(Op.ParsedInfo);
-    D_.WriteInteger(Op.ParsedLineNo);
+    D_.WriteString(Op.Parsed_Info);
+    D_.WriteInteger(Op.Parsed_Line_Num);
     D_.WriteInteger(Op.Count);
     for i := 0 to Op.Count - 1 do
       begin
@@ -1669,7 +1692,7 @@ var
   DataEng: TDFE;
 begin
   DataEng := TDFE.Create;
-  DataEng.WriteInteger(1);
+  DataEng.WriteInteger(1); // edition
   SaveToDataFrame(self, DataEng);
   DataEng.FastEncodeTo(stream);
   DisposeObject(DataEng);
@@ -1749,8 +1772,8 @@ var
   p: POpData__;
 begin
   Result := opClass(self.ClassType).Create(True);
-  Result.ParsedInfo := self.ParsedInfo;
-  Result.ParsedLineNo := self.ParsedLineNo;
+  Result.Parsed_Info := self.Parsed_Info;
+  Result.Parsed_Line_Num := self.Parsed_Line_Num;
 
   for i := 0 to FParam.Count - 1 do
     begin

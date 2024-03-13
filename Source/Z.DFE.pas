@@ -492,8 +492,8 @@ type
     function DeleteLast: Boolean; overload;
     function DeleteLastCount(num_: Integer): Boolean; overload;
     function DeleteCount(index_, Count_: Integer): Boolean;
-    procedure Append(source: TDFE);
-    procedure Assign(source: TDFE);
+    function Append(source: TDFE): TDFE;
+    function Assign(source: TDFE): TDFE;
     function Clone: TDFE;
 
     function WriteString(v: SystemString): TDFE; overload;
@@ -2503,12 +2503,13 @@ begin
       Result := Result and Delete(index_);
 end;
 
-procedure TDFE.Append(source: TDFE);
+function TDFE.Append(source: TDFE): TDFE;
 var
   m64: TMS64;
   i: Integer;
   DataFrame_: TDFBase;
 begin
+  Result := Self;
   if Self = source then
       exit;
   m64 := TMS64.CustomCreate(64 * 1024);
@@ -2523,12 +2524,13 @@ begin
   DisposeObject(m64);
 end;
 
-procedure TDFE.Assign(source: TDFE);
+function TDFE.Assign(source: TDFE): TDFE;
 var
   m64: TMS64;
   i: Integer;
   DataFrame_: TDFBase;
 begin
+  Result := Self;
   if Self = source then
       exit;
   Clear;
