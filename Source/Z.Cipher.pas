@@ -1798,6 +1798,8 @@ type
     procedure Encrypt(sour: Pointer; Size: NativeInt); virtual;
     procedure Decrypt(sour: Pointer; Size: NativeInt); virtual;
     procedure Process(sour: Pointer; Size: NativeInt; Level_: Integer; Encrypt_, ProcessTail_, CBC_: Boolean);
+    function Text_Encrypt(Data_: U_String): U_String;
+    function Text_Decrypt(Data_: U_String): U_String;
     procedure Test; virtual;
   end;
 
@@ -10562,6 +10564,26 @@ begin
       Encrypt(sour, Size)
   else
       Decrypt(sour, Size);
+end;
+
+function TCipher_Base.Text_Encrypt(Data_: U_String): U_String;
+var
+  buff: TBytes;
+begin
+  buff := Data_.Bytes;
+  Encrypt(buff, length(buff));
+  umlBase64EncodeBytes(buff, Result);
+  SetLength(buff, 0);
+end;
+
+function TCipher_Base.Text_Decrypt(Data_: U_String): U_String;
+var
+  buff: TBytes;
+begin
+  umlBase64DecodeBytes(Data_, buff);
+  Decrypt(buff, length(buff));
+  Result.Bytes := buff;
+  SetLength(buff, 0);
 end;
 
 procedure TCipher_Base.Test;
