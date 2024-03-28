@@ -22,9 +22,9 @@ type
 
   TXNAT_MappingOnVirutalService_IO = class(TPeerIO)
   protected
-    Remote_ID: Cardinal;
-    Remote_IP: SystemString;
-    SendingStream: TMS64;
+    FRemote_ID: Cardinal;
+    FRemote_IP: SystemString;
+    FSendingStream: TMS64;
   public
     procedure CreateAfter; override;
     destructor Destroy; override;
@@ -44,22 +44,22 @@ type
 
   TXNAT_MappingOnVirutalService = class(TZNet_Server)
   private
-    Owner: TXNAT_VS_Mapping;
-    Mapping: TPascalString;
+    FOwner: TXNAT_VS_Mapping;
+    FMapping: TPascalString;
 
-    RecvTunnel: TZNet_WithP2PVM_Client;
-    RecvTunnel_IPV6: TPascalString;
-    RecvTunnel_Port: Word;
+    FRecvTunnel: TZNet_WithP2PVM_Client;
+    FRecvTunnel_IPV6: TPascalString;
+    FRecvTunnel_Port: Word;
 
-    SendTunnel: TZNet_WithP2PVM_Client;
-    SendTunnel_IPV6: TPascalString;
-    SendTunnel_Port: Word;
+    FSendTunnel: TZNet_WithP2PVM_Client;
+    FSendTunnel_IPV6: TPascalString;
+    FSendTunnel_Port: Word;
 
-    MaxWorkload: Cardinal;
-    LastUpdateWorkload: Cardinal;
-    LastUpdateTime: TTimeTick;
-    Remote_ListenAddr, Remote_ListenPort: TPascalString;
-    XNAT: TXNAT_VS_Mapping;
+    FMaxWorkload: Cardinal;
+    FLastUpdateWorkload: Cardinal;
+    FLastUpdateTime: TTimeTick;
+    FRemote_ListenAddr, FRemote_ListenPort: TPascalString;
+    FXNAT_VS: TXNAT_VS_Mapping;
 
     procedure Init;
     procedure SendTunnel_ConnectResult(const cState: Boolean);
@@ -74,8 +74,9 @@ type
     procedure cmd_disconnect_request(Sender: TPeerIO; InData: TDFE);
     procedure cmd_data(Sender: TPeerIO; InData: PByte; DataSize: nativeInt);
   public
-    constructor Create(Owner_: TXNAT_VS_Mapping);
+    constructor Create(Owner_: TXNAT_VS_Mapping); virtual;
     destructor Destroy; override;
+    property XNAT_VS: TXNAT_VS_Mapping read FXNAT_VS;
 
     procedure UpdateWorkload(force: Boolean); virtual;
 
@@ -86,9 +87,11 @@ type
     procedure WaitSendStreamCmd(p_io: TPeerIO; const Cmd: SystemString; StreamData, Result_: TDFE; TimeOut_: TTimeTick); override;
   end;
 
+  TXNAT_MappingOnVirutalService_Class = class of TXNAT_MappingOnVirutalService;
+
   TPhysicsEngine_Special = class(TPeer_IO_User_Special)
   protected
-    XNAT: TXNAT_VS_Mapping;
+    FXNAT_VS: TXNAT_VS_Mapping;
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
     procedure PhysicsVMBuildAuthToken_Result;
     procedure PhysicsOpenVM_Result(const cState: Boolean);
@@ -101,6 +104,7 @@ type
   TXVirutalServiceMappingList = TGenericsList<TXNAT_MappingOnVirutalService>;
   TXVirutalServiceHashMapping = TGeneric_String_Object_Hash<TXNAT_MappingOnVirutalService>;
   TXNAT_VS_Mapping_List_Decl = TGenericsList<TXNAT_VS_Mapping>;
+  TOn_VS_Ready = procedure(Sender: TXNAT_VS_Mapping; vs: TXNAT_MappingOnVirutalService; state: Boolean; info: SystemString) of object;
 
   TXNAT_VS_Mapping = class(TCore_InterfacedObject_Intermediate, IIOInterface, IZNet_VMInterface)
   private
@@ -125,6 +129,7 @@ type
     { backcall }
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
     procedure Set_Quiet(const Value: Boolean);
+    procedure Do_VS_State(vs: TXNAT_MappingOnVirutalService; state: Boolean; info: SystemString);
   public
     { tunnel parameter }
     Host: TPascalString;
@@ -139,44 +144,43 @@ type
       ProtocolCompressed set closed by default.
     }
     ProtocolCompressed: Boolean;
+    Instance_Class: TXNAT_MappingOnVirutalService_Class;
+    On_VS_Ready: TOn_VS_Ready;
 
     property Quiet: Boolean read FQuiet write Set_Quiet;
     constructor Create;
     destructor Destroy; override;
 
     { create new instance. }
-    function AddMappingService(const Mapping: TPascalString; MaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
-    function AddMappingServer(const Mapping: TPascalString; MaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
+    function AddMappingService(const FMapping: TPascalString; FMaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
+    function AddMappingServer(const FMapping: TPascalString; FMaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
 
     procedure OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL); overload;
     procedure OpenTunnel; overload;
     procedure Progress;
 
     function GetCount: Integer;
-    function GetServices(const index: Integer): TXNAT_MappingOnVirutalService;
-    function GetServicesOnMapping(const Mapping: SystemString): TXNAT_MappingOnVirutalService;
-
     property Count: Integer read GetCount;
+    function GetServices(const index: Integer): TXNAT_MappingOnVirutalService;
     property Services[const index: Integer]: TXNAT_MappingOnVirutalService read GetServices; default;
-    property ServicesOnMapping[const Mapping: SystemString]: TXNAT_MappingOnVirutalService read GetServicesOnMapping;
+    function GetServicesOnMapping(const FMapping: SystemString): TXNAT_MappingOnVirutalService;
+    property ServicesOnMapping[const FMapping: SystemString]: TXNAT_MappingOnVirutalService read GetServicesOnMapping;
   end;
 
 implementation
 
-uses Z.Net.C4;
-
 procedure TXNAT_MappingOnVirutalService_IO.CreateAfter;
 begin
   inherited CreateAfter;
-  SendingStream := TMS64.Create;
-  SendingStream.Delta := 2048;
-  Remote_ID := 0;
-  Remote_IP := '';
+  FSendingStream := TMS64.Create;
+  FSendingStream.Delta := 2048;
+  FRemote_ID := 0;
+  FRemote_IP := '';
 end;
 
 destructor TXNAT_MappingOnVirutalService_IO.Destroy;
 begin
-  DisposeObject(SendingStream);
+  DisposeObject(FSendingStream);
   inherited Destroy;
 end;
 
@@ -196,20 +200,20 @@ var
 begin
   de := TDFE.Create;
   de.WriteCardinal(ID);
-  de.WriteCardinal(Remote_ID);
-  OwnerVS.SendTunnel.SendDirectStreamCmd(C_Disconnect_reponse, de);
+  de.WriteCardinal(FRemote_ID);
+  OwnerVS.FSendTunnel.SendDirectStreamCmd(C_Disconnect_reponse, de);
   DisposeObject(de);
   DelayFree(5.0);
 end;
 
 procedure TXNAT_MappingOnVirutalService_IO.Write_IO_Buffer(const buff: PByte; const Size: nativeInt);
 begin
-  SendingStream.WritePtr(buff, Size);
+  FSendingStream.WritePtr(buff, Size);
 end;
 
 procedure TXNAT_MappingOnVirutalService_IO.WriteBufferOpen;
 begin
-  SendingStream.Clear;
+  FSendingStream.Clear;
 end;
 
 procedure TXNAT_MappingOnVirutalService_IO.WriteBufferFlush;
@@ -217,11 +221,11 @@ var
   nSiz: nativeInt;
   nBuff: PByte;
 begin
-  if SendingStream.Size > 0 then
+  if FSendingStream.Size > 0 then
     begin
-      Build_XNAT_Buff(SendingStream.Memory, SendingStream.Size, ID, Remote_ID, nSiz, nBuff);
-      OwnerVS.SendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
-      SendingStream.Clear;
+      Build_XNAT_Buff(FSendingStream.Memory, FSendingStream.Size, ID, FRemote_ID, nSiz, nBuff);
+      OwnerVS.FSendTunnel.SendCompleteBuffer(C_Data, nBuff, nSiz, True);
+      FSendingStream.Clear;
     end;
 end;
 
@@ -232,7 +236,7 @@ end;
 
 function TXNAT_MappingOnVirutalService_IO.GetPeerIP: SystemString;
 begin
-  Result := Remote_IP;
+  Result := FRemote_IP;
 end;
 
 function TXNAT_MappingOnVirutalService_IO.WriteBuffer_is_NULL: Boolean;
@@ -248,57 +252,67 @@ end;
 
 procedure TXNAT_MappingOnVirutalService.Init;
 begin
-  Mapping := '';
-  RecvTunnel := nil;
-  RecvTunnel_IPV6 := '';
-  RecvTunnel_Port := 0;
-  SendTunnel := nil;
-  SendTunnel_IPV6 := '';
-  SendTunnel_Port := 0;
+  FMapping := '';
+  FRecvTunnel := nil;
+  FRecvTunnel_IPV6 := '';
+  FRecvTunnel_Port := 0;
+  FSendTunnel := nil;
+  FSendTunnel_IPV6 := '';
+  FSendTunnel_Port := 0;
 
-  MaxWorkload := 100;
-  LastUpdateWorkload := 0;
-  LastUpdateTime := GetTimeTick();
+  FMaxWorkload := 100;
+  FLastUpdateWorkload := 0;
+  FLastUpdateTime := GetTimeTick();
 
-  Remote_ListenAddr := '';
-  Remote_ListenPort := '0';
-  XNAT := nil;
+  FRemote_ListenAddr := '';
+  FRemote_ListenPort := '0';
+  FXNAT_VS := nil;
 end;
 
 procedure TXNAT_MappingOnVirutalService.SendTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      SendTunnel.Print('[%s] Send Tunnel connect success.', [Mapping.Text]);
-      if not RecvTunnel.Connected then
-          RecvTunnel.AsyncConnectM(RecvTunnel_IPV6, RecvTunnel_Port, RecvTunnel_ConnectResult)
+      FSendTunnel.Print('[%s] Send Tunnel connect success.', [FMapping.Text]);
+      if not FRecvTunnel.Connected then
+          FRecvTunnel.AsyncConnectM(FRecvTunnel_IPV6, FRecvTunnel_Port, RecvTunnel_ConnectResult)
       else
           RecvTunnel_ConnectResult(True);
     end
   else
-      SendTunnel.Print('error: [%s] Send Tunnel connect failed!', [Mapping.Text]);
+    begin
+      FSendTunnel.Print('error: [%s] Send Tunnel connect failed!', [FMapping.Text]);
+      FOwner.Do_VS_State(self, cState, PFormat('error: [%s] Send Tunnel connect failed!', [FMapping.Text]));
+    end;
 end;
 
 procedure TXNAT_MappingOnVirutalService.RecvTunnel_ConnectResult(const cState: Boolean);
 begin
   if cState then
     begin
-      RecvTunnel.Print('[%s] Receive Tunnel connect success.', [Mapping.Text]);
-      SendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
+      FRecvTunnel.Print('[%s] Receive Tunnel connect success.', [FMapping.Text]);
+      FSendTunnel.ProgressPost.PostExecuteM(0, delay_RequestListen);
     end
   else
-      RecvTunnel.Print('error: [%s] Receive Tunnel connect failed!', [Mapping.Text]);
+    begin
+      FRecvTunnel.Print('error: [%s] Receive Tunnel connect failed!', [FMapping.Text]);
+      FOwner.Do_VS_State(self, cState, PFormat('error: [%s] Receive Tunnel connect failed!', [FMapping.Text]));
+    end;
 end;
 
 procedure TXNAT_MappingOnVirutalService.RequestListen_Result(Sender: TPeerIO; Result_: TDFE);
 begin
   if Result_.Reader.ReadBool then
     begin
-      SendTunnel.Print('success: remote host:%s port:%s mapping to local Service', [XNAT.Host.Text, Remote_ListenPort.Text]);
+      FSendTunnel.Print('success: remote host:%s port:%s mapping to local Service', [FXNAT_VS.Host.Text, FRemote_ListenPort.Text]);
       UpdateWorkload(True);
+      FOwner.Do_VS_State(self, True, PFormat('success: remote host:%s port:%s mapping to local Service', [FXNAT_VS.Host.Text, FRemote_ListenPort.Text]));
     end
   else
-      SendTunnel.Print('failed: remote host:%s port:%s listen error!', [XNAT.Host.Text, Remote_ListenPort.Text]);
+    begin
+      FSendTunnel.Print('failed: remote host:%s port:%s listen error!', [FXNAT_VS.Host.Text, FRemote_ListenPort.Text]);
+      FOwner.Do_VS_State(self, False, PFormat('failed: remote host:%s port:%s listen error!', [FXNAT_VS.Host.Text, FRemote_ListenPort.Text]));
+    end;
 end;
 
 procedure TXNAT_MappingOnVirutalService.delay_RequestListen(Sender: TN_Post_Execute);
@@ -306,9 +320,9 @@ var
   de: TDFE;
 begin
   de := TDFE.Create;
-  de.WriteCardinal(SendTunnel.RemoteID);
-  de.WriteCardinal(RecvTunnel.RemoteID);
-  SendTunnel.SendStreamCmdM(C_RequestListen, de, RequestListen_Result);
+  de.WriteCardinal(FSendTunnel.RemoteID);
+  de.WriteCardinal(FRecvTunnel.RemoteID);
+  FSendTunnel.SendStreamCmdM(C_RequestListen, de, RequestListen_Result);
   DisposeObject(de);
 end;
 
@@ -318,68 +332,68 @@ var
   p_id: Cardinal;
   p_io: TPeerIO;
 begin
-  if RecvTunnel = nil then
+  if FRecvTunnel = nil then
     begin
-      RecvTunnel := TZNet_WithP2PVM_Client.Create;
-      RecvTunnel.QuietMode := Owner.Quiet;
+      FRecvTunnel := TZNet_WithP2PVM_Client.Create;
+      FRecvTunnel.QuietMode := FOwner.Quiet;
       { sequence sync }
-      RecvTunnel.SyncOnCompleteBuffer := True;
-      RecvTunnel.SyncOnResult := True;
-      RecvTunnel.SwitchMaxPerformance;
+      FRecvTunnel.SyncOnCompleteBuffer := True;
+      FRecvTunnel.SyncOnResult := True;
+      FRecvTunnel.SwitchMaxPerformance;
       { compressed complete buffer }
-      RecvTunnel.CompleteBufferCompressed := XNAT.ProtocolCompressed;
+      FRecvTunnel.CompleteBufferCompressed := FXNAT_VS.ProtocolCompressed;
       { automated swap space }
-      RecvTunnel.CompleteBufferSwapSpace := True;
+      FRecvTunnel.CompleteBufferSwapSpace := True;
       { register cmd }
-      if not RecvTunnel.ExistsRegistedCmd(C_Connect_request) then
-          RecvTunnel.RegisterDirectStream(C_Connect_request).OnExecute := cmd_connect_request;
-      if not RecvTunnel.ExistsRegistedCmd(C_Disconnect_request) then
-          RecvTunnel.RegisterDirectStream(C_Disconnect_request).OnExecute := cmd_disconnect_request;
-      if not RecvTunnel.ExistsRegistedCmd(C_Data) then
-          RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
+      if not FRecvTunnel.ExistsRegistedCmd(C_Connect_request) then
+          FRecvTunnel.RegisterDirectStream(C_Connect_request).OnExecute := cmd_connect_request;
+      if not FRecvTunnel.ExistsRegistedCmd(C_Disconnect_request) then
+          FRecvTunnel.RegisterDirectStream(C_Disconnect_request).OnExecute := cmd_disconnect_request;
+      if not FRecvTunnel.ExistsRegistedCmd(C_Data) then
+          FRecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
       { disable status }
-      RecvTunnel.PrintParams[C_Connect_request] := False;
-      RecvTunnel.PrintParams[C_Disconnect_request] := False;
-      RecvTunnel.PrintParams[C_Data] := False;
+      FRecvTunnel.PrintParams[C_Connect_request] := False;
+      FRecvTunnel.PrintParams[C_Disconnect_request] := False;
+      FRecvTunnel.PrintParams[C_Data] := False;
     end;
-  if SendTunnel = nil then
+  if FSendTunnel = nil then
     begin
-      SendTunnel := TZNet_WithP2PVM_Client.Create;
-      SendTunnel.QuietMode := Owner.Quiet;
+      FSendTunnel := TZNet_WithP2PVM_Client.Create;
+      FSendTunnel.QuietMode := FOwner.Quiet;
       { sequence sync }
-      SendTunnel.SyncOnCompleteBuffer := True;
-      SendTunnel.SyncOnResult := True;
-      SendTunnel.SwitchMaxPerformance;
+      FSendTunnel.SyncOnCompleteBuffer := True;
+      FSendTunnel.SyncOnResult := True;
+      FSendTunnel.SwitchMaxPerformance;
       { compressed complete buffer }
-      SendTunnel.CompleteBufferCompressed := XNAT.ProtocolCompressed;
+      FSendTunnel.CompleteBufferCompressed := FXNAT_VS.ProtocolCompressed;
       { automated swap space }
-      SendTunnel.CompleteBufferSwapSpace := True;
+      FSendTunnel.CompleteBufferSwapSpace := True;
       { disable status }
-      SendTunnel.PrintParams[C_Connect_reponse] := False;
-      SendTunnel.PrintParams[C_Disconnect_reponse] := False;
-      SendTunnel.PrintParams[C_Data] := False;
-      SendTunnel.PrintParams[C_Workload] := False;
+      FSendTunnel.PrintParams[C_Connect_reponse] := False;
+      FSendTunnel.PrintParams[C_Disconnect_reponse] := False;
+      FSendTunnel.PrintParams[C_Data] := False;
+      FSendTunnel.PrintParams[C_Workload] := False;
     end;
 
-  XNAT.PhysicsEngine.GetIO_Array(io_array);
+  FXNAT_VS.PhysicsEngine.GetIO_Array(io_array);
   for p_id in io_array do
     begin
-      p_io := TPeerIO(XNAT.PhysicsEngine.PeerIO_HashPool[p_id]);
+      p_io := TPeerIO(FXNAT_VS.PhysicsEngine.PeerIO_HashPool[p_id]);
       if p_io <> nil then
         begin
           { uninstall p2pVM }
-          p_io.p2pVMTunnel.UninstallLogicFramework(SendTunnel);
-          p_io.p2pVMTunnel.UninstallLogicFramework(RecvTunnel);
+          p_io.p2pVMTunnel.UninstallLogicFramework(FSendTunnel);
+          p_io.p2pVMTunnel.UninstallLogicFramework(FRecvTunnel);
 
           { install p2pVM }
-          p_io.p2pVMTunnel.InstallLogicFramework(SendTunnel);
-          p_io.p2pVMTunnel.InstallLogicFramework(RecvTunnel);
+          p_io.p2pVMTunnel.InstallLogicFramework(FSendTunnel);
+          p_io.p2pVMTunnel.InstallLogicFramework(FRecvTunnel);
         end;
     end;
   SetLength(io_array, 0);
 
-  if not SendTunnel.Connected then
-      SendTunnel.AsyncConnectM(SendTunnel_IPV6, SendTunnel_Port, SendTunnel_ConnectResult)
+  if not FSendTunnel.Connected then
+      FSendTunnel.AsyncConnectM(FSendTunnel_IPV6, FSendTunnel_Port, SendTunnel_ConnectResult)
   else
       SendTunnel_ConnectResult(True);
 end;
@@ -391,15 +405,15 @@ var
   de: TDFE;
 begin
   Remote_ID := InData.Reader.ReadCardinal;
-  x_io := TXNAT_MappingOnVirutalService_IO.Create(Self, XNAT);
-  x_io.Remote_ID := Remote_ID;
-  x_io.Remote_IP := InData.Reader.ReadString;
+  x_io := TXNAT_MappingOnVirutalService_IO.Create(self, FXNAT_VS);
+  x_io.FRemote_ID := Remote_ID;
+  x_io.FRemote_IP := InData.Reader.ReadString;
 
   de := TDFE.Create;
   de.WriteBool(True);
   de.WriteCardinal(x_io.ID);
-  de.WriteCardinal(x_io.Remote_ID);
-  SendTunnel.SendDirectStreamCmd(C_Connect_reponse, de);
+  de.WriteCardinal(x_io.FRemote_ID);
+  FSendTunnel.SendDirectStreamCmd(C_Connect_reponse, de);
   DisposeObject(de);
 end;
 
@@ -433,22 +447,22 @@ end;
 constructor TXNAT_MappingOnVirutalService.Create(Owner_: TXNAT_VS_Mapping);
 begin
   inherited Create;
-  Owner := Owner_;
+  FOwner := Owner_;
   Init;
 end;
 
 destructor TXNAT_MappingOnVirutalService.Destroy;
 begin
-  if SendTunnel <> nil then
+  if FSendTunnel <> nil then
     begin
-      SendTunnel.Disconnect;
-      DisposeObject(SendTunnel);
+      FSendTunnel.Disconnect;
+      DisposeObject(FSendTunnel);
     end;
 
-  if RecvTunnel <> nil then
+  if FRecvTunnel <> nil then
     begin
-      RecvTunnel.Disconnect;
-      DisposeObject(RecvTunnel);
+      FRecvTunnel.Disconnect;
+      DisposeObject(FRecvTunnel);
     end;
 
   inherited Destroy;
@@ -458,24 +472,24 @@ procedure TXNAT_MappingOnVirutalService.UpdateWorkload(force: Boolean);
 var
   de: TDFE;
 begin
-  if SendTunnel = nil then
+  if FSendTunnel = nil then
       exit;
-  if RecvTunnel = nil then
+  if FRecvTunnel = nil then
       exit;
-  if not SendTunnel.Connected then
+  if not FSendTunnel.Connected then
       exit;
   if (not force) then
-    if (Count = LastUpdateWorkload) or (GetTimeTick() - LastUpdateTime < 1000) then
+    if (Count = FLastUpdateWorkload) or (GetTimeTick() - FLastUpdateTime < 1000) then
         exit;
 
   de := TDFE.Create;
-  de.WriteCardinal(MaxWorkload);
+  de.WriteCardinal(FMaxWorkload);
   de.WriteCardinal(Count);
-  SendTunnel.SendDirectStreamCmd(C_Workload, de);
+  FSendTunnel.SendDirectStreamCmd(C_Workload, de);
   DisposeObject(de);
 
-  LastUpdateWorkload := Count;
-  LastUpdateTime := GetTimeTick();
+  FLastUpdateWorkload := Count;
+  FLastUpdateTime := GetTimeTick();
 end;
 
 function TXNAT_MappingOnVirutalService.StartService(Host: SystemString; Port: Word): Boolean;
@@ -489,18 +503,18 @@ end;
 
 procedure TXNAT_MappingOnVirutalService.Progress;
 begin
-  if (XNAT <> nil) and (not XNAT.Progressing) then
+  if (FXNAT_VS <> nil) and (not FXNAT_VS.Progressing) then
     begin
-      XNAT.Progress;
+      FXNAT_VS.Progress;
       exit;
     end;
 
   inherited Progress;
 
-  if SendTunnel <> nil then
-      SendTunnel.Progress;
-  if RecvTunnel <> nil then
-      RecvTunnel.Progress;
+  if FSendTunnel <> nil then
+      FSendTunnel.Progress;
+  if FRecvTunnel <> nil then
+      FRecvTunnel.Progress;
 end;
 
 function TXNAT_MappingOnVirutalService.WaitSendConsoleCmd(p_io: TPeerIO; const Cmd, ConsoleData: SystemString; TimeOut_: TTimeTick): SystemString;
@@ -517,9 +531,9 @@ end;
 procedure TPhysicsEngine_Special.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      Owner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
+      FOwner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
   else
-      XNAT.WaitAsyncConnecting := False;
+      FXNAT_VS.WaitAsyncConnecting := False;
 end;
 
 procedure TPhysicsEngine_Special.PhysicsVMBuildAuthToken_Result;
@@ -543,59 +557,59 @@ begin
     ref wiki
     https://en.wikipedia.org/wiki/SHA-3
   }
-  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), PhysicsOpenVM_Result)
+  FOwner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(FXNAT_VS.AuthToken), PhysicsOpenVM_Result)
 end;
 
 procedure TPhysicsEngine_Special.PhysicsOpenVM_Result(const cState: Boolean);
 begin
   if cState then
     begin
-      Owner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(XNAT.MaxVMFragment, Owner.p2pVMTunnel.MaxVMFragmentSize);
-      Owner.SendStreamCmdM(C_IPV6Listen, nil, IPV6Listen_Result);
+      FOwner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(FXNAT_VS.MaxVMFragment, FOwner.p2pVMTunnel.MaxVMFragmentSize);
+      FOwner.SendStreamCmdM(C_IPV6Listen, nil, IPV6Listen_Result);
     end
   else
-      XNAT.WaitAsyncConnecting := False;
+      FXNAT_VS.WaitAsyncConnecting := False;
 end;
 
 procedure TPhysicsEngine_Special.IPV6Listen_Result(Sender: TPeerIO; Result_: TDFE);
 var
-  Mapping: TPascalString;
-  Remote_ListenAddr, Remote_ListenPort: TPascalString;
-  RecvTunnel_IPV6: TPascalString;
-  RecvTunnel_Port: Word;
-  SendTunnel_IPV6: TPascalString;
-  SendTunnel_Port: Word;
+  FMapping: TPascalString;
+  FRemote_ListenAddr, FRemote_ListenPort: TPascalString;
+  FRecvTunnel_IPV6: TPascalString;
+  FRecvTunnel_Port: Word;
+  FSendTunnel_IPV6: TPascalString;
+  FSendTunnel_Port: Word;
   tunMp: TXNAT_MappingOnVirutalService;
 begin
   while Result_.Reader.NotEnd do
     begin
-      Mapping := Result_.Reader.ReadString;
-      Remote_ListenAddr := Result_.Reader.ReadString;
-      Remote_ListenPort := Result_.Reader.ReadString;
-      SendTunnel_IPV6 := Result_.Reader.ReadString;
-      SendTunnel_Port := Result_.Reader.ReadWord;
-      RecvTunnel_IPV6 := Result_.Reader.ReadString;
-      RecvTunnel_Port := Result_.Reader.ReadWord;
-      tunMp := XNAT.HashMapping[Mapping];
+      FMapping := Result_.Reader.ReadString;
+      FRemote_ListenAddr := Result_.Reader.ReadString;
+      FRemote_ListenPort := Result_.Reader.ReadString;
+      FSendTunnel_IPV6 := Result_.Reader.ReadString;
+      FSendTunnel_Port := Result_.Reader.ReadWord;
+      FRecvTunnel_IPV6 := Result_.Reader.ReadString;
+      FRecvTunnel_Port := Result_.Reader.ReadWord;
+      tunMp := FXNAT_VS.HashMapping[FMapping];
       if tunMp <> nil then
         begin
-          tunMp.RecvTunnel_IPV6 := RecvTunnel_IPV6;
-          tunMp.RecvTunnel_Port := RecvTunnel_Port;
-          tunMp.SendTunnel_IPV6 := SendTunnel_IPV6;
-          tunMp.SendTunnel_Port := SendTunnel_Port;
-          tunMp.Remote_ListenAddr := Remote_ListenAddr;
-          tunMp.Remote_ListenPort := Remote_ListenPort;
+          tunMp.FRecvTunnel_IPV6 := FRecvTunnel_IPV6;
+          tunMp.FRecvTunnel_Port := FRecvTunnel_Port;
+          tunMp.FSendTunnel_IPV6 := FSendTunnel_IPV6;
+          tunMp.FSendTunnel_Port := FSendTunnel_Port;
+          tunMp.FRemote_ListenAddr := FRemote_ListenAddr;
+          tunMp.FRemote_ListenPort := FRemote_ListenPort;
           tunMp.Open;
         end;
     end;
-  XNAT.Activted := True;
-  XNAT.WaitAsyncConnecting := False;
+  FXNAT_VS.Activted := True;
+  FXNAT_VS.WaitAsyncConnecting := False;
 end;
 
 constructor TPhysicsEngine_Special.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
-  XNAT := nil;
+  FXNAT_VS := nil;
 end;
 
 destructor TPhysicsEngine_Special.Destroy;
@@ -605,7 +619,7 @@ end;
 
 procedure TXNAT_VS_Mapping.PeerIO_Create(const Sender: TPeerIO);
 begin
-  TPhysicsEngine_Special(Sender.UserSpecial).XNAT := Self;
+  TPhysicsEngine_Special(Sender.UserSpecial).FXNAT_VS := self;
 end;
 
 procedure TXNAT_VS_Mapping.PeerIO_Destroy(const Sender: TPeerIO);
@@ -708,12 +722,21 @@ begin
   while i < MappingList.Count do
     begin
       tunMp := MappingList[i];
-      if tunMp.RecvTunnel <> nil then
-          C40Set_Instance_QuietMode(tunMp.RecvTunnel, FQuiet);
+      if tunMp.FRecvTunnel <> nil then
+          Set_Instance_QuietMode(tunMp.FRecvTunnel, FQuiet);
 
-      if tunMp.SendTunnel <> nil then
-          C40Set_Instance_QuietMode(tunMp.SendTunnel, FQuiet);
+      if tunMp.FSendTunnel <> nil then
+          Set_Instance_QuietMode(tunMp.FSendTunnel, FQuiet);
       inc(i);
+    end;
+end;
+
+procedure TXNAT_VS_Mapping.Do_VS_State(vs: TXNAT_MappingOnVirutalService; state: Boolean; info: SystemString);
+begin
+  if Assigned(On_VS_Ready) then
+    begin
+      On_VS_Ready(self, vs, state, info);
+      On_VS_Ready := nil;
     end;
 end;
 
@@ -730,6 +753,8 @@ begin
   Activted := False;
   WaitAsyncConnecting := False;
   PhysicsEngine := nil;
+  Instance_Class := TXNAT_MappingOnVirutalService;
+  On_VS_Ready := nil;
   FQuiet := False;
   Progressing := False;
 end;
@@ -755,19 +780,19 @@ begin
   inherited Destroy;
 end;
 
-function TXNAT_VS_Mapping.AddMappingService(const Mapping: TPascalString; MaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
+function TXNAT_VS_Mapping.AddMappingService(const FMapping: TPascalString; FMaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
 begin
-  Result := TXNAT_MappingOnVirutalService.Create(Self);
-  Result.Mapping := Mapping;
-  Result.MaxWorkload := MaxWorkload;
-  Result.XNAT := Self;
+  Result := Instance_Class.Create(self);
+  Result.FMapping := FMapping;
+  Result.FMaxWorkload := FMaxWorkload;
+  Result.FXNAT_VS := self;
   MappingList.Add(Result);
-  HashMapping.Add(Result.Mapping, Result);
+  HashMapping.Add(Result.FMapping, Result);
 end;
 
-function TXNAT_VS_Mapping.AddMappingServer(const Mapping: TPascalString; MaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
+function TXNAT_VS_Mapping.AddMappingServer(const FMapping: TPascalString; FMaxWorkload: Cardinal): TXNAT_MappingOnVirutalService;
 begin
-  Result := AddMappingService(Mapping, MaxWorkload);
+  Result := AddMappingService(FMapping, FMaxWorkload);
 end;
 
 procedure TXNAT_VS_Mapping.OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL);
@@ -784,8 +809,8 @@ begin
     end;
 
   PhysicsEngine.UserSpecialClass := TPhysicsEngine_Special;
-  PhysicsEngine.IOInterface := Self;
-  PhysicsEngine.VMInterface := Self;
+  PhysicsEngine.IOInterface := self;
+  PhysicsEngine.VMInterface := self;
 
   { Security protocol }
   PhysicsEngine.SwitchMaxSecurity;
@@ -863,9 +888,9 @@ begin
   Result := MappingList[index];
 end;
 
-function TXNAT_VS_Mapping.GetServicesOnMapping(const Mapping: SystemString): TXNAT_MappingOnVirutalService;
+function TXNAT_VS_Mapping.GetServicesOnMapping(const FMapping: SystemString): TXNAT_MappingOnVirutalService;
 begin
-  Result := HashMapping[Mapping];
+  Result := HashMapping[FMapping];
 end;
 
 end.
