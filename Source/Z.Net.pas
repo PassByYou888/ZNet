@@ -1702,6 +1702,8 @@ type
     procedure Disable_Progress;
     procedure Progress; virtual;
     property OnProgress: TProgressOnZNet read FOnProgress write FOnProgress;
+    { now send }
+    procedure Progress_IO_Now_Send(IO_: TPeerIO);
 
     { seealso filler all IO,safe works }
     procedure ProgressPeerIOC(const OnBackcall: TPeerIOList_C); overload;
@@ -2019,7 +2021,8 @@ type
     { Broadcast to all IO }
     procedure BroadcastDirectConsoleCmd(const Cmd, ConsoleData: SystemString);
     procedure BroadcastDirectStreamCmd(const Cmd: SystemString; StreamData: TDFE);
-    procedure BroadcastCompleteBufferCmd(const Cmd: SystemString; buff: PByte; BuffSize: NativeInt);
+    procedure BroadcastCompleteBufferCmd(const Cmd: SystemString; buff: PByte; BuffSize: NativeInt); overload;
+    procedure BroadcastCompleteBufferCmd(const Cmd: SystemString; StreamData: TDFE); overload;
 
     function GetCount: Integer;
     property Count: Integer read GetCount;
@@ -3123,6 +3126,7 @@ function Get_Link_OK_Recv_Tunnel(IO_: TPeerIO; var Recv_Tunnel: TZNet; var Recv_
 function Get_Link_OK_Recv_Tunnel(Framework_: TZNet; ID_: Cardinal; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
 
 procedure DoExecuteResult(IO: TPeerIO; const QueuePtr: PQueueData; const Result_Text: SystemString; Result_DF: TDFE);
+procedure Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
 {$ENDREGION 'api'}
 {$REGION 'ConstAndVariant'}
 
@@ -4246,6 +4250,23 @@ begin
   except
   end;
   IO.FReceiveResultRuning := False;
+end;
+
+procedure Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
+var
+  p2p_: TZNet_WithP2PVM_Client;
+  i: Integer;
+begin
+  Inst.QuietMode := QuietMode_;
+  if Inst is TZNet_Server then
+    begin
+    end
+  else if Inst is TZNet_WithP2PVM_Client then
+    begin
+      p2p_ := TZNet_WithP2PVM_Client(Inst);
+      for i := 0 to p2p_.ClonePool.Count - 1 do
+          Set_Instance_QuietMode(p2p_.ClonePool[i], QuietMode_);
+    end;
 end;
 
 procedure THPC_Instance_Pool.DoFree(var data: THPC_Base);
@@ -12390,6 +12411,26 @@ begin
   FProgressRuning := False;
 end;
 
+procedure TZNet.Progress_IO_Now_Send(IO_: TPeerIO);
+begin
+  if FSend_Queue_Swap_Pool.Num > 0 then
+    begin
+      FSend_Queue_Swap_Pool.Lock;
+      try
+        with FSend_Queue_Swap_Pool.Repeat_ do
+          repeat
+            if Queue^.data^.IO_ID = IO_.ID then
+              begin
+                IO_.PostQueueData(Queue^.data);
+                Discard();
+              end;
+          until not Next;
+      finally
+          FSend_Queue_Swap_Pool.UnLock;
+      end;
+    end;
+end;
+
 procedure TZNet.ProgressPeerIOC(const OnBackcall: TPeerIOList_C);
 var
   IO_Array: TIO_Array;
@@ -14586,6 +14627,16 @@ begin
       m64.WritePtr(buff, BuffSize);
       SendCompleteBuffer(IO_ID, Cmd, m64, True);
     end;
+end;
+
+procedure TZNet_Server.BroadcastCompleteBufferCmd(const Cmd: SystemString; StreamData: TDFE);
+var
+  IO_ID: Cardinal;
+  IO_Array: TIO_Array;
+begin
+  GetIO_Array(IO_Array);
+  for IO_ID in IO_Array do
+      SendCompleteBuffer(IO_ID, Cmd, StreamData);
 end;
 
 function TZNet_Server.GetCount: Integer;
