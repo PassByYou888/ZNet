@@ -1475,18 +1475,23 @@ begin
     end;
 end;
 
-procedure TCritical_BigList<T_>.Free_Recycle_Pool;
+procedure TCritical_BigList<T_>.Free_Recycle_Pool(Lock_: Boolean);
 begin
   if FRecycle_Pool__ <> nil then
     begin
       while FRecycle_Pool__.Num > 0 do
         begin
-          Remove_P(FRecycle_Pool__.First^.Data, False); // Remove_P is UnLock
+          Remove_P(FRecycle_Pool__.First^.Data, Lock_);
           FRecycle_Pool__.Next;
         end;
       FRecycle_Pool__.Free;
       FRecycle_Pool__ := nil;
     end;
+end;
+
+procedure TCritical_BigList<T_>.Free_Recycle_Pool;
+begin
+  Free_Recycle_Pool(False);
 end;
 
 procedure TCritical_BigList<T_>.Clear;
