@@ -24,7 +24,7 @@ type
   private
     OwnerMapping: TXServiceListen;
     RecvID, SendID: Cardinal;
-    MaxWorkload, CurrentWorkload: Cardinal;
+    FMaxWorkload, CurrentWorkload: Cardinal;
   public
     constructor Create(Owner_: TPeerIO); override;
     destructor Destroy; override;
@@ -46,22 +46,22 @@ type
 
   TXServiceListen = class(TCore_Object_Intermediate)
   private
-    Owner: TXNATService;
+    FOwner: TXNATService;
     FListenAddr: TPascalString;
     FListenPort: TPascalString;
     FMapping: TPascalString;
 
-    Protocol: TXServerCustomProtocol;
+    FProtocol: TXServerCustomProtocol;
     FActivted: Boolean;
     FTest_Listening_Passed: Boolean;
 
-    RecvTunnel: TXCustomP2PVM_Server;
-    RecvTunnel_IPV6: TIPV6;
-    RecvTunnel_Port: Word;
+    FRecvTunnel: TXCustomP2PVM_Server;
+    FRecvTunnel_IPV6: TIPV6;
+    FRecvTunnel_Port: Word;
 
-    SendTunnel: TXCustomP2PVM_Server;
-    SendTunnel_IPV6: TIPV6;
-    SendTunnel_Port: Word;
+    FSendTunnel: TXCustomP2PVM_Server;
+    FSendTunnel_IPV6: TIPV6;
+    FSendTunnel_Port: Word;
 
     { Distributed Workload supported }
     DistributedWorkload: Boolean;
@@ -92,8 +92,10 @@ type
   public
     UserData: Pointer;
     UserObject: TCore_Object;
-    constructor Create(Owner_: TXNATService);
+    constructor Create(Owner_: TXNATService); virtual;
     destructor Destroy; override;
+
+    property Protocol: TXServerCustomProtocol read FProtocol; // physics protocol
 
     property ListenAddr: TPascalString read FListenAddr;
     property ListenPort: TPascalString read FListenPort;
@@ -101,6 +103,8 @@ type
     property Test_Listening_Passed: Boolean read FTest_Listening_Passed;
     property Activted: Boolean read FActivted write SetActivted;
   end;
+
+  TXServiceListen_Class = class of TXServiceListen;
 
   TXServerUserSpecial = class(TPeer_IO_User_Special)
   private
@@ -124,7 +128,7 @@ type
 
   TPhysicsEngine_Special = class(TPeer_IO_User_Special)
   protected
-    XNAT: TXNATService;
+    FXNAT_VS: TXNATService;
     procedure PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
     procedure PhysicsVMBuildAuthToken_Result;
     procedure PhysicsOpenVM_Result(const cState: Boolean);
@@ -177,6 +181,7 @@ type
       ProtocolCompressed set closed by default.
     }
     ProtocolCompressed: Boolean;
+    Instance_Class: TXServiceListen_Class;
     On_Open_Tunnel_Done: TOn_XNATService_Open_Tunnel_Done;
     Open_Done: Boolean;
   public
@@ -187,8 +192,8 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure Reset();
-    function AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
-    function AddNoDistributedMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
+    function AddMapping(const ListenAddr, ListenPort, FMapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
+    function AddNoDistributedMapping(const ListenAddr, ListenPort, FMapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
     procedure OpenTunnel(MODEL: TXNAT_PHYSICS_MODEL); overload;
     procedure OpenTunnel; overload;
     procedure Progress;
@@ -196,15 +201,13 @@ type
 
 implementation
 
-uses Z.Net.C4;
-
 constructor TXServiceRecvVM_Special.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
   OwnerMapping := nil;
   RecvID := 0;
   SendID := 0;
-  MaxWorkload := 100;
+  FMaxWorkload := 100;
   CurrentWorkload := 0;
 end;
 
@@ -216,13 +219,13 @@ var
 begin
   if (OwnerMapping <> nil) then
     begin
-      OwnerMapping.SendTunnel.Disconnect(SendID);
+      OwnerMapping.FSendTunnel.Disconnect(SendID);
 
-      OwnerMapping.Protocol.GetIO_Array(IO_Array);
+      OwnerMapping.FProtocol.GetIO_Array(IO_Array);
       for p_id in IO_Array do
         begin
-          p_io := OwnerMapping.Protocol.PeerIO[p_id];
-          if TXServerUserSpecial(p_io.UserSpecial).r_id = Owner.ID then
+          p_io := OwnerMapping.FProtocol.PeerIO[p_id];
+          if TXServerUserSpecial(p_io.UserSpecial).r_id = FOwner.ID then
               p_io.DelayClose(0);
         end;
     end;
@@ -242,8 +245,8 @@ destructor TXServiceSendVM_Special.Destroy;
 begin
   try
     if (OwnerMapping <> nil) then
-      if OwnerMapping.RecvTunnel.ExistsID(RecvID) then
-          OwnerMapping.RecvTunnel.Disconnect(RecvID);
+      if OwnerMapping.FRecvTunnel.ExistsID(RecvID) then
+          OwnerMapping.FRecvTunnel.Disconnect(RecvID);
   except
   end;
   inherited Destroy;
@@ -254,15 +257,15 @@ begin
   FListenAddr := '';
   FListenPort := '0';
   FMapping := '';
-  Protocol := nil;
+  FProtocol := nil;
   FActivted := False;
   FTest_Listening_Passed := False;
-  RecvTunnel := nil;
-  FillPtrByte(@RecvTunnel_IPV6, SizeOf(TIPV6), 0);
-  RecvTunnel_Port := 0;
-  SendTunnel := nil;
-  FillPtrByte(@SendTunnel_IPV6, SizeOf(TIPV6), 0);
-  SendTunnel_Port := 0;
+  FRecvTunnel := nil;
+  FillPtrByte(@FRecvTunnel_IPV6, SizeOf(TIPV6), 0);
+  FRecvTunnel_Port := 0;
+  FSendTunnel := nil;
+  FillPtrByte(@FSendTunnel_IPV6, SizeOf(TIPV6), 0);
+  FSendTunnel_Port := 0;
   DistributedWorkload := False;
   XServerTunnel := nil;
   TimeOut := 0;
@@ -276,85 +279,85 @@ var
   nt: Pointer;
 begin
   { build receive tunnel }
-  if RecvTunnel = nil then
+  if FRecvTunnel = nil then
     begin
-      RecvTunnel := TXCustomP2PVM_Server.Create;
-      RecvTunnel.QuietMode := Owner.Quiet;
-      RecvTunnel.CompleteBufferSwapSpace := True;
+      FRecvTunnel := TXCustomP2PVM_Server.Create;
+      FRecvTunnel.QuietMode := FOwner.Quiet;
+      FRecvTunnel.CompleteBufferSwapSpace := True;
     end;
 
   { sequence sync }
-  RecvTunnel.SyncOnCompleteBuffer := True;
-  RecvTunnel.SyncOnResult := True;
-  RecvTunnel.SwitchMaxPerformance;
+  FRecvTunnel.SyncOnCompleteBuffer := True;
+  FRecvTunnel.SyncOnResult := True;
+  FRecvTunnel.SwitchMaxPerformance;
   { mapping interface }
-  RecvTunnel.OwnerMapping := Self;
-  RecvTunnel.UserSpecialClass := TXServiceRecvVM_Special;
+  FRecvTunnel.OwnerMapping := Self;
+  FRecvTunnel.UserSpecialClass := TXServiceRecvVM_Special;
   { compressed complete buffer }
-  RecvTunnel.CompleteBufferCompressed := XServerTunnel.ProtocolCompressed;
+  FRecvTunnel.CompleteBufferCompressed := XServerTunnel.ProtocolCompressed;
   { build virtual address }
-  nt := @RecvTunnel;
-  TSHA3.SHAKE128(@RecvTunnel_IPV6, @nt, SizeOf(nt), 128);
+  nt := @FRecvTunnel;
+  TSHA3.SHAKE128(@FRecvTunnel_IPV6, @nt, SizeOf(nt), 128);
   { build virtual port }
-  RecvTunnel_Port := umlCRC16(@RecvTunnel_IPV6, SizeOf(TIPV6));
+  FRecvTunnel_Port := umlCRC16(@FRecvTunnel_IPV6, SizeOf(TIPV6));
   { disable data status print }
-  RecvTunnel.PrintParams[C_Connect_reponse] := False;
-  RecvTunnel.PrintParams[C_Disconnect_reponse] := False;
-  RecvTunnel.PrintParams[C_Data] := False;
-  RecvTunnel.PrintParams[C_Workload] := False;
+  FRecvTunnel.PrintParams[C_Connect_reponse] := False;
+  FRecvTunnel.PrintParams[C_Disconnect_reponse] := False;
+  FRecvTunnel.PrintParams[C_Data] := False;
+  FRecvTunnel.PrintParams[C_Workload] := False;
 
-  if not RecvTunnel.ExistsRegistedCmd(C_RequestListen) then
-      RecvTunnel.RegisterStream(C_RequestListen).OnExecute := cmd_RequestListen;
+  if not FRecvTunnel.ExistsRegistedCmd(C_RequestListen) then
+      FRecvTunnel.RegisterStream(C_RequestListen).OnExecute := cmd_RequestListen;
 
-  if not RecvTunnel.ExistsRegistedCmd(C_Workload) then
-      RecvTunnel.RegisterDirectStream(C_Workload).OnExecute := cmd_workload;
+  if not FRecvTunnel.ExistsRegistedCmd(C_Workload) then
+      FRecvTunnel.RegisterDirectStream(C_Workload).OnExecute := cmd_workload;
 
-  if not RecvTunnel.ExistsRegistedCmd(C_Connect_reponse) then
-      RecvTunnel.RegisterDirectStream(C_Connect_reponse).OnExecute := cmd_connect_reponse;
+  if not FRecvTunnel.ExistsRegistedCmd(C_Connect_reponse) then
+      FRecvTunnel.RegisterDirectStream(C_Connect_reponse).OnExecute := cmd_connect_reponse;
 
-  if not RecvTunnel.ExistsRegistedCmd(C_Disconnect_reponse) then
-      RecvTunnel.RegisterDirectStream(C_Disconnect_reponse).OnExecute := cmd_disconnect_reponse;
+  if not FRecvTunnel.ExistsRegistedCmd(C_Disconnect_reponse) then
+      FRecvTunnel.RegisterDirectStream(C_Disconnect_reponse).OnExecute := cmd_disconnect_reponse;
 
-  if not RecvTunnel.ExistsRegistedCmd(C_Data) then
-      RecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
+  if not FRecvTunnel.ExistsRegistedCmd(C_Data) then
+      FRecvTunnel.RegisterCompleteBuffer(C_Data).OnExecute := cmd_data;
 
   { build send tunnel }
-  if SendTunnel = nil then
+  if FSendTunnel = nil then
     begin
-      SendTunnel := TXCustomP2PVM_Server.Create;
-      SendTunnel.QuietMode := Owner.Quiet;
-      SendTunnel.CompleteBufferSwapSpace := True;
+      FSendTunnel := TXCustomP2PVM_Server.Create;
+      FSendTunnel.QuietMode := FOwner.Quiet;
+      FSendTunnel.CompleteBufferSwapSpace := True;
     end;
 
   { sequence sync }
-  SendTunnel.SyncOnCompleteBuffer := True;
-  SendTunnel.SyncOnResult := True;
-  SendTunnel.SwitchMaxPerformance;
+  FSendTunnel.SyncOnCompleteBuffer := True;
+  FSendTunnel.SyncOnResult := True;
+  FSendTunnel.SwitchMaxPerformance;
   { mapping interface }
-  SendTunnel.OwnerMapping := Self;
-  SendTunnel.UserSpecialClass := TXServiceSendVM_Special;
+  FSendTunnel.OwnerMapping := Self;
+  FSendTunnel.UserSpecialClass := TXServiceSendVM_Special;
   { compressed complete buffer }
-  SendTunnel.CompleteBufferCompressed := XServerTunnel.ProtocolCompressed;
+  FSendTunnel.CompleteBufferCompressed := XServerTunnel.ProtocolCompressed;
   { build virtual address }
-  nt := @SendTunnel;
-  TSHA3.SHAKE128(@SendTunnel_IPV6, @nt, SizeOf(nt), 128);
+  nt := @FSendTunnel;
+  TSHA3.SHAKE128(@FSendTunnel_IPV6, @nt, SizeOf(nt), 128);
   { build virtual port }
-  SendTunnel_Port := umlCRC16(@SendTunnel_IPV6, SizeOf(TIPV6));
+  FSendTunnel_Port := umlCRC16(@FSendTunnel_IPV6, SizeOf(TIPV6));
   { disable data status print }
-  SendTunnel.PrintParams[C_Connect_request] := False;
-  SendTunnel.PrintParams[C_Disconnect_request] := False;
-  SendTunnel.PrintParams[C_Data] := False;
+  FSendTunnel.PrintParams[C_Connect_request] := False;
+  FSendTunnel.PrintParams[C_Disconnect_request] := False;
+  FSendTunnel.PrintParams[C_Data] := False;
 
-  RecvTunnel.StartService(IPv6ToStr(RecvTunnel_IPV6), RecvTunnel_Port);
-  SendTunnel.StartService(IPv6ToStr(SendTunnel_IPV6), SendTunnel_Port);
+  FRecvTunnel.StartService(IPv6ToStr(FRecvTunnel_IPV6), FRecvTunnel_Port);
+  FSendTunnel.StartService(IPv6ToStr(FSendTunnel_IPV6), FSendTunnel_Port);
 
-  if Protocol = nil then
-      Protocol := TXServerCustomProtocol.Create;
-  Protocol.QuietMode := Owner.Quiet;
-  Protocol.ShareListen := Self;
-  Protocol.Protocol := cpCustom;
-  Protocol.UserSpecialClass := TXServerUserSpecial;
-  Protocol.TimeOutIDLE := TimeOut;
+  if FProtocol = nil then
+      FProtocol := TXServerCustomProtocol.Create;
+  FProtocol.QuietMode := FOwner.Quiet;
+  FProtocol.ShareListen := Self;
+  FProtocol.Protocol := cpCustom;
+  FProtocol.UserSpecialClass := TXServerUserSpecial;
+  FProtocol.TimeOutIDLE := TimeOut;
 
   SetActivted(True);
   Result := FActivted;
@@ -362,7 +365,7 @@ begin
   SetActivted(False);
 
   if not Result then
-      Protocol.Error('detect listen bind %s:%s failed!', [TranslateBindAddr(FListenAddr), FListenPort.Text]);
+      FProtocol.Error('detect listen bind %s:%s failed!', [TranslateBindAddr(FListenAddr), FListenPort.Text]);
 end;
 
 procedure TXServiceListen.PickWorkloadTunnel(var rID, sID: Cardinal);
@@ -375,22 +378,22 @@ var
 begin
   rID := 0;
   sID := 0;
-  if RecvTunnel.Count = 0 then
+  if FRecvTunnel.Count = 0 then
       exit;
-  if SendTunnel.Count = 0 then
+  if FSendTunnel.Count = 0 then
       exit;
 
-  rVM := TXServiceRecvVM_Special(RecvTunnel.FirstIO.UserSpecial);
-  f := rVM.CurrentWorkload / rVM.MaxWorkload;
+  rVM := TXServiceRecvVM_Special(FRecvTunnel.FirstIO.UserSpecial);
+  f := rVM.CurrentWorkload / rVM.FMaxWorkload;
 
-  RecvTunnel.GetIO_Array(buff);
+  FRecvTunnel.GetIO_Array(buff);
   for ID in buff do
     begin
-      r_io := RecvTunnel.PeerIO[ID];
+      r_io := FRecvTunnel.PeerIO[ID];
       if (r_io <> nil) and (r_io.UserSpecial <> rVM) then
         begin
           with TXServiceRecvVM_Special(r_io.UserSpecial) do
-              d := CurrentWorkload / MaxWorkload;
+              d := CurrentWorkload / FMaxWorkload;
           if d < f then
             begin
               f := d;
@@ -399,7 +402,7 @@ begin
         end;
     end;
 
-  if not SendTunnel.Exists(rVM.SendID) then
+  if not FSendTunnel.Exists(rVM.SendID) then
       exit;
 
   rID := rVM.RecvID;
@@ -417,14 +420,14 @@ begin
 
   if DistributedWorkload then
     begin
-      if not RecvTunnel.Exists(RecvID) then
+      if not FRecvTunnel.Exists(RecvID) then
         begin
           OutData.WriteBool(False);
           OutData.WriteString(PFormat('receive tunnel ID illegal %d', [RecvID]));
           exit;
         end;
 
-      if not SendTunnel.Exists(SendID) then
+      if not FSendTunnel.Exists(SendID) then
         begin
           OutData.WriteBool(False);
           OutData.WriteString(PFormat('send tunnel ID illegal %d', [SendID]));
@@ -442,12 +445,12 @@ begin
             end;
         end;
 
-      rVM := TXServiceRecvVM_Special(RecvTunnel.PeerIO[RecvID].UserSpecial);
+      rVM := TXServiceRecvVM_Special(FRecvTunnel.PeerIO[RecvID].UserSpecial);
       rVM.OwnerMapping := Self;
       rVM.RecvID := RecvID;
       rVM.SendID := SendID;
 
-      sVM := TXServiceSendVM_Special(SendTunnel.PeerIO[SendID].UserSpecial);
+      sVM := TXServiceSendVM_Special(FSendTunnel.PeerIO[SendID].UserSpecial);
       sVM.OwnerMapping := Self;
       sVM.RecvID := RecvID;
       sVM.SendID := SendID;
@@ -464,14 +467,14 @@ begin
           exit;
         end;
 
-      if not RecvTunnel.Exists(RecvID) then
+      if not FRecvTunnel.Exists(RecvID) then
         begin
           OutData.WriteBool(False);
           OutData.WriteString(PFormat('receive tunnel ID illegal %d', [RecvID]));
           exit;
         end;
 
-      if not SendTunnel.Exists(SendID) then
+      if not FSendTunnel.Exists(SendID) then
         begin
           OutData.WriteBool(False);
           OutData.WriteString(PFormat('send tunnel ID illegal %d', [SendID]));
@@ -486,12 +489,12 @@ begin
           exit;
         end;
 
-      rVM := TXServiceRecvVM_Special(RecvTunnel.PeerIO[RecvID].UserSpecial);
+      rVM := TXServiceRecvVM_Special(FRecvTunnel.PeerIO[RecvID].UserSpecial);
       rVM.OwnerMapping := Self;
       rVM.RecvID := RecvID;
       rVM.SendID := SendID;
 
-      sVM := TXServiceSendVM_Special(SendTunnel.PeerIO[SendID].UserSpecial);
+      sVM := TXServiceSendVM_Special(FSendTunnel.PeerIO[SendID].UserSpecial);
       sVM.OwnerMapping := Self;
       sVM.RecvID := RecvID;
       sVM.SendID := SendID;
@@ -506,7 +509,7 @@ var
   rVM: TXServiceRecvVM_Special;
 begin
   rVM := TXServiceRecvVM_Special(Sender.UserSpecial);
-  rVM.MaxWorkload := InData.Reader.ReadCardinal;
+  rVM.FMaxWorkload := InData.Reader.ReadCardinal;
   rVM.CurrentWorkload := InData.Reader.ReadCardinal;
 end;
 
@@ -522,7 +525,7 @@ begin
   cState := InData.Reader.ReadBool;
   remote_id := InData.Reader.ReadCardinal;
   local_id := InData.Reader.ReadCardinal;
-  phy_io := Protocol.PeerIO[local_id];
+  phy_io := FProtocol.PeerIO[local_id];
 
   if phy_io = nil then
       exit;
@@ -535,7 +538,7 @@ begin
 
       if XUserSpec.RequestBuffer.Size > 0 then
         begin
-          s_io := SendTunnel.PeerIO[XUserSpec.s_id];
+          s_io := FSendTunnel.PeerIO[XUserSpec.s_id];
           if s_io <> nil then
             begin
               Build_XNAT_Buff(XUserSpec.RequestBuffer.Memory, XUserSpec.RequestBuffer.Size, Sender.ID, XUserSpec.RemoteProtocol_ID, nSiz, nBuff);
@@ -555,7 +558,7 @@ var
 begin
   remote_id := InData.Reader.ReadCardinal;
   local_id := InData.Reader.ReadCardinal;
-  phy_io := Protocol.PeerIO[local_id];
+  phy_io := FProtocol.PeerIO[local_id];
 
   if phy_io = nil then
       exit;
@@ -571,13 +574,13 @@ var
   phy_io: TPeerIO;
 begin
   Extract_XNAT_Buff(InData, DataSize, remote_id, local_id, destSiz, destBuff);
-  phy_io := Protocol.PeerIO[local_id];
+  phy_io := FProtocol.PeerIO[local_id];
 
   if phy_io <> nil then
     begin
-      Protocol.BeginWriteBuffer(phy_io);
-      Protocol.WriteBuffer(phy_io, destBuff, destSiz);
-      Protocol.EndWriteBuffer(phy_io);
+      FProtocol.BeginWriteBuffer(phy_io);
+      FProtocol.WriteBuffer(phy_io, destBuff, destSiz);
+      FProtocol.EndWriteBuffer(phy_io);
     end;
 end;
 
@@ -585,44 +588,44 @@ procedure TXServiceListen.SetActivted(const Value: Boolean);
 begin
   if Value then
     begin
-      FActivted := Protocol.StartService(FListenAddr, umlStrToInt(FListenPort));
-      Protocol.Print('Start listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
+      FActivted := FProtocol.StartService(FListenAddr, umlStrToInt(FListenPort));
+      FProtocol.Print('Start listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
     end
   else
     begin
-      Protocol.StopService;
+      FProtocol.StopService;
       FActivted := False;
-      Protocol.Print('Close listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
+      FProtocol.Print('Close listen %s %s', [TranslateBindAddr(FListenAddr.Text), FListenPort.Text]);
     end;
 end;
 
 constructor TXServiceListen.Create(Owner_: TXNATService);
 begin
   inherited Create;
-  Owner := Owner_;
+  FOwner := Owner_;
   Init;
 end;
 
 destructor TXServiceListen.Destroy;
 begin
-  if Protocol <> nil then
+  if FProtocol <> nil then
     begin
-      Protocol.StopService;
+      FProtocol.StopService;
     end;
 
-  if RecvTunnel <> nil then
+  if FRecvTunnel <> nil then
     begin
-      RecvTunnel.StopService;
+      FRecvTunnel.StopService;
     end;
 
-  if SendTunnel <> nil then
+  if FSendTunnel <> nil then
     begin
-      SendTunnel.StopService;
+      FSendTunnel.StopService;
     end;
 
-  DisposeObject(RecvTunnel);
-  DisposeObject(SendTunnel);
-  DisposeObject(Protocol);
+  DisposeObject(FRecvTunnel);
+  DisposeObject(FSendTunnel);
+  DisposeObject(FProtocol);
   inherited Destroy;
 end;
 
@@ -631,7 +634,7 @@ begin
   inherited Create(Owner_);
   RemoteProtocol_ID := 0;
   RemoteProtocol_Inited := False;
-  RequestBuffer := TMS64.Create;
+  RequestBuffer := TMS64.CustomCreate(8192);
   r_id := 0;
   s_id := 0;
 end;
@@ -649,7 +652,7 @@ var
   nBuff: PByte;
   s_io: TPeerIO;
 begin
-  if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
+  if (ShareListen.FSendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
       Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
@@ -662,7 +665,7 @@ begin
       exit;
     end;
 
-  s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
+  s_io := ShareListen.FSendTunnel.PeerIO[XUserSpec.s_id];
   if s_io <> nil then
     begin
       Build_XNAT_Buff(buffer, Size, Sender.ID, XUserSpec.RemoteProtocol_ID, nSiz, nBuff);
@@ -672,7 +675,9 @@ begin
         begin
           s_io.Send_NULL;
           ShareListen.Complete_Buffer_Sum := 0;
-        end;
+        end
+      else
+          ShareListen.FSendTunnel.Progress_IO_Now_Send(s_io);
     end
   else
       Sender.DelayClose(1.0);
@@ -684,7 +689,7 @@ var
   XUserSpec: TXServerUserSpecial;
   s_io: TPeerIO;
 begin
-  if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
+  if (ShareListen.FSendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
       Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
@@ -697,9 +702,9 @@ begin
 
   ShareListen.PickWorkloadTunnel(XUserSpec.r_id, XUserSpec.s_id);
 
-  if ShareListen.SendTunnel.Exists(XUserSpec.s_id) then
+  if ShareListen.FSendTunnel.Exists(XUserSpec.s_id) then
     begin
-      s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
+      s_io := ShareListen.FSendTunnel.PeerIO[XUserSpec.s_id];
       de := TDFE.Create;
       de.WriteCardinal(Sender.ID);
       de.WriteString(Sender.PeerIP);
@@ -716,7 +721,7 @@ var
   XUserSpec: TXServerUserSpecial;
   s_io: TPeerIO;
 begin
-  if (ShareListen.SendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
+  if (ShareListen.FSendTunnel.Count <> 1) and (not ShareListen.DistributedWorkload) then
     begin
       Sender.Print('share listen "%s:%s" no remote support', [ShareListen.FListenAddr.Text, ShareListen.FListenPort.Text]);
       exit;
@@ -726,9 +731,9 @@ begin
   if not XUserSpec.RemoteProtocol_Inited then
       exit;
 
-  if ShareListen.SendTunnel.Exists(XUserSpec.s_id) then
+  if ShareListen.FSendTunnel.Exists(XUserSpec.s_id) then
     begin
-      s_io := ShareListen.SendTunnel.PeerIO[XUserSpec.s_id];
+      s_io := ShareListen.FSendTunnel.PeerIO[XUserSpec.s_id];
       de := TDFE.Create;
       de.WriteCardinal(Sender.ID);
       de.WriteCardinal(TXServerUserSpecial(Sender.UserSpecial).RemoteProtocol_ID);
@@ -742,11 +747,11 @@ end;
 procedure TPhysicsEngine_Special.PhysicsConnect_Result_BuildP2PToken(const cState: Boolean);
 begin
   if cState then
-      Owner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
+      FOwner.BuildP2PAuthTokenM(PhysicsVMBuildAuthToken_Result)
   else
     begin
-      XNAT.WaitAsyncConnecting := False;
-      XNAT.Do_Open_Done(False);
+      FXNAT_VS.WaitAsyncConnecting := False;
+      FXNAT_VS.Do_Open_Done(False);
     end;
 end;
 
@@ -771,7 +776,7 @@ begin
     ref wiki
     https://en.wikipedia.org/wiki/SHA-3
   }
-  Owner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(XNAT.AuthToken), PhysicsOpenVM_Result)
+  FOwner.OpenP2pVMTunnelM(True, GenerateQuantumCryptographyPassword(FXNAT_VS.AuthToken), PhysicsOpenVM_Result)
 end;
 
 procedure TPhysicsEngine_Special.PhysicsOpenVM_Result(const cState: Boolean);
@@ -781,28 +786,28 @@ var
 begin
   if cState then
     begin
-      Owner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(XNAT.MaxVMFragment, Owner.p2pVMTunnel.MaxVMFragmentSize);
-      XNAT.FActivted := True;
+      FOwner.p2pVMTunnel.MaxVMFragmentSize := umlStrToInt(FXNAT_VS.MaxVMFragment, FOwner.p2pVMTunnel.MaxVMFragmentSize);
+      FXNAT_VS.FActivted := True;
 
       { open share listen }
-      for i := 0 to XNAT.FShareListenList.Count - 1 do
+      for i := 0 to FXNAT_VS.FShareListenList.Count - 1 do
         begin
-          shLt := XNAT.FShareListenList[i];
+          shLt := FXNAT_VS.FShareListenList[i];
           shLt.Open;
 
           { install p2pVM }
-          Owner.p2pVMTunnel.InstallLogicFramework(shLt.SendTunnel);
-          Owner.p2pVMTunnel.InstallLogicFramework(shLt.RecvTunnel);
+          FOwner.p2pVMTunnel.InstallLogicFramework(shLt.FSendTunnel);
+          FOwner.p2pVMTunnel.InstallLogicFramework(shLt.FRecvTunnel);
         end;
     end;
-  XNAT.WaitAsyncConnecting := False;
-  XNAT.Do_Open_Done(cState);
+  FXNAT_VS.WaitAsyncConnecting := False;
+  FXNAT_VS.Do_Open_Done(cState);
 end;
 
 constructor TPhysicsEngine_Special.Create(Owner_: TPeerIO);
 begin
   inherited Create(Owner_);
-  XNAT := nil;
+  FXNAT_VS := nil;
 end;
 
 destructor TPhysicsEngine_Special.Destroy;
@@ -823,11 +828,11 @@ begin
       OutData.WriteString(shLt.FListenAddr);
       OutData.WriteString(shLt.FListenPort);
 
-      OutData.WriteString(IPv6ToStr(shLt.RecvTunnel_IPV6));
-      OutData.WriteWORD(shLt.RecvTunnel_Port);
+      OutData.WriteString(IPv6ToStr(shLt.FRecvTunnel_IPV6));
+      OutData.WriteWORD(shLt.FRecvTunnel_Port);
 
-      OutData.WriteString(IPv6ToStr(shLt.SendTunnel_IPV6));
-      OutData.WriteWORD(shLt.SendTunnel_Port);
+      OutData.WriteString(IPv6ToStr(shLt.FSendTunnel_IPV6));
+      OutData.WriteWORD(shLt.FSendTunnel_Port);
     end;
 end;
 
@@ -838,7 +843,7 @@ begin
     end
   else if FPhysicsEngine is TZNet_Client then
     begin
-      TPhysicsEngine_Special(Sender.UserSpecial).XNAT := Self;
+      TPhysicsEngine_Special(Sender.UserSpecial).FXNAT_VS := Self;
     end;
 end;
 
@@ -893,8 +898,8 @@ begin
         begin
           shLt := FShareListenList[i];
           Sender.p2pVM.MaxVMFragmentSize := umlStrToInt(MaxVMFragment, Sender.p2pVM.MaxVMFragmentSize);
-          Sender.p2pVM.InstallLogicFramework(shLt.RecvTunnel);
-          Sender.p2pVM.InstallLogicFramework(shLt.SendTunnel);
+          Sender.p2pVM.InstallLogicFramework(shLt.FRecvTunnel);
+          Sender.p2pVM.InstallLogicFramework(shLt.FSendTunnel);
         end;
     end
   else if FPhysicsEngine is TZNet_Client then
@@ -935,8 +940,8 @@ begin
       for i := FShareListenList.Count - 1 downto 0 do
         begin
           shLt := FShareListenList[i];
-          Sender.p2pVM.UnInstallLogicFramework(shLt.RecvTunnel);
-          Sender.p2pVM.UnInstallLogicFramework(shLt.SendTunnel);
+          Sender.p2pVM.UnInstallLogicFramework(shLt.FRecvTunnel);
+          Sender.p2pVM.UnInstallLogicFramework(shLt.FSendTunnel);
         end;
     end
   else if FPhysicsEngine is TZNet_Client then
@@ -984,16 +989,16 @@ var
 begin
   FQuiet := Value;
   if FPhysicsEngine <> nil then
-      C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
+      Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
   for i := FShareListenList.Count - 1 downto 0 do
     begin
       shLt := FShareListenList[i];
-      if shLt.RecvTunnel <> nil then
-          C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
-      if shLt.SendTunnel <> nil then
-          C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
-      if shLt.Protocol <> nil then
-          C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+      if shLt.FRecvTunnel <> nil then
+          Set_Instance_QuietMode(shLt.FRecvTunnel, FQuiet);
+      if shLt.FSendTunnel <> nil then
+          Set_Instance_QuietMode(shLt.FSendTunnel, FQuiet);
+      if shLt.FProtocol <> nil then
+          Set_Instance_QuietMode(shLt.FProtocol, FQuiet);
     end;
 end;
 
@@ -1013,6 +1018,7 @@ begin
   AuthToken := 'ZServer';
   MaxVMFragment := '8192';
   ProtocolCompressed := False;
+  Instance_Class := TXServiceListen;
   On_Open_Tunnel_Done := nil;
   Open_Done := False;
 end;
@@ -1069,7 +1075,7 @@ begin
   Open_Done := False;
 end;
 
-function TXNATService.AddMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
+function TXNATService.AddMapping(const ListenAddr, ListenPort, FMapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
 var
   i: Integer;
   shLt: TXServiceListen;
@@ -1081,20 +1087,20 @@ begin
           exit(shLt);
     end;
 
-  shLt := TXServiceListen.Create(Self);
+  shLt := Instance_Class.Create(Self);
   shLt.FListenAddr := ListenAddr;
   shLt.FListenPort := ListenPort;
-  shLt.FMapping := Mapping;
+  shLt.FMapping := FMapping;
   shLt.DistributedWorkload := True;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
 
-  if shLt.RecvTunnel <> nil then
-      C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
-  if shLt.SendTunnel <> nil then
-      C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
-  if shLt.Protocol <> nil then
-      C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+  if shLt.FRecvTunnel <> nil then
+      Set_Instance_QuietMode(shLt.FRecvTunnel, FQuiet);
+  if shLt.FSendTunnel <> nil then
+      Set_Instance_QuietMode(shLt.FSendTunnel, FQuiet);
+  if shLt.FProtocol <> nil then
+      Set_Instance_QuietMode(shLt.FProtocol, FQuiet);
 
   FShareListenList.Add(shLt);
 
@@ -1103,7 +1109,7 @@ begin
   Result := shLt;
 end;
 
-function TXNATService.AddNoDistributedMapping(const ListenAddr, ListenPort, Mapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
+function TXNATService.AddNoDistributedMapping(const ListenAddr, ListenPort, FMapping: TPascalString; TimeOut: TTimeTick): TXServiceListen;
 var
   i: Integer;
   shLt: TXServiceListen;
@@ -1114,20 +1120,21 @@ begin
       if ListenAddr.Same(@shLt.FListenAddr) and ListenPort.Same(@shLt.FListenPort) then
           exit(shLt);
     end;
-  shLt := TXServiceListen.Create(Self);
+
+  shLt := Instance_Class.Create(Self);
   shLt.FListenAddr := ListenAddr;
   shLt.FListenPort := ListenPort;
-  shLt.FMapping := Mapping;
+  shLt.FMapping := FMapping;
   shLt.DistributedWorkload := False;
   shLt.XServerTunnel := Self;
   shLt.TimeOut := TimeOut;
 
-  if shLt.RecvTunnel <> nil then
-      C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
-  if shLt.SendTunnel <> nil then
-      C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
-  if shLt.Protocol <> nil then
-      C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+  if shLt.FRecvTunnel <> nil then
+      Set_Instance_QuietMode(shLt.FRecvTunnel, FQuiet);
+  if shLt.FSendTunnel <> nil then
+      Set_Instance_QuietMode(shLt.FSendTunnel, FQuiet);
+  if shLt.FProtocol <> nil then
+      Set_Instance_QuietMode(shLt.FProtocol, FQuiet);
 
   FShareListenList.Add(shLt);
 
@@ -1158,7 +1165,7 @@ begin
   FPhysicsEngine.IOInterface := Self;
   FPhysicsEngine.VMInterface := Self;
 
-  C40Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
+  Set_Instance_QuietMode(FPhysicsEngine, FQuiet);
 
   { Security protocol }
   FPhysicsEngine.SwitchMaxPerformance;
@@ -1181,12 +1188,12 @@ begin
         begin
           shLt := FShareListenList[i];
           shLt.Open;
-          if shLt.RecvTunnel <> nil then
-              C40Set_Instance_QuietMode(shLt.RecvTunnel, FQuiet);
-          if shLt.SendTunnel <> nil then
-              C40Set_Instance_QuietMode(shLt.SendTunnel, FQuiet);
-          if shLt.Protocol <> nil then
-              C40Set_Instance_QuietMode(shLt.Protocol, FQuiet);
+          if shLt.FRecvTunnel <> nil then
+              Set_Instance_QuietMode(shLt.FRecvTunnel, FQuiet);
+          if shLt.FSendTunnel <> nil then
+              Set_Instance_QuietMode(shLt.FSendTunnel, FQuiet);
+          if shLt.FProtocol <> nil then
+              Set_Instance_QuietMode(shLt.FProtocol, FQuiet);
         end;
       Do_Open_Done(listening_);
     end
@@ -1233,14 +1240,14 @@ begin
   for i := FShareListenList.Count - 1 downto 0 do
     begin
       shLt := FShareListenList[i];
-      if (shLt.RecvTunnel <> nil) and (shLt.SendTunnel <> nil) then
+      if (shLt.FRecvTunnel <> nil) and (shLt.FSendTunnel <> nil) then
         begin
-          if (shLt.RecvTunnel.Count = 0) and (shLt.SendTunnel.Count = 0) and (shLt.Activted) then
+          if (shLt.FRecvTunnel.Count = 0) and (shLt.FSendTunnel.Count = 0) and (shLt.Activted) then
               shLt.Activted := False;
 
-          shLt.RecvTunnel.Progress;
-          shLt.SendTunnel.Progress;
-          shLt.Protocol.Progress;
+          shLt.FRecvTunnel.Progress;
+          shLt.FSendTunnel.Progress;
+          shLt.FProtocol.Progress;
         end;
     end;
 end;
