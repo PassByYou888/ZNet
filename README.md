@@ -137,6 +137,13 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2024-3-28 新增IO方法Progress_IO_Now_Send,优化XNAT**
+
+- Z.Cipher库新增文本加解密函数
+- Z.Net库新增Progress_IO_Now_Send方法
+- XNAT实时传输优化,在XNAT侦听端口的数据到达时,不再仍队列,而使用Progress_IO_Now_Send直接转发到目标地址,效率提升大约10%
+- 修正XNAT内部变量和方法命名
+
 **2024-3-13 新增序列化表达式,解决非线性流程问题**
 
 - 非线性流程可配置化,可脚本化一直都被大量应用,但是,一直很少规范化它
