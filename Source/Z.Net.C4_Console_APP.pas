@@ -415,10 +415,6 @@ begin
   except
   end;
   Result := IsInited_;
-  if not Result then
-    begin
-      C40_Registed.Print;
-    end;
 end;
 
 function C40_Extract_CmdLine(const Param_: U_StringArray): Boolean;
