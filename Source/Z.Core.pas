@@ -704,7 +704,8 @@ type
     procedure UnLock;
     function Get_Recycle_Pool_Num: NativeInt;
     procedure Push_To_Recycle_Pool(p: PQueueStruct);
-    procedure Free_Recycle_Pool;
+    procedure Free_Recycle_Pool(Lock_: Boolean); overload;
+    procedure Free_Recycle_Pool; overload;
     procedure Clear;
     property First: PQueueStruct read FFirst;
     property Last: PQueueStruct read FLast;
