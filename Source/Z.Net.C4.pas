@@ -446,8 +446,8 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Service(var recv_, send_: TZNet_WithP2PVM_Server): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
-    function Find_File(fileName, ServiceTyp: U_String): U_String; overload;
-    function Find_File(fileName: U_String): U_String; overload;
+    function Where_C4_File(fileName, ServiceTyp: U_String): U_String; overload;
+    function Where_C4_File(fileName: U_String): U_String; overload;
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
@@ -512,7 +512,7 @@ type
     property AliasOrHash: U_String read GetAliasOrHash write Alias_or_Hash___;
     function Get_P2PVM_Tunnel(var recv_, send_: TZNet_WithP2PVM_Client): Boolean;
     function Get_DB_FileName_Config(source_: U_String): U_String;
-    function Find_File(fileName: U_String): U_String;
+    function Where_C4_File(fileName: U_String): U_String;
     { console command }
     function Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
     { event }
@@ -1057,7 +1057,6 @@ procedure C40Progress; overload; { C4 main progress }
 function C40_Online_DP: TC40_Dispatch_Client; { System Online-DP }
 
 { quiet }
-procedure C40Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
 procedure C40SetQuietMode(QuietMode_: Boolean);
 
 { configure }
@@ -1128,8 +1127,6 @@ begin
   if C40Progress_Working then
       exit;
   C40Progress_Working := True;
-  if sleep_ > 0 then
-      TCompute.Sleep(sleep_);
   Check_Soft_Thread_Synchronize(sleep_, True);
   state_ := Enabled_Check_Thread_Synchronize_System;
   Enabled_Check_Thread_Synchronize_System := False;
@@ -1169,27 +1166,10 @@ begin
   SetLength(arry, 0);
 end;
 
-procedure C40Set_Instance_QuietMode(Inst: TZNet; QuietMode_: Boolean);
-var
-  p2p_: TZNet_WithP2PVM_Client;
-  i: Integer;
-begin
-  Inst.QuietMode := QuietMode_;
-  if Inst is TZNet_Server then
-    begin
-    end
-  else if Inst is TZNet_WithP2PVM_Client then
-    begin
-      p2p_ := TZNet_WithP2PVM_Client(Inst);
-      for i := 0 to p2p_.ClonePool.Count - 1 do
-          C40Set_Instance_QuietMode(p2p_.ClonePool[i], QuietMode_);
-    end;
-end;
-
 procedure C40SetQuietMode(QuietMode_: Boolean);
   procedure Do_SetQuietMode(Inst: TZNet);
   begin
-    C40Set_Instance_QuietMode(Inst, QuietMode_);
+    Set_Instance_QuietMode(Inst, QuietMode_);
   end;
 
 var
@@ -3974,7 +3954,7 @@ begin
   except
   end;
 
-  Param_File := Find_File(ParamList.GetDefaultValue('Param_File', PFormat('S_%s.conf', [ServiceTyp.Text])), ServiceTyp);
+  Param_File := Where_C4_File(ParamList.GetDefaultValue('Param_File', PFormat('S_%s.conf', [ServiceTyp.Text])), ServiceTyp);
   if umlFileExists(Param_File) then
     begin
       DoStatus('(%s) "%s" found configure file: %s', [ClassName, ServiceTyp.Text, Param_File.Text]);
@@ -4132,7 +4112,7 @@ begin
   Result := ParamList.GetDefaultValue(source_, source_);
 end;
 
-function TC40_Custom_Service.Find_File(fileName, ServiceTyp: U_String): U_String;
+function TC40_Custom_Service.Where_C4_File(fileName, ServiceTyp: U_String): U_String;
 var
   tmp: U_String;
 begin
@@ -4150,9 +4130,9 @@ begin
       exit(tmp);
 end;
 
-function TC40_Custom_Service.Find_File(fileName: U_String): U_String;
+function TC40_Custom_Service.Where_C4_File(fileName: U_String): U_String;
 begin
-  Result := Find_File(fileName, ServiceInfo.ServiceTyp);
+  Result := Where_C4_File(fileName, ServiceInfo.ServiceTyp);
 end;
 
 function TC40_Custom_Service.Register_ConsoleCommand(Cmd, Desc: SystemString): TC4_Help_Console_Command_Data;
@@ -4359,7 +4339,7 @@ begin
   except
   end;
 
-  Param_File := Find_File(ParamList.GetDefaultValue('Param_File', PFormat('C_%s.conf', [ClientInfo.ServiceTyp.Text])));
+  Param_File := Where_C4_File(ParamList.GetDefaultValue('Param_File', PFormat('C_%s.conf', [ClientInfo.ServiceTyp.Text])));
   if umlFileExists(Param_File) then
     begin
       DoStatus('(%s) "%s" found configure file: %s', [ClassName, ClientInfo.ServiceTyp.Text, Param_File.Text]);
@@ -4489,7 +4469,7 @@ begin
   Result := ParamList.GetDefaultValue(source_, source_);
 end;
 
-function TC40_Custom_Client.Find_File(fileName: U_String): U_String;
+function TC40_Custom_Client.Where_C4_File(fileName: U_String): U_String;
 var
   tmp: U_String;
 begin
@@ -7265,8 +7245,6 @@ end;
 initialization
 
 { init }
-ProgressBackgroundProc := C40Progress;
-
 C40_QuietMode := False;
 C40_SafeCheckTime := C_Tick_Second * 45;
 C40_PhysicsReconnectionDelayTime := 5.0;
