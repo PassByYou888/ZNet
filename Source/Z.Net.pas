@@ -6790,7 +6790,7 @@ procedure TPeer_IO_User_Define.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
-      TCore_Thread.Sleep(1);
+      TCompute.Sleep(1);
 
   DelayFreeObj(1.0, self);
 end;
@@ -6823,7 +6823,7 @@ procedure TPeer_IO_User_Special.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
-      TCore_Thread.Sleep(1);
+      TCompute.Sleep(1);
   DelayFreeObj(1.0, self);
 end;
 
@@ -9288,12 +9288,18 @@ begin
   FSend_Queue_Critical.UnLock;
 
   if (FUser_Define.FBusy) or (FUser_Define.FBusyNum > 0) then
-      TCompute.RunM_NP(FUser_Define.DelayFreeOnBusy)
+    begin
+      FUser_Define.FOwner := nil;
+      TCompute.RunM_NP(FUser_Define.DelayFreeOnBusy);
+    end
   else
       DisposeObject(FUser_Define);
 
   if (FUser_Special.FBusy) or (FUser_Special.FBusyNum > 0) then
-      TCompute.RunM_NP(FUser_Special.DelayFreeOnBusy)
+    begin
+      FUser_Special.FOwner := nil;
+      TCompute.RunM_NP(FUser_Special.DelayFreeOnBusy);
+    end
   else
       DisposeObject(FUser_Special);
 
