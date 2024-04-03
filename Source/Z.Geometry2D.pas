@@ -513,6 +513,7 @@ function BoundRect(const buff: TArrayPoint): TRect; {$IFDEF INLINE_ASM} inline; 
 function BoundRect(const p1, p2, p3: TPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function BoundRect(const p1, p2, p3, p4: TPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function BoundRect(const r1, r2: TRect): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function BoundRect(const R: TRect; p: TPoint): TRect; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function BoundRect(const buff: TArrayVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function BoundRect(const p1, p2, p3: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function BoundRect(const p1, p2, p3, p4: TVec2): TRectV2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -3928,34 +3929,38 @@ var
   MinY: TGeoInt;
   i: TGeoInt;
 begin
-  Result.Left := 0;
-  Result.Top := 0;
-  Result.Right := 0;
-  Result.Bottom := 0;
-  if length(buff) < 2 then
-      Exit;
-  t := buff[0];
-  MinX := t.X;
-  MaxX := t.X;
-  MinY := t.Y;
-  MaxY := t.Y;
-
-  for i := 1 to length(buff) - 1 do
+  if length(buff) > 2 then
     begin
-      t := buff[i];
-      if t.X < MinX then
-          MinX := t.X
-      else if t.X > MaxX then
-          MaxX := t.X;
-      if t.Y < MinY then
-          MinY := t.Y
-      else if t.Y > MaxY then
-          MaxY := t.Y;
+      t := buff[0];
+      MinX := t.X;
+      MaxX := t.X;
+      MinY := t.Y;
+      MaxY := t.Y;
+
+      for i := 1 to length(buff) - 1 do
+        begin
+          t := buff[i];
+          if t.X < MinX then
+              MinX := t.X
+          else if t.X > MaxX then
+              MaxX := t.X;
+          if t.Y < MinY then
+              MinY := t.Y
+          else if t.Y > MaxY then
+              MaxY := t.Y;
+        end;
+      Result.Left := MinX;
+      Result.Top := MinY;
+      Result.Right := MaxX;
+      Result.Bottom := MaxY;
+    end
+  else
+    begin
+      Result.Left := 0;
+      Result.Top := 0;
+      Result.Right := 0;
+      Result.Bottom := 0;
     end;
-  Result.Left := MinX;
-  Result.Top := MinY;
-  Result.Right := MaxX;
-  Result.Bottom := MaxY;
 end;
 
 function BoundRect(const p1, p2, p3: TPoint): TRect;
@@ -3986,6 +3991,11 @@ end;
 function BoundRect(const r1, r2: TRect): TRect;
 begin
   Result := BoundRect(r1.TopLeft, r1.BottomRight, r2.TopLeft, r2.BottomRight);
+end;
+
+function BoundRect(const R: TRect; p: TPoint): TRect;
+begin
+  Result := BoundRect(R.TopLeft, R.BottomRight, p);
 end;
 
 function BoundRect(const buff: TArrayVec2): TRectV2;
