@@ -244,14 +244,14 @@
 
 // Intermediate_Instance_Tool is used to trace activity instances, which can affect performance after startup.
 // Intermediate_Instance_Tool help debug and analyze the state of large programs
-{$UNDEF Intermediate_Instance_Tool}
+{$DEFINE Intermediate_Instance_Tool}
 
 // Core_Thread_Soft_Synchronize is use software to solve atomic hardware synchronization waiting.
 // When using a DLL or library program, "Core_Thread_Soft_Synchronize" should be used.
 {$DEFINE Core_Thread_Soft_Synchronize}
 
 // tracking delay free object for debug
-{$UNDEF Tracking_Dealy_Free_Object}
+{$DEFINE Tracking_Dealy_Free_Object}
 
 {$IFDEF NO_FS}
   // Disable file system for ZNet-DoubleIO
