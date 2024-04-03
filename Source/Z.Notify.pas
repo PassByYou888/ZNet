@@ -168,6 +168,7 @@ type
 
 var
   SystemPostProgress: TCadencer_N_Progress_Tool;
+  Print_Tracking_Delay_Free: Boolean;
 
 function SysPostProgress: TCadencer_N_Progress_Tool;
 function SysPost: TCadencer_N_Progress_Tool;
@@ -234,7 +235,8 @@ begin
   if Data <> nil then
     begin
       try
-          DoStatus('delay free Object: %s (0x%s)', [Data.ClassName, umlPointerToStr(Data).Text]);
+        if Print_Tracking_Delay_Free then
+            DoStatus('delay free Object: %s (0x%s)', [Data.ClassName, umlPointerToStr(Data).Text]);
       except
         on E: Exception do
           begin
@@ -798,6 +800,7 @@ initialization
 Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
 Z.Core.OnCheckThreadSynchronize := DoCheckThreadSynchronize;
 SystemPostProgress := TCadencer_N_Progress_Tool.Create;
+Print_Tracking_Delay_Free := False;
 
 finalization
 
