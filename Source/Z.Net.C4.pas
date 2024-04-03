@@ -988,6 +988,7 @@ type
     function Do_Instance_Info_Sort_Time(var OP_Param: TOpParam): Variant;
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
+    function Do_Enabled_Delay_Free_Info(var OP_Param: TOpParam): Variant;
     function Do_Service_Cmd_Info(var OP_Param: TOpParam): Variant;
     function Do_Client_Cmd_Info(var OP_Param: TOpParam): Variant;
     function Do_Service_Statistics_Info(var OP_Param: TOpParam): Variant;
@@ -6906,6 +6907,12 @@ begin
   Result := ZNet_Instance_Pool.Num;
 end;
 
+function TC40_Console_Help.Do_Enabled_Delay_Free_Info(var OP_Param: TOpParam): Variant;
+begin
+  Print_Tracking_Delay_Free := OP_Param[0];
+  Result := True;
+end;
+
 function TC40_Console_Help.Do_Service_Cmd_Info(var OP_Param: TOpParam): Variant;
 begin
   ZNet_Instance_Pool.Print_Service_CMD_Info;
@@ -7157,6 +7164,8 @@ begin
   opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Delay_Free_Info', 'Delay_Free_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Enabled_Delay_Info', 'Enabled_Delay_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Service_CMD_Info', 'Service_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Server_CMD_Info', 'Server_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Client_CMD_Info', 'Client_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
