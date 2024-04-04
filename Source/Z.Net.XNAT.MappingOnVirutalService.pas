@@ -806,6 +806,7 @@ begin
           PhysicsEngine := TXPhysicsServer.Create
       else
           PhysicsEngine := TXPhysicsClient.Create;
+      PhysicsEngine.QuietMode := Quiet;
     end;
 
   PhysicsEngine.UserSpecialClass := TPhysicsEngine_Special;
