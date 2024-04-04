@@ -6,7 +6,7 @@
         <MainSource>ChatHome.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Release</Config>
-        <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>32787</TargetedPlatforms>
         <AppType>Application</AppType>
     </PropertyGroup>
@@ -293,15 +293,17 @@
                 </Source>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="$(BDS)\bin\delphi_PROJECTICNS.icns" Configuration="Release" Class="ProjectOSXResource"/>
+                <DeployFile LocalName="Win32\Debug\ChatHome.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="OSX32\Release\ChatHome.entitlements" Configuration="Release" Class="ProjectOSXEntitlements"/>
+                <DeployFile LocalName="OSX32\Release\ChatHome.info.plist" Configuration="Release" Class="ProjectOSXInfoPList"/>
                 <DeployFile LocalName="OSX32\Release\ChatHome" Configuration="Release" Class="ProjectOutput"/>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgsqlite3.dylib" Class="DependencyModule"/>
+                <DeployFile LocalName="$(BDS)\bin\delphi_PROJECTICNS.icns" Configuration="Release" Class="ProjectOSXResource"/>
+                <DeployFile LocalName="OSX32\Release\ChatHome.entitlements" Configuration="Release" Class="ProjectOSXEntitlements"/>
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libpcre.dylib" Class="DependencyModule">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
@@ -314,8 +316,6 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx64\libcgsqlite3.dylib" Class="DependencyModule"/>
-                <DeployFile LocalName="Win32\Debug\ChatHome.exe" Configuration="Debug" Class="ProjectOutput"/>
-                <DeployFile LocalName="OSX32\Release\ChatHome.info.plist" Configuration="Release" Class="ProjectOSXInfoPList"/>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="iOSSimulator">
                         <Operation>1</Operation>
