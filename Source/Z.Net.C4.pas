@@ -6909,7 +6909,10 @@ end;
 
 function TC40_Console_Help.Do_Enabled_Delay_Free_Info(var OP_Param: TOpParam): Variant;
 begin
-  Print_Tracking_Delay_Free := OP_Param[0];
+  if length(OP_Param[0]) > 0 then
+      Print_Tracking_Delay_Free := OP_Param[0]
+  else
+      Print_Tracking_Delay_Free := True;
   Result := True;
 end;
 
