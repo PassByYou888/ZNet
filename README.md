@@ -139,9 +139,10 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 **2024-4-3 小幅度更新**
 
+- 修正更新C4的入网connected事件机制,connected事件触发时必然在主线程
 - 更新TPeerIO中的UserDefine和UserSpecial保护释放规则:当Busy和BusyNum处于非重置状态中,会保护实例,从而达到同步线程的作用.更新后的机制为,当Busy和BusyNum被标记后,Owner实例会重置为nil,表示IO已经失效,但UserDefine和UserSpecial依然存在,必须直到Busy和BusyNum被重置后才会释放,内部工作原理是在释放IO时检测Busy和BusyNum,如果发现正在使用,就开辟一个子程不断的检查Busy和BusyNum.
 - 修改预编译定义 **Intermediate_Instance_Tool** 默认为打开状态,内核会记录所有实例的创建和销毁状态
-- 修改预编译定义 **Tracking_Dealy_Free_Object** 默认为打开状态,内核在延迟释放对象时,会抛出信息,这条信息,必须在c4中以命令行执行Delay_Free_Info(True)来开启.
+- 修改预编译定义 **Tracking_Dealy_Free_Object** 默认为打开状态,内核在延迟释放对象时,会抛出信息,这条信息,必须在c4中以命令行执行Delay_Free_Info来开启.
 
 **2024-3-28 新增IO方法Progress_IO_Now_Send,优化XNAT**
 
