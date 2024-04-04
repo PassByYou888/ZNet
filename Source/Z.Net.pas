@@ -6790,7 +6790,7 @@ procedure TPeer_IO_User_Define.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
-      TCompute.Sleep(1);
+      TCompute.Sleep(100);
 
   DelayFreeObj(1.0, self);
 end;
@@ -6823,7 +6823,7 @@ procedure TPeer_IO_User_Special.DelayFreeOnBusy;
 begin
   FOwner := nil;
   while FBusy or (FBusyNum > 0) do
-      TCompute.Sleep(1);
+      TCompute.Sleep(100);
   DelayFreeObj(1.0, self);
 end;
 
