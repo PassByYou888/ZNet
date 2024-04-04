@@ -171,6 +171,8 @@ type
     procedure DoConnectAndCheckDepend(Param1: Pointer; Param2: TObject; const state: Boolean);
     procedure DoConnectAndBuildDependNetwork(Param1: Pointer; Param2: TObject; const state: Boolean);
   private
+    procedure Do_Connect_Event;
+    procedure Do_Disconnect_Event;
     procedure ClientConnected(Sender: TZNet_Client); virtual;
     procedure ClientDisconnect(Sender: TZNet_Client); virtual;
     procedure Do_Notify_All_Disconnect;
@@ -2229,7 +2231,7 @@ begin
     end;
 end;
 
-procedure TC40_PhysicsTunnel.ClientConnected(Sender: TZNet_Client);
+procedure TC40_PhysicsTunnel.Do_Connect_Event;
 begin
   try
     if Assigned(OnEvent) then
@@ -2238,14 +2240,24 @@ begin
   end;
 end;
 
-procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
+procedure TC40_PhysicsTunnel.Do_Disconnect_Event;
 begin
   try
     if Assigned(OnEvent) then
         OnEvent.C40_PhysicsTunnel_Disconnect(Self);
   except
   end;
-  Sender.PostProgress.PostExecuteM_NP(0, Do_Notify_All_Disconnect);
+  Do_Notify_All_Disconnect;
+end;
+
+procedure TC40_PhysicsTunnel.ClientConnected(Sender: TZNet_Client);
+begin
+  TCompute.SyncM(Do_Connect_Event);
+end;
+
+procedure TC40_PhysicsTunnel.ClientDisconnect(Sender: TZNet_Client);
+begin
+  TCompute.SyncM(Do_Disconnect_Event);
 end;
 
 procedure TC40_PhysicsTunnel.Do_Notify_All_Disconnect;
@@ -2292,8 +2304,8 @@ destructor TC40_PhysicsTunnel.Destroy;
 var
   i: Integer;
 begin
-  PhysicsTunnel.OnInterface := nil;
   try
+    PhysicsTunnel.OnInterface := nil;
     if PhysicsTunnel.Connected then
       begin
         PhysicsTunnel.Disconnect;
