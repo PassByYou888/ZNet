@@ -777,6 +777,8 @@ type
     procedure DoFree(var Data: T_); override;
   end;
 
+  TObject_BigList<T_: class> = class(TBig_Object_List<T_>);
+
   TCritical_Big_Object_List<T_: class> = class(TCritical_BigList<T_>)
   public
     AutoFreeObject: Boolean;
@@ -1587,6 +1589,7 @@ function Simulator_Main_Thread_Activted: Boolean;
 // NoP = No Operation. It's the empty function, whose purpose is only for the
 // debugging, or for the piece of code where intentionaly nothing is planned to be.
 procedure Nop;
+procedure Int3;
 // debug state
 function IsDebuging: Boolean;
 
@@ -2442,6 +2445,16 @@ end;
 procedure Nop;
 begin
 end;
+
+procedure Int3;
+{$IFDEF MSWINDOWS}
+asm
+  int 3
+end;
+{$ELSE MSWINDOWS}
+begin
+end;
+{$ENDIF MSWINDOWS}
 
 function IsDebuging: Boolean;
 begin
