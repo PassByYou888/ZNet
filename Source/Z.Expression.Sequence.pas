@@ -13,38 +13,58 @@ uses SysUtils, Variants, Math,
   Z.Status, Z.ListEngine, Z.Expression, Z.OpCode;
 
 type
+  TExpression_Sequence = class;
   TExpression_Sequence_RunTime = class;
   TExpression_Sequence_RunTime_Class = class of TExpression_Sequence_RunTime;
 
+  TOn_Expression_Sequence_Create_RunTime = procedure(Sender: TExpression_Sequence; NewRunTime: TExpression_Sequence_RunTime) of object;
+  TOn_Expression_Sequence_Step = procedure(Sender: TExpression_Sequence; Current_Step: TExpression_Sequence_RunTime) of object;
+  TOn_Expression_Sequence_Done = procedure(Sender: TExpression_Sequence) of object;
+
   TExpression_Sequence = class(TBig_Object_List<TExpression_Sequence_RunTime>)
   private
+    FDebugMode: Boolean;
+    FRunNum: Integer;
     FFocus: TExpression_Sequence_RunTime;
     FPost___: TThreadPost;
     FN_Progress: TCadencer_N_Progress_Tool;
     FSequence_Class: TExpression_Sequence_RunTime_Class;
+    FOn_Expression_Sequence_Create_RunTime: TOn_Expression_Sequence_Create_RunTime;
+    FOn_Expression_Sequence_Step: TOn_Expression_Sequence_Step;
+    FOn_Expression_Sequence_Done: TOn_Expression_Sequence_Done;
     procedure Do_Step; virtual;
   public
+    property DebugMode: Boolean read FDebugMode write FDebugMode;
     property Sequence_Class: TExpression_Sequence_RunTime_Class read FSequence_Class write FSequence_Class;
+    property On_Expression_Sequence_Create_RunTime: TOn_Expression_Sequence_Create_RunTime read FOn_Expression_Sequence_Create_RunTime write FOn_Expression_Sequence_Create_RunTime;
+    property On_Expression_Sequence_Step: TOn_Expression_Sequence_Step read FOn_Expression_Sequence_Step write FOn_Expression_Sequence_Step;
+    property On_Expression_Sequence_Done: TOn_Expression_Sequence_Done read FOn_Expression_Sequence_Done write FOn_Expression_Sequence_Done;
     constructor Create;
     destructor Destroy; override;
     function Extract_Code(Style: TTextStyle; Code: TCore_Strings): Boolean; overload;
     function Extract_Code(Style: TTextStyle; Code: U_String): Boolean; overload;
     function Check_Syntax: Boolean;
     procedure Run;
+    property RunNum: Integer read FRunNum;
     procedure Wait;
     function Is_Running: Boolean;
+    property Focus: TExpression_Sequence_RunTime read FFocus;
     procedure Do_End; virtual;
-    procedure Progress;
+    procedure Progress; virtual;
     property Post_Progress: TCadencer_N_Progress_Tool read FN_Progress;
     property N_Progress: TCadencer_N_Progress_Tool read FN_Progress;
     class procedure Test();
   end;
 
+  TExpression_Sequence_Pool_ = TBig_Object_List<TExpression_Sequence>;
+
+  TExpression_Sequence_Pool = class(TExpression_Sequence_Pool_)
+  public
+    procedure Progress;
+  end;
+
   TExpression_Sequence_RunTime = class(TOpCustomRunTime)
   private
-    // demo expression
-    function Direct_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-    function Delay_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
   private
     Queue_Data: TExpression_Sequence.PQueueStruct;
     Is_Sequence: Boolean;
@@ -62,7 +82,7 @@ type
     Style: TTextStyle;
     Code_: U_String;
     Code_Result: Variant;
-    constructor Create(Owner_: TExpression_Sequence);
+    constructor Create(Owner_: TExpression_Sequence); virtual;
     destructor Destroy; override;
     procedure Reg_RunTime; virtual;
     procedure Do_Run;
@@ -70,9 +90,18 @@ type
     procedure Do_End;
     procedure Do_End_And_Result(Result_: Variant);
     procedure Do_Error;
+    procedure Progress; virtual;
+  end;
+
+  TTest_Expression_Sequence_RunTime = class(TExpression_Sequence_RunTime)
+  public
+    function OP_Test_Direct_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function OP_Test_Delay_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    procedure Reg_RunTime; override;
   end;
 
 implementation
+
 
 procedure TExpression_Sequence.Do_Step;
 begin
@@ -85,8 +114,12 @@ begin
       FFocus := nil;
       exit;
     end;
+
   if FFocus.Done then
     begin
+      if Assigned(FOn_Expression_Sequence_Step) then
+          FOn_Expression_Sequence_Step(self, FFocus);
+
       if FFocus.Queue_Data <> Last then
         begin
           FFocus := FFocus.Queue_Data^.Next^.Data;
@@ -96,6 +129,8 @@ begin
         begin
           FFocus := nil;
           Do_End();
+          if Assigned(FOn_Expression_Sequence_Done) then
+              FOn_Expression_Sequence_Done(self);
         end;
     end;
 end;
@@ -103,10 +138,15 @@ end;
 constructor TExpression_Sequence.Create;
 begin
   inherited Create(True);
+  FDebugMode := False;
+  FRunNum := 0;
   FFocus := nil;
   FPost___ := TThreadPost.Create(0);
   FN_Progress := TCadencer_N_Progress_Tool.Create;
   FSequence_Class := TExpression_Sequence_RunTime;
+  FOn_Expression_Sequence_Create_RunTime := nil;
+  FOn_Expression_Sequence_Step := nil;
+  FOn_Expression_Sequence_Done := nil;
 end;
 
 destructor TExpression_Sequence.Destroy;
@@ -124,11 +164,12 @@ var
   T: TTextParsing;
   L: TPascalStringList;
 begin
+  FRunNum := 0;
   Result := False;
   for i := 0 to Code.Count - 1 do
     begin
       n := Code[i];
-      if umlTrimSpace(n) = '' then
+      if IsNullExpression(n, Style) then
           continue;
       if IsSymbolVectorExpression(n, Style) then
         begin
@@ -138,11 +179,13 @@ begin
             begin
               for j := 0 to L.Count - 1 do
                 begin
-                  inst := FSequence_Class.Create(Self);
+                  inst := FSequence_Class.Create(self);
                   inst.Line := i;
                   inst.Style := Style;
                   inst.Code_ := L[j];
                   inst.Queue_Data := Add(inst);
+                  if Assigned(FOn_Expression_Sequence_Create_RunTime) then
+                      FOn_Expression_Sequence_Create_RunTime(self, inst);
                 end;
               DisposeObject(T);
               DisposeObject(L);
@@ -157,11 +200,13 @@ begin
         end
       else
         begin
-          inst := FSequence_Class.Create(Self);
+          inst := FSequence_Class.Create(self);
           inst.Line := i;
           inst.Style := Style;
           inst.Code_ := n;
           inst.Queue_Data := Add(inst);
+          if Assigned(FOn_Expression_Sequence_Create_RunTime) then
+              FOn_Expression_Sequence_Create_RunTime(self, inst);
         end;
     end;
   Result := True;
@@ -216,6 +261,7 @@ begin
 
       FFocus := First^.Data;
       FFocus.Do_Run;
+      Inc(FRunNum);
     end;
 end;
 
@@ -235,18 +281,21 @@ end;
 
 procedure TExpression_Sequence.Do_End;
 begin
-  if isDebug then
-    if Num > 0 then
-      begin
-        with repeat_ do
-          repeat
-              DoStatus('%s = %s', [queue^.Data.Code_.Text, VarToStr(queue^.Data.Code_Result)]);
-          until not Next;
-      end;
+  if not FDebugMode then
+      exit;
+  if Num > 0 then
+    begin
+      with repeat_ do
+        repeat
+            DoStatus('%s = %s', [queue^.Data.Code_.Text, VarToStr(queue^.Data.Code_Result)]);
+        until not Next;
+    end;
 end;
 
 procedure TExpression_Sequence.Progress;
 begin
+  if (FFocus <> nil) and (Num > 0) then
+      FFocus.Progress;
   FPost___.Progress(FPost___.ThreadID);
   FN_Progress.Progress;
 end;
@@ -263,6 +312,7 @@ begin
   L.Add('Delay()');
   L.Add('Direct(),Delay(1.1),Delay(1.2),Direct()');
   inst := TExpression_Sequence.Create;
+  inst.Sequence_Class := TTest_Expression_Sequence_RunTime;
   inst.Extract_Code(tsPascal, L);
   DoStatus('Check_Syntax=%s', [umlBoolToStr(inst.Check_Syntax()).Text]);
   DisposeObject(L);
@@ -271,33 +321,22 @@ begin
   DisposeObject(inst);
 end;
 
-function TExpression_Sequence_RunTime.Direct_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+procedure TExpression_Sequence_Pool.Progress;
 begin
-  Do_Begin();
-  Result := 1;
-  Do_End();
-end;
-
-function TExpression_Sequence_RunTime.Delay_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-var
-  d: Double;
-begin
-  Do_Begin();
-  Result := 2;
-  if length(OP_Param) > 0 then
-      d := OP_Param[0]
-  else
-      d := 1.0;
-  Owner.Post_Progress.PostExecuteM_NP(d, Do_End);
+  if Num > 0 then
+    with repeat_ do
+      repeat
+          queue^.Data.Progress;
+      until not Next;
 end;
 
 procedure TExpression_Sequence_RunTime.Do_Run__;
 begin
-  if isDebug then
+  if Owner.FDebugMode then
       DoStatus('Debug Mode ' + Code_);
   Is_Sequence := False;
   Running := True;
-  Code_Result := EvaluateExpressionValue(Style, Code_, Self);
+  Code_Result := EvaluateExpressionValue(Style, Code_, self);
   Running := False;
   if VarIsNull(Code_Result) then
       Do_Error()
@@ -350,8 +389,6 @@ end;
 
 procedure TExpression_Sequence_RunTime.Reg_RunTime;
 begin
-  RegObjectOpM('Direct', 'Direct(), direct execute and result.', Direct_Execute).Category := 'Demo';
-  RegObjectOpM('Delay', 'Delay(), delay execute and wait 1 second result.', Delay_Execute).Category := 'Demo';
 end;
 
 procedure TExpression_Sequence_RunTime.Do_Run;
@@ -377,6 +414,38 @@ end;
 procedure TExpression_Sequence_RunTime.Do_Error;
 begin
   Owner.FPost___.PostM1(Do_Error__);
+end;
+
+procedure TExpression_Sequence_RunTime.Progress;
+begin
+
+end;
+
+function TTest_Expression_Sequence_RunTime.OP_Test_Direct_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+begin
+  Do_Begin();
+  Result := 1;
+  Do_End();
+end;
+
+function TTest_Expression_Sequence_RunTime.OP_Test_Delay_Execute(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+var
+  d: Double;
+begin
+  Do_Begin();
+  Result := 2;
+  if length(OP_Param) > 0 then
+      d := OP_Param[0]
+  else
+      d := 1.0;
+  Owner.Post_Progress.PostExecuteM_NP(d, Do_End);
+end;
+
+procedure TTest_Expression_Sequence_RunTime.Reg_RunTime;
+begin
+  inherited Reg_RunTime;
+  RegObjectOpM('Direct', '', OP_Test_Direct_Execute);
+  RegObjectOpM('Delay', '', OP_Test_Delay_Execute);
 end;
 
 end.
