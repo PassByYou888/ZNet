@@ -108,6 +108,7 @@ function ComparePointer(const Item1, Item2: pointer): Integer; {$IFDEF INLINE_AS
 function CompareBool(const Bool1, Bool2: Boolean): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareDouble(const Double1, Double2: Double): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
+function Compute_PI(Num: Integer): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
 function FAbs(const V: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function FAbs(const V: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function FAbs(const v2: TVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -1566,6 +1567,24 @@ end;
 
 {$ENDIF}
 
+
+function Compute_PI(Num: Integer): Double;
+  function f(const X: Double): Double; inline;
+  begin
+    f := 4 / (1 + X * X);
+  end;
+
+var
+  i: Integer;
+  Aux: Double;
+begin
+  Aux := 0;
+  for i := 0 to Num - 1 do
+    begin
+      Aux := Aux + f(i / Num) + f((i + 1) / Num) + 4 * f((2 * i + 1) / (2 * Num));
+    end;
+  Result := Aux / (6 * Num);
+end;
 
 function FAbs(const V: Single): Single;
 begin
