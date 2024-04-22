@@ -3120,6 +3120,7 @@ procedure ExtractHostAddress(var Host: U_String; var Port: Word); overload;
 procedure ExtractHostAddress(var Host, Port: U_String); overload;
 function Build_Host_URL(Host, Port: SystemString): SystemString; overload;
 function Build_Host_URL(Host: SystemString; Port: Word): SystemString; overload;
+
 function Get_Link_OK_Send_Tunnel(IO_: TPeerIO; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
 function Get_Link_OK_Send_Tunnel(Framework_: TZNet; ID_: Cardinal; var Send_Tunnel: TZNet; var Send_Tunnel_ID: Cardinal): Boolean; overload;
 function Get_Link_OK_Recv_Tunnel(IO_: TPeerIO; var Recv_Tunnel: TZNet; var Recv_Tunnel_ID: Cardinal): Boolean; overload;
@@ -12032,16 +12033,10 @@ end;
 
 procedure TZNet.CreateAfter;
 begin
-{$IFDEF DEBUG}
-  Print('%s Create', [ClassName]);
-{$ENDIF DEBUG}
 end;
 
 destructor TZNet.Destroy;
 begin
-{$IFDEF DEBUG}
-  Print('%s.%s(%s) destroy', [FPrefixName, FName, ClassName]);
-{$ENDIF DEBUG}
   try
     if FZNet_Instance_Ptr__ <> nil then
         ZNet_Instance_Pool.Remove_P(FZNet_Instance_Ptr__);
