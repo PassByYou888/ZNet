@@ -137,6 +137,13 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2024-4-3 expression非线性流程在app支持**
+
+- 新增一个有趣的PI精度计算程序,可以极快方式计算到double极限精度
+- expression非线性流程在实际项目应用,修正了许多细节
+- 修正延迟释放状态输出方式:在C4命令行使用Enabled_Delay_Info or Delay_Free_Info启用延迟释放信息
+- C4命令行中的exit命令会优先关闭Instance Tracker,然后才会执行关闭,**因为finalization块中许多释放机制会遇到某些上百万的instance tracker信息,在关闭时如果输出上百万条free object会非常卡**
+
 **2024-4-3 小幅度更新**
 
 - 新增console help for UI,该demo演示了在UI界面使用c4的命令行工具,内核状态,延迟释放,ZNet实例,命令执行开销,这些是最基本的服务器和客户端运行状态分析.
