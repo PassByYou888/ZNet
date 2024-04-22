@@ -48,8 +48,11 @@ type
 
 var
   Instance_State_Tool: TInstance_State_Tool;
+  Print_Intermediate_Instance_Status: Boolean;
 
 implementation
+
+uses Z.Status;
 
 constructor TInstance_State_Tool.Create(const HashSize_: integer);
 var
@@ -174,6 +177,8 @@ begin
   Instance_State_Tool.IncValue(Instance_, 1);
   Instance_State_Tool.IsLock_ := False;
   Instance_State_Tool.Queue_Pool.UnLock;
+  if Print_Intermediate_Instance_Status then
+      DoStatus('%s created', [Instance_]);
 end;
 
 procedure Dec_Instance_Num___(const Instance_: string);
@@ -185,6 +190,8 @@ begin
   Instance_State_Tool.IncValue(Instance_, -1);
   Instance_State_Tool.IsLock_ := False;
   Instance_State_Tool.Queue_Pool.UnLock;
+  if Print_Intermediate_Instance_Status then
+      DoStatus('%s destroy', [Instance_]);
 end;
 
 var
@@ -198,6 +205,7 @@ Backup_Inc_Instance_Num := Inc_Instance_Num;
 Backup_Dec_Instance_Num := Dec_Instance_Num;
 Z.Core.Inc_Instance_Num := Inc_Instance_Num___;
 Z.Core.Dec_Instance_Num := Dec_Instance_Num___;
+Print_Intermediate_Instance_Status := False;
 
 finalization
 
