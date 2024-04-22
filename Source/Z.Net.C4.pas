@@ -975,7 +975,7 @@ type
     procedure UpdateServiceInfo(phy_serv: TC40_PhysicsService); overload;
     procedure UpdateTunnelInfo; overload;
     procedure UpdateTunnelInfo(phy_tunnel: TC40_PhysicsTunnel); overload;
-  public
+  protected
     function Do_Help(var OP_Param: TOpParam): Variant;
     function Do_Exit(var OP_Param: TOpParam): Variant;
     function Do_Service(var OP_Param: TOpParam): Variant;
@@ -991,6 +991,7 @@ type
     function Do_HPC_Thread_Info(var OP_Param: TOpParam): Variant;
     function Do_ZNet_Instance_Info(var OP_Param: TOpParam): Variant;
     function Do_Enabled_Delay_Free_Info(var OP_Param: TOpParam): Variant;
+    function Do_Enabled_Intermediate_Instance_Info(var OP_Param: TOpParam): Variant;
     function Do_Service_Cmd_Info(var OP_Param: TOpParam): Variant;
     function Do_Client_Cmd_Info(var OP_Param: TOpParam): Variant;
     function Do_Service_Statistics_Info(var OP_Param: TOpParam): Variant;
@@ -1004,7 +1005,7 @@ type
     IsExit: Boolean;
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Update_opRT;
+    procedure Update_opRT; virtual;
     procedure Run_HelpCmd(exp_: U_String);
   end;
 {$ENDREGION 'C40-Console'}
@@ -6664,6 +6665,8 @@ end;
 
 function TC40_Console_Help.Do_Exit(var OP_Param: TOpParam): Variant;
 begin
+  Print_Intermediate_Instance_Status := False;
+  Print_Tracking_Delay_Free := False;
   IsExit := True;
   Result := True;
 end;
@@ -6921,10 +6924,19 @@ end;
 
 function TC40_Console_Help.Do_Enabled_Delay_Free_Info(var OP_Param: TOpParam): Variant;
 begin
-  if length(OP_Param[0]) > 0 then
+  if length(OP_Param) > 0 then
       Print_Tracking_Delay_Free := OP_Param[0]
   else
       Print_Tracking_Delay_Free := True;
+  Result := True;
+end;
+
+function TC40_Console_Help.Do_Enabled_Intermediate_Instance_Info(var OP_Param: TOpParam): Variant;
+begin
+  if length(OP_Param) > 0 then
+      Print_Intermediate_Instance_Status := OP_Param[0]
+  else
+      Print_Intermediate_Instance_Status := True;
   Result := True;
 end;
 
@@ -7181,6 +7193,8 @@ begin
   opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Delay_Free_Info', 'Delay_Free_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Enabled_Delay_Info', 'Enabled_Delay_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Intermediate_Instance_Info', 'Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('Enabled_Intermediate_Instance_Info', 'Enabled_Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Service_CMD_Info', 'Service_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Server_CMD_Info', 'Server_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Client_CMD_Info', 'Client_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
@@ -7190,7 +7204,7 @@ begin
   opRT.RegOpM('Client_Statistics_Info', 'Client_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('Cli_Statistics_Info', 'Cli_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('ZDB2_Flush', 'ZDB2_Flush), flush all zdb2 thread engine.', Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
+  opRT.RegOpM('ZDB2_Flush', 'ZDB2_Flush(), flush all zdb2 thread engine.', Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
   opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
   for i := 0 to C40_ServicePool.Count - 1 do
@@ -7316,6 +7330,8 @@ Z.Core.OnCheckThreadSynchronize := DoCheckThreadSynchronize;
 
 finalization
 
+Print_Intermediate_Instance_Status := False;
+Print_Tracking_Delay_Free := False;
 C40Clean;
 
 DisposeObjectAndNil(C40_PhysicsServicePool);
