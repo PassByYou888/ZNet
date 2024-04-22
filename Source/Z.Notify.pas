@@ -54,6 +54,7 @@ type
     FNewTime: Double;
     FIsRuning, FIsExit: PBoolean;
     FIsReady: Boolean;
+    FDiscard: Boolean;
     procedure SetIsExit(const Value: PBoolean);
     procedure SetIsRuning(const Value: PBoolean);
   public
@@ -83,18 +84,18 @@ type
     destructor Destroy; override;
     procedure Execute; virtual;
     procedure Ready;
+    procedure DoDiscard;
   end;
 
   TN_Post_ExecuteClass = class of TN_Post_Execute;
 
   TN_Progress_Tool = class(TCore_InterfacedObject_Intermediate)
   protected
-    FPostIsRun: Boolean;
+    FPostIsRunning: Boolean;
     FPostExecute_Pool: TN_Post_Execute_List_Struct;
     FPostClass: TN_Post_ExecuteClass;
     FBusy: Boolean;
     FCurrentExecute: TN_Post_Execute;
-    FBreakProgress: Boolean;
     FPaused: Boolean;
     procedure Do_Free(var Inst_: TN_Post_Execute);
   public
@@ -282,6 +283,7 @@ begin
   FIsRuning := nil;
   FIsExit := nil;
   FIsReady := False;
+  FDiscard := False;
 
   OnExecute_C := nil;
   OnExecute_C_NP := nil;
@@ -297,7 +299,6 @@ begin
     begin
       if FOwner.FCurrentExecute = Self then
         begin
-          FOwner.FBreakProgress := True;
           FOwner.FCurrentExecute := nil;
         end;
 
@@ -384,6 +385,11 @@ begin
   FIsReady := True;
 end;
 
+procedure TN_Post_Execute.DoDiscard;
+begin
+  FDiscard := True;
+end;
+
 procedure TN_Progress_Tool.Do_Free(var Inst_: TN_Post_Execute);
 begin
   if Inst_ <> nil then
@@ -396,13 +402,12 @@ end;
 constructor TN_Progress_Tool.Create;
 begin
   inherited Create;
-  FPostIsRun := False;
+  FPostIsRunning := False;
   FPostExecute_Pool := TN_Post_Execute_List_Struct.Create;
   FPostExecute_Pool.OnFree := Do_Free;
   FPostClass := TN_Post_Execute;
   FBusy := False;
   FCurrentExecute := nil;
-  FBreakProgress := False;
   FPaused := False;
 end;
 
@@ -416,7 +421,6 @@ end;
 procedure TN_Progress_Tool.ResetPost;
 begin
   FPostExecute_Pool.Clear;
-  FBreakProgress := True;
 end;
 
 procedure TN_Progress_Tool.Clear;
@@ -718,13 +722,11 @@ var
   tmp_Order: TN_Post_Execute_Temp_Order_Struct;
 
   procedure Do_Run;
-  var
-    backup_state: Boolean;
   begin
     while tmp_Order.Num > 0 do
       begin
         FCurrentExecute := tmp_Order.First^.Data;
-        if not FBreakProgress then
+        if not FCurrentExecute.FDiscard then
           begin
             FBusy := True;
             try
@@ -733,9 +735,7 @@ var
             end;
             FBusy := False;
           end;
-        backup_state := FBreakProgress;
         DisposeObject(FCurrentExecute);
-        FBreakProgress := backup_state;
         tmp_Order.Next;
       end;
   end;
@@ -745,15 +745,14 @@ var
 begin
   if FPaused then
       Exit;
-  if FPostIsRun then
+  if FPostIsRunning then
       Exit;
   if FPostExecute_Pool.Num <= 0 then
       Exit;
 
-  FPostIsRun := True;
-  FBreakProgress := False;
+  FPostIsRunning := True;
 
-  tmp_Order := TN_Post_Execute_Temp_Order_Struct.Create;
+  tmp_Order := nil; // progress optimized
   try
     __Repeat__ := FPostExecute_Pool.Repeat_;
     repeat
@@ -761,13 +760,20 @@ begin
         begin
           __Repeat__.Queue^.Data.FNewTime := __Repeat__.Queue^.Data.FNewTime + deltaTime;
           if (__Repeat__.Queue^.Data.FNewTime >= __Repeat__.Queue^.Data.Delay) then
+            begin
+              if tmp_Order = nil then // progress optimized
+                  tmp_Order := TN_Post_Execute_Temp_Order_Struct.Create;
               tmp_Order.Push(__Repeat__.Queue^.Data);
+            end;
         end;
     until not __Repeat__.Next;
-    Do_Run();
-    tmp_Order.Free;
+    if tmp_Order <> nil then // progress optimized
+      begin
+        Do_Run();
+        tmp_Order.Free;
+      end;
   finally
-      FPostIsRun := False;
+      FPostIsRunning := False;
   end;
 end;
 
