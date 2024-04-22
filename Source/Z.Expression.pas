@@ -229,6 +229,7 @@ function OpCache: TOpCode_Pool;
 procedure CleanOpCache();
 
 { prototype: EvaluateExpressionValue }
+function IsNullExpression(ExpressionText: SystemString; TextStyle: TTextStyle): Boolean;
 function IsSymbolVectorExpression(ExpressionText: SystemString; TextStyle: TTextStyle; Special_ASCII_: TListPascalString): Boolean; overload;
 function IsSymbolVectorExpression(ExpressionText: SystemString; TextStyle: TTextStyle): Boolean; overload;
 function EvaluateExpressionValue(UsedCache: Boolean;
@@ -2887,6 +2888,19 @@ begin
       Value := VL[Decl];
       ValType := VariantToExpressionDeclType(Value);
     end
+end;
+
+function IsNullExpression(ExpressionText: SystemString; TextStyle: TTextStyle): Boolean;
+var
+  t: TTextParsing;
+  n: U_String;
+begin
+  t := TTextParsing.Create(ExpressionText, TextStyle, nil, SpacerSymbol.v);
+  t.DeletedComment;
+  n := t.FastRebuildTokenTo;
+  DisposeObject(t);
+  Result := n.TrimChar(#13#10#9#32) = '';
+  n := '';
 end;
 
 function IsSymbolVectorExpression(ExpressionText: SystemString; TextStyle: TTextStyle; Special_ASCII_: TListPascalString): Boolean;
