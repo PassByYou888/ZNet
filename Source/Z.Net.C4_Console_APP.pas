@@ -73,7 +73,7 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure RegApi;
-    procedure Parsing(Expression: U_String);
+    procedure Execute(Expression: U_String);
   end;
 
 procedure TCmd_Net_Info_.Init;
@@ -265,7 +265,7 @@ begin
   opRT.RegOpM('Sleep', Do_Sleep)^.Category := 'C4 Param Command';
 end;
 
-procedure TCommand_Script.Parsing(Expression: U_String);
+procedure TCommand_Script.Execute(Expression: U_String);
 begin
   EvaluateExpressionValue(False, C40AppParsingTextStyle, Expression, opRT);
 end;
@@ -313,7 +313,7 @@ begin
               '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme', '-DefaultTheme' // fmx app param
               ], C40AppParam[i])) and
           ((Ignore_Command_Line.Count <= 0) or (not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]))) then
-            cmd_script_.Parsing(C40AppParam[i]);
+            cmd_script_.Execute(C40AppParam[i]);
       end;
 
     if (not error_) and (cmd_script_.Client_NetInfo_List.Count > 0) then
