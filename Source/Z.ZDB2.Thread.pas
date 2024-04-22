@@ -467,6 +467,7 @@ type
   private
     tatal_data_num_: Int64;
     buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
+    Max_Wait_Task_Num: Int64;
     IO_Thread_Task_Num: TAtomInt64;
     Loaded_Num, Error_Num: TAtomInt64;
     Task_Is_Run: Boolean;
@@ -524,6 +525,7 @@ type
     tatal_data_num_: Int64;
     buff: TZDB2_Th_Engine_Marshal_BigList___.PQueueArrayStruct;
     Block_Index, Block_Offset, Block_ReadSize: Integer;
+    Max_Wait_Task_Num: Int64;
     IO_Thread_Task_Num: TAtomInt64;
     Loaded_Num, Error_Num: TAtomInt64;
     Task_Is_Run: Boolean;
@@ -3382,7 +3384,8 @@ begin
               begin
                 if Eng_ = nil then
                     Eng_ := Queue
-                else if Queue^.Data.Engine.CoreSpace_Size < Eng_^.Data.Engine.CoreSpace_Size then
+                else if Queue^.Data.Engine.CoreSpace_Size + Queue^.Data.Engine.Queue_Write_IO_Size.V <
+                  Eng_^.Data.Engine.CoreSpace_Size + Eng_^.Data.Engine.Queue_Write_IO_Size.V then
                     Eng_ := Queue;
               end;
           until not Next;
@@ -3521,11 +3524,13 @@ begin
             Load_Inst_.FData.Async_Load_Data_M(Load_Inst_.FStream, Load_Inst_.Do_Read_Stream_Result);
             IO_Thread_Task_Num.UnLock(IO_Thread_Task_Num.LockP^ + 1);
           end;
+        while IO_Thread_Task_Num.V > Max_Wait_Task_Num do
+            TCompute.Sleep(10);
       except
       end;
       Inc(i);
     end;
-  while (IO_Thread_Task_Num.v + FTh_Pool.Count > 0) do
+  while (IO_Thread_Task_Num.V + FTh_Pool.Count > 0) do
       TCompute.Sleep(10);
   Task_Is_Run := False;
 end;
@@ -3535,6 +3540,7 @@ begin
   inherited Create;
   tatal_data_num_ := 0;
   buff := nil;
+  Max_Wait_Task_Num := 1000;
   IO_Thread_Task_Num := TAtomInt64.Create(0);
   Loaded_Num := TAtomInt64.Create(0);
   Error_Num := TAtomInt64.Create(0);
@@ -3588,11 +3594,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('full load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('full load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Data_Load_Processor.Wait_C(On_Wait: TOn_ZDB2_Th_Engine_Data_Wait_C);
@@ -3615,11 +3621,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('full load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('full load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Data_Load_Processor.Wait_M(On_Wait: TOn_ZDB2_Th_Engine_Data_Wait_M);
@@ -3642,11 +3648,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('full load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('full load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Data_Load_Processor.Wait_P(On_Wait: TOn_ZDB2_Th_Engine_Data_Wait_P);
@@ -3669,11 +3675,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('full load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('full load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Block_Load_Instance.Do_Read_Block_Result(var Sender: TZDB2_Th_CMD_Mem64_And_State);
@@ -3742,11 +3748,13 @@ begin
               Load_Inst_.FData.ID, Block_Index, Block_Offset, Block_ReadSize, Load_Inst_.Do_Read_Block_Result);
             IO_Thread_Task_Num.UnLock(IO_Thread_Task_Num.LockP^ + 1);
           end;
+        while IO_Thread_Task_Num.V > Max_Wait_Task_Num do
+            TCompute.Sleep(10);
       except
       end;
       Inc(i);
     end;
-  while (IO_Thread_Task_Num.v + FTh_Pool.Count > 0) do
+  while (IO_Thread_Task_Num.V + FTh_Pool.Count > 0) do
       TCompute.Sleep(10);
   Task_Is_Run := False;
 end;
@@ -3759,6 +3767,7 @@ begin
   Block_Index := 0;
   Block_Offset := 0;
   Block_ReadSize := 0;
+  Max_Wait_Task_Num := 1000;
   IO_Thread_Task_Num := TAtomInt64.Create(0);
   Loaded_Num := TAtomInt64.Create(0);
   Error_Num := TAtomInt64.Create(0);
@@ -3812,11 +3821,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('block load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('block load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Block_Load_Processor.Wait_C(On_Wait: TOn_ZDB2_Th_Engine_Block_Wait_C);
@@ -3839,11 +3848,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('block load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('block load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Block_Load_Processor.Wait_M(On_Wait: TOn_ZDB2_Th_Engine_Block_Wait_M);
@@ -3866,11 +3875,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('block load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('block load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Block_Load_Processor.Wait_P(On_Wait: TOn_ZDB2_Th_Engine_Block_Wait_P);
@@ -3893,11 +3902,11 @@ begin
         end;
       if GetTimeTick - tk > 1000 then
         begin
-          DoStatus('block load %d/%d error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+          DoStatus('block load %d/%d error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
           tk := GetTimeTick;
         end;
     end;
-  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.v, tatal_data_num_, Error_Num.v]);
+  DoStatus('all block load done: %d/%d, error:%d', [Loaded_Num.V, tatal_data_num_, Error_Num.V]);
 end;
 
 procedure TZDB2_Th_Engine_Marshal.DoFree(var Data: TZDB2_Th_Engine_Data);
