@@ -151,6 +151,8 @@ type
     constructor Create;
     constructor CustomCreate(maxHashSiz_: Integer); virtual;
     destructor Destroy; override;
+    procedure Begin_Op_Proc(Sender: TOpCode); virtual;
+    procedure End_Op_Proc(Sender: TOpCode; var Result_:Variant); virtual;
     procedure Clean; virtual;
     procedure PrepareRegistation; virtual;
     function GetProcDescription(ProcName: SystemString): SystemString; overload;
@@ -427,6 +429,7 @@ begin
   opRT.Trigger := OD;
   R_ := NULL;
   try
+    opRT.Begin_Op_Proc(OC);
     if Assigned(OD^.OnOp_C) then
         R_ := OD^.OnOp_C(tmp_Param);
     if Assigned(OD^.OnOp_M) then
@@ -439,6 +442,7 @@ begin
         R_ := OD^.OnObjectOp_M(opRT, tmp_Param);
     if Assigned(OD^.OnObjectOp_P) then
         R_ := OD^.OnObjectOp_P(opRT, tmp_Param);
+    opRT.End_Op_Proc(OC, R_);
   except
   end;
   SetLength(tmp_Param, 0);
@@ -1333,6 +1337,16 @@ begin
   inherited Destroy;
 end;
 
+procedure TOpCustomRunTime.Begin_Op_Proc(Sender: TOpCode);
+begin
+
+end;
+
+procedure TOpCustomRunTime.End_Op_Proc(Sender: TOpCode; var Result_:Variant);
+begin
+
+end;
+
 procedure TOpCustomRunTime.Clean;
 begin
   ProcList.Clear;
@@ -1830,6 +1844,7 @@ end;
 
 function op_Proc.DoExecute(opRT: TOpCustomRunTime): Variant;
 var
+  focus_runtime: TOpCustomRunTime;
   p: POpRTData;
   i: Integer;
   tmp_Param: TOpParam;
@@ -1840,6 +1855,7 @@ begin
       opRT := SystemOpRunTime;
 
   p := opRT.ProcList[VarToStr(Param[0]^.Value)];
+  focus_runtime := opRT;
   if p = nil then
     begin
       if opRT = SystemOpRunTime then
@@ -1847,6 +1863,7 @@ begin
       p := SystemOpRunTime.ProcList[VarToStr(Param[0]^.Value)];
       if p = nil then
           Exit;
+      focus_runtime := SystemOpRunTime;
     end;
 
   if p^.Mode = rtmDirect then
@@ -1861,6 +1878,7 @@ begin
           SetLength(tmp_Param, 0);
 
       opRT.Trigger := p;
+      focus_runtime.Begin_Op_Proc(self);
       if Assigned(p^.OnOp_C) then
           Result := p^.OnOp_C(tmp_Param);
       if Assigned(p^.OnOp_M) then
@@ -1873,7 +1891,7 @@ begin
           Result := p^.OnObjectOp_M(opRT, tmp_Param);
       if Assigned(p^.OnObjectOp_P) then
           Result := p^.OnObjectOp_P(opRT, tmp_Param);
-
+      focus_runtime.End_Op_Proc(self, Result);
       SetLength(tmp_Param, 0);
     end
   else
