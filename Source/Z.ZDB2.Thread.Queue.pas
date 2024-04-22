@@ -446,10 +446,13 @@ type
     FDatabase_FileName: U_String;
     FFragment_Buffer_Num: Int64;
     FFragment_Buffer_Memory: Int64;
+    FQueue_Write_IO_Size: TAtomInt64;
   private
     procedure Do_Th_Queue(ThSender: TCompute);
     procedure Do_Free_CMD(var p: TZDB2_Th_CMD);
     procedure Do_No_Space(Trigger: TZDB2_Core_Space; Siz_: Int64; var retry: Boolean);
+    procedure Inc_Queue_Wirte_IO_Size(siz: Int64);
+    procedure Dec_Queue_Wirte_IO_Size(siz: Int64);
   public
     class function CheckStream(Stream_: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
     constructor Create(Mode_: TZDB2_SpaceMode; CacheMemory_: Int64;
@@ -479,6 +482,7 @@ type
     function CoreSpace_Free_Space_Size: Int64;
     property Fragment_Buffer_Num: Int64 read FFragment_Buffer_Num;
     property Fragment_Buffer_Memory: Int64 read FFragment_Buffer_Memory;
+    property Queue_Write_IO_Size: TAtomInt64 read FQueue_Write_IO_Size;
     procedure Wait_Queue;
 
     // sync Model
@@ -691,6 +695,7 @@ procedure TZDB2_Th_CMD_Set_Data_From_Mem64.DoExecute(CoreSpace__: TZDB2_Core_Spa
 var
   old_ID: Integer;
 begin
+  Engine.Dec_Queue_Wirte_IO_Size(Param_M64.Size);
   if Engine.FCoreSpace_IOHnd.IsOnlyRead then
       State^ := TCMD_State.csError
   else
@@ -702,7 +707,7 @@ begin
           State^ := TCMD_State.csError;
     end;
   if AutoFree_Data then
-      disposeObject(Param_M64);
+      DisposeObject(Param_M64);
 end;
 
 constructor TZDB2_Th_CMD_Set_Data_From_Mem64.Create(const ThEng_: TZDB2_Th_Queue; const Mem64: TMem64; var ID: Integer);
@@ -718,6 +723,7 @@ procedure TZDB2_Th_CMD_Set_Data_From_Stream.DoExecute(CoreSpace__: TZDB2_Core_Sp
 var
   old_ID: Integer;
 begin
+  Engine.Dec_Queue_Wirte_IO_Size(Param_Stream.Size);
   if Engine.FCoreSpace_IOHnd.IsOnlyRead then
       State^ := TCMD_State.csError
   else
@@ -729,7 +735,7 @@ begin
           State^ := TCMD_State.csError;
     end;
   if AutoFree_Data then
-      disposeObject(Param_Stream);
+      DisposeObject(Param_Stream);
 end;
 
 constructor TZDB2_Th_CMD_Set_Data_From_Stream.Create(const ThEng_: TZDB2_Th_Queue; const Stream: TCore_Stream; var ID: Integer);
@@ -743,12 +749,13 @@ end;
 
 procedure TZDB2_Th_CMD_Append_From_Mem64.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 begin
+  Engine.Dec_Queue_Wirte_IO_Size(Param_M64.Size);
   if Engine.FCoreSpace_IOHnd.IsOnlyRead then
       State^ := TCMD_State.csError
   else if not CoreSpace__.WriteData(Param_M64, Param_ID_Ptr^, not AutoFree_Data) then
       State^ := TCMD_State.csError;
   if AutoFree_Data then
-      disposeObject(Param_M64);
+      DisposeObject(Param_M64);
 end;
 
 constructor TZDB2_Th_CMD_Append_From_Mem64.Create(const ThEng_: TZDB2_Th_Queue; const Mem64: TMem64; var ID: Integer);
@@ -763,12 +770,13 @@ end;
 
 procedure TZDB2_Th_CMD_Append_From_Stream.DoExecute(CoreSpace__: TZDB2_Core_Space; State: PCMD_State);
 begin
+  Engine.Dec_Queue_Wirte_IO_Size(Param_Stream.Size);
   if Engine.FCoreSpace_IOHnd.IsOnlyRead then
       State^ := TCMD_State.csError
   else if not CoreSpace__.WriteStream(Param_Stream, Param_ID_Ptr^) then
       State^ := TCMD_State.csError;
   if AutoFree_Data then
-      disposeObject(Param_Stream);
+      DisposeObject(Param_Stream);
 end;
 
 constructor TZDB2_Th_CMD_Append_From_Stream.Create(const ThEng_: TZDB2_Th_Queue; const Stream: TCore_Stream; var ID: Integer);
@@ -911,7 +919,7 @@ begin
           SetLength(Table_Ptr^, Mem64.Size shr 2);
           if length(Table_Ptr^) > 0 then
               CopyPtr(Mem64.Memory, @Table_Ptr^[0], length(Table_Ptr^) shl 2);
-          disposeObject(Mem64);
+          DisposeObject(Mem64);
         end
       else
           R_ := TCMD_State.csError;
@@ -991,7 +999,7 @@ begin
           PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := C_Sequence_Table_Identifier;
           if not CoreSpace__.WriteData(Mem64, PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID, True) then
               R_ := TCMD_State.csError;
-          disposeObject(Mem64);
+          DisposeObject(Mem64);
           SetLength(Sequence_Table, 0);
         end
       else
@@ -1040,7 +1048,7 @@ begin
           PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.Identifier := C_Sequence_Table_Identifier;
           if not CoreSpace__.WriteData(Mem64, PSequence_Table_Head(@CoreSpace__.UserCustomHeader^[0])^.ID, True) then
               R_ := TCMD_State.csError;
-          disposeObject(Mem64);
+          DisposeObject(Mem64);
         end
       else
         begin
@@ -1100,7 +1108,7 @@ begin
     end;
   if AutoFree_Data then
     begin
-      disposeObject(Header_Data);
+      DisposeObject(Header_Data);
     end;
 end;
 
@@ -1177,7 +1185,7 @@ begin
               R_ := TCMD_State.csError;
               p^.ID := -1;
               p^.State := TCMD_State.csError;
-              disposeObject(Mem64);
+              DisposeObject(Mem64);
             end;
           // wait queue
           if Wait_Queue and (Max_Queue > 0) then
@@ -1517,6 +1525,16 @@ begin
       retry := False;
 end;
 
+procedure TZDB2_Th_Queue.Inc_Queue_Wirte_IO_Size(siz: Int64);
+begin
+  FQueue_Write_IO_Size.UnLock(FQueue_Write_IO_Size.LockP^ + siz);
+end;
+
+procedure TZDB2_Th_Queue.Dec_Queue_Wirte_IO_Size(siz: Int64);
+begin
+  FQueue_Write_IO_Size.UnLock(FQueue_Write_IO_Size.LockP^ - siz);
+end;
+
 class function TZDB2_Th_Queue.CheckStream(Stream_: TCore_Stream; Cipher_: IZDB2_Cipher): Boolean;
 begin
   Result := TZDB2_Core_Space.CheckStream(Stream_, Cipher_);
@@ -1563,6 +1581,7 @@ begin
       FDatabase_FileName := '';
   FFragment_Buffer_Num := 0;
   FFragment_Buffer_Memory := 0;
+  FQueue_Write_IO_Size := TAtomInt64.Create(0);
 
   // thread
   TCompute.RunM(nil, nil, Do_Th_Queue);
@@ -1580,7 +1599,8 @@ begin
   while not FCMD_Execute_Thread_Is_Exit do
       TCompute.Sleep(1);
   FCMD_Queue.Free;
-  disposeObject(FCoreSpace_State);
+  DisposeObject(FCoreSpace_State);
+  FQueue_Write_IO_Size.Free;
   inherited Destroy;
 end;
 
@@ -1643,6 +1663,7 @@ function TZDB2_Th_Queue.Sync_SetData(Mem64: TMem64; var ID: Integer): Boolean;
 var
   tmp: TCMD_State;
 begin
+  Inc_Queue_Wirte_IO_Size(Mem64.Size);
   if ID < 0 then
       exit(Sync_Append(Mem64, ID));
   TZDB2_Th_CMD_Set_Data_From_Mem64.Create(self, Mem64, ID).Ready(tmp);
@@ -1655,6 +1676,7 @@ function TZDB2_Th_Queue.Sync_Append(Mem64: TMem64; var ID: Integer): Boolean;
 var
   tmp: TCMD_State;
 begin
+  Inc_Queue_Wirte_IO_Size(Mem64.Size);
   TZDB2_Th_CMD_Append_From_Mem64.Create(self, Mem64, ID).Ready(tmp);
   while tmp = TCMD_State.csDefault do
       TCompute.Sleep(1);
@@ -1675,6 +1697,7 @@ function TZDB2_Th_Queue.Sync_SetData(Stream: TCore_Stream; var ID: Integer): Boo
 var
   tmp: TCMD_State;
 begin
+  Inc_Queue_Wirte_IO_Size(Stream.Size);
   if ID < 0 then
       exit(Sync_Append(Stream, ID));
   TZDB2_Th_CMD_Set_Data_From_Stream.Create(self, Stream, ID).Ready(tmp);
@@ -1687,6 +1710,7 @@ function TZDB2_Th_Queue.Sync_Append(Stream: TCore_Stream; var ID: Integer): Bool
 var
   tmp: TCMD_State;
 begin
+  Inc_Queue_Wirte_IO_Size(Stream.Size);
   TZDB2_Th_CMD_Append_From_Stream.Create(self, Stream, ID).Ready(tmp);
   while tmp = TCMD_State.csDefault do
       TCompute.Sleep(1);
@@ -1846,9 +1870,9 @@ begin
       SetLength(Output_, 0);
       Result := tmp.Num;
       th.Sync_Flush_Sequence_Table(tmp);
-      disposeObject(tmp);
+      DisposeObject(tmp);
     end;
-  disposeObject(th);
+  DisposeObject(th);
 end;
 
 function TZDB2_Th_Queue.Sync_Extract_To_File(var Input_: TZDB2_BlockHandle; const Dest: U_String; const Cipher_: IZDB2_Cipher): Integer;
@@ -1875,9 +1899,9 @@ begin
         SetLength(Output_, 0);
         Result := tmp.Num;
         th.Sync_Flush_Sequence_Table(tmp);
-        disposeObject(tmp);
+        DisposeObject(tmp);
       end;
-    disposeObject(th);
+    DisposeObject(th);
   except
   end;
 end;
@@ -1901,7 +1925,7 @@ begin
         SetLength(Output_, 0);
         Result := tmp.Num;
         Dest_Th_Engine_.Sync_Flush_Sequence_Table(tmp);
-        disposeObject(tmp);
+        DisposeObject(tmp);
       end;
   except
   end;
@@ -1968,6 +1992,7 @@ var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
   inst_: TZDB2_Th_CMD_Set_Data_From_Mem64;
 begin
+  Inc_Queue_Wirte_IO_Size(Mem64.Size);
   if ID < 0 then
     begin
       Async_Append(Mem64, AutoFree_Data);
@@ -1986,6 +2011,7 @@ var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
   inst_: TZDB2_Th_CMD_Append_From_Mem64;
 begin
+  Inc_Queue_Wirte_IO_Size(Mem64.Size);
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   inst_ := TZDB2_Th_CMD_Append_From_Mem64.Create(self, Mem64, tmp.ID_And_State.ID);
   inst_.AutoFree_Data := AutoFree_Data;
@@ -1997,6 +2023,7 @@ procedure TZDB2_Th_Queue.Async_Append(Mem64: TMem64; AutoFree_Data: Boolean; ID:
 var
   inst_: TZDB2_Th_CMD_Append_From_Mem64;
 begin
+  Inc_Queue_Wirte_IO_Size(Mem64.Size);
   inst_ := TZDB2_Th_CMD_Append_From_Mem64.Create(self, Mem64, ID^);
   inst_.AutoFree_Data := AutoFree_Data;
   inst_.Ready(State^);
@@ -2007,6 +2034,7 @@ var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
   inst_: TZDB2_Th_CMD_Set_Data_From_Stream;
 begin
+  Inc_Queue_Wirte_IO_Size(Stream.Size);
   if ID < 0 then
     begin
       Async_Append(Stream, AutoFree_Data);
@@ -2025,6 +2053,7 @@ var
   tmp: TZDB2_Th_CMD_Bridge_ID_And_State;
   inst_: TZDB2_Th_CMD_Append_From_Stream;
 begin
+  Inc_Queue_Wirte_IO_Size(Stream.Size);
   tmp := TZDB2_Th_CMD_Bridge_ID_And_State.Create;
   inst_ := TZDB2_Th_CMD_Append_From_Stream.Create(self, Stream, tmp.ID_And_State.ID);
   inst_.AutoFree_Data := AutoFree_Data;
@@ -2036,6 +2065,7 @@ procedure TZDB2_Th_Queue.Async_Append(Stream: TCore_Stream; AutoFree_Data: Boole
 var
   inst_: TZDB2_Th_CMD_Append_From_Stream;
 begin
+  Inc_Queue_Wirte_IO_Size(Stream.Size);
   inst_ := TZDB2_Th_CMD_Append_From_Stream.Create(self, Stream, ID^);
   inst_.AutoFree_Data := AutoFree_Data;
   inst_.Ready(State^);
