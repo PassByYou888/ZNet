@@ -312,6 +312,7 @@ begin
   L.Add('Delay()');
   L.Add('Direct(),Delay(1.1),Delay(1.2),Direct()');
   inst := TExpression_Sequence.Create;
+  inst.DebugMode := True;
   inst.Sequence_Class := TTest_Expression_Sequence_RunTime;
   inst.Extract_Code(tsPascal, L);
   DoStatus('Check_Syntax=%s', [umlBoolToStr(inst.Check_Syntax()).Text]);
