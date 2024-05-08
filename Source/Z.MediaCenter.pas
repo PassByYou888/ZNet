@@ -697,16 +697,14 @@ begin
   Result := nil;
 
   if TPascalString(FileName).Exists('.') then
-      n := umlDeleteLastStr(FileName, '.');
+      n := umlDeleteLastStr(FileName, '.')
+  else
+      n := FileName;
 
-{$IFDEF FPC}
-  if FindResource(HInstance, n, RT_RCDATA) = 0 then
-{$ELSE}
-  if FindResource(HInstance, PChar(n), RT_RCDATA) = 0 then
-{$ENDIF}
+  if FindResource(HInstance, PChar(n), PChar(10)) = 0 then
     begin
 {$IFDEF FPC}
-{$ELSE}
+{$ELSE FPC}
       n := umlGetFileName(FileName);
       n := umlCombineFileName(TPath.GetLibraryPath, n);
       if umlFileExists(n) then
@@ -738,7 +736,7 @@ begin
           Result := TCore_FileStream.Create(n, fmOpenRead or fmShareDenyNone);
           Exit;
         end;
-{$ENDIF}
+{$ENDIF FPC}
       n := umlGetFileName(FileName);
       if FileIOExists(n) then
         begin
@@ -750,7 +748,7 @@ begin
     end
   else
     begin
-      Result := TResourceStream.Create(HInstance, n, RT_RCDATA);
+      Result := TResourceStream.Create(HInstance, n, PChar(10));
     end;
 end;
 
