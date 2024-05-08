@@ -965,6 +965,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Swap_Instance(Source: TListString);
 
     function Add(Value: SystemString): Integer; overload;
     function Add(Value: SystemString; Obj: TCore_Object): Integer; overload;
@@ -1018,6 +1019,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Swap_Instance(Source: TListPascalString);
 
     function Add(const Fmt: SystemString; const Args: array of const): Integer; overload;
     function Add(Value: SystemString): Integer; overload;
@@ -8247,6 +8249,11 @@ begin
   inherited Destroy;
 end;
 
+procedure TListString.Swap_Instance(Source: TListString);
+begin
+  TSwap<TCore_List>.Do_(FList, Source.FList);
+end;
+
 function TListString.Add(Value: SystemString): Integer;
 var
   p: PListStringData;
@@ -8491,6 +8498,11 @@ begin
   Clear;
   DisposeObject(FList);
   inherited Destroy;
+end;
+
+procedure TListPascalString.Swap_Instance(Source: TListPascalString);
+begin
+  TSwap<TListPascalStringData_List>.Do_(FList, Source.FList);
 end;
 
 function TListPascalString.Add(const Fmt: SystemString; const Args: array of const): Integer;
