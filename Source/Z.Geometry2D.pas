@@ -961,9 +961,10 @@ type
     procedure FDiv(V: TVec2); overload;
     procedure VertexReduction(Epsilon_: TGeoFloat); overload;
     procedure Reduction(Epsilon_: TGeoFloat); overload;
-
     procedure SaveToStream(stream: TMS64);
     procedure LoadFromStream(stream: TMS64);
+    procedure Save_To_Bytes(var buff: TBytes);
+    procedure Load_From_Bytes(var buff: TBytes);
   end;
 
   T2DPolygonGraphList_Decl = TGenericsList<T2DPolygonGraph>;
@@ -8274,6 +8275,27 @@ begin
     end;
 
   DisposeObject(d);
+end;
+
+procedure T2DPolygonGraph.Save_To_Bytes(var buff: TBytes);
+var
+  m64: TMS64;
+begin
+  m64 := TMS64.CustomCreate($FFFF);
+  SaveToStream(m64);
+  SetLength(buff, m64.size);
+  CopyPtr(m64.Memory, @buff[0], m64.size);
+  DisposeObject(m64);
+end;
+
+procedure T2DPolygonGraph.Load_From_Bytes(var buff: TBytes);
+var
+  m64: TMS64;
+begin
+  m64 := TMS64.Create;
+  m64.Mapping(@buff[0], length(buff));
+  LoadFromStream(m64);
+  DisposeObject(m64);
 end;
 
 constructor TDeflectionPolygon.Create;
