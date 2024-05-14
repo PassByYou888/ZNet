@@ -152,7 +152,7 @@ type
     constructor CustomCreate(maxHashSiz_: Integer); virtual;
     destructor Destroy; override;
     procedure Begin_Op_Proc(Sender: TOpCode); virtual;
-    procedure End_Op_Proc(Sender: TOpCode; var Result_:Variant); virtual;
+    procedure End_Op_Proc(Sender: TOpCode; var Result_: Variant); virtual;
     procedure Clean; virtual;
     procedure PrepareRegistation; virtual;
     function GetProcDescription(ProcName: SystemString): SystemString; overload;
@@ -925,7 +925,7 @@ begin
   for i := Low(OP_Param) to high(OP_Param) do
       buff[i] := VarToStr(OP_Param[i]);
 
-  Result := Format('RColor(%s,%s,%s,%s)', [buff[0], buff[1], buff[2], buff[3]]);
+  Result := Format('%s,%s,%s,%s', [buff[0], buff[1], buff[2], buff[3]]);
 end;
 
 function TOpSystemAPI.DoVec2(var OP_Param: TOpParam): Variant;
@@ -939,7 +939,7 @@ begin
   for i := Low(OP_Param) to high(OP_Param) do
       buff[i] := VarToStr(OP_Param[i]);
 
-  Result := Format('Vec2(%s,%s)', [buff[0], buff[1]]);
+  Result := Format('%s,%s', [buff[0], buff[1]]);
 end;
 
 function TOpSystemAPI.DoVec3(var OP_Param: TOpParam): Variant;
@@ -953,7 +953,7 @@ begin
   for i := Low(OP_Param) to high(OP_Param) do
       buff[i] := VarToStr(OP_Param[i]);
 
-  Result := Format('Vec3(%s,%s,%s)', [buff[0], buff[1], buff[2]]);
+  Result := Format('%s,%s,%s', [buff[0], buff[1], buff[2]]);
 end;
 
 function TOpSystemAPI.DoVec4(var OP_Param: TOpParam): Variant;
@@ -967,7 +967,7 @@ begin
   for i := Low(OP_Param) to high(OP_Param) do
       buff[i] := VarToStr(OP_Param[i]);
 
-  Result := Format('Vec4(%s,%s,%s,%s)', [buff[0], buff[1], buff[2], buff[3]]);
+  Result := Format('%s,%s,%s,%s', [buff[0], buff[1], buff[2], buff[3]]);
 end;
 
 function TOpSystemAPI.DoRandom(var OP_Param: TOpParam): Variant;
@@ -1342,7 +1342,7 @@ begin
 
 end;
 
-procedure TOpCustomRunTime.End_Op_Proc(Sender: TOpCode; var Result_:Variant);
+procedure TOpCustomRunTime.End_Op_Proc(Sender: TOpCode; var Result_: Variant);
 begin
 
 end;
