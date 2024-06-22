@@ -126,7 +126,7 @@ begin
       tt: TDateTime;
       i: Integer;
       p: PMy_Data;
-      bDT, eDT: TDateTime;
+      bDT: TDateTime;
       tk: TTimeTick;
     begin
       MT19937Randomize();
@@ -135,10 +135,9 @@ begin
       for i := 1 to 100 * 10000 do
         begin
           bDT := IncMinute(tt, umlRR(-10000000, 10000000));
-          eDT := IncMinute(bDT, umlRR(-10, 10));
           new(p);
-          p^.text_ := umlDT(bDT) + ' -> ' + umlDT(eDT);
-          My_Time_Pool.Add_Span(bDT, eDT, p);
+          p^.text_ := umlDT(bDT);
+          My_Time_Pool.Add_Span(bDT, p);
 
           if i mod 1000 = 0 then
             if GetTimeTick - tk > 1000 then
@@ -189,7 +188,7 @@ begin
   My_Time_Pool := TMy_Time_Pool.Create($FFFF); // 当数据量多,Hash长度可以给大,有提速作用
   My_Time_Pool.Level_2_Hash_Size := 200;
 
-  bTime_Edit.Text := umlDT(IncMinute(Now, -50));
+  bTime_Edit.Text := umlDT(IncMinute(Now, -600));
   eTime_Edit.Text := umlDT(Now);
 end;
 
