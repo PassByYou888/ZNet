@@ -40,9 +40,8 @@ type
     TDateTime_L = TBigList<TDateTime>;
 
     TTime_Data_L = class(TTime_Data_L_)
-    private
-      Span_Time_L: TDateTime_L;
     public
+      Span_Time_L: TDateTime_L;
       constructor Create;
       destructor Destroy; override;
     end;
@@ -74,7 +73,8 @@ type
     procedure Sort_By_Span;
     function Search_Span(const bDT_, eDT_: TDateTime): TTime_List; overload;
     function Search_Span(DT: TDateTime): TTime_List; overload;
-    function Total: NativeInt;
+    function Total: NativeInt; // user instance num
+    function Buffered_Time_Num: NativeInt;
   end;
 
 procedure Test_THours_Buffer_Pool;
@@ -219,13 +219,12 @@ begin
   try
     tmp := bDT;
     Add_Span(False, tmp, Value);
+    tmp := IncHour(tmp);
     while CompareDateTime(tmp, eDT) <= 0 do
       begin
         Add_Span(False, tmp, Value);
         tmp := IncHour(tmp);
       end;
-    tmp := eDT;
-    Add_Span(False, tmp, Value);
   finally
       FCritical.UnLock;
   end;
@@ -442,6 +441,18 @@ end;
 function THours_Buffer_Pool<T_>.Total: NativeInt;
 begin
   Result := FTime_Data_Pool.Num;
+end;
+
+function THours_Buffer_Pool<T_>.Buffered_Time_Num: NativeInt;
+begin
+  Result := 0;
+  Critical.Lock;
+  if Num > 0 then
+    with Repeat_ do
+      repeat
+          inc(Result, queue^.data^.data.Second.Num);
+      until not Next;
+  Critical.UnLock;
 end;
 
 procedure Test_THours_Buffer_Pool;
