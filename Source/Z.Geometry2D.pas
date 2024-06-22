@@ -4911,7 +4911,7 @@ var
 begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
-  f := Vec2Div(RectSize(dest), RectSize(sour));
+  f := Vec2Div(Vec2Sub(d[1], d[0]), Vec2Sub(s[1], s[0]));
   Result := Vec2Add(Vec2Mul(Vec2Sub(sour_pt, s[0]), f), d[0]);
 end;
 
@@ -4922,7 +4922,7 @@ var
 begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
-  f := Vec2Div(RectSize(dest), RectSize(sour));
+  f := Vec2Div(Vec2Sub(d[1], d[0]), Vec2Sub(s[1], s[0]));
   Result[0] := Vec2Add(Vec2Mul(Vec2Sub(sour_rect[0], s[0]), f), d[0]);
   Result[1] := Vec2Add(Vec2Mul(Vec2Sub(sour_rect[1], s[0]), f), d[0]);
 end;
@@ -4945,7 +4945,7 @@ var
 begin
   s := ForwardRect(sour);
   d := ForwardRect(dest);
-  f := Vec2Div(RectSize(dest), RectSize(sour));
+  f := Vec2Div(Vec2Sub(d[1], d[0]), Vec2Sub(s[1], s[0]));
   SetLength(Result, length(sour_arry));
   for i := 0 to length(sour_arry) - 1 do
       Result[i] := Vec2Add(Vec2Mul(Vec2Sub(sour_arry[i], s[0]), f), d[0]);
