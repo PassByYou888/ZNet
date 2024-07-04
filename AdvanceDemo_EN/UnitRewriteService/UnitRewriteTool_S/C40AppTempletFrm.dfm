@@ -1,4 +1,4 @@
-﻿object C40AppTempletForm: TC40AppTempletForm
+object C40AppTempletForm: TC40AppTempletForm
   Left = 0
   Top = 0
   Width = 700
