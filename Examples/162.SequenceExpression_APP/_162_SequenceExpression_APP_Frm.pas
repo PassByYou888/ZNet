@@ -235,10 +235,10 @@ begin
     end
   else
     begin
-      if Inst_Options.RunNum <= 0 then
+      if Inst_Options.Run_Done_Num <= 0 then
           Result := '挂起中'
       else
-          Result := PFormat('已运行 %d 次, 目前在挂起状态', [Inst_Options.RunNum]);
+          Result := PFormat('已运行 %d 次, 目前在挂起状态', [Inst_Options.Run_Done_Num]);
     end;
 end;
 
@@ -360,21 +360,22 @@ end;
 
 function TProcess_Script.IsReady: Boolean;
 begin
-  Result := (Inst_Condition.Num > 0) and (Inst_Action.Num > 0) and (not Inst_Condition.Is_Running) and (not Inst_Action.Is_Running) and (not FIs_Running);
+  Result := (Options_Script.Inst_Options.Run_Done_Num > 0) and (not Options_Script.Inst_Options.Is_Error) and
+    (Inst_Condition.Num > 0) and (Inst_Action.Num > 0) and (not Inst_Condition.Is_Running) and (not Inst_Action.Is_Running) and (not FIs_Running);
 end;
 
 function TProcess_Script.Get_Condition_Run_Info: SystemString;
 begin
   if Inst_Condition.Is_Running then
     begin
-      Result := PFormat('已运行 %d 次,正在执行 %s', [Inst_Condition.RunNum, Inst_Condition.Focus.Code_.Text]);
+      Result := PFormat('已运行 %d 次,正在执行 %s', [Inst_Condition.Run_Done_Num, Inst_Condition.Focus.Code_.Text]);
     end
   else
     begin
-      if Inst_Condition.RunNum <= 0 then
+      if Inst_Condition.Run_Done_Num <= 0 then
           Result := '挂起中'
       else
-          Result := PFormat('已运行 %d 次, 目前在等待触发状态', [Inst_Condition.RunNum]);
+          Result := PFormat('已运行 %d 次, 目前在等待触发状态', [Inst_Condition.Run_Done_Num]);
     end;
 end;
 
@@ -382,19 +383,21 @@ function TProcess_Script.Get_Action_Run_Info: SystemString;
 begin
   if Inst_Action.Is_Running then
     begin
-      Result := PFormat('已运行 %d 次,正在执行 %s', [Inst_Action.RunNum, Inst_Action.Focus.Code_.Text]);
+      Result := PFormat('已运行 %d 次,正在执行 %s', [Inst_Action.Run_Done_Num, Inst_Action.Focus.Code_.Text]);
     end
   else
     begin
-      if Inst_Action.RunNum <= 0 then
+      if Inst_Action.Run_Done_Num <= 0 then
           Result := '挂起中'
       else
-          Result := PFormat('已运行 %d 次, 目前在等待触发状态', [Inst_Action.RunNum]);
+          Result := PFormat('已运行 %d 次, 目前在等待触发状态', [Inst_Action.Run_Done_Num]);
     end;
 end;
 
 procedure TProcess_Script.Run;
 begin
+  if not IsReady then
+      exit;
   FIs_Running := True;
   Do_Run;
   Inst_Condition.Run;

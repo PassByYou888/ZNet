@@ -998,7 +998,7 @@ type
     function Do_Client_Statistics_Info(var OP_Param: TOpParam): Variant;
     function Do_ZDB2_Info(var OP_Param: TOpParam): Variant;
     function Do_ZDB2_Flush(var OP_Param: TOpParam): Variant;
-    function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
   public
     opRT: TOpCustomRunTime;
     HelpTextStyle: TTextStyle;
@@ -7061,7 +7061,7 @@ begin
   Result := Th_Engine_Marshal_Pool__.Num;
 end;
 
-function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TC40_Console_Help.Do_Custom_Console_Cmd(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   tk: TTimeTick;
   LName: U_String;
@@ -7071,7 +7071,7 @@ var
   rData: TC4_Help_Console_Command_Data;
 begin
   tk := GetTimeTick;
-  LName := Sender.Trigger^.name;
+  LName := OP_RT_Data^.name;
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
       cc := C40_ServicePool[i].ConsoleCommand;
@@ -7166,46 +7166,46 @@ begin
   DisposeObjectAndNil(opRT);
   opRT := TOpCustomRunTime.Create;
 
-  opRT.RegOpM('Help', 'help info.', Do_Help)^.Category := 'C4 help';
-  opRT.RegOpM('Exit', 'safe close this console.', Do_Exit)^.Category := 'C4 help';
-  opRT.RegOpM('Close', 'safe close this console.', Do_Exit)^.Category := 'C4 help';
-  opRT.RegOpM('service', 'service(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('server', 'server(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('serv', 'serv(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('tunnel', 'tunnel(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('client', 'client(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('cli', 'cli(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('RegInfo', 'C4 registed info.', Do_Reg, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('KillNet', 'KillNet(ip,port), kill physics network.', Do_KillNet, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Quiet', 'Quiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Save_All_C4Service_Config', 'Save_All_C4Service_Config(), save all c4 service config to file', Do_Save_All_C4Service_Config, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Save_All_C4Client_Config', 'Save_All_C4Client_Config(), save all c4 client config to file', Do_Save_All_C4Client_Config, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Instance_Info', 'Instance_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Inst_Info', 'Inst_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Instance_Info_Sort_Update', 'Instance_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Inst_Info_Sort_Update', 'Inst_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Instance_Info_Sort_Time', 'Instance_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Inst_Info_Sort_Time', 'Inst_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Build_Instance_State', 'Build_Instance_State(), build current instance states.', Do_Build_Instance_State, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Compare_Instance_State', 'Compare_Instance_State(), compare current instance states.', Do_Compare_Instance_State, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Delay_Free_Info', 'Delay_Free_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Enabled_Delay_Info', 'Enabled_Delay_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Intermediate_Instance_Info', 'Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Enabled_Intermediate_Instance_Info', 'Enabled_Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Service_CMD_Info', 'Service_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Server_CMD_Info', 'Server_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Client_CMD_Info', 'Client_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Cli_CMD_Info', 'Cli_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Service_Statistics_Info', 'Service_Statistics_Info(), print service Statistics info.', Do_Service_Statistics_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Server_Statistics_Info', 'Server_Statistics_Info(), print service Statistics info.', Do_Service_Statistics_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Client_Statistics_Info', 'Client_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('Cli_Statistics_Info', 'Cli_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('ZDB2_Flush', 'ZDB2_Flush(), flush all zdb2 thread engine.', Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
-  opRT.RegOpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Help', 'help info.', Do_Help)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Exit', 'safe close this console.', Do_Exit)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Close', 'safe close this console.', Do_Exit)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('service', 'service(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('server', 'server(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('serv', 'serv(ip, port), local service report.', Do_Service, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('tunnel', 'tunnel(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('client', 'client(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('cli', 'cli(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('RegInfo', 'C4 registed info.', Do_Reg, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('KillNet', 'KillNet(ip,port), kill physics network.', Do_KillNet, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Quiet', 'Quiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Save_All_C4Service_Config', 'Save_All_C4Service_Config(), save all c4 service config to file', Do_Save_All_C4Service_Config, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Save_All_C4Client_Config', 'Save_All_C4Client_Config(), save all c4 client config to file', Do_Save_All_C4Client_Config, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Instance_Info', 'Instance_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Inst_Info', 'Inst_Info(), print all instance state.', Do_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Instance_Info_Sort_Update', 'Instance_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Inst_Info_Sort_Update', 'Inst_Info_Sort_Update(), print all instance state sort by update.', Do_Instance_Info_Sort_Update, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Instance_Info_Sort_Time', 'Instance_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Inst_Info_Sort_Time', 'Inst_Info_Sort_Time(), print all instance states sort by time.', Do_Instance_Info_Sort_Time, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Build_Instance_State', 'Build_Instance_State(), build current instance states.', Do_Build_Instance_State, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Compare_Instance_State', 'Compare_Instance_State(), compare current instance states.', Do_Compare_Instance_State, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('HPC_Thread_Info', 'HPC_Thread_Info(), print hpc-thread for C4 network.', Do_HPC_Thread_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('ZNet_Instance_Info', 'ZNet_Instance_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('ZNet_Info', 'ZNet_Info(), print Z-Net instance for C4 network.', Do_ZNet_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Delay_Free_Info', 'Delay_Free_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Enabled_Delay_Info', 'Enabled_Delay_Info(enabled), print delay free instance info.', Do_Enabled_Delay_Free_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Intermediate_Instance_Info', 'Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Enabled_Intermediate_Instance_Info', 'Enabled_Intermediate_Instance_Info(enabled), print Intermediateinstance status.', Do_Enabled_Intermediate_Instance_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Service_CMD_Info', 'Service_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Server_CMD_Info', 'Server_CMD_Info(), print service cmd info.', Do_Service_Cmd_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Client_CMD_Info', 'Client_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Cli_CMD_Info', 'Cli_CMD_Info(), print Client cmd info.', Do_Client_Cmd_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Service_Statistics_Info', 'Service_Statistics_Info(), print service Statistics info.', Do_Service_Statistics_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Server_Statistics_Info', 'Server_Statistics_Info(), print service Statistics info.', Do_Service_Statistics_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Client_Statistics_Info', 'Client_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('Cli_Statistics_Info', 'Cli_Statistics_Info(), print Client Statistics info.', Do_Client_Statistics_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('ZDB2_Info', 'ZDB2_Info(), print zdb2 thread engine for C4 network.', Do_ZDB2_Info, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('ZDB2_Flush', 'ZDB2_Flush(), flush all zdb2 thread engine.', Do_ZDB2_Flush, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('SetQuiet', 'SetQuiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
 
   for i := 0 to C40_ServicePool.Count - 1 do
     begin
@@ -7216,7 +7216,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+                opRT.Reg_RT_OpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
         end;
     end;
@@ -7229,7 +7229,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+                opRT.Reg_RT_OpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
         end;
     end;
@@ -7242,7 +7242,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+                opRT.Reg_RT_OpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
         end;
     end;
@@ -7255,7 +7255,7 @@ begin
           repeat
             rData := __repeat__.Queue^.Data;
             if not opRT.ProcList.Exists(rData.Cmd) then
-                opRT.RegObjectOpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
+                opRT.Reg_RT_OpM(rData.Cmd, rData.Desc, Do_Custom_Console_Cmd, rtmPost)^.Category := 'C4 Console';
           until not __repeat__.Next;
         end;
     end;

@@ -24,13 +24,13 @@ type
   // 表达式序列化简单直接,不绕弯子,想写类似make脚本,直接上就行了,如果需要if/for/var这类机制自己加
   TMy_RunTime = class(TExpression_Sequence_RunTime)
   public
-    function Do_Download(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-    function Do_Process(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function Do_Download(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
+    function Do_Process(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
     procedure Reg_RunTime; override;
   end;
 
   // 仿真下载api,5秒后下载完成,通过Do_End_And_Result返回结果
-function TMy_RunTime.Do_Download(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TMy_RunTime.Do_Download(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
 var
   f: string;
 begin
@@ -46,7 +46,7 @@ begin
 end;
 
 // 仿真处理api,开个线程,处理完成后,触发Do_End
-function TMy_RunTime.Do_Process(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TMy_RunTime.Do_Process(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
 begin
   Do_Begin; // 非线性流程启动时要调用Do_Begin,否则会被视作线性流程
   DoStatus('开始处理文件 %s,5秒后完成处理', [VarToStr(OP_Param[0])]);
@@ -60,8 +60,8 @@ end;
 
 procedure TMy_RunTime.Reg_RunTime;
 begin
-  RegObjectOpM('Download', 'Download(url), download url.', Do_Download).Category := 'Demo';
-  RegObjectOpM('Process', 'Process(url), process file.', Do_Process).Category := 'Demo';
+  Reg_Code_OpM('Download', 'Download(url), download url.', Do_Download).Category := 'Demo';
+  Reg_Code_OpM('Process', 'Process(url), process file.', Do_Process).Category := 'Demo';
 end;
 
 const

@@ -60,8 +60,8 @@ type
     IsLoading: Boolean;
     procedure DoLoading();
     procedure SaveNMBigPoolAsOX(DB_: TObjectDataManagerOfCache);
-    function OP_DoSetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-    function OP_DoGetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function OP_DoSetSysNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
+    function OP_DoGetSysNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
     procedure DoNMCreateOpRunTime(Sender: TNumberModulePool; OP_: TOpCustomRunTime);
     procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); override;
   protected
@@ -399,7 +399,7 @@ begin
 {$ENDIF FPC}
 end;
 
-function TC40_Var_Service.OP_DoSetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TC40_Var_Service.OP_DoSetSysNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   NN_Name_, NM_Key_: SystemString;
   NMPool_: TC40_Var_Service_NM_Pool;
@@ -414,7 +414,7 @@ begin
   Result := OP_Param[2];
 end;
 
-function TC40_Var_Service.OP_DoGetSysNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TC40_Var_Service.OP_DoGetSysNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   NN_Name_, NM_Key_: SystemString;
   NMPool_: TC40_Var_Service_NM_Pool;
@@ -437,8 +437,8 @@ end;
 
 procedure TC40_Var_Service.DoNMCreateOpRunTime(Sender: TNumberModulePool; OP_: TOpCustomRunTime);
 begin
-  OP_.RegObjectOpM('SetSys', '', OP_DoSetSysNM);
-  OP_.RegObjectOpM('GetSys', '', OP_DoGetSysNM);
+  OP_.Reg_RT_OpM('SetSys', '', OP_DoSetSysNM);
+  OP_.Reg_RT_OpM('GetSys', '', OP_DoGetSysNM);
 end;
 
 procedure TC40_Var_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);

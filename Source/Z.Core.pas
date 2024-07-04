@@ -471,6 +471,7 @@ type
       procedure Discard;
       function Next: Boolean;
       property Right: Boolean read Next;
+      property Instance: T___ read Instance___;
     end;
 
     TInvert_Repeat___ = record
@@ -495,6 +496,7 @@ type
       procedure Discard;
       function Prev: Boolean;
       property Left: Boolean read Prev;
+      property Instance: T___ read Instance___;
     end;
 
     TArray_T_ = array of T_;
@@ -636,6 +638,7 @@ type
       procedure Discard;
       function Next: Boolean;
       property Right: Boolean read Next;
+      property Instance: T___ read Instance___;
     end;
 
     TInvert_Repeat___ = record
@@ -660,6 +663,7 @@ type
       procedure Discard;
       function Prev: Boolean;
       property Left: Boolean read Prev;
+      property Instance: T___ read Instance___;
     end;
 
     TArray_T_ = array of T_;
@@ -1290,6 +1294,7 @@ type
     procedure Sync_Wait_PostP4(Data1: Pointer; Data2: TCore_Object; OnSync: TThreadPost_P4);
   end;
 
+  TThread_Post = TThreadPost;
 {$EndRegion 'ThreadPost'}
 {$Region 'Compute_Thread'}
   TCompute = class;
@@ -1440,6 +1445,7 @@ type
 
   // TCompute alias
   TComputeThread = TCompute;
+  TComp = TCompute;
 {$EndRegion 'Compute_Thread'}
 {$Region 'MT19937Random'}
   TMT19937Random = class(TCore_Object_Intermediate)
@@ -1589,7 +1595,6 @@ function Simulator_Main_Thread_Activted: Boolean;
 // NoP = No Operation. It's the empty function, whose purpose is only for the
 // debugging, or for the piece of code where intentionaly nothing is planned to be.
 procedure Nop;
-procedure Int3;
 // debug state
 function IsDebuging: Boolean;
 
@@ -2445,16 +2450,6 @@ end;
 procedure Nop;
 begin
 end;
-
-procedure Int3;
-{$IFDEF MSWINDOWS}
-asm
-  int 3
-end;
-{$ELSE MSWINDOWS}
-begin
-end;
-{$ENDIF MSWINDOWS}
 
 function IsDebuging: Boolean;
 begin

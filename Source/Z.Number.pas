@@ -79,7 +79,7 @@ type
     procedure DoCurrentValueHook(const OLD_, New_: Variant);
     procedure Clear;
     procedure DoRegOpProc();
-    function OP_DoProc(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function OP_DoProc(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
   private
     function GetCurrentAsDouble: Double;
     procedure SetCurrentAsDouble(const Value_: Double);
@@ -163,8 +163,8 @@ type
     FList: TNumberModulePool_Decl;
     FIsChanged: Boolean;
     FExpOpRunTime: TOpCustomRunTime;
-    function OP_DoNewNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-    function OP_DoGetNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+    function OP_DoNewNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
+    function OP_DoGetNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
     procedure DoSwapInstance_Progress(const Name: PSystemString; Obj: TNumberModule);
     procedure DoRebuildOpRunTime_Progress(const Name: PSystemString; Obj: TNumberModule);
     procedure DoChangeAll_Progress(const Name: PSystemString; Obj: TNumberModule);
@@ -365,10 +365,10 @@ end;
 procedure TNumberModule.DoRegOpProc;
 begin
   if Owner <> nil then
-      Owner.ExpOpRunTime.RegObjectOpM(Name, '', OP_DoProc);
+      Owner.ExpOpRunTime.Reg_RT_OpM(Name, '', OP_DoProc);
 end;
 
-function TNumberModule.OP_DoProc(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TNumberModule.OP_DoProc(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   i: Integer;
 begin
@@ -592,7 +592,7 @@ begin
   FName := sour.FName;
 end;
 
-function TNumberModulePool.OP_DoNewNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TNumberModulePool.OP_DoNewNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   N_: SystemString;
 begin
@@ -604,7 +604,7 @@ begin
   Result := OP_Param[1];
 end;
 
-function TNumberModulePool.OP_DoGetNM(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+function TNumberModulePool.OP_DoGetNM(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 var
   N_: SystemString;
 begin
@@ -637,8 +637,8 @@ begin
   if FExpOpRunTime = nil then
     begin
       FExpOpRunTime := TOpCustomRunTime.CustomCreate(64);
-      FExpOpRunTime.RegObjectOpM('Set', '', OP_DoNewNM);
-      FExpOpRunTime.RegObjectOpM('Get', '', OP_DoGetNM);
+      FExpOpRunTime.Reg_RT_OpM('Set', '', OP_DoNewNM);
+      FExpOpRunTime.Reg_RT_OpM('Get', '', OP_DoGetNM);
       FList.ProgressM(DoRebuildOpRunTime_Progress);
       if Assigned(OnNMCreateOpRunTime) then
           OnNMCreateOpRunTime(Self, FExpOpRunTime);

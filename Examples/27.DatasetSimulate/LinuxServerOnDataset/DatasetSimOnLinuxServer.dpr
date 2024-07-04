@@ -129,7 +129,7 @@ begin
         queryRec_Ptr^.dPipe := dPipe;
         queryRec_Ptr^.qState := @qState;
         try
-          Allowed := Boolean(queryRec_Ptr^.op.Execute(queryRec_Ptr^.opR));
+          Allowed := Boolean(queryRec_Ptr^.op.OpCode_Execute(queryRec_Ptr^.opR));
           if Allowed then
             nop;
         except

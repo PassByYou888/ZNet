@@ -12,7 +12,7 @@ uses SysUtils, Variants, Math,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.ListEngine, Z.UnicodeMixedLib, Z.HashList.Templet;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.ListEngine, Z.UnicodeMixedLib, Z.HashList.Templet, Z.Parsing;
 
 type
   TOpValueType = (
@@ -23,34 +23,43 @@ type
 
   TOpCode = class;
   TOpCustomRunTime = class;
+  TOpCode_NonLinear = class;
+
+  POpRTData = ^TOpRTData;
   TOpParam = array of Variant;
-  TOnOp_C = function(var OP_Param: TOpParam): Variant;
-  TOnOp_M = function(var OP_Param: TOpParam): Variant of object;
-  TOnObjectOp_C = function(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
-  TOnObjectOp_M = function(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant of object;
+
+  TOn_Param_Op_C = function(var OP_Param: TOpParam): Variant;
+  TOn_Param_Op_M = function(var OP_Param: TOpParam): Variant of object;
+  TOn_RT_Op_C = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
+  TOn_RT_Op_M = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant of object;
+  TOn_Code_Op_C = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
+  TOn_Code_Op_M = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant of object;
 {$IFDEF FPC}
-  TOnOp_P = function(var OP_Param: TOpParam): Variant is nested;
-  TOnObjectOp_P = function(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant is nested;
+  TOn_Param_Op_P = function(var OP_Param: TOpParam): Variant is nested;
+  TOn_RT_Op_P = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant is nested;
+  TOn_Code_Op_P = function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant is nested;
 {$ELSE FPC}
-  TOnOp_P = reference to function(var OP_Param: TOpParam): Variant;
-  TOnObjectOp_P = reference to function(Sender: TOpCustomRunTime; var OP_Param: TOpParam): Variant;
+  TOn_Param_Op_P = reference to function(var OP_Param: TOpParam): Variant;
+  TOn_RT_Op_P = reference to function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
+  TOn_Code_Op_P = reference to function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant;
 {$ENDIF FPC}
   TOpRT_Mode = (rtmDirect, rtmSync, rtmPost);
 
   TOpRTData = record
   public
     Name, Description, Category: SystemString;
-    OnOp_C: TOnOp_C;
-    OnOp_M: TOnOp_M;
-    OnOp_P: TOnOp_P;
-    OnObjectOp_C: TOnObjectOp_C;
-    OnObjectOp_M: TOnObjectOp_M;
-    OnObjectOp_P: TOnObjectOp_P;
+    On_Param_Op_C: TOn_Param_Op_C;
+    On_Param_Op_M: TOn_Param_Op_M;
+    On_Param_Op_P: TOn_Param_Op_P;
+    On_RT_Op_C: TOn_RT_Op_C;
+    On_RT_Op_M: TOn_RT_Op_M;
+    On_RT_Op_P: TOn_RT_Op_P;
+    On_Code_Op_C: TOn_Code_Op_C;
+    On_Code_Op_M: TOn_Code_Op_M;
+    On_Code_Op_P: TOn_Code_Op_P;
     Mode: TOpRT_Mode;
     procedure Init;
   end;
-
-  POpRTData = ^TOpRTData;
 
   TOpRT_Sync_Bridge = class(TCore_Object_Intermediate)
   public
@@ -61,8 +70,11 @@ type
     procedure Do_Sync_Run;
   end;
 
+{$REGION 'OpCode_Runtime'}
+
   TOpSystemAPI = class(TCore_Object_Intermediate)
   private
+    function DoNop(var OP_Param: TOpParam): Variant;
     function DoInt(var OP_Param: TOpParam): Variant;
     function DoFrac(var OP_Param: TOpParam): Variant;
     function DoExp(var OP_Param: TOpParam): Variant;
@@ -145,7 +157,6 @@ type
     procedure FreeNotifyProc(p: Pointer);
   public
     ProcList: THashList;
-    Trigger: POpRTData;
     UserObject: TCore_Object;
     UserData: Pointer;
     constructor Create;
@@ -161,27 +172,61 @@ type
     function GetAllProcDescription(InclSys_: Boolean; Category: U_String): TPascalStringList; overload;
     function GetProc(const ProcName: SystemString): POpRTData;
     property Proc_[const ProcName: SystemString]: POpRTData read GetProc;
-    function RegOpC(ProcName: SystemString; On_P: TOnOp_C): POpRTData; overload;
-    function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C): POpRTData; overload;
-    function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C; Mode: TOpRT_Mode): POpRTData; overload;
-    function RegOpM(ProcName: SystemString; On_P: TOnOp_M): POpRTData; overload;
-    function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M): POpRTData; overload;
-    function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M; Mode: TOpRT_Mode): POpRTData; overload;
-    function RegOpP(ProcName: SystemString; On_P: TOnOp_P): POpRTData; overload;
-    function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P): POpRTData; overload;
-    function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P; Mode: TOpRT_Mode): POpRTData; overload;
-    function RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
-    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData; overload;
-    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C; Mode: TOpRT_Mode): POpRTData; overload;
-    function RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
-    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData; overload;
-    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M; Mode: TOpRT_Mode): POpRTData; overload;
-    function RegObjectOpP(ProcName: SystemString; On_P: TOnObjectOp_P): POpRTData; overload;
-    function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P): POpRTData; overload;
-    function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P; Mode: TOpRT_Mode): POpRTData; overload;
+    // compatible param-caller
+    function RegOpC(ProcName: SystemString; On_P: TOn_Param_Op_C): POpRTData; overload;
+    function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C): POpRTData; overload;
+    function RegOpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegOpM(ProcName: SystemString; On_P: TOn_Param_Op_M): POpRTData; overload;
+    function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M): POpRTData; overload;
+    function RegOpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegOpP(ProcName: SystemString; On_P: TOn_Param_Op_P): POpRTData; overload;
+    function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P): POpRTData; overload;
+    function RegOpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P; Mode: TOpRT_Mode): POpRTData; overload;
+    // param-caller
+    function Reg_Param_OpC(ProcName: SystemString; On_P: TOn_Param_Op_C): POpRTData; overload;
+    function Reg_Param_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C): POpRTData; overload;
+    function Reg_Param_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_Param_OpM(ProcName: SystemString; On_P: TOn_Param_Op_M): POpRTData; overload;
+    function Reg_Param_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M): POpRTData; overload;
+    function Reg_Param_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_Param_OpP(ProcName: SystemString; On_P: TOn_Param_Op_P): POpRTData; overload;
+    function Reg_Param_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P): POpRTData; overload;
+    function Reg_Param_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P; Mode: TOpRT_Mode): POpRTData; overload;
+    // compatible object-caller
+    function RegObjectOpC(ProcName: SystemString; On_P: TOn_RT_Op_C): POpRTData; overload;
+    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C): POpRTData; overload;
+    function RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegObjectOpM(ProcName: SystemString; On_P: TOn_RT_Op_M): POpRTData; overload;
+    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M): POpRTData; overload;
+    function RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M; Mode: TOpRT_Mode): POpRTData; overload;
+    function RegObjectOpP(ProcName: SystemString; On_P: TOn_RT_Op_P): POpRTData; overload;
+    function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P): POpRTData; overload;
+    function RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P; Mode: TOpRT_Mode): POpRTData; overload;
+    // object-caller
+    function Reg_RT_OpC(ProcName: SystemString; On_P: TOn_RT_Op_C): POpRTData; overload;
+    function Reg_RT_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C): POpRTData; overload;
+    function Reg_RT_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_RT_OpM(ProcName: SystemString; On_P: TOn_RT_Op_M): POpRTData; overload;
+    function Reg_RT_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M): POpRTData; overload;
+    function Reg_RT_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_RT_OpP(ProcName: SystemString; On_P: TOn_RT_Op_P): POpRTData; overload;
+    function Reg_RT_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P): POpRTData; overload;
+    function Reg_RT_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P; Mode: TOpRT_Mode): POpRTData; overload;
+    // non-linear caller
+    function Reg_Code_OpC(ProcName: SystemString; On_P: TOn_Code_Op_C): POpRTData; overload;
+    function Reg_Code_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_C): POpRTData; overload;
+    function Reg_Code_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_C; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_Code_OpM(ProcName: SystemString; On_P: TOn_Code_Op_M): POpRTData; overload;
+    function Reg_Code_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_M): POpRTData; overload;
+    function Reg_Code_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_M; Mode: TOpRT_Mode): POpRTData; overload;
+    function Reg_Code_OpP(ProcName: SystemString; On_P: TOn_Code_Op_P): POpRTData; overload;
+    function Reg_Code_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_P): POpRTData; overload;
+    function Reg_Code_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_P; Mode: TOpRT_Mode): POpRTData; overload;
   end;
+{$ENDREGION 'OpCode_Runtime'}
+{$REGION 'OpCode_Base'}
 
-  opClass = class of TOpCode;
+  TOp_Class = class of TOpCode;
 
   TOpCode_Pool_Decl = TCritical_String_Big_Hash_Pair_Pool<TOpCode>;
 
@@ -192,222 +237,362 @@ type
     procedure DoFree(var Key: SystemString; var Value: TOpCode); override;
   end;
 
+  POpData__ = ^TOpData__;
+
+  TOpData__ = record
+    Op: TOpCode;
+    Value: Variant;
+    ValueType: TOpValueType;
+  end;
+
+  TOpData_List = TGenericsList<POpData__>;
+
   TOpCode = class(TCore_Object_Intermediate)
-  private type
-    POpData__ = ^TOpData__;
-
-    TOpData__ = record
-      Op: TOpCode;
-      Value: Variant;
-      ValueType: TOpValueType;
-    end;
-
-    TOpData_List = TGenericsList<POpData__>;
   protected
+    FOwner: TOpCode;
     FParam: TOpData_List;
     FAutoFreeLink: Boolean;
     function DoExecute(opRT: TOpCustomRunTime): Variant; virtual;
-    function GetParam(index: Integer): POpData__;
-    procedure EvaluateParam(opRT: TOpCustomRunTime); overload;
-    procedure EvaluateParam(printLog: Boolean; opRT: TOpCustomRunTime); overload;
+  private
+    // TOpCode calling mechanism: call and execute from deep to shallow in a stack manner
+    procedure OpCode_EvaluateParam(opRT: TOpCustomRunTime); overload;
+    procedure OpCode_EvaluateParam(printLog: Boolean; opRT: TOpCustomRunTime); overload;
   public
-    Owner: TOpCode;
+    NonLinear: TOpCode_NonLinear;
     Parsed_Info: SystemString;
     Parsed_Line_Num: Integer;
     constructor Create(FreeLink_: Boolean);
     destructor Destroy; override;
     procedure SaveToStream(stream: TCore_Stream);
-    class function LoadFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
+    class function LoadFromStream(stream: TCore_Stream; var LoadedOp: TOpCode): Boolean;
     function AddValue(v: Variant): Integer; overload;
     function AddValueT(v: Variant; VT: TOpValueType): Integer; overload;
     function AddLink(Obj: TOpCode): Integer;
-    function Clone: TOpCode;
+    function Clone(): TOpCode; // fast clone
+    function GetParam(index: Integer): POpData__;
     property Param[index: Integer]: POpData__ read GetParam; default;
     function Count: Integer;
+    function OpCode_Execute: Variant; overload;
+    function OpCode_Execute(opRT: TOpCustomRunTime): Variant; overload;
     function Execute: Variant; overload;
     function Execute(opRT: TOpCustomRunTime): Variant; overload;
-    function OwnerRoot: TOpCode;
+    function Owner_Root: TOpCode;
+    property Owner: TOpCode read FOwner;
     property AutoFreeLink: Boolean read FAutoFreeLink write FAutoFreeLink;
   end;
+{$ENDREGION 'OpCode_Base'}
+{$REGION 'OpCode_NonLinear'}
+
+  TOpCode_NonLinear_Pool_ = TBigList<TOpCode_NonLinear>;
+
+  TOpCode_NonLinear_Stack = TOrderStruct<POpData__>;
+
+  TOn_OpCode_NonLinear_Done_C = procedure(Sender: TOpCode_NonLinear);
+  TOn_OpCode_NonLinear_Done_M = procedure(Sender: TOpCode_NonLinear) of object;
+  TOn_OpCode_NonLinear_Step_C = procedure(Sender: TOpCode_NonLinear; OpCode_: TOpCode);
+  TOn_OpCode_NonLinear_Step_M = procedure(Sender: TOpCode_NonLinear; OpCode_: TOpCode) of object;
+{$IFDEF FPC}
+  TOn_OpCode_NonLinear_Done_P = procedure(Sender: TOpCode_NonLinear) is nested;
+  TOn_OpCode_NonLinear_Step_P = procedure(Sender: TOpCode_NonLinear; OpCode_: TOpCode) is nested;
+{$ELSE FPC}
+  TOn_OpCode_NonLinear_Done_P = reference to procedure(Sender: TOpCode_NonLinear);
+  TOn_OpCode_NonLinear_Step_P = reference to procedure(Sender: TOpCode_NonLinear; OpCode_: TOpCode);
+{$ENDIF FPC}
+
+  TOpCode_NonLinear_Pool = class(TOpCode_NonLinear_Pool_)
+  private type
+    TPost_Data___ = record
+      TS_: TTextStyle;
+      Expression_: SystemString;
+      opRT_: TOpCustomRunTime;
+      On_Done_C: TOn_OpCode_NonLinear_Done_C;
+      On_Done_M: TOn_OpCode_NonLinear_Done_M;
+      On_Done_P: TOn_OpCode_NonLinear_Done_P;
+    end;
+
+    PPost_Data___ = ^TPost_Data___;
+  private
+    FPost___: TThreadPost;
+    procedure Do_Post_Execute(Data1: Pointer);
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property Post___: TThreadPost read FPost___;
+    procedure DoFree(var Data: TOpCode_NonLinear); override;
+    procedure Process;
+    function Prepare(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime): TOpCode_NonLinear;
+    procedure Execute(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+    procedure Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
+    procedure Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
+    procedure Execute_P(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_P: TOn_OpCode_NonLinear_Done_P);
+    procedure Post_Execute(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+    procedure Post_Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
+    procedure Post_Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
+    procedure Post_Execute_P(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_P: TOn_OpCode_NonLinear_Done_P);
+    procedure Post_Execute_Vector_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+    class procedure Test_Post_Execute();
+  end;
+
+  // TOpCode_NonLinear calling mechanism: no longer call in the stack mode,
+  // the new mechanism is to pave the way for the calling sequence structure from deep to shallow, and then execute the sequence once again
+  // The TOpCode_NonLinear call mechanism can support non-linear processes and accurately identify locations such as exceptions and trackers within the stack model
+  TOpCode_NonLinear = class(TCore_Object_Intermediate)
+  private
+    FAuto_Free_OpCode: Boolean;
+    FRoot_OpCode: TOpCode;
+    FOpCode_RunTime: TOpCustomRunTime;
+    FOwner_Pool_Ptr: TOpCode_NonLinear_Pool_.PQueueStruct;
+    FStack___: TOpCode_NonLinear_Stack;
+    FFirst_Execute_Done: Boolean;
+    FIs_Running: Boolean;
+    FIs_Wait_End: Boolean;
+    FEnd_Result: Variant;
+    FOn_Done_C: TOn_OpCode_NonLinear_Done_C;
+    FOn_Done_M: TOn_OpCode_NonLinear_Done_M;
+    FOn_Done_P: TOn_OpCode_NonLinear_Done_P;
+    FOn_Step_C: TOn_OpCode_NonLinear_Step_C;
+    FOn_Step_M: TOn_OpCode_NonLinear_Step_M;
+    FOn_Step_P: TOn_OpCode_NonLinear_Step_P;
+  protected
+    procedure Build_Stack();
+    procedure Reset_Stack();
+    procedure Do_Init(); virtual;
+  public
+    constructor Create_From_OpCode(Auto_Free_OpCode_: Boolean; Root_OpCode_: TOpCode; opRT_: TOpCustomRunTime);
+    constructor Create_From_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+    destructor Destroy; override;
+    procedure Execute();
+
+    // The begin+end is a nonlinear process controller in OpCode event
+    procedure Do_Begin();
+    procedure Do_End(); overload;
+    property End_Result: Variant read FEnd_Result write FEnd_Result;
+    property Result_: Variant read FEnd_Result write FEnd_Result;
+    procedure Do_End(Result___: Variant); overload;
+    procedure Do_Error;
+
+    // main-loop
+    procedure Process; virtual;
+
+    property First_Execute_Done: Boolean read FFirst_Execute_Done;
+    property Is_Running: Boolean read FIs_Running;
+    property Is_Wait_End: Boolean read FIs_Wait_End;
+    property Auto_Free_OpCode: Boolean read FAuto_Free_OpCode write FAuto_Free_OpCode;
+    property OpCode: TOpCode read FRoot_OpCode;
+    property OpRunTime: TOpCustomRunTime read FOpCode_RunTime;
+    property Stack___: TOpCode_NonLinear_Stack read FStack___;
+    property On_Done: TOn_OpCode_NonLinear_Done_M read FOn_Done_M write FOn_Done_M;
+    property On_Done_C: TOn_OpCode_NonLinear_Done_C read FOn_Done_C write FOn_Done_C;
+    property On_Done_M: TOn_OpCode_NonLinear_Done_M read FOn_Done_M write FOn_Done_M;
+    property On_Done_P: TOn_OpCode_NonLinear_Done_P read FOn_Done_P write FOn_Done_P;
+    property On_Step: TOn_OpCode_NonLinear_Step_M read FOn_Step_M write FOn_Step_M;
+    property On_Step_C: TOn_OpCode_NonLinear_Step_C read FOn_Step_C write FOn_Step_C;
+    property On_Step_M: TOn_OpCode_NonLinear_Step_M read FOn_Step_M write FOn_Step_M;
+    property On_Step_P: TOn_OpCode_NonLinear_Step_P read FOn_Step_P write FOn_Step_P;
+
+    class procedure Test();
+  end;
+
+{$ENDREGION 'OpCode_NonLinear'}
+{$REGION 'OpCode_Operation'}
 
   op_Value = class sealed(TOpCode)
-  private
+  protected
     // a
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Proc = class sealed(TOpCode)
-  private
+  protected
     // proc(a,b,c...)
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Add_Prefix = class sealed(TOpCode)
-  private
+  protected
     // +proc
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Sub_Prefix = class sealed(TOpCode)
-  private
+  protected
     // -proc
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Add = class sealed(TOpCode)
-  private
+  protected
     // a + b + n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Sub = class sealed(TOpCode)
-  private
+  protected
     // a - b - n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Mul = class sealed(TOpCode)
-  private
+  protected
     // a * b * n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Div = class sealed(TOpCode)
-  private
+  protected
     // a / b / n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_IntDiv = class sealed(TOpCode)
-  private
+  protected
     // a div b div n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Pow = class sealed(TOpCode)
-  private
+  protected
     // a pow b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Mod = class sealed(TOpCode)
-  private
+  protected
     // a mod b mod n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Or = class sealed(TOpCode)
-  private
+  protected
     // a or b or n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_And = class sealed(TOpCode)
-  private
+  protected
     // a and b and n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Xor = class sealed(TOpCode)
-  private
+  protected
     // a xor b xor n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Shl = class sealed(TOpCode)
-  private
+  protected
     // a shl b shl n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Shr = class sealed(TOpCode)
-  private
+  protected
     // a shr b shr n...
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Equal = class sealed(TOpCode)
-  private
+  protected
     // a = b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_LessThan = class sealed(TOpCode)
-  private
+  protected
     // a < b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_EqualOrLessThan = class sealed(TOpCode)
-  private
+  protected
     // a <= b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_GreaterThan = class sealed(TOpCode)
-  private
+  protected
     // a > b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_EqualOrGreaterThan = class sealed(TOpCode)
-  private
+  protected
     // a >= b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_NotEqual = class sealed(TOpCode)
-  private
+  protected
     // a <> b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Symbol_Sub = class sealed(TOpCode)
-  private
+  protected
     // -a
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
   op_Symbol_Add = class sealed(TOpCode)
-  private
+  protected
     // +a
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
+{$ENDREGION 'OpCode_Operation'}
+{$REGION 'OpCode_Reg'}
 
-function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
-
-var
-  OpSystemAPI: TOpSystemAPI;
-  SystemOpRunTime: TOpCustomRunTime;
-
-implementation
-
-uses Z.Geometry2D, Z.Geometry3D, Z.DFE;
-
-type
-  opRegData = record
-    opClass: opClass;
+  TOpRegData = record
+    opClass: TOp_Class;
     OpName: TPascalString;
     hash: Cardinal;
   end;
 
-  POpRegData = ^opRegData;
-  TOpList = TGenericsList<POpRegData>;
+  POpRegData = ^TOpRegData;
+  TOpReg_Tool = TGenericsList<POpRegData>;
+{$ENDREGION 'OpCode_Reg'}
+
+function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
 
 var
-  OpList: TOpList;
+  OpRegTool: TOpReg_Tool;
+  OpSystemAPI: TOpSystemAPI;
+  SystemOpRunTime: TOpCustomRunTime;
+  System_NonLinear_Pool: TOpCode_NonLinear_Pool;
+
+implementation
+
+uses Z.Geometry2D, Z.Geometry3D, Z.DFE, Z.Expression;
+
+var
+  Hooked_OnCheckThreadSynchronize: TOn_Check_Thread_Synchronize;
+
+procedure DoCheckThreadSynchronize();
+begin
+  if Assigned(Hooked_OnCheckThreadSynchronize) then
+    begin
+      try
+          Hooked_OnCheckThreadSynchronize();
+      except
+      end;
+    end;
+  System_NonLinear_Pool.Process;
+end;
 
 procedure TOpRTData.Init;
 begin
   Name := '';
   Description := '';
   Category := '';
-  OnOp_C := nil;
-  OnOp_M := nil;
-  OnOp_P := nil;
-  OnObjectOp_C := nil;
-  OnObjectOp_M := nil;
-  OnObjectOp_P := nil;
+  On_Param_Op_C := nil;
+  On_Param_Op_M := nil;
+  On_Param_Op_P := nil;
+  On_RT_Op_C := nil;
+  On_RT_Op_M := nil;
+  On_RT_Op_P := nil;
+  On_Code_Op_C := nil;
+  On_Code_Op_M := nil;
+  On_Code_Op_P := nil;
   Mode := rtmDirect;
 end;
 
@@ -426,22 +611,27 @@ begin
   else
       SetLength(tmp_Param, 0);
 
-  opRT.Trigger := OD;
   R_ := NULL;
   try
     opRT.Begin_Op_Proc(OC);
-    if Assigned(OD^.OnOp_C) then
-        R_ := OD^.OnOp_C(tmp_Param);
-    if Assigned(OD^.OnOp_M) then
-        R_ := OD^.OnOp_M(tmp_Param);
-    if Assigned(OD^.OnOp_P) then
-        R_ := OD^.OnOp_P(tmp_Param);
-    if Assigned(OD^.OnObjectOp_C) then
-        R_ := OD^.OnObjectOp_C(opRT, tmp_Param);
-    if Assigned(OD^.OnObjectOp_M) then
-        R_ := OD^.OnObjectOp_M(opRT, tmp_Param);
-    if Assigned(OD^.OnObjectOp_P) then
-        R_ := OD^.OnObjectOp_P(opRT, tmp_Param);
+    if Assigned(OD^.On_Param_Op_C) then
+        R_ := OD^.On_Param_Op_C(tmp_Param)
+    else if Assigned(OD^.On_Param_Op_M) then
+        R_ := OD^.On_Param_Op_M(tmp_Param)
+    else if Assigned(OD^.On_Param_Op_P) then
+        R_ := OD^.On_Param_Op_P(tmp_Param)
+    else if Assigned(OD^.On_RT_Op_C) then
+        R_ := OD^.On_RT_Op_C(opRT, OD, tmp_Param)
+    else if Assigned(OD^.On_RT_Op_M) then
+        R_ := OD^.On_RT_Op_M(opRT, OD, tmp_Param)
+    else if Assigned(OD^.On_RT_Op_P) then
+        R_ := OD^.On_RT_Op_P(opRT, OD, tmp_Param)
+    else if Assigned(OD^.On_Code_Op_C) then
+        R_ := OD^.On_Code_Op_C(opRT, OD, OC, tmp_Param)
+    else if Assigned(OD^.On_Code_Op_M) then
+        R_ := OD^.On_Code_Op_M(opRT, OD, OC, tmp_Param)
+    else if Assigned(OD^.On_Code_Op_P) then
+        R_ := OD^.On_Code_Op_P(opRT, OD, OC, tmp_Param);
     opRT.End_Op_Proc(OC, R_);
   except
   end;
@@ -456,15 +646,15 @@ var
 begin
   Result := nil;
   hash := FastHashPPascalString(Name_P);
-  for i := 0 to OpList.Count - 1 do
+  for i := 0 to OpRegTool.Count - 1 do
     begin
-      p := OpList[i];
+      p := OpRegTool[i];
       if (p^.hash = hash) and Name_P^.Same(@p^.OpName) then
           Exit(p);
     end;
 end;
 
-procedure RegisterOp(c: opClass);
+procedure RegisterOp(c: TOp_Class);
 var
   n: TPascalString;
   p: POpRegData;
@@ -476,7 +666,7 @@ begin
   p^.opClass := c;
   p^.OpName := p^.opClass.ClassName;
   p^.hash := FastHashPPascalString(@p^.OpName);
-  OpList.Add(p);
+  OpRegTool.Add(p);
 end;
 
 procedure FreeOpRegClass;
@@ -484,12 +674,12 @@ var
   i: Integer;
   p: POpRegData;
 begin
-  for i := 0 to OpList.Count - 1 do
+  for i := 0 to OpRegTool.Count - 1 do
     begin
-      p := OpList[i];
+      p := OpRegTool[i];
       Dispose(p);
     end;
-  DisposeObject(OpList);
+  DisposeObject(OpRegTool);
 end;
 
 function LoadOpFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
@@ -555,6 +745,11 @@ begin
   except
   end;
   DisposeObject(DataEng);
+end;
+
+function TOpSystemAPI.DoNop(var OP_Param: TOpParam): Variant;
+begin
+  Result := 0;
 end;
 
 function TOpSystemAPI.DoInt(var OP_Param: TOpParam): Variant;
@@ -1221,90 +1416,91 @@ end;
 
 procedure TOpSystemAPI.RegistationSystemAPI(RunTime: TOpCustomRunTime);
 begin
-  RunTime.RegOpM('Int', 'Int(0..n): math function', DoInt)^.Category := 'Base Math';
-  RunTime.RegOpM('Frac', 'Frac(0..n): math function', DoFrac)^.Category := 'Base Math';
-  RunTime.RegOpM('Exp', 'Exp(0..n): math function', DoExp)^.Category := 'Base Math';
-  RunTime.RegOpM('Cos', 'Cos(0..n): math function', DoCos)^.Category := 'Base Math';
-  RunTime.RegOpM('Sin', 'Sin(0..n): math function', DoSin)^.Category := 'Base Math';
-  RunTime.RegOpM('Ln', 'Ln(0..n): math function', DoLn)^.Category := 'Base Math';
-  RunTime.RegOpM('ArcTan', 'ArcTan(0..n): math function', DoArcTan)^.Category := 'Base Math';
-  RunTime.RegOpM('Sqrt', 'Sqrt(0..n): math function', DoSqrt)^.Category := 'Base Math';
-  RunTime.RegOpM('Sqr', 'Sqr(0..n): math function', DoSqr)^.Category := 'Base Math';
-  RunTime.RegOpM('Tan', 'Tan(0..n): math function', DoTan)^.Category := 'Base Math';
-  RunTime.RegOpM('Round', 'Round(0..n): math function', DoRound)^.Category := 'Base Math';
-  RunTime.RegOpM('Trunc', 'Trunc(0..n): math function', DoTrunc)^.Category := 'Base Math';
-  RunTime.RegOpM('Deg', 'Deg(0..n): NormalizeDegAngle function', DoDeg)^.Category := 'Base Math';
-  RunTime.RegOpM('Power', 'Power(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
-  RunTime.RegOpM('Pow', 'Pow(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
-  RunTime.RegOpM('Single', 'Single(value): math function', DoSingle)^.Category := 'Base Math';
-  RunTime.RegOpM('Double', 'Double(value): math function', DoDouble)^.Category := 'Base Math';
-  RunTime.RegOpM('Float', 'Float(value): math function', DoDouble)^.Category := 'Base Math';
-  RunTime.RegOpM('Extended', 'Extended(value): math function', DoExtended)^.Category := 'Base Math';
-  RunTime.RegOpM('Byte', 'Byte(value): math function', DoByte)^.Category := 'Base Math';
-  RunTime.RegOpM('Word', 'Word(value): math function', DoWord)^.Category := 'Base Math';
-  RunTime.RegOpM('Cardinal', 'Cardinal(value): math function', DoCardinal)^.Category := 'Base Math';
-  RunTime.RegOpM('UInt64', 'UInt64(value): math function', DoUInt64)^.Category := 'Base Math';
-  RunTime.RegOpM('ShortInt', 'ShortInt(value): math function', DoShortInt)^.Category := 'Base Math';
-  RunTime.RegOpM('SmallInt', 'SmallInt(value): math function', DoSmallInt)^.Category := 'Base Math';
-  RunTime.RegOpM('Integer', 'Integer(value): math function', DoInteger)^.Category := 'Base Math';
-  RunTime.RegOpM('Int64', 'Int64(value): math function', DoInt64)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL8', 'ROL8(byte,Shift): math function', DoROL8)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL16', 'ROL16(word,Shift): math function', DoROL16)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL32', 'ROL32(cardinal,Shift): math function', DoROL32)^.Category := 'Base Math';
-  RunTime.RegOpM('ROL64', 'ROL64(uint64,Shift): math function', DoROL64)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR8', 'ROR8(byte,Shift): math function', DoROR8)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR16', 'ROR16(word,Shift): math function', DoROR16)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR32', 'ROR32(cardinal,Shift): math function', DoROR32)^.Category := 'Base Math';
-  RunTime.RegOpM('ROR64', 'ROR64(uint64,Shift): math function', DoROR64)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian16', 'Endian16(smallint): math function', DoEndian16)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian32', 'Endian32(integer): math function', DoEndian32)^.Category := 'Base Math';
-  RunTime.RegOpM('Endian64', 'Endian64(int64): math function', DoEndian64)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU16', 'EndianU16(word): math function', DoEndianU16)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU32', 'EndianU32(cardinal): math function', DoEndianU32)^.Category := 'Base Math';
-  RunTime.RegOpM('EndianU64', 'EndianU64(uint64): math function', DoEndianU64)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR16', 'SAR16(word,Shift): math function', DoSAR16)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR32', 'SAR32(cardinal,Shift): math function', DoSAR32)^.Category := 'Base Math';
-  RunTime.RegOpM('SAR64', 'SAR64(uint64,Shift): math function', DoSAR64)^.Category := 'Base Math';
-  RunTime.RegOpM('Not', 'Not(Ordinal): not math function', DoNot)^.Category := 'Base Math';
-  RunTime.RegOpM('~', '~(Ordinal): not math function', DoNot)^.Category := 'Base Math';
-  RunTime.RegOpM('PI', 'PI(): return PI', DoPI)^.Category := 'Base Math';
-  RunTime.RegOpM('Bool', 'Bool(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
-  RunTime.RegOpM('Boolean', 'Boolean(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
-  RunTime.RegOpM('True', 'True(): return true', DoTrue)^.Category := 'Base Math';
-  RunTime.RegOpM('False', 'False(): return false', DoFalse)^.Category := 'Base Math';
-  RunTime.RegOpM('RColor', 'RColor(R,G,B,A): return RColor string', DoRColor)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec2', 'Vec2(X,Y): return Vec2 string', DoVec2)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec3', 'Vec3(X,Y,Z): return Vec3 string', DoVec3)^.Category := 'Base Math';
-  RunTime.RegOpM('Vec4', 'Vec4(X,Y,Z,W): return Vec4 string', DoVec4)^.Category := 'Base Math';
-  RunTime.RegOpM('Random', 'Random(0..n): return number', DoRandom)^.Category := 'Base Math';
-  RunTime.RegOpM('RandomFloat', 'RandomFloat(): return float', DoRandomFloat)^.Category := 'Base Math';
-  RunTime.RegOpM('RandomF', 'RandomF(): return float', DoRandomFloat)^.Category := 'Base Math';
-  RunTime.RegOpM('Max', 'Max(0..n): return max value', DoMax)^.Category := 'Base Math';
-  RunTime.RegOpM('Min', 'Min(0..n): return min value', DoMin)^.Category := 'Base Math';
-  RunTime.RegOpM('Clamp', 'Clamp(value, min, max): return clamp value', DoClamp)^.Category := 'Base Math';
-  RunTime.RegOpM('IfThen', 'IfThen(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
-  RunTime.RegOpM('if_', 'if_(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
-  RunTime.RegOpM('FitXY', 'FitXY(width, height, new_width, new_height): return size', FitXY)^.Category := 'Base Math';
-  RunTime.RegOpM('Str', 'Str(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('String', 'String(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('Text', 'Text(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
-  RunTime.RegOpM('MultipleMatch', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
-  RunTime.RegOpM('Multiple', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
-  RunTime.RegOpM('SearchStr', 'SearchStr(multile exp, n..n): return bool', DoSearchStr)^.Category := 'Base String';
-  RunTime.RegOpM('ReplaceStr', 'ReplaceStr(source, OldPattern, NewPattern: string; OnlyWord, IgnoreCase: Bool): return string', DoReplaceStr)^.Category := 'Base String';
-  RunTime.RegOpM('Print', 'Print(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('DoStatus', 'DoStatus(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('Status', 'Status(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
-  RunTime.RegOpM('ToHex', 'ToHex(multile exp, n..n): return hex text', ToHex)^.Category := 'Hex';
-  RunTime.RegOpM('Hex8', 'Hex8(text): return byte', Hex8)^.Category := 'Hex';
-  RunTime.RegOpM('Hex16', 'Hex16(text): return byte', Hex16)^.Category := 'Hex';
-  RunTime.RegOpM('Hex32', 'Hex32(text): return byte', Hex32)^.Category := 'Hex';
-  RunTime.RegOpM('Hex64', 'Hex64(text): return byte', Hex64)^.Category := 'Hex';
-  RunTime.RegOpM('ToBin', 'ToBin(multile exp, n..n): return Binary text', ToBin)^.Category := 'Binary';
-  RunTime.RegOpM('Bin8', 'Bin8(text): return byte', Bin8)^.Category := 'Binary';
-  RunTime.RegOpM('Bin16', 'Bin16(text): return byte', Bin16)^.Category := 'Binary';
-  RunTime.RegOpM('Bin32', 'Bin32(text): return byte', Bin32)^.Category := 'Binary';
-  RunTime.RegOpM('Bin64', 'Bin64(text): return byte', Bin64)^.Category := 'Binary';
+  RunTime.Reg_Param_OpM('Nop', 'Nop(): null function,return 0', DoInt)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Int', 'Int(0..n): math function', DoInt)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Frac', 'Frac(0..n): math function', DoFrac)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Exp', 'Exp(0..n): math function', DoExp)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Cos', 'Cos(0..n): math function', DoCos)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Sin', 'Sin(0..n): math function', DoSin)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Ln', 'Ln(0..n): math function', DoLn)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ArcTan', 'ArcTan(0..n): math function', DoArcTan)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Sqrt', 'Sqrt(0..n): math function', DoSqrt)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Sqr', 'Sqr(0..n): math function', DoSqr)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Tan', 'Tan(0..n): math function', DoTan)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Round', 'Round(0..n): math function', DoRound)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Trunc', 'Trunc(0..n): math function', DoTrunc)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Deg', 'Deg(0..n): NormalizeDegAngle function', DoDeg)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Power', 'Power(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Pow', 'Pow(float,float): Power: Raise base to any power function', DoPower)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Single', 'Single(value): math function', DoSingle)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Double', 'Double(value): math function', DoDouble)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Float', 'Float(value): math function', DoDouble)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Extended', 'Extended(value): math function', DoExtended)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Byte', 'Byte(value): math function', DoByte)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Word', 'Word(value): math function', DoWord)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Cardinal', 'Cardinal(value): math function', DoCardinal)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('UInt64', 'UInt64(value): math function', DoUInt64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ShortInt', 'ShortInt(value): math function', DoShortInt)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('SmallInt', 'SmallInt(value): math function', DoSmallInt)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Integer', 'Integer(value): math function', DoInteger)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Int64', 'Int64(value): math function', DoInt64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROL8', 'ROL8(byte,Shift): math function', DoROL8)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROL16', 'ROL16(word,Shift): math function', DoROL16)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROL32', 'ROL32(cardinal,Shift): math function', DoROL32)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROL64', 'ROL64(uint64,Shift): math function', DoROL64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROR8', 'ROR8(byte,Shift): math function', DoROR8)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROR16', 'ROR16(word,Shift): math function', DoROR16)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROR32', 'ROR32(cardinal,Shift): math function', DoROR32)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('ROR64', 'ROR64(uint64,Shift): math function', DoROR64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Endian16', 'Endian16(smallint): math function', DoEndian16)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Endian32', 'Endian32(integer): math function', DoEndian32)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Endian64', 'Endian64(int64): math function', DoEndian64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('EndianU16', 'EndianU16(word): math function', DoEndianU16)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('EndianU32', 'EndianU32(cardinal): math function', DoEndianU32)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('EndianU64', 'EndianU64(uint64): math function', DoEndianU64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('SAR16', 'SAR16(word,Shift): math function', DoSAR16)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('SAR32', 'SAR32(cardinal,Shift): math function', DoSAR32)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('SAR64', 'SAR64(uint64,Shift): math function', DoSAR64)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Not', 'Not(Ordinal): not math function', DoNot)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('~', '~(Ordinal): not math function', DoNot)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('PI', 'PI(): return PI', DoPI)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Bool', 'Bool(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Boolean', 'Boolean(n..n): convert any variant as bool', DoBool)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('True', 'True(): return true', DoTrue)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('False', 'False(): return false', DoFalse)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('RColor', 'RColor(R,G,B,A): return RColor string', DoRColor)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Vec2', 'Vec2(X,Y): return Vec2 string', DoVec2)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Vec3', 'Vec3(X,Y,Z): return Vec3 string', DoVec3)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Vec4', 'Vec4(X,Y,Z,W): return Vec4 string', DoVec4)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Random', 'Random(0..n): return number', DoRandom)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('RandomFloat', 'RandomFloat(): return float', DoRandomFloat)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('RandomF', 'RandomF(): return float', DoRandomFloat)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Max', 'Max(0..n): return max value', DoMax)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Min', 'Min(0..n): return min value', DoMin)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Clamp', 'Clamp(value, min, max): return clamp value', DoClamp)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('IfThen', 'IfThen(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('if_', 'if_(bool, if true then of value, if false then of value): return if value', DoIfThen)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('FitXY', 'FitXY(width, height, new_width, new_height): return size', FitXY)^.Category := 'Base Math';
+  RunTime.Reg_Param_OpM('Str', 'Str(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('String', 'String(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('Text', 'Text(n..n): convert any variant as string', DoStr)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('MultipleMatch', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('Multiple', 'MultipleMatch(multile exp, n..n): return bool', DoMultiple)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('SearchStr', 'SearchStr(multile exp, n..n): return bool', DoSearchStr)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('ReplaceStr', 'ReplaceStr(source, OldPattern, NewPattern: string; OnlyWord, IgnoreCase: Bool): return string', DoReplaceStr)^.Category := 'Base String';
+  RunTime.Reg_Param_OpM('Print', 'Print(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.Reg_Param_OpM('DoStatus', 'DoStatus(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.Reg_Param_OpM('Status', 'Status(multile exp, n..n): return text', DoPrint)^.Category := 'Base Print';
+  RunTime.Reg_Param_OpM('ToHex', 'ToHex(multile exp, n..n): return hex text', ToHex)^.Category := 'Hex';
+  RunTime.Reg_Param_OpM('Hex8', 'Hex8(text): return byte', Hex8)^.Category := 'Hex';
+  RunTime.Reg_Param_OpM('Hex16', 'Hex16(text): return byte', Hex16)^.Category := 'Hex';
+  RunTime.Reg_Param_OpM('Hex32', 'Hex32(text): return byte', Hex32)^.Category := 'Hex';
+  RunTime.Reg_Param_OpM('Hex64', 'Hex64(text): return byte', Hex64)^.Category := 'Hex';
+  RunTime.Reg_Param_OpM('ToBin', 'ToBin(multile exp, n..n): return Binary text', ToBin)^.Category := 'Binary';
+  RunTime.Reg_Param_OpM('Bin8', 'Bin8(text): return byte', Bin8)^.Category := 'Binary';
+  RunTime.Reg_Param_OpM('Bin16', 'Bin16(text): return byte', Bin16)^.Category := 'Binary';
+  RunTime.Reg_Param_OpM('Bin32', 'Bin32(text): return byte', Bin32)^.Category := 'Binary';
+  RunTime.Reg_Param_OpM('Bin64', 'Bin64(text): return byte', Bin64)^.Category := 'Binary';
 end;
 
 procedure TOpCustomRunTime.FreeNotifyProc(p: Pointer);
@@ -1325,7 +1521,6 @@ begin
   ProcList.AutoFreeData := True;
   ProcList.AccessOptimization := False;
   ProcList.OnFreePtr := FreeNotifyProc;
-  Trigger := nil;
   UserObject := nil;
   UserData := nil;
   PrepareRegistation;
@@ -1440,147 +1635,363 @@ begin
   Result := ProcList[ProcName];
 end;
 
-function TOpCustomRunTime.RegOpC(ProcName: SystemString; On_P: TOnOp_C): POpRTData;
+function TOpCustomRunTime.RegOpC(ProcName: SystemString; On_P: TOn_Param_Op_C): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnOp_C := On_P;
+  p^.On_Param_Op_C := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C): POpRTData;
+function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C): POpRTData;
 begin
   Result := RegOpC(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOnOp_C; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegOpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegOpC(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode
 end;
 
-function TOpCustomRunTime.RegOpM(ProcName: SystemString; On_P: TOnOp_M): POpRTData;
+function TOpCustomRunTime.RegOpM(ProcName: SystemString; On_P: TOn_Param_Op_M): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnOp_M := On_P;
+  p^.On_Param_Op_M := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M): POpRTData;
+function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M): POpRTData;
 begin
   Result := RegOpM(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOnOp_M; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegOpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegOpM(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode
 end;
 
-function TOpCustomRunTime.RegOpP(ProcName: SystemString; On_P: TOnOp_P): POpRTData;
+function TOpCustomRunTime.RegOpP(ProcName: SystemString; On_P: TOn_Param_Op_P): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnOp_P := On_P;
+  p^.On_Param_Op_P := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P): POpRTData;
+function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P): POpRTData;
 begin
   Result := RegOpP(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOnOp_P; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegOpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegOpP(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode
 end;
 
-function TOpCustomRunTime.RegObjectOpC(ProcName: SystemString; On_P: TOnObjectOp_C): POpRTData;
+function TOpCustomRunTime.Reg_Param_OpC(ProcName: SystemString; On_P: TOn_Param_Op_C): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnObjectOp_C := On_P;
+  p^.On_Param_Op_C := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C): POpRTData;
+function TOpCustomRunTime.Reg_Param_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C): POpRTData;
+begin
+  Result := Reg_Param_OpC(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Param_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_C; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Param_OpC(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
+end;
+
+function TOpCustomRunTime.Reg_Param_OpM(ProcName: SystemString; On_P: TOn_Param_Op_M): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_Param_Op_M := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_Param_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M): POpRTData;
+begin
+  Result := Reg_Param_OpM(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Param_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_M; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Param_OpM(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
+end;
+
+function TOpCustomRunTime.Reg_Param_OpP(ProcName: SystemString; On_P: TOn_Param_Op_P): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_Param_Op_P := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_Param_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P): POpRTData;
+begin
+  Result := Reg_Param_OpP(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Param_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Param_Op_P; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Param_OpP(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode
+end;
+
+function TOpCustomRunTime.RegObjectOpC(ProcName: SystemString; On_P: TOn_RT_Op_C): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_RT_Op_C := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C): POpRTData;
 begin
   Result := RegObjectOpC(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_C; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegObjectOpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegObjectOpC(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode;
 end;
 
-function TOpCustomRunTime.RegObjectOpM(ProcName: SystemString; On_P: TOnObjectOp_M): POpRTData;
+function TOpCustomRunTime.RegObjectOpM(ProcName: SystemString; On_P: TOn_RT_Op_M): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnObjectOp_M := On_P;
+  p^.On_RT_Op_M := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M): POpRTData;
+function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M): POpRTData;
 begin
   Result := RegObjectOpM(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_M; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegObjectOpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegObjectOpM(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode;
 end;
 
-function TOpCustomRunTime.RegObjectOpP(ProcName: SystemString; On_P: TOnObjectOp_P): POpRTData;
+function TOpCustomRunTime.RegObjectOpP(ProcName: SystemString; On_P: TOn_RT_Op_P): POpRTData;
 var
   p: POpRTData;
 begin
   new(p);
   p^.Init;
   p^.Name := ProcName;
-  p^.OnObjectOp_P := On_P;
+  p^.On_RT_Op_P := On_P;
   ProcList.Add(ProcName, p, True);
   Result := p;
 end;
 
-function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P): POpRTData;
+function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P): POpRTData;
 begin
   Result := RegObjectOpP(ProcName, On_P);
   Result^.Description := ProcDescription;
 end;
 
-function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOnObjectOp_P; Mode: TOpRT_Mode): POpRTData;
+function TOpCustomRunTime.RegObjectOpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P; Mode: TOpRT_Mode): POpRTData;
 begin
   Result := RegObjectOpP(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpC(ProcName: SystemString; On_P: TOn_RT_Op_C): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_RT_Op_C := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C): POpRTData;
+begin
+  Result := Reg_RT_OpC(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_C; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_RT_OpC(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpM(ProcName: SystemString; On_P: TOn_RT_Op_M): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_RT_Op_M := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M): POpRTData;
+begin
+  Result := Reg_RT_OpM(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_M; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_RT_OpM(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpP(ProcName: SystemString; On_P: TOn_RT_Op_P): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_RT_Op_P := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P): POpRTData;
+begin
+  Result := Reg_RT_OpP(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_RT_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_RT_Op_P; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_RT_OpP(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpC(ProcName: SystemString; On_P: TOn_Code_Op_C): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_Code_Op_C := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_C): POpRTData;
+begin
+  Result := Reg_Code_OpC(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpC(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_C; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Code_OpC(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpM(ProcName: SystemString; On_P: TOn_Code_Op_M): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_Code_Op_M := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_M): POpRTData;
+begin
+  Result := Reg_Code_OpM(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpM(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_M; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Code_OpM(ProcName, ProcDescription, On_P);
+  Result^.Mode := Mode;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpP(ProcName: SystemString; On_P: TOn_Code_Op_P): POpRTData;
+var
+  p: POpRTData;
+begin
+  new(p);
+  p^.Init;
+  p^.Name := ProcName;
+  p^.On_Code_Op_P := On_P;
+  ProcList.Add(ProcName, p, True);
+  Result := p;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_P): POpRTData;
+begin
+  Result := Reg_Code_OpP(ProcName, On_P);
+  Result^.Description := ProcDescription;
+end;
+
+function TOpCustomRunTime.Reg_Code_OpP(ProcName, ProcDescription: SystemString; On_P: TOn_Code_Op_P; Mode: TOpRT_Mode): POpRTData;
+begin
+  Result := Reg_Code_OpP(ProcName, ProcDescription, On_P);
   Result^.Mode := Mode;
 end;
 
@@ -1604,17 +2015,12 @@ begin
   Result := NULL;
 end;
 
-function TOpCode.GetParam(index: Integer): POpData__;
+procedure TOpCode.OpCode_EvaluateParam(opRT: TOpCustomRunTime);
 begin
-  Result := FParam[index];
+  OpCode_EvaluateParam({$IFDEF Print_OPCode_Debug}True{$ELSE Print_OPCode_Debug}False{$ENDIF Print_OPCode_Debug}, opRT);
 end;
 
-procedure TOpCode.EvaluateParam(opRT: TOpCustomRunTime);
-begin
-  EvaluateParam(False, opRT);
-end;
-
-procedure TOpCode.EvaluateParam(printLog: Boolean; opRT: TOpCustomRunTime);
+procedure TOpCode.OpCode_EvaluateParam(printLog: Boolean; opRT: TOpCustomRunTime);
 var
   i: Integer;
   p: POpData__;
@@ -1625,16 +2031,19 @@ begin
       if p^.Op <> nil then
         begin
           try
-              p^.Op.EvaluateParam(printLog, opRT);
+              p^.Op.OpCode_EvaluateParam(printLog, opRT);
           except
+              Exit;
           end;
 
           try
             p^.Value := p^.Op.DoExecute(opRT);
-
             if printLog then
-                DoStatus('%s value:%s', [ClassName, VarToStr(p^.Value)]);
+                DoStatus('parsed:%s %s value:%s', [Parsed_Info, ClassName, VarToStr(p^.Value)]);
           except
+            if printLog then
+                DoStatus('parsed:%s OpCode error:%s', [Parsed_Info, ClassName]);
+            Exit;
           end;
         end;
     end;
@@ -1643,9 +2052,10 @@ end;
 constructor TOpCode.Create(FreeLink_: Boolean);
 begin
   inherited Create;
-  Owner := nil;
+  FOwner := nil;
   FParam := TOpData_List.Create;
   FAutoFreeLink := FreeLink_;
+  NonLinear := nil;
   Parsed_Info := '';
   Parsed_Line_Num := 0;
 end;
@@ -1655,24 +2065,21 @@ var
   i: Integer;
   p: POpData__;
 begin
-  if FParam <> nil then
+  for i := 0 to FParam.Count - 1 do
     begin
-      for i := 0 to FParam.Count - 1 do
-        begin
-          p := FParam[i];
-          if (FAutoFreeLink) and (p^.Op <> nil) then
-              DisposeObject(p^.Op);
-          p^.Value := NULL;
-          Dispose(p);
-        end;
-      FParam.Clear;
-      DisposeObject(FParam);
+      p := FParam[i];
+      if (FAutoFreeLink) and (p^.Op <> nil) then
+          DisposeObject(p^.Op);
+      p^.Value := NULL;
+      Dispose(p);
     end;
+  FParam.Clear;
+  DisposeObject(FParam);
   inherited Destroy;
 end;
 
 procedure TOpCode.SaveToStream(stream: TCore_Stream);
-  procedure SaveToDataFrame(Op: TOpCode; D_: TDFE);
+  procedure SaveToDFE(Op: TOpCode; D_: TDFE);
   var
     i: Integer;
     p: POpData__;
@@ -1689,7 +2096,7 @@ procedure TOpCode.SaveToStream(stream: TCore_Stream);
           begin
             D_.WriteBool(True);
             newDataEng := TDFE.Create;
-            SaveToDataFrame(p^.Op, newDataEng);
+            SaveToDFE(p^.Op, newDataEng);
             D_.WriteDataFrame(newDataEng);
             DisposeObject(newDataEng);
           end
@@ -1707,12 +2114,12 @@ var
 begin
   DataEng := TDFE.Create;
   DataEng.WriteInteger(1); // edition
-  SaveToDataFrame(self, DataEng);
+  SaveToDFE(self, DataEng);
   DataEng.FastEncodeTo(stream);
   DisposeObject(DataEng);
 end;
 
-class function TOpCode.LoadFromStream(stream: TCore_Stream; out LoadedOp: TOpCode): Boolean;
+class function TOpCode.LoadFromStream(stream: TCore_Stream; var LoadedOp: TOpCode): Boolean;
 begin
   Result := LoadOpFromStream(stream, LoadedOp);
 end;
@@ -1768,26 +2175,26 @@ var
 begin
   new(p);
 
-  if Obj.Owner <> nil then
+  if Obj.FOwner <> nil then
       p^.Op := Obj.Clone
   else
       p^.Op := Obj;
 
-  p^.Op.Owner := self;
+  p^.Op.FOwner := self;
 
   p^.Value := NULL;
   p^.ValueType := ovtUnknow;
   Result := FParam.Add(p);
 end;
 
-function TOpCode.Clone: TOpCode;
+function TOpCode.Clone(): TOpCode;
 var
   i: Integer;
   p: POpData__;
 begin
-  Result := opClass(self.ClassType).Create(True);
-  Result.Parsed_Info := self.Parsed_Info;
-  Result.Parsed_Line_Num := self.Parsed_Line_Num;
+  Result := TOp_Class(self.ClassType).Create(True);
+  Result.Parsed_Info := Parsed_Info;
+  Result.Parsed_Line_Num := Parsed_Line_Num;
 
   for i := 0 to FParam.Count - 1 do
     begin
@@ -1799,20 +2206,25 @@ begin
     end;
 end;
 
+function TOpCode.GetParam(index: Integer): POpData__;
+begin
+  Result := FParam[index];
+end;
+
 function TOpCode.Count: Integer;
 begin
   Result := FParam.Count;
 end;
 
-function TOpCode.Execute: Variant;
+function TOpCode.OpCode_Execute: Variant;
 begin
-  Result := Execute(SystemOpRunTime);
+  Result := OpCode_Execute(SystemOpRunTime);
 end;
 
-function TOpCode.Execute(opRT: TOpCustomRunTime): Variant;
+function TOpCode.OpCode_Execute(opRT: TOpCustomRunTime): Variant;
 begin
   try
-      EvaluateParam(opRT);
+      OpCode_EvaluateParam(opRT);
   except
     Result := NULL;
     Exit;
@@ -1825,12 +2237,484 @@ begin
   end;
 end;
 
-function TOpCode.OwnerRoot: TOpCode;
+function TOpCode.Execute: Variant;
 begin
-  if Owner = nil then
+  Result := OpCode_Execute();
+end;
+
+function TOpCode.Execute(opRT: TOpCustomRunTime): Variant;
+begin
+  Result := OpCode_Execute(opRT);
+end;
+
+function TOpCode.Owner_Root: TOpCode;
+begin
+  if FOwner = nil then
       Result := self
   else
-      Result := Owner.OwnerRoot;
+      Result := FOwner.Owner_Root;
+end;
+
+procedure TOpCode_NonLinear_Pool.Do_Post_Execute(Data1: Pointer);
+var
+  p: PPost_Data___;
+begin
+  p := Data1;
+  if Assigned(p^.On_Done_C) then
+      Execute_C(p^.TS_, p^.Expression_, p^.opRT_, p^.On_Done_C)
+  else if Assigned(p^.On_Done_M) then
+      Execute_M(p^.TS_, p^.Expression_, p^.opRT_, p^.On_Done_M)
+  else if Assigned(p^.On_Done_P) then
+      Execute_P(p^.TS_, p^.Expression_, p^.opRT_, p^.On_Done_P)
+  else
+      Execute(p^.TS_, p^.Expression_, p^.opRT_);
+
+  p^.Expression_ := '';
+  Dispose(p);
+end;
+
+constructor TOpCode_NonLinear_Pool.Create;
+begin
+  inherited Create;
+  FPost___ := TThreadPost.Create(0);
+end;
+
+destructor TOpCode_NonLinear_Pool.Destroy;
+begin
+  FPost___.Progress(0);
+  Clear;
+  DisposeObject(FPost___);
+  inherited Destroy;
+end;
+
+procedure TOpCode_NonLinear_Pool.DoFree(var Data: TOpCode_NonLinear);
+begin
+  if Data <> nil then
+    begin
+      Data.FOwner_Pool_Ptr := nil;
+      DisposeObjectAndNil(Data);
+    end;
+  inherited DoFree(Data);
+end;
+
+procedure TOpCode_NonLinear_Pool.Process;
+begin
+  try
+    if FPost___.Num > 0 then
+        FPost___.Progress(0);
+    if Num > 0 then
+      begin
+        Free_Recycle_Pool;
+        with repeat_ do
+          repeat
+            if (queue^.Data <> nil) then
+              begin
+                if (not queue^.Data.Is_Running) and (queue^.Data.First_Execute_Done) then
+                    Push_To_Recycle_Pool(queue)
+                else
+                    queue^.Data.Process;
+              end;
+          until not Next;
+        Free_Recycle_Pool;
+      end;
+  except
+  end;
+end;
+
+function TOpCode_NonLinear_Pool.Prepare(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime): TOpCode_NonLinear;
+begin
+  Result := TOpCode_NonLinear.Create_From_Expression(TS_, Expression_, opRT_);
+  Result.FOwner_Pool_Ptr := Add(Result);
+end;
+
+procedure TOpCode_NonLinear_Pool.Execute(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+begin
+  Prepare(TS_, Expression_, opRT_).Execute();
+end;
+
+procedure TOpCode_NonLinear_Pool.Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
+var
+  NonLinear_: TOpCode_NonLinear;
+begin
+  NonLinear_ := Prepare(TS_, Expression_, opRT_);
+  NonLinear_.On_Done_C := On_Done_C;
+  NonLinear_.Execute;
+end;
+
+procedure TOpCode_NonLinear_Pool.Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
+var
+  NonLinear_: TOpCode_NonLinear;
+begin
+  NonLinear_ := Prepare(TS_, Expression_, opRT_);
+  NonLinear_.On_Done_M := On_Done_M;
+  NonLinear_.Execute;
+end;
+
+procedure TOpCode_NonLinear_Pool.Execute_P(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_P: TOn_OpCode_NonLinear_Done_P);
+var
+  NonLinear_: TOpCode_NonLinear;
+begin
+  NonLinear_ := Prepare(TS_, Expression_, opRT_);
+  NonLinear_.On_Done_P := On_Done_P;
+  NonLinear_.Execute;
+end;
+
+procedure TOpCode_NonLinear_Pool.Post_Execute(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+var
+  p: PPost_Data___;
+begin
+  new(p);
+  p^.TS_ := TS_;
+  p^.Expression_ := Expression_;
+  p^.opRT_ := opRT_;
+  p^.On_Done_C := nil;
+  p^.On_Done_M := nil;
+  p^.On_Done_P := nil;
+  FPost___.PostM2(p, Do_Post_Execute);
+end;
+
+procedure TOpCode_NonLinear_Pool.Post_Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
+var
+  p: PPost_Data___;
+begin
+  new(p);
+  p^.TS_ := TS_;
+  p^.Expression_ := Expression_;
+  p^.opRT_ := opRT_;
+  p^.On_Done_C := On_Done_C;
+  p^.On_Done_M := nil;
+  p^.On_Done_P := nil;
+  FPost___.PostM2(p, Do_Post_Execute);
+end;
+
+procedure TOpCode_NonLinear_Pool.Post_Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
+var
+  p: PPost_Data___;
+begin
+  new(p);
+  p^.TS_ := TS_;
+  p^.Expression_ := Expression_;
+  p^.opRT_ := opRT_;
+  p^.On_Done_C := nil;
+  p^.On_Done_M := On_Done_M;
+  p^.On_Done_P := nil;
+  FPost___.PostM2(p, Do_Post_Execute);
+end;
+
+procedure TOpCode_NonLinear_Pool.Post_Execute_P(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_P: TOn_OpCode_NonLinear_Done_P);
+var
+  p: PPost_Data___;
+begin
+  new(p);
+  p^.TS_ := TS_;
+  p^.Expression_ := Expression_;
+  p^.opRT_ := opRT_;
+  p^.On_Done_C := nil;
+  p^.On_Done_M := nil;
+  p^.On_Done_P := On_Done_P;
+  FPost___.PostM2(p, Do_Post_Execute);
+end;
+
+procedure TOpCode_NonLinear_Pool.Post_Execute_Vector_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+var
+  i: Integer;
+  T: TTextParsing;
+  L: TPascalStringList;
+begin
+  if IsNullExpression(Expression_, TS_) then
+      Exit;
+  if IsSymbolVectorExpression(Expression_, TS_) then
+    begin
+      T := TTextParsing.Create(Expression_, TS_, nil, SpacerSymbol.v);
+      L := TPascalStringList.Create;
+      if T.Extract_Symbol_Vector(L) then
+        for i := 0 to L.Count - 1 do
+            Post_Execute(TS_, L[i], opRT_);
+      DisposeObject(T);
+      DisposeObject(L);
+    end
+  else
+      Post_Execute(TS_, Expression_, opRT_);
+end;
+
+class procedure TOpCode_NonLinear_Pool.Test_Post_Execute();
+{$IFDEF DELPHI}
+var
+  rt: TOpCustomRunTime;
+  inst: TOpCode_NonLinear_Pool;
+{$ENDIF DELPHI}
+begin
+{$IFDEF DELPHI}
+  rt := TOpCustomRunTime.Create;
+  rt.Reg_Code_OpP('test_delay', '', function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant
+    begin
+      Result := 'error';
+      OP_Code.NonLinear.Do_Begin;
+      TCompute.RunP_NP(procedure
+        begin
+          TCompute.Sleep(2 * 1000);
+          OP_Code.NonLinear.Do_End('ok');
+        end);
+    end);
+  inst := TOpCode_NonLinear_Pool.Create;
+  inst.Post_Execute(tsC, 'print("test-"+test_delay)', rt);
+  while inst.Num + inst.FPost___.Num > 0 do
+      inst.Process;
+  DisposeObject(inst);
+  DisposeObject(rt);
+{$ENDIF DELPHI}
+end;
+
+procedure TOpCode_NonLinear.Build_Stack();
+  procedure Do_Build_OpCode(const OpCode_: TOpCode);
+  var
+    i: Integer;
+    p: POpData__;
+  begin
+    for i := 0 to OpCode_.FParam.Count - 1 do
+      begin
+        p := OpCode_.FParam[i];
+        if p^.Op <> nil then
+            Do_Build_OpCode(p^.Op);
+        FStack___.Push(p);
+      end;
+    OpCode_.NonLinear := self;
+  end;
+
+begin
+  Do_Build_OpCode(FRoot_OpCode);
+end;
+
+procedure TOpCode_NonLinear.Reset_Stack;
+  procedure Do_Reset_(const OpCode_: TOpCode);
+  var
+    i: Integer;
+    p: POpData__;
+  begin
+    for i := 0 to OpCode_.FParam.Count - 1 do
+      begin
+        p := OpCode_.FParam[i];
+        if p^.Op <> nil then
+            Do_Reset_(p^.Op);
+      end;
+    OpCode_.NonLinear := nil;
+  end;
+
+begin
+  Do_Reset_(FRoot_OpCode);
+end;
+
+procedure TOpCode_NonLinear.Do_Init;
+begin
+  FOwner_Pool_Ptr := nil;
+  FStack___ := TOpCode_NonLinear_Stack.Create;
+  FFirst_Execute_Done := False;
+  FIs_Running := False;
+  FIs_Wait_End := False;
+  FEnd_Result := NULL;
+  FOn_Done_C := nil;
+  FOn_Done_M := nil;
+  FOn_Done_P := nil;
+  FOn_Step_C := nil;
+  FOn_Step_M := nil;
+  FOn_Step_P := nil;
+  Build_Stack();
+end;
+
+constructor TOpCode_NonLinear.Create_From_OpCode(Auto_Free_OpCode_: Boolean; Root_OpCode_: TOpCode; opRT_: TOpCustomRunTime);
+begin
+  inherited Create;
+  FAuto_Free_OpCode := Auto_Free_OpCode_;
+  FRoot_OpCode := Root_OpCode_;
+  FOpCode_RunTime := opRT_;
+  Do_Init();
+end;
+
+constructor TOpCode_NonLinear.Create_From_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
+var
+  exp_: SystemString;
+begin
+  inherited Create;
+  FAuto_Free_OpCode := True;
+  if IsNullExpression(Expression_, TS_) then
+      exp_ := 'Nop'
+  else if IsSymbolVectorExpression(Expression_, TS_) then
+      RaiseInfo('TOpCode_NonLinear does not support vector and matrix expressions.' + #13#10 +
+      'Please use TExpression_Sequence to solve the running of vector and matrix expressions.')
+  else
+      exp_ := Expression_;
+  FRoot_OpCode := BuildAsOpCode({$IFDEF Print_OPCode_Debug}True{$ELSE Print_OPCode_Debug}False{$ENDIF Print_OPCode_Debug}, TS_, exp_, opRT_);
+
+  if FRoot_OpCode = nil then
+    begin
+      DoStatus('Fatal error during compilation %s', [exp_]);
+      FRoot_OpCode := BuildAsOpCode(False, tsPascal, 'Nop', opRT_);
+    end;
+  FOpCode_RunTime := opRT_;
+  Do_Init();
+end;
+
+destructor TOpCode_NonLinear.Destroy;
+begin
+  if FOwner_Pool_Ptr <> nil then
+    begin
+      FOwner_Pool_Ptr^.Data := nil;
+      FOwner_Pool_Ptr^.Instance___.Remove_P(FOwner_Pool_Ptr);
+      FOwner_Pool_Ptr := nil;
+    end;
+
+  Reset_Stack;
+  DisposeObjectAndNil(FStack___);
+  FEnd_Result := NULL;
+  if FAuto_Free_OpCode then
+      DisposeObjectAndNil(FRoot_OpCode);
+  inherited Destroy;
+end;
+
+procedure TOpCode_NonLinear.Execute();
+begin
+  if FFirst_Execute_Done or FIs_Running or FIs_Wait_End or (FStack___.Num <= 0) then
+      Exit;
+
+  FFirst_Execute_Done := True;
+  FIs_Running := True;
+  FIs_Wait_End := False;
+
+  while FStack___.Num > 0 do
+    begin
+      if FStack___.First^.Data^.Op <> nil then
+        begin
+          try
+            FStack___.First^.Data^.Value := FStack___.First^.Data^.Op.DoExecute(FOpCode_RunTime);
+            if Assigned(FOn_Step_C) then
+                FOn_Step_C(self, FStack___.First^.Data^.Op);
+            if Assigned(FOn_Step_M) then
+                FOn_Step_M(self, FStack___.First^.Data^.Op);
+            if Assigned(FOn_Step_P) then
+                FOn_Step_P(self, FStack___.First^.Data^.Op);
+          except
+            FIs_Running := False;
+            FIs_Wait_End := False;
+            FEnd_Result := NULL;
+            FStack___.Clear;
+            Exit;
+          end;
+        end;
+      FEnd_Result := FStack___.First^.Data^.Value;
+      if FIs_Wait_End then
+          Exit;
+      FStack___.Next;
+    end;
+
+  // compute root-OpCode
+  FEnd_Result := FRoot_OpCode.DoExecute(FOpCode_RunTime);
+
+  FIs_Running := False;
+  FIs_Wait_End := False;
+  Reset_Stack();
+  if Assigned(FOn_Done_C) then
+      FOn_Done_C(self);
+  if Assigned(FOn_Done_M) then
+      FOn_Done_M(self);
+  if Assigned(FOn_Done_P) then
+      FOn_Done_P(self);
+end;
+
+procedure TOpCode_NonLinear.Do_Begin();
+begin
+  FIs_Wait_End := True;
+end;
+
+procedure TOpCode_NonLinear.Do_End();
+begin
+  FIs_Wait_End := False;
+end;
+
+procedure TOpCode_NonLinear.Do_End(Result___: Variant);
+begin
+  FEnd_Result := Result___;
+  Do_End();
+end;
+
+procedure TOpCode_NonLinear.Do_Error;
+begin
+  FEnd_Result := NULL;
+  Do_End();
+end;
+
+procedure TOpCode_NonLinear.Process;
+begin
+  if FIs_Wait_End or (not FIs_Running) or (FStack___.Num <= 0) then
+      Exit;
+
+  FStack___.First^.Data^.Value := FEnd_Result;
+  FStack___.Next;
+  while FStack___.Num > 0 do
+    begin
+      if FStack___.First^.Data^.Op <> nil then
+        begin
+          try
+            FStack___.First^.Data^.Value := FStack___.First^.Data^.Op.DoExecute(FOpCode_RunTime);
+            if Assigned(FOn_Step_C) then
+                FOn_Step_C(self, FStack___.First^.Data^.Op);
+            if Assigned(FOn_Step_M) then
+                FOn_Step_M(self, FStack___.First^.Data^.Op);
+            if Assigned(FOn_Step_P) then
+                FOn_Step_P(self, FStack___.First^.Data^.Op);
+          except
+            FIs_Running := False;
+            FIs_Wait_End := False;
+            FEnd_Result := NULL;
+            FStack___.Clear;
+            Exit;
+          end;
+        end;
+      FEnd_Result := FStack___.First^.Data^.Value;
+      if FIs_Wait_End then
+          Exit;
+      FStack___.Next;
+    end;
+
+  // compute root-OpCode
+  FEnd_Result := FRoot_OpCode.DoExecute(FOpCode_RunTime);
+
+  FIs_Running := False;
+  FIs_Wait_End := False;
+  Reset_Stack();
+  if Assigned(FOn_Done_C) then
+      FOn_Done_C(self);
+  if Assigned(FOn_Done_M) then
+      FOn_Done_M(self);
+  if Assigned(FOn_Done_P) then
+      FOn_Done_P(self);
+end;
+
+class procedure TOpCode_NonLinear.Test();
+{$IFDEF DELPHI}
+var
+  rt: TOpCustomRunTime;
+  inst: TOpCode_NonLinear;
+{$ENDIF DELPHI}
+begin
+{$IFDEF DELPHI}
+  rt := TOpCustomRunTime.Create;
+  rt.Reg_Code_OpP('test_delay', '', function(Sender: TOpCustomRunTime; OP_RT_Data: POpRTData; OP_Code: TOpCode; var OP_Param: TOpParam): Variant
+    begin
+      Result := 'error';
+      OP_Code.NonLinear.Do_Begin;
+      TCompute.RunP_NP(procedure
+        begin
+          TCompute.Sleep(2 * 1000);
+          OP_Code.NonLinear.Do_End('ok');
+        end);
+    end);
+  inst := TOpCode_NonLinear.Create_From_Expression(tsC, 'print("test-"+test_delay)', rt);
+  inst.Execute;
+  while inst.Is_Running do
+      inst.Process;
+  DisposeObject(inst);
+  DisposeObject(rt);
+{$ENDIF DELPHI}
 end;
 
 { op_Value }
@@ -1877,20 +2761,25 @@ begin
       else
           SetLength(tmp_Param, 0);
 
-      opRT.Trigger := p;
       focus_runtime.Begin_Op_Proc(self);
-      if Assigned(p^.OnOp_C) then
-          Result := p^.OnOp_C(tmp_Param);
-      if Assigned(p^.OnOp_M) then
-          Result := p^.OnOp_M(tmp_Param);
-      if Assigned(p^.OnOp_P) then
-          Result := p^.OnOp_P(tmp_Param);
-      if Assigned(p^.OnObjectOp_C) then
-          Result := p^.OnObjectOp_C(opRT, tmp_Param);
-      if Assigned(p^.OnObjectOp_M) then
-          Result := p^.OnObjectOp_M(opRT, tmp_Param);
-      if Assigned(p^.OnObjectOp_P) then
-          Result := p^.OnObjectOp_P(opRT, tmp_Param);
+      if Assigned(p^.On_Param_Op_C) then
+          Result := p^.On_Param_Op_C(tmp_Param)
+      else if Assigned(p^.On_Param_Op_M) then
+          Result := p^.On_Param_Op_M(tmp_Param)
+      else if Assigned(p^.On_Param_Op_P) then
+          Result := p^.On_Param_Op_P(tmp_Param)
+      else if Assigned(p^.On_RT_Op_C) then
+          Result := p^.On_RT_Op_C(opRT, p, tmp_Param)
+      else if Assigned(p^.On_RT_Op_M) then
+          Result := p^.On_RT_Op_M(opRT, p, tmp_Param)
+      else if Assigned(p^.On_RT_Op_P) then
+          Result := p^.On_RT_Op_P(opRT, p, tmp_Param)
+      else if Assigned(p^.On_Code_Op_C) then
+          Result := p^.On_Code_Op_C(opRT, p, self, tmp_Param)
+      else if Assigned(p^.On_Code_Op_M) then
+          Result := p^.On_Code_Op_M(opRT, p, self, tmp_Param)
+      else if Assigned(p^.On_Code_Op_P) then
+          Result := p^.On_Code_Op_P(opRT, p, self, tmp_Param);
       focus_runtime.End_Op_Proc(self, Result);
       SetLength(tmp_Param, 0);
     end
@@ -2213,7 +3102,7 @@ OpSystemAPI := TOpSystemAPI.Create;
 SystemOpRunTime := TOpCustomRunTime.Create;
 OpSystemAPI.RegistationSystemAPI(SystemOpRunTime);
 OleVariantInt64AsDouble := True;
-OpList := TOpList.Create;
+OpRegTool := TOpReg_Tool.Create;
 
 RegisterOp(op_Value);
 RegisterOp(op_Proc);
@@ -2240,8 +3129,15 @@ RegisterOp(op_NotEqual);
 RegisterOp(op_Symbol_Sub);
 RegisterOp(op_Symbol_Add);
 
+System_NonLinear_Pool := TOpCode_NonLinear_Pool.Create;
+Hooked_OnCheckThreadSynchronize := Z.Core.OnCheckThreadSynchronize;
+Z.Core.OnCheckThreadSynchronize := DoCheckThreadSynchronize;
+
 finalization
 
+Z.Core.OnCheckThreadSynchronize := Hooked_OnCheckThreadSynchronize;
+
+DisposeObject(System_NonLinear_Pool);
 DisposeObject(OpSystemAPI);
 DisposeObject(SystemOpRunTime);
 FreeOpRegClass;

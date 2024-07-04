@@ -15,7 +15,7 @@ object C40AppTempletForm: TC40AppTempletForm
   Font.Name = 'Tahoma'
   OnClose = FormClose
   Position = poScreenCenter
-  LCLVersion = '2.2.6.0'
+  LCLVersion = '3.0.0.3'
   object botSplitter: TSplitter
     Cursor = crVSplit
     Left = 0
@@ -61,6 +61,7 @@ object C40AppTempletForm: TC40AppTempletForm
         Caption = 'DependPanel'
         ClientHeight = 147
         ClientWidth = 692
+        ParentBackground = False
         TabOrder = 0
         object DependNetToolPanel: TPanel
           Left = 0
@@ -72,6 +73,7 @@ object C40AppTempletForm: TC40AppTempletForm
           ClientHeight = 32
           ClientWidth = 692
           DoubleBuffered = True
+          ParentBackground = False
           ParentDoubleBuffered = False
           TabOrder = 0
           object JoinHostEdit: TLabeledEdit
@@ -105,8 +107,8 @@ object C40AppTempletForm: TC40AppTempletForm
             Width = 71
             Anchors = [akTop, akRight]
             Caption = 'Build Tunnel'
-            OnClick = BuildDependNetButtonClick
             TabOrder = 5
+            OnClick = BuildDependNetButtonClick
           end
           object resetDependButton: TButton
             Left = 648
@@ -115,8 +117,8 @@ object C40AppTempletForm: TC40AppTempletForm
             Width = 42
             Anchors = [akTop, akRight]
             Caption = 'Reset'
-            OnClick = resetDependButtonClick
             TabOrder = 6
+            OnClick = resetDependButtonClick
           end
           object DependEdit: TLabeledEdit
             Left = 283
@@ -191,6 +193,7 @@ object C40AppTempletForm: TC40AppTempletForm
         BevelOuter = bvNone
         ClientHeight = 186
         ClientWidth = 692
+        ParentBackground = False
         TabOrder = 1
         object ServiceToolPanel: TPanel
           Left = 0
@@ -202,6 +205,7 @@ object C40AppTempletForm: TC40AppTempletForm
           ClientHeight = 30
           ClientWidth = 692
           DoubleBuffered = True
+          ParentBackground = False
           ParentDoubleBuffered = False
           TabOrder = 0
           object ServListeningIPEdit: TLabeledEdit
@@ -250,8 +254,8 @@ object C40AppTempletForm: TC40AppTempletForm
             Width = 78
             Anchors = [akTop, akRight]
             Caption = 'Build Service'
-            OnClick = ServBuildNetButtonClick
             TabOrder = 4
+            OnClick = ServBuildNetButtonClick
           end
           object ServiceResetButton: TButton
             Left = 648
@@ -260,8 +264,8 @@ object C40AppTempletForm: TC40AppTempletForm
             Width = 42
             Anchors = [akTop, akRight]
             Caption = 'Reset'
-            OnClick = ServiceResetButtonClick
             TabOrder = 5
+            OnClick = ServiceResetButtonClick
           end
           object ServIPEdit: TLabeledEdit
             Left = 179
@@ -410,8 +414,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 196
         Width = 26
         Caption = '..'
-        OnClick = SelRootDirButtonClick
         TabOrder = 8
+        OnClick = SelRootDirButtonClick
       end
       object passwdEdit: TLabeledEdit
         Left = 175
@@ -431,8 +435,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 252
         Width = 75
         Caption = 'Apply'
-        OnClick = ApplyOptButtonClick
         TabOrder = 10
+        OnClick = ApplyOptButtonClick
       end
       object ResetOptButton: TButton
         Left = 256
@@ -440,8 +444,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 252
         Width = 75
         Caption = 'Reset'
-        OnClick = ResetOptButtonClick
         TabOrder = 11
+        OnClick = ResetOptButtonClick
       end
     end
     object LocalServiceStates_TabSheet: TTabSheet
@@ -479,9 +483,9 @@ object C40AppTempletForm: TC40AppTempletForm
         BorderStyle = bsNone
         DoubleBuffered = True
         ItemHeight = 0
-        OnClick = ServInfoPhyAddrListBoxClick
         ParentDoubleBuffered = False
         TabOrder = 1
+        OnClick = ServInfoPhyAddrListBoxClick
       end
     end
     object TunnelStatesTabSheet: TTabSheet
@@ -519,9 +523,9 @@ object C40AppTempletForm: TC40AppTempletForm
         BorderStyle = bsNone
         DoubleBuffered = True
         ItemHeight = 0
-        OnClick = TunnelInfoPhyAddrListBoxClick
         ParentDoubleBuffered = False
         TabOrder = 1
+        OnClick = TunnelInfoPhyAddrListBoxClick
       end
     end
     object SaaS_Network_States_TabSheet: TTabSheet
@@ -578,8 +582,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 268
         Width = 85
         Caption = 'Generate'
-        OnClick = GenerateCmdLineButtonClick
         TabOrder = 8
+        OnClick = GenerateCmdLineButtonClick
       end
       object cmdLineTitleEdit: TLabeledEdit
         Left = 98
@@ -665,8 +669,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 268
         Width = 113
         Caption = 'Generate Console '
-        OnClick = Generate_Console_CmdLineButtonClick
         TabOrder = 9
+        OnClick = Generate_Console_CmdLineButtonClick
       end
     end
   end
@@ -679,6 +683,7 @@ object C40AppTempletForm: TC40AppTempletForm
     BevelOuter = bvNone
     ClientHeight = 125
     ClientWidth = 700
+    ParentBackground = False
     TabOrder = 1
     object logMemo: TMemo
       Left = 0
@@ -701,6 +706,7 @@ object C40AppTempletForm: TC40AppTempletForm
       Anchors = [akRight, akBottom]
       ClientHeight = 35
       ClientWidth = 265
+      ParentBackground = False
       TabOrder = 1
       object cmdEdit: TLabeledEdit
         Left = 64
@@ -721,8 +727,8 @@ object C40AppTempletForm: TC40AppTempletForm
         Top = 6
         Width = 35
         Caption = 'Run'
-        OnClick = run_Cmd_ButtonClick
         TabOrder = 1
+        OnClick = run_Cmd_ButtonClick
       end
     end
   end

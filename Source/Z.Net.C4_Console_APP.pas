@@ -58,7 +58,7 @@ type
 
   TCommand_Script = class(TCore_Object_Intermediate)
   private
-    function Do_Config(var OP_Param: TOpParam): Variant;
+    function Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
     function Do_KeepAlive_Client(var OP_Param: TOpParam): Variant;
     function Do_AutoClient(var OP_Param: TOpParam): Variant;
     function Do_Client(var OP_Param: TOpParam): Variant;
@@ -87,16 +87,16 @@ begin
   KeepAlive_Connected := False;
 end;
 
-function TCommand_Script.Do_Config(var OP_Param: TOpParam): Variant;
+function TCommand_Script.Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 begin
   if length(OP_Param) > 0 then
     begin
-      Config.SetDefaultValue(opRT.Trigger^.Name, VarToStr(OP_Param[0]));
+      Config.SetDefaultValue(OP_RT_Data^.Name, VarToStr(OP_Param[0]));
       Result := True;
       ConfigIsUpdate := True;
     end
   else
-      Result := Config[opRT.Trigger^.Name];
+      Result := Config[OP_RT_Data^.Name];
 end;
 
 function TCommand_Script.Do_KeepAlive_Client(var OP_Param: TOpParam): Variant;
@@ -225,44 +225,44 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
     begin
-      opRT.RegOpM(L[i], Do_Config)^.Category := 'C4 Param variant';
+      opRT.Reg_RT_OpM(L[i], Do_Config)^.Category := 'C4 Param variant';
     end;
   disposeObject(L);
 
-  opRT.RegOpM('KeepAlive', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveClient', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveCli', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveTunnel', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveConnect', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveConnection', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveNet', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('KeepAliveBuild', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAlive', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveClient', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveCli', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveTunnel', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveConnect', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveConnection', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveNet', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('KeepAliveBuild', Do_KeepAlive_Client)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Auto', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoClient', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoCli', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoTunnel', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoConnect', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoConnection', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoNet', Do_AutoClient)^.Category := 'C4 Param Command';
-  opRT.RegOpM('AutoBuild', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Auto', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoClient', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoCli', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoTunnel', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoConnect', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoConnection', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoNet', Do_AutoClient)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('AutoBuild', Do_AutoClient)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Client', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Cli', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Tunnel', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Connect', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Connection', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Net', Do_Client)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Build', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Client', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Cli', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Tunnel', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Connect', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Connection', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Net', Do_Client)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Build', Do_Client)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Service', Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Server', Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Serv', Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Listen', Do_Service)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Listening', Do_Service)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Service', Do_Service)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Server', Do_Service)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Serv', Do_Service)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Listen', Do_Service)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Listening', Do_Service)^.Category := 'C4 Param Command';
 
-  opRT.RegOpM('Wait', Do_Sleep)^.Category := 'C4 Param Command';
-  opRT.RegOpM('Sleep', Do_Sleep)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Wait', Do_Sleep)^.Category := 'C4 Param Command';
+  opRT.Reg_Param_OpM('Sleep', Do_Sleep)^.Category := 'C4 Param Command';
 end;
 
 procedure TCommand_Script.Execute(Expression: U_String);

@@ -313,6 +313,8 @@
 // When using the ZDB2 engine in the ZNet-C4 framework Safe Flush technology, prioritize the use of Safe Flush technology
 {$DEFINE C4_Safe_Flush}
 
+// Print the structure and debugging information of OPCode
+{$UNDEF Print_OPCode_Debug}
 
 {$IFDEF DEBUG}
   // initialization status prompt

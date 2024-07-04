@@ -217,7 +217,7 @@ type
 
   TCommand_Script = class
   private
-    function Do_Config(var OP_Param: TOpParam): variant;
+    function Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): variant;
     function Do_AutoClient(var OP_Param: TOpParam): variant;
     function Do_Client(var OP_Param: TOpParam): variant;
     function Do_Service(var OP_Param: TOpParam): variant;
@@ -234,16 +234,16 @@ type
     procedure Parsing(Expression: U_String);
   end;
 
-function TCommand_Script.Do_Config(var OP_Param: TOpParam): variant;
+function TCommand_Script.Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): variant;
 begin
   if length(OP_Param) > 0 then
   begin
-    Config.SetDefaultValue(opRT.Trigger^.Name, VarToStr(OP_Param[0]));
+    Config.SetDefaultValue(OP_RT_Data^.Name, VarToStr(OP_Param[0]));
     Result := True;
     ConfigIsUpdate := True;
   end
   else
-    Result := Config[opRT.Trigger^.Name];
+    Result := Config[OP_RT_Data^.Name];
 end;
 
 function TCommand_Script.Do_AutoClient(var OP_Param: TOpParam): variant;
@@ -346,7 +346,7 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
   begin
-    opRT.RegOpM(L[i],
+    opRT.RegObjectOpM(L[i],
 {$IFDEF FPC}@{$ENDIF FPC}
       Do_Config);
   end;

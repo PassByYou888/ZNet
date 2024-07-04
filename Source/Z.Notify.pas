@@ -798,6 +798,8 @@ end;
 
 procedure TCadencer_N_Progress_Tool.Progress;
 begin
+  if FPostExecute_Pool.Num <= 0 then
+      Exit;
   FCadencerEngine.Progress;
 end;
 

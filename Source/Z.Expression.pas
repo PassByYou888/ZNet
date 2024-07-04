@@ -2647,12 +2647,12 @@ end;
 
 function BuildAsOpCode(SymbExps: TSymbolExpression): TOpCode;
 begin
-  Result := BuildAsOpCode(False, SymbExps, '', 0);
+  Result := BuildAsOpCode(False, SymbExps, 'Main', -1);
 end;
 
 function BuildAsOpCode(DebugMode: Boolean; SymbExps: TSymbolExpression): TOpCode;
 begin
-  Result := BuildAsOpCode(DebugMode, SymbExps, '', 0);
+  Result := BuildAsOpCode(DebugMode, SymbExps, 'Main', -1);
 end;
 
 function BuildAsOpCode(DebugMode: Boolean; TextStyle: TTextStyle; ExpressionText: SystemString): TOpCode;
@@ -2662,7 +2662,7 @@ var
 begin
   tmp := nil;
   sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, SystemOpRunTime);
-  Result := BuildAsOpCode(DebugMode, sym, '', 0);
+  Result := BuildAsOpCode(DebugMode, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2673,7 +2673,7 @@ var
 begin
   tmp := nil;
   sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, SystemOpRunTime);
-  Result := BuildAsOpCode(False, sym, '', 0);
+  Result := BuildAsOpCode(False, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2682,7 +2682,7 @@ var
   sym: TSymbolExpression;
 begin
   sym := ParseTextExpressionAsSymbol(ExpressionText);
-  Result := BuildAsOpCode(False, sym, '', 0);
+  Result := BuildAsOpCode(False, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2693,7 +2693,7 @@ var
 begin
   tmp := nil;
   sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, RefrenceOpRT);
-  Result := BuildAsOpCode(DebugMode, sym, '', 0);
+  Result := BuildAsOpCode(DebugMode, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2704,7 +2704,7 @@ var
 begin
   tmp := nil;
   sym := ParseTextExpressionAsSymbol(TextStyle, '', ExpressionText, tmp, RefrenceOpRT);
-  Result := BuildAsOpCode(False, sym, '', 0);
+  Result := BuildAsOpCode(False, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2713,7 +2713,7 @@ var
   sym: TSymbolExpression;
 begin
   sym := ParseTextExpressionAsSymbol(ExpressionText, RefrenceOpRT);
-  Result := BuildAsOpCode(False, sym, '', 0);
+  Result := BuildAsOpCode(False, sym, 'Main', -1);
   DisposeObject(sym);
 end;
 
@@ -2733,7 +2733,11 @@ begin
   if (Op <> nil) and (UsedCache) then
     begin
       try
-          Result := Op.Execute(SystemOpRunTime);
+        with Op.Clone do
+          begin
+            Result := OpCode_Execute(SystemOpRunTime);
+            Free;
+          end;
       except
           Result := NULL;
       end;
@@ -2749,7 +2753,7 @@ begin
           if Op <> nil then
             begin
               try
-                Result := Op.Execute(SystemOpRunTime);
+                Result := Op.OpCode_Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
                     OpCache.Add(ExpressionText, Op, True);
@@ -2781,7 +2785,11 @@ begin
   if (Op <> nil) and (UsedCache) then
     begin
       try
-          Result := Op.Execute(SystemOpRunTime);
+        with Op.Clone do
+          begin
+            Result := Op.OpCode_Execute(SystemOpRunTime);
+            Free;
+          end;
       except
           Result := NULL;
       end;
@@ -2797,7 +2805,7 @@ begin
           if Op <> nil then
             begin
               try
-                Result := Op.Execute(SystemOpRunTime);
+                Result := Op.OpCode_Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
                     OpCache.Add(ExpressionText, Op, True);
@@ -2829,7 +2837,11 @@ begin
   if (Op <> nil) and (UsedCache) then
     begin
       try
-          Result := Op.Execute(SystemOpRunTime);
+        with Op.Clone do
+          begin
+            Result := Op.OpCode_Execute(SystemOpRunTime);
+            Free;
+          end;
       except
           Result := NULL;
       end;
@@ -2845,7 +2857,7 @@ begin
           if Op <> nil then
             begin
               try
-                Result := Op.Execute(SystemOpRunTime);
+                Result := Op.OpCode_Execute(SystemOpRunTime);
                 if UsedCache then
                   begin
                     OpCache.Add(ExpressionText, Op, True);
@@ -2954,7 +2966,11 @@ begin
   if (Op <> nil) and (UsedCache) and (const_vl = nil) then
     begin
       try
-          Result := Op.Execute(opRT);
+        with Op.Clone do
+          begin
+            Result := Op.OpCode_Execute(opRT);
+            Free;
+          end;
       except
           Result := NULL;
       end;
@@ -2973,7 +2989,7 @@ begin
           if Op <> nil then
             begin
               try
-                Result := Op.Execute(opRT);
+                Result := Op.OpCode_Execute(opRT);
 
                 if (UsedCache) and (const_vl = nil) then
                   begin

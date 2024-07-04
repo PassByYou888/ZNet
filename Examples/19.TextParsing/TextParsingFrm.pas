@@ -188,7 +188,7 @@ begin
   op := BuildAsOpCode(tmpSym);
   DisposeObject(tmpSym);
   // 我们执行一次op
-  Memo5.Lines.Add(Format('op运行返回值(正确值为4489.2962): %s', [VarToStr(op.Execute(rt))]));
+  Memo5.Lines.Add(Format('op运行返回值(正确值为4489.2962): %s', [VarToStr(op.OpCode_Execute(rt))]));
 
   m64 := TMemoryStream64.Create;
   op.SaveToStream(m64);
@@ -200,7 +200,7 @@ begin
   m64.Position := 0;
   if LoadOpFromStream(m64, op) then
     begin
-      Memo5.Lines.Add(Format('op运行返回值(正确值为4489.2962): %s', [VarToStr(op.Execute(rt))]));
+      Memo5.Lines.Add(Format('op运行返回值(正确值为4489.2962): %s', [VarToStr(op.OpCode_Execute(rt))]));
     end;
 
   DisposeObject([op, rt, m64]);
@@ -515,7 +515,7 @@ begin
       op := BuildAsOpCode(sourTp.TextStyle, setAfter, rt);
 
       for i := low(myvars) to high(myvars) do
-          HashVars[myvars[i].TrimChar(#32).Text] := op.Execute(rt); // 做一次首尾空格裁剪后，执行op，并且批量的赋值
+          HashVars[myvars[i].TrimChar(#32).Text] := op.OpCode_Execute(rt); // 做一次首尾空格裁剪后，执行op，并且批量的赋值
 
       Memo5.Lines.Add('变量赋值内容');
       Memo5.Lines.Add(HashVars.AsText);
