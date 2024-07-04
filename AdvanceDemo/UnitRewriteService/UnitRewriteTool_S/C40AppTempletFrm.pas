@@ -183,7 +183,7 @@ type
 
   TCommand_Script = class
   private
-    function Do_Config(var OP_Param: TOpParam): Variant;
+    function Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
     function Do_AutoClient(var OP_Param: TOpParam): Variant;
     function Do_Client(var OP_Param: TOpParam): Variant;
     function Do_Service(var OP_Param: TOpParam): Variant;
@@ -200,16 +200,16 @@ type
     procedure Parsing(Expression: U_String);
   end;
 
-function TCommand_Script.Do_Config(var OP_Param: TOpParam): Variant;
+function TCommand_Script.Do_Config(OpRunTime: TOpCustomRunTime; OP_RT_Data: POpRTData; var OP_Param: TOpParam): Variant;
 begin
   if length(OP_Param) > 0 then
     begin
-      Config.SetDefaultValue(opRT.Trigger^.Name, VarToStr(OP_Param[0]));
+      Config.SetDefaultValue(OP_RT_Data^.Name, VarToStr(OP_Param[0]));
       Result := True;
       ConfigIsUpdate := True;
     end
   else
-      Result := Config[opRT.Trigger^.Name];
+      Result := Config[OP_RT_Data^.Name];
 end;
 
 function TCommand_Script.Do_AutoClient(var OP_Param: TOpParam): Variant;
@@ -312,34 +312,34 @@ begin
   Config.GetNameList(L);
   for i := 0 to L.Count - 1 do
     begin
-      opRT.RegOpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config);
+      opRT.Reg_RT_OpM(L[i], {$IFDEF FPC}@{$ENDIF FPC}Do_Config);
     end;
   disposeObject(L);
 
-  opRT.RegOpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
-  opRT.RegOpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('Auto', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoClient', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoCli', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoTunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoConnect', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoConnection', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoNet', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
+  opRT.Reg_Param_OpM('AutoBuild', {$IFDEF FPC}@{$ENDIF FPC}Do_AutoClient);
 
-  opRT.RegOpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
-  opRT.RegOpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Client', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Cli', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Tunnel', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Connect', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Connection', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Net', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
+  opRT.Reg_Param_OpM('Build', {$IFDEF FPC}@{$ENDIF FPC}Do_Client);
 
-  opRT.RegOpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
-  opRT.RegOpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.Reg_Param_OpM('Service', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.Reg_Param_OpM('Serv', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.Reg_Param_OpM('Listen', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
+  opRT.Reg_Param_OpM('Listening', {$IFDEF FPC}@{$ENDIF FPC}Do_Service);
 
-  opRT.RegOpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
-  opRT.RegOpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
+  opRT.Reg_Param_OpM('Wait', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
+  opRT.Reg_Param_OpM('Sleep', {$IFDEF FPC}@{$ENDIF FPC}Do_Sleep);
 end;
 
 procedure TCommand_Script.Parsing(Expression: U_String);
@@ -949,7 +949,6 @@ begin
         [custom_serv.ServiceInfo.p2pVM_RecvTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_RecvTunnel_Port]));
       dest.Add(Format('Send Tunnel IP: %s Port: %d',
         [custom_serv.ServiceInfo.p2pVM_SendTunnel_Addr.Text, custom_serv.ServiceInfo.p2pVM_SendTunnel_Port]));
-      dest.Add(Format('Workload: %d/%d', [custom_serv.ServiceInfo.Workload, custom_serv.ServiceInfo.MaxWorkload]));
       dest.Add(Format('Parameter', []));
       dest.Add(Format('{', []));
       dest.Add(#9 + umlReplace(custom_serv.ParamList.AsText, #13#10, #13#10#9, False, False));
@@ -1276,7 +1275,18 @@ begin
     cs.RegApi;
 
     for i := low(param_) to high(param_) do
-        cs.Parsing(param_[i]);
+      begin
+        // ignore none c4 param
+        if (not umlMultipleMatch([
+            '-Task:*', '-TaskID:*', // Protected Param
+            '-minimized', 'minimized', '-min', 'min', // Protected Param
+            '-Max_Mem_Protected:*', '-Max_Memory:*', '-Memory:*', '-Mem:*', 'mem:*', 'memory:*', // Protected Param
+            '-NUMA:*', 'NUMA:*', '-NODE:*', 'Node:*', // Protected Param
+            '-D3D', '-D3D', '-D2D', '-GPU', '-SOFT', '-GrayTheme', '-DefaultTheme' // fmx app param
+            ], C40AppParam[i])) and
+          ((Ignore_Command_Line.Count <= 0) or (not umlMultipleMatch(Ignore_Command_Line, C40AppParam[i]))) then
+            cs.Parsing(C40AppParam[i]);
+      end;
 
     if (not error_) and (cs.Client_NetInfo_List.Count > 0) then
       begin
