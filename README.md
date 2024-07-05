@@ -143,11 +143,11 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 - zExpression Cache机制调整:旧机制直接从cache池获取已编译好的OpCode使用,新机制调整为:从cache池获取已编译好的OpCode,这时候会copy一个OpCode副本,待OpCode运行后会释放该副本.
 - 移除OpCode中的Trigger机制:当传递方式在调用api前,会给trigger变量赋值当前OpCode实例(api运行焦点),当共用OpCodeRunTime实例时,将会导致多线程的安全问题.顾直接移除该机制.
 - 大幅更新:Z.Expression.Sequence.pas库内部工作机制的从物理堆栈运行模式更新为使用OpCode的非线性体系模式,TExpression_Sequence在app层使用方式保持不变.
-- Z.Expression.pas+z.OpCode.pas+Z.Expression.Sequence.pas,提升对线程的支持,已经运行于高并发后台的安全性
-- TOpCode_NonLinear对于支持vector expression说明:如果脚本中函数有**"a(),b()"**,这种vector表达式TOpCode_NonLinear不被直接支持的,需要使用TExpression_Sequence或TOpCode_NonLinear_Pool框架.
+- Z.Expression+Z.OpCode+Z.Expression.Sequence,提升对线程的支持,提升运行于高并发后台的安全性.
+- TOpCode_NonLinear对于支持vector expression说明:如果脚本中函数有a(),b(),这种vector表达式TOpCode_NonLinear不被直接支持的,需要使用TExpression_Sequence或TOpCode_NonLinear_Pool框架.
 - 由于使用TOpCode_NonLinear需要主循环框架,因此内置了喊主循环的多线程支持体系TOpCode_NonLinear_Pool
-- TOpCode_NonLinear体系设计是闭环的.没有设计遗漏.对于多线程并发和传递支持到位.
-- 本次新增TOpCode_NonLinear体系是追加模式,这也是新一代表达式地基,同时兼容老代码.
+- TOpCode_NonLinear体系设计是闭环的.没有设计遗漏.对于多线程并发和传递的支持度良好.
+- 新增TOpCode_NonLinear体系是追加模式,这也是新一代表达式地基,同时兼容老代码.
 - 全部demo已经编译测试通过.
 
 
