@@ -19,7 +19,7 @@ uses
   Z.Net.C4,
   Z.Net.C4_PascalRewrite_Service,
   Z.Net.C4_PascalRewrite_Client,
-  C40AppTempletFrm in 'C40AppTempletFrm.pas' {C40AppTempletForm};
+  C40AppTempletFrm in '..\..\..\C4AdminTools\Delphi-C4AppTemplet\C40AppTempletFrm.pas' {C40AppTempletForm};
 
 {$R *.res}
 

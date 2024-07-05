@@ -1,4 +1,4 @@
-﻿object UnitRewriteTool_C_Form: TUnitRewriteTool_C_Form
+object UnitRewriteTool_C_Form: TUnitRewriteTool_C_Form
   Left = 0
   Top = 0
   Caption = 'UnitRewrite Tool and Freature model.'

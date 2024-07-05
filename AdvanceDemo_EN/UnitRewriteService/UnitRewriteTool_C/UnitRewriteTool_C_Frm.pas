@@ -1,4 +1,4 @@
-﻿unit UnitRewriteTool_C_Frm;
+unit UnitRewriteTool_C_Frm;
 
 interface
 

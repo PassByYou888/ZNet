@@ -1,4 +1,4 @@
-﻿program UnitRewriteTool_C;
+program UnitRewriteTool_C;
 
 uses
   Vcl.Forms,
