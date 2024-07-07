@@ -325,6 +325,7 @@ type
     procedure Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
     procedure Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
     procedure Execute_P(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_P: TOn_OpCode_NonLinear_Done_P);
+    // post to thread
     procedure Post_Execute(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
     procedure Post_Execute_C(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_C: TOn_OpCode_NonLinear_Done_C);
     procedure Post_Execute_M(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime; On_Done_M: TOn_OpCode_NonLinear_Done_M);
@@ -355,13 +356,14 @@ type
     FOn_Step_P: TOn_OpCode_NonLinear_Step_P;
   protected
     procedure Build_Stack();
-    procedure Reset_Stack();
+    procedure Reset_OpCode_None_Linear();
     procedure Do_Init(); virtual;
   public
     constructor Create_From_OpCode(Auto_Free_OpCode_: Boolean; Root_OpCode_: TOpCode; opRT_: TOpCustomRunTime);
     constructor Create_From_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
     destructor Destroy; override;
-    procedure Execute();
+    procedure Reinit(); virtual;
+    procedure Execute(); virtual;
 
     // The begin+end is a nonlinear process controller in OpCode event
     procedure Do_Begin();
@@ -369,10 +371,11 @@ type
     property End_Result: Variant read FEnd_Result write FEnd_Result;
     property Result_: Variant read FEnd_Result write FEnd_Result;
     procedure Do_End(Result___: Variant); overload;
-    procedure Do_Error;
+    procedure Do_Error();
 
     // main-loop
-    procedure Process; virtual;
+    procedure Process(); virtual;
+    function Wait_End(): Variant;
 
     property First_Execute_Done: Boolean read FFirst_Execute_Done;
     property Is_Running: Boolean read FIs_Running;
@@ -494,7 +497,7 @@ type
 
   op_Equal = class sealed(TOpCode)
   protected
-    // a = b
+    // a == b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
@@ -525,6 +528,7 @@ type
   op_NotEqual = class sealed(TOpCode)
   protected
     // a <> b
+    // a != b
     function DoExecute(opRT: TOpCustomRunTime): Variant; override;
   end;
 
@@ -2485,7 +2489,7 @@ begin
   Do_Build_OpCode(FRoot_OpCode);
 end;
 
-procedure TOpCode_NonLinear.Reset_Stack;
+procedure TOpCode_NonLinear.Reset_OpCode_None_Linear;
   procedure Do_Reset_(const OpCode_: TOpCode);
   var
     i: Integer;
@@ -2533,6 +2537,7 @@ end;
 constructor TOpCode_NonLinear.Create_From_Expression(TS_: TTextStyle; Expression_: SystemString; opRT_: TOpCustomRunTime);
 var
   exp_: SystemString;
+  Op: TOpCode;
 begin
   inherited Create;
   FAuto_Free_OpCode := True;
@@ -2543,7 +2548,23 @@ begin
       'Please use TExpression_Sequence to solve the running of vector and matrix expressions.')
   else
       exp_ := Expression_;
-  FRoot_OpCode := BuildAsOpCode({$IFDEF Print_OPCode_Debug}True{$ELSE Print_OPCode_Debug}False{$ENDIF Print_OPCode_Debug}, TS_, exp_, opRT_);
+
+  FRoot_OpCode := nil;
+  Op := OpCache[exp_];
+  if (Op <> nil) then
+    begin
+      if Op <> nil then
+          FRoot_OpCode := Op.Clone;
+    end
+  else
+    begin
+      Op := BuildAsOpCode({$IFDEF Print_OPCode_Debug}True{$ELSE Print_OPCode_Debug}False{$ENDIF Print_OPCode_Debug}, TS_, exp_, opRT_);
+      if Op <> nil then
+        begin
+          OpCache.Add(exp_, Op, True);
+          FRoot_OpCode := Op.Clone;
+        end;
+    end;
 
   if FRoot_OpCode = nil then
     begin
@@ -2563,12 +2584,22 @@ begin
       FOwner_Pool_Ptr := nil;
     end;
 
-  Reset_Stack;
+  Reset_OpCode_None_Linear;
   DisposeObjectAndNil(FStack___);
   FEnd_Result := NULL;
   if FAuto_Free_OpCode then
       DisposeObjectAndNil(FRoot_OpCode);
   inherited Destroy;
+end;
+
+procedure TOpCode_NonLinear.Reinit();
+begin
+  FStack___.Clear;
+  FFirst_Execute_Done := False;
+  FIs_Running := False;
+  FIs_Wait_End := False;
+  FEnd_Result := NULL;
+  Build_Stack();
 end;
 
 procedure TOpCode_NonLinear.Execute();
@@ -2611,7 +2642,7 @@ begin
 
   FIs_Running := False;
   FIs_Wait_End := False;
-  Reset_Stack();
+  Reset_OpCode_None_Linear();
   if Assigned(FOn_Done_C) then
       FOn_Done_C(self);
   if Assigned(FOn_Done_M) then
@@ -2642,8 +2673,10 @@ begin
   Do_End();
 end;
 
-procedure TOpCode_NonLinear.Process;
+procedure TOpCode_NonLinear.Process();
 begin
+  if not FFirst_Execute_Done then
+      Execute();
   if FIs_Wait_End or (not FIs_Running) or (FStack___.Num <= 0) then
       Exit;
 
@@ -2680,13 +2713,22 @@ begin
 
   FIs_Running := False;
   FIs_Wait_End := False;
-  Reset_Stack();
+  Reset_OpCode_None_Linear();
   if Assigned(FOn_Done_C) then
       FOn_Done_C(self);
   if Assigned(FOn_Done_M) then
       FOn_Done_M(self);
   if Assigned(FOn_Done_P) then
       FOn_Done_P(self);
+end;
+
+function TOpCode_NonLinear.Wait_End(): Variant;
+begin
+  if not FFirst_Execute_Done then
+      Execute();
+  while FIs_Running do
+      Process();
+  Result := FEnd_Result;
 end;
 
 class procedure TOpCode_NonLinear.Test();
