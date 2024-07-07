@@ -364,6 +364,8 @@ type
     destructor Destroy; override;
     procedure Reinit(); virtual;
     procedure Execute(); virtual;
+    procedure Process(); virtual; // main-loop
+    function Wait_End(): Variant;
 
     // The begin+end is a nonlinear process controller in OpCode event
     procedure Do_Begin();
@@ -372,10 +374,6 @@ type
     property Result_: Variant read FEnd_Result write FEnd_Result;
     procedure Do_End(Result___: Variant); overload;
     procedure Do_Error();
-
-    // main-loop
-    procedure Process(); virtual;
-    function Wait_End(): Variant;
 
     property First_Execute_Done: Boolean read FFirst_Execute_Done;
     property Is_Running: Boolean read FIs_Running;
@@ -2651,28 +2649,6 @@ begin
       FOn_Done_P(self);
 end;
 
-procedure TOpCode_NonLinear.Do_Begin();
-begin
-  FIs_Wait_End := True;
-end;
-
-procedure TOpCode_NonLinear.Do_End();
-begin
-  FIs_Wait_End := False;
-end;
-
-procedure TOpCode_NonLinear.Do_End(Result___: Variant);
-begin
-  FEnd_Result := Result___;
-  Do_End();
-end;
-
-procedure TOpCode_NonLinear.Do_Error;
-begin
-  FEnd_Result := NULL;
-  Do_End();
-end;
-
 procedure TOpCode_NonLinear.Process();
 begin
   if not FFirst_Execute_Done then
@@ -2729,6 +2705,28 @@ begin
   while FIs_Running do
       Process();
   Result := FEnd_Result;
+end;
+
+procedure TOpCode_NonLinear.Do_Begin();
+begin
+  FIs_Wait_End := True;
+end;
+
+procedure TOpCode_NonLinear.Do_End();
+begin
+  FIs_Wait_End := False;
+end;
+
+procedure TOpCode_NonLinear.Do_End(Result___: Variant);
+begin
+  FEnd_Result := Result___;
+  Do_End();
+end;
+
+procedure TOpCode_NonLinear.Do_Error;
+begin
+  FEnd_Result := NULL;
+  Do_End();
 end;
 
 class procedure TOpCode_NonLinear.Test();
