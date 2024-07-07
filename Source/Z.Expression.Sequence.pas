@@ -91,9 +91,11 @@ type
     procedure Do_End_And_Result(Result_: Variant);
     function Running: Boolean;
     function Is_Wait_End: Boolean;
-    function Code_Result: Variant;
-    property Enb_Result: Variant read Code_Result;
-    property Result_: Variant read Code_Result;
+    function Get_Code_Result: Variant;
+    procedure Set_Code_Result(Value: Variant);
+    property Code_Result: Variant read Get_Code_Result write Set_Code_Result;
+    property Enb_Result: Variant read Get_Code_Result write Set_Code_Result;
+    property Result_: Variant read Get_Code_Result write Set_Code_Result;
     procedure Do_Error;
     procedure Progress; virtual;
   end;
@@ -444,12 +446,18 @@ begin
       Result := False;
 end;
 
-function TExpression_Sequence_RunTime.Code_Result: Variant;
+function TExpression_Sequence_RunTime.Get_Code_Result: Variant;
 begin
   if NonLinear_Tool <> nil then
       Result := NonLinear_Tool.Result_
   else
       Result := NULL;
+end;
+
+procedure TExpression_Sequence_RunTime.Set_Code_Result(Value: Variant);
+begin
+  if NonLinear_Tool <> nil then
+      NonLinear_Tool.Result_ := Value;
 end;
 
 procedure TExpression_Sequence_RunTime.Do_Error;
