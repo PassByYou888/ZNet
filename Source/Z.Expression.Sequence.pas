@@ -24,7 +24,7 @@ type
   TExpression_Sequence = class(TBig_Object_List<TExpression_Sequence_RunTime>)
   private
     FDebugMode: Boolean;
-    FRun_Done_Num: Integer;
+    FRun_Num, FRun_Done_Num: Integer;
     FFocus: TExpression_Sequence_RunTime;
     FError: Boolean;
     FPost___: TThreadPost;
@@ -46,6 +46,7 @@ type
     function Extract_Code(Style: TTextStyle; Code: U_String): Boolean; overload;
     function Check_Syntax: Boolean;
     procedure Run;
+    property Run_Num: Integer read FRun_Num;
     property Run_Done_Num: Integer read FRun_Done_Num;
     procedure Wait;
     function Is_Running: Boolean;
@@ -67,17 +68,10 @@ type
 
   TExpression_Sequence_RunTime = class(TOpCustomRunTime)
   private
-  private
     Queue_Data: TExpression_Sequence.PQueueStruct;
-    // TOpCode_NonLinear calling mechanism: no longer call in the stack mode,
-    // the new mechanism is to pave the way for the calling sequence structure from deep to shallow, and then execute the sequence once again
-    // The TOpCode_NonLinear call mechanism can support non-linear processes and accurately identify locations such as exceptions and trackers within the stack model
     NonLinear_Tool: TOpCode_NonLinear;
-    Is_Wait_End: Boolean;
-    Running: Boolean;
     Done: Boolean;
     Error: Boolean;
-    // interval
     procedure Do_NonLinear_Done(Sender: TOpCode_NonLinear);
     procedure Do_Run__;
     procedure Do_End__;
@@ -87,14 +81,19 @@ type
     Line: Integer;
     Style: TTextStyle;
     Code_: U_String;
-    Code_Result: Variant;
     constructor Create(Owner_: TExpression_Sequence); virtual;
     destructor Destroy; override;
     procedure Reg_RunTime; virtual;
     procedure Do_Run;
     procedure Do_Begin;
-    procedure Do_End;
+    procedure Do_End; overload;
+    procedure Do_End(Result_: Variant); overload;
     procedure Do_End_And_Result(Result_: Variant);
+    function Running: Boolean;
+    function Is_Wait_End: Boolean;
+    function Code_Result: Variant;
+    property Enb_Result: Variant read Code_Result;
+    property Result_: Variant read Code_Result;
     procedure Do_Error;
     procedure Progress; virtual;
   end;
@@ -107,7 +106,6 @@ type
   end;
 
 implementation
-
 
 procedure TExpression_Sequence.Do_Step;
 begin
@@ -147,6 +145,7 @@ constructor TExpression_Sequence.Create;
 begin
   inherited Create(True);
   FDebugMode := {$IFDEF Print_OPCode_Debug}True{$ELSE Print_OPCode_Debug}False{$ENDIF Print_OPCode_Debug};
+  FRun_Num := 0;
   FRun_Done_Num := 0;
   FFocus := nil;
   FError := False;
@@ -173,6 +172,7 @@ var
   T: TTextParsing;
   L: TPascalStringList;
 begin
+  FRun_Num := 0;
   FRun_Done_Num := 0;
   Result := False;
   for i := 0 to Code.Count - 1 do
@@ -256,17 +256,17 @@ begin
   if Is_Running then
       exit;
 
-  // reset state
+  Inc(FRun_Num);
+
+  // reset error state
   FError := False;
+
   if Num > 0 then
     begin
       with repeat_ do
         repeat
-          queue^.Data.Is_Wait_End := False;
-          queue^.Data.Running := False;
           queue^.Data.Done := False;
           queue^.Data.Error := False;
-          queue^.Data.Code_Result := NULL;
         until not Next;
 
       FFocus := First^.Data;
@@ -277,10 +277,7 @@ end;
 procedure TExpression_Sequence.Wait;
 begin
   while Is_Running do
-    begin
       Progress();
-      TCompute.Sleep(1);
-    end;
 end;
 
 function TExpression_Sequence.Is_Running: Boolean;
@@ -293,12 +290,10 @@ begin
   if not FDebugMode then
       exit;
   if Num > 0 then
-    begin
-      with repeat_ do
-        repeat
-            DoStatus('%s = %s', [queue^.Data.Code_.Text, VarToStr(queue^.Data.Code_Result)]);
-        until not Next;
-    end;
+    with repeat_ do
+      repeat
+          DoStatus('%s = %s', [queue^.Data.Code_.Text, VarToStr(queue^.Data.Code_Result)]);
+      until not Next;
 end;
 
 procedure TExpression_Sequence.Progress;
@@ -342,8 +337,6 @@ end;
 
 procedure TExpression_Sequence_RunTime.Do_NonLinear_Done(Sender: TOpCode_NonLinear);
 begin
-  Code_Result := NonLinear_Tool.Result_;
-  Is_Wait_End := NonLinear_Tool.Is_Wait_End;
   if VarIsNull(Code_Result) then
       Owner.FPost___.PostM1(Do_Error__)
   else
@@ -354,13 +347,18 @@ procedure TExpression_Sequence_RunTime.Do_Run__;
 begin
   if Owner.FDebugMode then
       DoStatus('Debug Mode ' + Code_);
-  Is_Wait_End := False;
-  Running := True;
-  DisposeObjectAndNil(NonLinear_Tool);
-  NonLinear_Tool := TOpCode_NonLinear.Create_From_Expression(Style, Code_, self);
-  NonLinear_Tool.On_Done_M := Do_NonLinear_Done;
+  Done := False;
+  Error := False;
+  if NonLinear_Tool = nil then
+    begin
+      NonLinear_Tool := TOpCode_NonLinear.Create_From_Expression(Style, Code_, self);
+      NonLinear_Tool.On_Done_M := Do_NonLinear_Done;
+    end
+  else
+    begin
+      NonLinear_Tool.Reinit;
+    end;
   NonLinear_Tool.Execute;
-  Running := False;
 end;
 
 procedure TExpression_Sequence_RunTime.Do_End__;
@@ -383,22 +381,18 @@ begin
   inherited CustomCreate($FF);
   Queue_Data := nil;
   NonLinear_Tool := nil;
-  Is_Wait_End := False;
-  Running := False;
   Done := False;
   Error := False;
   Owner := Owner_;
   Line := 0;
   Style := TTextStyle.tsPascal;
   Code_ := '';
-  Code_Result := NULL;
   Reg_RunTime();
 end;
 
 destructor TExpression_Sequence_RunTime.Destroy;
 begin
   Code_ := '';
-  Code_Result := NULL;
   DisposeObjectAndNil(NonLinear_Tool);
   inherited Destroy;
 end;
@@ -409,12 +403,13 @@ end;
 
 procedure TExpression_Sequence_RunTime.Do_Run;
 begin
+  Done := False;
+  Error := False;
   Owner.FPost___.PostM1(Do_Run__);
 end;
 
 procedure TExpression_Sequence_RunTime.Do_Begin;
 begin
-  Is_Wait_End := True;
   NonLinear_Tool.Do_Begin;
 end;
 
@@ -423,9 +418,38 @@ begin
   NonLinear_Tool.Do_End;
 end;
 
-procedure TExpression_Sequence_RunTime.Do_End_And_Result(Result_: Variant);
+procedure TExpression_Sequence_RunTime.Do_End(Result_: Variant);
 begin
   NonLinear_Tool.Do_End(Result_);
+end;
+
+procedure TExpression_Sequence_RunTime.Do_End_And_Result(Result_: Variant);
+begin
+  Do_End(Result_);
+end;
+
+function TExpression_Sequence_RunTime.Running: Boolean;
+begin
+  if NonLinear_Tool <> nil then
+      Result := NonLinear_Tool.Is_Running
+  else
+      Result := False;
+end;
+
+function TExpression_Sequence_RunTime.Is_Wait_End: Boolean;
+begin
+  if NonLinear_Tool <> nil then
+      Result := NonLinear_Tool.Is_Wait_End
+  else
+      Result := False;
+end;
+
+function TExpression_Sequence_RunTime.Code_Result: Variant;
+begin
+  if NonLinear_Tool <> nil then
+      Result := NonLinear_Tool.Result_
+  else
+      Result := NULL;
 end;
 
 procedure TExpression_Sequence_RunTime.Do_Error;
