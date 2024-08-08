@@ -13,7 +13,7 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Types, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings;
+  Z.Core, Types, Z.MemoryStream, Z.PascalStrings, Z.UPascalStrings, Z.Int128;
 
 {$REGION 'BaseType define'}
 
@@ -102,11 +102,13 @@ function Rectf(Left, Top, Right, Bottom: TGeoFloat): TRectf;
 
 function CompareCardinal(const C1, C2: Cardinal): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareInteger(const Int1, Int2: Integer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
-function CompareInt64(const Int1, Int2: int64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
-function CompareUInt64(const Int1, Int2: Uint64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareInt64(const Int1, Int2: Int64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareUInt64(const Int1, Int2: UInt64): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function ComparePointer(const Item1, Item2: pointer): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareBool(const Bool1, Bool2: Boolean): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 function CompareDouble(const Double1, Double2: Double): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareInt128(const Int1, Int2: Int128): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
+function CompareUInt128(const Int1, Int2: UInt128): Integer; {$IFDEF INLINE_ASM}inline; {$ENDIF INLINE_ASM}
 
 function Compute_PI(Num: Integer): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM}
 function FAbs(const V: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -143,7 +145,7 @@ function vec2(const p: PVec2): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE
 function vec2(const f: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function vec2(const X, Y: TGeoFloat): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function vec2(const X, Y: TGeoInt): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
-function vec2(const X, Y: int64): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function vec2(const X, Y: Int64): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function vec2(const pt: TPoint): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function vec2(const pt: TPointf): TVec2; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
@@ -453,19 +455,19 @@ function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: Boo
 // image jitter
 procedure Make_Image_Jitter_Box(
   rand: TMT19937Random;
-  image_bound_Box: TRectV2; // image bound box
+  image_bound_Box: TRectV2;     // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean; // min-loss fit
-  output_Size: TVec2; // output size
+  Fit_Matrix_Box_: Boolean;               // min-loss fit
+  output_Size: TVec2;                     // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   ); overload;
 procedure Make_Image_Jitter_Box(
-  image_bound_Box: TRectV2; // image bound box
+  image_bound_Box: TRectV2;     // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean; // min-loss fit
-  output_Size: TVec2; // output size
+  Fit_Matrix_Box_: Boolean;               // min-loss fit
+  output_Size: TVec2;                     // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   ); overload;
 
@@ -1787,7 +1789,7 @@ begin
   Result[1] := Y;
 end;
 
-function vec2(const X, Y: int64): TVec2;
+function vec2(const X, Y: Int64): TVec2;
 begin
   Result[0] := X;
   Result[1] := Y;
@@ -3646,11 +3648,11 @@ end;
 
 procedure Make_Image_Jitter_Box(
   rand: TMT19937Random;
-  image_bound_Box: TRectV2; // image bound box
+  image_bound_Box: TRectV2;     // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean; // min-loss fit
-  output_Size: TVec2; // output size
+  Fit_Matrix_Box_: Boolean;               // min-loss fit
+  output_Size: TVec2;                     // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   );
 begin
@@ -3660,11 +3662,11 @@ begin
 end;
 
 procedure Make_Image_Jitter_Box(
-  image_bound_Box: TRectV2; // image bound box
+  image_bound_Box: TRectV2;     // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean; // min-loss fit
-  output_Size: TVec2; // output size
+  Fit_Matrix_Box_: Boolean;               // min-loss fit
+  output_Size: TVec2;                     // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   );
 begin
@@ -6570,7 +6572,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Points[i];
-      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or // an upward crossing
+      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or  // an upward crossing
         ((pj^[1] <= pt[1]) and (pt[1] < pi^[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -9174,7 +9176,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := GetPoint(i);
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -9199,7 +9201,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Expands[i, ExpandDistance_];
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)

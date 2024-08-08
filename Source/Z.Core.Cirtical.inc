@@ -160,6 +160,34 @@ begin
   Result := LNum > 0;
 end;
 
+function TCritical.Get(var x: Int64): Int64;
+begin
+  Lock;
+  Result := x;
+  UnLock;
+end;
+
+function TCritical.Get(var x: UInt64): UInt64;
+begin
+  Lock;
+  Result := x;
+  UnLock;
+end;
+
+function TCritical.Get(var x: Integer): Integer;
+begin
+  Lock;
+  Result := x;
+  UnLock;
+end;
+
+function TCritical.Get(var x: Cardinal): Cardinal;
+begin
+  Lock;
+  Result := x;
+  UnLock;
+end;
+
 procedure TCritical.Inc_(var x: Int64);
 begin
   Lock;

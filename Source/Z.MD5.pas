@@ -105,15 +105,12 @@ var
   ChunkIndex: Byte;
   ChunkBuff: array [0 .. 63] of Byte;
 begin
-  Lo := 0;
-  Hi := 0;
   PCardinal(@Digest[0])^ := $67452301;
   PCardinal(@Digest[4])^ := $EFCDAB89;
   PCardinal(@Digest[8])^ := $98BADCFE;
   PCardinal(@Digest[12])^ := $10325476;
-
-  inc(Lo, bufSiz shl 3);
-  inc(Hi, bufSiz shr 29);
+  Lo := bufSiz shl 3;
+  Hi := bufSiz shr 29;
 
   p := buffPtr;
 
@@ -177,9 +174,6 @@ begin
       exit;
     end;
 {$ENDIF}
-  //
-  Lo := 0;
-  Hi := 0;
   PCardinal(@Digest[0])^ := $67452301;
   PCardinal(@Digest[4])^ := $EFCDAB89;
   PCardinal(@Digest[8])^ := $98BADCFE;
@@ -187,9 +181,8 @@ begin
 
   bufSiz := EndPos - StartPos;
   Rest := 0;
-
-  inc(Lo, bufSiz shl 3);
-  inc(Hi, bufSiz shr 29);
+  Lo := bufSiz shl 3;
+  Hi := bufSiz shr 29;
 
   DeltaBuf := GetMemory(deltaSize);
   stream.Position := StartPos;

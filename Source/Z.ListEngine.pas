@@ -13,7 +13,7 @@ uses SysUtils, Classes, Variants,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.PascalStrings, Z.UPascalStrings;
+  Z.PascalStrings, Z.UPascalStrings, Z.Int128;
 
 type
   TSeedCounter = NativeUInt;
@@ -710,6 +710,8 @@ type
     procedure SetDefaultText_U32(const Name: SystemString; const Value: Cardinal);
     function GetDefaultText_I64(const Name: SystemString; const Value: Int64): Int64;
     procedure SetDefaultText_I64(const Name: SystemString; const Value: Int64);
+    function GetDefaultText_I128(const Name: SystemString; const Value: Int128): Int128;
+    procedure SetDefaultText_I128(const Name: SystemString; const Value: Int128);
     function GetDefaultText_Float(const Name: SystemString; const Value: Double): Double;
     procedure SetDefaultText_Float(const Name: SystemString; const Value: Double);
     function GetDefaultText_Bool(const Name: SystemString; const Value: Boolean): Boolean;
@@ -6595,6 +6597,16 @@ begin
 end;
 
 procedure THashStringList.SetDefaultText_I64(const Name: SystemString; const Value: Int64);
+begin
+  SetDefaultValue(Name, umlIntToStr(Value));
+end;
+
+function THashStringList.GetDefaultText_I128(const Name: SystemString; const Value: Int128): Int128;
+begin
+  Result := umlStrToInt128(GetDefaultValue(Name, umlIntToStr(Value)), Value);
+end;
+
+procedure THashStringList.SetDefaultText_I128(const Name: SystemString; const Value: Int128);
 begin
   SetDefaultValue(Name, umlIntToStr(Value));
 end;

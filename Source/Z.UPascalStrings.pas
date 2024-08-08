@@ -4,6 +4,7 @@
 
 unit Z.UPascalStrings;
 
+{$UNDEF FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface

@@ -337,16 +337,16 @@ begin
 
       try
         if Assigned(OnRun_C) then
-            OnRun_C(Self);
-        if Assigned(OnRun_M) then
-            OnRun_M(Self);
-        if Assigned(OnRun_P) then
-            OnRun_P(Self);
-        if Assigned(OnRun_C_NP) then
-            OnRun_C_NP();
-        if Assigned(OnRun_M_NP) then
-            OnRun_M_NP();
-        if Assigned(OnRun_P_NP) then
+            OnRun_C(Self)
+        else if Assigned(OnRun_M) then
+            OnRun_M(Self)
+        else if Assigned(OnRun_P) then
+            OnRun_P(Self)
+        else if Assigned(OnRun_C_NP) then
+            OnRun_C_NP()
+        else if Assigned(OnRun_M_NP) then
+            OnRun_M_NP()
+        else if Assigned(OnRun_P_NP) then
             OnRun_P_NP();
       except
       end;
@@ -398,10 +398,10 @@ procedure TCompute.Done_Sync;
 begin
   try
     if Assigned(OnDone_C) then
-        OnDone_C(Self);
-    if Assigned(OnDone_M) then
-        OnDone_M(Self);
-    if Assigned(OnDone_P) then
+        OnDone_C(Self)
+    else if Assigned(OnDone_M) then
+        OnDone_M(Self)
+    else if Assigned(OnDone_P) then
         OnDone_P(Self);
   except
   end;
@@ -535,10 +535,10 @@ procedure TSyncTmp.DoSync;
 begin
   try
     if Assigned(OnRunC) then
-        OnRunC();
-    if Assigned(OnRunM) then
-        OnRunM();
-    if Assigned(OnRunP) then
+        OnRunC()
+    else if Assigned(OnRunM) then
+        OnRunM()
+    else if Assigned(OnRunP) then
         OnRunP();
   except
   end;

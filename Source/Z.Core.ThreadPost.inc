@@ -93,28 +93,26 @@ begin
 
           try
             if Assigned(t_.On_C1) then
-                t_.On_C1();
-            if Assigned(t_.On_C2) then
-                t_.On_C2(t_.Data1);
-            if Assigned(t_.On_C3) then
+                t_.On_C1()
+            else if Assigned(t_.On_C2) then
+                t_.On_C2(t_.Data1)
+            else if Assigned(t_.On_C3) then
                 t_.On_C3(t_.Data1, t_.Data2, t_.Data3);
             if Assigned(t_.On_C4) then
-                t_.On_C4(t_.Data1, t_.Data2);
-
-            if Assigned(t_.On_M1) then
-                t_.On_M1();
-            if Assigned(t_.On_M2) then
-                t_.On_M2(t_.Data1);
-            if Assigned(t_.On_M3) then
-                t_.On_M3(t_.Data1, t_.Data2, t_.Data3);
-            if Assigned(t_.On_M4) then
-                t_.On_M4(t_.Data1, t_.Data2);
-
-            if Assigned(t_.On_P1) then
+                t_.On_C4(t_.Data1, t_.Data2)
+            else if Assigned(t_.On_M1) then
+                t_.On_M1()
+            else if Assigned(t_.On_M2) then
+                t_.On_M2(t_.Data1)
+            else if Assigned(t_.On_M3) then
+                t_.On_M3(t_.Data1, t_.Data2, t_.Data3)
+            else if Assigned(t_.On_M4) then
+                t_.On_M4(t_.Data1, t_.Data2)
+            else if Assigned(t_.On_P1) then
                 t_.On_P1();
             if Assigned(t_.On_P2) then
-                t_.On_P2(t_.Data1);
-            if Assigned(t_.On_P3) then
+                t_.On_P2(t_.Data1)
+            else if Assigned(t_.On_P3) then
                 t_.On_P3(t_.Data1, t_.Data2, t_.Data3);
             if Assigned(t_.On_P4) then
                 t_.On_P4(t_.Data1, t_.Data2);
@@ -157,30 +155,28 @@ begin
 
             try
               if Assigned(temp.Current^.Data^.On_C1) then
-                  temp.Current^.Data^.On_C1();
-              if Assigned(temp.Current^.Data^.On_C2) then
-                  temp.Current^.Data^.On_C2(temp.Current^.Data^.Data1);
-              if Assigned(temp.Current^.Data^.On_C3) then
-                  temp.Current^.Data^.On_C3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3);
-              if Assigned(temp.Current^.Data^.On_C4) then
-                  temp.Current^.Data^.On_C4(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2);
-
-              if Assigned(temp.Current^.Data^.On_M1) then
-                  temp.Current^.Data^.On_M1();
-              if Assigned(temp.Current^.Data^.On_M2) then
-                  temp.Current^.Data^.On_M2(temp.Current^.Data^.Data1);
-              if Assigned(temp.Current^.Data^.On_M3) then
-                  temp.Current^.Data^.On_M3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3);
-              if Assigned(temp.Current^.Data^.On_M4) then
-                  temp.Current^.Data^.On_M4(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2);
-
-              if Assigned(temp.Current^.Data^.On_P1) then
-                  temp.Current^.Data^.On_P1();
-              if Assigned(temp.Current^.Data^.On_P2) then
-                  temp.Current^.Data^.On_P2(temp.Current^.Data^.Data1);
-              if Assigned(temp.Current^.Data^.On_P3) then
-                  temp.Current^.Data^.On_P3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3);
-              if Assigned(temp.Current^.Data^.On_P4) then
+                  temp.Current^.Data^.On_C1()
+              else if Assigned(temp.Current^.Data^.On_C2) then
+                  temp.Current^.Data^.On_C2(temp.Current^.Data^.Data1)
+              else if Assigned(temp.Current^.Data^.On_C3) then
+                  temp.Current^.Data^.On_C3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3)
+              else if Assigned(temp.Current^.Data^.On_C4) then
+                  temp.Current^.Data^.On_C4(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2)
+              else if Assigned(temp.Current^.Data^.On_M1) then
+                  temp.Current^.Data^.On_M1()
+              else if Assigned(temp.Current^.Data^.On_M2) then
+                  temp.Current^.Data^.On_M2(temp.Current^.Data^.Data1)
+              else if Assigned(temp.Current^.Data^.On_M3) then
+                  temp.Current^.Data^.On_M3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3)
+              else if Assigned(temp.Current^.Data^.On_M4) then
+                  temp.Current^.Data^.On_M4(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2)
+              else if Assigned(temp.Current^.Data^.On_P1) then
+                  temp.Current^.Data^.On_P1()
+              else if Assigned(temp.Current^.Data^.On_P2) then
+                  temp.Current^.Data^.On_P2(temp.Current^.Data^.Data1)
+              else if Assigned(temp.Current^.Data^.On_P3) then
+                  temp.Current^.Data^.On_P3(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2, temp.Current^.Data^.Data3)
+              else if Assigned(temp.Current^.Data^.On_P4) then
                   temp.Current^.Data^.On_P4(temp.Current^.Data^.Data1, temp.Current^.Data^.Data2);
             except
             end;

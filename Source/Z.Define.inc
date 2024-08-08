@@ -61,14 +61,14 @@
 
   // With SMALL_RASTER_FONT_Build_In and LARGE_RASTER_FONT_Build_In, boot-time memory usage increase by 100M-200M and start-up time to be delay 100ms
   {$DEFINE SMALL_RASTER_FONT_Build_In}
-  // {$DEFINE LARGE_RASTER_FONT_Build_In}
+  {$UNDEF LARGE_RASTER_FONT_Build_In}
 
   // ZDB_BACKUP is automatically made and replica caching is enabled.
   // usage ZDB_BACKUP so slows the open of large size ZDB file, after time, but does is high performance.
-  // {$DEFINE ZDB_BACKUP}
+  {$UNDEF ZDB_BACKUP}
 
   // ZDB Flush() uses physical IO as the temp storage device
-  // {$DEFINE ZDB_PHYSICAL_FLUSH}
+  {$UNDEF ZDB_PHYSICAL_FLUSH}
 
   // used Critical Simulate Atomic with TMonitor.Enter(obj) and TMonitor.Exit(obj)
   // CriticalSimulateAtomic defined so performance to be reduced
@@ -76,8 +76,8 @@
 
   // used soft Simulate Critical(ring)
   // SoftCritical defined so performance to be reduced
-  // {$DEFINE SoftCritical}
-  // {$DEFINE ANTI_DEAD_ATOMIC_LOCK}
+  {$UNDEF SoftCritical}
+  {$UNDEF ANTI_DEAD_ATOMIC_LOCK}
 
   {$UNDEF debug}
   {$DEFINE release}
@@ -145,21 +145,27 @@
     {$UNDEF FirstCharInZero}
   {$ENDIF VER350}
 
-  // delphi 11.x
+  // delphi 12.x
   {$IFDEF VER360}
     {$DEFINE InstallMT19937CoreToDelphi}
     {$UNDEF FirstCharInZero}
   {$ENDIF VER360}
 
+  // delphi 12.x
+  {$IFDEF VER370}
+    {$DEFINE InstallMT19937CoreToDelphi}
+    {$UNDEF FirstCharInZero}
+  {$ENDIF VER370}
+
   // MT19937 of seed in the startup TCompute is 0
   {$DEFINE MT19937SeedOnTComputeThreadIs0}
 
   // automated loading common AI datasets on boot-time
-  // {$DEFINE Z_AI_Dataset_Build_In}
+  {$UNDEF Z_AI_Dataset_Build_In}
 
   // With SMALL_RASTER_FONT_Build_In and LARGE_RASTER_FONT_Build_In, boot-time memory usage increase by 100M-200M and start-up time to be delay 100ms
-  // {$DEFINE SMALL_RASTER_FONT_Build_In}
-  // {$DEFINE LARGE_RASTER_FONT_Build_In}
+  {$UNDEF SMALL_RASTER_FONT_Build_In}
+  {$UNDEF LARGE_RASTER_FONT_Build_In}
 
   {$IF Defined(Android) or Defined(IOS)}
     {$DEFINE SMALL_RASTER_FONT_Build_In}
@@ -167,20 +173,19 @@
 
   // ZDB_BACKUP is automatically made and replica caching is enabled.
   // usage ZDB_BACKUP so slows the open of large size ZDB file, after time, but does is high performance.
-  // {$DEFINE ZDB_BACKUP}
+  {$UNDEF ZDB_BACKUP}
 
   // ZDB Flush() uses physical IO as the temp storage device
-  // {$DEFINE ZDB_PHYSICAL_FLUSH}
+  {$UNDEF ZDB_PHYSICAL_FLUSH}
 
   // used Critical Simulate Atomic with TMonitor.Enter(obj) and TMonitor.Exit(obj)
   // CriticalSimulateAtomic defined so performance to be reduced
-  // {$DEFINE CriticalSimulateAtomic}
   {$UNDEF CriticalSimulateAtomic}
 
   // used soft Simulate Critical(ring)
   // SoftCritical defined so performance to be reduced
-  // {$DEFINE SoftCritical}
-  // {$DEFINE ANTI_DEAD_ATOMIC_LOCK}
+  {$UNDEF SoftCritical}
+  {$UNDEF ANTI_DEAD_ATOMIC_LOCK}
 
   // It only slows down Delphi strings, doesn't help C++Builder migration and is finally gone in XE+
   {$STRINGCHECKS OFF}
@@ -209,7 +214,7 @@
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
     {$R-} { range check }
-    {$I-} { Input output checking }
+    {$I+} { Input output checking }
     {$D+} { debug information }
   {$ENDIF release}
 

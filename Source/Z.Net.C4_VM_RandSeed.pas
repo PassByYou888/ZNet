@@ -158,10 +158,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Seed_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Seed_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Seed_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Seed_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Seed_);
   except
   end;

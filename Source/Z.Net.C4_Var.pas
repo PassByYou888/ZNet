@@ -1113,10 +1113,10 @@ begin
     end;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;
@@ -1130,10 +1130,10 @@ begin
   L := TC40_Var_NumberModulePool_List.Create;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;
@@ -1163,10 +1163,10 @@ begin
 
       try
         if Assigned(OnResultC) then
-            OnResultC(Client, NM_);
-        if Assigned(OnResultM) then
-            OnResultM(Client, NM_);
-        if Assigned(OnResultP) then
+            OnResultC(Client, NM_)
+        else if Assigned(OnResultM) then
+            OnResultM(Client, NM_)
+        else if Assigned(OnResultP) then
             OnResultP(Client, NM_);
       except
       end;
@@ -1178,10 +1178,10 @@ procedure TC40_Var_Client_NM_GetValue.DoStreamFailedEvent(Sender: TPeerIO; Param
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, nil);
-    if Assigned(OnResultM) then
-        OnResultM(Client, nil);
-    if Assigned(OnResultP) then
+        OnResultC(Client, nil)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, nil)
+    else if Assigned(OnResultP) then
         OnResultP(Client, nil);
   except
   end;
@@ -1208,10 +1208,10 @@ begin
 
       try
         if Assigned(OnResultC) then
-            OnResultC(Client, NM_Pool_);
-        if Assigned(OnResultM) then
-            OnResultM(Client, NM_Pool_);
-        if Assigned(OnResultP) then
+            OnResultC(Client, NM_Pool_)
+        else if Assigned(OnResultM) then
+            OnResultM(Client, NM_Pool_)
+        else if Assigned(OnResultP) then
             OnResultP(Client, NM_Pool_);
       except
       end;
@@ -1223,10 +1223,10 @@ procedure TC40_Var_Client_NM_Open.DoStreamFailedEvent(Sender: TPeerIO; Param1: P
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, nil);
-    if Assigned(OnResultM) then
-        OnResultM(Client, nil);
-    if Assigned(OnResultP) then
+        OnResultC(Client, nil)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, nil)
+    else if Assigned(OnResultP) then
         OnResultP(Client, nil);
   except
   end;
@@ -1252,10 +1252,10 @@ begin
       tmp[i] := Result_.ReadVariant(i);
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, tmp);
-    if Assigned(OnResultM) then
-        OnResultM(Client, tmp);
-    if Assigned(OnResultP) then
+        OnResultC(Client, tmp)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, tmp)
+    else if Assigned(OnResultP) then
         OnResultP(Client, tmp);
   except
   end;
@@ -1270,10 +1270,10 @@ begin
   SetLength(tmp, 0);
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, tmp);
-    if Assigned(OnResultM) then
-        OnResultM(Client, tmp);
-    if Assigned(OnResultP) then
+        OnResultC(Client, tmp)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, tmp)
+    else if Assigned(OnResultP) then
         OnResultP(Client, tmp);
   except
   end;
@@ -1304,10 +1304,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;
@@ -1322,10 +1322,10 @@ begin
   L := TC40_Var_NumberModulePool_List.Create;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, nil);
-    if Assigned(OnResultM) then
-        OnResultM(Client, nil);
-    if Assigned(OnResultP) then
+        OnResultC(Client, nil)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, nil)
+    else if Assigned(OnResultP) then
         OnResultP(Client, nil);
   except
   end;

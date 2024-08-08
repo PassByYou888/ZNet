@@ -282,9 +282,6 @@ type
     function CheckWriteSpace(Siz_: Int64): Boolean; overload;
     function CheckWriteSpace(Siz_: Int64; Space_: TZDB2_BlockPtrList): Boolean; overload;
     function GetWriteSpaceBlock(): Integer;
-    // search postion
-    function SearchDataPos(SpaceHnd: TZDB2_BlockPtrList; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean; overload;
-    function SearchDataPos(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean; overload;
     // block IO
     function Block_IO_Read(buff: Pointer; ID: Integer): WORD;
     function Block_IO_Write(buff: Pointer; ID: Integer): Boolean;
@@ -297,12 +294,24 @@ type
     function WriteData(buff: TZDB2_Mem; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function WriteData(buff: TZDB2_Mem; var ID: Integer; BuffProtected_: Boolean): Boolean; overload;
     function WriteData(buff: TZDB2_Mem; var ID: Integer): Boolean; overload;
+    // combine wirte: optimized structural copying for large-data
+    function Write_Combine_Memory(const arry: TMS64_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
+    function Write_Combine_Memory(const arry: TMS64_Array; var ID: Integer): Boolean; overload;
+    function Write_Combine_Memory(const arry: TMem64_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
+    function Write_Combine_Memory(const arry: TMem64_Array; var ID: Integer): Boolean; overload;
+    function Write_Combine_Stream(const arry: TStream_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
+    function Write_Combine_Stream(const arry: TStream_Array; var ID: Integer): Boolean; overload;
     // read stream
     function ReadStream(Stream_: TCore_Stream; SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function ReadStream(Stream_: TCore_Stream; ID: Integer): Boolean; overload;
     // read memory
     function ReadData(buff: TZDB2_Mem; SpaceHnd: TZDB2_BlockHandle): Boolean; overload;
     function ReadData(buff: TZDB2_Mem; ID: Integer): Boolean; overload;
+    // read position
+    function Compute_Data_Position(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
+    function Compute_Data_Range(SpaceHnd: TZDB2_BlockHandle; const Pos_, Size_: Int64; var Range_Space: TZDB2_ID_List; var BeginBlockPos_, EndBlockPos_: Int64): Boolean;
+    function Read_Position(Stream_: TCore_Stream; SpaceHnd: TZDB2_BlockHandle; Begin_Position, Read_Size: Int64): Int64; overload;
+    function Read_Position(Stream_: TCore_Stream; ID: Integer; Begin_Position, Read_Size: Int64): Int64; overload;
     // misc
     function ComputeMD5(SpaceHnd: TZDB2_BlockHandle; var MD5: TMD5): Boolean; overload;
     function ComputeMD5(ID: Integer; var MD5: TMD5): Boolean; overload;
@@ -347,6 +356,8 @@ type
     // test
     class procedure Test();
     class procedure Test_Cache();
+    class procedure Test_Read_Position();
+    class procedure Test_Write_Combine();
   end;
 
   { ZDB2 extract swap define }
@@ -2302,64 +2313,6 @@ begin
       end;
 end;
 
-function TZDB2_Core_Space.SearchDataPos(SpaceHnd: TZDB2_BlockPtrList; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
-var
-  i: Integer;
-  p: PZDB2_Block;
-begin
-  Result := False;
-  BlockPos_ := 0;
-  if SpaceHnd.Count <= 0 then
-      exit;
-  for i := 0 to SpaceHnd.Count - 1 do
-    begin
-      p := SpaceHnd[i];
-      if (Pos_ >= 0) and umlInRange(Pos_, BlockPos_, BlockPos_ + p^.UsedSpace) then
-        begin
-          BlockID_ := p^.ID;
-          exit(True);
-        end;
-      inc(BlockPos_, p^.UsedSpace);
-    end;
-  if Pos_ < 0 then
-    begin
-      BlockID_ := p^.ID;
-      Result := True;
-    end
-  else
-    begin
-      BlockPos_ := 0;
-      BlockID_ := -1;
-    end;
-end;
-
-function TZDB2_Core_Space.SearchDataPos(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
-var
-  ID: Integer;
-begin
-  Result := False;
-  BlockPos_ := 0;
-  for ID in SpaceHnd do
-    begin
-      if (Pos_ >= 0) and umlInRange(Pos_, BlockPos_, BlockPos_ + FBlockBuffer[ID].UsedSpace) then
-        begin
-          BlockID_ := ID;
-          exit(True);
-        end;
-      inc(BlockPos_, FBlockBuffer[ID].UsedSpace);
-    end;
-  if Pos_ < 0 then
-    begin
-      BlockID_ := SpaceHnd[length(SpaceHnd) - 1];
-      Result := True;
-    end
-  else
-    begin
-      BlockPos_ := 0;
-      BlockID_ := -1;
-    end;
-end;
-
 function TZDB2_Core_Space.Block_IO_Read(buff: Pointer; ID: Integer): WORD;
 var
   p: PZDB2_Block;
@@ -2795,6 +2748,647 @@ begin
   SetLength(SpaceHnd, 0);
 end;
 
+function TZDB2_Core_Space.Write_Combine_Memory(const arry: TMS64_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean;
+var
+  L: Integer;
+  arry_Size: Int64;
+  arry_index: Integer;
+  arry_pos: Int64;
+  function Do_Read_Arry_Data(const buffer_ptr: Pointer; const Count__: Int64): Int64;
+  var
+    LCount, R: Int64;
+    p: Pointer;
+  begin
+    Result := 0;
+    LCount := Count__;
+    p := buffer_ptr;
+    R := arry[arry_index].Size - arry_pos;
+    // chunk buffer
+    while (arry_index < L) and (LCount > R) do
+      begin
+        CopyPtr(arry[arry_index].PosAsPtr(arry_pos), p, R);
+        inc(Result, R);
+        p := GetOffset(p, R);
+        dec(LCount, R);
+        inc(arry_index);
+        arry_pos := 0;
+        if arry_index < L then
+            R := arry[arry_index].Size;
+      end;
+    // rest buffer
+    if (arry_index < L) and (LCount <= R) then
+      begin
+        CopyPtr(arry[arry_index].PosAsPtr(arry_pos), p, LCount);
+        inc(Result, LCount);
+        p := GetOffset(p, LCount);
+        inc(arry_pos, LCount);
+        LCount := 0;
+      end;
+  end;
+
+var
+  Space_: TZDB2_BlockPtrList;
+  tmp: Int64;
+  i, j: Integer;
+  n: TZDB2_BlockPtrList;
+  retry: Boolean;
+  SwapBuff_: Pointer;
+  bakPos_: Int64;
+begin
+  Result := False;
+  if FSpace_IOHnd^.IsOnlyRead then
+    begin
+      ErrorInfo('Write_Combine_Memory: OnlyRead.');
+      exit;
+    end;
+
+  L := length(arry);
+
+  { prepare array-stream }
+  arry_Size := 0;
+  for i := 0 to L - 1 do
+      inc(arry_Size, arry[i].Size);
+  arry_index := 0;
+  arry_pos := 0;
+
+  if arry_Size = 0 then
+    begin
+      ErrorInfo('Write_Combine_Memory: Stream size 0.');
+      exit;
+    end;
+
+  { compute space }
+  Space_ := TZDB2_BlockPtrList.Create;
+  if not CheckWriteSpace(arry_Size, Space_) then
+    begin
+      DisposeObject(Space_);
+      retry := False;
+      if Assigned(FOnNoSpace) then
+          FOnNoSpace(Self, arry_Size, retry);
+      if retry then
+          Result := Write_Combine_Memory(arry, SpaceHnd)
+      else
+          ErrorInfo(PFormat('Write_Combine_Memory: No Space. source: %d', [arry_Size]));
+      exit;
+    end;
+
+  Do_Modification;
+
+  SetLength(SpaceHnd, Space_.Count);
+
+  { fill block }
+  SwapBuff_ := System.GetMemory($FFFF);
+  try
+    tmp := arry_Size;
+    i := 0;
+    while i < Space_.Count do
+      with Space_[i]^ do
+        begin
+          if tmp > Size then
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, Size) <> Size then
+                begin
+                  ErrorInfo('Write_Combine_Memory: read error.');
+                  exit;
+                end;
+              UsedSpace := Size;
+              if not WriteCacheBlock(SwapBuff_, Size, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlFileSeek Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, Size);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, Size) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlBlockWrite Block error.');
+                      exit;
+                    end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              dec(tmp, Size);
+              SpaceHnd[i] := ID;
+              inc(i);
+            end
+          else
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, tmp) <> tmp then
+                begin
+                  ErrorInfo('Write_Combine_Memory: read tail error.');
+                  exit;
+                end;
+              UsedSpace := tmp;
+              if not WriteCacheBlock(SwapBuff_, tmp, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlFileSeek tail Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, tmp);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, tmp) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlBlockWrite tail Block error.');
+                      exit;
+                    end;
+                  if Size - tmp > 0 then
+                    if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size - tmp) then
+                      begin
+                        ErrorInfo('Write_Combine_Memory: umlBlockWrite tail (NULL) error.');
+                        exit;
+                      end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              SpaceHnd[i] := ID;
+              inc(i);
+              Result := True;
+              break;
+            end;
+        end;
+    DisposeObject(Space_);
+
+    // fill link
+    j := 0;
+    FBlockBuffer[SpaceHnd[0]].Prev := -1;
+    while j < length(SpaceHnd) do
+      begin
+        if j > 0 then
+          begin
+            FBlockBuffer[SpaceHnd[j - 1]].Next := SpaceHnd[j];
+            FBlockBuffer[SpaceHnd[j]].Prev := SpaceHnd[j - 1];
+          end;
+        inc(j);
+      end;
+    FBlockBuffer[SpaceHnd[j - 1]].Next := -1;
+
+    // chagne state
+    inc(FState.WriteNum);
+    inc(FState.WriteSize, arry_Size);
+
+    // prepare probe for next
+    FFreeSpaceIndexProbe := FBlockCount;
+    i := FBlockBuffer[SpaceHnd[j - 1]].ID + 1;
+    while i < FBlockCount do
+      with FBlockBuffer[i] do
+        begin
+          if UsedSpace = 0 then
+            begin
+              FFreeSpaceIndexProbe := i;
+              break;
+            end
+          else
+              inc(i);
+        end;
+  finally
+      System.FreeMemory(SwapBuff_);
+  end;
+end;
+
+function TZDB2_Core_Space.Write_Combine_Memory(const arry: TMS64_Array; var ID: Integer): Boolean;
+var
+  SpaceHnd: TZDB2_BlockHandle;
+begin
+  Result := Write_Combine_Memory(arry, SpaceHnd);
+  if Result then
+      ID := SpaceHnd[0];
+  SetLength(SpaceHnd, 0);
+end;
+
+function TZDB2_Core_Space.Write_Combine_Memory(const arry: TMem64_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean;
+var
+  L: Integer;
+  arry_Size: Int64;
+  arry_index: Integer;
+  arry_pos: Int64;
+  function Do_Read_Arry_Data(const buffer_ptr: Pointer; const Count__: Int64): Int64;
+  var
+    LCount, R: Int64;
+    p: Pointer;
+  begin
+    Result := 0;
+    LCount := Count__;
+    p := buffer_ptr;
+    R := arry[arry_index].Size - arry_pos;
+    // chunk buffer
+    while (arry_index < L) and (LCount > R) do
+      begin
+        CopyPtr(arry[arry_index].PosAsPtr(arry_pos), p, R);
+        inc(Result, R);
+        p := GetOffset(p, R);
+        dec(LCount, R);
+        inc(arry_index);
+        arry_pos := 0;
+        if arry_index < L then
+            R := arry[arry_index].Size;
+      end;
+    // rest buffer
+    if (arry_index < L) and (LCount <= R) then
+      begin
+        CopyPtr(arry[arry_index].PosAsPtr(arry_pos), p, LCount);
+        inc(Result, LCount);
+        p := GetOffset(p, LCount);
+        inc(arry_pos, LCount);
+        LCount := 0;
+      end;
+  end;
+
+var
+  Space_: TZDB2_BlockPtrList;
+  tmp: Int64;
+  i, j: Integer;
+  n: TZDB2_BlockPtrList;
+  retry: Boolean;
+  SwapBuff_: Pointer;
+  bakPos_: Int64;
+begin
+  Result := False;
+  if FSpace_IOHnd^.IsOnlyRead then
+    begin
+      ErrorInfo('Write_Combine_Memory: OnlyRead.');
+      exit;
+    end;
+
+  L := length(arry);
+
+  { prepare array-stream }
+  arry_Size := 0;
+  for i := 0 to L - 1 do
+      inc(arry_Size, arry[i].Size);
+  arry_index := 0;
+  arry_pos := 0;
+
+  if arry_Size = 0 then
+    begin
+      ErrorInfo('Write_Combine_Memory: Stream size 0.');
+      exit;
+    end;
+
+  { compute space }
+  Space_ := TZDB2_BlockPtrList.Create;
+  if not CheckWriteSpace(arry_Size, Space_) then
+    begin
+      DisposeObject(Space_);
+      retry := False;
+      if Assigned(FOnNoSpace) then
+          FOnNoSpace(Self, arry_Size, retry);
+      if retry then
+          Result := Write_Combine_Memory(arry, SpaceHnd)
+      else
+          ErrorInfo(PFormat('Write_Combine_Memory: No Space. source: %d', [arry_Size]));
+      exit;
+    end;
+
+  Do_Modification;
+
+  SetLength(SpaceHnd, Space_.Count);
+
+  { fill block }
+  SwapBuff_ := System.GetMemory($FFFF);
+  try
+    tmp := arry_Size;
+    i := 0;
+    while i < Space_.Count do
+      with Space_[i]^ do
+        begin
+          if tmp > Size then
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, Size) <> Size then
+                begin
+                  ErrorInfo('Write_Combine_Memory: read error.');
+                  exit;
+                end;
+              UsedSpace := Size;
+              if not WriteCacheBlock(SwapBuff_, Size, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlFileSeek Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, Size);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, Size) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlBlockWrite Block error.');
+                      exit;
+                    end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              dec(tmp, Size);
+              SpaceHnd[i] := ID;
+              inc(i);
+            end
+          else
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, tmp) <> tmp then
+                begin
+                  ErrorInfo('Write_Combine_Memory: read tail error.');
+                  exit;
+                end;
+              UsedSpace := tmp;
+              if not WriteCacheBlock(SwapBuff_, tmp, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlFileSeek tail Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, tmp);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, tmp) then
+                    begin
+                      ErrorInfo('Write_Combine_Memory: umlBlockWrite tail Block error.');
+                      exit;
+                    end;
+                  if Size - tmp > 0 then
+                    if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size - tmp) then
+                      begin
+                        ErrorInfo('Write_Combine_Memory: umlBlockWrite tail (NULL) error.');
+                        exit;
+                      end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              SpaceHnd[i] := ID;
+              inc(i);
+              Result := True;
+              break;
+            end;
+        end;
+    DisposeObject(Space_);
+
+    // fill link
+    j := 0;
+    FBlockBuffer[SpaceHnd[0]].Prev := -1;
+    while j < length(SpaceHnd) do
+      begin
+        if j > 0 then
+          begin
+            FBlockBuffer[SpaceHnd[j - 1]].Next := SpaceHnd[j];
+            FBlockBuffer[SpaceHnd[j]].Prev := SpaceHnd[j - 1];
+          end;
+        inc(j);
+      end;
+    FBlockBuffer[SpaceHnd[j - 1]].Next := -1;
+
+    // chagne state
+    inc(FState.WriteNum);
+    inc(FState.WriteSize, arry_Size);
+
+    // prepare probe for next
+    FFreeSpaceIndexProbe := FBlockCount;
+    i := FBlockBuffer[SpaceHnd[j - 1]].ID + 1;
+    while i < FBlockCount do
+      with FBlockBuffer[i] do
+        begin
+          if UsedSpace = 0 then
+            begin
+              FFreeSpaceIndexProbe := i;
+              break;
+            end
+          else
+              inc(i);
+        end;
+  finally
+      System.FreeMemory(SwapBuff_);
+  end;
+end;
+
+function TZDB2_Core_Space.Write_Combine_Memory(const arry: TMem64_Array; var ID: Integer): Boolean;
+var
+  SpaceHnd: TZDB2_BlockHandle;
+begin
+  Result := Write_Combine_Memory(arry, SpaceHnd);
+  if Result then
+      ID := SpaceHnd[0];
+  SetLength(SpaceHnd, 0);
+end;
+
+function TZDB2_Core_Space.Write_Combine_Stream(const arry: TStream_Array; var SpaceHnd: TZDB2_BlockHandle): Boolean;
+var
+  L: Integer;
+  arry_backup_pos: array of Int64;
+  arry_Size: Int64;
+  arry_index: Integer;
+  arry_pos: Int64;
+  function Do_Read_Arry_Data(const buffer_ptr: Pointer; const Count__: Int64): Int64;
+  var
+    LCount, R: Int64;
+    p: Pointer;
+  begin
+    Result := 0;
+    LCount := Count__;
+    p := buffer_ptr;
+    R := arry[arry_index].Size - arry_pos;
+    // chunk buffer
+    while (arry_index < L) and (LCount > R) do
+      begin
+        arry[arry_index].Position := arry_pos;
+        inc(Result, arry[arry_index].Read(p^, R));
+        p := GetOffset(p, R);
+        dec(LCount, R);
+        inc(arry_index);
+        arry_pos := 0;
+        if arry_index < L then
+            R := arry[arry_index].Size;
+      end;
+    // rest buffer
+    if (arry_index < L) and (LCount <= R) then
+      begin
+        arry[arry_index].Position := arry_pos;
+        inc(Result, arry[arry_index].Read(p^, LCount));
+        p := GetOffset(p, LCount);
+        inc(arry_pos, LCount);
+        LCount := 0;
+      end;
+  end;
+
+var
+  Space_: TZDB2_BlockPtrList;
+  tmp: Int64;
+  i, j: Integer;
+  n: TZDB2_BlockPtrList;
+  retry: Boolean;
+  SwapBuff_: Pointer;
+  bakPos_: Int64;
+begin
+  Result := False;
+  if FSpace_IOHnd^.IsOnlyRead then
+    begin
+      ErrorInfo('Write_Combine_Stream: OnlyRead.');
+      exit;
+    end;
+
+  L := length(arry);
+
+  { prepare array-stream }
+  SetLength(arry_backup_pos, L);
+  arry_Size := 0;
+  for i := 0 to L - 1 do
+    begin
+      arry_backup_pos[i] := arry[i].Position;
+      inc(arry_Size, arry[i].Size);
+    end;
+  arry_index := 0;
+  arry_pos := 0;
+
+  if arry_Size = 0 then
+    begin
+      ErrorInfo('Write_Combine_Stream: Stream size 0.');
+      exit;
+    end;
+
+  { compute space }
+  Space_ := TZDB2_BlockPtrList.Create;
+  if not CheckWriteSpace(arry_Size, Space_) then
+    begin
+      DisposeObject(Space_);
+      retry := False;
+      if Assigned(FOnNoSpace) then
+          FOnNoSpace(Self, arry_Size, retry);
+      if retry then
+          Result := Write_Combine_Stream(arry, SpaceHnd)
+      else
+          ErrorInfo(PFormat('Write_Combine_Stream: No Space. source: %d', [arry_Size]));
+      exit;
+    end;
+
+  Do_Modification;
+
+  SetLength(SpaceHnd, Space_.Count);
+
+  { fill block }
+  SwapBuff_ := System.GetMemory($FFFF);
+  try
+    tmp := arry_Size;
+    i := 0;
+    while i < Space_.Count do
+      with Space_[i]^ do
+        begin
+          if tmp > Size then
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, Size) <> Size then
+                begin
+                  ErrorInfo('Write_Combine_Stream: read error.');
+                  exit;
+                end;
+              UsedSpace := Size;
+              if not WriteCacheBlock(SwapBuff_, Size, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Stream: umlFileSeek Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, Size);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, Size) then
+                    begin
+                      ErrorInfo('Write_Combine_Stream: umlBlockWrite Block error.');
+                      exit;
+                    end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              dec(tmp, Size);
+              SpaceHnd[i] := ID;
+              inc(i);
+            end
+          else
+            begin
+              if Do_Read_Arry_Data(SwapBuff_, tmp) <> tmp then
+                begin
+                  ErrorInfo('Write_Combine_Stream: read tail error.');
+                  exit;
+                end;
+              UsedSpace := tmp;
+              if not WriteCacheBlock(SwapBuff_, tmp, ID, True) then
+                begin
+                  if not umlFileSeek(FSpace_IOHnd^, Position) then
+                    begin
+                      ErrorInfo('Write_Combine_Stream: umlFileSeek tail Block error.');
+                      exit;
+                    end;
+                  DoEncrypt(SwapBuff_, tmp);
+                  if not umlBlockWrite(FSpace_IOHnd^, SwapBuff_^, tmp) then
+                    begin
+                      ErrorInfo('Write_Combine_Stream: umlBlockWrite tail Block error.');
+                      exit;
+                    end;
+                  if Size - tmp > 0 then
+                    if not umlBlockWrite(FSpace_IOHnd^, ZDB2_NULL_Data, Size - tmp) then
+                      begin
+                        ErrorInfo('Write_Combine_Stream: umlBlockWrite tail (NULL) error.');
+                        exit;
+                      end;
+                end;
+
+              dec(FState.FreeSpace, Size);
+
+              SpaceHnd[i] := ID;
+              inc(i);
+              Result := True;
+              break;
+            end;
+        end;
+    // restore backup position
+    for i := 0 to L - 1 do
+        arry[i].Position := arry_backup_pos[i];
+    DisposeObject(Space_);
+
+    // fill link
+    j := 0;
+    FBlockBuffer[SpaceHnd[0]].Prev := -1;
+    while j < length(SpaceHnd) do
+      begin
+        if j > 0 then
+          begin
+            FBlockBuffer[SpaceHnd[j - 1]].Next := SpaceHnd[j];
+            FBlockBuffer[SpaceHnd[j]].Prev := SpaceHnd[j - 1];
+          end;
+        inc(j);
+      end;
+    FBlockBuffer[SpaceHnd[j - 1]].Next := -1;
+
+    // chagne state
+    inc(FState.WriteNum);
+    inc(FState.WriteSize, arry_Size);
+
+    // prepare probe for next
+    FFreeSpaceIndexProbe := FBlockCount;
+    i := FBlockBuffer[SpaceHnd[j - 1]].ID + 1;
+    while i < FBlockCount do
+      with FBlockBuffer[i] do
+        begin
+          if UsedSpace = 0 then
+            begin
+              FFreeSpaceIndexProbe := i;
+              break;
+            end
+          else
+              inc(i);
+        end;
+  finally
+      System.FreeMemory(SwapBuff_);
+  end;
+end;
+
+function TZDB2_Core_Space.Write_Combine_Stream(const arry: TStream_Array; var ID: Integer): Boolean;
+var
+  SpaceHnd: TZDB2_BlockHandle;
+begin
+  Result := Write_Combine_Stream(arry, SpaceHnd);
+  if Result then
+      ID := SpaceHnd[0];
+  SetLength(SpaceHnd, 0);
+end;
+
 function TZDB2_Core_Space.ReadStream(Stream_: TCore_Stream; SpaceHnd: TZDB2_BlockHandle): Boolean;
 var
   i: Integer;
@@ -2940,12 +3534,243 @@ begin
   Result := ReadData(buff, GetSpaceHnd(ID));
 end;
 
+function TZDB2_Core_Space.Compute_Data_Position(SpaceHnd: TZDB2_BlockHandle; const Pos_: Int64; var BlockID_: Integer; var BlockPos_: Int64): Boolean;
+var
+  L, i, ID: Integer;
+  cp: Int64; // compute pos
+begin
+  Result := False;
+  if (Pos_ < 0) then
+      exit;
+  cp := 0;
+  L := length(SpaceHnd);
+
+  for i := 0 to L - 1 do
+    begin
+      ID := SpaceHnd[i];
+      if (Pos_ >= cp) and (Pos_ <= cp + FBlockBuffer[ID].UsedSpace) then
+        begin
+          BlockPos_ := Pos_ - cp;
+          BlockID_ := ID;
+          Result := True;
+          exit;
+        end;
+      inc(cp, FBlockBuffer[ID].UsedSpace);
+    end;
+end;
+
+function TZDB2_Core_Space.Compute_Data_Range(SpaceHnd: TZDB2_BlockHandle; const Pos_, Size_: Int64; var Range_Space: TZDB2_ID_List; var BeginBlockPos_, EndBlockPos_: Int64): Boolean;
+var
+  L, i, j, ID: Integer;
+  cp: Int64;   // compute pos
+  ePos: Int64; // end pos
+begin
+  Result := False;
+  if (Pos_ < 0) or (Size_ < 0) then
+      exit;
+  Range_Space.Clear;
+  BeginBlockPos_ := 0;
+  EndBlockPos_ := 0;
+  cp := 0;
+  ePos := Pos_ + Size_;
+  L := length(SpaceHnd);
+
+  for i := 0 to L - 1 do
+    begin
+      ID := SpaceHnd[i];
+      if (Pos_ >= cp) and (Pos_ <= cp + FBlockBuffer[ID].UsedSpace) then
+        begin
+          BeginBlockPos_ := Pos_ - cp;
+          for j := i to L - 1 do
+            begin
+              ID := SpaceHnd[j];
+              Range_Space.Add(ID);
+              if (ePos >= cp) and (ePos <= cp + FBlockBuffer[ID].UsedSpace) then
+                begin
+                  EndBlockPos_ := ePos - cp;
+                  Result := True;
+                  exit;
+                end;
+              inc(cp, FBlockBuffer[ID].UsedSpace);
+            end;
+          EndBlockPos_ := FBlockBuffer[SpaceHnd[L - 1]].UsedSpace;
+          Result := True;
+          exit;
+        end;
+      inc(cp, FBlockBuffer[ID].UsedSpace);
+    end;
+end;
+
+function TZDB2_Core_Space.Read_Position(Stream_: TCore_Stream; SpaceHnd: TZDB2_BlockHandle; Begin_Position, Read_Size: Int64): Int64;
+var
+  Range_Space: TZDB2_ID_List;
+  BeginBlockPos_, EndBlockPos_: Int64;
+  i: Integer;
+  Siz_: Int64;
+  SwapBuff_: Pointer;
+  bak_: Int64;
+begin
+  Result := 0;
+
+  if Read_Size <= 0 then
+      exit;
+
+  if length(SpaceHnd) = 0 then
+    begin
+      ErrorInfo('Read_Position: SpaceHnd null error.');
+      exit;
+    end;
+
+  Range_Space := TZDB2_ID_List.Create;
+  if Compute_Data_Range(SpaceHnd, Begin_Position, Read_Size, Range_Space, BeginBlockPos_, EndBlockPos_) then
+    begin
+      bak_ := Stream_.Position;
+      { alloc buffer }
+      SwapBuff_ := System.GetMemory($FFFF);
+      try
+        if Range_Space.Count > 1 then
+          begin
+            { read begin body }
+            with FBlockBuffer[Range_Space.First] do
+              begin
+                if not ReadCacheBlock(SwapBuff_, ID) then
+                  begin
+                    if not umlFileSeek(FSpace_IOHnd^, Position) then
+                      begin
+                        ErrorInfo('Read_Position: umlFileSeek error.');
+                        exit;
+                      end;
+                    if not umlBlockRead(FSpace_IOHnd^, SwapBuff_^, UsedSpace) then
+                      begin
+                        ErrorInfo('Read_Position: umlBlockRead error.');
+                        exit;
+                      end;
+                    DoDecrypt(SwapBuff_, UsedSpace);
+                    if FUsedReadCache then
+                        WriteCacheBlock(SwapBuff_, UsedSpace, ID, False);
+                  end;
+                if Stream_.Write(GetOffset(SwapBuff_, BeginBlockPos_)^, UsedSpace - BeginBlockPos_) <> UsedSpace - BeginBlockPos_ then
+                  begin
+                    ErrorInfo('Read_Position: write error.');
+                    exit;
+                  end;
+                inc(Result, UsedSpace - BeginBlockPos_);
+              end;
+
+            { read sequence body }
+            i := 1;
+            while i < Range_Space.Count - 1 do
+              with FBlockBuffer[Range_Space[i]] do
+                begin
+                  if not ReadCacheBlock(SwapBuff_, ID) then
+                    begin
+                      if not umlFileSeek(FSpace_IOHnd^, Position) then
+                        begin
+                          ErrorInfo('Read_Position: umlFileSeek error.');
+                          exit;
+                        end;
+                      if not umlBlockRead(FSpace_IOHnd^, SwapBuff_^, UsedSpace) then
+                        begin
+                          ErrorInfo('Read_Position: umlBlockRead error.');
+                          exit;
+                        end;
+                      DoDecrypt(SwapBuff_, UsedSpace);
+                      if FUsedReadCache then
+                          WriteCacheBlock(SwapBuff_, UsedSpace, ID, False);
+                    end;
+                  if Stream_.Write(SwapBuff_^, UsedSpace) <> UsedSpace then
+                    begin
+                      ErrorInfo('Read_Position: write error.');
+                      exit;
+                    end;
+                  inc(Result, UsedSpace);
+                  inc(i);
+                end;
+
+            with FBlockBuffer[Range_Space.Last] do
+              begin
+                if not ReadCacheBlock(SwapBuff_, ID) then
+                  begin
+                    if not umlFileSeek(FSpace_IOHnd^, Position) then
+                      begin
+                        ErrorInfo('Read_Position: umlFileSeek error.');
+                        exit;
+                      end;
+                    if not umlBlockRead(FSpace_IOHnd^, SwapBuff_^, UsedSpace) then
+                      begin
+                        ErrorInfo('Read_Position: umlBlockRead error.');
+                        exit;
+                      end;
+                    DoDecrypt(SwapBuff_, UsedSpace);
+                    if FUsedReadCache then
+                        WriteCacheBlock(SwapBuff_, UsedSpace, ID, False);
+                  end;
+                if Stream_.Write(SwapBuff_^, EndBlockPos_) <> EndBlockPos_ then
+                  begin
+                    ErrorInfo('Read_Position: write error.');
+                    exit;
+                  end;
+                inc(Result, EndBlockPos_);
+              end;
+          end
+        else if Range_Space.Count > 0 then
+          begin
+            // read block
+            with FBlockBuffer[Range_Space.First] do
+              begin
+                if not ReadCacheBlock(SwapBuff_, ID) then
+                  begin
+                    if not umlFileSeek(FSpace_IOHnd^, Position) then
+                      begin
+                        ErrorInfo('Read_Position: umlFileSeek error.');
+                        exit;
+                      end;
+                    if not umlBlockRead(FSpace_IOHnd^, SwapBuff_^, UsedSpace) then
+                      begin
+                        ErrorInfo('Read_Position: umlBlockRead error.');
+                        exit;
+                      end;
+                    DoDecrypt(SwapBuff_, UsedSpace);
+                    if FUsedReadCache then
+                        WriteCacheBlock(SwapBuff_, UsedSpace, ID, False);
+                  end;
+                if Stream_.Write(GetOffset(SwapBuff_, BeginBlockPos_)^, EndBlockPos_ - BeginBlockPos_) <> EndBlockPos_ - BeginBlockPos_ then
+                  begin
+                    ErrorInfo('Read_Position: write error.');
+                    exit;
+                  end;
+                inc(Result, EndBlockPos_ - BeginBlockPos_);
+              end;
+          end
+        else
+          begin
+            ErrorInfo('Read_Position: SearchDataRange return Range_Space is NULL.');
+            exit;
+          end;
+
+        inc(FState.ReadNum);
+        inc(FState.ReadSize, Result);
+        Stream_.Position := bak_;
+      finally
+        System.FreeMemory(SwapBuff_);
+        DisposeObject(Range_Space);
+      end;
+    end
+  else
+      DisposeObject(Range_Space);
+end;
+
+function TZDB2_Core_Space.Read_Position(Stream_: TCore_Stream; ID: Integer; Begin_Position, Read_Size: Int64): Int64;
+begin
+  Result := Read_Position(Stream_, GetSpaceHnd(ID), Begin_Position, Read_Size);
+end;
+
 function TZDB2_Core_Space.ComputeMD5(SpaceHnd: TZDB2_BlockHandle; var MD5: TMD5): Boolean;
 var
   i: Integer;
   Siz_: Int64;
   SwapBuff_: Pointer;
-  Context_: TMD5Context;
+  MD5_Tool: TMD5_Tool;
 begin
   Result := False;
 
@@ -2969,8 +3794,8 @@ begin
       exit;
 
   { read }
-  THashMD5.InitMD5(Context_);
   i := 0;
+  MD5_Tool := TMD5_Tool.Create;
   SwapBuff_ := System.GetMemory($FFFF);
   try
     while i < length(SpaceHnd) do
@@ -2980,29 +3805,29 @@ begin
             begin
               if not umlFileSeek(FSpace_IOHnd^, Position) then
                 begin
-                  ErrorInfo('ReadStream: umlFileSeek error.');
+                  ErrorInfo('ComputeMD5: umlFileSeek error.');
                   exit;
                 end;
               if not umlBlockRead(FSpace_IOHnd^, SwapBuff_^, UsedSpace) then
                 begin
-                  ErrorInfo('ReadStream: umlBlockRead error.');
+                  ErrorInfo('ComputeMD5: umlBlockRead error.');
                   exit;
                 end;
               DoDecrypt(SwapBuff_, UsedSpace);
               if FUsedReadCache then
                   WriteCacheBlock(SwapBuff_, UsedSpace, ID, False);
             end;
-          THashMD5.UpdateMD5(Context_, SwapBuff_^, UsedSpace);
+          MD5_Tool.Update(SwapBuff_, UsedSpace);
           inc(i);
         end;
 
-    THashMD5.FinalizeMD5(Context_, MD5);
-
+    MD5 := MD5_Tool.FinalizeMD5;
     inc(FState.ReadNum);
     inc(FState.ReadSize, Siz_);
     Result := True;
   finally
-      System.FreeMemory(SwapBuff_);
+    System.FreeMemory(SwapBuff_);
+    DisposeObject(MD5_Tool);
   end;
 end;
 
@@ -3455,6 +4280,271 @@ begin
 
   DisposeObject(space1);
   SetLength(id_buff, 0);
+end;
+
+class procedure TZDB2_Core_Space.Test_Read_Position;
+var
+  Cipher_: TZDB2_Cipher;
+  Hnd: TIOHnd;
+  db: TZDB2_Core_Space;
+
+  procedure Do_Test_Rand_Read();
+  var
+    m64, tmp: TMS64;
+    ID: Integer;
+    i: Integer;
+    bPos, siz: Int64;
+  begin
+    m64 := TMS64.Create;
+    m64.Size := umlRR(1024, 128 * 1024);
+    TMT19937.Rand32(MaxInt, m64.Memory, m64.Size shr 2);
+
+    if db.WriteStream(m64, ID) then
+      begin
+        for i := 1 to 100 do
+          begin
+            bPos := umlRR(0, m64.Size - 8192);
+            siz := umlRR(1, 8192);
+            if (bPos > 0) and (siz > 0) then
+              begin
+                tmp := TMS64.CustomCreate(8192);
+                if db.Read_Position(tmp, ID, bPos, siz) <> siz then
+                  begin
+                    DoStatus('test read position failed!');
+                  end
+                else if not CompareMemory(tmp.Memory, m64.PosAsPtr(bPos), tmp.Size) then
+                    DoStatus('test read position Data failed!');
+                DisposeObject(tmp);
+              end;
+          end;
+      end;
+
+    DisposeObject(m64);
+  end;
+
+  procedure Do_Run_Test();
+  var
+    i: Integer;
+  begin
+    for i := 1 to 1000 do
+        Do_Test_Rand_Read();
+  end;
+
+begin
+  Cipher_ := TZDB2_Cipher.Create(TCipherSecurity.csAES128, 'hello world.', 1, False, True);
+  InitIOHnd(Hnd);
+  umlFileCreateAsMemory(Hnd);
+  Hnd.Cache.UsedWriteCache := True;
+  Hnd.Cache.UsedReadCache := True;
+
+  db := TZDB2_Core_Space.Create(@Hnd);
+  db.Cipher := Cipher_;
+  db.AutoCloseIOHnd := True;
+  db.Mode := smBigData;
+  db.Fast_BuildSpace(1024 * 1024 * 500, 999);
+  db.Save();
+
+  Do_Run_Test();
+
+  DisposeObject(db);
+  DisposeObject(Cipher_);
+end;
+
+class procedure TZDB2_Core_Space.Test_Write_Combine();
+var
+  origin_mem: TMem64;
+  Cipher_: TZDB2_Cipher;
+  Hnd: TIOHnd;
+  db: TZDB2_Core_Space;
+
+  procedure Do_Test_Write_From_origin_1;
+  var
+    passed: Integer;
+    arry_num: Integer;
+    arry: TMS64_Array;
+    i: Integer;
+    bPos, p, p_siz, total: Int64;
+    ID: Integer;
+    tmp: TMS64;
+  begin
+    for passed := 1 to 100 do
+      begin
+        arry_num := umlRR(10, 100);
+        // arry_num := 2;
+        SetLength(arry, arry_num);
+        bPos := umlRR(0, 32 * 1024 * 1024);
+        p := bPos;
+        total := 0;
+        for i := 0 to arry_num - 1 do
+          begin
+            arry[i] := TMS64.Create;
+            p_siz := umlRR(1536, 16384);
+            arry[i].Mapping(origin_mem.PosAsPtr(p), p_siz);
+            inc(p, p_siz);
+            inc(total, p_siz);
+          end;
+
+        if not db.Write_Combine_Memory(arry, ID) then
+            DoStatus('Test Write_Combine_Memory failed!')
+        else
+          begin
+            tmp := TMS64.CustomCreate(1024 * 1024);
+            if db.ReadStream(tmp, ID) then
+              begin
+                if not CompareMemory(origin_mem.PosAsPtr(bPos), tmp.Memory, tmp.Size) then
+                  begin
+                    DoStatus('Test Write_Combine_Memory data error!')
+                  end;
+              end
+            else
+              begin
+                DoStatus('Test Write_Combine_Memory read failed!');
+              end;
+            DisposeObject(tmp);
+            db.RemoveData(ID, False);
+          end;
+
+        for i := 0 to arry_num - 1 do
+          begin
+            DisposeObjectAndNil(arry[i]);
+          end;
+      end;
+  end;
+
+  procedure Do_Test_Write_From_origin_2;
+  var
+    passed: Integer;
+    arry_num: Integer;
+    arry: TMem64_Array;
+    i: Integer;
+    bPos, p, p_siz, total: Int64;
+    ID: Integer;
+    tmp: TMem64;
+  begin
+    for passed := 1 to 100 do
+      begin
+        arry_num := umlRR(10, 100);
+        // arry_num := 2;
+        SetLength(arry, arry_num);
+        bPos := umlRR(0, 32 * 1024 * 1024);
+        p := bPos;
+        total := 0;
+        for i := 0 to arry_num - 1 do
+          begin
+            arry[i] := TMem64.Create;
+            p_siz := umlRR(1536, 16384);
+            arry[i].Mapping(origin_mem.PosAsPtr(p), p_siz);
+            inc(p, p_siz);
+            inc(total, p_siz);
+          end;
+
+        if not db.Write_Combine_Memory(arry, ID) then
+            DoStatus('Test Write_Combine_Memory failed!')
+        else
+          begin
+            tmp := TMem64.CustomCreate(1024 * 1024);
+            if db.ReadData(tmp, ID) then
+              begin
+                if not CompareMemory(origin_mem.PosAsPtr(bPos), tmp.Memory, tmp.Size) then
+                  begin
+                    DoStatus('Test Write_Combine_Memory data error!')
+                  end;
+              end
+            else
+              begin
+                DoStatus('Test Write_Combine_Memory read failed!');
+              end;
+            DisposeObject(tmp);
+            db.RemoveData(ID, False);
+          end;
+
+        for i := 0 to arry_num - 1 do
+          begin
+            DisposeObjectAndNil(arry[i]);
+          end;
+      end;
+  end;
+
+  procedure Do_Test_Write_From_origin_3;
+  var
+    passed: Integer;
+    arry_num: Integer;
+    arry: TStream_Array;
+    i: Integer;
+    bPos, p, p_siz, total: Int64;
+    ID: Integer;
+    tmp: TMS64;
+  begin
+    for passed := 1 to 100 do
+      begin
+        arry_num := umlRR(10, 100);
+        // arry_num := 2;
+        SetLength(arry, arry_num);
+        bPos := umlRR(0, 32 * 1024 * 1024);
+        p := bPos;
+        total := 0;
+        for i := 0 to arry_num - 1 do
+          begin
+            arry[i] := TMS64.Create;
+            p_siz := umlRR(1536, 16384);
+            TMS64(arry[i]).Mapping(origin_mem.PosAsPtr(p), p_siz);
+            inc(p, p_siz);
+            inc(total, p_siz);
+          end;
+
+        if not db.Write_Combine_Stream(arry, ID) then
+            DoStatus('Test Write_Combine_Stream failed!')
+        else
+          begin
+            tmp := TMS64.CustomCreate(1024 * 1024);
+            if db.ReadStream(tmp, ID) then
+              begin
+                if not CompareMemory(origin_mem.PosAsPtr(bPos), tmp.Memory, tmp.Size) then
+                  begin
+                    DoStatus('Test Write_Combine_Memory data error!')
+                  end;
+              end
+            else
+              begin
+                DoStatus('Test Write_Combine_Memory read failed!');
+              end;
+            DisposeObject(tmp);
+            db.RemoveData(ID, False);
+          end;
+
+        for i := 0 to arry_num - 1 do
+          begin
+            DisposeObjectAndNil(arry[i]);
+          end;
+      end;
+  end;
+
+begin
+  origin_mem := TMem64.Create;
+  origin_mem.Size := 64 * 1024 * 1024;
+  TMT19937.Rand32(MaxInt, origin_mem.Memory, origin_mem.Size shr 2);
+
+  Cipher_ := TZDB2_Cipher.Create(TCipherSecurity.csAES128, 'hello world.', 1, False, True);
+  InitIOHnd(Hnd);
+  umlFileCreateAsMemory(Hnd);
+  Hnd.Cache.UsedWriteCache := True;
+  Hnd.Cache.UsedReadCache := True;
+
+  db := TZDB2_Core_Space.Create(@Hnd);
+  db.Cipher := Cipher_;
+  db.AutoCloseIOHnd := True;
+  db.Mode := smBigData;
+  db.Fast_BuildSpace(1024 * 1024 * 500, 999);
+  db.Save();
+
+  Do_Test_Write_From_origin_1();
+  Do_Test_Write_From_origin_2();
+  Do_Test_Write_From_origin_3();
+
+  DisposeObject(db);
+  DisposeObject(Cipher_);
+
+  DisposeObject(origin_mem);
 end;
 
 initialization

@@ -426,7 +426,7 @@ begin
       itm := VarListView.Items[i] as TNumber_Item;
       if itm.Number = NM then
         begin
-          itm.SubItems[0] := NM.CurrentAsString;
+          itm.SubItems[0] := NM.AsString;
           found_ := True;
         end;
     end;
@@ -435,7 +435,7 @@ begin
       itm := VarListView.Items.Add as TNumber_Item;
       itm.Number := NM;
       itm.Caption := NM.Name;
-      itm.SubItems.Add(NM.CurrentAsString);
+      itm.SubItems.Add(NM.AsString);
     end;
 end;
 
@@ -472,7 +472,7 @@ begin
       itm := VarListView.Items.Add as TNumber_Item;
       itm.Number := Obj_;
       itm.Caption := Obj_.Name;
-      itm.SubItems.Add(Obj_.CurrentAsString);
+      itm.SubItems.Add(Obj_.AsString);
     end);
   VarListView.Items.EndUpdate;
 end;

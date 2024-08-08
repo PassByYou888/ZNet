@@ -1,5 +1,5 @@
 { ****************************************************************************** }
-{ * ZDB 2.0 Large Data templet for HPC                                         * }
+{ * Large Data templet for HPC                                                 * }
 { ****************************************************************************** }
 unit Z.ZDB2.Thread.LargeData;
 
@@ -38,9 +38,6 @@ type
 
   { Chain tools, data exchange, caching, batching, computation, classification }
   TZDB2_Custom_Data_Pool = TBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Custom_Small_Data_Pool = TBigList<Int64>;
-  TZDB2_Custom_Medium_Data_Pool = TBigList<Int64>;
-  TZDB2_Custom_Large_Data_Pool = TBigList<Int64>;
 
   TZDB2_Custom_Batch_Data_Post_Bridge = class;
 
@@ -86,7 +83,7 @@ type
 
   { TZDB2_Custom_Small_Data storage format }
   { Small data has a storage sequence mechanism that can be automatically preloaded, with full data loading as the preloading method }
-  { The following data structure Make your own decision, and when opening the database, you will use Extract_Data_Source initializes data }
+  { The following data structure Make your own decision, and when opening the database }
   { The number of small data is unlimited. Individual small data should not be treated as Big data. It is recommended that individuals should not exceed 10kb }
   { Small storage block of approximately 1KB, single library storage limit of 1.5TB }
   { Save DFE, JSON, XML, ini, HTML, logs, running device status, using small data }
@@ -107,10 +104,6 @@ type
     { When data is removed }
     { If a lot of data is bound, it is necessary to delete the binding together }
     procedure Do_Remove(); override;
-    { Unpack the original data body, which does not contain a sequence_ID, where you can store Json, ini, dfe, xml }
-    { Suggest using the dfe structure: dfe supports incomplete data, with greater optimization space for data performance in the middle and later stages, and CPU+memory overhead optimization }
-    { Programming can be done through external interfaces }
-    procedure Extract_Data_Source(Data_Source: TMS64); virtual;
     { Encoding data body -> Store physical data of inverted database }
     { Programming can be done through external interfaces }
     function Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64; virtual;
@@ -123,8 +116,8 @@ type
     { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
     { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
     { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
-    procedure Encode_External_Header_Data(External_Header_Data: TMem64); virtual;
-    procedure Decode_External_Header_Data(External_Header_Data: TMem64); virtual;
+    procedure Encode_External_Header_Data(Data_Source: TMem64); virtual;
+    procedure Decode_External_Header_Data(Data_Source: TMem64); virtual;
   end;
 
   { TZDB2_Custom_Medium_Data storage format }
@@ -151,8 +144,6 @@ type
     { When data is removed }
     { If a lot of data is bound, it is necessary to delete the binding together }
     procedure Do_Remove(); override;
-    { Pre read parameters, default to 24, kernel IO for disk pre read default to 500 bytes }
-    class function Get_Prepare_Block_Read_Size: Integer; virtual;
     { Encoding data body -> Store physical data of inverted database }
     { Programming can be done through external interfaces }
     function Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64; virtual;
@@ -165,8 +156,8 @@ type
     { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
     { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
     { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
-    procedure Encode_External_Header_Data(External_Header_Data: TMem64); virtual;
-    procedure Decode_External_Header_Data(External_Header_Data: TMem64); virtual;
+    procedure Encode_External_Header_Data(Data_Source: TMem64); virtual;
+    procedure Decode_External_Header_Data(Data_Source: TMem64); virtual;
   end;
 
   { TZDB2_Custom_Large_Data storage format }
@@ -192,8 +183,6 @@ type
     { When data is removed }
     { If a lot of data is bound, it is necessary to delete the binding together }
     procedure Do_Remove(); override;
-    { Pre read parameters, default to 24, kernel IO for disk pre read default to 500 bytes }
-    class function Get_Prepare_Block_Read_Size: Integer; virtual;
     { Encoding data body -> Store physical data of inverted database }
     { Programming can be done through external interfaces }
     function Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64; virtual;
@@ -206,8 +195,8 @@ type
     { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
     { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
     { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
-    procedure Encode_External_Header_Data(External_Header_Data: TMem64); virtual;
-    procedure Decode_External_Header_Data(External_Header_Data: TMem64); virtual;
+    procedure Encode_External_Header_Data(Data_Source: TMem64); virtual;
+    procedure Decode_External_Header_Data(Data_Source: TMem64); virtual;
   end;
 
   { Extended Data Header Technology for Solving the Decentralized performance Problem of hdd }
@@ -217,6 +206,9 @@ type
   TS_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // data event
+    procedure Do_Add_Data(Sender: TZDB2_Th_Engine_Data); override;
+    procedure Do_Remove_Data(Sender: TZDB2_Th_Engine_Data); override;
     // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     // user
@@ -233,6 +225,9 @@ type
   TM_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // data event
+    procedure Do_Add_Data(Sender: TZDB2_Th_Engine_Data); override;
+    procedure Do_Remove_Data(Sender: TZDB2_Th_Engine_Data); override;
     // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     // user
@@ -249,6 +244,9 @@ type
   TL_Th_Engine_Marshal = class(TZDB2_Th_Engine_Marshal)
   public
     Owner_Large_Marshal: TZDB2_Large;
+    // data event
+    procedure Do_Add_Data(Sender: TZDB2_Th_Engine_Data); override;
+    procedure Do_Remove_Data(Sender: TZDB2_Th_Engine_Data); override;
     // flush-build external-header backcall api
     procedure Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64); override;
     // user
@@ -316,21 +314,6 @@ type
     procedure Set_Small_Data_Class(const Value: TZDB2_Custom_Small_Data_Class);
     procedure Set_Medium_Data_Class(const Value: TZDB2_Custom_Medium_Data_Class);
     procedure Set_Large_Data_Class(const Value: TZDB2_Custom_Large_Data_Class);
-    { TZDB2_Custom_Small_Data storage format }
-    { 0: Int64, serialized ID, representing the sequence of data entries }
-    { The following data structure Make your own decision, and when opening the database, you will use Extract_Data_Source initializes data }
-    procedure Do_Th_S_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
-    function Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
-    { TZDB2_Custom_Medium_Data storage format }
-    { 0: Int64, serialized ID, representing the sequence of data entries }
-    { The subsequent data structure is non user modified, and the system is dead set }
-    procedure Do_Th_M_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
-    function Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
-    { TZDB2_Custom_Large_Data storage format }
-    { 0: Int64, serialized ID, representing the sequence of data entries }
-    { The subsequent data structure is non user modified, and the system is dead set }
-    procedure Do_Th_L_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
-    function Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
   public
     { Interface Class }
     property Small_Data_Class: TZDB2_Custom_Small_Data_Class read FSmall_Data_Class write Set_Small_Data_Class;
@@ -395,55 +378,86 @@ type
     function Open_DB(script_conf_: U_String): Boolean; overload;
     function Open_DB(script_conf_: U_String; OnlyRead_: Boolean): Boolean; overload;
     { Automated API: Closing Database }
-    procedure Close_DB;
+    procedure Close_DB; virtual;
 
     { Extended Data Header Technology for Solving the Decentralized performance Problem of hdd }
     { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
     { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
     { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
     property S_DB_Engine_External_Header_Optimzied_Technology: Boolean read FS_DB_Engine_External_Header_Optimzied_Technology write FS_DB_Engine_External_Header_Optimzied_Technology;
-    property M_DB_Engine_External_Header_Optimzied_Technology: Boolean read FM_DB_Engine_External_Header_Optimzied_Technology write FM_DB_Engine_External_Header_Optimzied_Technology;
-    property L_DB_Engine_External_Header_Optimzied_Technology: Boolean read FL_DB_Engine_External_Header_Optimzied_Technology write FL_DB_Engine_External_Header_Optimzied_Technology;
+    { TZDB2_Custom_Small_Data }
+    procedure Do_Th_S_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_S_DB_Full(ThNum_: Integer); virtual;
+    procedure Do_Th_S_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64); virtual;
+    procedure Extract_S_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer); virtual;
+    procedure Do_Th_S_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_S_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64); virtual;
+    function Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer; virtual;
+    procedure Rebuild_S_DB_Requence; virtual;
 
-    { When unlocking the database, the data items in the parallel sub database will be sorted to achieve the purpose of restoration }
-    procedure Extract_S_DB(ThNum_: Integer); virtual; { Complete traversal in parallel mode, Thread safety }
-    { In parallel mode, it is solved by traversing (single block storage block), Thread safety }
-    procedure Extract_M_DB(ThNum_: Integer); virtual;
-    procedure Extract_L_DB(ThNum_: Integer); virtual;
+    { Extended Data Header Technology for Solving the Decentralized performance Problem of hdd }
+    { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
+    { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
+    { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
+    property M_DB_Engine_External_Header_Optimzied_Technology: Boolean read FM_DB_Engine_External_Header_Optimzied_Technology write FM_DB_Engine_External_Header_Optimzied_Technology;
+    { TZDB2_Custom_Medium_Data }
+    procedure Do_Th_M_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_M_DB_Full(ThNum_: Integer); virtual;
+    procedure Do_Th_M_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64); virtual;
+    procedure Extract_M_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer); virtual;
+    procedure Do_Th_M_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_M_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64); virtual;
+    function Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer; virtual;
+    procedure Rebuild_M_DB_Requence; virtual;
+
+    { Extended Data Header Technology for Solving the Decentralized performance Problem of hdd }
+    { When the data volume is large, a dataset contains dozens or hundreds of small databases. During disk operation, disk pre reads will be read in blocks, which greatly consumes HDD read time }
+    { Expanding the data header is to gather thousands of fragmented databases and read them all at once, thereby improving the startup efficiency of the database. At the same time, pre reading also requires higher memory requirements }
+    { Pre reading technology can improve data loading efficiency in the vast majority of hdd systems }
+    property L_DB_Engine_External_Header_Optimzied_Technology: Boolean read FL_DB_Engine_External_Header_Optimzied_Technology write FL_DB_Engine_External_Header_Optimzied_Technology;
+    { TZDB2_Custom_Large_Data }
+    procedure Do_Th_L_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_L_DB_Full(ThNum_: Integer); virtual;
+    procedure Do_Th_L_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64); virtual;
+    procedure Extract_L_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer); virtual;
+    procedure Do_Th_L_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64); virtual;
+    procedure Extract_L_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64); virtual;
+    function Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer; virtual;
+    procedure Rebuild_L_DB_Requence; virtual;
 
     { Create a small data instance and generate an associated Sequence after creation_ID, data is empty and will not be immediately posted. Here, some custom programs can be made }
     { After completing the processing, manually post: Don't forget that each data requires MD5, refer to Post_Data_The internal implementation of methods like xxx is sufficient }
-    function Create_Small_Data(): TZDB2_Custom_Small_Data;
-    function Create_Medium_Data(): TZDB2_Custom_Medium_Data;
-    function Create_Large_Data(): TZDB2_Custom_Large_Data;
-    { Save small data. After each post, the small data will trigger Extract_Data_Source }
-    function Post_Data_To_S_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Small_Data;
-    function Post_Data_To_S_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Small_Data;
-    function Post_Data_To_S_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Small_Data;
-    function Post_Data_To_S_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Small_Data;
+    function Create_Small_Data(): TZDB2_Custom_Small_Data; virtual;
+    function Create_Medium_Data(): TZDB2_Custom_Medium_Data; virtual;
+    function Create_Large_Data(): TZDB2_Custom_Large_Data; virtual;
+    { Save small data. each post will automatically add a sequence ID+MD5 header (24 bytes) to the data }
+    function Post_Data_To_S_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Small_Data; virtual;
+    function Post_Data_To_S_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Small_Data; virtual;
+    function Post_Data_To_S_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Small_Data; virtual;
+    function Post_Data_To_S_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Small_Data; virtual;
     { In storage data, each post will automatically add a sequence ID+MD5 header (24 bytes) to the data }
-    function Post_Data_To_M_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Medium_Data;
-    function Post_Data_To_M_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Medium_Data;
-    function Post_Data_To_M_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Medium_Data;
-    function Post_Data_To_M_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Medium_Data;
+    function Post_Data_To_M_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Medium_Data; virtual;
+    function Post_Data_To_M_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Medium_Data; virtual;
+    function Post_Data_To_M_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Medium_Data; virtual;
+    function Post_Data_To_M_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Medium_Data; virtual;
     { To store Big data, each post will automatically add a sequence id+md5 header (24 byte) to the data }
-    function Post_Data_To_L_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Large_Data;
-    function Post_Data_To_L_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Large_Data;
-    function Post_Data_To_L_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Large_Data;
-    function Post_Data_To_L_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Large_Data;
+    function Post_Data_To_L_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Large_Data; virtual;
+    function Post_Data_To_L_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Large_Data; virtual;
+    function Post_Data_To_L_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Large_Data; virtual;
+    function Post_Data_To_L_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Large_Data; virtual;
     { Batch submission of data: Batch submission ensures integrity. If one of the batch data is incorrect, the current batch data will be deleted }
     { Batch submission of data is also the most efficient way to submit correlated data, without using waiting threads or blocking TZDB2_Th_Queue }
-    function Batch_Post(): TZDB2_Custom_Batch_Data_Post_Bridge;
-    function Batch_Post_C(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_C): TZDB2_Custom_Batch_Data_Post_Bridge;
-    function Batch_Post_M(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_M): TZDB2_Custom_Batch_Data_Post_Bridge;
-    function Batch_Post_P(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_P): TZDB2_Custom_Batch_Data_Post_Bridge;
-    procedure Wait_Batch_Post();
+    function Batch_Post(): TZDB2_Custom_Batch_Data_Post_Bridge; virtual;
+    function Batch_Post_C(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_C): TZDB2_Custom_Batch_Data_Post_Bridge; virtual;
+    function Batch_Post_M(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_M): TZDB2_Custom_Batch_Data_Post_Bridge; virtual;
+    function Batch_Post_P(OnResult: TZDB2_Custom_Batch_Data_Post_Bridge_Event_P): TZDB2_Custom_Batch_Data_Post_Bridge; virtual;
+    procedure Wait_Batch_Post(); virtual;
     { Modify data, }
     { Wait_Modify_: Waiting for modification to return }
     { AutoFree_: Whether the modification is successful or not, release the data after completion }
-    procedure Modify_S_DB_Data(Inst_: TZDB2_Custom_Small_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean);
-    procedure Modify_M_DB_Data(Inst_: TZDB2_Custom_Medium_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean);
-    procedure Modify_L_DB_Data(Inst_: TZDB2_Custom_Large_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean);
+    procedure Modify_S_DB_Data(Inst_: TZDB2_Custom_Small_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean); virtual;
+    procedure Modify_M_DB_Data(Inst_: TZDB2_Custom_Medium_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean); virtual;
+    procedure Modify_L_DB_Data(Inst_: TZDB2_Custom_Large_Data; data: TMS64; Wait_Modify_, AutoFree_: Boolean); virtual;
 
     { Processing the recycling system, which can be executed at a high frequency }
     procedure Check_Recycle_Pool; virtual;
@@ -620,10 +634,6 @@ begin
   inherited Do_Remove();
 end;
 
-procedure TZDB2_Custom_Small_Data.Extract_Data_Source(Data_Source: TMS64);
-begin
-end;
-
 function TZDB2_Custom_Small_Data.Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64;
 begin
   Result := TMem64.Create;
@@ -648,20 +658,20 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
-  OneWay_Ready_From_External_Header;
+  Do_Ready;
 end;
 
-procedure TZDB2_Custom_Small_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Small_Data.Encode_External_Header_Data(Data_Source: TMem64);
 begin
-  External_Header_Data.WriteInt64(Sequence_ID);
-  External_Header_Data.WriteMD5(MD5);
+  Data_Source.WriteInt64(Sequence_ID);
+  Data_Source.WriteMD5(MD5);
 end;
 
-procedure TZDB2_Custom_Small_Data.Decode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Small_Data.Decode_External_Header_Data(Data_Source: TMem64);
 begin
-  Sequence_ID := External_Header_Data.ReadInt64;
-  MD5 := External_Header_Data.ReadMD5;
-  OneWay_Ready_From_External_Header;
+  Sequence_ID := Data_Source.ReadInt64;
+  MD5 := Data_Source.ReadMD5;
+  Do_Ready;
 end;
 
 constructor TZDB2_Custom_Medium_Data.Create;
@@ -689,11 +699,6 @@ begin
   inherited Do_Remove();
 end;
 
-class function TZDB2_Custom_Medium_Data.Get_Prepare_Block_Read_Size: Integer;
-begin
-  Result := 24;
-end;
-
 function TZDB2_Custom_Medium_Data.Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64;
 begin
   Result := TMem64.Create;
@@ -718,20 +723,20 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
-  OneWay_Ready_From_External_Header;
+  Do_Ready;
 end;
 
-procedure TZDB2_Custom_Medium_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Medium_Data.Encode_External_Header_Data(Data_Source: TMem64);
 begin
-  External_Header_Data.WriteInt64(Sequence_ID);
-  External_Header_Data.WriteMD5(MD5);
+  Data_Source.WriteInt64(Sequence_ID);
+  Data_Source.WriteMD5(MD5);
 end;
 
-procedure TZDB2_Custom_Medium_Data.Decode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Medium_Data.Decode_External_Header_Data(Data_Source: TMem64);
 begin
-  Sequence_ID := External_Header_Data.ReadInt64;
-  MD5 := External_Header_Data.ReadMD5;
-  OneWay_Ready_From_External_Header;
+  Sequence_ID := Data_Source.ReadInt64;
+  MD5 := Data_Source.ReadMD5;
+  Do_Ready;
 end;
 
 constructor TZDB2_Custom_Large_Data.Create;
@@ -759,11 +764,6 @@ begin
   inherited Do_Remove();
 end;
 
-class function TZDB2_Custom_Large_Data.Get_Prepare_Block_Read_Size: Integer;
-begin
-  Result := 24;
-end;
-
 function TZDB2_Custom_Large_Data.Encode_To_ZDB2_Data(Data_Source: TMS64; AutoFree_: Boolean): TMem64;
 begin
   Result := TMem64.Create;
@@ -788,20 +788,29 @@ begin
       Data_Source.Position := 24;
   Result := TMS64.Create;
   Result.Mapping(Data_Source.PosAsPtr, Data_Source.Size - Data_Source.Position);
-  OneWay_Ready_From_External_Header;
+  Do_Ready;
 end;
 
-procedure TZDB2_Custom_Large_Data.Encode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Large_Data.Encode_External_Header_Data(Data_Source: TMem64);
 begin
-  External_Header_Data.WriteInt64(Sequence_ID);
-  External_Header_Data.WriteMD5(MD5);
+  Data_Source.WriteInt64(Sequence_ID);
+  Data_Source.WriteMD5(MD5);
 end;
 
-procedure TZDB2_Custom_Large_Data.Decode_External_Header_Data(External_Header_Data: TMem64);
+procedure TZDB2_Custom_Large_Data.Decode_External_Header_Data(Data_Source: TMem64);
 begin
-  Sequence_ID := External_Header_Data.ReadInt64;
-  MD5 := External_Header_Data.ReadMD5;
-  OneWay_Ready_From_External_Header;
+  Sequence_ID := Data_Source.ReadInt64;
+  MD5 := Data_Source.ReadMD5;
+  Do_Ready;
+end;
+
+procedure TS_Th_Engine_Marshal.Do_Add_Data(Sender: TZDB2_Th_Engine_Data);
+begin
+  TZDB2_Custom_Small_Data(Sender).FOwner_Large_Marshal := Owner_Large_Marshal;
+end;
+
+procedure TS_Th_Engine_Marshal.Do_Remove_Data(Sender: TZDB2_Th_Engine_Data);
+begin
 end;
 
 procedure TS_Th_Engine_Marshal.Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64);
@@ -852,7 +861,6 @@ begin
           break;
         end;
       try
-        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -915,6 +923,15 @@ begin
   Result := Eng_.Ready;
 end;
 
+procedure TM_Th_Engine_Marshal.Do_Add_Data(Sender: TZDB2_Th_Engine_Data);
+begin
+  TZDB2_Custom_Medium_Data(Sender).FOwner_Large_Marshal := Owner_Large_Marshal;
+end;
+
+procedure TM_Th_Engine_Marshal.Do_Remove_Data(Sender: TZDB2_Th_Engine_Data);
+begin
+end;
+
 procedure TM_Th_Engine_Marshal.Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64);
 var
   tmp: TMem64;
@@ -963,7 +980,6 @@ begin
           break;
         end;
       try
-        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -1026,6 +1042,15 @@ begin
   Result := Eng_.Ready;
 end;
 
+procedure TL_Th_Engine_Marshal.Do_Add_Data(Sender: TZDB2_Th_Engine_Data);
+begin
+  TZDB2_Custom_Large_Data(Sender).FOwner_Large_Marshal := Owner_Large_Marshal;
+end;
+
+procedure TL_Th_Engine_Marshal.Do_Remove_Data(Sender: TZDB2_Th_Engine_Data);
+begin
+end;
+
 procedure TL_Th_Engine_Marshal.Prepare_Flush_External_Header(Th_Engine_: TZDB2_Th_Engine; var Sequence_Table: TZDB2_BlockHandle; Flush_Instance_Pool: TZDB2_Th_Engine_Data_Instance_Pool; External_Header_Data_: TMem64);
 var
   tmp: TMem64;
@@ -1074,7 +1099,6 @@ begin
           break;
         end;
       try
-        Inst_.FOwner_Large_Marshal := Owner_Large_Marshal;
         siz_ := Eng_.External_Header_Data.ReadInt32;
         tmp := TMem64.Create;
         tmp.Mapping(Eng_.External_Header_Data.PosAsPtr, siz_);
@@ -1153,52 +1177,6 @@ procedure TZDB2_Large.Set_Large_Data_Class(const Value: TZDB2_Custom_Large_Data_
 begin
   FLarge_Data_Class := Value;
   FL_DB.Current_Data_Class := FLarge_Data_Class;
-end;
-
-procedure TZDB2_Large.Do_Th_S_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
-var
-  Inst_: TZDB2_Custom_Small_Data;
-  tmp: TMS64;
-begin
-  Inst_ := Sender as TZDB2_Custom_Small_Data;
-  Inst_.FOwner_Large_Marshal := Self;
-  tmp := Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True);
-  tmp.Position := 0;
-  Inst_.Extract_Data_Source(tmp);
-  DisposeObject(tmp);
-end;
-
-function TZDB2_Large.Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
-begin
-  Result := CompareInt64(TZDB2_Custom_Small_Data(L).FSequence_ID, TZDB2_Custom_Small_Data(R).FSequence_ID);
-end;
-
-procedure TZDB2_Large.Do_Th_M_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
-var
-  Inst_: TZDB2_Custom_Medium_Data;
-begin
-  Inst_ := Sender as TZDB2_Custom_Medium_Data;
-  Inst_.FOwner_Large_Marshal := Self;
-  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_, True));
-end;
-
-function TZDB2_Large.Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
-begin
-  Result := CompareInt64(TZDB2_Custom_Medium_Data(L).FSequence_ID, TZDB2_Custom_Medium_Data(R).FSequence_ID);
-end;
-
-procedure TZDB2_Large.Do_Th_L_DB_Data_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
-var
-  Inst_: TZDB2_Custom_Large_Data;
-begin
-  Inst_ := Sender as TZDB2_Custom_Large_Data;
-  Inst_.FOwner_Large_Marshal := Self;
-  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_, True));
-end;
-
-function TZDB2_Large.Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
-begin
-  Result := CompareInt64(TZDB2_Custom_Large_Data(L).FSequence_ID, TZDB2_Custom_Large_Data(R).FSequence_ID);
 end;
 
 constructor TZDB2_Large.Create();
@@ -1445,9 +1423,9 @@ begin
       Eng_.Name := PFormat('%s_S(%d)', [Name_.Text, i + 1]);
       Eng_.Database_File := PFormat('%s_S(%d).ZDB2', [Name_.Text, i + 1]);
       Eng_.Fast_Alloc_Space := True;
-      Eng_.First_Inited_Physics_Space := 100 * 1024 * 1024;
+      Eng_.First_Inited_Physics_Space := 10 * 1024 * 1024;
       Eng_.Auto_Append_Space := True;
-      Eng_.Delta := 100 * 1024 * 1024;
+      Eng_.Delta := 10 * 1024 * 1024;
       Eng_.BlockSize := 1024;
       Eng_.Cipher_Security := Cipher_Security_;
       HL := Result.HStringList[Eng_.Name];
@@ -1461,9 +1439,9 @@ begin
       Eng_.Name := PFormat('%s_M(%d)', [Name_.Text, i + 1]);
       Eng_.Database_File := PFormat('%s_M(%d).ZDB2', [Name_.Text, i + 1]);
       Eng_.Fast_Alloc_Space := True;
-      Eng_.First_Inited_Physics_Space := Int64(500) * 1024 * 1024;
+      Eng_.First_Inited_Physics_Space := Int64(200) * 1024 * 1024;
       Eng_.Auto_Append_Space := True;
-      Eng_.Delta := Int64(500) * 1024 * 1024;
+      Eng_.Delta := Int64(200) * 1024 * 1024;
       Eng_.BlockSize := 8 * 1024;
       Eng_.Cipher_Security := Cipher_Security_;
       HL := Result.HStringList[Eng_.Name];
@@ -1502,7 +1480,6 @@ begin
   Result := False;
   if not umlFileExists(script_conf_) then
       exit;
-  Close_DB;
   te := TTextDataEngine.Create;
   try
     te.LoadFromFile(script_conf_);
@@ -1579,7 +1556,15 @@ begin
   FL_DB_Sequence_Pool := TZDB2_Custom_Large_Sequence_ID_Pool.Create(1024 * 1024, nil);
 end;
 
-procedure TZDB2_Large.Extract_S_DB(ThNum_: Integer);
+procedure TZDB2_Large.Do_Th_S_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Small_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Small_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_S_DB_Full(ThNum_: Integer);
 var
   Extract_Done: Boolean;
 begin
@@ -1590,9 +1575,69 @@ begin
       FS_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FS_DB.Parallel_Load_M(ThNum_, Do_Th_S_DB_Data_Loaded, nil);
+      FS_DB.Parallel_Load_M(ThNum_, Do_Th_S_DB_Data_Full_Loaded, nil);
     end;
 
+  Rebuild_S_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_S_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
+var
+  Inst_: TZDB2_Custom_Small_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Small_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_, True));
+end;
+
+procedure TZDB2_Large.Extract_S_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer);
+var
+  Extract_Done: Boolean;
+begin
+  FS_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FS_DB_Engine_External_Header_Optimzied_Technology then
+      FS_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FS_DB.Parallel_Block_Load_M(ThNum_, Block_Index, Block_Offset, Block_Read_Size, Do_Th_S_DB_Data_Block_Loaded, nil);
+    end;
+
+  Rebuild_S_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_S_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Small_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Small_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_S_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64);
+var
+  Extract_Done: Boolean;
+begin
+  FS_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FS_DB_Engine_External_Header_Optimzied_Technology then
+      FS_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FS_DB.Parallel_Position_Load_M(ThNum_, Position_Offset, Position_Read_Size, Do_Th_S_DB_Data_Position_Loaded, nil);
+    end;
+
+  Rebuild_S_DB_Requence();
+end;
+
+function TZDB2_Large.Do_S_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
+begin
+  Result := CompareInt64(TZDB2_Custom_Small_Data(L).FSequence_ID, TZDB2_Custom_Small_Data(R).FSequence_ID);
+end;
+
+procedure TZDB2_Large.Rebuild_S_DB_Requence;
+begin
   FCurrent_S_DB_Sequence_ID := 1;
   if FS_DB.Data_Marshal.Num > 0 then
     begin
@@ -1608,7 +1653,15 @@ begin
     end;
 end;
 
-procedure TZDB2_Large.Extract_M_DB(ThNum_: Integer);
+procedure TZDB2_Large.Do_Th_M_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Medium_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Medium_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_M_DB_Full(ThNum_: Integer);
 var
   Extract_Done: Boolean;
 begin
@@ -1619,9 +1672,69 @@ begin
       FM_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FM_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Medium_Data.Get_Prepare_Block_Read_Size, Do_Th_M_DB_Data_Loaded, nil);
+      FM_DB.Parallel_Load_M(ThNum_, Do_Th_M_DB_Data_Full_Loaded, nil);
     end;
 
+  Rebuild_M_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_M_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
+var
+  Inst_: TZDB2_Custom_Medium_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Medium_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_, True));
+end;
+
+procedure TZDB2_Large.Extract_M_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer);
+var
+  Extract_Done: Boolean;
+begin
+  FM_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FM_DB_Engine_External_Header_Optimzied_Technology then
+      FM_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FM_DB.Parallel_Block_Load_M(ThNum_, Block_Index, Block_Offset, Block_Read_Size, Do_Th_M_DB_Data_Block_Loaded, nil);
+    end;
+
+  Rebuild_M_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_M_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Medium_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Medium_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_M_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64);
+var
+  Extract_Done: Boolean;
+begin
+  FM_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FM_DB_Engine_External_Header_Optimzied_Technology then
+      FM_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FM_DB.Parallel_Position_Load_M(ThNum_, Position_Offset, Position_Read_Size, Do_Th_M_DB_Data_Position_Loaded, nil);
+    end;
+
+  Rebuild_M_DB_Requence();
+end;
+
+function TZDB2_Large.Do_M_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
+begin
+  Result := CompareInt64(TZDB2_Custom_Medium_Data(L).FSequence_ID, TZDB2_Custom_Medium_Data(R).FSequence_ID);
+end;
+
+procedure TZDB2_Large.Rebuild_M_DB_Requence;
+begin
   FCurrent_M_DB_Sequence_ID := 1;
   if FM_DB.Data_Marshal.Num > 0 then
     begin
@@ -1637,7 +1750,15 @@ begin
     end;
 end;
 
-procedure TZDB2_Large.Extract_L_DB(ThNum_: Integer);
+procedure TZDB2_Large.Do_Th_L_DB_Data_Full_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Large_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Large_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_L_DB_Full(ThNum_: Integer);
 var
   Extract_Done: Boolean;
 begin
@@ -1648,9 +1769,69 @@ begin
       FL_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
   if not Extract_Done then
     begin
-      FL_DB.Parallel_Block_Load_M(ThNum_, 0, 0, TZDB2_Custom_Large_Data.Get_Prepare_Block_Read_Size, Do_Th_L_DB_Data_Loaded, nil);
+      FL_DB.Parallel_Load_M(ThNum_, Do_Th_L_DB_Data_Full_Loaded, nil);
     end;
 
+  Rebuild_L_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_L_DB_Data_Block_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMem64);
+var
+  Inst_: TZDB2_Custom_Large_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Large_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_, True));
+end;
+
+procedure TZDB2_Large.Extract_L_DB_Block(ThNum_: Integer; Block_Index, Block_Offset, Block_Read_Size: Integer);
+var
+  Extract_Done: Boolean;
+begin
+  FL_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FL_DB_Engine_External_Header_Optimzied_Technology then
+      FL_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FL_DB.Parallel_Block_Load_M(ThNum_, Block_Index, Block_Offset, Block_Read_Size, Do_Th_L_DB_Data_Block_Loaded, nil);
+    end;
+
+  Rebuild_L_DB_Requence();
+end;
+
+procedure TZDB2_Large.Do_Th_L_DB_Data_Position_Loaded(Sender: TZDB2_Th_Engine_Data; IO_: TMS64);
+var
+  Inst_: TZDB2_Custom_Large_Data;
+begin
+  Inst_ := Sender as TZDB2_Custom_Large_Data;
+  DisposeObject(Inst_.Decode_From_ZDB2_Data(IO_.Mem64, True));
+end;
+
+procedure TZDB2_Large.Extract_L_DB_Position(ThNum_: Integer; Position_Offset, Position_Read_Size: Int64);
+var
+  Extract_Done: Boolean;
+begin
+  FL_DB_Sequence_Pool.Clear;
+
+  Extract_Done := False;
+  if FL_DB_Engine_External_Header_Optimzied_Technology then
+      FL_DB.Extract_External_Header(Extract_Done); { external-header optimize tech }
+  if not Extract_Done then
+    begin
+      FL_DB.Parallel_Position_Load_M(ThNum_, Position_Offset, Position_Read_Size, Do_Th_L_DB_Data_Position_Loaded, nil);
+    end;
+
+  Rebuild_L_DB_Requence();
+end;
+
+function TZDB2_Large.Do_L_DB_Data_Sort_By_Sequence_ID(var L, R: TZDB2_Th_Engine_Data): Integer;
+begin
+  Result := CompareInt64(TZDB2_Custom_Large_Data(L).FSequence_ID, TZDB2_Custom_Large_Data(R).FSequence_ID);
+end;
+
+procedure TZDB2_Large.Rebuild_L_DB_Requence;
+begin
   FCurrent_L_DB_Sequence_ID := 1;
   if FL_DB.Data_Marshal.Num > 0 then
     begin
@@ -1675,7 +1856,6 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_S_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_S_DB_Sequence_ID);
       FS_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
@@ -1692,7 +1872,6 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_M_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_M_DB_Sequence_ID);
       FM_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
@@ -1709,7 +1888,6 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_L_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_L_DB_Sequence_ID);
       FL_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
@@ -1719,7 +1897,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_S_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Small_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Small_Data;
 begin
   FCritical.Lock;
@@ -1727,16 +1904,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_S_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_S_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
-      data_inst_.Extract_Data_Source(data);
-
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data(tmp);
+      data_inst_.Async_Save_And_Free_Data(data_inst_.Encode_To_ZDB2_Data(data, False));
       FS_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1747,7 +1920,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_S_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Small_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Small_Data;
 begin
   FCritical.Lock;
@@ -1755,16 +1927,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_S_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_S_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
-      data_inst_.Extract_Data_Source(data);
-
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_C(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_C(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FS_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1775,7 +1943,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_S_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Small_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Small_Data;
 begin
   FCritical.Lock;
@@ -1783,16 +1950,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_S_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_S_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
-      data_inst_.Extract_Data_Source(data);
-
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_M(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_M(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FS_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1803,7 +1966,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_S_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Small_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Small_Data;
 begin
   FCritical.Lock;
@@ -1811,16 +1973,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_S_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_S_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
-      data_inst_.Extract_Data_Source(data);
-
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_P(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_P(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FS_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1831,7 +1989,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_M_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Medium_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Medium_Data;
 begin
   FCritical.Lock;
@@ -1839,14 +1996,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_M_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_M_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data(tmp);
+      data_inst_.Async_Save_And_Free_Data(data_inst_.Encode_To_ZDB2_Data(data, False));
       FM_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1857,7 +2012,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_M_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Medium_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Medium_Data;
 begin
   FCritical.Lock;
@@ -1865,14 +2019,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_M_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_M_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_C(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_C(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FM_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1883,7 +2035,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_M_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Medium_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Medium_Data;
 begin
   FCritical.Lock;
@@ -1891,14 +2042,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_M_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_M_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_M(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_M(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FM_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1909,7 +2058,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_M_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Medium_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Medium_Data;
 begin
   FCritical.Lock;
@@ -1917,14 +2065,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_M_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_M_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_P(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_P(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FM_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1935,7 +2081,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_L_DB(data: TMS64; AutoFree_: Boolean): TZDB2_Custom_Large_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Large_Data;
 begin
   FCritical.Lock;
@@ -1943,14 +2088,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_L_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_L_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data(tmp);
+      data_inst_.Async_Save_And_Free_Data(data_inst_.Encode_To_ZDB2_Data(data, False));
       FL_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1961,7 +2104,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_L_DB_C(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_C): TZDB2_Custom_Large_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Large_Data;
 begin
   FCritical.Lock;
@@ -1969,14 +2111,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_L_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_L_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_C(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_C(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FL_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -1987,7 +2127,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_L_DB_M(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_M): TZDB2_Custom_Large_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Large_Data;
 begin
   FCritical.Lock;
@@ -1995,14 +2134,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_L_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_L_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_M(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_M(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FL_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -2013,7 +2150,6 @@ end;
 
 function TZDB2_Large.Post_Data_To_L_DB_P(data: TMS64; AutoFree_: Boolean; OnResult: TOn_ZDB2_Th_Engine_Save_Data_Event_P): TZDB2_Custom_Large_Data;
 var
-  tmp: TMem64;
   data_inst_: TZDB2_Custom_Large_Data;
 begin
   FCritical.Lock;
@@ -2021,14 +2157,12 @@ begin
   FCritical.UnLock;
   if data_inst_ <> nil then
     begin
-      data_inst_.FOwner_Large_Marshal := Self;
       data_inst_.FSequence_ID := FCurrent_L_DB_Sequence_ID;
       FCritical.Inc_(FCurrent_L_DB_Sequence_ID);
       data_inst_.FMD5 := data.ToMD5;
 
       { rebuild sequence memory }
-      tmp := data_inst_.Encode_To_ZDB2_Data(data, False);
-      data_inst_.Async_Save_And_Free_Data_P(tmp, OnResult);
+      data_inst_.Async_Save_And_Free_Data_P(data_inst_.Encode_To_ZDB2_Data(data, False), OnResult);
       FL_DB_Sequence_Pool.Add(data_inst_.FSequence_ID, data_inst_, False);
 
       if AutoFree_ then
@@ -2231,7 +2365,7 @@ var
   i: Integer;
 begin
 {$IFDEF DELPHI}
-  for i := 0 to 300 do
+  for i := 0 to 10 do
     begin
       batch := Eng_.Batch_Post_P(procedure(Sender: TZDB2_Custom_Batch_Data_Post_Bridge)
         var
@@ -2401,14 +2535,14 @@ begin
   Eng_.M_DB_Engine_External_Header_Optimzied_Technology := True;
   Eng_.L_DB_Engine_External_Header_Optimzied_Technology := True;
 
-  Eng_.Extract_S_DB(10);
-  Eng_.Extract_M_DB(10);
-  Eng_.Extract_L_DB(10);
+  Eng_.Extract_S_DB_Full(10);
+  Eng_.Extract_M_DB_Full(10);
+  Eng_.Extract_L_DB_Full(10);
 
-  if False then
+  if True then
       Do_Test_Batch_Post(Eng_);
 
-  if False then
+  if True then
       Do_Test_Post(Eng_);
 
   if True then

@@ -38,7 +38,7 @@ begin
       Result := 0;
 end;
 
-function CompareInt64(const Int1, Int2: int64): integer;
+function CompareInt64(const Int1, Int2: Int64): integer;
 begin
   if Int1 < Int2 then
       Result := -1
@@ -49,7 +49,7 @@ begin
       Result := 0;
 end;
 
-function CompareUInt64(const Int1, Int2: Uint64): integer;
+function CompareUInt64(const Int1, Int2: UInt64): integer;
 begin
   if Int1 < Int2 then
       Result := -1
@@ -88,6 +88,28 @@ begin
       Result := -1
   else
     if Double1 > Double2 then
+      Result := 1
+  else
+      Result := 0;
+end;
+
+function CompareInt128(const Int1, Int2: Int128): integer;
+begin
+  if Int1 < Int2 then
+      Result := -1
+  else
+    if Int1 > Int2 then
+      Result := 1
+  else
+      Result := 0;
+end;
+
+function CompareUInt128(const Int1, Int2: UInt128): integer;
+begin
+  if Int1 < Int2 then
+      Result := -1
+  else
+    if Int1 > Int2 then
       Result := 1
   else
       Result := 0;
@@ -143,7 +165,8 @@ begin
           Index := (AMin + AMax) div 2;
           case DoCompare(Items[Index], Item) of
             - 1: AMin := Index + 1;
-            0: begin
+            0:
+              begin
                 Result := true;
                 exit;
               end;
@@ -1698,7 +1721,8 @@ var
   procedure DeleteSegmentRange(AStart, ACount: integer);
   begin
     // Deleting a segment range is a bit tricky, since the range can wrap around in the list
-    while ACount > 0 do begin
+    while ACount > 0 do
+      begin
         // We delete segments at AStart until that's at the end of the list, else
         // we delete from the 0 position of the list
         if AStart < FMesh.Segments.Count then

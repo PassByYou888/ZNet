@@ -348,15 +348,17 @@ type
 
     { Uploading local files asynchronously }
     procedure PostFile(fileName: SystemString); overload;
+    procedure PostFile(l_fileName, r_fileName: SystemString); overload;
     { restore Uploading local files asynchronously }
     procedure PostFile(fileName: SystemString; StartPos: Int64); overload;
+    procedure PostFile(l_fileName, r_fileName: SystemString; StartPos: Int64); overload;
     { Upload an Stream asynchronously and automatically release Stream after completion }
     procedure PostFile(fn: SystemString; stream: TCore_Stream; doneFreeStream: Boolean); overload;
     { restore Upload an Stream asynchronously and automatically release Stream after completion }
     procedure PostFile(fn: SystemString; stream: TCore_Stream; StartPos: Int64; doneFreeStream: Boolean); overload;
 
     { automated Upload and verify }
-    procedure AutomatedUploadFile(localFile: U_String);
+    procedure AutomatedUploadFile(localFile: U_String); overload;
 
     { batch stream suppport }
     procedure PostBatchStream(stream: TCore_Stream; doneFreeStream: Boolean); overload;
@@ -639,10 +641,10 @@ procedure TAutomatedDownloadFile_Struct_NoAuth.DoComplete(const UserData: Pointe
 begin
   try
     if Assigned(OnDownloadDoneC) then
-        OnDownloadDoneC(UserData, UserObject, stream, fileName);
-    if Assigned(OnDownloadDoneM) then
-        OnDownloadDoneM(UserData, UserObject, stream, fileName);
-    if Assigned(OnDownloadDoneP) then
+        OnDownloadDoneC(UserData, UserObject, stream, fileName)
+    else if Assigned(OnDownloadDoneM) then
+        OnDownloadDoneM(UserData, UserObject, stream, fileName)
+    else if Assigned(OnDownloadDoneP) then
         OnDownloadDoneP(UserData, UserObject, stream, fileName);
   except
   end;
@@ -737,7 +739,7 @@ begin
       r_fileSize := fSiz;
       if r_fileSize <= umlGetFileSize(localFile) then
         begin
-          Client.GetFileMD5M(umlGetFileName(localFile), 0, r_fileSize, nil, nil, DoResult_GetFileMD5);
+          Client.GetFileMD5M(r_fileName, 0, r_fileSize, nil, nil, DoResult_GetFileMD5);
         end
       else
         begin
@@ -1390,18 +1392,10 @@ begin
 
   try
     if Assigned(backCallValPtr^.On_C) then
-        backCallValPtr^.On_C(MD5Verify);
-  except
-  end;
-
-  try
-    if Assigned(backCallValPtr^.On_M) then
-        backCallValPtr^.On_M(MD5Verify);
-  except
-  end;
-
-  try
-    if Assigned(backCallValPtr^.On_P) then
+        backCallValPtr^.On_C(MD5Verify)
+    else if Assigned(backCallValPtr^.On_M) then
+        backCallValPtr^.On_M(MD5Verify)
+    else if Assigned(backCallValPtr^.On_P) then
         backCallValPtr^.On_P(MD5Verify);
   except
   end;
@@ -1806,13 +1800,13 @@ begin
               begin
                 FCurrentStream.Position := 0;
                 p^.OnComplete_C(p^.UserData, p^.UserObject, FCurrentStream, fn);
-              end;
-            if Assigned(p^.OnComplete_M) then
+              end
+            else if Assigned(p^.OnComplete_M) then
               begin
                 FCurrentStream.Position := 0;
                 p^.OnComplete_M(p^.UserData, p^.UserObject, FCurrentStream, fn);
-              end;
-            if Assigned(p^.OnComplete_P) then
+              end
+            else if Assigned(p^.OnComplete_P) then
               begin
                 FCurrentStream.Position := 0;
                 p^.OnComplete_P(p^.UserData, p^.UserObject, FCurrentStream, fn);
@@ -1852,10 +1846,10 @@ begin
     begin
       try
         if Assigned(p^.OnComplete_C) then
-            p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, fp, siz, MD5);
-        if Assigned(p^.OnComplete_M) then
-            p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, fp, siz, MD5);
-        if Assigned(p^.OnComplete_P) then
+            p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, fp, siz, MD5)
+        else if Assigned(p^.OnComplete_M) then
+            p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, fp, siz, MD5)
+        else if Assigned(p^.OnComplete_P) then
             p^.OnComplete_P(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, fp, siz, MD5);
       except
       end;
@@ -1889,10 +1883,10 @@ begin
   if p <> nil then
     begin
       if Assigned(p^.OnComplete_C) then
-          p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, Existed, fSiz);
-      if Assigned(p^.OnComplete_M) then
-          p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, Existed, fSiz);
-      if Assigned(p^.OnComplete_P) then
+          p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, Existed, fSiz)
+      else if Assigned(p^.OnComplete_M) then
+          p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, Existed, fSiz)
+      else if Assigned(p^.OnComplete_P) then
           p^.OnComplete_P(p^.UserData, p^.UserObject, p^.fileName, Existed, fSiz);
       p^.fileName := '';
       Dispose(p);
@@ -1914,10 +1908,10 @@ begin
   if p <> nil then
     begin
       if Assigned(p^.OnComplete_C) then
-          p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, MD5);
-      if Assigned(p^.OnComplete_M) then
-          p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, MD5);
-      if Assigned(p^.OnComplete_P) then
+          p^.OnComplete_C(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, MD5)
+      else if Assigned(p^.OnComplete_M) then
+          p^.OnComplete_M(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, MD5)
+      else if Assigned(p^.OnComplete_P) then
           p^.OnComplete_P(p^.UserData, p^.UserObject, p^.fileName, p^.StartPos, p^.EndPos, MD5);
       p^.fileName := '';
       Dispose(p);
@@ -2035,18 +2029,10 @@ begin
 
   try
     if Assigned(backCallValPtr^.On_C) then
-        backCallValPtr^.On_C(MD5Verify);
-  except
-  end;
-
-  try
-    if Assigned(backCallValPtr^.On_M) then
-        backCallValPtr^.On_M(MD5Verify);
-  except
-  end;
-
-  try
-    if Assigned(backCallValPtr^.On_P) then
+        backCallValPtr^.On_C(MD5Verify)
+    else if Assigned(backCallValPtr^.On_M) then
+        backCallValPtr^.On_M(MD5Verify)
+    else if Assigned(backCallValPtr^.On_P) then
         backCallValPtr^.On_P(MD5Verify);
   except
   end;
@@ -2085,10 +2071,10 @@ begin
     begin
       try
         if Assigned(FAsyncOnResult_C) then
-            FAsyncOnResult_C(False);
-        if Assigned(FAsyncOnResult_M) then
-            FAsyncOnResult_M(False);
-        if Assigned(FAsyncOnResult_P) then
+            FAsyncOnResult_C(False)
+        else if Assigned(FAsyncOnResult_M) then
+            FAsyncOnResult_M(False)
+        else if Assigned(FAsyncOnResult_P) then
             FAsyncOnResult_P(False);
       except
       end;
@@ -2111,10 +2097,10 @@ begin
 
   try
     if Assigned(FAsyncOnResult_C) then
-        FAsyncOnResult_C(cState);
-    if Assigned(FAsyncOnResult_M) then
-        FAsyncOnResult_M(cState);
-    if Assigned(FAsyncOnResult_P) then
+        FAsyncOnResult_C(cState)
+    else if Assigned(FAsyncOnResult_M) then
+        FAsyncOnResult_M(cState)
+    else if Assigned(FAsyncOnResult_P) then
         FAsyncOnResult_P(cState);
   except
   end;
@@ -2156,10 +2142,10 @@ begin
     end;
 
   if Assigned(p^.On_C) then
-      p^.On_C(r);
-  if Assigned(p^.On_M) then
-      p^.On_M(r);
-  if Assigned(p^.On_P) then
+      p^.On_C(r)
+  else if Assigned(p^.On_M) then
+      p^.On_M(r)
+  else if Assigned(p^.On_P) then
       p^.On_P(r);
 
   Dispose(p);
@@ -2171,10 +2157,10 @@ var
 begin
   p := Param1;
   if Assigned(p^.On_C) then
-      p^.On_C(False);
-  if Assigned(p^.On_M) then
-      p^.On_M(False);
-  if Assigned(p^.On_P) then
+      p^.On_C(False)
+  else if Assigned(p^.On_M) then
+      p^.On_M(False)
+  else if Assigned(p^.On_P) then
       p^.On_P(False);
 
   Dispose(p);
@@ -3214,6 +3200,37 @@ begin
   DisposeObject(sendDE);
 end;
 
+procedure TDTClient_NoAuth.PostFile(l_fileName, r_fileName: SystemString);
+var
+  sendDE: TDFE;
+  fs: TCore_FileStream;
+begin
+  if not FFileSystem then
+      Exit;
+  if not umlFileExists(l_fileName) then
+      Exit;
+  if not FSendTunnel.Connected then
+      Exit;
+  if not FRecvTunnel.Connected then
+      Exit;
+
+  fs := TCore_FileStream.Create(l_fileName, fmOpenRead or fmShareDenyNone);
+
+  sendDE := TDFE.Create;
+  sendDE.WriteString(r_fileName);
+  sendDE.WriteInt64(0);
+  sendDE.WriteInt64(fs.Size);
+  FSendTunnel.SendDirectStreamCmd(C_PostFileInfo, sendDE);
+  DisposeObject(sendDE);
+
+  fs.Position := 0;
+  FSendTunnel.SendBigStream(C_PostFile, fs, True);
+
+  sendDE := TDFE.Create;
+  FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
+  DisposeObject(sendDE);
+end;
+
 procedure TDTClient_NoAuth.PostFile(fileName: SystemString; StartPos: Int64);
 var
   sendDE: TDFE;
@@ -3232,6 +3249,37 @@ begin
 
   sendDE := TDFE.Create;
   sendDE.WriteString(umlGetFileName(fileName));
+  sendDE.WriteInt64(StartPos);
+  sendDE.WriteInt64(fs.Size);
+  FSendTunnel.SendDirectStreamCmd(C_PostFileInfo, sendDE);
+  DisposeObject(sendDE);
+
+  fs.Position := 0;
+  FSendTunnel.SendBigStream(C_PostFile, fs, StartPos, True);
+
+  sendDE := TDFE.Create;
+  FSendTunnel.SendDirectStreamCmd(C_PostFileOver, sendDE);
+  DisposeObject(sendDE);
+end;
+
+procedure TDTClient_NoAuth.PostFile(l_fileName, r_fileName: SystemString; StartPos: Int64);
+var
+  sendDE: TDFE;
+  fs: TCore_FileStream;
+begin
+  if not FFileSystem then
+      Exit;
+  if not umlFileExists(l_fileName) then
+      Exit;
+  if not FSendTunnel.Connected then
+      Exit;
+  if not FRecvTunnel.Connected then
+      Exit;
+
+  fs := TCore_FileStream.Create(l_fileName, fmOpenRead or fmShareDenyNone);
+
+  sendDE := TDFE.Create;
+  sendDE.WriteString(r_fileName);
   sendDE.WriteInt64(StartPos);
   sendDE.WriteInt64(fs.Size);
   FSendTunnel.SendDirectStreamCmd(C_PostFileInfo, sendDE);
@@ -3574,10 +3622,10 @@ begin
       Connecting := False;
 
       if Assigned(OnConnectResultState.On_C) then
-          OnConnectResultState.On_C(state);
-      if Assigned(OnConnectResultState.On_M) then
-          OnConnectResultState.On_M(state);
-      if Assigned(OnConnectResultState.On_P) then
+          OnConnectResultState.On_C(state)
+      else if Assigned(OnConnectResultState.On_M) then
+          OnConnectResultState.On_M(state)
+      else if Assigned(OnConnectResultState.On_P) then
           OnConnectResultState.On_P(state);
       OnConnectResultState.Init;
     end;
@@ -3594,10 +3642,10 @@ end;
 procedure TDT_P2PVM_NoAuth_Client.DoTunnelLinkResult(const state: Boolean);
 begin
   if Assigned(OnConnectResultState.On_C) then
-      OnConnectResultState.On_C(state);
-  if Assigned(OnConnectResultState.On_M) then
-      OnConnectResultState.On_M(state);
-  if Assigned(OnConnectResultState.On_P) then
+      OnConnectResultState.On_C(state)
+  else if Assigned(OnConnectResultState.On_M) then
+      OnConnectResultState.On_M(state)
+  else if Assigned(OnConnectResultState.On_P) then
       OnConnectResultState.On_P(state);
   OnConnectResultState.Init;
   Connecting := False;
@@ -4014,10 +4062,10 @@ end;
 procedure TDT_P2PVM_NoAuth_Custom_Client.DoTunnelLinkResult(const state: Boolean);
 begin
   if Assigned(OnConnectResultState.On_C) then
-      OnConnectResultState.On_C(state);
-  if Assigned(OnConnectResultState.On_M) then
-      OnConnectResultState.On_M(state);
-  if Assigned(OnConnectResultState.On_P) then
+      OnConnectResultState.On_C(state)
+  else if Assigned(OnConnectResultState.On_M) then
+      OnConnectResultState.On_M(state)
+  else if Assigned(OnConnectResultState.On_P) then
       OnConnectResultState.On_P(state);
   OnConnectResultState.Init;
   Connecting := False;

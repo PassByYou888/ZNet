@@ -1585,10 +1585,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1606,10 +1606,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1636,10 +1636,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, FriendArry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, FriendArry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, FriendArry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, FriendArry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, FriendArry);
   except
   end;
@@ -1655,10 +1655,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, FriendArry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, FriendArry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, FriendArry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, FriendArry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, FriendArry);
   except
   end;
@@ -1684,10 +1684,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Online_Num, User_Num);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Online_Num, User_Num);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Online_Num, User_Num)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Online_Num, User_Num)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Online_Num, User_Num);
   except
   end;
@@ -1704,10 +1704,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Online_Num, User_Num);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Online_Num, User_Num);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Online_Num, User_Num)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Online_Num, User_Num)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Online_Num, User_Num);
   except
   end;
@@ -1734,10 +1734,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1753,10 +1753,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1787,10 +1787,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1807,10 +1807,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1838,10 +1838,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1856,10 +1856,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1890,10 +1890,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1910,10 +1910,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1944,10 +1944,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1964,10 +1964,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -1998,10 +1998,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -2018,10 +2018,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_);
   except
   end;
@@ -2056,10 +2056,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, Json);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, Json);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, Json)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, Json)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, Json);
   except
   end;
@@ -2078,10 +2078,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, Json);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, Json);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, Json)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, Json)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, Json);
   except
   end;
@@ -2115,10 +2115,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, PrimaryIdentifier_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, PrimaryIdentifier_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, PrimaryIdentifier_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, PrimaryIdentifier_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, PrimaryIdentifier_);
   except
   end;
@@ -2136,10 +2136,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, PrimaryIdentifier_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, PrimaryIdentifier_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, PrimaryIdentifier_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, PrimaryIdentifier_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, PrimaryIdentifier_);
   except
   end;

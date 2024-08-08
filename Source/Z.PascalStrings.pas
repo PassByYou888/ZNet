@@ -3,6 +3,7 @@
 { ****************************************************************************** }
 unit Z.PascalStrings;
 
+{$UNDEF FPC_DELPHI_MODE}
 {$I Z.Define.inc}
 
 interface

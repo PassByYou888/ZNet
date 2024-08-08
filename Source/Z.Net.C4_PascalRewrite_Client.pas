@@ -102,10 +102,10 @@ procedure TPascal_Rewrite_Tool_CodePool.Do_Done;
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Self);
-    if Assigned(OnResultM) then
-        OnResultM(Self);
-    if Assigned(OnResultP) then
+        OnResultC(Self)
+    else if Assigned(OnResultM) then
+        OnResultM(Self)
+    else if Assigned(OnResultP) then
         OnResultP(Self);
   except
   end;

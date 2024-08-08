@@ -43,6 +43,7 @@ type
   TCore_Object = TObject;
   TCore_Persistent = TPersistent;
   TCore_Stream = TStream;
+  TStream_Array = array of TCore_Stream;
   TCore_FileStream = TFileStream;
   TCore_StringStream = TStringStream;
   TCore_ResourceStream = TResourceStream;
@@ -275,6 +276,10 @@ type
     property IsLock: Boolean read IsBusy;
     property Busy: Boolean read IsBusy;
     // atom
+    function Get(var x: Int64): Int64; overload;
+    function Get(var x: UInt64): UInt64; overload;
+    function Get(var x: Integer): Integer; overload;
+    function Get(var x: Cardinal): Cardinal; overload;
     procedure Inc_(var x: Int64); overload;
     procedure Inc_(var x: Int64; const v: Int64); overload;
     procedure Dec_(var x: Int64); overload;

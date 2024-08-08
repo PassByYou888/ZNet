@@ -12,7 +12,7 @@ uses SysUtils, Variants, Math,
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.ListEngine, Z.UnicodeMixedLib, Z.HashList.Templet, Z.Parsing;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.MemoryStream, Z.Status, Z.ListEngine, Z.UnicodeMixedLib, Z.HashList.Templet, Z.Parsing;
 
 type
   TOpValueType = (

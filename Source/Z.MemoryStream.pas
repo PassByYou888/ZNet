@@ -16,7 +16,7 @@ uses
 {$ELSE FPC}
   ZLib,
 {$ENDIF FPC}
-  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.UnicodeMixedLib;
+  Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Int128;
 
 type
   TMem64 = class;
@@ -44,6 +44,8 @@ type
     function Mem64(Mapping_Begin_As_Position_: Boolean): TMem64; overload;
     function Mem64: TMem64; overload;
     function Clone: TMS64;
+    function Create_Mapping_Instance: TMS64;        // Create a new instance, which is self mapping and must be manually released while maintaining a map-source state.
+    function Create_Mapping_Instance_Mem64: TMem64; // Create a new instance, which is self mapping and must be manually released while maintaining a map-source state.
     function Swap_To_New_Instance: TMS64;
     procedure DiscardMemory;
     procedure Clear;
@@ -53,7 +55,6 @@ type
     procedure SwapInstance(source: TMem64); overload;
     function ToBytes: TBytes;
     function ToMD5: TMD5;
-
     property Delta: NativeInt read FDelta write SetDelta;
     property ProtectedMode: Boolean read FProtectedMode;
     procedure SetPointerWithProtectedMode(buffPtr: Pointer; const BuffSize: Int64);
@@ -64,7 +65,6 @@ type
     function PositionAsPtr: Pointer; overload;
     function PosAsPtr(const Position_: Int64): Pointer; overload;
     function PosAsPtr: Pointer; overload;
-
     procedure LoadFromStream(stream: TCore_Stream); virtual;
     procedure LoadFromFile(FileName: SystemString);
     procedure SaveToStream(stream: TCore_Stream); virtual;
@@ -76,17 +76,22 @@ type
     function Write64(const buffer; Count: Int64): Int64; virtual;
     function WritePtr(const p: Pointer; Count: Int64): Int64;
     function write(const buffer; Count: longint): longint; overload; override;
-{$IFNDEF FPC} function write(const buffer: TBytes; Offset, Count: longint): longint; overload; override; {$ENDIF}
     procedure WriteBytes(const buff: TBytes);
 
     function Read64(var buffer; Count: Int64): Int64; virtual;
     function ReadPtr(const p: Pointer; Count: Int64): Int64;
     function read(var buffer; Count: longint): longint; overload; override;
-{$IFNDEF FPC} function read(buffer: TBytes; Offset, Count: longint): longint; overload; override; {$ENDIF}
-    //
+
+    // only delphi
+{$IFDEF DELPHI}
+    function write(const buffer: TBytes; Offset, Count: longint): longint; overload; override;
+    function read(buffer: TBytes; Offset, Count: longint): longint; overload; override;
+{$ENDIF DELPHI}
+    // seek
     function Seek(const Offset: Int64; origin: TSeekOrigin): Int64; override;
     property Memory: Pointer read FMemory;
 
+    // copy
     function CopyMem64(const source: TMem64; Count: Int64): Int64;
     function CopyFrom(const source: TCore_Stream; Count: Int64): Int64; overload;
     function CopyFrom(const source: TMem64; Count: Int64): Int64; overload;
@@ -97,10 +102,12 @@ type
     procedure WriteInt16(const buff: SmallInt);
     procedure WriteInt32(const buff: Integer);
     procedure WriteInt64(const buff: Int64);
+    procedure WriteInt128(const buff: Int128);
     procedure WriteUInt8(const buff: Byte);
     procedure WriteUInt16(const buff: Word);
     procedure WriteUInt32(const buff: Cardinal);
     procedure WriteUInt64(const buff: UInt64);
+    procedure WriteUInt128(const buff: UInt128);
     procedure WriteSingle(const buff: Single);
     procedure WriteDouble(const buff: Double);
     procedure WriteCurrency(const buff: Currency);
@@ -115,10 +122,12 @@ type
     function ReadInt16: SmallInt;
     function ReadInt32: Integer;
     function ReadInt64: Int64;
+    function ReadInt128: Int128;
     function ReadUInt8: Byte;
     function ReadUInt16: Word;
     function ReadUInt32: Cardinal;
     function ReadUInt64: UInt64;
+    function ReadUInt128: UInt128;
     function ReadSingle: Single;
     function ReadDouble: Double;
     function ReadCurrency: Currency;
@@ -130,6 +139,10 @@ type
     function ReadMD5: TMD5;
   end;
 
+  TMS64_Array = array of TMS64;
+  TStream64_Array = TMS64_Array;
+  TMemoryStream64_Array = TMS64_Array;
+
   TStream64 = TMS64;
   TMemoryStream64 = TMS64;
 
@@ -138,18 +151,19 @@ type
   TMemoryStream64List = class(TMemoryStream64List_Decl)
   public
     procedure Clean;
+    function To_Array: TMS64_Array;
   end;
-
-  TMS64_Pool = TBig_Object_List<TMS64>;
 
   TStream64List = TMemoryStream64List;
   TMS64List = TMemoryStream64List;
+
+  TMS64_Pool = TBig_Object_List<TMS64>;
 
   TMemoryStream64ThreadList = class(TMemoryStream64List_Decl)
   private
     FCritical: TCritical;
   public
-    AutoFreeRaster: Boolean;
+    AutoFree_Stream: Boolean;
     constructor Create;
     destructor Destroy; override;
     procedure Lock;
@@ -158,6 +172,7 @@ type
     procedure Delete(index: Integer);
     procedure Clear;
     procedure Clean;
+    function To_Array: TMS64_Array;
   end;
 
   TStream64CriticalList = TMemoryStream64ThreadList;
@@ -229,6 +244,8 @@ type
     function Stream64(Mapping_Begin_As_Position_: Boolean): TMS64; overload;
     function Stream64: TMS64; overload;
     function Clone: TMem64;
+    function Create_Mapping_Instance: TMem64;     // Create a new instance, which is self mapping and must be manually released while maintaining a map-source state.
+    function Create_Mapping_Instance_MS64: TMS64; // Create a new instance, which is self mapping and must be manually released while maintaining a map-source state.
     function Swap_To_New_Instance: TMem64;
     procedure DiscardMemory;
     procedure Clear;
@@ -238,12 +255,10 @@ type
     procedure SwapInstance(source: TMem64); overload;
     function ToBytes: TBytes;
     function ToMD5: TMD5;
-
     property Delta: NativeInt read GetDelta write SetDelta;
     property Memory: Pointer read GetMemory_;
     property Position: Int64 read GetPosition write SetPosition;
     property Size: Int64 read GetSize write SetSize;
-
     property ProtectedMode: Boolean read FProtectedMode;
     procedure SetPointerWithProtectedMode(buffPtr: Pointer; const BuffSize: Int64);
     procedure Mapping(buffPtr: Pointer; const BuffSize: Int64); overload;
@@ -253,7 +268,6 @@ type
     function PositionAsPtr: Pointer; overload;
     function PosAsPtr(const Position_: Int64): Pointer; overload;
     function PosAsPtr: Pointer; overload;
-
     procedure LoadFromStream(stream: TCore_Stream);
     procedure LoadFromFile(FileName: SystemString);
     procedure SaveToStream(stream: TCore_Stream);
@@ -262,6 +276,7 @@ type
     function Write64(const buffer; Count: Int64): Int64;
     function WritePtr(const p: Pointer; Count: Int64): Int64;
     function write(const buffer; Count: Int64): Int64;
+    function WriteBytes(const buffer: TBytes): Int64;
     function Read64(var buffer; Count: Int64): Int64;
     function ReadPtr(const p: Pointer; Count: Int64): Int64;
     function read(var buffer; Count: Int64): Int64;
@@ -276,10 +291,12 @@ type
     procedure WriteInt16(const buff: SmallInt);
     procedure WriteInt32(const buff: Integer);
     procedure WriteInt64(const buff: Int64);
+    procedure WriteInt128(const buff: Int128);
     procedure WriteUInt8(const buff: Byte);
     procedure WriteUInt16(const buff: Word);
     procedure WriteUInt32(const buff: Cardinal);
     procedure WriteUInt64(const buff: UInt64);
+    procedure WriteUInt128(const buff: UInt128);
     procedure WriteSingle(const buff: Single);
     procedure WriteDouble(const buff: Double);
     procedure WriteCurrency(const buff: Currency);
@@ -294,10 +311,12 @@ type
     function ReadInt16: SmallInt;
     function ReadInt32: Integer;
     function ReadInt64: Int64;
+    function ReadInt128: Int128;
     function ReadUInt8: Byte;
     function ReadUInt16: Word;
     function ReadUInt32: Cardinal;
     function ReadUInt64: UInt64;
+    function ReadUInt128: UInt128;
     function ReadSingle: Single;
     function ReadDouble: Double;
     function ReadCurrency: Currency;
@@ -308,6 +327,8 @@ type
     function ReadANSI(L: Integer): TPascalString;
     function ReadMD5: TMD5;
   end;
+
+  TMem64_Array = array of TMem64;
 
   TM64 = TMem64;
 
@@ -368,10 +389,12 @@ procedure StreamWriteInt8(const stream: TCore_Stream; const buff: ShortInt);
 procedure StreamWriteInt16(const stream: TCore_Stream; const buff: SmallInt);
 procedure StreamWriteInt32(const stream: TCore_Stream; const buff: Integer);
 procedure StreamWriteInt64(const stream: TCore_Stream; const buff: Int64);
+procedure StreamWriteInt128(const stream: TCore_Stream; const buff: Int128);
 procedure StreamWriteUInt8(const stream: TCore_Stream; const buff: Byte);
 procedure StreamWriteUInt16(const stream: TCore_Stream; const buff: Word);
 procedure StreamWriteUInt32(const stream: TCore_Stream; const buff: Cardinal);
 procedure StreamWriteUInt64(const stream: TCore_Stream; const buff: UInt64);
+procedure StreamWriteUInt128(const stream: TCore_Stream; const buff: UInt128);
 procedure StreamWriteSingle(const stream: TCore_Stream; const buff: Single);
 procedure StreamWriteDouble(const stream: TCore_Stream; const buff: Double);
 procedure StreamWriteCurrency(const stream: TCore_Stream; const buff: Currency);
@@ -385,10 +408,12 @@ function StreamReadInt8(const stream: TCore_Stream): ShortInt;
 function StreamReadInt16(const stream: TCore_Stream): SmallInt;
 function StreamReadInt32(const stream: TCore_Stream): Integer;
 function StreamReadInt64(const stream: TCore_Stream): Int64;
+function StreamReadInt128(const stream: TCore_Stream): Int128;
 function StreamReadUInt8(const stream: TCore_Stream): Byte;
 function StreamReadUInt16(const stream: TCore_Stream): Word;
 function StreamReadUInt32(const stream: TCore_Stream): Cardinal;
 function StreamReadUInt64(const stream: TCore_Stream): UInt64;
+function StreamReadUInt128(const stream: TCore_Stream): UInt128;
 function StreamReadSingle(const stream: TCore_Stream): Single;
 function StreamReadDouble(const stream: TCore_Stream): Double;
 function StreamReadCurrency(const stream: TCore_Stream): Currency;
@@ -402,7 +427,7 @@ procedure DoStatus(const v: TMem64); overload;
 
 implementation
 
-uses Z.Status, Z.Compress, Z.Instance.Tool;
+uses Z.UnicodeMixedLib, Z.Status, Z.Compress, Z.Instance.Tool;
 
 procedure TMS64.SetPointer(buffPtr: Pointer; const BuffSize: NativeUInt);
 begin
@@ -497,6 +522,18 @@ begin
   Result.Size := Size;
   CopyPtr(Memory, Result.Memory, Size);
   Result.Position := Position;
+end;
+
+function TMS64.Create_Mapping_Instance: TMS64;
+begin
+  Result := TMS64.Create;
+  Result.Mapping(self);
+end;
+
+function TMS64.Create_Mapping_Instance_Mem64: TMem64;
+begin
+  Result := TMem64.Create;
+  Result.Mapping(self);
 end;
 
 function TMS64.Swap_To_New_Instance: TMS64;
@@ -665,55 +702,14 @@ begin
 end;
 
 procedure TMS64.LoadFromStream(stream: TCore_Stream);
-const
-  ChunkSize = 64 * 1024 * 1024;
-var
-  p: Pointer;
-  j: NativeInt;
-  Num: NativeInt;
-  Rest: NativeInt;
 begin
   if FProtectedMode then
       Exit;
-
-  if stream is TMS64 then
-    begin
-      Clear;
-      if TMS64(stream).Size > 0 then
-          WritePtr(TMS64(stream).Memory, TMS64(stream).Size);
-      Position := 0;
-      Exit;
-    end;
-
+  Clear;
   stream.Position := 0;
-  SetSize(stream.Size);
-  if stream.Size > 0 then
-    begin
-      p := FMemory;
-      if stream.Size > ChunkSize then
-        begin
-          { Calculate number of full chunks that will fit into the buffer }
-          Num := stream.Size div ChunkSize;
-          { Calculate remaining bytes }
-          Rest := stream.Size mod ChunkSize;
-
-          { Process full chunks }
-          for j := 0 to Num - 1 do
-            begin
-              stream.ReadBuffer(p^, ChunkSize);
-              p := GetOffset(p, ChunkSize);
-            end;
-
-          { Process remaining bytes }
-          if Rest > 0 then
-            begin
-              stream.ReadBuffer(p^, Rest);
-              p := GetOffset(p, Rest);
-            end;
-        end
-      else
-          stream.ReadBuffer(p^, stream.Size);
-    end;
+  if CopyFrom(stream, stream.Size) <> stream.Size then
+      RaiseInfo('load stream error.');
+  Position := 0;
 end;
 
 procedure TMS64.LoadFromFile(FileName: SystemString);
@@ -846,41 +842,6 @@ begin
   Result := Write64(buffer, Count);
 end;
 
-{$IFNDEF FPC}
-
-
-function TMS64.write(const buffer: TBytes; Offset, Count: longint): longint;
-var
-  p: Int64;
-begin
-  if Count > 0 then
-    begin
-      p := FPosition;
-      p := p + Count;
-      if p > 0 then
-        begin
-          if p > FSize then
-            begin
-              if FProtectedMode then
-                begin
-                  Result := 0;
-                  Exit;
-                end;
-              if p > FCapacity then
-                  SetCapacity(p);
-              FSize := p;
-            end;
-          CopyPtr(@buffer[Offset], GetOffset(FMemory, FPosition), Count);
-          FPosition := p;
-          Result := Count;
-          Exit;
-        end;
-    end;
-  Result := 0;
-end;
-{$ENDIF}
-
-
 procedure TMS64.WriteBytes(const buff: TBytes);
 begin
   if Length(buff) > 0 then
@@ -915,8 +876,38 @@ begin
   Result := Read64(buffer, Count);
 end;
 
-{$IFNDEF FPC}
+{$IFDEF DELPHI}
 
+
+function TMS64.write(const buffer: TBytes; Offset, Count: longint): longint;
+var
+  p: Int64;
+begin
+  if Count > 0 then
+    begin
+      p := FPosition;
+      p := p + Count;
+      if p > 0 then
+        begin
+          if p > FSize then
+            begin
+              if FProtectedMode then
+                begin
+                  Result := 0;
+                  Exit;
+                end;
+              if p > FCapacity then
+                  SetCapacity(p);
+              FSize := p;
+            end;
+          CopyPtr(@buffer[Offset], GetOffset(FMemory, FPosition), Count);
+          FPosition := p;
+          Result := Count;
+          Exit;
+        end;
+    end;
+  Result := 0;
+end;
 
 function TMS64.read(buffer: TBytes; Offset, Count: longint): longint;
 var
@@ -939,7 +930,7 @@ begin
     end;
   Result := 0;
 end;
-{$ENDIF}
+{$ENDIF DELPHI}
 
 
 function TMS64.Seek(const Offset: Int64; origin: TSeekOrigin): Int64;
@@ -965,11 +956,19 @@ function TMS64.CopyFrom(const source: TCore_Stream; Count: Int64): Int64;
 const
   MaxBufSize = $F000;
 var
-  BufSize, n: Int64;
-  buffer: PByte;
+  BufSize, n, p: Int64;
 begin
   if FProtectedMode then
       RaiseInfo('protected mode');
+
+  if Count = 0 then
+      Exit(0);
+
+  if Count < 0 then
+    begin
+      source.Position := 0;
+      Count := source.Size;
+    end;
 
   if source is TMS64 then
     begin
@@ -979,35 +978,31 @@ begin
       Exit;
     end;
 
-  if Count <= 0 then
-    begin
-      source.Position := 0;
-      Count := source.Size;
-    end;
-
   Result := Count;
   if Count > MaxBufSize then
       BufSize := MaxBufSize
   else
       BufSize := Count;
 
-  buffer := System.GetMemory(BufSize);
-  try
-    while Count <> 0 do
-      begin
-        if Count > BufSize then
-            n := BufSize
-        else
-            n := Count;
-        if source.read(buffer^, n) <> n then
-            RaiseInfo('stream read error.');
-        if WritePtr(buffer, n) <> n then
-            RaiseInfo('stream write error.');
-        dec(Count, n);
-      end;
-  finally
-      System.FreeMem(buffer);
-  end;
+  p := Position;
+  if p + Count > Size then
+      Size := p + Count;
+
+  while Count <> 0 do
+    begin
+      if Count > BufSize then
+          n := BufSize
+      else
+          n := Count;
+
+      // fast copy optimized
+      if source.read(PosAsPtr(p)^, n) <> n then
+          RaiseInfo('stream read error.');
+
+      inc(p, n);
+      dec(Count, n);
+    end;
+  Position := p;
 end;
 
 function TMS64.CopyFrom(const source: TMem64; Count: Int64): Int64;
@@ -1044,6 +1039,11 @@ begin
   WritePtr(@buff, 8);
 end;
 
+procedure TMS64.WriteInt128(const buff: Int128);
+begin
+  WritePtr(@buff.b[0], 16);
+end;
+
 procedure TMS64.WriteUInt8(const buff: Byte);
 begin
   WritePtr(@buff, 1);
@@ -1062,6 +1062,11 @@ end;
 procedure TMS64.WriteUInt64(const buff: UInt64);
 begin
   WritePtr(@buff, 8);
+end;
+
+procedure TMS64.WriteUInt128(const buff: UInt128);
+begin
+  WritePtr(@buff.b[0], 16);
 end;
 
 procedure TMS64.WriteSingle(const buff: Single);
@@ -1146,6 +1151,11 @@ begin
   ReadPtr(@Result, 8);
 end;
 
+function TMS64.ReadInt128: Int128;
+begin
+  ReadPtr(@Result.b[0], 16);
+end;
+
 function TMS64.ReadUInt8: Byte;
 begin
   ReadPtr(@Result, 1);
@@ -1164,6 +1174,11 @@ end;
 function TMS64.ReadUInt64: UInt64;
 begin
   ReadPtr(@Result, 8);
+end;
+
+function TMS64.ReadUInt128: UInt128;
+begin
+  ReadPtr(@Result.b[0], 16);
 end;
 
 function TMS64.ReadSingle: Single;
@@ -1267,11 +1282,20 @@ begin
   Clear;
 end;
 
+function TMemoryStream64List.To_Array: TMS64_Array;
+var
+  i: Integer;
+begin
+  SetLength(Result, Count);
+  for i := 0 to Count - 1 do
+      Result[i] := Items[i];
+end;
+
 constructor TMemoryStream64ThreadList.Create;
 begin
   inherited Create;
   FCritical := TCritical.Create;
-  AutoFreeRaster := False;
+  AutoFree_Stream := False;
 end;
 
 destructor TMemoryStream64ThreadList.Destroy;
@@ -1293,7 +1317,7 @@ end;
 
 procedure TMemoryStream64ThreadList.Remove(obj: TMS64);
 begin
-  if AutoFreeRaster then
+  if AutoFree_Stream then
       DisposeObject(obj);
   inherited Remove(obj);
 end;
@@ -1302,7 +1326,7 @@ procedure TMemoryStream64ThreadList.Delete(index: Integer);
 begin
   if (index >= 0) and (index < Count) then
     begin
-      if AutoFreeRaster then
+      if AutoFree_Stream then
           DisposeObject(Items[index]);
       inherited Delete(index);
     end;
@@ -1312,7 +1336,7 @@ procedure TMemoryStream64ThreadList.Clear;
 var
   i: Integer;
 begin
-  if AutoFreeRaster then
+  if AutoFree_Stream then
     for i := 0 to Count - 1 do
         DisposeObject(Items[i]);
   inherited Clear;
@@ -1325,6 +1349,15 @@ begin
   for i := 0 to Count - 1 do
       DisposeObject(Items[i]);
   inherited Clear;
+end;
+
+function TMemoryStream64ThreadList.To_Array: TMS64_Array;
+var
+  i: Integer;
+begin
+  SetLength(Result, Count);
+  for i := 0 to Count - 1 do
+      Result[i] := Items[i];
 end;
 
 constructor TMemoryStream64OfWriteTrigger.Create(ATrigger: IMemoryStream64WriteTrigger);
@@ -1441,11 +1474,11 @@ end;
 
 function TMem64.GetSize: Int64;
 var
-  Pos: Int64;
+  Pos_: Int64;
 begin
-  Pos := Seek(0, TSeekOrigin.soCurrent);
+  Pos_ := Seek(0, TSeekOrigin.soCurrent);
   Result := Seek(0, TSeekOrigin.soEnd);
-  Seek(Pos, TSeekOrigin.soBeginning);
+  Seek(Pos_, TSeekOrigin.soBeginning);
 end;
 
 procedure TMem64.SetSize(const NewSize: Int64);
@@ -1509,6 +1542,18 @@ begin
   Result.Size := Size;
   CopyPtr(Memory, Result.Memory, Size);
   Result.Position := Position;
+end;
+
+function TMem64.Create_Mapping_Instance: TMem64;
+begin
+  Result := TMem64.Create;
+  Result.Mapping(self);
+end;
+
+function TMem64.Create_Mapping_Instance_MS64: TMS64;
+begin
+  Result := TMS64.Create;
+  Result.Mapping(self);
 end;
 
 function TMem64.Swap_To_New_Instance: TMem64;
@@ -1677,46 +1722,14 @@ begin
 end;
 
 procedure TMem64.LoadFromStream(stream: TCore_Stream);
-const
-  ChunkSize = 64 * 1024 * 1024;
-var
-  p: Pointer;
-  j: NativeInt;
-  Num: NativeInt;
-  Rest: NativeInt;
 begin
   if FProtectedMode then
       Exit;
-
+  Clear;
   stream.Position := 0;
-  SetSize(stream.Size);
-  if stream.Size > 0 then
-    begin
-      p := FMemory;
-      if stream.Size > ChunkSize then
-        begin
-          { Calculate number of full chunks that will fit into the buffer }
-          Num := stream.Size div ChunkSize;
-          { Calculate remaining bytes }
-          Rest := stream.Size mod ChunkSize;
-
-          { Process full chunks }
-          for j := 0 to Num - 1 do
-            begin
-              stream.ReadBuffer(p^, ChunkSize);
-              p := GetOffset(p, ChunkSize);
-            end;
-
-          { Process remaining bytes }
-          if Rest > 0 then
-            begin
-              stream.ReadBuffer(p^, Rest);
-              p := GetOffset(p, Rest);
-            end;
-        end
-      else
-          stream.ReadBuffer(p^, stream.Size);
-    end;
+  if CopyFrom(stream, stream.Size) <> stream.Size then
+      RaiseInfo('load stream error.');
+  Position := 0;
 end;
 
 procedure TMem64.LoadFromFile(FileName: SystemString);
@@ -1821,6 +1834,14 @@ begin
   Result := Write64(buffer, Count);
 end;
 
+function TMem64.WriteBytes(const buffer: TBytes): Int64;
+begin
+  if Length(buffer) > 0 then
+      Result := WritePtr(@buffer[0], Length(buffer))
+  else
+      Result := 0;
+end;
+
 function TMem64.Read64(var buffer; Count: Int64): Int64;
 begin
   if Count > 0 then
@@ -1863,11 +1884,19 @@ function TMem64.CopyFrom(const source: TCore_Stream; Count: Int64): Int64;
 const
   MaxBufSize = $F000;
 var
-  BufSize, n: Int64;
-  buffer: PByte;
+  BufSize, n, p: Int64;
 begin
   if FProtectedMode then
       RaiseInfo('protected mode');
+
+  if Count = 0 then
+      Exit(0);
+
+  if Count < 0 then
+    begin
+      source.Position := 0;
+      Count := source.Size;
+    end;
 
   if source is TMS64 then
     begin
@@ -1877,33 +1906,31 @@ begin
       Exit;
     end;
 
-  if Count <= 0 then
-    begin
-      source.Position := 0;
-      Count := source.Size;
-    end;
-
   Result := Count;
   if Count > MaxBufSize then
       BufSize := MaxBufSize
   else
       BufSize := Count;
 
-  buffer := System.GetMemory(BufSize);
-  try
-    while Count <> 0 do
-      begin
-        if Count > BufSize then
-            n := BufSize
-        else
-            n := Count;
-        source.read(buffer^, n);
-        WritePtr(buffer, n);
-        dec(Count, n);
-      end;
-  finally
-      System.FreeMem(buffer);
-  end;
+  p := Position;
+  if p + Count > Size then
+      Size := p + Count;
+
+  while Count <> 0 do
+    begin
+      if Count > BufSize then
+          n := BufSize
+      else
+          n := Count;
+
+      // fast copy optimized
+      if source.read(PosAsPtr(p)^, n) <> n then
+          RaiseInfo('stream read error.');
+
+      inc(p, n);
+      dec(Count, n);
+    end;
+  Position := p;
 end;
 
 function TMem64.CopyFrom(const source: TMem64; Count: Int64): Int64;
@@ -1940,6 +1967,11 @@ begin
   WritePtr(@buff, 8);
 end;
 
+procedure TMem64.WriteInt128(const buff: Int128);
+begin
+  WritePtr(@buff.b[0], 16);
+end;
+
 procedure TMem64.WriteUInt8(const buff: Byte);
 begin
   WritePtr(@buff, 1);
@@ -1958,6 +1990,11 @@ end;
 procedure TMem64.WriteUInt64(const buff: UInt64);
 begin
   WritePtr(@buff, 8);
+end;
+
+procedure TMem64.WriteUInt128(const buff: UInt128);
+begin
+  WritePtr(@buff.b[0], 16);
 end;
 
 procedure TMem64.WriteSingle(const buff: Single);
@@ -2042,6 +2079,11 @@ begin
   ReadPtr(@Result, 8);
 end;
 
+function TMem64.ReadInt128: Int128;
+begin
+  ReadPtr(@Result.b[0], 16);
+end;
+
 function TMem64.ReadUInt8: Byte;
 begin
   ReadPtr(@Result, 1);
@@ -2060,6 +2102,11 @@ end;
 function TMem64.ReadUInt64: UInt64;
 begin
   ReadPtr(@Result, 8);
+end;
+
+function TMem64.ReadUInt128: UInt128;
+begin
+  ReadPtr(@Result.b[0], 16);
 end;
 
 function TMem64.ReadSingle: Single;
@@ -2762,6 +2809,11 @@ begin
   stream.write(buff, 8);
 end;
 
+procedure StreamWriteInt128(const stream: TCore_Stream; const buff: Int128);
+begin
+  stream.write(buff.b[0], 16);
+end;
+
 procedure StreamWriteUInt8(const stream: TCore_Stream; const buff: Byte);
 begin
   stream.write(buff, 1);
@@ -2780,6 +2832,11 @@ end;
 procedure StreamWriteUInt64(const stream: TCore_Stream; const buff: UInt64);
 begin
   stream.write(buff, 8);
+end;
+
+procedure StreamWriteUInt128(const stream: TCore_Stream; const buff: UInt128);
+begin
+  stream.write(buff.b[0], 16);
 end;
 
 procedure StreamWriteSingle(const stream: TCore_Stream; const buff: Single);
@@ -2849,6 +2906,11 @@ begin
   stream.read(Result, 8);
 end;
 
+function StreamReadInt128(const stream: TCore_Stream): Int128;
+begin
+  stream.read(Result.b[0], 16);
+end;
+
 function StreamReadUInt8(const stream: TCore_Stream): Byte;
 begin
   stream.read(Result, 1);
@@ -2867,6 +2929,11 @@ end;
 function StreamReadUInt64(const stream: TCore_Stream): UInt64;
 begin
   stream.read(Result, 8);
+end;
+
+function StreamReadUInt128(const stream: TCore_Stream): UInt128;
+begin
+  stream.read(Result.b[0], 16);
 end;
 
 function StreamReadSingle(const stream: TCore_Stream): Single;

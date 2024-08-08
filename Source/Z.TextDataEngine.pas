@@ -16,7 +16,8 @@ uses SysUtils, Variants,
   Z.UnicodeMixedLib,
   Z.PascalStrings,
   Z.ListEngine,
-  Z.MemoryStream;
+  Z.MemoryStream,
+  Z.Int128;
 
 type
   THashTextEngine = class(TCore_Object_Intermediate)
@@ -62,6 +63,8 @@ type
     procedure SetDefaultText_I32(const SectionName, KeyName: SystemString; const Value: Integer);
     function GetDefaultText_I64(const SectionName, KeyName: SystemString; const DefaultValue: Int64): Int64;
     procedure SetDefaultText_I64(const SectionName, KeyName: SystemString; const Value: Int64);
+    function GetDefaultText_I128(const SectionName, KeyName: SystemString; const DefaultValue: Int128): Int128;
+    procedure SetDefaultText_I128(const SectionName, KeyName: SystemString; const Value: Int128);
     function GetDefaultText_Float(const SectionName, KeyName: SystemString; const DefaultValue: Double): Double;
     procedure SetDefaultText_Float(const SectionName, KeyName: SystemString; const Value: Double);
     function GetDefaultText_Bool(const SectionName, KeyName: SystemString; const DefaultValue: Boolean): Boolean;
@@ -128,11 +131,7 @@ type
 
   TTextDataEngine = THashTextEngine;
   TSectionTextData = THashTextEngine;
-
-  THashTextEngineList_ = TGenericsList<THashTextEngine>;
-
-  THashTextEngineList = class(THashTextEngineList_)
-  end;
+  THashTextEngineList = TGenericsList<THashTextEngine>;
 
 implementation
 
@@ -504,6 +503,16 @@ begin
 end;
 
 procedure THashTextEngine.SetDefaultText_I64(const SectionName, KeyName: SystemString; const Value: Int64);
+begin
+  HitString[SectionName, KeyName] := umlIntToStr(Value);
+end;
+
+function THashTextEngine.GetDefaultText_I128(const SectionName, KeyName: SystemString; const DefaultValue: Int128): Int128;
+begin
+  Result := umlStrToInt128(HStringList[SectionName].GetDefaultValue(KeyName, umlIntToStr(DefaultValue)), DefaultValue);
+end;
+
+procedure THashTextEngine.SetDefaultText_I128(const SectionName, KeyName: SystemString; const Value: Int128);
 begin
   HitString[SectionName, KeyName] := umlIntToStr(Value);
 end;

@@ -312,10 +312,10 @@ begin
     end;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;
@@ -330,10 +330,10 @@ begin
   L := TC40_XNAT_Mapping_Info_List.Create;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;
@@ -407,10 +407,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Service);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Service);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Service)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Service)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Service);
   except
   end;

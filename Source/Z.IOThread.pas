@@ -124,7 +124,6 @@ type
 
     function Next_Thread: TThread_Event_Pool__;
     function MinLoad_Thread: TThread_Event_Pool__;
-    function IDLE_Thread: TThread_Event_Pool__;
 
     procedure DoTest_C();
     class procedure Test();
@@ -201,10 +200,10 @@ procedure TIO_Thread_Data.Process;
 begin
   try
     if Assigned(FOn_C) then
-        FOn_C(Self);
-    if Assigned(FOn_M) then
-        FOn_M(Self);
-    if Assigned(FOn_P) then
+        FOn_C(Self)
+    else if Assigned(FOn_M) then
+        FOn_M(Self)
+    else if Assigned(FOn_P) then
         FOn_P(Self);
   except
   end;
@@ -257,6 +256,8 @@ begin
           FCritical.UnLock;
           L := GetTimeTick() - LTK;
           if L > 100 then
+              TCompute.Sleep(10)
+          else
               TCompute.Sleep(1);
         end;
     end;
@@ -535,6 +536,8 @@ destructor TThread_Pool.Destroy;
 var
   __Repeat__: TThread_Pool_Decl.TRepeat___;
 begin
+  Wait();
+
   if Num > 0 then
     begin
       FCritical.Lock;
@@ -561,7 +564,7 @@ end;
 
 function TThread_Pool.TaskNum: NativeInt;
 var
-  R_: Int64;
+  R_: NativeInt;
 begin
   R_ := 0;
   FCritical.Lock;
@@ -592,107 +595,49 @@ end;
 function TThread_Pool.Next_Thread: TThread_Event_Pool__;
 begin
   Result := nil;
-  if Num = 0 then
-      exit;
-  FCritical.Acquire;
-  try
-    Result := First^.Data;
-    MoveToLast(First);
-  finally
-      FCritical.Release;
-  end;
+  if Num > 0 then
+    begin
+      FCritical.Acquire;
+      try
+        Result := First^.Data;
+        MoveToLast(First);
+      finally
+          FCritical.Release;
+      end;
+    end;
 end;
 
 function TThread_Pool.MinLoad_Thread: TThread_Event_Pool__;
 var
   Eng_: PQueueStruct;
-{$IFDEF FPC}
-  procedure do_fpc_Progress(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-  begin
-    if Eng_ = nil then
-        Eng_ := p
-    else if p^.Data.FPost.Count < Eng_^.Data.FPost.Count then
-        Eng_ := p;
-  end;
-{$ENDIF FPC}
-
-
 begin
   Result := nil;
-  if Num = 0 then
-      exit;
-  FCritical.Acquire;
-  Eng_ := nil;
-  try
-{$IFDEF FPC}
-    For_P(do_fpc_Progress);
-{$ELSE FPC}
-    For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
-      begin
-        if Eng_ = nil then
-            Eng_ := p
-        else if p^.Data.FPost.Count < Eng_^.Data.FPost.Count then
-            Eng_ := p;
-      end);
-{$ENDIF FPC}
-    if Eng_ <> nil then
-      begin
-        Result := Eng_^.Data;
-        if FQueueOptimized then
-            MoveToLast(Eng_);
-      end;
-  finally
-      FCritical.Release;
-  end;
-end;
-
-function TThread_Pool.IDLE_Thread: TThread_Event_Pool__;
-var
-  Eng_: PQueueStruct;
-{$IFDEF FPC}
-  procedure do_fpc_Progress(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean);
-  begin
-    if not p^.Data.FPost.Busy then
-      begin
-        Eng_ := p;
-        Aborted := True;
-      end;
-  end;
-{$ENDIF FPC}
-
-
-begin
-  Result := nil;
-  if Num = 0 then
-      exit;
-  FCritical.Acquire;
-  Eng_ := nil;
-  try
-{$IFDEF FPC}
-    For_P(do_fpc_Progress);
-{$ELSE FPC}
-    For_P(procedure(Index_: NativeInt; p: PQueueStruct; var Aborted: Boolean)
-      begin
-        if not p^.Data.FPost.Busy then
+  if Num > 0 then
+    begin
+      FCritical.Acquire;
+      try
+        Eng_ := nil;
+        with Repeat_ do
+          repeat
+            if Eng_ = nil then
+                Eng_ := Queue
+            else if Queue^.Data.FPost.Num < Eng_^.Data.FPost.Num then
+                Eng_ := Queue;
+          until not Next;
+        if Eng_ <> nil then
           begin
-            Eng_ := p;
-            Aborted := True;
+            Result := Eng_^.Data;
+            MoveToLast(First);
           end;
-      end);
-{$ENDIF FPC}
-    if Eng_ <> nil then
-      begin
-        Result := Eng_^.Data;
-        if FQueueOptimized then
-            MoveToLast(Eng_);
+      finally
+          FCritical.Release;
       end;
-  finally
-      FCritical.Release;
-  end;
+    end;
 end;
 
 procedure TThread_Pool.DoTest_C;
 begin
+  TCompute.Sleep(16);
 end;
 
 class procedure TThread_Pool.Test;
@@ -736,6 +681,8 @@ begin
         begin
           IDLE_TK := GetTimeTick() - Last_TK;
           if IDLE_TK > 1000 then
+              TCompute.Sleep(100)
+          else
               TCompute.Sleep(1);
         end;
     end;

@@ -2006,10 +2006,10 @@ procedure TDCT40_QueryResultData.DoRun;
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(C40_PhysicsTunnel, L);
-    if Assigned(OnResultM) then
-        OnResultM(C40_PhysicsTunnel, L);
-    if Assigned(OnResultP) then
+        OnResultC(C40_PhysicsTunnel, L)
+    else if Assigned(OnResultM) then
+        OnResultM(C40_PhysicsTunnel, L)
+    else if Assigned(OnResultP) then
         OnResultP(C40_PhysicsTunnel, L);
   except
   end;
@@ -2126,10 +2126,10 @@ end;
 procedure TDCT40_QueryResultAndDependProcessor.DoRun(const state: Boolean);
 begin
   if Assigned(On_C) then
-      On_C(state);
-  if Assigned(On_M) then
-      On_M(state);
-  if Assigned(On_P) then
+      On_C(state)
+  else if Assigned(On_M) then
+      On_M(state)
+  else if Assigned(On_P) then
       On_P(state);
   DelayFreeObj(1.0, Self);
 end;
@@ -3164,10 +3164,10 @@ begin
     begin
       try
         if Assigned(On_C) then
-            On_C(States_);
-        if Assigned(On_M) then
-            On_M(States_);
-        if Assigned(On_P) then
+            On_C(States_)
+        else if Assigned(On_M) then
+            On_M(States_)
+        else if Assigned(On_P) then
             On_P(States_);
       except
       end;
@@ -3264,10 +3264,10 @@ begin
     begin
       try
         if Assigned(OnDone_C) then
-            OnDone_C(Done_ClientPool);
-        if Assigned(OnDone_M) then
-            OnDone_M(Done_ClientPool);
-        if Assigned(OnDone_P) then
+            OnDone_C(Done_ClientPool)
+        else if Assigned(OnDone_M) then
+            OnDone_M(Done_ClientPool)
+        else if Assigned(OnDone_P) then
             OnDone_P(Done_ClientPool);
       except
       end;
@@ -3287,10 +3287,10 @@ begin
     begin
       try
         if Assigned(OnDone_C) then
-            OnDone_C(Done_ClientPool);
-        if Assigned(OnDone_M) then
-            OnDone_M(Done_ClientPool);
-        if Assigned(OnDone_P) then
+            OnDone_C(Done_ClientPool)
+        else if Assigned(OnDone_M) then
+            OnDone_M(Done_ClientPool)
+        else if Assigned(OnDone_P) then
             OnDone_P(Done_ClientPool);
       except
       end;
@@ -3932,10 +3932,10 @@ procedure TC4_Help_Console_Command_Data.DoExecute(var OP_Param: TOpParam);
 begin
   try
     if Assigned(OnEvent_C) then
-        OnEvent_C(OP_Param);
-    if Assigned(OnEvent_M) then
-        OnEvent_M(OP_Param);
-    if Assigned(OnEvent_P) then
+        OnEvent_C(OP_Param)
+    else if Assigned(OnEvent_M) then
+        OnEvent_M(OP_Param)
+    else if Assigned(OnEvent_P) then
         OnEvent_P(OP_Param);
   except
   end;
@@ -4921,9 +4921,9 @@ var
   cc: TC40_Custom_Client;
 begin
   FClient_Ptr^ := nil;
-  for i := 0 to Z.Net.C4.C40_ClientPool.Count - 1 do
+  for i := 0 to C40_ClientPool.Count - 1 do
     begin
-      cc := Z.Net.C4.C40_ClientPool[i];
+      cc := C40_ClientPool[i];
       if cc is T_ then
           FClient_Ptr^ := cc as T_;
     end;
@@ -4933,10 +4933,10 @@ begin
         begin
           try
             if Assigned(FOn_Ready_M) then
-                FOn_Ready_M(FClient_Ptr^);
-            if Assigned(FOn_Ready_C) then
-                FOn_Ready_C(FClient_Ptr^);
-            if Assigned(FOn_Ready_P) then
+                FOn_Ready_M(FClient_Ptr^)
+            else if Assigned(FOn_Ready_C) then
+                FOn_Ready_C(FClient_Ptr^)
+            else if Assigned(FOn_Ready_P) then
                 FOn_Ready_P(FClient_Ptr^);
           except
           end;

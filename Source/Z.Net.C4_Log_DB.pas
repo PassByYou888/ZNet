@@ -754,10 +754,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, LogDB, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, LogDB, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, LogDB, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, LogDB, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, LogDB, arry);
   except
   end;
@@ -785,10 +785,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;

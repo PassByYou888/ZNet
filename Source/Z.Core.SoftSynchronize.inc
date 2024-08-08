@@ -93,10 +93,10 @@ begin
         SyncQueue__.Next; // anti dead loop
         try
           if Assigned(sync_.Primary) then
-              sync_.Primary();
-          if Assigned(sync_.Second) then
-              sync_.Second();
-          if Assigned(sync_.Third) then
+              sync_.Primary()
+          else if Assigned(sync_.Second) then
+              sync_.Second()
+          else if Assigned(sync_.Third) then
               sync_.Third();
         except
         end;

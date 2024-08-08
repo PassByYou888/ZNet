@@ -332,7 +332,7 @@ type
 
   TDoubleTunnel_IO_ID_List = class(TDoubleTunnel_IO_ID_List_Decl)
   public
-    procedure AddDoubleTunenlID(R, S: Cardinal);
+    procedure Add_DT_ID(R, S: Cardinal);
   end;
 {$ENDREGION 'base Decl'}
 {$REGION 'CacheTechnology'}
@@ -2188,6 +2188,7 @@ type
     function LastQueueCmd: SystemString;
     function QueueCmdCount: Integer;
     function Last_IO_IDLE_Time: TTimeTick;
+    function Client_ID: Cardinal;
 
     { send console cmd method }
     procedure SendConsoleCmd(const Cmd, ConsoleData: SystemString); overload;
@@ -3053,7 +3054,7 @@ type
   public
     Thread: TCompute;
     Bridge: TCommandCompleteBuffer_NoWait_Bridge; // bridge
-    Framework: TZNet; // recevie tunnel
+    Framework: TZNet;                             // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
     WorkID: Cardinal; // recevie tunnel-ID
@@ -4172,8 +4173,8 @@ begin
             QueuePtr^.OnConsoleM(IO, Result_Text);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnConsoleParamM) then
+      end
+    else if Assigned(QueuePtr^.OnConsoleParamM) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('console on param result: %s', QueuePtr^.Cmd);
@@ -4181,8 +4182,8 @@ begin
             QueuePtr^.OnConsoleParamM(IO, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, Result_Text);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnConsoleP) then
+      end
+    else if Assigned(QueuePtr^.OnConsoleP) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('console on result(proc): %s', QueuePtr^.Cmd);
@@ -4190,8 +4191,8 @@ begin
             QueuePtr^.OnConsoleP(IO, Result_Text);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnConsoleParamP) then
+      end
+    else if Assigned(QueuePtr^.OnConsoleParamP) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('console on param result(proc): %s', QueuePtr^.Cmd);
@@ -4199,8 +4200,8 @@ begin
             QueuePtr^.OnConsoleParamP(IO, QueuePtr^.Param1, QueuePtr^.Param2, QueuePtr^.ConsoleData, Result_Text);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnStreamM) then
+      end
+    else if Assigned(QueuePtr^.OnStreamM) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('stream on result: %s', QueuePtr^.Cmd);
@@ -4209,8 +4210,8 @@ begin
           QueuePtr^.OnStreamM(IO, Result_DF);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnStreamParamM) then
+      end
+    else if Assigned(QueuePtr^.OnStreamParamM) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('stream on param result: %s', QueuePtr^.Cmd);
@@ -4223,8 +4224,8 @@ begin
           DisposeObject(InData);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnStreamP) then
+      end
+    else if Assigned(QueuePtr^.OnStreamP) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('stream on result(proc): %s', QueuePtr^.Cmd);
@@ -4233,8 +4234,8 @@ begin
           QueuePtr^.OnStreamP(IO, Result_DF);
         except
         end;
-      end;
-    if Assigned(QueuePtr^.OnStreamParamP) then
+      end
+    else if Assigned(QueuePtr^.OnStreamParamP) then
       begin
         if not IO.OwnerFramework.QuietMode then
             IO.PrintCommand('stream on result(parameter + proc): %s', QueuePtr^.Cmd);
@@ -4318,10 +4319,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData, OutData);
-    if Assigned(On_M) then
-        On_M(self, InData, OutData);
-    if Assigned(On_P) then
+        On_C(self, InData, OutData)
+    else if Assigned(On_M) then
+        On_M(self, InData, OutData)
+    else if Assigned(On_P) then
         On_P(self, InData, OutData);
   except
   end;
@@ -4346,10 +4347,10 @@ begin
           begin
             try
               if Assigned(OnDone_C) then
-                  OnDone_C(self, P_IO, InData, OutData);
-              if Assigned(OnDone_M) then
-                  OnDone_M(self, P_IO, InData, OutData);
-              if Assigned(OnDone_P) then
+                  OnDone_C(self, P_IO, InData, OutData)
+              else if Assigned(OnDone_M) then
+                  OnDone_M(self, P_IO, InData, OutData)
+              else if Assigned(OnDone_P) then
                   OnDone_P(self, P_IO, InData, OutData);
             except
             end;
@@ -4377,7 +4378,7 @@ begin
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
-  InData := nil; // fixed memory leak. by.qq600585, 2023-9-30
+  InData := nil;  // fixed memory leak. by.qq600585, 2023-9-30
   OutData := nil; // fixed memory leak. by.qq600585, 2023-9-30
   OnDone_C := nil;
   OnDone_M := nil;
@@ -4533,10 +4534,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData);
-    if Assigned(On_M) then
-        On_M(self, InData);
-    if Assigned(On_P) then
+        On_C(self, InData)
+    else if Assigned(On_M) then
+        On_M(self, InData)
+    else if Assigned(On_P) then
         On_P(self, InData);
   except
   end;
@@ -4697,10 +4698,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData, OutData);
-    if Assigned(On_M) then
-        On_M(self, InData, OutData);
-    if Assigned(On_P) then
+        On_C(self, InData, OutData)
+    else if Assigned(On_M) then
+        On_M(self, InData, OutData)
+    else if Assigned(On_P) then
         On_P(self, InData, OutData);
   except
   end;
@@ -4726,10 +4727,10 @@ begin
           begin
             try
               if Assigned(OnDone_C) then
-                  OnDone_C(self, P_IO, InData, OutData);
-              if Assigned(OnDone_M) then
-                  OnDone_M(self, P_IO, InData, OutData);
-              if Assigned(OnDone_P) then
+                  OnDone_C(self, P_IO, InData, OutData)
+              else if Assigned(OnDone_M) then
+                  OnDone_M(self, P_IO, InData, OutData)
+              else if Assigned(OnDone_P) then
                   OnDone_P(self, P_IO, InData, OutData);
             except
             end;
@@ -4894,10 +4895,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData);
-    if Assigned(On_M) then
-        On_M(self, InData);
-    if Assigned(On_P) then
+        On_C(self, InData)
+    else if Assigned(On_M) then
+        On_M(self, InData)
+    else if Assigned(On_P) then
         On_P(self, InData);
   except
   end;
@@ -5048,10 +5049,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData.Memory, InData.Size);
-    if Assigned(On_M) then
-        On_M(self, InData.Memory, InData.Size);
-    if Assigned(On_P) then
+        On_C(self, InData.Memory, InData.Size)
+    else if Assigned(On_M) then
+        On_M(self, InData.Memory, InData.Size)
+    else if Assigned(On_P) then
         On_P(self, InData.Memory, InData.Size);
   except
   end;
@@ -5203,10 +5204,10 @@ begin
   Thread := Sender;
   try
     if Assigned(On_C) then
-        On_C(self, InData, OutData);
-    if Assigned(On_M) then
-        On_M(self, InData, OutData);
-    if Assigned(On_P) then
+        On_C(self, InData, OutData)
+    else if Assigned(On_M) then
+        On_M(self, InData, OutData)
+    else if Assigned(On_P) then
         On_P(self, InData, OutData);
   except
   end;
@@ -5234,7 +5235,7 @@ begin
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
-  InData := nil; // fixed memory leak. by.qq600585, 2023-9-30
+  InData := nil;  // fixed memory leak. by.qq600585, 2023-9-30
   OutData := nil; // fixed memory leak. by.qq600585, 2023-9-30
 end;
 
@@ -5482,10 +5483,10 @@ end;
 procedure TState_Param_Bridge.DoStateResult(const State: Boolean);
 begin
   if Assigned(OnNotifyC) then
-      OnNotifyC(Param1, Param2, State);
-  if Assigned(OnNotifyM) then
-      OnNotifyM(Param1, Param2, State);
-  if Assigned(OnNotifyP) then
+      OnNotifyC(Param1, Param2, State)
+  else if Assigned(OnNotifyM) then
+      OnNotifyM(Param1, Param2, State)
+  else if Assigned(OnNotifyP) then
       OnNotifyP(Param1, Param2, State);
   DelayFreeObj(1.0, self);
 end;
@@ -5642,10 +5643,10 @@ begin
     begin
       IO_ := TPeerIO(Framework_.PeerIO_HashPool[ID_]);
       if Assigned(OnResultC) then
-          OnResultC(self, IO_, Sender_, ResultData_);
-      if Assigned(OnResultM) then
-          OnResultM(self, IO_, Sender_, ResultData_);
-      if Assigned(OnResultP) then
+          OnResultC(self, IO_, Sender_, ResultData_)
+      else if Assigned(OnResultM) then
+          OnResultM(self, IO_, Sender_, ResultData_)
+      else if Assigned(OnResultP) then
           OnResultP(self, IO_, Sender_, ResultData_);
       if AutoPause then
         begin
@@ -5759,10 +5760,10 @@ begin
     begin
       IO_ := TPeerIO(Framework_.PeerIO_HashPool[ID_]);
       if Assigned(OnResultC) then
-          OnResultC(self, IO_, Sender_, ResultData_);
-      if Assigned(OnResultM) then
-          OnResultM(self, IO_, Sender_, ResultData_);
-      if Assigned(OnResultP) then
+          OnResultC(self, IO_, Sender_, ResultData_)
+      else if Assigned(OnResultM) then
+          OnResultM(self, IO_, Sender_, ResultData_)
+      else if Assigned(OnResultP) then
           OnResultP(self, IO_, Sender_, ResultData_);
       if AutoPause then
         begin
@@ -5903,10 +5904,10 @@ end;
 procedure TCompleteBuffer_Stream_Event_Bridge.DoStreamEvent(Sender_: TPeerIO; ResultData_: TDFE);
 begin
   if Assigned(OnResultC) then
-      OnResultC(self, Bridge, Sender_, ResultData_);
-  if Assigned(OnResultM) then
-      OnResultM(self, Bridge, Sender_, ResultData_);
-  if Assigned(OnResultP) then
+      OnResultC(self, Bridge, Sender_, ResultData_)
+  else if Assigned(OnResultM) then
+      OnResultM(self, Bridge, Sender_, ResultData_)
+  else if Assigned(OnResultP) then
       OnResultP(self, Bridge, Sender_, ResultData_);
   if not Bridge.R_Framework.QuietMode then
       Bridge.R_Framework.Print('Finish CMD "%s" Bridge Event.', [LCMD_]);
@@ -5931,10 +5932,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(NewClient);
-    if Assigned(OnResultM) then
-        OnResultM(NewClient);
-    if Assigned(OnResultP) then
+        OnResultC(NewClient)
+    else if Assigned(OnResultM) then
+        OnResultM(NewClient)
+    else if Assigned(OnResultP) then
         OnResultP(NewClient);
   except
   end;
@@ -5957,7 +5958,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TDoubleTunnel_IO_ID_List.AddDoubleTunenlID(R, S: Cardinal);
+procedure TDoubleTunnel_IO_ID_List.Add_DT_ID(R, S: Cardinal);
 var
   tmp: TDoubleTunnel_IO_ID;
 begin
@@ -8824,7 +8825,7 @@ begin
             FCompleteBufferCmd := umlStringOf(buff).Text;
             FCompleteBufferReceiveProcessing := True;
             FCompleteBufferReceivedStream.Clear;
-            FCompleteBufferReceivedStream.Delta := 1024 * 64;
+            FCompleteBufferReceivedStream.Delta := umlMax(FCompleteBufferTotal, 1024 * 64);
             SetLength(buff, 0);
 
             { stripped stream }
@@ -9066,8 +9067,8 @@ begin
         if FCurrentQueueData^.State = qsSendConsoleCMD then
           begin
             if Assigned(FCurrentQueueData^.OnConsoleFailedM) then
-                FCurrentQueueData^.OnConsoleFailedM(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, FCurrentQueueData^.ConsoleData);
-            if Assigned(FCurrentQueueData^.OnConsoleFailedP) then
+                FCurrentQueueData^.OnConsoleFailedM(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, FCurrentQueueData^.ConsoleData)
+            else if Assigned(FCurrentQueueData^.OnConsoleFailedP) then
                 FCurrentQueueData^.OnConsoleFailedP(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, FCurrentQueueData^.ConsoleData);
           end
         else if FCurrentQueueData^.State = qsSendStreamCMD then
@@ -9076,8 +9077,8 @@ begin
             FCurrentQueueData^.StreamData.Position := 0;
             tmp.DecodeFrom(FCurrentQueueData^.StreamData, True);
             if Assigned(FCurrentQueueData^.OnStreamFailedM) then
-                FCurrentQueueData^.OnStreamFailedM(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, tmp);
-            if Assigned(FCurrentQueueData^.OnStreamFailedP) then
+                FCurrentQueueData^.OnStreamFailedM(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, tmp)
+            else if Assigned(FCurrentQueueData^.OnStreamFailedP) then
                 FCurrentQueueData^.OnStreamFailedP(self, FCurrentQueueData^.Param1, FCurrentQueueData^.Param2, tmp);
             DisposeObject(tmp);
           end;
@@ -10774,10 +10775,10 @@ procedure TZNet_Progress.Progress;
 begin
   try
     if Assigned(OnProgress_C) then
-        OnProgress_C(self);
-    if Assigned(OnProgress_M) then
-        OnProgress_M(self);
-    if Assigned(OnProgress_P) then
+        OnProgress_C(self)
+    else if Assigned(OnProgress_M) then
+        OnProgress_M(self)
+    else if Assigned(OnProgress_P) then
         OnProgress_P(self);
   except
   end;
@@ -11323,10 +11324,10 @@ begin
       else
         begin
           if Assigned(p^.OnNotifyC) then
-              p^.OnNotifyC(p^.data);
-          if Assigned(p^.OnNotifyM) then
-              p^.OnNotifyM(p^.data);
-          if Assigned(p^.OnNotifyP) then
+              p^.OnNotifyC(p^.data)
+          else if Assigned(p^.OnNotifyM) then
+              p^.OnNotifyM(p^.data)
+          else if Assigned(p^.OnNotifyP) then
               p^.OnNotifyP(p^.data);
           Dispose(p);
         end;
@@ -11354,8 +11355,8 @@ begin
       In_DFE.DecodeFromMemory(GetOffset(InData, 8), DataSize - 8, True);
       try
         if Assigned(p^.OnStreamM) then
-            p^.OnStreamM(P_IO, In_DFE);
-        if Assigned(p^.OnStreamP) then
+            p^.OnStreamM(P_IO, In_DFE)
+        else if Assigned(p^.OnStreamP) then
             p^.OnStreamP(P_IO, In_DFE);
       except
       end;
@@ -11459,16 +11460,16 @@ begin
 
   try
     if Assigned(P_IO.OnVMBuildAuthModelResult_C) then
-        P_IO.OnVMBuildAuthModelResult_C();
-    if Assigned(P_IO.OnVMBuildAuthModelResult_M) then
-        P_IO.OnVMBuildAuthModelResult_M();
-    if Assigned(P_IO.OnVMBuildAuthModelResult_P) then
-        P_IO.OnVMBuildAuthModelResult_P();
-    if Assigned(P_IO.OnVMBuildAuthModelResultIO_C) then
-        P_IO.OnVMBuildAuthModelResultIO_C(P_IO);
-    if Assigned(P_IO.OnVMBuildAuthModelResultIO_M) then
-        P_IO.OnVMBuildAuthModelResultIO_M(P_IO);
-    if Assigned(P_IO.OnVMBuildAuthModelResultIO_P) then
+        P_IO.OnVMBuildAuthModelResult_C()
+    else if Assigned(P_IO.OnVMBuildAuthModelResult_M) then
+        P_IO.OnVMBuildAuthModelResult_M()
+    else if Assigned(P_IO.OnVMBuildAuthModelResult_P) then
+        P_IO.OnVMBuildAuthModelResult_P()
+    else if Assigned(P_IO.OnVMBuildAuthModelResultIO_C) then
+        P_IO.OnVMBuildAuthModelResultIO_C(P_IO)
+    else if Assigned(P_IO.OnVMBuildAuthModelResultIO_M) then
+        P_IO.OnVMBuildAuthModelResultIO_M(P_IO)
+    else if Assigned(P_IO.OnVMBuildAuthModelResultIO_P) then
         P_IO.OnVMBuildAuthModelResultIO_P(P_IO);
   except
   end;
@@ -11579,16 +11580,16 @@ begin
 
   try
     if Assigned(P_IO.OnVMAuthResult_C) then
-        P_IO.OnVMAuthResult_C(True);
-    if Assigned(P_IO.OnVMAuthResult_M) then
-        P_IO.OnVMAuthResult_M(True);
-    if Assigned(P_IO.OnVMAuthResult_P) then
-        P_IO.OnVMAuthResult_P(True);
-    if Assigned(P_IO.OnVMAuthResultIO_C) then
-        P_IO.OnVMAuthResultIO_C(P_IO, True);
-    if Assigned(P_IO.OnVMAuthResultIO_M) then
-        P_IO.OnVMAuthResultIO_M(P_IO, True);
-    if Assigned(P_IO.OnVMAuthResultIO_P) then
+        P_IO.OnVMAuthResult_C(True)
+    else if Assigned(P_IO.OnVMAuthResult_M) then
+        P_IO.OnVMAuthResult_M(True)
+    else if Assigned(P_IO.OnVMAuthResult_P) then
+        P_IO.OnVMAuthResult_P(True)
+    else if Assigned(P_IO.OnVMAuthResultIO_C) then
+        P_IO.OnVMAuthResultIO_C(P_IO, True)
+    else if Assigned(P_IO.OnVMAuthResultIO_M) then
+        P_IO.OnVMAuthResultIO_M(P_IO, True)
+    else if Assigned(P_IO.OnVMAuthResultIO_P) then
         P_IO.OnVMAuthResultIO_P(P_IO, True);
   except
   end;
@@ -11628,16 +11629,16 @@ begin
 
   try
     if Assigned(P_IO.OnVMAuthResult_C) then
-        P_IO.OnVMAuthResult_C(False);
-    if Assigned(P_IO.OnVMAuthResult_M) then
-        P_IO.OnVMAuthResult_M(False);
-    if Assigned(P_IO.OnVMAuthResult_P) then
-        P_IO.OnVMAuthResult_P(False);
-    if Assigned(P_IO.OnVMAuthResultIO_C) then
-        P_IO.OnVMAuthResultIO_C(P_IO, False);
-    if Assigned(P_IO.OnVMAuthResultIO_M) then
-        P_IO.OnVMAuthResultIO_M(P_IO, False);
-    if Assigned(P_IO.OnVMAuthResultIO_P) then
+        P_IO.OnVMAuthResult_C(False)
+    else if Assigned(P_IO.OnVMAuthResult_M) then
+        P_IO.OnVMAuthResult_M(False)
+    else if Assigned(P_IO.OnVMAuthResult_P) then
+        P_IO.OnVMAuthResult_P(False)
+    else if Assigned(P_IO.OnVMAuthResultIO_C) then
+        P_IO.OnVMAuthResultIO_C(P_IO, False)
+    else if Assigned(P_IO.OnVMAuthResultIO_M) then
+        P_IO.OnVMAuthResultIO_M(P_IO, False)
+    else if Assigned(P_IO.OnVMAuthResultIO_P) then
         P_IO.OnVMAuthResultIO_P(P_IO, False);
   except
   end;
@@ -11807,10 +11808,10 @@ begin
       Print('Automated P2PVM client connection done.');
   try
     if Assigned(FOnAutomatedP2PVMClientConnectionDone_C) then
-        FOnAutomatedP2PVMClientConnectionDone_C(self, P_IO);
-    if Assigned(FOnAutomatedP2PVMClientConnectionDone_M) then
-        FOnAutomatedP2PVMClientConnectionDone_M(self, P_IO);
-    if Assigned(FOnAutomatedP2PVMClientConnectionDone_P) then
+        FOnAutomatedP2PVMClientConnectionDone_C(self, P_IO)
+    else if Assigned(FOnAutomatedP2PVMClientConnectionDone_M) then
+        FOnAutomatedP2PVMClientConnectionDone_M(self, P_IO)
+    else if Assigned(FOnAutomatedP2PVMClientConnectionDone_P) then
         FOnAutomatedP2PVMClientConnectionDone_P(self, P_IO);
   except
   end;
@@ -11820,10 +11821,10 @@ begin
 
   try
     if Assigned(P_IO.FOnAutomatedP2PVMClientConnectionDone_C) then
-        P_IO.FOnAutomatedP2PVMClientConnectionDone_C(P_IO, AutomatedP2PVMClientConnectionDone(P_IO));
-    if Assigned(P_IO.FOnAutomatedP2PVMClientConnectionDone_M) then
-        P_IO.FOnAutomatedP2PVMClientConnectionDone_M(P_IO, AutomatedP2PVMClientConnectionDone(P_IO));
-    if Assigned(P_IO.FOnAutomatedP2PVMClientConnectionDone_P) then
+        P_IO.FOnAutomatedP2PVMClientConnectionDone_C(P_IO, AutomatedP2PVMClientConnectionDone(P_IO))
+    else if Assigned(P_IO.FOnAutomatedP2PVMClientConnectionDone_M) then
+        P_IO.FOnAutomatedP2PVMClientConnectionDone_M(P_IO, AutomatedP2PVMClientConnectionDone(P_IO))
+    else if Assigned(P_IO.FOnAutomatedP2PVMClientConnectionDone_P) then
         P_IO.FOnAutomatedP2PVMClientConnectionDone_P(P_IO, AutomatedP2PVMClientConnectionDone(P_IO));
   except
   end;
@@ -12355,8 +12356,8 @@ begin
 
   try
     if Assigned(ProgressBackgroundProc) then
-        ProgressBackgroundProc();
-    if Assigned(ProgressBackgroundMethod) then
+        ProgressBackgroundProc()
+    else if Assigned(ProgressBackgroundMethod) then
         ProgressBackgroundMethod();
   except
   end;
@@ -14868,10 +14869,10 @@ begin
       FWaitingTimeOut := 0;
       try
         if Assigned(FOnWaitResult_C) then
-            FOnWaitResult_C(True);
-        if Assigned(FOnWaitResult_M) then
-            FOnWaitResult_M(True);
-        if Assigned(FOnWaitResult_P) then
+            FOnWaitResult_C(True)
+        else if Assigned(FOnWaitResult_M) then
+            FOnWaitResult_M(True)
+        else if Assigned(FOnWaitResult_P) then
             FOnWaitResult_P(True);
       except
       end;
@@ -15065,10 +15066,10 @@ begin
       FWaitingTimeOut := 0;
       try
         if Assigned(FOnWaitResult_C) then
-            FOnWaitResult_C(False);
-        if Assigned(FOnWaitResult_M) then
-            FOnWaitResult_M(False);
-        if Assigned(FOnWaitResult_P) then
+            FOnWaitResult_C(False)
+        else if Assigned(FOnWaitResult_M) then
+            FOnWaitResult_M(False)
+        else if Assigned(FOnWaitResult_P) then
             FOnWaitResult_P(False);
       except
       end;
@@ -15344,6 +15345,14 @@ begin
       Result := GetTimeTick()
   else
       Result := ClientIO.Last_IO_IDLE_Time;
+end;
+
+function TZNet_Client.Client_ID: Cardinal;
+begin
+  if ClientIO = nil then
+      Result := 0
+  else
+      Result := ClientIO.ID;
 end;
 
 procedure TZNet_Client.SendConsoleCmd(const Cmd, ConsoleData: SystemString);
@@ -16951,10 +16960,10 @@ begin
 
   try
     if Assigned(FOnP2PVMAsyncConnectNotify_C) then
-        FOnP2PVMAsyncConnectNotify_C(False);
-    if Assigned(FOnP2PVMAsyncConnectNotify_M) then
-        FOnP2PVMAsyncConnectNotify_M(False);
-    if Assigned(FOnP2PVMAsyncConnectNotify_P) then
+        FOnP2PVMAsyncConnectNotify_C(False)
+    else if Assigned(FOnP2PVMAsyncConnectNotify_M) then
+        FOnP2PVMAsyncConnectNotify_M(False)
+    else if Assigned(FOnP2PVMAsyncConnectNotify_P) then
         FOnP2PVMAsyncConnectNotify_P(False);
   except
   end;
@@ -16970,10 +16979,10 @@ begin
 
   try
     if Assigned(FOnP2PVMAsyncConnectNotify_C) then
-        FOnP2PVMAsyncConnectNotify_C(True);
-    if Assigned(FOnP2PVMAsyncConnectNotify_M) then
-        FOnP2PVMAsyncConnectNotify_M(True);
-    if Assigned(FOnP2PVMAsyncConnectNotify_P) then
+        FOnP2PVMAsyncConnectNotify_C(True)
+    else if Assigned(FOnP2PVMAsyncConnectNotify_M) then
+        FOnP2PVMAsyncConnectNotify_M(True)
+    else if Assigned(FOnP2PVMAsyncConnectNotify_P) then
         FOnP2PVMAsyncConnectNotify_P(True);
   except
   end;
@@ -17626,10 +17635,10 @@ begin
           FWaitEchoList.Delete(i);
           try
             if Assigned(echoPtr^.OnEcho_C) then
-                echoPtr^.OnEcho_C(True);
-            if Assigned(echoPtr^.OnEcho_M) then
-                echoPtr^.OnEcho_M(True);
-            if Assigned(echoPtr^.OnEcho_P) then
+                echoPtr^.OnEcho_C(True)
+            else if Assigned(echoPtr^.OnEcho_M) then
+                echoPtr^.OnEcho_M(True)
+            else if Assigned(echoPtr^.OnEcho_P) then
                 echoPtr^.OnEcho_P(True);
           except
           end;
@@ -18074,10 +18083,10 @@ begin
 
           try
             if Assigned(OnEchoPtr^.OnEcho_C) then
-                OnEchoPtr^.OnEcho_C(False);
-            if Assigned(OnEchoPtr^.OnEcho_M) then
-                OnEchoPtr^.OnEcho_M(False);
-            if Assigned(OnEchoPtr^.OnEcho_P) then
+                OnEchoPtr^.OnEcho_C(False)
+            else if Assigned(OnEchoPtr^.OnEcho_M) then
+                OnEchoPtr^.OnEcho_M(False)
+            else if Assigned(OnEchoPtr^.OnEcho_P) then
                 OnEchoPtr^.OnEcho_P(False);
           except
           end;
@@ -18440,10 +18449,10 @@ begin
 
           try
             if Assigned(OnEchoPtr^.OnEcho_C) then
-                OnEchoPtr^.OnEcho_C(False);
-            if Assigned(OnEchoPtr^.OnEcho_M) then
-                OnEchoPtr^.OnEcho_M(False);
-            if Assigned(OnEchoPtr^.OnEcho_P) then
+                OnEchoPtr^.OnEcho_C(False)
+            else if Assigned(OnEchoPtr^.OnEcho_M) then
+                OnEchoPtr^.OnEcho_M(False)
+            else if Assigned(OnEchoPtr^.OnEcho_P) then
                 OnEchoPtr^.OnEcho_P(False);
           except
           end;
@@ -19403,10 +19412,10 @@ begin
 
   try
     if Assigned(FOnAsyncConnectNotify_C) then
-        FOnAsyncConnectNotify_C(False);
-    if Assigned(FOnAsyncConnectNotify_M) then
-        FOnAsyncConnectNotify_M(False);
-    if Assigned(FOnAsyncConnectNotify_P) then
+        FOnAsyncConnectNotify_C(False)
+    else if Assigned(FOnAsyncConnectNotify_M) then
+        FOnAsyncConnectNotify_M(False)
+    else if Assigned(FOnAsyncConnectNotify_P) then
         FOnAsyncConnectNotify_P(False);
   except
   end;
@@ -19422,10 +19431,10 @@ begin
 
   try
     if Assigned(FOnAsyncConnectNotify_C) then
-        FOnAsyncConnectNotify_C(True);
-    if Assigned(FOnAsyncConnectNotify_M) then
-        FOnAsyncConnectNotify_M(True);
-    if Assigned(FOnAsyncConnectNotify_P) then
+        FOnAsyncConnectNotify_C(True)
+    else if Assigned(FOnAsyncConnectNotify_M) then
+        FOnAsyncConnectNotify_M(True)
+    else if Assigned(FOnAsyncConnectNotify_P) then
         FOnAsyncConnectNotify_P(True);
   except
   end;

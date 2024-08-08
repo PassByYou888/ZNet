@@ -104,7 +104,7 @@ type
   TFS2_Client_CacheHashPool = TGeneric_String_Object_Hash<TFS2_Client_CacheData>;
 
 {$REGION 'bridge_define'}
-  TP2PVM_Recycle_Pool = TOrderStruct<TZNet_WithP2PVM_Client>;
+  TC40_FS2_P2PVM_Recycle_Pool = TOrderStruct<TZNet_WithP2PVM_Client>;
 
   TC40_FS2_VM_Client_CheckMD5AndFastCopyC = procedure(Sender: TC40_FS2_VM_Client; State_: Boolean);
   TC40_FS2_VM_Client_CheckMD5AndFastCopyM = procedure(Sender: TC40_FS2_VM_Client; State_: Boolean) of object;
@@ -367,7 +367,7 @@ type
     Cache_File_Life: Int64;
     FileCacheHashPool: TFS2_Client_CacheHashPool;
     Cache_Database: TZDB2_List_MS64;
-    P2PVM_Recycle_Pool: TP2PVM_Recycle_Pool;
+    P2PVM_Recycle_Pool: TC40_FS2_P2PVM_Recycle_Pool;
     property MaxFileSize: Cardinal read FMaxFileSize;
     property Remote_FS_DB_Size: Int64 read FRemote_FS_DB_Size;
     property Remote_FS_Num: Int64 read FRemote_FS_Num;
@@ -1101,10 +1101,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1119,10 +1119,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_);
   except
   end;
@@ -1176,10 +1176,10 @@ procedure TC40_FS2_VM_Client_Post_File_Tunnel.cmd_PostDone(Sender: TPeerIO; InDa
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, InData);
-    if Assigned(OnResultM) then
-        OnResultM(Client, InData);
-    if Assigned(OnResultP) then
+        OnResultC(Client, InData)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, InData)
+    else if Assigned(OnResultP) then
         OnResultP(Client, InData);
   except
   end;
@@ -1207,10 +1207,10 @@ begin
     begin
       try
         if Assigned(OnResultC) then
-            OnResultC(Client, File_Name);
-        if Assigned(OnResultM) then
-            OnResultM(Client, File_Name);
-        if Assigned(OnResultP) then
+            OnResultC(Client, File_Name)
+        else if Assigned(OnResultM) then
+            OnResultM(Client, File_Name)
+        else if Assigned(OnResultP) then
             OnResultP(Client, File_Name);
       except
       end;
@@ -1287,10 +1287,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, tmp2, tmp_File_Name_, True);
-    if Assigned(OnResultM) then
-        OnResultM(Client, tmp2, tmp_File_Name_, True);
-    if Assigned(OnResultP) then
+        OnResultC(Client, tmp2, tmp_File_Name_, True)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, tmp2, tmp_File_Name_, True)
+    else if Assigned(OnResultP) then
         OnResultP(Client, tmp2, tmp_File_Name_, True);
   except
   end;
@@ -1307,10 +1307,10 @@ procedure TC40_FS2_VM_Client_Get_File_Tunnel.cmd_Error(Sender: TPeerIO; InData: 
 begin
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, nil, InData, False);
-    if Assigned(OnResultM) then
-        OnResultM(Client, nil, InData, False);
-    if Assigned(OnResultP) then
+        OnResultC(Client, nil, InData, False)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, nil, InData, False)
+    else if Assigned(OnResultP) then
         OnResultP(Client, nil, InData, False);
   except
   end;
@@ -1363,10 +1363,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, MD5);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, MD5);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, MD5)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, MD5)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, MD5);
   except
   end;
@@ -1385,10 +1385,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, State_, info_, MD5);
-    if Assigned(OnResultM) then
-        OnResultM(Client, State_, info_, MD5);
-    if Assigned(OnResultP) then
+        OnResultC(Client, State_, info_, MD5)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, State_, info_, MD5)
+    else if Assigned(OnResultP) then
         OnResultP(Client, State_, info_, MD5);
   except
   end;
@@ -1420,10 +1420,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1439,10 +1439,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1469,10 +1469,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Files_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Files_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Files_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Files_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Files_);
   except
   end;
@@ -1488,10 +1488,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Files_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Files_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Files_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Files_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Files_);
   except
   end;
@@ -1524,10 +1524,10 @@ begin
     begin
       try
         if Assigned(OnResultC) then
-            OnResultC(Client, nil, File_Name, False);
-        if Assigned(OnResultM) then
-            OnResultM(Client, nil, File_Name, False);
-        if Assigned(OnResultP) then
+            OnResultC(Client, nil, File_Name, False)
+        else if Assigned(OnResultM) then
+            OnResultM(Client, nil, File_Name, False)
+        else if Assigned(OnResultP) then
             OnResultP(Client, nil, File_Name, False);
       except
       end;
@@ -1545,10 +1545,10 @@ begin
           try
             Cache.Stream.Data.Position := 0;
             if Assigned(OnResultC) then
-                OnResultC(Client, Cache.Stream.Data, File_Name, True);
-            if Assigned(OnResultM) then
-                OnResultM(Client, Cache.Stream.Data, File_Name, True);
-            if Assigned(OnResultP) then
+                OnResultC(Client, Cache.Stream.Data, File_Name, True)
+            else if Assigned(OnResultM) then
+                OnResultM(Client, Cache.Stream.Data, File_Name, True)
+            else if Assigned(OnResultP) then
                 OnResultP(Client, Cache.Stream.Data, File_Name, True);
           except
           end;
@@ -1601,10 +1601,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1619,10 +1619,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1657,10 +1657,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1675,10 +1675,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1711,10 +1711,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1729,10 +1729,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, arry);
-    if Assigned(OnResultM) then
-        OnResultM(Client, arry);
-    if Assigned(OnResultP) then
+        OnResultC(Client, arry)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, arry)
+    else if Assigned(OnResultP) then
         OnResultP(Client, arry);
   except
   end;
@@ -1807,7 +1807,7 @@ begin
   FMaxFileSize := 0;
   FRemoveCacheList := TPascalStringList.Create;
 
-  P2PVM_Recycle_Pool := TP2PVM_Recycle_Pool.Create;
+  P2PVM_Recycle_Pool := TC40_FS2_P2PVM_Recycle_Pool.Create;
 end;
 
 destructor TC40_FS2_VM_Client.Destroy;

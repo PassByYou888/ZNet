@@ -1773,10 +1773,10 @@ procedure TQueryTask.DoTriggerQuery;
 begin
   try
     if Assigned(FOnQuery_C) then
-        FOnQuery_C(FState);
-    if Assigned(FOnQuery_M) then
-        FOnQuery_M(FState);
-    if Assigned(FOnQuery_P) then
+        FOnQuery_C(FState)
+    else if Assigned(FOnQuery_M) then
+        FOnQuery_M(FState)
+    else if Assigned(FOnQuery_P) then
         FOnQuery_P(FState);
   except
   end;
@@ -1786,10 +1786,10 @@ procedure TQueryTask.DoQueryDone;
 begin
   try
     if Assigned(FOnQueryDone_C) then
-        FOnQueryDone_C();
-    if Assigned(FOnQueryDone_M) then
-        FOnQueryDone_M();
-    if Assigned(FOnQueryDone_P) then
+        FOnQueryDone_C()
+    else if Assigned(FOnQueryDone_M) then
+        FOnQueryDone_M()
+    else if Assigned(FOnQueryDone_P) then
         FOnQueryDone_P();
   except
   end;
@@ -2040,10 +2040,10 @@ begin
             begin
               try
                 if Assigned(triggerPtr^.OnRemove_C) then
-                    triggerPtr^.OnRemove_C(p^.i64, removed);
-                if Assigned(triggerPtr^.OnRemove_M) then
-                    triggerPtr^.OnRemove_M(p^.i64, removed);
-                if Assigned(triggerPtr^.OnRemove_P) then
+                    triggerPtr^.OnRemove_C(p^.i64, removed)
+                else if Assigned(triggerPtr^.OnRemove_M) then
+                    triggerPtr^.OnRemove_M(p^.i64, removed)
+                else if Assigned(triggerPtr^.OnRemove_P) then
                     triggerPtr^.OnRemove_P(p^.i64, removed);
               except
               end;
@@ -2408,7 +2408,7 @@ destructor TDBStore.Destroy;
 var
   i: Integer;
 begin
-  FQueryThread.Activted:=False;
+  FQueryThread.Activted := False;
   FQueryThread.Paused := False;
 
   // wait thread
@@ -2966,10 +2966,10 @@ begin
       repeat
         try
           if Assigned(OnQuery_C) then
-              OnQuery_C(qState);
-          if Assigned(OnQuery_P) then
-              OnQuery_P(qState);
-          if Assigned(OnQuery_M) then
+              OnQuery_C(qState)
+          else if Assigned(OnQuery_P) then
+              OnQuery_P(qState)
+          else if Assigned(OnQuery_M) then
               OnQuery_M(qState);
         except
         end;

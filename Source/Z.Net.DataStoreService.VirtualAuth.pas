@@ -1465,28 +1465,28 @@ begin
           begin
             FillFragmentSourceC(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, PipeName_, M, BackcallPtr^.OnUserQuery_C);
             M.Position := 0;
-          end;
-        if Assigned(BackcallPtr^.OnUserQuery_M) then
+          end
+        else if Assigned(BackcallPtr^.OnUserQuery_M) then
           begin
             FillFragmentSourceM(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, PipeName_, M, BackcallPtr^.OnUserQuery_M);
             M.Position := 0;
-          end;
-        if Assigned(BackcallPtr^.OnUserQuery_P) then
+          end
+        else if Assigned(BackcallPtr^.OnUserQuery_P) then
           begin
             FillFragmentSourceP(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, PipeName_, M, BackcallPtr^.OnUserQuery_P);
             M.Position := 0;
-          end;
-        if Assigned(BackcallPtr^.OnQuery_C) then
+          end
+        else if Assigned(BackcallPtr^.OnQuery_C) then
           begin
             FillFragmentSourceC(dataBaseName_, PipeName_, M, BackcallPtr^.OnQuery_C);
             M.Position := 0;
-          end;
-        if Assigned(BackcallPtr^.OnQuery_M) then
+          end
+        else if Assigned(BackcallPtr^.OnQuery_M) then
           begin
             FillFragmentSourceM(dataBaseName_, PipeName_, M, BackcallPtr^.OnQuery_M);
             M.Position := 0;
-          end;
-        if Assigned(BackcallPtr^.OnQuery_P) then
+          end
+        else if Assigned(BackcallPtr^.OnQuery_P) then
           begin
             FillFragmentSourceP(dataBaseName_, PipeName_, M, BackcallPtr^.OnQuery_P);
             M.Position := 0;
@@ -1514,17 +1514,17 @@ begin
     begin
       try
         if Assigned(BackcallPtr^.OnUserDone_C) then
-            BackcallPtr^.OnUserDone_C(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
-        if Assigned(BackcallPtr^.OnUserDone_M) then
-            BackcallPtr^.OnUserDone_M(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
-        if Assigned(BackcallPtr^.OnUserDone_P) then
+            BackcallPtr^.OnUserDone_C(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount)
+        else if Assigned(BackcallPtr^.OnUserDone_M) then
+            BackcallPtr^.OnUserDone_M(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount)
+        else if Assigned(BackcallPtr^.OnUserDone_P) then
             BackcallPtr^.OnUserDone_P(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
 
         if Assigned(BackcallPtr^.OnDone_C) then
-            BackcallPtr^.OnDone_C(dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
-        if Assigned(BackcallPtr^.OnDone_M) then
-            BackcallPtr^.OnDone_M(dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
-        if Assigned(BackcallPtr^.OnDone_P) then
+            BackcallPtr^.OnDone_C(dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount)
+        else if Assigned(BackcallPtr^.OnDone_M) then
+            BackcallPtr^.OnDone_M(dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount)
+        else if Assigned(BackcallPtr^.OnDone_P) then
             BackcallPtr^.OnDone_P(dataBaseName_, OutputDatabaseName_, PipeName_, TotalResultCount);
       except
       end;
@@ -1566,29 +1566,28 @@ begin
               begin
                 BackcallPtr^.OnUserDone_C(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnUserDone_M) then
+              end
+            else if Assigned(BackcallPtr^.OnUserDone_M) then
               begin
                 BackcallPtr^.OnUserDone_M(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnUserDone_P) then
+              end
+            else if Assigned(BackcallPtr^.OnUserDone_P) then
               begin
                 BackcallPtr^.OnUserDone_P(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-
-            if Assigned(BackcallPtr^.OnDone_C) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_C) then
               begin
                 BackcallPtr^.OnDone_C(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnDone_M) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_M) then
               begin
                 BackcallPtr^.OnDone_M(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnDone_P) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_P) then
               begin
                 BackcallPtr^.OnDone_P(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
@@ -1635,29 +1634,28 @@ begin
               begin
                 BackcallPtr^.OnUserDone_C(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnUserDone_M) then
+              end
+            else if Assigned(BackcallPtr^.OnUserDone_M) then
               begin
                 BackcallPtr^.OnUserDone_M(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnUserDone_P) then
+              end
+            else if Assigned(BackcallPtr^.OnUserDone_P) then
               begin
                 BackcallPtr^.OnUserDone_P(BackcallPtr^.UserPointer, BackcallPtr^.UserObject, BackcallPtr^.UserVariant, dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-
-            if Assigned(BackcallPtr^.OnDone_C) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_C) then
               begin
                 BackcallPtr^.OnDone_C(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnDone_M) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_M) then
               begin
                 BackcallPtr^.OnDone_M(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
-              end;
-            if Assigned(BackcallPtr^.OnDone_P) then
+              end
+            else if Assigned(BackcallPtr^.OnDone_P) then
               begin
                 BackcallPtr^.OnDone_P(dataBaseName_, dStorePos, tmp);
                 tmp.Position := 0;
@@ -1694,10 +1692,10 @@ begin
   if BackcallPtr <> nil then
     begin
       if Assigned(BackcallPtr^.OnDone_C) then
-          BackcallPtr^.OnDone_C(@TransformBuff);
-      if Assigned(BackcallPtr^.OnDone_M) then
-          BackcallPtr^.OnDone_M(@TransformBuff);
-      if Assigned(BackcallPtr^.OnDone_P) then
+          BackcallPtr^.OnDone_C(@TransformBuff)
+      else if Assigned(BackcallPtr^.OnDone_M) then
+          BackcallPtr^.OnDone_M(@TransformBuff)
+      else if Assigned(BackcallPtr^.OnDone_P) then
           BackcallPtr^.OnDone_P(@TransformBuff);
     end;
 

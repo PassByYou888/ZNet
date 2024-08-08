@@ -181,10 +181,11 @@ var
   r: Boolean;
 begin
   repeat
-    TCompute.Sleep(1);
     r := True;
     for i in arry do
         r := r and (i = signal_);
+    if not r then
+        TCompute.Sleep(1);
   until r;
 end;
 
@@ -194,10 +195,11 @@ var
   r: Boolean;
 begin
   repeat
-    TCompute.Sleep(1);
     r := True;
     for p in arry do
         r := r and (p^ = signal_);
+    if not r then
+        TCompute.Sleep(1);
   until r;
 end;
 
@@ -207,10 +209,11 @@ var
   r: Boolean;
 begin
   repeat
-    TCompute.Sleep(1);
     r := True;
     for i in arry do
         r := r and (i = signal_);
+    if not r then
+        TCompute.Sleep(1);
   until r;
 end;
 
@@ -220,10 +223,11 @@ var
   r: Boolean;
 begin
   repeat
-    TCompute.Sleep(1);
     r := True;
     for p in arry do
         r := r and (p^ = signal_);
+    if not r then
+        TCompute.Sleep(1);
   until r;
 end;
 
@@ -402,4 +406,3 @@ begin
   System.AtomicDecrement(x, v);
 {$ENDIF FPC}
 end;
-

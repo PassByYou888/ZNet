@@ -277,10 +277,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, NameKey_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, NameKey_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, NameKey_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, NameKey_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, NameKey_);
   except
   end;
@@ -294,10 +294,10 @@ begin
   NameKey_ := THashStringList.Create;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, NameKey_);
-    if Assigned(OnResultM) then
-        OnResultM(Client, NameKey_);
-    if Assigned(OnResultP) then
+        OnResultC(Client, NameKey_)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, NameKey_)
+    else if Assigned(OnResultP) then
         OnResultP(Client, NameKey_);
   except
   end;

@@ -459,10 +459,10 @@ begin
 
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, Client.XNAT_Remote_CMP_Info_List);
-    if Assigned(OnResultM) then
-        OnResultM(Client, Client.XNAT_Remote_CMP_Info_List);
-    if Assigned(OnResultP) then
+        OnResultC(Client, Client.XNAT_Remote_CMP_Info_List)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, Client.XNAT_Remote_CMP_Info_List)
+    else if Assigned(OnResultP) then
         OnResultP(Client, Client.XNAT_Remote_CMP_Info_List);
   except
   end;
@@ -476,10 +476,10 @@ begin
   L := TC40_CPM_Info_List.Create;
   try
     if Assigned(OnResultC) then
-        OnResultC(Client, L);
-    if Assigned(OnResultM) then
-        OnResultM(Client, L);
-    if Assigned(OnResultP) then
+        OnResultC(Client, L)
+    else if Assigned(OnResultM) then
+        OnResultM(Client, L)
+    else if Assigned(OnResultP) then
         OnResultP(Client, L);
   except
   end;

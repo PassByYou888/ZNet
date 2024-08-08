@@ -12,8 +12,7 @@ uses
 {$IFDEF FPC}
   Z.FPC.GenericList,
 {$ENDIF FPC}
-  Z.Core, Z.HashList.Templet, Z.ListEngine, Z.PascalStrings,
-  Z.Parsing, Z.Expression, Z.OpCode;
+  Z.Core, Z.HashList.Templet, Z.ListEngine, Z.PascalStrings, Z.Parsing, Z.Expression, Z.OpCode;
 
 type
   TNumberModuleHookPool = class;
@@ -853,19 +852,19 @@ end;
 
 class procedure TNumberModulePool.test;
 var
-  nmPool: TNumberModulePool;
+  NMPool: TNumberModulePool;
 begin
-  nmPool := TNumberModulePool.Create;
-  nmPool['a'].Origin := 33.14;
-  nmPool['b'].Origin := 100;
-  nmPool['c'].Origin := 200;
-  nmPool['e'].Origin := 0;
-  nmPool.RunScript('e(a+b+c)');
+  NMPool := TNumberModulePool.Create;
+  NMPool['a'].Origin := 33.14;
+  NMPool['b'].Origin := 100;
+  NMPool['c'].Origin := 200;
+  NMPool['e'].Origin := 0;
+  NMPool.RunScript('e(a+b+c)');
 
-  DoStatus('NM test: %s', [VarToStr(nmPool.RunScript('a(a*100)*b+c', tsPascal))]);
-  DoStatus('NM test: %s', [VarToStr(nmPool.RunScript('a(33.14)', tsPascal))]);
-  DoStatus('NM vector test: %s', [ExpressionValueVectorToStr(nmPool.RunVectorScript('a(a*100)*b+c, a*c+99,e', tsPascal)).Text]);
-  DisposeObject(nmPool);
+  DoStatus('NM test: %s', [VarToStr(NMPool.RunScript('a(a*100)*b+c', tsPascal))]);
+  DoStatus('NM test: %s', [VarToStr(NMPool.RunScript('a(33.14)', tsPascal))]);
+  DoStatus('NM vector test: %s', [ExpressionValueVectorToStr(NMPool.RunVectorScript('a(a*100)*b+c, a*c+99,e', tsPascal)).Text]);
+  DisposeObject(NMPool);
 end;
 
 end.

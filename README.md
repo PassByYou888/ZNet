@@ -137,6 +137,19 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2024-8-8 新增Int128支持,新增Lite大数据体系,新增FS3**
+
+- 新增Int128与UInt128大整数支持,已在内置Json,DFE,Critical等等数据结构完成内置支持
+- 在ZDB2内核引擎新增与调整坐标方向的算法,并附带test
+- 在ZDB2.Thread.Queue命令队列中新增数据坐标操作体系
+- 新增ZDB2.Lite支持体系,这是更简化的ZDB2大数据引擎框架,相比ZDB2.Large_Data框架更易于区分和使用,lite体系可以更好解决局部环节的大数据问题
+- 在C4框架中新增FS3支持库
+- 新增TMD5_Tool,并且保留FastMD5全部硬件加速特性
+- 处于老项目维护,优化了Z.ZDB2.Thread.LargeData库,而对于新开项目,新增的Lite体系会更加易用.
+- 美化FastMD5代码
+- 大规模优化事件代码
+- 更新 ZNet使用手册.pdf
+
 **2024-7-7 文档和易用性更新**
 
 - 更新 ZNet使用手册.pdf
