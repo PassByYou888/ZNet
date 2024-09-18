@@ -1,4 +1,33 @@
-﻿{ ****************************************************************************** }
+﻿(*
+https://zpascal.net
+https://github.com/PassByYou888/ZNet
+https://github.com/PassByYou888/zRasterization
+https://github.com/PassByYou888/ZSnappy
+https://github.com/PassByYou888/Z-AI1.4
+https://github.com/PassByYou888/InfiniteIoT
+https://github.com/PassByYou888/zMonitor_3rd_Core
+https://github.com/PassByYou888/tcmalloc4p
+https://github.com/PassByYou888/jemalloc4p
+https://github.com/PassByYou888/zCloud
+https://github.com/PassByYou888/ZServer4D
+https://github.com/PassByYou888/zShell
+https://github.com/PassByYou888/ZDB2.0
+https://github.com/PassByYou888/zGameWare
+https://github.com/PassByYou888/CoreCipher
+https://github.com/PassByYou888/zChinese
+https://github.com/PassByYou888/zSound
+https://github.com/PassByYou888/zExpression
+https://github.com/PassByYou888/ZInstaller2.0
+https://github.com/PassByYou888/zAI
+https://github.com/PassByYou888/NetFileService
+https://github.com/PassByYou888/zAnalysis
+https://github.com/PassByYou888/PascalString
+https://github.com/PassByYou888/zInstaller
+https://github.com/PassByYou888/zTranslate
+https://github.com/PassByYou888/zVision
+https://github.com/PassByYou888/FFMPEG-Header
+*)
+{ ****************************************************************************** }
 { * cloud 4.0 File System 3.0 - ZDB2 Lite-Data Engine                          * }
 { ****************************************************************************** }
 unit Z.Net.C4_FS3.ZDB2.LiteData;
@@ -54,10 +83,10 @@ type
     FLife_Pool_Ptr: TZDB2_FS3_Life_Pool.PQueueStruct;
   public
     Relate_Link_Table: Int64; { Associated file link table }
-    Life: Double;             { The file lifecycle is infinite if it is equal to or lower than 0 }
-    File_Name: U_String;      { file name }
-    FileSize: Int64;          { file size }
-    Time_: TDateTime;         { File time }
+    Life: Double; { The file lifecycle is infinite if it is equal to or lower than 0 }
+    File_Name: U_String; { file name }
+    FileSize: Int64; { file size }
+    Time_: TDateTime; { File time }
     property Owner_FS3: TZDB2_FS3_Lite read FOwner_FS3;
     constructor Create(); override;
     destructor Destroy; override;
@@ -84,9 +113,9 @@ type
     FOwner_FS3: TZDB2_FS3_Lite;
   public
     Reference_Count: Integer; { Reference from file-info }
-    File_MD5: TMD5;           { file md5 }
+    File_MD5: TMD5; { file md5 }
     FileSize: Int64;
-    Create_Time: TDateTime;         { create time }
+    Create_Time: TDateTime; { create time }
     Relate_Body: TRelate_Info_List; { Associated file body }
     property Owner_FS3: TZDB2_FS3_Lite read FOwner_FS3;
     constructor Create(); override;
@@ -195,12 +224,18 @@ type
     property On_Done_C: TZDB2_FS3_Sync_Post_Done_C read FOn_Done_C write FOn_Done_C;
     property On_Done_M: TZDB2_FS3_Sync_Post_Done_M read FOn_Done_M write FOn_Done_M;
     property On_Done_P: TZDB2_FS3_Sync_Post_Done_P read FOn_Done_P write FOn_Done_P;
-    property Completed: Boolean read FCompleted;
-    property Error: Boolean read FError;
     procedure Begin_Post(FileName_: U_String; File_Size_: Int64; File_MD5_: TMD5; Time_: TDateTime; Life_: Double);
-    procedure Post(Mem_: TMem64; AutoFree_Mem_: Boolean);
+    function Post(Mem_: TMem64; AutoFree_Mem_: Boolean): TZDB2_FS3_Body;
     procedure End_Post;
     procedure End_Post_And_Free;
+    // state
+    property Completed: Boolean read FCompleted;
+    property Error: Boolean read FError;
+    property File_Name: U_String read FFile_Name;
+    property File_Size: Int64 read FFile_Size;
+    property File_MD5: TMD5 read FFile_MD5;
+    property Time_: TDateTime read FTime;
+    property Life: Double read FLife;
   end;
 
   TZDB2_FS3_Sync_Get_Done_C = procedure(Sender: TZDB2_FS3_Lite; Successed: Boolean);
@@ -281,7 +316,7 @@ type
   public
     constructor Create(Root_Path_: U_String);
     destructor Destroy; override;
-    procedure Build_Script_And_Open(PrefixName_: U_String);
+    procedure Build_Script_And_Open(PrefixName_: U_String; Temp_Runtime_Model: Boolean);
 
     { post file-stream }
     procedure Sync_Post_Data(Stream_: TCore_Stream; AutoFree_Stream_: Boolean; FileName_: U_String; Time__: TDateTime; Life_: Double);
@@ -1053,11 +1088,12 @@ begin
     end;
 end;
 
-procedure TZDB2_FS3_Sync_Post_Queue_Tool.Post(Mem_: TMem64; AutoFree_Mem_: Boolean);
+function TZDB2_FS3_Sync_Post_Queue_Tool.Post(Mem_: TMem64; AutoFree_Mem_: Boolean): TZDB2_FS3_Body;
 var
   Body_MD5: TMD5;
   Body: TZDB2_FS3_Body;
 begin
+  Result := nil;
   if FError or FCompleted then
     begin
       if AutoFree_Mem_ then
@@ -1087,6 +1123,7 @@ begin
             FBody_List.Add(Body);
           end;
       end;
+    Result := Body;
   except
   end;
 
@@ -1663,7 +1700,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TZDB2_FS3_Lite.Build_Script_And_Open(PrefixName_: U_String);
+procedure TZDB2_FS3_Lite.Build_Script_And_Open(PrefixName_: U_String; Temp_Runtime_Model: Boolean);
 var
   te: TTextDataEngine;
   fn: U_String;
@@ -1674,7 +1711,7 @@ begin
   fn := umlCombineFileName(FRoot_Path, PrefixName_ + '_FileInfo' + '.conf');
   if not umlFileExists(fn) then
     begin
-      te := FFileInfo.Make_Script(PrefixName_ + '_FileInfo', 1, 10 * 1024 * 1024, 10 * 1024 * 1024, 100, TCipherSecurity.csNone);
+      te := FFileInfo.Make_Script(PrefixName_ + '_FileInfo', 1, 10 * 1024 * 1024, 10 * 1024 * 1024, 100, TCipherSecurity.csNone, Temp_Runtime_Model);
       te.SaveToFile(fn);
       DisposeObject(te);
     end;
@@ -1684,7 +1721,7 @@ begin
   fn := umlCombineFileName(FRoot_Path, PrefixName_ + '_LinkTable' + '.conf');
   if not umlFileExists(fn) then
     begin
-      te := FFileInfo.Make_Script(PrefixName_ + '_LinkTable', 1, 10 * 1024 * 1024, 10 * 1024 * 1024, 100, TCipherSecurity.csNone);
+      te := FFileInfo.Make_Script(PrefixName_ + '_LinkTable', 1, 10 * 1024 * 1024, 10 * 1024 * 1024, 100, TCipherSecurity.csNone, Temp_Runtime_Model);
       te.SaveToFile(fn);
       DisposeObject(te);
     end;
@@ -1694,7 +1731,7 @@ begin
   fn := umlCombineFileName(FRoot_Path, PrefixName_ + '_Body' + '.conf');
   if not umlFileExists(fn) then
     begin
-      te := FFileInfo.Make_Script(PrefixName_ + '_Body', 2, 1024 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024, TCipherSecurity.csNone);
+      te := FFileInfo.Make_Script(PrefixName_ + '_Body', 2, 1024 * 1024 * 1024, 1024 * 1024 * 1024, 16 * 1024, TCipherSecurity.csNone, Temp_Runtime_Model);
       te.SaveToFile(fn);
       DisposeObject(te);
     end;
@@ -1865,6 +1902,8 @@ begin
             Queue^.Data.Life := umlMax(Queue^.Data.Life - deltaTime, 0);
             if Queue^.Data.Life <= 0 then
               begin
+                if Debug_Mode then
+                    DoStatus('check life: remove "%s"', [Queue^.Data.File_Name.Text]);
                 Queue^.Data.FLife_Pool_Ptr := nil;
                 Life_Pool.Push_To_Recycle_Pool(Queue);
                 Remove([Queue^.Data.Sequence_ID]);
@@ -2002,7 +2041,7 @@ begin
   TMT19937.Randomize;
   test_list := TTest_Inst_Pool.Create(True);
   inst := TZDB2_FS3_Lite.Create(umlCombinePath(umlCurrentPath, 'FS3_Lite'));
-  inst.Build_Script_And_Open('FS3');
+  inst.Build_Script_And_Open('FS3', False);
 
   for i := 1 to 20 do
     begin
@@ -2089,3 +2128,4 @@ begin
 end;
 
 end.
+ 

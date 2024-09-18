@@ -214,7 +214,7 @@
     {$UNDEF INLINE_ASM}
     {$O-} { close optimization }
     {$R-} { range check }
-    {$I+} { Input output checking }
+    {$I-} { Input output checking }
     {$D+} { debug information }
   {$ENDIF release}
 
@@ -388,10 +388,7 @@
 {$T-} { Type-checked Pointers }
 {$X+} { Extended Syntax with Pointers }
 
-(*
-  Pointer math is simply treating any given typed pointer in some narrow,
-  instances as a scaled ordinal where you can perform simple arithmetic operations directly on the pointer variable.
-*)
+
 {$POINTERMATH OFF}
 
 {$UNDEF CPU64}
@@ -419,3 +416,7 @@
 {$IFOPT Q+}
   {$DEFINE OverflowCheck}
 {$ENDIF}
+
+
+
+ 

@@ -1,4 +1,33 @@
-﻿{ ****************************************************************************** }
+﻿(*
+https://zpascal.net
+https://github.com/PassByYou888/ZNet
+https://github.com/PassByYou888/zRasterization
+https://github.com/PassByYou888/ZSnappy
+https://github.com/PassByYou888/Z-AI1.4
+https://github.com/PassByYou888/InfiniteIoT
+https://github.com/PassByYou888/zMonitor_3rd_Core
+https://github.com/PassByYou888/tcmalloc4p
+https://github.com/PassByYou888/jemalloc4p
+https://github.com/PassByYou888/zCloud
+https://github.com/PassByYou888/ZServer4D
+https://github.com/PassByYou888/zShell
+https://github.com/PassByYou888/ZDB2.0
+https://github.com/PassByYou888/zGameWare
+https://github.com/PassByYou888/CoreCipher
+https://github.com/PassByYou888/zChinese
+https://github.com/PassByYou888/zSound
+https://github.com/PassByYou888/zExpression
+https://github.com/PassByYou888/ZInstaller2.0
+https://github.com/PassByYou888/zAI
+https://github.com/PassByYou888/NetFileService
+https://github.com/PassByYou888/zAnalysis
+https://github.com/PassByYou888/PascalString
+https://github.com/PassByYou888/zInstaller
+https://github.com/PassByYou888/zTranslate
+https://github.com/PassByYou888/zVision
+https://github.com/PassByYou888/FFMPEG-Header
+*)
+{ ****************************************************************************** }
 { * instance state and analysis tool                                           * }
 { ****************************************************************************** }
 unit Z.Instance.Tool;
@@ -53,6 +82,9 @@ var
 implementation
 
 uses Z.Status;
+
+var
+  Instance_Hook_Busy: Boolean;
 
 constructor TInstance_State_Tool.Create(const HashSize_: integer);
 var
@@ -172,26 +204,40 @@ procedure Inc_Instance_Num___(const Instance_: string);
 begin
   if Instance_State_Tool.IsLock_ then
       exit;
-  Instance_State_Tool.Queue_Pool.Lock;
-  Instance_State_Tool.IsLock_ := True;
-  Instance_State_Tool.IncValue(Instance_, 1);
-  Instance_State_Tool.IsLock_ := False;
-  Instance_State_Tool.Queue_Pool.UnLock;
-  if Print_Intermediate_Instance_Status then
-      DoStatus('%s created', [Instance_]);
+  if Instance_Hook_Busy then
+      exit;
+  Instance_Hook_Busy := True;
+  try
+    Instance_State_Tool.Queue_Pool.Lock;
+    Instance_State_Tool.IsLock_ := True;
+    Instance_State_Tool.IncValue(Instance_, 1);
+    Instance_State_Tool.IsLock_ := False;
+    Instance_State_Tool.Queue_Pool.UnLock;
+    if Print_Intermediate_Instance_Status then
+        DoStatus('%s created', [Instance_]);
+  finally
+      Instance_Hook_Busy := False;
+  end;
 end;
 
 procedure Dec_Instance_Num___(const Instance_: string);
 begin
   if Instance_State_Tool.IsLock_ then
       exit;
-  Instance_State_Tool.Queue_Pool.Lock;
-  Instance_State_Tool.IsLock_ := True;
-  Instance_State_Tool.IncValue(Instance_, -1);
-  Instance_State_Tool.IsLock_ := False;
-  Instance_State_Tool.Queue_Pool.UnLock;
-  if Print_Intermediate_Instance_Status then
-      DoStatus('%s destroy', [Instance_]);
+  if Instance_Hook_Busy then
+      exit;
+  Instance_Hook_Busy := True;
+  try
+    Instance_State_Tool.Queue_Pool.Lock;
+    Instance_State_Tool.IsLock_ := True;
+    Instance_State_Tool.IncValue(Instance_, -1);
+    Instance_State_Tool.IsLock_ := False;
+    Instance_State_Tool.Queue_Pool.UnLock;
+    if Print_Intermediate_Instance_Status then
+        DoStatus('%s destroy', [Instance_]);
+  finally
+      Instance_Hook_Busy := False;
+  end;
 end;
 
 var
@@ -206,6 +252,7 @@ Backup_Dec_Instance_Num := Dec_Instance_Num;
 Z.Core.Inc_Instance_Num := Inc_Instance_Num___;
 Z.Core.Dec_Instance_Num := Dec_Instance_Num___;
 Print_Intermediate_Instance_Status := False;
+Instance_Hook_Busy := False;
 
 finalization
 
@@ -214,3 +261,4 @@ Dec_Instance_Num := Backup_Dec_Instance_Num;
 DisposeObjectAndNil(Instance_State_Tool);
 
 end.
+ 

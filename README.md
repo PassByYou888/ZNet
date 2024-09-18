@@ -137,6 +137,13 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2024-9-13 使用自动化工具重构source目录**
+
+- 本次更新的目录结构会长时间维持,同时在未来ZNet的更新频率也会大幅提高
+- 更新后的新目录结构在 **Source\include_path.txt** 中,使用文本编辑器替换一下即可
+- 新增FS3-Lite演示程序
+- 三方库目前维持vs2017-v140构建体系,下次更新将会使用vs2022-v142重构,三方外部包括:jemalloc,temalloc,snappy
+
 **2024-8-8 新增Int128支持,新增Lite大数据体系,新增FS3**
 
 - 新增Int128与UInt128大整数支持,已在内置Json,DFE,Critical等等数据结构完成内置支持

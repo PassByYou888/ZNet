@@ -1,0 +1,22 @@
+delphi path
+D:\git\ZNet\Source\;D:\git\ZNet\Source\CrossSocket\;D:\git\ZNet\Source\CrossSocket\Source\;D:\git\ZNet\Source\DIOCP\;D:\git\ZNet\Source\DIOCP\Source\;D:\git\ZNet\Source\FastMM5\;D:\git\ZNet\Source\icsv8\;D:\git\ZNet\Source\icsv8\Source\;D:\git\ZNet\Source\icsv8\Source\Extras\;D:\git\ZNet\Source\icsv9\;D:\git\ZNet\Source\icsv9\Source\;D:\git\ZNet\Source\Indy\;D:\git\ZNet\Source\jemalloc4p\;D:\git\ZNet\Source\Refrence\;D:\git\ZNet\Source\Snappy\;D:\git\ZNet\Source\Synapse\;D:\git\ZNet\Source\Synapse\Source\;D:\git\ZNet\Source\tcmalloc4p\
+
+****************************************************************************
+D:\git\ZNet\Source\
+D:\git\ZNet\Source\CrossSocket\
+D:\git\ZNet\Source\CrossSocket\Source\
+D:\git\ZNet\Source\DIOCP\
+D:\git\ZNet\Source\DIOCP\Source\
+D:\git\ZNet\Source\FastMM5\
+D:\git\ZNet\Source\icsv8\
+D:\git\ZNet\Source\icsv8\Source\
+D:\git\ZNet\Source\icsv8\Source\Extras\
+D:\git\ZNet\Source\icsv9\
+D:\git\ZNet\Source\icsv9\Source\
+D:\git\ZNet\Source\Indy\
+D:\git\ZNet\Source\jemalloc4p\
+D:\git\ZNet\Source\Refrence\
+D:\git\ZNet\Source\Snappy\
+D:\git\ZNet\Source\Synapse\
+D:\git\ZNet\Source\Synapse\Source\
+D:\git\ZNet\Source\tcmalloc4p\

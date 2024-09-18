@@ -1,4 +1,33 @@
-﻿{ ****************************************************************************** }
+﻿(*
+https://zpascal.net
+https://github.com/PassByYou888/ZNet
+https://github.com/PassByYou888/zRasterization
+https://github.com/PassByYou888/ZSnappy
+https://github.com/PassByYou888/Z-AI1.4
+https://github.com/PassByYou888/InfiniteIoT
+https://github.com/PassByYou888/zMonitor_3rd_Core
+https://github.com/PassByYou888/tcmalloc4p
+https://github.com/PassByYou888/jemalloc4p
+https://github.com/PassByYou888/zCloud
+https://github.com/PassByYou888/ZServer4D
+https://github.com/PassByYou888/zShell
+https://github.com/PassByYou888/ZDB2.0
+https://github.com/PassByYou888/zGameWare
+https://github.com/PassByYou888/CoreCipher
+https://github.com/PassByYou888/zChinese
+https://github.com/PassByYou888/zSound
+https://github.com/PassByYou888/zExpression
+https://github.com/PassByYou888/ZInstaller2.0
+https://github.com/PassByYou888/zAI
+https://github.com/PassByYou888/NetFileService
+https://github.com/PassByYou888/zAnalysis
+https://github.com/PassByYou888/PascalString
+https://github.com/PassByYou888/zInstaller
+https://github.com/PassByYou888/zTranslate
+https://github.com/PassByYou888/zVision
+https://github.com/PassByYou888/FFMPEG-Header
+*)
+{ ****************************************************************************** }
 { * Lite-Data templet for HPC                                                  * }
 { ****************************************************************************** }
 unit Z.ZDB2.Thread.LiteData;
@@ -103,7 +132,7 @@ type
     procedure Build_DB_From_Script(Root_Path_: U_String; te: TTextDataEngine; OnlyRead_: Boolean); virtual;
     function Make_Script(Name_: U_String; Lite_Num: Integer;
       First_Inited_Physics_Space, Delta: Int64; BlockSize: Word;
-      Cipher_Security_: TCipherSecurity): TTextDataEngine;
+      Cipher_Security_: TCipherSecurity; Temp_Runtime_Model: Boolean): TTextDataEngine;
     function Open_DB(script_conf_: U_String): Boolean; overload;
     function Open_DB(script_conf_: U_String; OnlyRead_: Boolean): Boolean; overload;
     function Open_DB(path_: U_String; script_code_: TTextDataEngine; OnlyRead_: Boolean): Boolean; overload;
@@ -434,7 +463,7 @@ end;
 
 function TZDB2_Lite.Make_Script(Name_: U_String; Lite_Num: Integer;
   First_Inited_Physics_Space, Delta: Int64; BlockSize: Word;
-  Cipher_Security_: TCipherSecurity): TTextDataEngine;
+  Cipher_Security_: TCipherSecurity; Temp_Runtime_Model: Boolean): TTextDataEngine;
 var
   tmp: TZDB2_Th_Engine_Marshal;
   i: Integer;
@@ -454,6 +483,12 @@ begin
       Eng_.Delta := Delta;
       Eng_.BlockSize := BlockSize;
       Eng_.Cipher_Security := Cipher_Security_;
+      if Temp_Runtime_Model then
+        begin
+          Eng_.RemoveDatabaseOnDestroy := True;
+          Eng_.Fragment_Space_Enabled := False;
+          Eng_.External_Header_Technology := False;
+        end;
       HL := Result.HStringList[Eng_.Name];
       Eng_.WriteConfig(HL);
     end;
@@ -781,7 +816,7 @@ var
 begin
   Eng_ := TZDB2_Lite.Create;
   { make script templet }
-  te := Eng_.Make_Script('test', 2, 1 * 1024 * 1024, 1 * 1024 * 1024, 1536, TCipherSecurity.csNone);
+  te := Eng_.Make_Script('test', 2, 1 * 1024 * 1024, 1 * 1024 * 1024, 1536, TCipherSecurity.csNone, False);
   Eng_.Build_DB_From_Script(umlCombinePath(umlCurrentPath, 'ZDB2_Lite_Test'), te, False);
   DisposeObject(te);
   Eng_.Lite_Engine_External_Header_Optimzied_Technology := True;
@@ -798,3 +833,4 @@ begin
 end;
 
 end.
+ 
