@@ -1062,10 +1062,12 @@ begin
   lt := Owner_FS3.Link_Table_MD5_Pool[FFile_MD5];
   if lt <> nil then
     begin
-      Owner_FS3.Do_Remove_From_FileName(FFile_Name);
       try
         { modify link-table and post }
         lt.Inc_Reference_Count;
+
+        { remove same file-name }
+        Owner_FS3.Do_Remove_From_FileName(FFile_Name);
 
         fi := Owner_FS3.FileInfo.Create_Lite_Data as TZDB2_FS3_FileInfo;
         { post file-info }
@@ -1803,9 +1805,11 @@ begin
   if lt <> nil then
     begin
       try
-        Do_Remove_From_FileName(FileName_);
         { modify link-table and post }
         lt.Inc_Reference_Count;
+
+        { remove same file-name }
+        Do_Remove_From_FileName(FileName_);
 
         fi := FileInfo.Create_Lite_Data as TZDB2_FS3_FileInfo;
         { post file-info }
