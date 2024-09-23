@@ -86,6 +86,7 @@ begin
       // Create_FI_From_LT_MD5会以数据md5作为重复数据检查
       // 如果发现md5重复,直接生成file-info链接,不再处理body
       // TZDB2_FS3_Sync_Post_Queue_Tool中已经具备了自动化的重复md5检查能力,这里在demo中写成代码是说明使用方法
+      // Create_FI_From_LT_MD5的存在意义是解决副本问题,例如上传文件到服务器,这时候文件还没有发送出去,先发个md5给服务器,如果找到相同文件直接建立fi
       if inst.Create_FI_From_LT_MD5(n, umlNow, 5, tmp.ToMD5) then
         begin
           DelayFreeObj(1.0, tmp);
@@ -93,6 +94,7 @@ begin
       else
         begin
           // post方法受io读延迟影响:先读,再将读出数据放在内存,然后以队列方式写入
+          // TZDB2_FS3_Sync_Post_Queue_Tool同样具备自动化处理重复md5能力,以下程序范式无需改动
           post_tool := inst.Create_Sync_Post_Queue;
 
           // begin_post是预置生成
@@ -119,21 +121,21 @@ begin
   if inst.FileInfo_Pool.Num < 5 then
       exit;
 
-  // 实现随机抽取文件,先将全部文件生成数组
+  // 实现遍历抽取文件,先将全部文件生成数组
   arry := inst.FileInfo_Pool.ToArray_Key;
 
   for i := 0 to length(arry) - 1 do
     begin
       n := arry[i];
-      // 根据文件名获取file-info的sequence-id(唯一id)
+      // 根据文件名获取file-info,然后再根据fi的sequence-id(唯一id)来操作获取文件及删除
       fi := inst.FileInfo_Pool[n];
       md5_tool := TMD5_Tool.Create;
       // 根据sequence-id获取文件,Sync_Get_Data会等待每个文件全部读取完成才会返回出来
-      // 一般来说,Sync_Get_Data可以放在多线程或则并发程序中调用
+      // 一般来说,Sync_Get_Data可以放在多线程或则并发程序中调用,
       inst.Sync_Get_Data_P(fi.Sequence_ID, 0, 0, procedure(Sender: TZDB2_FS3_Lite; Successed: Boolean; Fragment: TMS64; Data_Pos: Int64)
         begin
           // 这里的事件会按序列每次返回文件数据的part,其part坐标由data_pos表示,这些数据要怎么处理自定
-          // 返回的data_pos机制由低到高
+          // 返回的data_pos机制:由低到高按序列方式来
           md5_tool.Update(Fragment.Memory, Fragment.Size);
         end,
         procedure(Sender: TZDB2_FS3_Lite; Successed: Boolean)
