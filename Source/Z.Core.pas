@@ -1137,6 +1137,8 @@ type
     function Get_Key_Hash(const Key_: TKey_): THash; virtual;
     function Compare_Key(const Key_1, Key_2: TKey_): Boolean; virtual;
     function Compare_Value(const Value_1, Value_2: TValue_): Boolean; virtual;
+    procedure Lock;
+    procedure UnLock;
     procedure Extract_Queue_Pool_Third;
     function GetHashSize: Integer;
     procedure Clear;
