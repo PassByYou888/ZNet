@@ -960,6 +960,16 @@ begin
       Result := CompareMemory(@Value_1, @Value_2, SizeOf(TValue_));
 end;
 
+procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.Lock;
+begin
+  FCritical__.Lock;
+end;
+
+procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.UnLock;
+begin
+  FCritical__.UnLock;
+end;
+
 procedure TCritical_Big_Hash_Pair_Pool<TKey_, TValue_>.Extract_Queue_Pool_Third;
 begin
   if FQueue_Pool.Num > 0 then
