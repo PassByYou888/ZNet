@@ -559,7 +559,7 @@ type
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
     FOnFree_For_Pair_Tool: TOnStruct_Event;
-    FAccept_Sort: Boolean;
+    FEnabled_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
@@ -609,7 +609,7 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
-    property Accept_Sort: Boolean read FAccept_Sort write FAccept_Sort;
+    property Enabled_Sort: Boolean read FEnabled_Sort write FEnabled_Sort;
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;
@@ -726,7 +726,7 @@ type
     FOnAdd: TOnStruct_Event;
     FOnFree: TOnStruct_Event;
     FOnFree_For_Pair_Tool: TOnStruct_Event;
-    FAccept_Sort: Boolean;
+    FEnabled_Sort: Boolean;
     FChanged: Boolean;
     FList: Pointer;
     procedure DoInternalFree(p: PQueueStruct);
@@ -780,7 +780,7 @@ type
     procedure For_P(OnFor: TQueneStructFor_P); overload;
     function ToArray(): TArray_T_;
     function ToOrder(): TOrder_Data_Pool;
-    property Accept_Sort: Boolean read FAccept_Sort write FAccept_Sort;
+    property Enabled_Sort: Boolean read FEnabled_Sort write FEnabled_Sort;
     procedure Sort_C(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_C); overload;
     procedure Sort_C(OnSort: TSort_C); overload;
     procedure Sort_M(Arry_: PQueueArrayStruct; L, R: NativeInt; OnSort: TSort_M); overload;

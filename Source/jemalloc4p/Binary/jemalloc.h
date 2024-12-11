@@ -1,5 +1,5 @@
 #ifndef JEMALLOC_H_
-#define	JEMALLOC_H_
+#define JEMALLOC_H_
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,11 +10,20 @@ extern "C" {
 /* Defined if alloc_size attribute is supported. */
 /* #undef JEMALLOC_HAVE_ATTR_ALLOC_SIZE */
 
+/* Defined if format_arg(...) attribute is supported. */
+/* #undef JEMALLOC_HAVE_ATTR_FORMAT_ARG */
+
 /* Defined if format(gnu_printf, ...) attribute is supported. */
 /* #undef JEMALLOC_HAVE_ATTR_FORMAT_GNU_PRINTF */
 
 /* Defined if format(printf, ...) attribute is supported. */
 /* #undef JEMALLOC_HAVE_ATTR_FORMAT_PRINTF */
+
+/* Defined if fallthrough attribute is supported. */
+/* #undef JEMALLOC_HAVE_ATTR_FALLTHROUGH */
+
+/* Defined if cold attribute is supported. */
+/* #undef JEMALLOC_HAVE_ATTR_COLD */
 
 /*
  * Define overrides for non-standard allocator-related functions if they are
@@ -48,67 +57,90 @@ extern "C" {
 #endif
 
 /* sizeof(void *) == 2^LG_SIZEOF_PTR. */
-#define LG_SIZEOF_PTR 3
+#define LG_SIZEOF_PTR LG_SIZEOF_PTR_WIN
+
 /*
  * Name mangling for public symbols is controlled by --with-mangling and
- * --with-jemalloc-prefix.  Withdefault settings the je_prefix is stripped by
+ * --with-jemalloc-prefix.  With default settings the je_ prefix is stripped by
  * these macro definitions.
  */
 #ifndef JEMALLOC_NO_RENAME
-
-#define je_malloc_conf je_malloc_conf
-#define je_malloc_message je_malloc_message
-#define je_malloc je_malloc
-#define je_calloc je_calloc
-#define je_posix_memalign je_posix_memalign
-#define je_aligned_alloc je_aligned_alloc
-#define je_realloc je_realloc
-#define je_free je_free
-#define je_mallocx je_mallocx
-#define je_rallocx je_rallocx
-#define je_xallocx je_xallocx
-#define je_sallocx je_sallocx
-#define je_dallocx je_dallocx
-#define je_sdallocx je_sdallocx
-#define je_nallocx je_nallocx
-#define je_mallctl je_mallctl
-#define je_mallctlnametomib je_mallctlnametomib
-#define je_mallctlbymib je_mallctlbymib
-#define je_malloc_stats_print je_malloc_stats_print
-#define je_malloc_usable_size je_malloc_usable_size
+#  define je_aligned_alloc je_aligned_alloc
+#  define je_calloc je_calloc
+#  define je_dallocx je_dallocx
+#  define je_free je_free
+#  define je_mallctl je_mallctl
+#  define je_mallctlbymib je_mallctlbymib
+#  define je_mallctlnametomib je_mallctlnametomib
+#  define je_malloc je_malloc
+#  define je_malloc_conf je_malloc_conf
+#  define je_malloc_conf_2_conf_harder je_malloc_conf_2_conf_harder
+#  define je_malloc_message je_malloc_message
+#  define je_malloc_stats_print je_malloc_stats_print
+#  define je_malloc_usable_size je_malloc_usable_size
+#  define je_mallocx je_mallocx
+#  define je_smallocx_000000missin je_smallocx_000000missin
+#  define je_nallocx je_nallocx
+#  define je_posix_memalign je_posix_memalign
+#  define je_rallocx je_rallocx
+#  define je_realloc je_realloc
+#  define je_sallocx je_sallocx
+#  define je_sdallocx je_sdallocx
+#  define je_xallocx je_xallocx
 #endif
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <limits.h>
-#include <strings.h>
+#include "msvc_compat/strings.h"
 
-#define	JEMALLOC_VERSION "0.0.0-0-g0000000000000000000000000000000000000000"
-#define	JEMALLOC_VERSION_MAJOR 0
-#define	JEMALLOC_VERSION_MINOR 0
-#define	JEMALLOC_VERSION_BUGFIX 0
-#define	JEMALLOC_VERSION_NREV 0
-#define	JEMALLOC_VERSION_GID "0"
+#define JEMALLOC_VERSION "0.0.0-0-g000000missing_version_try_git_fetch_tags"
+#define JEMALLOC_VERSION_MAJOR 0
+#define JEMALLOC_VERSION_MINOR 0
+#define JEMALLOC_VERSION_BUGFIX 0
+#define JEMALLOC_VERSION_NREV 0
+#define JEMALLOC_VERSION_GID "000000missin"
+#define JEMALLOC_VERSION_GID_IDENT 000000missin
 
-#  define MALLOCX_LG_ALIGN(la)	((int)(la))
-#  if LG_SIZEOF_PTR == 2
-#    define MALLOCX_ALIGN(a)	((int)(ffs((int)(a))-1))
-#  else
-#    define MALLOCX_ALIGN(a)						\
-       ((int)(((size_t)(a) < (size_t)INT_MAX) ? ffs((int)(a))-1 :	\
-       ffs((int)(((size_t)(a))>>32))+31))
-#  endif
-#  define MALLOCX_ZERO	((int)0x40)
+#define MALLOCX_LG_ALIGN(la)	((int)(la))
+#if LG_SIZEOF_PTR == 2
+#  define MALLOCX_ALIGN(a)	((int)(ffs((int)(a))-1))
+#else
+#  define MALLOCX_ALIGN(a)						\
+     ((int)(((size_t)(a) < (size_t)INT_MAX) ? ffs((int)(a))-1 :	\
+     ffs((int)(((size_t)(a))>>32))+31))
+#endif
+#define MALLOCX_ZERO	((int)0x40)
 /*
  * Bias tcache index bits so that 0 encodes "automatic tcache management", and 1
  * encodes MALLOCX_TCACHE_NONE.
  */
-#  define MALLOCX_TCACHE(tc)	((int)(((tc)+2) << 8))
-#  define MALLOCX_TCACHE_NONE	MALLOCX_TCACHE(-1)
+#define MALLOCX_TCACHE(tc)	((int)(((tc)+2) << 8))
+#define MALLOCX_TCACHE_NONE	MALLOCX_TCACHE(-1)
 /*
  * Bias arena index bits so that 0 encodes "use an automatically chosen arena".
  */
-#  define MALLOCX_ARENA(a)	((((int)(a))+1) << 20)
+#define MALLOCX_ARENA(a)	((((int)(a))+1) << 20)
+
+/*
+ * Use as arena index in "arena.<i>.{purge,decay,dss}" and
+ * "stats.arenas.<i>.*" mallctl interfaces to select all arenas.  This
+ * definition is intentionally specified in raw decimal format to support
+ * cpp-based string concatenation, e.g.
+ *
+ *   #define STRINGIFY_HELPER(x) #x
+ *   #define STRINGIFY(x) STRINGIFY_HELPER(x)
+ *
+ *   mallctl("arena." STRINGIFY(MALLCTL_ARENAS_ALL) ".purge", NULL, NULL, NULL,
+ *       0);
+ */
+#define MALLCTL_ARENAS_ALL	4096
+/*
+ * Use as arena index in "stats.arenas.<i>.*" mallctl interfaces to select
+ * destroyed arenas.
+ */
+#define MALLCTL_ARENAS_DESTROYED	4097
 
 #if defined(__cplusplus) && defined(JEMALLOC_USE_CXX_THROW)
 #  define JEMALLOC_CXX_THROW throw()
@@ -116,7 +148,7 @@ extern "C" {
 #  define JEMALLOC_CXX_THROW
 #endif
 
-#if _MSC_VER
+#if defined(_MSC_VER)
 #  define JEMALLOC_ATTR(s)
 #  define JEMALLOC_ALIGNED(s) __declspec(align(s))
 #  define JEMALLOC_ALLOC_SIZE(s)
@@ -128,7 +160,9 @@ extern "C" {
 #      define JEMALLOC_EXPORT __declspec(dllimport)
 #    endif
 #  endif
+#  define JEMALLOC_FORMAT_ARG(i)
 #  define JEMALLOC_FORMAT_PRINTF(s, i)
+#  define JEMALLOC_FALLTHROUGH
 #  define JEMALLOC_NOINLINE __declspec(noinline)
 #  ifdef __cplusplus
 #    define JEMALLOC_NOTHROW __declspec(nothrow)
@@ -142,6 +176,7 @@ extern "C" {
 #  else
 #    define JEMALLOC_ALLOCATOR
 #  endif
+#  define JEMALLOC_COLD
 #elif defined(JEMALLOC_HAVE_ATTR)
 #  define JEMALLOC_ATTR(s) __attribute__((s))
 #  define JEMALLOC_ALIGNED(s) JEMALLOC_ATTR(aligned(s))
@@ -155,6 +190,11 @@ extern "C" {
 #  ifndef JEMALLOC_EXPORT
 #    define JEMALLOC_EXPORT JEMALLOC_ATTR(visibility("default"))
 #  endif
+#  ifdef JEMALLOC_HAVE_ATTR_FORMAT_ARG
+#    define JEMALLOC_FORMAT_ARG(i) JEMALLOC_ATTR(__format_arg__(3))
+#  else
+#    define JEMALLOC_FORMAT_ARG(i)
+#  endif
 #  ifdef JEMALLOC_HAVE_ATTR_FORMAT_GNU_PRINTF
 #    define JEMALLOC_FORMAT_PRINTF(s, i) JEMALLOC_ATTR(format(gnu_printf, s, i))
 #  elif defined(JEMALLOC_HAVE_ATTR_FORMAT_PRINTF)
@@ -162,11 +202,21 @@ extern "C" {
 #  else
 #    define JEMALLOC_FORMAT_PRINTF(s, i)
 #  endif
+#  ifdef JEMALLOC_HAVE_ATTR_FALLTHROUGH
+#    define JEMALLOC_FALLTHROUGH JEMALLOC_ATTR(fallthrough)
+#  else
+#    define JEMALLOC_FALLTHROUGH
+#  endif
 #  define JEMALLOC_NOINLINE JEMALLOC_ATTR(noinline)
 #  define JEMALLOC_NOTHROW JEMALLOC_ATTR(nothrow)
 #  define JEMALLOC_SECTION(s) JEMALLOC_ATTR(section(s))
 #  define JEMALLOC_RESTRICT_RETURN
 #  define JEMALLOC_ALLOCATOR
+#  ifdef JEMALLOC_HAVE_ATTR_COLD
+#    define JEMALLOC_COLD JEMALLOC_ATTR(__cold__)
+#  else
+#    define JEMALLOC_COLD
+#  endif
 #else
 #  define JEMALLOC_ATTR(s)
 #  define JEMALLOC_ALIGNED(s)
@@ -174,12 +224,21 @@ extern "C" {
 #  define JEMALLOC_ALLOC_SIZE2(s1, s2)
 #  define JEMALLOC_EXPORT
 #  define JEMALLOC_FORMAT_PRINTF(s, i)
+#  define JEMALLOC_FALLTHROUGH
 #  define JEMALLOC_NOINLINE
 #  define JEMALLOC_NOTHROW
 #  define JEMALLOC_SECTION(s)
 #  define JEMALLOC_RESTRICT_RETURN
 #  define JEMALLOC_ALLOCATOR
+#  define JEMALLOC_COLD
 #endif
+
+#if (defined(__APPLE__) || defined(__FreeBSD__)) && !defined(JEMALLOC_NO_RENAME)
+#  define JEMALLOC_SYS_NOTHROW
+#else
+#  define JEMALLOC_SYS_NOTHROW JEMALLOC_NOTHROW
+#endif
+
 /*
  * The je_ prefix on the following public symbol declarations is an artifact
  * of namespace management, and should be omitted in application code unless
@@ -190,21 +249,22 @@ extern JEMALLOC_EXPORT void		(*je_malloc_message)(void *cbopaque,
     const char *s);
 
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_malloc(size_t size)
+    void JEMALLOC_SYS_NOTHROW	*je_malloc(size_t size)
     JEMALLOC_CXX_THROW JEMALLOC_ATTR(malloc) JEMALLOC_ALLOC_SIZE(1);
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_calloc(size_t num, size_t size)
+    void JEMALLOC_SYS_NOTHROW	*je_calloc(size_t num, size_t size)
     JEMALLOC_CXX_THROW JEMALLOC_ATTR(malloc) JEMALLOC_ALLOC_SIZE2(1, 2);
-JEMALLOC_EXPORT int JEMALLOC_NOTHROW	je_posix_memalign(void **memptr,
-    size_t alignment, size_t size) JEMALLOC_CXX_THROW JEMALLOC_ATTR(nonnull(1));
+JEMALLOC_EXPORT int JEMALLOC_SYS_NOTHROW je_posix_memalign(
+    void **memptr, size_t alignment, size_t size) JEMALLOC_CXX_THROW
+    JEMALLOC_ATTR(nonnull(1));
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_aligned_alloc(size_t alignment,
+    void JEMALLOC_SYS_NOTHROW	*je_aligned_alloc(size_t alignment,
     size_t size) JEMALLOC_CXX_THROW JEMALLOC_ATTR(malloc)
     JEMALLOC_ALLOC_SIZE(2);
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_realloc(void *ptr, size_t size)
+    void JEMALLOC_SYS_NOTHROW	*je_realloc(void *ptr, size_t size)
     JEMALLOC_CXX_THROW JEMALLOC_ALLOC_SIZE(2);
-JEMALLOC_EXPORT void JEMALLOC_NOTHROW	je_free(void *ptr)
+JEMALLOC_EXPORT void JEMALLOC_SYS_NOTHROW	je_free(void *ptr)
     JEMALLOC_CXX_THROW;
 
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
@@ -234,75 +294,101 @@ JEMALLOC_EXPORT void JEMALLOC_NOTHROW	je_malloc_stats_print(
     const char *opts);
 JEMALLOC_EXPORT size_t JEMALLOC_NOTHROW	je_malloc_usable_size(
     JEMALLOC_USABLE_SIZE_CONST void *ptr) JEMALLOC_CXX_THROW;
+#ifdef JEMALLOC_HAVE_MALLOC_SIZE
+JEMALLOC_EXPORT size_t JEMALLOC_NOTHROW	je_malloc_size(
+    const void *ptr);
+#endif
 
 #ifdef JEMALLOC_OVERRIDE_MEMALIGN
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_memalign(size_t alignment, size_t size)
+    void JEMALLOC_SYS_NOTHROW	*je_memalign(size_t alignment, size_t size)
     JEMALLOC_CXX_THROW JEMALLOC_ATTR(malloc);
 #endif
 
 #ifdef JEMALLOC_OVERRIDE_VALLOC
 JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
-    void JEMALLOC_NOTHROW	*je_valloc(size_t size) JEMALLOC_CXX_THROW
+    void JEMALLOC_SYS_NOTHROW	*je_valloc(size_t size) JEMALLOC_CXX_THROW
     JEMALLOC_ATTR(malloc);
 #endif
+
+typedef struct extent_hooks_s extent_hooks_t;
+
 /*
  * void *
- * chunk_alloc(void *new_addr, size_t size, size_t alignment, bool *zero,
- *     bool *commit, unsigned arena_ind);
+ * extent_alloc(extent_hooks_t *extent_hooks, void *new_addr, size_t size,
+ *     size_t alignment, bool *zero, bool *commit, unsigned arena_ind);
  */
-typedef void *(chunk_alloc_t)(void *, size_t, size_t, bool *, bool *, unsigned);
+typedef void *(extent_alloc_t)(extent_hooks_t *, void *, size_t, size_t, bool *,
+    bool *, unsigned);
 
 /*
  * bool
- * chunk_dalloc(void *chunk, size_t size, bool committed, unsigned arena_ind);
- */
-typedef bool (chunk_dalloc_t)(void *, size_t, bool, unsigned);
-
-/*
- * bool
- * chunk_commit(void *chunk, size_t size, size_t offset, size_t length,
- *     unsigned arena_ind);
- */
-typedef bool (chunk_commit_t)(void *, size_t, size_t, size_t, unsigned);
-
-/*
- * bool
- * chunk_decommit(void *chunk, size_t size, size_t offset, size_t length,
- *     unsigned arena_ind);
- */
-typedef bool (chunk_decommit_t)(void *, size_t, size_t, size_t, unsigned);
-
-/*
- * bool
- * chunk_purge(void *chunk, size_t size, size_t offset, size_t length,
- *     unsigned arena_ind);
- */
-typedef bool (chunk_purge_t)(void *, size_t, size_t, size_t, unsigned);
-
-/*
- * bool
- * chunk_split(void *chunk, size_t size, size_t size_a, size_t size_b,
+ * extent_dalloc(extent_hooks_t *extent_hooks, void *addr, size_t size,
  *     bool committed, unsigned arena_ind);
  */
-typedef bool (chunk_split_t)(void *, size_t, size_t, size_t, bool, unsigned);
+typedef bool (extent_dalloc_t)(extent_hooks_t *, void *, size_t, bool,
+    unsigned);
+
+/*
+ * void
+ * extent_destroy(extent_hooks_t *extent_hooks, void *addr, size_t size,
+ *     bool committed, unsigned arena_ind);
+ */
+typedef void (extent_destroy_t)(extent_hooks_t *, void *, size_t, bool,
+    unsigned);
 
 /*
  * bool
- * chunk_merge(void *chunk_a, size_t size_a, void *chunk_b, size_t size_b,
- *     bool committed, unsigned arena_ind);
+ * extent_commit(extent_hooks_t *extent_hooks, void *addr, size_t size,
+ *     size_t offset, size_t length, unsigned arena_ind);
  */
-typedef bool (chunk_merge_t)(void *, size_t, void *, size_t, bool, unsigned);
+typedef bool (extent_commit_t)(extent_hooks_t *, void *, size_t, size_t, size_t,
+    unsigned);
 
-typedef struct {
-	chunk_alloc_t		*alloc;
-	chunk_dalloc_t		*dalloc;
-	chunk_commit_t		*commit;
-	chunk_decommit_t	*decommit;
-	chunk_purge_t		*purge;
-	chunk_split_t		*split;
-	chunk_merge_t		*merge;
-} chunk_hooks_t;
+/*
+ * bool
+ * extent_decommit(extent_hooks_t *extent_hooks, void *addr, size_t size,
+ *     size_t offset, size_t length, unsigned arena_ind);
+ */
+typedef bool (extent_decommit_t)(extent_hooks_t *, void *, size_t, size_t,
+    size_t, unsigned);
+
+/*
+ * bool
+ * extent_purge(extent_hooks_t *extent_hooks, void *addr, size_t size,
+ *     size_t offset, size_t length, unsigned arena_ind);
+ */
+typedef bool (extent_purge_t)(extent_hooks_t *, void *, size_t, size_t, size_t,
+    unsigned);
+
+/*
+ * bool
+ * extent_split(extent_hooks_t *extent_hooks, void *addr, size_t size,
+ *     size_t size_a, size_t size_b, bool committed, unsigned arena_ind);
+ */
+typedef bool (extent_split_t)(extent_hooks_t *, void *, size_t, size_t, size_t,
+    bool, unsigned);
+
+/*
+ * bool
+ * extent_merge(extent_hooks_t *extent_hooks, void *addr_a, size_t size_a,
+ *     void *addr_b, size_t size_b, bool committed, unsigned arena_ind);
+ */
+typedef bool (extent_merge_t)(extent_hooks_t *, void *, size_t, void *, size_t,
+    bool, unsigned);
+
+struct extent_hooks_s {
+	extent_alloc_t		*alloc;
+	extent_dalloc_t		*dalloc;
+	extent_destroy_t	*destroy;
+	extent_commit_t		*commit;
+	extent_decommit_t	*decommit;
+	extent_purge_t		*purge_lazy;
+	extent_purge_t		*purge_forced;
+	extent_split_t		*split;
+	extent_merge_t		*merge;
+};
+
 /*
  * By default application code must explicitly refer to mangled symbol names,
  * so that it is possible to use jemalloc in conjunction with another allocator
@@ -314,26 +400,28 @@ typedef struct {
 #  ifndef JEMALLOC_NO_DEMANGLE
 #    define JEMALLOC_NO_DEMANGLE
 #  endif
-#  define malloc_conf je_malloc_conf
-#  define malloc_message je_malloc_message
-#  define malloc je_malloc
-#  define calloc je_calloc
-#  define posix_memalign je_posix_memalign
 #  define aligned_alloc je_aligned_alloc
-#  define realloc je_realloc
-#  define free je_free
-#  define mallocx je_mallocx
-#  define rallocx je_rallocx
-#  define xallocx je_xallocx
-#  define sallocx je_sallocx
+#  define calloc je_calloc
 #  define dallocx je_dallocx
-#  define sdallocx je_sdallocx
-#  define nallocx je_nallocx
+#  define free je_free
 #  define mallctl je_mallctl
-#  define mallctlnametomib je_mallctlnametomib
 #  define mallctlbymib je_mallctlbymib
+#  define mallctlnametomib je_mallctlnametomib
+#  define malloc je_malloc
+#  define malloc_conf je_malloc_conf
+#  define malloc_conf_2_conf_harder je_malloc_conf_2_conf_harder
+#  define malloc_message je_malloc_message
 #  define malloc_stats_print je_malloc_stats_print
 #  define malloc_usable_size je_malloc_usable_size
+#  define mallocx je_mallocx
+#  define smallocx_000000missin je_smallocx_000000missin
+#  define nallocx je_nallocx
+#  define posix_memalign je_posix_memalign
+#  define rallocx je_rallocx
+#  define realloc je_realloc
+#  define sallocx je_sallocx
+#  define sdallocx je_sdallocx
+#  define xallocx je_xallocx
 #endif
 
 /*
@@ -344,27 +432,30 @@ typedef struct {
  * and/or --with-jemalloc-prefix.
  */
 #ifndef JEMALLOC_NO_DEMANGLE
-#  undef je_malloc_conf
-#  undef je_malloc_message
-#  undef je_malloc
-#  undef je_calloc
-#  undef je_posix_memalign
 #  undef je_aligned_alloc
-#  undef je_realloc
-#  undef je_free
-#  undef je_mallocx
-#  undef je_rallocx
-#  undef je_xallocx
-#  undef je_sallocx
+#  undef je_calloc
 #  undef je_dallocx
-#  undef je_sdallocx
-#  undef je_nallocx
+#  undef je_free
 #  undef je_mallctl
-#  undef je_mallctlnametomib
 #  undef je_mallctlbymib
+#  undef je_mallctlnametomib
+#  undef je_malloc
+#  undef je_malloc_conf
+#  undef je_malloc_conf_2_conf_harder
+#  undef je_malloc_message
 #  undef je_malloc_stats_print
 #  undef je_malloc_usable_size
+#  undef je_mallocx
+#  undef je_smallocx_000000missin
+#  undef je_nallocx
+#  undef je_posix_memalign
+#  undef je_rallocx
+#  undef je_realloc
+#  undef je_sallocx
+#  undef je_sdallocx
+#  undef je_xallocx
 #endif
+
 #ifdef __cplusplus
 }
 #endif

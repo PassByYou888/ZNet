@@ -97,11 +97,6 @@ type
 
   TBaseClass = class of TLite_Th_Engine_Marshal;
 
-  TMyGenericClass<T: class> = class
-  private
-    FItem: T;
-  end;
-
   TOn_Loaded_Sequence_ID = procedure(Sender: TZDB2_Lite; Data: TZDB2_Lite_Data) of object;
 
   TZDB2_Lite = class(TCore_Object_Intermediate)

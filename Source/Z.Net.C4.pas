@@ -622,6 +622,9 @@ type
     constructor Create_C(OnReady: TOn_Ready_C);
     constructor Create_M(OnReady: TOn_Ready_M);
     constructor Create_P(OnReady: TOn_Ready_P);
+    constructor Create_C2(dependNetwork_: U_String; OnReady: TOn_Ready_C);
+    constructor Create_M2(dependNetwork_: U_String; OnReady: TOn_Ready_M);
+    constructor Create_P2(dependNetwork_: U_String; OnReady: TOn_Ready_P);
     destructor Destroy; override;
     property On_Ready: TOn_Ready_M read FOn_Ready_M write FOn_Ready_M;
     property On_Ready_C: TOn_Ready_C read FOn_Ready_C write FOn_Ready_C;
@@ -728,6 +731,36 @@ type
     procedure Print;
   end;
 {$ENDREGION 'RegistedData'}
+{$REGION 'DTC40NULLModel'}
+
+  TC40_Base_NULL_Service = class(TC40_Custom_Service)
+  protected
+    procedure DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); virtual;
+    procedure DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); virtual;
+  public
+    Service: TDT_P2PVM_NoAuth_Custom_Service;
+    DTNoAuthService: TDTService_NoAuth;
+    property DTNoAuth: TDTService_NoAuth read DTNoAuthService;
+    constructor Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String); override;
+    destructor Destroy; override;
+    procedure Progress; override;
+  end;
+
+  TC40_Base_NULL_Client = class(TC40_Custom_Client)
+  protected
+    procedure Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client); virtual;
+  public
+    Client: TDT_P2PVM_NoAuth_Custom_Client;
+    DTNoAuthClient: TDTClient_NoAuth;
+    property DTNoAuth: TDTClient_NoAuth read DTNoAuthClient;
+    constructor Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String); override;
+    destructor Destroy; override;
+    procedure Progress; override;
+    procedure Connect; override;
+    function Connected: Boolean; override;
+    procedure Disconnect; override;
+  end;
+{$ENDREGION 'DTC40NULLModel'}
 {$REGION 'DTC40NoAuthModel'}
 
   TC40_Base_NoAuth_Service = class(TC40_Custom_Service)
@@ -5042,6 +5075,33 @@ begin
   On_Ready_P := OnReady;
 end;
 
+constructor TC40_Auto_Deployment_Client<T_>.Create_C2(dependNetwork_: U_String; OnReady: TOn_Ready_C);
+var
+  p: PT_;
+begin
+  p := nil;
+  Create_Ptr(dependNetwork_, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
+  On_Ready_C := OnReady;
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create_M2(dependNetwork_: U_String; OnReady: TOn_Ready_M);
+var
+  p: PT_;
+begin
+  p := nil;
+  Create_Ptr(dependNetwork_, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
+  On_Ready_M := OnReady;
+end;
+
+constructor TC40_Auto_Deployment_Client<T_>.Create_P2(dependNetwork_: U_String; OnReady: TOn_Ready_P);
+var
+  p: PT_;
+begin
+  p := nil;
+  Create_Ptr(dependNetwork_, p); // fixed fpc 3.3.1 compiler internal error, by.qq600585
+  On_Ready_P := OnReady;
+end;
+
 destructor TC40_Auto_Deployment_Client<T_>.Destroy;
 begin
   inherited Destroy;
@@ -5693,6 +5753,94 @@ begin
           DoStatusNoLn(' Client "%s"', [p^.ClientClass.ClassName]);
       DoStatusNoLn();
     end;
+end;
+
+procedure TC40_Base_NULL_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
+begin
+  DoLinkSuccess(UserDefineIO);
+end;
+
+procedure TC40_Base_NULL_Service.DoUserOut_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
+begin
+  DoUserOut(UserDefineIO);
+end;
+
+constructor TC40_Base_NULL_Service.Create(PhysicsService_: TC40_PhysicsService; ServiceTyp, Param_: U_String);
+begin
+  inherited Create(PhysicsService_, ServiceTyp, Param_);
+  { custom p2pVM service }
+  Service := TDT_P2PVM_NoAuth_Custom_Service.Create(TDTService_NoAuth, PhysicsService_.PhysicsTunnel,
+    ServiceInfo.ServiceTyp + 'R', ServiceInfo.p2pVM_RecvTunnel_Addr, umlIntToStr(ServiceInfo.p2pVM_RecvTunnel_Port),
+    ServiceInfo.ServiceTyp + 'S', ServiceInfo.p2pVM_SendTunnel_Addr, umlIntToStr(ServiceInfo.p2pVM_SendTunnel_Port)
+    );
+  Service.DTService.OnLinkSuccess := DoLinkSuccess_Event;
+  Service.DTService.OnUserOut := DoUserOut_Event;
+  Service.DTService.FileSystem := EStrToBool(ParamList.GetDefaultValue('FileSystem', umlBoolToStr(Service.DTService.FileSystem)), Service.DTService.FileSystem);
+  Service.DTService.PublicFileDirectory := umlCombinePath(C40_RootPath, ServiceInfo.ServiceTyp.Text);
+  if not umlDirectoryExists(Service.DTService.PublicFileDirectory) then
+      umlCreateDirectory(Service.DTService.PublicFileDirectory);
+  DTNoAuthService := Service.DTService;
+  UpdateToGlobalDispatch;
+end;
+
+destructor TC40_Base_NULL_Service.Destroy;
+begin
+  DisposeObject(Service);
+  inherited Destroy;
+end;
+
+procedure TC40_Base_NULL_Service.Progress;
+begin
+  inherited Progress;
+  Service.Progress;
+  ServiceInfo.Workload := Service.DTService.RecvTunnel.Count + Service.DTService.SendTunnel.Count;
+end;
+
+procedure TC40_Base_NULL_Client.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client);
+begin
+  DoNetworkOnline();
+end;
+
+constructor TC40_Base_NULL_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
+begin
+  inherited Create(PhysicsTunnel_, source_, Param_);
+  { custom p2pVM client }
+  Client := TDT_P2PVM_NoAuth_Custom_Client.Create(
+    TDTClient_NoAuth, C40PhysicsTunnel.PhysicsTunnel,
+    ClientInfo.ServiceTyp + 'R', ClientInfo.p2pVM_ClientRecvTunnel_Addr, umlIntToStr(ClientInfo.p2pVM_ClientRecvTunnel_Port),
+    ClientInfo.ServiceTyp + 'S', ClientInfo.p2pVM_ClientSendTunnel_Addr, umlIntToStr(ClientInfo.p2pVM_ClientSendTunnel_Port)
+    );
+  Client.OnTunnelLink := Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink;
+  DTNoAuthClient := Client.DTClient;
+end;
+
+destructor TC40_Base_NULL_Client.Destroy;
+begin
+  DisposeObject(Client);
+  inherited Destroy;
+end;
+
+procedure TC40_Base_NULL_Client.Progress;
+begin
+  inherited Progress;
+  Client.Progress;
+end;
+
+procedure TC40_Base_NULL_Client.Connect;
+begin
+  inherited Connect;
+  Client.Connect();
+end;
+
+function TC40_Base_NULL_Client.Connected: Boolean;
+begin
+  Result := Client.DTClient.LinkOk;
+end;
+
+procedure TC40_Base_NULL_Client.Disconnect;
+begin
+  inherited Disconnect;
+  Client.Disconnect;
 end;
 
 procedure TC40_Base_NoAuth_Service.DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth);
@@ -7339,6 +7487,7 @@ C40_VM_Client_Pool := TC40_Custom_VM_Client_Pool.Create;
 
 { build-in registration }
 RegisterC40('DP', TC40_Dispatch_Service, TC40_Dispatch_Client);
+RegisterC40('NULL', TC40_Base_NULL_Service, TC40_Base_NULL_Client);
 RegisterC40('NA', TC40_Base_NoAuth_Service, TC40_Base_NoAuth_Client);
 RegisterC40('DNA', TC40_Base_DataStoreNoAuth_Service, TC40_Base_DataStoreNoAuth_Client);
 RegisterC40('VA', TC40_Base_VirtualAuth_Service, TC40_Base_VirtualAuth_Client);
