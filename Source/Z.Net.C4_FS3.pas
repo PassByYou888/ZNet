@@ -47,8 +47,6 @@ uses
   Z.Core, Z.PascalStrings, Z.UPascalStrings, Z.Status, Z.UnicodeMixedLib, Z.ListEngine,
   Z.Geometry2D, Z.DFE, Z.Json, Z.Expression, Z.OpCode,
   Z.Notify, Z.Cipher, Z.MemoryStream,
-  Z.FragmentBuffer, // solve for discontinuous space
-  Z.HashList.Templet,
   Z.Net, Z.Net.PhysicsIO, Z.Net.DoubleTunnelIO.NoAuth, Z.Net.C4,
   Z.ZDB2, Z.ZDB2.Thread,
   Z.ZDB2.Thread.Queue,
@@ -180,21 +178,21 @@ type
     procedure cmd_Done(Sender: TPeerIO; InData: TDFE);
   end;
 
-  TFile_List_ = record
+  TC40_FS3_Client_File_Info__ = record
     File_Name: U_String;
     File_Size: Int64;
     File_Time: TDateTime;
     File_Life: Double;
   end;
 
-  TFile_List_Array = array of TFile_List_;
+  TC40_FS3_Client_File_List_Array = array of TC40_FS3_Client_File_Info__;
 
-  TC40_FS3_Client_Get_File_List_DoneC = procedure(Sender: TC40_FS3_Client; arry: TFile_List_Array);
-  TC40_FS3_Client_Get_File_List_DoneM = procedure(Sender: TC40_FS3_Client; arry: TFile_List_Array) of object;
+  TC40_FS3_Client_Get_File_List_DoneC = procedure(Sender: TC40_FS3_Client; arry: TC40_FS3_Client_File_List_Array);
+  TC40_FS3_Client_Get_File_List_DoneM = procedure(Sender: TC40_FS3_Client; arry: TC40_FS3_Client_File_List_Array) of object;
 {$IFDEF FPC}
-  TC40_FS3_Client_Get_File_List_DoneP = procedure(Sender: TC40_FS3_Client; arry: TFile_List_Array) is nested;
+  TC40_FS3_Client_Get_File_List_DoneP = procedure(Sender: TC40_FS3_Client; arry: TC40_FS3_Client_File_List_Array) is nested;
 {$ELSE FPC}
-  TC40_FS3_Client_Get_File_List_DoneP = reference to procedure(Sender: TC40_FS3_Client; arry: TFile_List_Array);
+  TC40_FS3_Client_Get_File_List_DoneP = reference to procedure(Sender: TC40_FS3_Client; arry: TC40_FS3_Client_File_List_Array);
 {$ENDIF FPC}
 
   TC40_FS3_Client_Get_File_List_Bridge = class(TCore_Object_Intermediate)
@@ -812,7 +810,7 @@ end;
 
 procedure TC40_FS3_Client_Get_File_List_Bridge.Do_Result_Get_File_List(Sender: TPeerIO; Result_: TDFE);
 var
-  arry: TFile_List_Array;
+  arry: TC40_FS3_Client_File_List_Array;
   i: Integer;
   d: TDFE;
 begin
