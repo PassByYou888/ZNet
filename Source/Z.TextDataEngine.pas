@@ -486,10 +486,10 @@ function THashTextEngine.ExistsKey(Section_, Key_: SystemString): Boolean;
 begin
   Result := False;
   if FSectionHashVariantList.Exists(Section_) then
-      Result := THashVariantList(FSectionHashVariantList[Section_]).Exists(Key_) or Result;
+      Result := THashVariantList(FSectionHashVariantList[Section_]).Exists(Key_);
   if FSectionHashStringList.Exists(Section_) then
-      Result := THashStringList(FSectionHashStringList[Section_]).Exists(Key_) or Result;
-  if (not Result) and FSectionList.Exists(Section_) then
+      Result := THashStringList(FSectionHashStringList[Section_]).Exists(Key_)
+  else if FSectionList.Exists(Section_) then
     begin
       Result := GetHStringList(Section_).Exists(Key_);
       FSectionHashStringList.Delete(Section_);
