@@ -168,8 +168,8 @@ type
   TOnCommand_CompleteBuffer_NoWait_Bridge_Stream_P = reference to procedure(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
   TOnCompleteBuffer_Stream_Event_Bridge_P = reference to procedure(Sender: TCompleteBuffer_Stream_Event_Bridge; Source_Bridge: TCommandCompleteBuffer_NoWait_Bridge; BridgeIO: TPeerIO; Result_: TDFE);
 {$ENDIF FPC}
-  TIO_ID_Pool = TGenericsList<Cardinal>;
-  TIO_ID_List = TIO_ID_Pool;
+  TIO_ID_Pool = TBigList<Cardinal>;
+  TIO_ID_List = TGenericsList<Cardinal>;
 
   TOnStateStruct = record
     On_C: TOnState_C;
