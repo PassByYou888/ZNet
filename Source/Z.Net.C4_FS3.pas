@@ -847,6 +847,7 @@ end;
 procedure TC40_FS3_Client.Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender: TDT_P2PVM_NoAuth_Custom_Client);
 begin
   Update_Lite_Info();
+  inherited Do_DT_P2PVM_NoAuth_Custom_Client_TunnelLink(Sender);
 end;
 
 constructor TC40_FS3_Client.Create(PhysicsTunnel_: TC40_PhysicsTunnel; source_: TC40_Info; Param_: U_String);
