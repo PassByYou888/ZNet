@@ -305,6 +305,8 @@ function IsEqual(const Val1, Val2: TGeoFloat): Boolean; {$IFDEF INLINE_ASM} inli
 function IsEqual(const Val1, Val2: TVec2): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function IsEqual(const Val1, Val2: TVec2; Epsilon_: TGeoFloat): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function IsEqual(const Val1, Val2: TRectV2): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual_X(const Val1, Val2: TVec2): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function IsEqual_Y(const Val1, Val2: TVec2): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 
 function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 function NotEqual(const Val1, Val2: TGeoFloat): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -484,23 +486,24 @@ function Make_Jitter_Box(XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat; Fit_: Boo
 // image jitter
 procedure Make_Image_Jitter_Box(
   rand: TMT19937Random;
-  image_bound_Box: TRectV2;     // image bound box
+  image_bound_Box: TRectV2; // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean;               // min-loss fit
-  output_Size: TVec2;                     // output size
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   ); overload;
 procedure Make_Image_Jitter_Box(
-  image_bound_Box: TRectV2;     // image bound box
+  image_bound_Box: TRectV2; // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean;               // min-loss fit
-  output_Size: TVec2;                     // output size
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   ); overload;
 
 function Rect_Overlap_or_Intersect(r1, r2: TRectV2): Boolean;
+function Rect_1Overlap2_or_Intersect(r1, r2: TRectV2): Boolean;
 
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
 procedure FixRect(var Left, Top, Right, Bottom: TGeoFloat); {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
@@ -2559,6 +2562,16 @@ begin
   Result := IsEqual(Val1[0], Val2[0]) and IsEqual(Val1[1], Val2[1]);
 end;
 
+function IsEqual_X(const Val1, Val2: TVec2): Boolean;
+begin
+  Result := IsEqual(Val1[0], Val2[0]);
+end;
+
+function IsEqual_Y(const Val1, Val2: TVec2): Boolean;
+begin
+  Result := IsEqual(Val1[1], Val2[1]);
+end;
+
 function NotEqual(const Val1, Val2, Epsilon_: TGeoFloat): Boolean;
 var
   Diff: TGeoFloat;
@@ -3677,11 +3690,11 @@ end;
 
 procedure Make_Image_Jitter_Box(
   rand: TMT19937Random;
-  image_bound_Box: TRectV2;     // image bound box
+  image_bound_Box: TRectV2; // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean;               // min-loss fit
-  output_Size: TVec2;                     // output size
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   );
 begin
@@ -3691,11 +3704,11 @@ begin
 end;
 
 procedure Make_Image_Jitter_Box(
-  image_bound_Box: TRectV2;     // image bound box
+  image_bound_Box: TRectV2; // image bound box
   scale_size, scale_pos: TVec2; // matrix box
   XY_Offset_Scale_, Rotate_, Scale_: TGeoFloat;
-  Fit_Matrix_Box_: Boolean;               // min-loss fit
-  output_Size: TVec2;                     // output size
+  Fit_Matrix_Box_: Boolean; // min-loss fit
+  output_Size: TVec2; // output size
   var dest: TRectV2; var Angle: TGeoFloat // output
   );
 begin
@@ -3707,6 +3720,11 @@ end;
 function Rect_Overlap_or_Intersect(r1, r2: TRectV2): Boolean;
 begin
   Result := RectWithInRect(r1, r2) or RectWithInRect(r2, r1) or RectToRectIntersect(r1, r2);
+end;
+
+function Rect_1Overlap2_or_Intersect(r1, r2: TRectV2): Boolean;
+begin
+  Result := RectWithInRect(r1, r2) or RectToRectIntersect(r1, r2);
 end;
 
 procedure FixRect(var Left, Top, Right, Bottom: TGeoInt);
@@ -6601,7 +6619,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Points[i];
-      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or  // an upward crossing
+      if ((pi^[1] <= pt[1]) and (pt[1] < pj^[1])) or // an upward crossing
         ((pj^[1] <= pt[1]) and (pt[1] < pi^[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -9205,7 +9223,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := GetPoint(i);
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
@@ -9230,7 +9248,7 @@ begin
   for i := 0 to Count - 1 do
     begin
       pi := Expands[i, ExpandDistance_];
-      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or  // an upward crossing
+      if ((pi[1] <= pt[1]) and (pt[1] < pj[1])) or // an upward crossing
         ((pj[1] <= pt[1]) and (pt[1] < pi[1])) then // a downward crossing
         begin
           (* compute the edge-ray intersect @ the x-coordinate *)
