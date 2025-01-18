@@ -3083,7 +3083,7 @@ type
   public
     Thread: TCompute;
     Bridge: TCommandCompleteBuffer_NoWait_Bridge; // bridge
-    Framework: TZNet;                             // recevie tunnel
+    Framework: TZNet; // recevie tunnel
     Cmd: SystemString;
     TriggerTime: TTimeTick;
     WorkID: Cardinal; // recevie tunnel-ID
@@ -3204,6 +3204,9 @@ var
   ZNet_Def_DataHeadToken: Cardinal = $F0F0F0F0;
   { user custom tail verify token }
   ZNet_Def_DataTailToken: Cardinal = $F1F1F1F1;
+
+  { performance }
+  ZNet_Progress_Max_Delay: TTimeTick = 1000;
 
   { send flush buffer }
   ZNet_Def_SendFlushSize: NativeInt = 32 * 1024; { flush size = 32k byte }
@@ -4407,7 +4410,7 @@ begin
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
-  InData := nil;  // fixed memory leak. by.qq600585, 2023-9-30
+  InData := nil; // fixed memory leak. by.qq600585, 2023-9-30
   OutData := nil; // fixed memory leak. by.qq600585, 2023-9-30
   OnDone_C := nil;
   OnDone_M := nil;
@@ -5264,7 +5267,7 @@ begin
   UserData := nil;
   UserObject := nil;
   UserVariant := NULL;
-  InData := nil;  // fixed memory leak. by.qq600585, 2023-9-30
+  InData := nil; // fixed memory leak. by.qq600585, 2023-9-30
   OutData := nil; // fixed memory leak. by.qq600585, 2023-9-30
 end;
 
@@ -11875,7 +11878,7 @@ end;
 procedure TZNet.InitLargeScaleIOPool;
 begin
   FProgress_LargeScale_IO_Pool := TIO_Order.Create;
-  FProgressMaxDelay := 100;
+  FProgressMaxDelay := ZNet_Progress_Max_Delay;
 end;
 
 procedure TZNet.FreeLargeScaleIOPool;
