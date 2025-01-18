@@ -92,7 +92,7 @@ type
     procedure cmd_Fast_Post(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure cmd_Begin_Post(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Post(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
-    procedure cmd_End_Post(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_End_Post(Sender: TPeerIO; InData: TDFE);
     procedure cmd_Get_File(Sender: TPeerIO; InData, OutData: TDFE);
     procedure do_Th_Get_File_List(thSender: THPC_Stream; ThInData, ThOutData: TDFE);
     procedure cmd_Get_File_List(Sender: TPeerIO; InData, OutData: TDFE);
@@ -144,7 +144,6 @@ type
     procedure DoP2PVM_CloneConnectAndPostFile(Sender: TZNet_WithP2PVM_Client);
     procedure Do_Result_Begin_Post(Sender: TPeerIO; Result_: TDFE);
     procedure Do_Post_Th();
-    procedure Do_Result_End_Post(Sender: TPeerIO; Result_: TDFE);
   end;
 
   TC40_FS3_Client_Get_File_DoneC = procedure(Sender: TC40_FS3_Client; Stream: TCore_Stream; MD5: TMD5; Successed: Boolean);
@@ -222,6 +221,7 @@ type
     procedure Progress; override;
     procedure Update_Lite_Info;
 
+    procedure Fast_Post_File(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean);
     procedure Post_File(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean);
     procedure Post_File_C(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean; OnResult: TC40_FS3_Client_Post_File_DoneC);
     procedure Post_File_M(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean; OnResult: TC40_FS3_Client_Post_File_DoneM);
@@ -397,7 +397,7 @@ begin
   io_define_.Post_Queue_Tool.Post(m64, true);
 end;
 
-procedure TC40_FS3_Service.cmd_End_Post(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_FS3_Service.cmd_End_Post(Sender: TPeerIO; InData: TDFE);
 var
   io_define_: TC40_FS3_Service_RecvTunnel_NoAuth;
 begin
@@ -483,11 +483,11 @@ begin
   DTNoAuthService.SendTunnel.UserDefineClass := TC40_FS3_Service_SendTunnel_NoAuth;
   // reg command
   DTNoAuthService.RecvTunnel.RegisterStream('Get_Lite_Info').OnExecute := cmd_Get_Lite_Info;
-  DTNoAuthService.RecvTunnel.RegisterStream('Create_File_From_MD5').OnExecute := cmd_Create_File_From_MD5;
+  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Stream('Create_File_From_MD5').OnExecute := cmd_Create_File_From_MD5;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('Fast_Post').OnExecute := cmd_Fast_Post;
   DTNoAuthService.RecvTunnel.RegisterStream('Begin_Post').OnExecute := cmd_Begin_Post;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('Post').OnExecute := cmd_Post;
-  DTNoAuthService.RecvTunnel.RegisterStream('End_Post').OnExecute := cmd_End_Post;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('End_Post').OnExecute := cmd_End_Post;
   DTNoAuthService.RecvTunnel.RegisterStream('Get_File').OnExecute := cmd_Get_File;
   DTNoAuthService.RecvTunnel.RegisterStream('Get_File_List').OnExecute := cmd_Get_File_List;
   // instance
@@ -582,7 +582,7 @@ begin
   d.WriteDouble(File_Time);
   d.WriteDouble(File_Life);
   d.WriteMD5(File_MD5);
-  Client.DTNoAuth.SendTunnel.SendStreamCmdM('Create_File_From_MD5', d, Do_Result_Create_File_From_MD5);
+  Client.DTNoAuth.SendTunnel.SendCompleteBuffer_NoWait_StreamM('Create_File_From_MD5', d, Do_Result_Create_File_From_MD5);
   disposeObject(d);
 end;
 
@@ -639,7 +639,9 @@ begin
       Stream.Position := 0;
       m64.CopyFrom(Stream, Stream.Size);
       p2pClient.SendCompleteBuffer('Fast_Post', m64, true);
-      p2pClient.SendStreamCmdM('End_Post', TDFE.Create.DelayFree, Do_Result_End_Post);
+      p2pClient.SendDirectStreamCmd('End_Post');
+      Do_Done(true);
+      DelayFreeObj(1.0, self);
     end;
 end;
 
@@ -675,11 +677,7 @@ begin
       m64.CopyFrom(Stream, Stream.Size - Stream.Position);
       p2pClient.SendCompleteBuffer('Post', m64, true);
     end;
-  p2pClient.SendStreamCmdM('End_Post', TDFE.Create.DelayFree, Do_Result_End_Post);
-end;
-
-procedure TC40_FS3_Client_Post_File_Bridge.Do_Result_End_Post(Sender: TPeerIO; Result_: TDFE);
-begin
+  p2pClient.SendDirectStreamCmd('End_Post');
   Do_Done(true);
   DelayFreeObj(1.0, self);
 end;
@@ -877,6 +875,22 @@ end;
 procedure TC40_FS3_Client.Update_Lite_Info;
 begin
   DTNoAuth.SendTunnel.SendStreamCmdM('Get_Lite_Info', nil, Do_Result_Get_Lite_Info);
+end;
+
+procedure TC40_FS3_Client.Fast_Post_File(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean);
+var
+  m64: TMem64;
+begin
+  m64 := TMem64.Create;
+  m64.Delta := File_Stream.Size;
+  m64.WriteString(File_Name);
+  m64.WriteDouble(File_Time);
+  m64.WriteDouble(File_Life);
+  File_Stream.Position := 0;
+  m64.CopyFrom(File_Stream, File_Stream.Size);
+  DTNoAuth.SendTunnel.SendCompleteBuffer('Fast_Post', m64, true);
+  if Auto_Free_Stream then
+      disposeObject(File_Stream);
 end;
 
 procedure TC40_FS3_Client.Post_File(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean);
