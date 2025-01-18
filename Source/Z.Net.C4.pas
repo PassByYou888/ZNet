@@ -638,6 +638,9 @@ type
   TC40_Auto_Deploy<T_: class> = class(TC40_Auto_Deployment_Client<T_>)
   end;
 
+  TC40_Deploy<T_: class> = class(TC40_Auto_Deployment_Client<T_>)
+  end;
+
 {$ENDREGION 'Auto_Deployment'}
 {$REGION 'DispatchService'}
 
@@ -1044,6 +1047,7 @@ type
     function Do_Tunnel(var OP_Param: TOpParam): Variant;
     function Do_Reg(var OP_Param: TOpParam): Variant;
     function Do_KillNet(var OP_Param: TOpParam): Variant;
+    function Do_C4_Clean(var OP_Param: TOpParam): Variant;
     function Do_SetQuiet(var OP_Param: TOpParam): Variant;
     function Do_Save_All_C4Service_Config(var OP_Param: TOpParam): Variant;
     function Do_Save_All_C4Client_Config(var OP_Param: TOpParam): Variant;
@@ -6934,6 +6938,12 @@ begin
   Result := True;
 end;
 
+function TC40_Console_Help.Do_C4_Clean(var OP_Param: TOpParam): Variant;
+begin
+  C40Clean();
+  Result := True;
+end;
+
 function TC40_Console_Help.Do_SetQuiet(var OP_Param: TOpParam): Variant;
 begin
   C40SetQuietMode(OP_Param[0]);
@@ -7354,6 +7364,7 @@ begin
   opRT.Reg_Param_OpM('cli', 'cli(ip, port), tunnel report.', Do_Tunnel, rtmPost)^.Category := 'C4 help';
   opRT.Reg_Param_OpM('RegInfo', 'C4 registed info.', Do_Reg, rtmPost)^.Category := 'C4 help';
   opRT.Reg_Param_OpM('KillNet', 'KillNet(ip,port), kill physics network.', Do_KillNet, rtmPost)^.Category := 'C4 help';
+  opRT.Reg_Param_OpM('C4_Clean', 'C4_Clean(), clean all physics network.', Do_C4_Clean, rtmPost)^.Category := 'C4 help';
   opRT.Reg_Param_OpM('Quiet', 'Quiet(bool), set quiet mode.', Do_SetQuiet, rtmPost)^.Category := 'C4 help';
   opRT.Reg_Param_OpM('Save_All_C4Service_Config', 'Save_All_C4Service_Config(), save all c4 service config to file', Do_Save_All_C4Service_Config, rtmPost)^.Category := 'C4 help';
   opRT.Reg_Param_OpM('Save_All_C4Client_Config', 'Save_All_C4Client_Config(), save all c4 client config to file', Do_Save_All_C4Client_Config, rtmPost)^.Category := 'C4 help';
