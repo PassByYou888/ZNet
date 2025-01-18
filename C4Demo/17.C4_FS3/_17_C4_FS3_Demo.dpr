@@ -49,7 +49,7 @@ begin
               DoStatus('get-file md5:%s', [umlMD5ToStr(MD5).Text]);
           DisposeObject(Stream);
 
-          sender.Get_File_List_P('', 0, procedure(sender: TC40_FS3_Client; arry: TFile_List_Array)
+          sender.Get_File_List_P('', 0, procedure(sender: TC40_FS3_Client; arry: TC40_FS3_Client_File_List_Array)
             var
               i: Integer;
             begin
