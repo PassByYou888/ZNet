@@ -88,7 +88,7 @@ type
     procedure DoLinkSuccess_Event(Sender: TDTService_NoAuth; UserDefineIO: TService_RecvTunnel_UserDefine_NoAuth); virtual;
   protected
     procedure cmd_Get_Lite_Info(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure cmd_Create_File_From_MD5(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Create_File_From_MD5(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
     procedure cmd_Fast_Post(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure cmd_Begin_Post(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Post(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
@@ -323,7 +323,7 @@ begin
   OutData.WriteInt64(FS3_Lite.Database_Size);
 end;
 
-procedure TC40_FS3_VM_Service.cmd_Create_File_From_MD5(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_FS3_VM_Service.cmd_Create_File_From_MD5(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
 var
   FileName_: U_String;
   Time__: TDateTime;
@@ -483,7 +483,7 @@ begin
   DTNoAuthService.SendTunnel.UserDefineClass := TC40_FS3_VM_Service_SendTunnel_NoAuth;
   // reg command
   DTNoAuthService.RecvTunnel.RegisterStream('Get_Lite_Info').OnExecute := cmd_Get_Lite_Info;
-  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Stream('Create_File_From_MD5').OnExecute := cmd_Create_File_From_MD5;
+  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Bridge_Stream('Create_File_From_MD5').OnExecute := cmd_Create_File_From_MD5;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('Fast_Post').OnExecute := cmd_Fast_Post;
   DTNoAuthService.RecvTunnel.RegisterStream('Begin_Post').OnExecute := cmd_Begin_Post;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('Post').OnExecute := cmd_Post;
