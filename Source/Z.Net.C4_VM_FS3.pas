@@ -93,9 +93,9 @@ type
     procedure cmd_Begin_Post(Sender: TPeerIO; InData, OutData: TDFE);
     procedure cmd_Post(Sender: TPeerIO; InData: PByte; DataSize: NativeInt);
     procedure cmd_End_Post(Sender: TPeerIO; InData: TDFE);
-    procedure cmd_Get_File(Sender: TPeerIO; InData, OutData: TDFE);
-    procedure do_Th_Get_File_List(thSender: THPC_Stream; ThInData, ThOutData: TDFE);
-    procedure cmd_Get_File_List(Sender: TPeerIO; InData, OutData: TDFE);
+    procedure cmd_Get_File(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
+    procedure do_Th_Get_File_List(thSender: THPC_CompleteBuffer_Stream; ThInData, ThOutData: TDFE);
+    procedure cmd_Get_File_List(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
   private
     // internal
     FLast_Life_Check_Time: TTimeTick;
@@ -408,7 +408,7 @@ begin
   io_define_.Post_Queue_Tool := nil;
 end;
 
-procedure TC40_FS3_VM_Service.cmd_Get_File(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_FS3_VM_Service.cmd_Get_File(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
 var
   FileName_: U_String;
   fi: TZDB2_FS3_FileInfo;
@@ -434,7 +434,7 @@ begin
   TCompute.RunM_NP(Bridge_.Do_Run_Get_Th);
 end;
 
-procedure TC40_FS3_VM_Service.do_Th_Get_File_List(thSender: THPC_Stream; ThInData, ThOutData: TDFE);
+procedure TC40_FS3_VM_Service.do_Th_Get_File_List(thSender: THPC_CompleteBuffer_Stream; ThInData, ThOutData: TDFE);
 var
   filter_: U_String;
   Max_Num, i: Int64;
@@ -467,9 +467,9 @@ begin
     end;
 end;
 
-procedure TC40_FS3_VM_Service.cmd_Get_File_List(Sender: TPeerIO; InData, OutData: TDFE);
+procedure TC40_FS3_VM_Service.cmd_Get_File_List(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
 begin
-  RunHPC_StreamM(Sender, nil, nil, NULL, InData, OutData, do_Th_Get_File_List);
+  RunHPC_CompleteBuffer_StreamM(Sender, nil, nil, NULL, InData, OutData, do_Th_Get_File_List);
 end;
 
 constructor TC40_FS3_VM_Service.Create(Param_: U_String);
@@ -488,8 +488,8 @@ begin
   DTNoAuthService.RecvTunnel.RegisterStream('Begin_Post').OnExecute := cmd_Begin_Post;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer('Post').OnExecute := cmd_Post;
   DTNoAuthService.RecvTunnel.RegisterDirectStream('End_Post').OnExecute := cmd_End_Post;
-  DTNoAuthService.RecvTunnel.RegisterStream('Get_File').OnExecute := cmd_Get_File;
-  DTNoAuthService.RecvTunnel.RegisterStream('Get_File_List').OnExecute := cmd_Get_File_List;
+  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Bridge_Stream('Get_File').OnExecute := cmd_Get_File;
+  DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Bridge_Stream('Get_File_List').OnExecute := cmd_Get_File_List;
 
   FS3_Lite := TZDB2_FS3_Lite.Create(DTNoAuthService.PublicFileDirectory);
   FS3_Lite.Body_Fragment_Size := EStrToInt64(ParamList.GetDefaultValue('Body_Fragment_Size', '1024*1024'));
@@ -753,7 +753,7 @@ begin
   d.WriteInt64(bPos);
   d.WriteInt64(ePos);
   d.WriteCardinal(p2pClient.Client_ID);
-  Client.DTNoAuthClient.SendTunnel.SendStreamCmdM('Get_File', d, Do_Result_Get_File);
+  Client.DTNoAuthClient.SendTunnel.SendCompleteBuffer_NoWait_StreamM('Get_File', d, Do_Result_Get_File);
 end;
 
 procedure TC40_FS3_VM_Client_Get_File_Bridge.Do_Result_Get_File(Sender: TPeerIO; Result_: TDFE);
