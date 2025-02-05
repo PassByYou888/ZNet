@@ -76,6 +76,14 @@ type
     end;
 
     TTime_Data_Pool = TBig_Hash_Pair_Pool<T_, TTime_Data_L>;
+
+    TSearch_Filter_C = function(var data: T_): Boolean;
+    TSearch_Filter_M = function(var data: T_): Boolean of object;
+{$IFDEF FPC}
+    TSearch_Filter_P = function(var data: T_): Boolean is nested;
+{$ELSE FPC}
+    TSearch_Filter_P = reference to function(var data: T_): Boolean;
+{$ENDIF FPC}
   private
     FCritical: TCritical;
     FTime_Data_Pool: TTime_Data_Pool;
@@ -102,6 +110,9 @@ type
     procedure Sort_By_Span;
     function Search_Span(const bDT_, eDT_: TDateTime): TTime_List; overload;
     function Search_Span(DT: TDateTime): TTime_List; overload;
+    function Search_Span_And_Filter_C(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_C): TTime_List;
+    function Search_Span_And_Filter_M(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_M): TTime_List;
+    function Search_Span_And_Filter_P(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_P): TTime_List;
     function Total: NativeInt; // user instance num
     function Buffered_Time_Num: NativeInt;
   end;
@@ -465,6 +476,219 @@ begin
   finally
       FCritical.UnLock;
   end;
+end;
+
+function THours_Buffer_Pool<T_>.Search_Span_And_Filter_C(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_C): TTime_List;
+var
+  bDT, eDT: TDateTime;
+  tmp: TDateTime;
+  obj: TTime_Hash_Pool;
+  swap_obj: TTime_Hash_Pool;
+begin
+  bDT := bDT_;
+  eDT := eDT_;
+  if CompareDateTime(bDT, eDT) > 0 then
+      TSwap<TDateTime>.Do_(bDT, eDT);
+
+  Result := TTime_List.Create;
+  swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
+
+  FCritical.Lock;
+  try
+    tmp := bDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
+            until not Next;
+      end;
+
+    while CompareDateTime(tmp, eDT) <= 0 do
+      begin
+        obj := Get_Pool(tmp);
+        if obj <> nil then
+          begin
+            if obj.Num > 0 then
+              with obj.Repeat_ do
+                repeat
+                  if OnFilter(queue^.data^.data.Primary) then
+                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                until not Next;
+          end;
+        tmp := IncHour(tmp);
+      end;
+
+    tmp := eDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
+            until not Next;
+      end;
+
+    if swap_obj.Num > 0 then
+      with swap_obj.Repeat_ do
+        repeat
+            Result.Add(queue^.data^.data.Primary);
+        until not Next;
+  except
+  end;
+  FCritical.UnLock;
+
+  DisposeObject(swap_obj);
+end;
+
+function THours_Buffer_Pool<T_>.Search_Span_And_Filter_M(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_M): TTime_List;
+var
+  bDT, eDT: TDateTime;
+  tmp: TDateTime;
+  obj: TTime_Hash_Pool;
+  swap_obj: TTime_Hash_Pool;
+begin
+  bDT := bDT_;
+  eDT := eDT_;
+  if CompareDateTime(bDT, eDT) > 0 then
+      TSwap<TDateTime>.Do_(bDT, eDT);
+
+  Result := TTime_List.Create;
+  swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
+
+  FCritical.Lock;
+  try
+    tmp := bDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
+            until not Next;
+      end;
+
+    while CompareDateTime(tmp, eDT) <= 0 do
+      begin
+        obj := Get_Pool(tmp);
+        if obj <> nil then
+          begin
+            if obj.Num > 0 then
+              with obj.Repeat_ do
+                repeat
+                  if OnFilter(queue^.data^.data.Primary) then
+                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                until not Next;
+          end;
+        tmp := IncHour(tmp);
+      end;
+
+    tmp := eDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
+            until not Next;
+      end;
+
+    if swap_obj.Num > 0 then
+      with swap_obj.Repeat_ do
+        repeat
+            Result.Add(queue^.data^.data.Primary);
+        until not Next;
+  except
+  end;
+  FCritical.UnLock;
+
+  DisposeObject(swap_obj);
+end;
+
+function THours_Buffer_Pool<T_>.Search_Span_And_Filter_P(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_P): TTime_List;
+var
+  bDT, eDT: TDateTime;
+  tmp: TDateTime;
+  obj: TTime_Hash_Pool;
+  swap_obj: TTime_Hash_Pool;
+begin
+  bDT := bDT_;
+  eDT := eDT_;
+  if CompareDateTime(bDT, eDT) > 0 then
+      TSwap<TDateTime>.Do_(bDT, eDT);
+
+  Result := TTime_List.Create;
+  swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
+
+  FCritical.Lock;
+  try
+    tmp := bDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
+            until not Next;
+      end;
+
+    while CompareDateTime(tmp, eDT) <= 0 do
+      begin
+        obj := Get_Pool(tmp);
+        if obj <> nil then
+          begin
+            if obj.Num > 0 then
+              with obj.Repeat_ do
+                repeat
+                  if OnFilter(queue^.data^.data.Primary) then
+                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                until not Next;
+          end;
+        tmp := IncHour(tmp);
+      end;
+
+    tmp := eDT;
+    obj := Get_Pool(tmp);
+    if obj <> nil then
+      begin
+        if obj.Num > 0 then
+          with obj.Repeat_ do
+            repeat
+              if OnFilter(queue^.data^.data.Primary) then
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
+            until not Next;
+      end;
+
+    if swap_obj.Num > 0 then
+      with swap_obj.Repeat_ do
+        repeat
+            Result.Add(queue^.data^.data.Primary);
+        until not Next;
+  except
+  end;
+  FCritical.UnLock;
+
+  DisposeObject(swap_obj);
 end;
 
 function THours_Buffer_Pool<T_>.Total: NativeInt;
