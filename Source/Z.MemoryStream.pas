@@ -369,6 +369,7 @@ type
   end;
 
   TM64List = TMem64List;
+  TMem64_Pool = TBig_Object_List<TMem64>;
 
 {$IFDEF FPC}
 
