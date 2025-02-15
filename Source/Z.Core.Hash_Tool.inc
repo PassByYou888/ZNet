@@ -1,3 +1,10 @@
+function TBig_Hash_Pair_Pool<TKey_, TValue_>.Get_Critical__: TCritical;
+begin
+  if FCritical__ = nil then
+      FCritical__ := TCritical.Create;
+  Result := FCritical__;
+end;
+
 function TBig_Hash_Pair_Pool<TKey_, TValue_>.Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
 var
   i: integer;
@@ -59,6 +66,7 @@ var
 begin
   inherited Create;
   CreateBefore();
+  FCritical__ := nil;
   FQueue_Pool := TPool___.Create;
   FQueue_Pool.FOnFree := Internal_Do_Queue_Pool_Free;
   FHash_Buffer := TKey_Hash_Buffer.Create;
@@ -84,6 +92,7 @@ begin
   Clear;
   FQueue_Pool.Free;
   DisposeObjectAndNil(FHash_Buffer);
+  DisposeObjectAndNil(FCritical__);
   inherited Destroy;
 end;
 
