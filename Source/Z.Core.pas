@@ -989,6 +989,7 @@ type
     TOn_Sort_Value_P = reference to function(var L, R: TValue_): Integer;
 {$ENDIF FPC}
   private
+    FCritical__: TCritical;
     FQueue_Pool: TPool___;
     FHash_Buffer: TKey_Hash_Buffer;
     FNULL_VALUE: TValue_;
@@ -997,6 +998,7 @@ type
     FOn_Get_Key: TOn_Get_Key;
     FOn_Compare_Key: TOn_Compare_Key;
     FOn_Compare_Value: TOn_Compare_Value;
+    function Get_Critical__: TCritical;
     function Get_Value_List(const Key_: TKey_; var Key_Hash_: THash): TValue_Pair_Pool__;
     procedure Free_Value_List(Key_Hash_: THash);
     procedure Get_Key_Data_Ptr(const Key_P: PKey_; var p: PByte; var Size: NativeInt);
@@ -1005,6 +1007,7 @@ type
   public
     class function Null_Key: TKey_;
     class function NULL_VALUE: TValue_;
+    property Critical__: TCritical read Get_Critical__;
     property Queue_Pool: TPool___ read FQueue_Pool;
     property OnAdd: TOn_Event read FOnAdd write FOnAdd;
     property OnFree: TOn_Event read FOnFree write FOnFree;
