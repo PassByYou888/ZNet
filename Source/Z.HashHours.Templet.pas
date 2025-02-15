@@ -190,7 +190,9 @@ begin
       Delete(DT);
       exit;
     end;
+  obj.Critical__.Lock;
   obj.Delete(Value);
+  obj.Critical__.UnLock;
   if obj.Num <= 0 then
       Delete(DT);
 end;
@@ -255,19 +257,14 @@ begin
   if CompareDateTime(bDT, eDT) > 0 then
       TSwap<TDateTime>.Do_(bDT, eDT);
 
-  FCritical.Lock;
-  try
-    tmp := bDT;
-    Add_Span(False, tmp, Value);
-    tmp := IncHour(tmp);
-    while CompareDateTime(tmp, eDT) <= 0 do
-      begin
-        Add_Span(False, tmp, Value);
-        tmp := IncHour(tmp);
-      end;
-  finally
-      FCritical.UnLock;
-  end;
+  tmp := bDT;
+  Add_Span(True, tmp, Value);
+  tmp := IncHour(tmp);
+  while CompareDateTime(tmp, eDT) <= 0 do
+    begin
+      Add_Span(True, tmp, Value);
+      tmp := IncHour(tmp);
+    end;
 end;
 
 procedure THours_Buffer_Pool<T_>.Add_Span(L_: Boolean; DT: TDateTime; Value: T_);
@@ -278,22 +275,28 @@ begin
   if L_ then
       FCritical.Lock;
   try
-    obj := Get_Or_Create_Pool(DT);
-    if obj.Exists_Key(Value) then
-        exit;
-
-    obj.Add(Value, Self, False);
-    obj2 := FTime_Data_Pool.Key_Value[Value];
-    if obj2 = nil then
-      begin
-        obj2 := TTime_Data_L.Create;
-        FTime_Data_Pool.Add(Value, obj2, False);
-      end;
-    obj2.Span_Time_L.Add(DT);
-    obj2.Add(obj);
+      obj := Get_Or_Create_Pool(DT);
   finally
     if L_ then
         FCritical.UnLock;
+  end;
+
+  obj.Critical__.Lock;
+  try
+    if not obj.Exists_Key(Value) then
+      begin
+        obj.Add(Value, Self, False);
+        obj2 := FTime_Data_Pool.Key_Value[Value];
+        if obj2 = nil then
+          begin
+            obj2 := TTime_Data_L.Create;
+            FTime_Data_Pool.Add(Value, obj2, False);
+          end;
+        obj2.Span_Time_L.Add(DT);
+        obj2.Add(obj);
+      end;
+  finally
+      obj.Critical__.UnLock;
   end;
 end;
 
@@ -312,9 +315,11 @@ begin
     if obj2 = nil then
       begin
         if Num > 0 then
-          with Repeat_ do
+          with repeat_ do
             repeat
-                queue^.data^.data.Second.Delete(Value);
+              queue^.data^.data.Second.Critical__.Lock;
+              queue^.data^.data.Second.Delete(Value);
+              queue^.data^.data.Second.Critical__.UnLock;
             until not Next;
       end
     else
@@ -322,9 +327,11 @@ begin
         // remove queue
         if obj2.Num > 0 then
           begin
-            with obj2.Repeat_ do
+            with obj2.repeat_ do
               repeat
+                queue^.data.Critical__.Lock;
                 queue^.data.Delete(Value);
+                queue^.data.Critical__.UnLock;
                 if queue^.data.Num <= 0 then
                   begin
                     queue^.data.Clear;
@@ -334,7 +341,7 @@ begin
           end;
         // remove primary key
         if obj2.Span_Time_L.Num > 0 then
-          with obj2.Span_Time_L.Repeat_ do
+          with obj2.Span_Time_L.repeat_ do
             repeat
                 Do_Remove_DT_Obj(queue^.data, Value);
             until not Next;
@@ -403,55 +410,71 @@ begin
   Result := TTime_List.Create;
   swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
 
-  FCritical.Lock;
   try
     tmp := bDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                  swap_obj.Add(queue^.data^.data.Primary, Self, False);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     while CompareDateTime(tmp, eDT) <= 0 do
       begin
+        FCritical.Lock;
         obj := Get_Pool(tmp);
+        FCritical.UnLock;
         if obj <> nil then
           begin
             if obj.Num > 0 then
-              with obj.Repeat_ do
-                repeat
-                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                      swap_obj.Add(queue^.data^.data.Primary, Self, True);
-                until not Next;
+              begin
+                obj.Critical__.Lock;
+                with obj.repeat_ do
+                  repeat
+                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                  until not Next;
+                obj.Critical__.UnLock;
+              end;
           end;
         tmp := IncHour(tmp);
       end;
 
     tmp := eDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                  swap_obj.Add(queue^.data^.data.Primary, Self, True);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     if swap_obj.Num > 0 then
-      with swap_obj.Repeat_ do
+      with swap_obj.repeat_ do
         repeat
             Result.Add(queue^.data^.data.Primary);
         until not Next;
   except
   end;
-  FCritical.UnLock;
 
   DisposeObject(swap_obj);
 end;
@@ -463,19 +486,20 @@ var
 begin
   Result := TTime_List.Create;
   FCritical.Lock;
-  try
-    obj := Get_Pool(DT);
-    if obj <> nil then
-      begin
-        if obj.Num > 0 then
-          with obj.Repeat_ do
+  obj := Get_Pool(DT);
+  FCritical.UnLock;
+  if obj <> nil then
+    begin
+      if obj.Num > 0 then
+        begin
+          obj.Critical__.Lock;
+          with obj.repeat_ do
             repeat
                 Result.Add(queue^.data^.data.Primary);
             until not Next;
-      end;
-  finally
-      FCritical.UnLock;
-  end;
+          obj.Critical__.UnLock;
+        end;
+    end;
 end;
 
 function THours_Buffer_Pool<T_>.Search_Span_And_Filter_C(const bDT_, eDT_: TDateTime; OnFilter: TSearch_Filter_C): TTime_List;
@@ -493,58 +517,74 @@ begin
   Result := TTime_List.Create;
   swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
 
-  FCritical.Lock;
   try
     tmp := bDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, False);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     while CompareDateTime(tmp, eDT) <= 0 do
       begin
+        FCritical.Lock;
         obj := Get_Pool(tmp);
+        FCritical.UnLock;
         if obj <> nil then
           begin
+            obj.Critical__.Lock;
             if obj.Num > 0 then
-              with obj.Repeat_ do
-                repeat
-                  if OnFilter(queue^.data^.data.Primary) then
-                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
-                until not Next;
+              begin
+                with obj.repeat_ do
+                  repeat
+                    if OnFilter(queue^.data^.data.Primary) then
+                      if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                          swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                  until not Next;
+                obj.Critical__.UnLock;
+              end;
           end;
         tmp := IncHour(tmp);
       end;
 
     tmp := eDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, True);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     if swap_obj.Num > 0 then
-      with swap_obj.Repeat_ do
+      with swap_obj.repeat_ do
         repeat
             Result.Add(queue^.data^.data.Primary);
         until not Next;
   except
   end;
-  FCritical.UnLock;
 
   DisposeObject(swap_obj);
 end;
@@ -564,58 +604,74 @@ begin
   Result := TTime_List.Create;
   swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
 
-  FCritical.Lock;
   try
     tmp := bDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, False);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     while CompareDateTime(tmp, eDT) <= 0 do
       begin
+        FCritical.Lock;
         obj := Get_Pool(tmp);
+        FCritical.UnLock;
         if obj <> nil then
           begin
+            obj.Critical__.Lock;
             if obj.Num > 0 then
-              with obj.Repeat_ do
-                repeat
-                  if OnFilter(queue^.data^.data.Primary) then
-                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
-                until not Next;
+              begin
+                with obj.repeat_ do
+                  repeat
+                    if OnFilter(queue^.data^.data.Primary) then
+                      if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                          swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                  until not Next;
+                obj.Critical__.UnLock;
+              end;
           end;
         tmp := IncHour(tmp);
       end;
 
     tmp := eDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, True);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     if swap_obj.Num > 0 then
-      with swap_obj.Repeat_ do
+      with swap_obj.repeat_ do
         repeat
             Result.Add(queue^.data^.data.Primary);
         until not Next;
   except
   end;
-  FCritical.UnLock;
 
   DisposeObject(swap_obj);
 end;
@@ -635,58 +691,74 @@ begin
   Result := TTime_List.Create;
   swap_obj := TTime_Hash_Pool.Create($FFFF, Self);
 
-  FCritical.Lock;
   try
     tmp := bDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, False);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, False);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     while CompareDateTime(tmp, eDT) <= 0 do
       begin
+        FCritical.Lock;
         obj := Get_Pool(tmp);
+        FCritical.UnLock;
         if obj <> nil then
           begin
+            obj.Critical__.Lock;
             if obj.Num > 0 then
-              with obj.Repeat_ do
-                repeat
-                  if OnFilter(queue^.data^.data.Primary) then
-                    if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                        swap_obj.Add(queue^.data^.data.Primary, Self, True);
-                until not Next;
+              begin
+                with obj.repeat_ do
+                  repeat
+                    if OnFilter(queue^.data^.data.Primary) then
+                      if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                          swap_obj.Add(queue^.data^.data.Primary, Self, True);
+                  until not Next;
+                obj.Critical__.UnLock;
+              end;
           end;
         tmp := IncHour(tmp);
       end;
 
     tmp := eDT;
+    FCritical.Lock;
     obj := Get_Pool(tmp);
+    FCritical.UnLock;
     if obj <> nil then
       begin
         if obj.Num > 0 then
-          with obj.Repeat_ do
-            repeat
-              if OnFilter(queue^.data^.data.Primary) then
-                if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
-                    swap_obj.Add(queue^.data^.data.Primary, Self, True);
-            until not Next;
+          begin
+            obj.Critical__.Lock;
+            with obj.repeat_ do
+              repeat
+                if OnFilter(queue^.data^.data.Primary) then
+                  if not swap_obj.Exists_Key(queue^.data^.data.Primary) then
+                      swap_obj.Add(queue^.data^.data.Primary, Self, True);
+              until not Next;
+            obj.Critical__.UnLock;
+          end;
       end;
 
     if swap_obj.Num > 0 then
-      with swap_obj.Repeat_ do
+      with swap_obj.repeat_ do
         repeat
             Result.Add(queue^.data^.data.Primary);
         until not Next;
   except
   end;
-  FCritical.UnLock;
 
   DisposeObject(swap_obj);
 end;
@@ -701,7 +773,7 @@ begin
   Result := 0;
   Critical.Lock;
   if Num > 0 then
-    with Repeat_ do
+    with repeat_ do
       repeat
           inc(Result, queue^.data^.data.Second.Num);
       until not Next;
@@ -757,19 +829,19 @@ begin
   tmp := m.Search_Span(bDT, eDT);
   DisposeObject(tmp);
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         m.Get_Span_Num(queue^.data);
     until not Next;
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         m.Remove_Span(queue^.data);
     until not Next;
 
   DisposeObject(m);
 
-  with L.Repeat_ do
+  with L.repeat_ do
     repeat
         dispose(queue^.data);
     until not Next;
