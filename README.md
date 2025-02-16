@@ -137,6 +137,12 @@ PascalRewriteModel.dproj是prp的建模工具,都可以编译通过,本文档暂
 
 ## 最新更新日志
 
+**2025-2-17 改动较多**
+
+- 修正时间跨度容器的内部工作机制:不再使用一刀切方式的Critical,修改为时区Critical
+- 给TBig_Hash_Pair_Pool泛型类增加内置Critical
+
+
 **2024-9-13 使用自动化工具重构source目录**
 
 - 本次更新的目录结构会长时间维持,同时在未来ZNet的更新频率也会大幅提高
