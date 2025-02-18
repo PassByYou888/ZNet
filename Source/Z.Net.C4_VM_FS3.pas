@@ -96,6 +96,7 @@ type
     procedure cmd_Get_File(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
     procedure do_Th_Get_File_List(thSender: THPC_CompleteBuffer_Stream; ThInData, ThOutData: TDFE);
     procedure cmd_Get_File_List(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
+    procedure cmd_Remove_File(Sender: TPeerIO; InData: TDFE);
   private
     // internal
     FLast_Life_Check_Time: TTimeTick;
@@ -182,6 +183,7 @@ type
     File_Size: Int64;
     File_Time: TDateTime;
     File_Life: Double;
+    File_ID: Int64;
   end;
 
   TC40_FS3_VM_Client_File_List_Array = array of TC40_FS3_VM_Client_File_Info__;
@@ -235,6 +237,8 @@ type
     procedure Get_File_List_C(filter_: U_String; Max_Num: Int64; OnResult: TC40_FS3_VM_Client_Get_File_List_DoneC);
     procedure Get_File_List_M(filter_: U_String; Max_Num: Int64; OnResult: TC40_FS3_VM_Client_Get_File_List_DoneM);
     procedure Get_File_List_P(filter_: U_String; Max_Num: Int64; OnResult: TC40_FS3_VM_Client_Get_File_List_DoneP);
+
+    procedure Remove_File(File_ID: Int64);
   end;
 
   TC40_FS3_VM_Client_List = TGenericsList<TC40_FS3_VM_Client>;
@@ -456,6 +460,7 @@ begin
                 d.WriteInt64(Queue^.Data^.Data.Second.FileSize);
                 d.WriteDouble(Queue^.Data^.Data.Second.Time_);
                 d.WriteDouble(Queue^.Data^.Data.Second.Life);
+                d.WriteInt64(Queue^.Data^.Data.Second.Sequence_ID);
                 ThOutData.WriteDataFrame(d);
                 disposeObject(d);
                 inc(i);
@@ -470,6 +475,12 @@ end;
 procedure TC40_FS3_VM_Service.cmd_Get_File_List(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
 begin
   RunHPC_CompleteBuffer_StreamM(Sender, nil, nil, NULL, InData, OutData, do_Th_Get_File_List);
+end;
+
+procedure TC40_FS3_VM_Service.cmd_Remove_File(Sender: TPeerIO; InData: TDFE);
+begin
+  while InData.R.NotEnd do
+      FS3_Lite.Remove([InData.R.ReadInt64]);
 end;
 
 constructor TC40_FS3_VM_Service.Create(Param_: U_String);
@@ -490,6 +501,7 @@ begin
   DTNoAuthService.RecvTunnel.RegisterDirectStream('End_Post').OnExecute := cmd_End_Post;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Bridge_Stream('Get_File').OnExecute := cmd_Get_File;
   DTNoAuthService.RecvTunnel.RegisterCompleteBuffer_NoWait_Bridge_Stream('Get_File_List').OnExecute := cmd_Get_File_List;
+  DTNoAuthService.RecvTunnel.RegisterDirectStream('Remove_File').OnExecute := cmd_Remove_File;
 
   FS3_Lite := TZDB2_FS3_Lite.Create(DTNoAuthService.PublicFileDirectory);
   FS3_Lite.Body_Fragment_Size := EStrToInt64(ParamList.GetDefaultValue('Body_Fragment_Size', '1024*1024'));
@@ -817,6 +829,7 @@ begin
       arry[i].File_Size := d.R.ReadInt64;
       arry[i].File_Time := d.R.ReadDouble;
       arry[i].File_Life := d.R.ReadDouble;
+      arry[i].File_ID := d.R.ReadInt64;
       disposeObject(d);
     end;
 
@@ -1015,7 +1028,7 @@ begin
   Bridge_ := TC40_FS3_VM_Client_Get_File_List_Bridge.Create;
   Bridge_.Client := self;
   Bridge_.OnResultC := OnResult;
-  DTNoAuth.SendTunnel.SendStreamCmdM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
+  DTNoAuth.SendTunnel.SendCompleteBuffer_NoWait_StreamM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
   disposeObject(d);
 end;
 
@@ -1030,7 +1043,7 @@ begin
   Bridge_ := TC40_FS3_VM_Client_Get_File_List_Bridge.Create;
   Bridge_.Client := self;
   Bridge_.OnResultM := OnResult;
-  DTNoAuth.SendTunnel.SendStreamCmdM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
+  DTNoAuth.SendTunnel.SendCompleteBuffer_NoWait_StreamM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
   disposeObject(d);
 end;
 
@@ -1045,8 +1058,13 @@ begin
   Bridge_ := TC40_FS3_VM_Client_Get_File_List_Bridge.Create;
   Bridge_.Client := self;
   Bridge_.OnResultP := OnResult;
-  DTNoAuth.SendTunnel.SendStreamCmdM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
+  DTNoAuth.SendTunnel.SendCompleteBuffer_NoWait_StreamM('Get_File_List', d, Bridge_.Do_Result_Get_File_List);
   disposeObject(d);
+end;
+
+procedure TC40_FS3_VM_Client.Remove_File(File_ID: Int64);
+begin
+  DTNoAuth.SendTunnel.SendDirectStreamCmd('Remove_File', TDFE.Create.WriteInt64(File_ID).DelayFree);
 end;
 
 end.
