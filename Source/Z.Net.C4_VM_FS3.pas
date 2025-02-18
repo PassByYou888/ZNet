@@ -4,6 +4,7 @@ https://github.com/PassByYou888/ZNet
 https://github.com/PassByYou888/zRasterization
 https://github.com/PassByYou888/ZSnappy
 https://github.com/PassByYou888/Z-AI1.4
+https://github.com/PassByYou888/ZAI_1.41
 https://github.com/PassByYou888/InfiniteIoT
 https://github.com/PassByYou888/zMonitor_3rd_Core
 https://github.com/PassByYou888/tcmalloc4p
@@ -185,6 +186,8 @@ type
     File_Life: Double;
     File_ID: Int64;
   end;
+
+  PC40_FS3_VM_Client_File_Info__ = ^TC40_FS3_VM_Client_File_Info__;
 
   TC40_FS3_VM_Client_File_List_Array = array of TC40_FS3_VM_Client_File_Info__;
 

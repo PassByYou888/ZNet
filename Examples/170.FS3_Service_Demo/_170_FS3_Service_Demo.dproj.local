@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2025/02/18 08:31:35.000.737,D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo.dfm=C:\Users\Administrator\Documents\Embarcadero\Studio\Projects\Unit1.dfm</Transaction>
+    <Transaction>2025/02/18 08:31:35.000.737,D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo.pas=C:\Users\Administrator\Documents\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2025/02/18 08:32:06.000.534,D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo_.dproj=C:\Users\Administrator\Documents\Embarcadero\Studio\Projects\Project1.dproj</Transaction>
+    <Transaction>2025/02/18 08:32:11.000.669,D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo_Frm.dfm=D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo.dfm</Transaction>
+    <Transaction>2025/02/18 08:32:16.000.924,D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo.dproj=D:\ZAIDemo\_170_FS3_Service_Demo\_170_FS3_Service_Demo_.dproj</Transaction>
+  </Transactions>
+	<ActiveMobileDevice>
+		<NoProfile iOSSimulator="iPhone5"/>
+	</ActiveMobileDevice>
+</BorlandProject>

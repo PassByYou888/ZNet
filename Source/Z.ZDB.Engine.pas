@@ -4,6 +4,7 @@ https://github.com/PassByYou888/ZNet
 https://github.com/PassByYou888/zRasterization
 https://github.com/PassByYou888/ZSnappy
 https://github.com/PassByYou888/Z-AI1.4
+https://github.com/PassByYou888/ZAI_1.41
 https://github.com/PassByYou888/InfiniteIoT
 https://github.com/PassByYou888/zMonitor_3rd_Core
 https://github.com/PassByYou888/tcmalloc4p
