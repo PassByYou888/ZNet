@@ -2616,6 +2616,7 @@ begin
       {$ELSEIF defined(VER350)}'Delphi 11'
       {$ELSEIF defined(VER360)}'Delphi 11.x or 12 last...'
       {$ELSEIF defined(VER370)}'Delphi 12 or 13 last...'
+      {$ELSEIF defined(VER380)}'Delphi 12 or 13 last...'
       {$ELSE}'Unknow Delphi Compiler'
       {$IFEND}
     {$ENDIF CONDITIONALEXPRESSIONS}
