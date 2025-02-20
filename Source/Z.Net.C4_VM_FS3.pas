@@ -232,6 +232,7 @@ type
     procedure Post_File_M(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean; OnResult: TC40_FS3_VM_Client_Post_File_DoneM);
     procedure Post_File_P(File_Name: U_String; File_Time: TDateTime; File_Life: Double; File_Stream: TCore_Stream; Auto_Free_Stream: Boolean; OnResult: TC40_FS3_VM_Client_Post_File_DoneP);
 
+    // API: Get_File does not automatically release the output, and you need to release it manually.
     procedure Get_File(File_Name: U_String; bPos, ePos: Int64; Output: TCore_Stream; Done_State: PBoolean);
     procedure Get_File_C(File_Name: U_String; bPos, ePos: Int64; Output: TCore_Stream; OnResult: TC40_FS3_VM_Client_Get_File_DoneC);
     procedure Get_File_M(File_Name: U_String; bPos, ePos: Int64; Output: TCore_Stream; OnResult: TC40_FS3_VM_Client_Get_File_DoneM);
