@@ -13,10 +13,66 @@ uses
   Z.Net,
   Z.Net.XNAT.Physics,
   Z.Net.XNAT.Service,
+  Z.Net.C4,
   Z.Status;
 
 var
   XServ: TXNATService;
+
+type
+  TMain_Loop_Instance__ = class(TCore_Object_Intermediate)
+  private
+    exit_signal: Boolean;
+    procedure Do_Check_On_Exit;
+  public
+    constructor Create;
+    procedure Wait();
+  end;
+
+procedure TMain_Loop_Instance__.Do_Check_On_Exit;
+var
+  n: string;
+  cH: TC40_Console_Help;
+begin
+  TCompute.Set_Thread_Info('C4 Console-help Thread');
+  cH := nil;
+  repeat
+    TCompute.Sleep(100);
+    Readln(n);
+    n := umlTrimSpace(n);
+    if cH = nil then
+        cH := TC40_Console_Help.Create;
+    if n <> '' then
+        cH.Run_HelpCmd(n);
+  until cH.IsExit;
+  DisposeObjectAndNil(cH);
+  exit_signal := True;
+end;
+
+constructor TMain_Loop_Instance__.Create;
+begin
+  inherited Create;
+  exit_signal := False;
+  TCompute.RunM_NP(Do_Check_On_Exit);
+end;
+
+procedure TMain_Loop_Instance__.Wait;
+begin
+  while not exit_signal do
+    begin
+      CheckThread;
+      XServ.Progress;
+    end;
+end;
+
+procedure C40_Execute_Main_Loop;
+begin
+  with TMain_Loop_Instance__.Create do
+    begin
+      Wait;
+      Free;
+    end;
+end;
 
 begin
   XServ := TXNATService.Create;
@@ -33,8 +89,8 @@ begin
   }
   XServ.ProtocolCompressed := False; // 关闭可以提速
 
-  XServ.Host := '0.0.0.0';     // 与内网服务器的通讯参数：协议隧道绑定地址为所有网卡的ipv4，如果是ipv6，写'::'
-  XServ.Port := '7890';        // 与内网服务器的通讯参数：协议端口
+  XServ.Host := '0.0.0.0'; // 与内网服务器的通讯参数：协议隧道绑定地址为所有网卡的ipv4，如果是ipv6，写'::'
+  XServ.Port := '7890'; // 与内网服务器的通讯参数：协议端口
   XServ.AuthToken := '123456'; // 与内网服务器的通讯参数：协议验证字符串(该标识符使用了抗量子密码模型，相关技术请自行研究代码)
 
   {
@@ -50,10 +106,7 @@ begin
   XServ.AddMapping('0.0.0.0', '8021', 'ftp8021', 15 * 60 * 1000);
   XServ.OpenTunnel;
 
-  while True do
-    begin
-      XServ.Progress;
-      CheckThread(10);
-    end;
+  C40_Execute_Main_Loop();
 
+  DisposeObject(XServ);
 end.
