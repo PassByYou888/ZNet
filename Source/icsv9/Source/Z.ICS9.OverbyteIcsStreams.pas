@@ -3,7 +3,7 @@
 Author:       Arno Garrels <arno.garrels@gmx.de>
 Creation:     Oct 25, 2005
 Description:  Fast streams for ICS
-Version:      V9.0
+Version:      V9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
 Legal issues: Copyright (C) 2005-2023 by Arno Garrels, Berlin, Germany,
@@ -92,6 +92,7 @@ Aug 14, 2020 V8.65 Corrected NewSize: Integer to LongInt to match base class.
                    Still trying to support MacOS64.
 May 25, 2021 V8.67 Minor clean up.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 27, 2023 V9.1  Overloaded widestring TIcsBufferedStream now only for non-unicode.
 
 
 
@@ -284,10 +285,12 @@ type
                            Mode           : Word;
                            Rights         : Cardinal;
                            BufferSize     : LongInt); overload; virtual;    { V8.65 was Integer }
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
         constructor Create(const FileName : WideString;
                            Mode           : Word;
                            Rights         : Cardinal;
                            BufferSize     : LongInt); overload; virtual;     { V8.65 was Integer }
+{$ENDIF UNICODE}
         constructor Create(const FileName: String; Mode: Word; BufferSize: LongInt); overload; virtual;     { V8.65 was Integer }
         constructor Create(const FileName: WideString; Mode: Word; BufferSize: LongInt); overload; virtual;  { V8.65 was Integer }
         destructor  Destroy; override;
@@ -349,6 +352,7 @@ type
                            CodePage       : LongWord = CP_ACP;
                            BufferSize     : LongInt = DEFAULT_BUFSIZE); overload;    { V8.65 was Integer }
 
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
         constructor Create(const FileName : WideString;
                            Mode           : Word;
                            BufferSize     : LongInt = DEFAULT_BUFSIZE); override;    { V8.65 was Integer }
@@ -356,6 +360,7 @@ type
                            DetectBOM      : Boolean = TRUE;
                            CodePage       : LongWord = CP_ACP;
                            BufferSize     : LongInt = DEFAULT_BUFSIZE); overload;    { V8.65 was Integer }
+{$ENDIF UNICODE}
 
         function    DetectLineBreakStyle: TIcsLineBreakStyle;
         function    ReadLine(var S: RawByteString): Boolean; overload; virtual;
@@ -405,6 +410,7 @@ type
                            CodePage       : LongWord = CP_ACP;
                            BufferSize     : LongInt = DEFAULT_BUFSIZE); overload;     { V8.65 was Integer }
 
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
         constructor Create(const FileName : WideString;
                            Mode           : Word;
                            Rights         : Cardinal;
@@ -415,6 +421,7 @@ type
                            DetectBOM      : Boolean = TRUE;
                            CodePage       : LongWord = CP_ACP;
                            BufferSize     : LongInt = DEFAULT_BUFSIZE); overload;    { V8.65 was Integer }
+{$ENDIF UNICODE}
 
         function    DetectLineBreakStyle: TIcsLineBreakStyle;
         procedure   Write(const S     : UnicodeString); reintroduce; overload; virtual;
@@ -1404,6 +1411,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
 constructor TIcsBufferedStream.Create(const FileName: WideString; Mode: Word;  Rights: Cardinal; BufferSize: LongInt);  { V8.65 was Integer }
 begin
     inherited Create;
@@ -1415,6 +1423,7 @@ begin
     IsReadOnly := IsFileModeReadOnly(Mode);
     Init;
 end;
+{$ENDIF UNICODE}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -1664,6 +1673,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
 constructor TIcsStreamReader.Create(const FileName: WideString; Mode: Word; BufferSize: LongInt = DEFAULT_BUFSIZE);  { V8.65 was Integer }
 begin
     Create(FileName, FALSE, CP_ACP, BufferSize);
@@ -1678,6 +1688,7 @@ begin
     FCodePage  := CodePage;
     inherited Create(FileName, fmOpenRead or fmShareDenyWrite, FileAccessRights, BufferSize);
 end;
+{$ENDIF UNICODE}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -2227,6 +2238,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
 constructor TIcsStreamWriter.Create(const FileName: WideString; Mode: Word; Rights: Cardinal; BufferSize: LongInt); { V8.65 was Integer }
 begin
     FCodePage := CP_ACP;
@@ -2254,6 +2266,7 @@ begin
         inherited Create(FileName, Mode, FileAccessRights, BufferSize);
     end;
 end;
+{$ENDIF UNICODE}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}

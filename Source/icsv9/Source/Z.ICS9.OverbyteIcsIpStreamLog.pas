@@ -1,12 +1,12 @@
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- Author:      Angus Robertson, Magenta Systems Ltd
+Author:      Angus Robertson, Magenta Systems Ltd
 Description:  IP Streaming Log Component
 Creation:     Nov 2006
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Jun 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2006-2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -38,27 +38,35 @@ TIcsIpStrmLog is designed for IP stream logging, using TCP Client, TCP Server,
 UDP Client or UDP Server protocols, sending simple text lines across a network
 so they may be displayed or written to disk remotely.  The component allows
 two way communication with TCP and UDP, so may also be used for simple
-protocols such as communication between two applications.   The component
-supports multiple client sockets so may be used to send data to two or more
-different remote servers at the same time.  For TCP and UDP clients, the
-component will optionally ping the remote computer first before opening
-an IP connection to allow faster failure retries and some confirmation that
-UDP may work.  TCP client provides repeated connection retry attempts,
-including re-establishing a lost connection.  UDP client will optionally
-keep pinging the remote during a connection to ensure it's still there.
-UDP server sends data to the IP address and port from which it last received
-data. TCP server supports multiple remote clients connecting.
-Received data is parsed for various line endings optionally removing
-control characters and triggering an event for a received line.  The only
-other two events are optional, one for state changed when starting and
-stopping, the second offering progress information and errors. The
-component supports both IPv4 and IPv6, host name lookup for TCP and UDP
-Client, and SSL connections for TCP Client and TCP Server, including
-remote server certificate checking using either a local PEM bundle root
- file or the Windows Certificate Store.
+protocols such as communication between two applications.
 
-A demo application testiplog.exe illustrates use of TIcsIpStrmLog as a TCP or
-UDP client or server, and both in the same program sending data locally.
+The component supports multiple client sockets so may be used to send data to
+two or more different remote servers at the same time. For TCP and UDP clients,
+the component will optionally ping the remote computer first before opening
+an IP connection to allow faster failure retries and some confirmation that
+UDP may work.
+
+TCP client provides repeated connection retry attempts, including
+re-establishing a lost connection.  UDP client will optionally keep pinging
+the remote during a connection to ensure it's still there. UDP server sends
+data to the IP address and port from which it last received data.
+
+TCP server supports multiple remote clients connecting, and can send lines
+to just one or all of the remore connections.  TCP Client and Server support
+SSL/TLS if required, with the server creating local certificates or ordering
+public certificates from Let's Encrypt.
+
+Received data is parsed for various line endings optionally removing control
+characters and triggering an event for a received line.  The only other two
+events are optional, one for state changed when starting and stopping, the
+second offering progress information and errors. The component supports both
+IPv4 and IPv6, host name lookup for TCP and UDP Client, and SSL connections
+for TCP Client and TCP Server, including remote server certificate checking
+using either a built in PEM bundle.
+
+A demo application OverbyteIcsIpStmLogTst illustrates use of TIcsIpStrmLog
+as a TCP or UDP client or server, and both in the same program sending
+data locally.
 
 The same component may be used in a client or server application,
 to send or receive.  Multiple instances of the component may be used on
@@ -112,13 +120,13 @@ saved to another stream in LogRecvEvent.  Binary data is more problematic,
 set RawData to true and MaxLineLen to get a buffer load at a time, but
 the last buffer load will need to be extracted with GetPartialLine using
 a timeout, this is called automatically when the connection is closed.
-14 - To send to multiple clients, set MaxSockets to the number needed,
-then use the function SetRemotes to specify the remote host and port for
-each socket number, base 0.  The events all return Socnr to indicate which
-socket. MaxSockets also specifies how many remote clients can connect to
-TCP Server, but note that Socnr is dynamic and changes as remote clients
-come and go.
-
+14 - To send to multiple TCP or UDP Clients, set MaxSockets to the number
+needed, then use the function SetRemotes to specify the remote host and
+port for each socket number, base 0.  The events all return Socnr to
+indicate which socket. For TCP Serever, MaxSockets specifies how many
+remote clients can connect to TCP Server, and the events return a
+sequential ClientId number (base 1) to uniquely identify remote clients,
+which can be used to send data back to just one of those clients.
 
 
 22nd Nov 2006 - baseline - v1.0
@@ -224,6 +232,44 @@ Oct 11, 2022 - V8.70  Added UseUtf8 flag that converts received lines from UTF-8
 Jan 26, 2023 - V8.71 Ensure inherited destroy called.
                      Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 18, 2023 V9.1  TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+                   Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   SslContext now uses public IcsSslRootCAStore and ignores root bundle.
+Apr 25, 2024 V9.2  Correctly count failed client connection attempts if ping is not used
+                     first to check the remote IP address.
+Sep 19, 2024 V9.3  Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                     the Windows Store can be used for SSL certificate verification.
+                   Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
+                   Major rewrite of TCP Server code so the TStrmChanInfo record is now part
+                     of TWSocketClient to avoid issues with the server accepting multiple
+                     connections that came and went, so the application could get confused
+                     over which client was sending data.
+                   For TCP/Server, events now return a sequential ClientId number (base 1)
+                     instead of current socket number (base 0) to uniquely identify remote
+                     clients.  Beware server  clients may have disconnected.
+                   SendLogLine has an optional ClientId argument allowing a line to be
+                      sent to a single remote client, instead of all the clients.
+                   Added CloseSrvCli method to close a single TCP Server remote client
+                     connection by ClientId.
+                   UDP Server allowed to listen for broadcasts in multiple apps on same
+                     PC by reusing IP/port. Not sure it works yet.
+                   Added SrvClientSoc property to get TIpServerClient.
+                   Restrict MaxLineLen to DefMaxIpLogLine which is 4096 characters,
+                     although should be about 1400 for UDP packets to be sent correcly.
+                   Try to stop repeated errors when connections fail.
+                   Added a way for applications to check SSL certificate chains themselves,
+                    ignoring OpenSSL bundle checks, usually for self signed private certificates.
+                    if LogSslVerMethod = logSslVerOwnEvent, during OnSslHandshakeDone the component
+                    calls a new event OnSslCertVerifyEvent where the application can check the
+                    chain and change the verify result appropriately. Maybe checking certificate
+                    serials, names or public key.
+Jan 22, 2025 V9.4  Added ListenStates which for logprotUdpServer and logprotTcpServer returns a
+                     multiline string listing the IP, port, SSL and state of all socket listeners.
+                   CurSockets property now reflects actual TCP Server clients.
+Jun 12, 2025 V9.5  Added OCSP conditionals.
+
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -256,7 +302,7 @@ uses
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.IniFiles{$ELSE}IniFiles{$ENDIF},
-    Z.ICS9.OverbyteIcsWinsock,
+//  OverbyteIcsWinsock,
 {$ENDIF}
 {$IFDEF POSIX}
     Posix.Time,
@@ -267,15 +313,19 @@ uses
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     {$IFDEF Rtl_Namespaces}System.StrUtils{$ELSE}StrUtils{$ENDIF},
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  OverbyteIcsSsleay, OverbyteIcsLibeay,
     Z.ICS9.OverbyteIcsLogger,
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslSessionCache,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,
+{$ENDIF MSCRYPT_Clients}
+//    Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
 {$IFDEF AUTO_X509_CERTS}
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Certs,
@@ -287,8 +337,12 @@ uses
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsWSocketS,
     Z.ICS9.OverbyteIcsSslSessionCache,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsMsSslUtils,
-    Z.ICS9.OverbyteIcsSslHttpRest,
+{$ENDIF MSCRYPT_Clients}
+//  OverbyteIcsSslHttpRest,         { V8.69, gone V9.1  }
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
     Z.ICS9.OverbyteIcsSslX509Utils,
 {$IFDEF AUTO_X509_CERTS}
     Z.ICS9.OverbyteIcsSslX509Certs,
@@ -297,39 +351,33 @@ uses
     Z.ICS9.OverbyteIcsIcmp,
 {$ENDIF FMX}
 {$IFDEF MSWINDOWS}
-    Z.ICS9.OverbyteIcsWinCrypt,
+//  OverbyteIcsWinCrypt,
 {$ENDIF MSWINDOWS}
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
-{ NOTE - these components only build with SSL, there is no non-SSL option }
+{ NOTE - these components only build with SSL, there is no non-SSL option, although SSL use is optional }
 
 const
-    CopyRight : String = ' TIcsIpStrmLog (c) 2023 V9.0 ';
+    CopyRight : String = ' TIcsIpStrmLog (c) 2025 V9.5 ';
+    DefMaxIpLogLine = 4096;   { V9.3, but defaults to 132 }
 
 type
-  TStrmLogProtocol = (logprotUdpClient, logprotUdpServer,
-                  logprotTcpServer, logprotTcpClient);
-              //    logprotUdpClient6, logprotUdpServer6,
-              //    logprotTcpServer6, logprotTcpClient6) ;
-  TStrmLogState = (logstateNone, logstateStart, logstateHandshake,
-               logstateOK, logstateOKStream, logstateStopping) ;
+  TStrmLogProtocol = (logprotUdpClient, logprotUdpServer, logprotTcpServer, logprotTcpClient);
+  TStrmLogState = (logstateNone, logstateStart, logstateHandshake, logstateOK, logstateOKStream,
+                                                                           logstateStopping, logstateError) ;  { V9.3 added error }
   TStrmLineEnd = (lineendCR, lineendLF, lineendCustom, lineendPacket, lineendCRLF) ;
-  TStrmVerifyMethod = (logSslVerNone, logSslVerBundle, logSslVerWinStore) ;
+  TStrmVerifyMethod = (logSslVerNone, logSslVerBundle, logSslVerWinStore, logSslVerOwnEvent); { V9.3 added OwnEvent }
 
-  TStrmLogRecvEvent = procedure (Sender: TObject; Socnr: integer;
-                                         const Line: string) of object;
+  TStrmLogRecvEvent = procedure (Sender: TObject; Socnr: integer; const Line: string) of object;
 
-  TStrmLogProgEvent = procedure (Sender: TObject; Socnr: integer;
-                          LogOption: TLogOption; const Msg: string) of object;
+  TStrmLogProgEvent = procedure (Sender: TObject; Socnr: integer; LogOption: TLogOption; const Msg: string) of object;
 
-  TStrmLogChangeEvent = procedure (Sender: TObject; Socnr: integer;
-                                         LogState: TStrmLogState) of object;
+  TStrmLogChangeEvent = procedure (Sender: TObject; Socnr: integer; LogState: TStrmLogState) of object;
 
 const
-  StrmLogStateNames: array [TStrmLogState] of PChar = ('None', 'Start', 'Handshake',
-                                               'OK', 'Streaming', 'Closing');
+  StrmLogStateNames: array [TStrmLogState] of PChar = ('None', 'Start', 'Handshake', 'OK', 'Streaming', 'Closing', 'Error');
 
 type
   TStrmChanInfo = record
@@ -355,7 +403,18 @@ type
     TotRecvData: int64 ;       // 13 Sept 2016 how much data has been received and sent to LogRecvEvent event
     StreamFlag: boolean ;      // stream currently being sent, 3 July 2014
     StreamNr: integer ;        // how many bytes of stream have been sent 3 July 2014
+    ClientId: Integer ;        // server socket CliId for validation V9.3
   end ;
+  PStrmChanInfo = ^TStrmChanInfo;   { V9.3 }
+
+type
+  TIpServerClient = class(TSslWSocketClient)       { V9.3 for TCP/Server, use local TStrmChanInfo }
+  private
+  public
+      CliChanInfo: TStrmChanInfo;
+      constructor Create(AOwner: TComponent); override;
+      destructor  Destroy; override;
+  end;
 
   TIcsIpStrmLog = class(TIcsWndControl)
   private
@@ -399,7 +458,7 @@ type
     FRxBuffer: TBytes ; { array [0..2048] of Byte;   { V8.69 was AnsiChar, V8.70 now TBytes }
     FSndBufSize: integer;  // 1.5 socket send buffer size
     FRcvBufSize: integer;  // 1.5 socket Recv buffer size
-    FCurSockets: integer ; // 1.6 current sockets for server
+//    FCurSockets: integer ; // 1.6 current sockets for server, gone V9.4
     FSrvTimeoutSecs: integer ;  // 5 July 2016 server idle timeout
     FServerTimer: TIcsTimer;      // 5 July 2016 timer to check for idle timeouts
     FHeartBeatBusy: Boolean ;  // 5 July 2016
@@ -412,7 +471,7 @@ type
     FLogSslRevocation: boolean;
     FOcspHttp: TOcspHttp;                 { V8.69 }
     FUseUtf8: Boolean;                    { V8.70 send and receive lines as utf8 }
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     FMsCertChainEngine: TMsCertChainEngine;
 {$ENDIF}
     FLogSslReportChain: boolean ;
@@ -424,12 +483,11 @@ type
     FonLogChangeEvent: TStrmLogChangeEvent ;
     FOnHandshakeDone: TSslHandshakeDoneEvent;
     FOnVerifyPeer: TSslVerifyPeerEvent;
-    procedure SocketBgException(Sender: TObject;
-                          E: Exception; var CanClose: Boolean);
+    FOnSslCertVerifyEvent: TSslCertVerifyEvent;   { V9.3 }
+    procedure SocketBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
     procedure ServerClientCreate(Sender : TObject; Client : TWSocketClient); virtual;
     procedure ServerClientConnect(Sender: TObject; Client: TWSocketClient; Error: Word); virtual;
-    procedure ServerClientDisconnect(Sender: TObject;
-                                 Client: TWSocketClient; Error: Word);
+    procedure ServerClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
     procedure SocketSessionConnected(Sender: TObject; Error: Word);
     procedure SocketSessionClosed(Sender: TObject; Error: Word);
     procedure SocketDataAvailable(Sender: TObject; Error: Word);
@@ -441,26 +499,23 @@ type
     function GeTStrmChanInfo (Index: integer): TStrmChanInfo ;
     function GetState (Index: integer): TStrmLogState ;
     function GetAnyStateOK: boolean ;
-    procedure IcsLogEvent (Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+    procedure IcsLogEvent (Sender: TObject; LogOption: TLogOption; const Msg : String);
     procedure LogProgEvent (Socnr: integer; const Msg : String);
     procedure LogErrEvent (Socnr: integer; const Msg : String);
     procedure LogChangeState (Socnr: integer; NewState: TStrmLogState) ;
     function PingStart (Socnr: integer): boolean ;
     procedure SetMaxSockets (Tot: integer) ;
     procedure SetRemoteHost (const NewRemHost: string) ;
-    procedure CheckServerSockets ;
+//    procedure CheckServerSockets ;          { V9.3 gone }
     procedure ServerTimerTimer(Sender: TObject);
     function GetSocket (Index: integer): TWSocket;     // 7 July 2016
     function GetTotRecvData (socnr: integer): int64 ;  // 13 Sept 2016
-    procedure TlsSslNewSession(Sender: TObject; SslSession: Pointer;
-                                            WasReused: Boolean; var IncRefCount : Boolean);
-    procedure TlsSslGetSession(Sender: TObject;
-                        var SslSession: Pointer; var FreeSession : Boolean);
+    procedure TlsSslNewSession(Sender: TObject; SslSession: Pointer; WasReused: Boolean; var IncRefCount : Boolean);
+    procedure TlsSslGetSession(Sender: TObject; var SslSession: Pointer; var FreeSession : Boolean);
     procedure TlsSslVerifyPeer(Sender: TObject; var Ok : Integer; Cert: TX509Base);
     procedure TlsSslHandshakeDone(Sender: TObject; ErrCode: Word; PeerCert: TX509Base; var Disconnect : Boolean);
     procedure TlsSslProtoMsgEvent(Sender: TObject; Info: String; Sending: integer;
-                    Version: integer; ContentType: integer; Buffer: PAnsiChar; BuffSize: integer) ;
+                                      Version: integer; ContentType: integer; Buffer: PAnsiChar; BuffSize: integer) ;
     procedure SetSslCliSecurity(Value: TSslCliSecurity);     // Dec 2018
     function  GetIcsHosts: TIcsHostCollection;               // Dec 2018
     procedure SetIcsHosts(const Value: TIcsHostCollection);  // Dec 2018
@@ -477,6 +532,8 @@ type
     function  GetSslCertAutoOrder: Boolean;                  // Dec 2018
     procedure SetSslCertAutoOrder(const Value : Boolean);    // Dec 2018
     procedure SetLogSslRootFile(const Value: String);              // May 2019
+    function GetSrvCliSoc(Index: integer): TIpServerClient;   { V9.3 }
+    function GetCurSockets: Integer;                          { V9.4 }
   public
 {$IFNDEF NO_DEBUG_LOG}
     IpIcsLogger: TIcsLogger ;
@@ -487,29 +544,35 @@ type
     function StartLogging: boolean ;
     function StopLogging: boolean ;
     function CheckStopped: boolean ;
-    function SendLogLine (const Line: AnsiString): boolean ; overload;   // 8 Aug 2010
-    function SendLogLine (const Line: UnicodeString): boolean ; overload ;  { V8.70 }
-    function SendLogLine (const Line: TBytes): boolean ; overload ;         { V8.70 }
-    function SendStream (MyStream: TStream): boolean ;           // 3 Jul 2014
+    function SendLogLine (const Line: AnsiString; ClientId: Integer = 0): boolean ; overload;   // 8 Aug 2010, V9.3 ClientId
+    function SendLogLine (const Line: UnicodeString; ClientId: Integer = 0): boolean ; overload ;  { V8.70 }
+    function SendLogLine (const Line: TBytes; ClientId: Integer = 0): boolean ; overload ;         { V8.70 }
+    function CloseSrvCli (ClientId: Integer): boolean ;                                            { V9.3 }
+    function SendStream (MyStream: TStream; ClientId: Integer = 0): boolean ;           // 3 Jul 2014
     function SetRemotes (Socnr: integer; const NewRemHost, NewRemPort: string): boolean ;
     procedure ClearLine (Socnr: integer) ;
     procedure ResetRecvData (Socnr: integer) ;             // 13 Sept 2016
     function GetPartialLine (Socnr: integer): string ;
     function GetSendWaiting (Socnr: integer): integer ;    // 6 Sept 2016
-    function SrvValidateHosts(Stop1stErr: Boolean=True; NoExceptions: Boolean=False;
-                                                    AllowSelfSign: Boolean=False): String;  { V8.63 }
+    function SrvValidateHosts(Stop1stErr: Boolean=True; NoExceptions: Boolean=False; AllowSelfSign: Boolean=False): String;  { V8.63 }
     function SrvRecheckSslCerts(var CertsInfo: String; Stop1stErr: Boolean=True;
-                      NoExceptions: Boolean=False; AllowSelfSign: Boolean=False): Boolean;   { V8.63 }
+                                                NoExceptions: Boolean=False; AllowSelfSign: Boolean=False): Boolean;   { V8.63 }
+    function GetChanInfo(Socnr: integer): PStrmChanInfo;                     { V9.3 }
+    function ChanInfofromSocket(MySocket: TWSocket; var ChanInfo: PStrmChanInfo): Integer;   { V9.3 }
+    function SocnrfromSocket(MySocket: TWSocket): Integer;                   { V9.3 }
+    function GetSrvSocNr(ClientId: Integer): Integer;                        { V9.3 }
+    function ListenStates: String;                                           { V9.4 }
     property ChanInfos [Index: integer]: TStrmChanInfo read GeTStrmChanInfo ;
     property States [Index: integer]: TStrmLogState read GetState ;
     property LogActive: boolean                     read FLogActive ;
     property AnyStateOK: boolean                    read GetAnyStateOK ;
     property TotSockets: integer                    read FTotSockets ;
-    property CurSockets: integer                    read FCurSockets ;  // 1.6
+    property CurSockets: integer                    read GetCurSockets ;  // 1.6, V9.4 get dynamically
     property LastErrorStr: string                   read FLastErrorStr ;
     property Socket [Index: integer]: TWSocket      read GetSocket;  // 7 July 2016
     property TotRecvData [Index: integer]: int64    read GetTotRecvData ;        // 13 Sept 2016 how much data has been received and sent to LogRecvEvent event
-    property CliSslContext: TSslContext             read  FCliSslContext;       // Jan 2019 read only
+    property CliSslContext: TSslContext             read FCliSslContext;       // Jan 2019 read only
+    property SrvClientSoc [Index: integer]: TIpServerClient  read GetSrvCliSoc;  { V9.3 }
   published
     property MaxSockets: integer                    read FMaxSockets
                                                     write SetMaxSockets ;
@@ -596,7 +659,7 @@ type
     property OcspHttp: TOcspHttp                    read  FOcspHttp
                                                     write FOcspHttp;         { V8.69 }
     property UseUtf8: Boolean                       read  FUseUtf8
-                                                    write FUseUtf8;         { V8.70 }
+                                                    write FUseUtf8;          { V8.70 }
 {$IFDEF AUTO_X509_CERTS}
     property SrvX509Certs: TSslX509Certs            read  GetSslX509Certs
                                                     write SetSslX509Certs;
@@ -611,6 +674,8 @@ type
                                                     write FOnVerifyPeer;
     property OnLogHandshakeDone: TSslHandshakeDoneEvent read  FOnHandshakeDone
                                                     write FOnHandshakeDone;
+    property OnSslCertVerifyEvent: TSslCertVerifyEvent  read  FOnSslCertVerifyEvent
+                                                    write FOnSslCertVerifyEvent;   { V9.3 }
   end;
 
 {$ENDIF USE_SSL}
@@ -629,6 +694,7 @@ begin
   // create TCP Server
     FListenSocket := TSslWSocketServer.Create(Self);
     FListenSocket.SslMode := sslModeServer ;
+    FListenSocket.ClientClass := TIpServerClient ;    { V9.3 }
     FListenSocket.OnSslHandshakeDone := TlsSslHandshakeDone ;
 {$IFNDEF NO_DEBUG_LOG}
     FCliSslContext.IcsLogger := IpIcsLogger ;     // Dec 2018
@@ -641,7 +707,6 @@ begin
     FServerTimer.OnTimer := ServerTimerTimer ;
     FServerTimer.Enabled := false ;
     FTotSockets := 0  ;
-    FCurSockets  := 0 ;
     FMaxSockets := 1 ;
     SetMaxSockets (FMaxSockets) ;
     FLogActive := false ;
@@ -705,16 +770,15 @@ begin
             end ;
         end ;
         FTotSockets := 0 ;
-        FCurSockets := 0 ;
         SetLength (FChanInfo, 0) ;
         try
             FreeAndNil (FListenSocket) ;
             FreeAndNil (FOcspHttp);    { V8.69 }
         except
         end ;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
         FreeAndNil (FMsCertChainEngine) ;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
         FreeAndNil (FCliSslContext) ;
 {$IFNDEF NO_DEBUG_LOG}
         FreeAndNil (IpIcsLogger) ;
@@ -724,9 +788,23 @@ begin
     end;
 end;
 
+
+constructor TIpServerClient.Create(AOwner: TComponent);    { V9.3 }
+begin
+    inherited Create(AOwner);
+end;
+
+destructor TIpServerClient.Destroy;         { V9.3 }
+begin
+    inherited Destroy;
+end;
+
+
 procedure TIcsIpStrmLog.SetMaxSockets (Tot: integer) ;
 begin
     FMaxSockets := Tot ;
+    if (FLogProtocol = logprotTcpServer) then  { V9.3 }
+        Exit;                         // FChanInfo not actually used
     if Tot > FTotSockets then
     begin
         SetLength (FChanInfo, Tot) ;
@@ -736,6 +814,7 @@ begin
         with FChanInfo [FTotSockets] do
         begin
             LogState := logstateNone ;
+            ClientId := FTotSockets;   { V9.3 effectively Socnr }
             SendSocket := Nil ;
             if NOT (FLogProtocol = logprotTcpServer) then // 5 July 2016
             begin
@@ -748,41 +827,56 @@ begin
     end ;
 end ;
 
-procedure TIcsIpStrmLog.IcsLogEvent (Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+procedure TIcsIpStrmLog.IcsLogEvent (Sender: TObject; LogOption: TLogOption; const Msg : String);
 var
     socnr: integer ;
 begin
-    if Sender is TWSocket then
-        socnr := (Sender as TWSocket).Tag
+    if Sender is TWSocket then begin
+        if (FLogProtocol = logprotTcpServer) then  { V9.3 }
+            socnr := (Sender as TIpServerClient).Cliid
+        else
+            socnr := (Sender as TWSocket).Tag;
+    end
     else
         socnr := 0;
-    if Assigned (FonLogProgEvent) then FonLogProgEvent (Self, Socnr, LogOption, FCurTitle + ' ' + Msg) ;
+    if Assigned (FonLogProgEvent) then
+        FonLogProgEvent (Self, Socnr, LogOption, FCurTitle + ' ' + Msg) ;
 end ;
 
 procedure TIcsIpStrmLog.LogProgEvent (Socnr: integer; const Msg : String);
 begin
-    if Assigned (FonLogProgEvent) then FonLogProgEvent (Self, Socnr, loProtSpecInfo, Msg) ;
+    if Assigned (FonLogProgEvent) then
+        FonLogProgEvent (Self, Socnr, loProtSpecInfo, Msg) ;
 end ;
 
 procedure TIcsIpStrmLog.LogErrEvent (Socnr: integer; const Msg : String);
 begin
-    if Assigned (FonLogProgEvent) then FonLogProgEvent (Self, Socnr, loProtSpecErr, Msg) ;
+    if Assigned (FonLogProgEvent) then
+        FonLogProgEvent (Self, Socnr, loProtSpecErr, Msg) ;
 end ;
 
 procedure TIcsIpStrmLog.LogChangeState (Socnr: integer; NewState: TStrmLogState) ;
+var
+    MyChanInfo: PStrmChanInfo;
 begin
-    if (Socnr < 0) or (Socnr >= FTotSockets) then exit ;
-    with FChanInfo [Socnr] do
-    begin
-        if LogState = NewState then exit ;
+    MyChanInfo := GetChanInfo(Socnr);
+    if MyChanInfo = Nil then
+        Exit;
+
+{    if (Socnr < 0) or (Socnr >= FTotSockets) then
+        exit ;
+    with FChanInfo [Socnr] do  }
+    with MyChanInfo^ do begin
+        if LogState = NewState then
+            exit ;
         LogState := NewState ;
-        if Assigned (FonLogChangeEvent) then FonLogChangeEvent (Self, Socnr, NewState) ;
-    end ;
+    end;
+    if Assigned (FonLogChangeEvent) then
+            FonLogChangeEvent (Self, Socnr, NewState) ;
 end ;
 
-function TIcsIpStrmLog.SetRemotes (Socnr: integer;
-                                const NewRemHost, NewRemPort: string): boolean ;
+// TCP client only
+function TIcsIpStrmLog.SetRemotes (Socnr: integer; const NewRemHost, NewRemPort: string): boolean ;
 var
     MyFamily: TSocketFamily;
 begin
@@ -857,52 +951,202 @@ begin
      end;
 end;
 
-function TIcsIpStrmLog.GeTStrmChanInfo (Index: integer): TStrmChanInfo ;
+
+// V9.3 find TCP Server client number from ClientId
+function  TIcsIpStrmLog.GetSrvSocNr(ClientId: Integer): Integer;
+var
+    I: Integer;
 begin
-    if (Index < 0) or (Index >= FTotSockets) then Index := 0 ;
-    result := FChanInfo [Index] ;
+    Result := -1;
+    if FLogProtocol <> logprotTcpServer then
+        Exit;
+    if FListenSocket.ClientCount = 0 then
+        Exit;
+    for I := 0 to Pred (FListenSocket.ClientCount) do begin
+        if FListenSocket.Client [I].CliId = ClientId then begin
+            Result := I;
+            Exit;
+        end;
+    end;
+end;
+
+{ V9.3 Socnr from Socket }
+function TIcsIpStrmLog.SocnrfromSocket(MySocket: TWSocket): Integer;
+begin
+//    Result := -1;
+    try
+        if (FLogProtocol = logprotTcpServer) then begin
+            Result := (MySocket as TIpServerClient).CliId;
+        end
+        else begin
+            Result := MySocket.Tag;
+            if (Result >= FTotSockets) then
+                Result := -1;
+        end;
+    except
+        Result := -1;
+        FLastErrorStr := FCurTitle + ' Error Find Socnr - ' + IcsGetExceptMess (ExceptObject) ;
+        LogErrEvent (0, FLastErrorStr) ;
+    end ;
+end;
+
+
+{ V9.3 TCP server has channel info in client, not table, so set pointer to correct location }
+{ returns Socnr and pointer to ChanInfo }
+function TIcsIpStrmLog.ChanInfofromSocket(MySocket: TWSocket; var ChanInfo: PStrmChanInfo): Integer;
+begin
+//    Result := -1;
+    ChanInfo := Nil;
+    try
+        if (FLogProtocol = logprotTcpServer) then begin
+            ChanInfo := @(MySocket as TIpServerClient).CliChanInfo;
+            Result := (MySocket as TIpServerClient).CliId;
+        end
+        else begin
+            Result := MySocket.Tag;
+            if (Result >= 0) and (Result < FTotSockets) then
+                ChanInfo := @FChanInfo [Result];
+        end;
+        if Assigned(ChanInfo) then begin
+            if ChanInfo^.ClientId <> Result then begin  // raise exception if channel information not found
+                FLastErrorStr := 'Pointer Error';
+                Result := -1;
+            end;
+        end;
+    except
+        ChanInfo := Nil;
+        Result := -1;
+        FLastErrorStr := FCurTitle + ' Error Find Channel Info - ' + IcsGetExceptMess (ExceptObject) ;
+        LogErrEvent (0, FLastErrorStr) ;
+    end ;
+end;
+
+
+// V9.3 get a pointer to channel information record, either from array or server client }
+function TIcsIpStrmLog.GetChanInfo(Socnr: integer): PStrmChanInfo;    { V9.3 }
+var
+    I: Integer;
+begin
+    Result := Nil;
+    if (FLogProtocol = logprotTcpServer) then begin
+        if Socnr < 1 then
+            Exit;
+        I := GetSrvSocNr(Socnr);
+        if I >= 0 then
+            Result := @(FListenSocket.Client[I] as TIpServerClient).CliChanInfo;
+    end
+    else begin
+        if (Socnr >= 0) or (Socnr < FTotSockets) then
+            Result := @FChanInfo [Socnr];
+    end;
+    if (FLastErrorStr <> '') then
+            LogErrEvent(0, FLastErrorStr) ;
+end;
+
+function TIcsIpStrmLog.GetStrmChanInfo (Index: integer): TStrmChanInfo ;
+var
+    MyChanInfo: PStrmChanInfo;
+begin
+    MyChanInfo := GetChanInfo(Index);    { V9.3 using ClientId for server }
+    if MyChanInfo <> Nil then
+        Result := MyChanInfo^;
 end;
 
 function TIcsIpStrmLog.GetState (Index: integer): TStrmLogState ;
+var
+    MyChanInfo: PStrmChanInfo;
 begin
-    if (Index < 0) or (Index >= FTotSockets) then Index := 0 ;
-    result := FChanInfo [Index].LogState ;
+    Result := logstateNone;
+    MyChanInfo := GetChanInfo(Index);    { V9.3 using ClientId for server }
+    if MyChanInfo <> Nil then
+        result := MyChanInfo^.LogState ;
 end;
 
 // 7 July 2016 get current socket
 function TIcsIpStrmLog.GetSocket (Index: integer): TWSocket;
+var
+    I: Integer;
 begin
     Result := nil ;
-    if (Index < 0) or (Index >= FTotSockets) then Index := 0 ;
-    if FLogProtocol = logprotTcpServer then
-    begin
-        if (FListenSocket.ClientCount > 0) and
-            (Index < FListenSocket.ClientCount) then
-                 Result := FListenSocket.Client [index] as TWSocket ;
+    if FLogProtocol = logprotTcpServer then begin
+        if Index < 1 then
+            Exit;
+        I := GetSrvSocNr(Index);    { V9.3 using ClientId for server }
+        if I >= 0 then
+            Result := FListenSocket.Client[I] as TWSocket ;
     end
-    else
+    else begin
+        if (Index < 0) or (Index >= FTotSockets) then
+            Index := 0 ;
         Result := FChanInfo [Index].SendSocket ;
+    end;
+end;
+
+// get current server client socket, TCP Server only
+function TIcsIpStrmLog.GetSrvCliSoc(Index: integer): TIpServerClient;   { V9.3 }
+var
+    I: Integer;
+begin
+    Result := nil ;
+    if Index < 1 then
+        Exit;
+    if FLogProtocol = logprotTcpServer then begin
+        I := GetSrvSocNr(Index);
+        if I >= 0 then
+            Result := FListenSocket.Client[I] as TIpServerClient;
+    end;
 end;
 
 // check if any socket is connected and able to send data or stream
 // but not if a stream is still being sent
-
 function TIcsIpStrmLog.GetAnyStateOK: boolean ;
 var
     I: integer ;
 begin
     result := false ;
     if FMaxSockets <= 0 then exit ;
-    for I := 0 to Pred (FMaxSockets) do
-    begin
-        if (FChanInfo [I].LogState = logstateOKStream) then  // send a stream
-        begin
-            result := false ;
-            exit ;
-        end;
-        if (FChanInfo [I].LogState = logstateOK) then result := true ;
-    end ;
+    if FLogProtocol = logprotTcpServer then begin   { V9.1 server clients have own chaninfo }
+        if FListenSocket.ClientCount = 0 then
+            Exit;
+         for I := 0 to FListenSocket.ClientCount - 1 do begin
+            if TIpServerClient(FListenSocket.Client[I]).CliChanInfo.LogState = logstateOK then
+                result := true ;
+         end;
+    end
+    else begin
+        for I := 0 to Pred (FMaxSockets) do begin
+            if (FChanInfo [I].LogState = logstateOKStream) then begin  // send a stream
+                result := false ;
+                exit ;
+            end;
+            if (FChanInfo [I].LogState = logstateOK) then
+                result := true ;
+        end ;
+   end;
 end;
+
+
+// list states of server listen sockets
+function TIcsIpStrmLog.ListenStates: String;                                           { V9.4 }
+var
+    I: Integer;
+begin
+    Result := '';
+    if NOT FLogActive then
+        Exit;
+    if FLogProtocol = logprotUdpServer then begin
+        if (FTotSockets > 0) then begin
+            for I := 0 to FTotSockets - 1 do
+                with FChanInfo [I].SendSocket do begin
+                    Result := Result + 'Socket ' + IntToStr(I - 1) + ' State: ' + SocketStateNames[State] + ' ' +
+                                            SocketFamilyNames [SocketFamily] + ' on ' + Addr + ' port ' + Port + IcsCRLF;
+             end;
+         end;
+    end
+    else if FLogProtocol = logprotTcpServer then
+        Result := FListenSocket.ListenStates;
+end;
+
 
 // start logging, open various sockets and starts connections, but
 // connection may not be completed when this function exits, keep calling
@@ -913,7 +1157,7 @@ function TIcsIpStrmLog.StartLogging: boolean ;
 var
     I, tothosts: integer ;
     MyFamily: TSocketFamily;
-    rootfname: String;
+//    rootfname: String;
 begin
     result := false ;
     FLastErrorStr := '' ;
@@ -928,6 +1172,8 @@ begin
         else
             FLineEndChar := AnsiChar (FCustomLineEnd [1]) ;
     end ;
+    if FMaxLineLen > DefMaxIpLogLine then   { V9.3 sanity check }
+        FMaxLineLen := DefMaxIpLogLine;
 
     if FLogActive then
     begin
@@ -940,11 +1186,8 @@ begin
     if FForceSsl and (FLogProtocol in [logprotTcpServer, logprotTcpClient]) then
     begin
         try
-            if NOT FCliSslContext.IsSslInitialized then begin
-                FCliSslContext.InitializeSsl;
-                LogProgEvent (0, 'SSL Version: ' + OpenSslVersion +
-                                               ', Dir: ' + GLIBEAY_DLL_FileName) ;
-            end;
+            IcsSslRootCAStore.Initialise;       { V9.1 if OpenSSL and internal not loaded, do it }
+            LogProgEvent (0, 'SSL/TLS DLL: ' + IcsReportOpenSSLVer(True));    { V9.1 simplify }
         except
             FLastErrorStr := FCurTitle + ' Error Starting SSL - ' + IcsGetExceptMess (ExceptObject) ;
             LogErrEvent (0, FLastErrorStr) ;
@@ -1042,7 +1285,9 @@ begin
             exit ;
         end ;
 {$IFDEF AUTO_X509_CERTS}
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
         FListenSocket.OcspSrvStapling := FLogSslRevocation;    { V8.69 }
+{$ENDIF} // OpenSSL_OcspStaple
 {$ENDIF}
         FLastErrorStr := FListenSocket.ValidateHosts(True, True, True);  { V8.63 allow self sign }
         if (NOT FListenSocket.Validated) or                              { V8.64 stop if not validated }
@@ -1110,30 +1355,31 @@ begin
                     if fSslSessCache then
                     begin
                         FCliSslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT,
-                            sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
+                                                   sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
                     end;
                     if (FLogSslVerMethod >= logSslVerBundle) then
                     begin
-                        rootfname := FLogSslRootFile;
+                        FCliSslContext.UseSharedCAStore := True;           { V9.1 ignore FLogSslRootFile for now  }
+                    (*    rootfname := FLogSslRootFile;
                         if rootfname <> '' then begin
                             if (Pos (':', rootfname) = 0) then
                                 rootfname := ExtractFileDir (ParamStr (0)) + '\' + rootfname ;
                             if NOT FileExists (rootfname) then
                             begin
                                 LogProgEvent (0, FCurTitle + ' Can Not Find SSL CA Bundle File - ' + rootfname);
-                                FCliSslContext.SslCALines.Text := sslRootCACertsBundle;
+                          //      FCliSslContext.SslCALines.Text := sslRootCACertsBundle;
                             end
                             else
                                FCliSslContext.SslCAFile := rootfname;
-                        end
-                        else
-                            FCliSslContext.SslCALines.Text := sslRootCACertsBundle;
+                        end;
+                     //   else
+                         //   FCliSslContext.SslCALines.Text := sslRootCACertsBundle;   *)
                     end;
                 end;
                 if NOT FCliSslContext.IsCtxInitialized then
                 begin
                     FCliSslContext.InitContext;
-                end;
+               end;
             end ;
         except
             FLastErrorStr := FCurTitle + ' Error Starting SSL - ' + IcsGetExceptMess (ExceptObject) ;
@@ -1156,8 +1402,9 @@ begin
             BindIpPort := '' ;
             BindFamily  := sfAny ;
             RxLineLen := 0 ;
-            SetLength (RxLineData, MaxLineLen +  8) ; // Dec 2014 dynamic size
-            if MaxLineLen > FMaxSendBuffer then FMaxSendBuffer := (MaxLineLen * 2) + 10 ; // Dec 2014 sanity check
+            SetLength (RxLineData, FMaxLineLen +  8) ; // Dec 2014 dynamic size
+            if FMaxLineLen > FMaxSendBuffer then
+                FMaxSendBuffer := (FMaxLineLen * 2) + 10 ; // Dec 2014 sanity check
             SetLength (LastLine, 0) ;
             TotRecvData := 0 ;      // 13 Sept 2016 how much data has been received and sent to LogRecvEvent event
             FillChar (SocRemAddr, Sizeof (SocRemAddr), 0);
@@ -1174,6 +1421,7 @@ begin
         end ;
     end ;
 
+// create send data sockets, may be more than one for TCP Client to send to multiple servers
     if FLogProtocol in [logprotUdpClient, logprotTcpClient, logprotUdpServer] then
     begin
         for I := 0 to Pred (tothosts) do
@@ -1188,7 +1436,7 @@ begin
                 SendSocket := TSslWSocket.Create (Self) ;
                 with SendSocket do
                 begin
-                    Tag := I ;
+                    Tag := I;
                     LingerOnOff := wsLingerOff;
                     LingerTimeout := 0;
                     LineMode := false;
@@ -1282,12 +1530,13 @@ begin
                     Addr := FLocalIpAddr ;
                     Port := FLocalIpPort ;
                     SocketFamily := FSocFamily ;
-                    ExclusiveAddr := true ;  // Oct 2016
+                //    ReuseAddr := True;   { V9.3 allow multiple applications to listen on same IP/port for broadcasts
+                //   ExclusiveAddr := true ;  // Oct 2016 V9.3 why?
                     Listen ;
                     if (FRcvBufSize > SocketRcvBufSize) then
                                 SocketRcvBufSize := FRcvBufSize ; { V8.65 only increase size }
-                    if (FSndBufSize > SocketSndBufSize) then
-                                SocketSndBufSize := FSndBufSize ; { V8.65 only increase size }
+                 //   if (FSndBufSize > SocketSndBufSize) then
+                //                SocketSndBufSize := FSndBufSize ; { V8.65 only increase size, V9.3 error once ReuseAddr set }
                 end ;
                 LogProgEvent (0, FCurTitle + ' Started on Address ' + IcsFmtIpv6AddrPort (FLocalIpAddr, FLocalIpPort)) ;
                 LogChangeState (0, logstateOK) ;
@@ -1386,7 +1635,6 @@ begin
                     for I := 0 to Pred (IcsHosts.Count) do
                         LogProgEvent (0, FCurTitle + ' Started on ' + IcsHosts[I].BindInfo); // May 2019
                     LogProgEvent (0, FCurTitle + ' ' + Trim(ListenStates));  { V8.64 show dynamic port }
-
                 end
                 else
                     LogErrEvent (0, FLastErrorStr) ;
@@ -1516,8 +1764,7 @@ begin
     end ;
 end ;
 
-procedure TIcsIpStrmLog.SocketBgException(Sender: TObject;
-                          E: Exception; var CanClose: Boolean);
+procedure TIcsIpStrmLog.SocketBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
 begin
     FLastErrorStr := FCurTitle + ' Fatal Error - ' + IcsGetExceptMess (E) ;  // June 2018
     LogErrEvent (0, FLastErrorStr) ;
@@ -1848,6 +2095,7 @@ begin
         else
         begin
             RemLookup := false ;
+            inc (AttemptNr) ;     { V9.2 }
             FLastErrorStr := FCurTitle + ' DNS Lookup Failed - ' + GetWinsockErr (Error) ;
             if (AttemptNr >= FRetryAttempts) and (FRetryAttempts > 0) then
             begin
@@ -1940,6 +2188,7 @@ begin
         end
         else
         begin
+            inc (AttemptNr) ;     { V9.2 }
             if (AttemptNr >= FRetryAttempts) and (FRetryAttempts > 0) then
             begin
                 FLastErrorStr := FCurTitle + ' Failed Connection After Total Retries ' + IntToStr (AttemptNr) ;
@@ -1952,14 +2201,18 @@ begin
                 FLastErrorStr := FCurTitle + ' Failed Connection - ' + GetWinsockErr (Error);
                 if (FRetryAttempts >= 0)  then     { V8.69 -1 means no retry attempts, 0 mean try for ever }
                 begin
-                    WaitTimer.Interval := Longword (FRetryWaitSecs) * TicksPerSecond ;
-                    WaitTimer.Enabled := true ;
-                    FLastErrorStr := FLastErrorStr + ' - Retrying in ' + IntToStr (FRetryWaitSecs) + ' secs' ;
-                    LogChangeState (socnr, logstateStart) ;
+                   // if (LogState <> logstateStart) then begin   { V9.3 avoid repeated errors }
+                        WaitTimer.Interval := Longword (FRetryWaitSecs) * TicksPerSecond ;
+                        WaitTimer.Enabled := true ;
+                        FLastErrorStr := FLastErrorStr + ' - Retrying in ' + IntToStr (FRetryWaitSecs) + ' secs' ;
+                        LogChangeState (socnr, logstateStart) ;
+                  //  end;
                 end
                 else begin
-                    LogChangeState (socnr, logstateStopping) ;     { V8.69 }
-                    LogChangeState (socnr, logstateNone) ;
+                    if (LogState <> logstateNone) then begin   { V9.3 avoid repeated errors }
+                        LogChangeState (socnr, logstateStopping) ;     { V8.69 }
+                        LogChangeState (socnr, logstateNone) ;
+                    end;
                 end;
                 LogErrEvent (socnr, FLastErrorStr) ;
             end ;
@@ -2030,7 +2283,7 @@ end ;
 
 // TCP Server Protocol - build socket table with clients available
 // warning - socnrs change dynamically as clients come and go
-
+(*  gone V9.3
 procedure TIcsIpStrmLog.CheckServerSockets ;
 var
     I: integer;
@@ -2047,7 +2300,7 @@ begin
             end ;
         end ;
     end ;
-    if FTotSockets > FMaxSockets then
+ {   if FTotSockets > FMaxSockets then  V9.3 not doing anything useful
     begin
         for I := FCurSockets to Pred (FMaxSockets) do
         begin
@@ -2056,8 +2309,16 @@ begin
             else
                 LogChangeState (I, logstateNone) ;
         end ;
-    end ;
-end ;
+    end ;      }
+end ;  *)
+
+
+// current TCP Server total clients
+function TIcsIpStrmLog.GetCurSockets: Integer;                          { V9.4 }
+begin
+    Result := FListenSocket.ClientCount;
+end;
+
 
 // TCP Server protocol - remote client created by SocketServer
 
@@ -2070,37 +2331,42 @@ end;
 // TCP Server protocol - remote client connected to SocketServer
 
 procedure TIcsIpStrmLog.ServerClientConnect(Sender: TObject; Client: TWSocketClient; Error: Word);
-var
-    socnr: integer;
+//var
+//    socnr: integer;
 begin
-    socnr := Pred (FListenSocket.ClientCount) ;
+{    socnr := Pred (FListenSocket.ClientCount) ;
 
 // too many clients, no logging, just ignore session it will be closed
     if (socnr < 0) or (socnr >= FTotSockets) then
     begin
         exit ;
-    end ;
-    with Client as TWSocketClient do
-    begin
-        FChanInfo [socnr].BindIpAddr := GetXAddr ;  // keep local address and port
-        FChanInfo [socnr].BindIpPort := GetXPort ;
+    end ;     }
+
+  { V9.3 ChanInfo now stored with socket so stable as clients come and go }
+  { events and functions called with ClientId (sequential number) insead of SocNr }
+    with Client as TIpServerClient do begin
+        CliChanInfo.ClientId := CliId;        // for validation
+        SetLength (CliChanInfo.RxLineData, FMaxLineLen +  8) ;
+        if FMaxLineLen > FMaxSendBuffer then
+            FMaxSendBuffer := (FMaxLineLen * 2) + 10 ;
+        CliChanInfo.BindIpAddr := GetXAddr ;  // keep local address and port
+        CliChanInfo.BindIpPort := GetXPort ;
     // LogProgEvent (socnr, FCurTitle + ' Server Default SocketRcvBufSize: ' + IntToStr(SocketRcvBufSize) +
     //                                               ', SocketSndBufSize: ' + IntToStr(SocketSndBufSize)) ;  // TEMP !!!
         if (FRcvBufSize > SocketRcvBufSize) then
                     SocketRcvBufSize := FRcvBufSize ; { V8.65 only increase size }
         if (FSndBufSize > SocketSndBufSize) then
                     SocketSndBufSize := FSndBufSize ; { V8.65 only increase size }
-        if FForceSsl then
-        begin
-            LogChangeState (socnr, logstateHandshake) ;
-            LogProgEvent (socnr, FCurTitle + ' Starting SSL Handshake from Address ' +
-                                                    IcsFmtIpv6AddrPort (CPeerAddr, CPeerPort)) ;
+        if FForceSsl then begin
+            if FListenSocket.ClientCount = 1 then     { V9.3 only for first new remote client }
+                LogChangeState (CliId, logstateHandshake) ;
+            LogProgEvent (CliId, FCurTitle + ' Starting SSL Handshake from Address ' + IcsFmtIpv6AddrPort
+                                              (CPeerAddr, CPeerPort) + ', Client Id: ' + IntToStr(CliId)) ;  { V9.3 }
         end
-        else
-        begin
-            LogProgEvent (socnr, FCurTitle + ' Client Connected from Address ' +
-                                           IcsFmtIpv6AddrPort (Client.CPeerAddr, Client.CPeerPort)) ;
-            LogChangeState (socnr, logstateOK) ;
+        else begin
+            LogProgEvent (CliId, FCurTitle + ' Client Connected from Address ' + IcsFmtIpv6AddrPort
+                                 (Client.CPeerAddr, Client.CPeerPort) + ', Client Id: ' + IntToStr(CliId)) ;  { V9.3 }
+            LogChangeState (CliId, logstateOK) ;
         end;
         Tag := 0 ;  // set in a moment
         LineMode := false;
@@ -2109,53 +2375,69 @@ begin
         OnDataSent := SocketDataSent ;  // 3 July 2014
         Banner := '' ;
     end ;
-    CheckServerSockets ;  // updates all tags with socnr
+//    CheckServerSockets ;  // updates all tags with socnr  V9.3 not needed
 end;
 
 // TCP Server protocol - remote client disconnected from SocketServer
-
-procedure TIcsIpStrmLog.ServerClientDisconnect(Sender: TObject;
-                                 Client: TWSocketClient; Error: Word);
-var
-    socnr: integer;
+procedure TIcsIpStrmLog.ServerClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
+//var
+//    socnr: integer;
 begin
-    socnr := Client.Tag ;
-    if (socnr < 0) or (socnr >= FTotSockets) then exit ;
-    GetPartialLine (Socnr) ;  // 3 July 2014 receive any partial line
-    with FChanInfo [socnr] do
-    begin
-        Client.Tag := -1 ;  // mark as about to be removed
-        LogChangeState (socnr, logstateStopping) ;
-        if (FLogProtocol = logprotTcpServer) and
-                    (FListenSocket.ClientCount > FListenSocket.MaxClients) then   // 4 Jan 2012 better error for too many clients
-            LogProgEvent (socnr, FCurTitle + ' Client Connection Refused, Too Many')
-        else
-            LogProgEvent (socnr, FCurTitle + ' Client Disconnected') ;
-    end ;
-    CheckServerSockets ;  // updates tags with socnr
+//    socnr := Client.Tag ;
+//    if (socnr < 0) or (socnr >= FTotSockets) then exit ;
+  { V9.3 ChanInfo now stored with socket so stable as clients come and go }
+    GetPartialLine (Client.CliId) ;  // 3 July 2014 receive any partial line
+//    with FChanInfo [socnr] do
+//    begin
+    Client.Tag := -1 ;  // mark as about to be removed
+        LogChangeState (Client.CliId, logstateStopping) ;
+    if (FListenSocket.ClientCount > FListenSocket.MaxClients) then   // 4 Jan 2012 better error for too many clients
+        LogProgEvent (Client.CliId, FCurTitle + ' Client Connection Refused, Too Many')
+    else
+        LogProgEvent (Client.CliId, FCurTitle + ' Client Disconnected, Client Id: ' + IntToStr(Client.CliId)) ;  { V9.3 }
+//    end ;
+//    CheckServerSockets ;  // updates tags with socnr
 end;
 
-// TCP/Server check for idle client sessions
+// V9.3 close single TCP Server remote client
+function TIcsIpStrmLog.CloseSrvCli (ClientId: Integer): boolean ;                                            { V9.3 }
+var
+    I: Integer;
+begin
+    Result := False;
+    if FLogProtocol = logprotTcpServer then begin
+        I := GetSrvSocNr(ClientId);
+        if I >= 0 then begin
+           FListenSocket.Disconnect(FListenSocket.Client [I]);
+           Result := True;
+        end;
+    end
+end;
 
+
+// TCP/Server check for idle client sessions
 procedure TIcsIpStrmLog.ServerTimerTimer(Sender: TObject);
 var
     CurTicks: Int64;      { V8.71 }
-    I, socnr: Integer;
+    I: Integer;
     Cli: TWSocketClient;
 begin
-    if FSrvTimeoutSecs < 10 then Exit ; // sanity check
-    if NOT Assigned (FListenSocket) then  Exit ;  // sanity check Oct 2016
-    if FListenSocket.ClientCount = 0 then Exit ;  // sanity check Oct 2016
+    if FSrvTimeoutSecs < 10 then
+        Exit ; // sanity check
+    if NOT Assigned (FListenSocket) then
+        Exit ;  // sanity check Oct 2016
+    if FListenSocket.ClientCount = 0 then
+        Exit ;  // sanity check Oct 2016
     if not FHeartBeatBusy then  { Avoid reentrance }
     try
         FHeartBeatBusy := TRUE;
         CurTicks := IcsGetTickCount64;      { V8.71 }
         for I := FListenSocket.ClientCount - 1 downto 0 do begin
             Cli := FListenSocket.Client[I];
-            socnr := Cli.Tag ;
+       //     socnr := Cli.Tag ;   { V9.3 gone }
             if (IcsDiffSecs64(Cli.Counter.LastAliveTick, CurTicks) > FSrvTimeoutSecs) then    { V8.71 }
             begin
-                LogProgEvent (socnr, FCurTitle + ' Client Idle Timeout After ' + IntToStr(FSrvTimeoutSecs)  + ' secs') ;
+                LogProgEvent (Cli.CliId, FCurTitle + ' Client Idle Timeout After ' + IntToStr(FSrvTimeoutSecs)  + ' secs') ;
                 FListenSocket.Disconnect(Cli);
             end;
         end;
@@ -2167,6 +2449,8 @@ end ;
 // all clients and servers, see how many bytes of send data is not yet sent
 
 function TIcsIpStrmLog.GetSendWaiting (Socnr: integer): integer ;    // 6 Sept 2016
+var
+    I: Integer;
 begin
     result := -1 ;
     FLastErrorStr := '' ;
@@ -2174,8 +2458,9 @@ begin
     if FTotSockets <= 0 then exit ;
     if FLogProtocol = logprotTcpServer then
     begin
-        if (Socnr >= FListenSocket.ClientCount) then exit ;
-        result := FListenSocket.Client [socnr].BufferedByteCount ;
+        I := GetSrvSocNr(Socnr);   { V9.3 using ClientId }
+        if I >= 0 then
+            result := FListenSocket.Client [I].BufferedByteCount ;
     end
     else if FLogProtocol in [logprotUdpClient, logprotTcpClient, logprotUdpServer] then
     begin
@@ -2191,7 +2476,7 @@ end;
 // All clients and servers, send a line
 
 // send raw TBytes
-function TIcsIpStrmLog.SendLogLine (const Line: TBytes): boolean ;          { V8.70 }
+function TIcsIpStrmLog.SendLogLine (const Line: TBytes; ClientId: Integer = 0): boolean ;          { V8.70 }
 var
     I, len, tot: integer ;
     xmitline: TBytes;   { V8.69 was AnsiString }
@@ -2225,6 +2510,9 @@ begin
                 try // except
                     with FListenSocket.Client [I] do
                     begin
+                     // V9.3 only sending to one specific client, check it
+                        if (ClientId > 0) and (ClientId <> CliId) then
+                            Continue;
                         if State = wsConnected then
                         begin
                             if (len + BufferedByteCount) < FMaxSendBuffer then
@@ -2235,13 +2523,13 @@ begin
                                 else
                                 begin
                                     FLastErrorStr := FCurTitle + ' Failed to Send Data' ;
-                                    LogErrEvent (0, FLastErrorStr) ;
+                                    LogErrEvent(CliId, FLastErrorStr) ;   { V9.3 }
                                 end ;
                             end
                             else
                             begin
                                 FLastErrorStr := FCurTitle + ' Buffer Full Sending Data' ;
-                                LogErrEvent (0, FLastErrorStr) ;
+                                LogErrEvent(CliId, FLastErrorStr) ;   { V9.3 }
                             end ;
                         end ;
                     end ;
@@ -2331,7 +2619,7 @@ end ;
 
 
 // send ansi line as ANSI
-function TIcsIpStrmLog.SendLogLine (const Line: Ansistring): boolean ;
+function TIcsIpStrmLog.SendLogLine (const Line: Ansistring; ClientId: Integer = 0): boolean ;
 var
     xmitline: TBytes;
 begin
@@ -2339,12 +2627,12 @@ begin
         IcsMoveStringToTBytes(UnicodeString(Line), xmitline, Length(Line), CP_UTF8)
     else
         IcsMoveStringToTBytes(Line, xmitline, Length(Line));
-    Result := SendLogLine (xmitline) ;
+    Result := SendLogLine (xmitline, ClientId) ;  { V9.3 added CliId }
 end ;
 
 
 // send unicode line, converting to UTF8
-function TIcsIpStrmLog.SendLogLine (const Line: UnicodeString): boolean ;   { V8.70 }
+function TIcsIpStrmLog.SendLogLine (const Line: UnicodeString; ClientId: Integer = 0): boolean ;   { V8.70 }
 var
     xmitline: TBytes;
 begin
@@ -2352,13 +2640,13 @@ begin
         IcsMoveStringToTBytes(Line, xmitline, Length(Line), CP_UTF8)
     else
         IcsMoveStringToTBytes(Line, xmitline, Length(Line));
-    Result := SendLogLine (xmitline) ;
+    Result := SendLogLine (xmitline, ClientId) ;  { V9.3 added CliId }
 end;
 
 
 // send a stream - 3 Jul 2014
 
-function TIcsIpStrmLog.SendStream (MyStream: TStream): boolean ;
+function TIcsIpStrmLog.SendStream (MyStream: TStream; ClientId: Integer = 0): boolean ;
 var
     I: Integer ;
     Success: boolean ;
@@ -2385,23 +2673,22 @@ begin
             for I := 0 to Pred (FListenSocket.ClientCount) do
             begin
                 try // except
-                    with FListenSocket.Client [I], FChanInfo [I] do
+                    with TIpServerClient(FListenSocket.Client [I]) do
                     begin
                         if State = wsConnected then
                         begin
-                            if StreamFlag then
+                            if CliChanInfo.StreamFlag then
                             begin
                                 FLastErrorStr := FCurTitle + ' Still Sending Old Stream' ;
-                                LogErrEvent (I, FLastErrorStr) ;
+                                LogErrEvent (CliId, FLastErrorStr) ;
                                 continue ;
                             end ;
                             FSendStream := MyStream ;
                             SetLength (FSendBuffer, FMaxSendBuffer) ;  // create send buffer to read stream
-                            StreamFlag := true ;
-                            StreamNr := 0 ;
-                            LogProgEvent (I, FCurTitle + ' Sending Data Stream, Size ' +
-                                                                     IntToKbyte (FSendStream.Size, True));
-                            LogChangeState (I, logstateOKStream) ;
+                            CliChanInfo.StreamFlag := true ;  { V9.3 chaninfo now in client }
+                            CliChanInfo.StreamNr := 0 ;
+                            LogProgEvent (CliId, FCurTitle + ' Sending Data Stream, Size ' + IntToKbyte (FSendStream.Size, True));
+                            LogChangeState (CliId, logstateOKStream) ;
                             SocketDataSent (FListenSocket.Client [I], 0); // send first block
                             Result := true ;
                         end ;
@@ -2416,7 +2703,8 @@ begin
     else if FLogProtocol in [logprotUdpClient, logprotTcpClient, logprotUdpServer] then
     begin
       // UDP only allows small packets to be sent
-        if FLogProtocol in [logprotUdpClient, logprotUdpServer] then FMaxSendBuffer := 2048 ;  // 7 Sept 2016 was 512 ;
+        if FLogProtocol in [logprotUdpClient, logprotUdpServer] then
+            FMaxSendBuffer := 2048 ;  // 7 Sept 2016 was 512 ;
         for I := 0 to Pred (FMaxSockets) do
         begin
             with FChanInfo [I] do
@@ -2494,23 +2782,57 @@ procedure TIcsIpStrmLog.SocketDataSent(Sender: TObject; ErrCode : word);
 var
     socnr, len, tot: integer;
     TxSocket: TWSocket;
+//    MyChanInfo: PStrmChanInfo;  { V9.3 }
 begin
-    socnr := 0;
-    try
-        TxSocket := Sender as TWSocket ;
-        socnr := TxSocket.Tag;
-    except
-        FLastErrorStr := FCurTitle + ' Error Socket Data Sent - ' +
-                                            IcsGetExceptMess (ExceptObject) ;
-        LogErrEvent (socnr, FLastErrorStr) ;
-        Exit;
-    end ;
-
-    if FLogProtocol = logprotTcpServer then
+    if FLogProtocol = logprotTcpServer then begin
+        try
+            with (Sender as TIpServerClient) do begin   { V9.3 client now has channel info }
+                if (CliChanInfo.LogState <> logstateOKStream) or (State <> wsConnected) then
+                    exit ;  // non-stream data being sent
+                if (NOT CliChanInfo.StreamFlag) or (NOT Assigned (FSendStream)) then
+                begin
+                    FLastErrorStr := FCurTitle + ' Failed to Send Stream' ;
+                    LogErrEvent (CliId, FLastErrorStr) ;
+                    CliChanInfo.StreamFlag := false ;
+                    SetLength (FSendBuffer, 0);
+                    LogChangeState (CliId, logstateOK) ;
+                    exit ;
+                end;
+                FSendStream.Position := CliChanInfo.StreamNr; { V8.67 Seek (StreamNr, soBeginning) ; }
+                len := FSendStream.Read (FSendBuffer [0], FMaxSendBuffer) ;
+                CliChanInfo.StreamNr := CliChanInfo.StreamNr + len ;
+                if len = 0 then begin
+                    CliChanInfo.StreamFlag := false ;
+                    SetLength (FSendBuffer, 0);
+                    LogProgEvent (CliId, FCurTitle + ' Sent Data Stream OK, Size ' + IntToKbyte (CliId, True));
+                    LogChangeState (CliId, logstateOK) ;
+                    exit ;
+                end ;
+                tot := SendTB (FSendBuffer, len) ;      { V8.69 }
+                if tot = 0 then begin
+                    FLastErrorStr := FCurTitle + ' Failed to Send Stream Data' ;
+                    LogErrEvent (CliId, FLastErrorStr) ;
+                end ;
+            end;
+        except
+            FLastErrorStr := FCurTitle + ' Error Send Stream Data - ' + IcsGetExceptMess (ExceptObject) ;
+            LogErrEvent (0, FLastErrorStr) ;
+        end ;
+    end
+    else if FLogProtocol in [logprotUdpClient, logprotTcpClient, logprotUdpServer] then
     begin
+//        socnr := 0;
+        try
+            TxSocket := Sender as TWSocket ;
+        except
+            FLastErrorStr := FCurTitle + ' Error Socket Data Sent - ' + IcsGetExceptMess (ExceptObject) ;
+            LogErrEvent (0, FLastErrorStr) ;
+            Exit;
+        end ;
+        socnr := TxSocket.Tag;
         if (socnr < 0) or (socnr >= FTotSockets) then
         begin
-            FLastErrorStr := FCurTitle + ' Error Send Data - Invalid Server' ;
+            FLastErrorStr := FCurTitle + ' Error Send Data - Invalid Client' ;
             LogErrEvent (socnr, FLastErrorStr) ;
             exit ;
         end;
@@ -2534,55 +2856,7 @@ begin
                 begin
                     StreamFlag := false ;
                     SetLength (FSendBuffer, 0);
-                    LogProgEvent (socnr, FCurTitle + ' Sent Data Stream OK, Size ' +
-                                                                 IntToKbyte (StreamNr, True));
-                    LogChangeState (socnr, logstateOK) ;
-                    exit ;
-                end ;
-                tot := TxSocket.SendTB (FSendBuffer, len) ;      { V8.69 }
-                if tot = 0 then
-                begin
-                    FLastErrorStr := FCurTitle + ' Failed to Send Stream Data' ;
-                    LogErrEvent (socnr, FLastErrorStr) ;
-                end ;
-            except
-                FLastErrorStr := FCurTitle + ' Error Send Stream Data - ' +
-                                            IcsGetExceptMess (ExceptObject) ;
-                LogErrEvent (socnr, FLastErrorStr) ;
-            end ;
-        end ;
-    end
-    else if FLogProtocol in [logprotUdpClient, logprotTcpClient, logprotUdpServer] then
-    begin
-        if (socnr < 0) or (socnr >= FTotSockets) then
-        begin
-            FLastErrorStr := FCurTitle + ' Error Send Data - Invalid Client' ;
-            LogErrEvent (socnr, FLastErrorStr) ;
-            exit ;
-        end;
-        with FChanInfo [socnr] do
-        begin
-            try
-                if (LogState <> logstateOKStream) or
-                                (TxSocket.State <> wsConnected) then exit ;  // non-stream data being sent
-                if (NOT StreamFlag) or (NOT Assigned (FSendStream)) then
-                begin
-                    FLastErrorStr := FCurTitle + ' Failed to Send Stream' ;
-                    LogErrEvent (0, FLastErrorStr) ;
-                    StreamFlag := false ;
-                    SetLength (FSendBuffer, 0);
-                    LogChangeState (socnr, logstateOK) ;
-                    exit ;
-                end;
-                FSendStream.Position := StreamNr; { V8.67 Seek (StreamNr, soBeginning) ; }
-                len := FSendStream.Read (FSendBuffer [0], FMaxSendBuffer) ;
-                StreamNr := StreamNr + len ;
-                if len = 0 then
-                begin
-                    StreamFlag := false ;
-                    SetLength (FSendBuffer, 0);
-                    LogProgEvent (socnr, FCurTitle + ' Sent Data Stream OK, Size ' +
-                                                                IntToKByte (StreamNr, True));
+                    LogProgEvent (socnr, FCurTitle + ' Sent Data Stream OK, Size ' + IntToKByte (StreamNr, True));
                     LogChangeState (socnr, logstateOK) ;
                     exit ;
                 end ;
@@ -2608,35 +2882,48 @@ begin
     end;
 end;
 
-// All Clients and Servers - remote is sending stuff to us
 
+// All Clients and Servers - remote is sending stuff to us
 procedure TIcsIpStrmLog.SocketDataAvailable(Sender: TObject; Error: Word);
 var
-    socnr, I, len, AddrInLen, BadCount: integer;
+    Socnr, I, len, AddrInLen, BadCount: integer;
     RxSocket: TWSocket;
     Ch: AnsiChar ;
     process: boolean ;
+    MyChanInfo: PStrmChanInfo;  { V9.3 }
 begin
-    socnr := 0 ;
+//    Socnr := 0 ;
     try  // except
         RxSocket := Sender as TWSocket ;
-        socnr := RxSocket.Tag;
+    { V9.3 TCP server has channel info in client, not table, so set pointer to correct location }
+        Socnr := ChanInfofromSocket(RxSocket, MyChanInfo);
+
+    (*    MyChanInfo := Nil;
+        if (FLogProtocol = logprotTcpServer) then begin
+            MyChanInfo := @(Sender as TIpServerClient).CliChanInfo;   { V9.3 client now has channel info }
+            Socnr := (Sender as TIpServerClient).CliId;
+        end
+        else begin
+            Socnr := RxSocket.Tag;
+            if (Socnr >= 0) and (Socnr < FTotSockets) then
+                MyChanInfo := @FChanInfo [Socnr];
+        end;     *)
+
         if NOT Assigned(FRxBuffer) then
-            SetLength(FRxBuffer, 2048);
-        if (socnr < 0) or (socnr >= FTotSockets) then
-        begin
+            SetLength(FRxBuffer, 33000);
+
+    { sanity check  }
+        if MyChanInfo = Nil then begin
             RxSocket.ReceiveTB (FRxBuffer);  // flush but ignore data  V8.70 now using TBytes
             FLastErrorStr := FCurTitle + ' Error Receive Data - Invalid Client' ;
             LogErrEvent (socnr, FLastErrorStr) ;
             exit ;
         end;
-        with FChanInfo [socnr] do
-        begin
+
+        with MyChanInfo^ do begin
           // warning - ReceiveFrom does not support SSL
-            if FLogProtocol in [logprotUdpServer, logprotUdpClient] then
-            begin
-                if RxSocket.SocketFamily <> sfIPv6 then  // Dec 2018
-                begin
+            if FLogProtocol in [logprotUdpServer, logprotUdpClient] then begin
+                if RxSocket.SocketFamily <> sfIPv6 then begin
                     AddrInLen := SizeOf (TSockAddrIn) ;
                     len := RxSocket.ReceiveFromTB (FRxBuffer, SocRemAddr, AddrInLen) ;   { V8.70 now using TBytes }
                     if len <= 0 then exit;
@@ -2644,8 +2931,7 @@ begin
                     PeerIpAddr := string (WSocket_inet_ntoa (SocRemAddr.sin_addr)) ;  // 8 Aug 2010
                     PeerIpPort := IntToStr (WSocket_ntohs (SocRemAddr.sin_port)) ;
                 end
-                else
-                begin
+                else begin
                     AddrInLen := SizeOf (TSockAddrIn6) ;
                     len := RxSocket.ReceiveFrom6TB (FRxBuffer, SocRemAddr6, AddrInLen) ;   { V8.70 now using TBytes }
                     if len <= 0 then exit;
@@ -2653,52 +2939,45 @@ begin
                     PeerIpPort := IntToStr (WSocket_ntohs (SocRemAddr6.sin6_port)) ;
                 end;
             end
-            else
-            begin
+            else begin
                 len := RxSocket.ReceiveTB (FRxBuffer) ;   { V8.70 now using TBytes }
                 if len <= 0 then exit;
             end;
             BadCount := 0;
-            for I := 0 to Pred (len) do
-            begin
+            for I := 0 to Pred (len) do begin
                 Ch := AnsiChar(FRxBuffer [I]) ;      { V8.69 }
                 process := false ;
-                if Ch >= IcsSpace then
-                begin
+                if Ch >= IcsSpace then begin
                     inc (RxLineLen) ;
                     RxLineData [RxLineLen] := Ch  ;
                 end
                 else
                 begin
-                    if LineEndType = lineendLF then
-                    begin
-                        if (Ch = IcsLF) then process := true ;
-                    end
-                    else if LineEndType = lineendCR then
-                    begin
-                        if (Ch = IcsCR) then process := true ;
-                        if (Ch = IcsFF) then  process := true ; // form feed, Apr 2015 only CRFF
-                    end
-                    else if LineEndType = lineendCRLF then  // April 2015
-                    begin
+                    if LineEndType = lineendLF then begin
                         if (Ch = IcsLF) then
-                        begin
-                            if (RxLineLen > 0) and (RxLineData [RxLineLen] = IcsCR) then
-                            begin
+                            process := true ;
+                    end
+                    else if LineEndType = lineendCR then begin
+                        if (Ch = IcsCR) then
+                            process := true ;
+                        if (Ch = IcsFF) then
+                            process := true ; // form feed, Apr 2015 only CRFF
+                    end
+                    else if LineEndType = lineendCRLF then begin
+                        if (Ch = IcsLF) then begin
+                            if (RxLineLen > 0) and (RxLineData [RxLineLen] = IcsCR) then begin
                                 process := true ;
-                                if NOT FRawData then RxLineLen := RxLineLen - 1 ; // remove CR
+                                if NOT FRawData then
+                                    RxLineLen := RxLineLen - 1 ; // remove CR
                             end;
                         end;
                     end ;
-                    if FRawData then
-                    begin
+                    if FRawData then begin
                         inc (RxLineLen) ;
                         RxLineData [RxLineLen] := Ch  ;
                     end
-                    else
-                    begin
-                        if Ch in [icsCR, IcsCR, IcsFF] then
-                        begin
+                    else begin
+                        if Ch in [icsCR, IcsCR, IcsFF] then begin
                             if (LineEndType <> lineendCRLF) or (Ch <> IcsCR) then  // April 2015 CR removed later
                                Ch := IcsNULL
                         end
@@ -2706,13 +2985,11 @@ begin
                             Ch := IcsSPACE
                         else
                             Ch := IcsNULL ;
-                        if Ch > IcsNULL then
-                        begin
+                        if Ch > IcsNULL then begin
                             inc (RxLineLen) ;
                             RxLineData [RxLineLen] := Ch  ;
                         end
-                        else
-                        begin
+                        else begin
                          { V8.70 break loop if continually receiving non-acceptabe characters }
                             BadCount := BadCount + 1 ;
                             if BadCount >= FMaxLineLen then
@@ -2722,26 +2999,24 @@ begin
                 end ;
                 if RxLineLen >= FMaxLineLen then
                     process := true
-                else if LineEndType = lineendCustom then
-                begin
-                    if (Ch = FLineEndChar) then process := true ;
+                else if LineEndType = lineendCustom then begin
+                    if (Ch = FLineEndChar) then
+                        process := true ;
                 end
-                else if LineEndType = lineendPacket then
-                begin
-                    if (I >= Pred (len)) then process := true ;
+                else if LineEndType = lineendPacket then begin
+                    if (I >= Pred (len)) then
+                        process := true ;
                 end ;
-                if FMaxRecvData > 0 then  // 12 Sept 2016 see if waiting for specific length of data, like HTTP content
-                begin
-                    if ((TotRecvData + RxLineLen) >= FMaxRecvData) then process := true ;
+                if FMaxRecvData > 0 then begin  // 12 Sept 2016 see if waiting for specific length of data, like HTTP content
+                    if ((TotRecvData + RxLineLen) >= FMaxRecvData) then
+                        process := true ;
                 end;
-                if process then  // might be blank line
-                begin
+                if process then begin  // might be blank line
                     SetLength (LastLine, RxLineLen) ;
                     if RxLineLen > 0 then
                         Move (RxLineData [1], LastLine [1], RxLineLen) ;
                     TotRecvData := TotRecvData + RxLineLen ;    // 12 Sept 2016 how much data has been received
-                    if Assigned (FonLogRecvEvent) then
-                    begin
+                    if Assigned (FonLogRecvEvent) then begin
                         if FUseUtf8 and (NOT FRawData) then  { V8.70 convert line from UTF8 to Unicode }
 {$IFDEF UNICODE}
                             FonLogRecvEvent (Self, Socnr, UTF8ToStringW(LastLine))
@@ -2757,35 +3032,42 @@ begin
         end ;
     except
         FLastErrorStr := FCurTitle + ' Error Receive Data - ' + IcsGetExceptMess (ExceptObject) ;
-        LogErrEvent (socnr, FLastErrorStr) ;
+        LogErrEvent (0, FLastErrorStr) ;
     end ;
 end ;
 
 // clears any partial received data
 
 procedure TIcsIpStrmLog.ClearLine (Socnr: integer) ;
+var
+    MyChanInfo: PStrmChanInfo;
 begin
-    if (Socnr < 0) or (Socnr >= FTotSockets) then exit ;
-    with FChanInfo [socnr] do
-    begin
+    MyChanInfo := GetChanInfo(Socnr);    { V9.3 using ClientId for server }
+    if MyChanInfo = Nil then
+        Exit;
+    with MyChanInfo^ do begin
         RxLineLen := 0 ;
         SetLength (LastLine, 0) ;
-    end ;
+    end;
 end ;
 
 // retrieve any partial received data
 
 function TIcsIpStrmLog.GetPartialLine (Socnr: integer): string ;
+var
+    MyChanInfo: PStrmChanInfo;
 begin
     result := '' ;
-    if (Socnr < 0) or (Socnr >= FTotSockets) then exit ;
-    with FChanInfo [socnr] do
-    begin
+    MyChanInfo := GetChanInfo(Socnr);    { V9.3 using ClientId for server }
+    if MyChanInfo = Nil then
+        Exit;
+    with MyChanInfo^ do begin
         SetLength (LastLine, RxLineLen) ;
         if RxLineLen > 0 then
         begin
             Move (RxLineData [1], LastLine [1], RxLineLen) ;
-            if Assigned (FonLogRecvEvent) then FonLogRecvEvent (Self, Socnr, String (LastLine)) ;  // 8 Aug 2010
+            if Assigned (FonLogRecvEvent) then
+                FonLogRecvEvent (Self, Socnr, String (LastLine)) ;  // 8 Aug 2010
         end ;
         RxLineLen := 0 ;
         result := String (LastLine) ;
@@ -2793,23 +3075,30 @@ begin
 end ;
 
 function TIcsIpStrmLog.GetTotRecvData (Socnr: integer): int64 ;  // 13 Sept 2016
+var
+    MyChanInfo: PStrmChanInfo;
 begin
     Result := 0 ;
-    if (Socnr < 0) or (Socnr >= FTotSockets) then exit ;
-    Result := FChanInfo [socnr].TotRecvData ;
+    MyChanInfo := GetChanInfo(Socnr);    { V9.3 using ClientId for server }
+    if MyChanInfo = Nil then
+        Exit;
+    Result := MyChanInfo^.TotRecvData ;
 end ;
 
 procedure TIcsIpStrmLog.ResetRecvData (Socnr: integer) ;  // 13 Sept 2016
+var
+    MyChanInfo: PStrmChanInfo;
 begin
-    if (Socnr < 0) or (Socnr >= FTotSockets) then exit ;
-    FChanInfo [socnr].TotRecvData := 0 ;
+    MyChanInfo := GetChanInfo(Socnr);    { V9.3 using ClientId for server }
+    if MyChanInfo = Nil then
+        Exit;
+    MyChanInfo^.TotRecvData := 0 ;
 end ;
 
 
 // SSL client, new session, see if re-using external cached session
 
-procedure TIcsIpStrmLog.TlsSslNewSession(Sender: TObject; SslSession: Pointer;
-                                                WasReused: Boolean; var IncRefCount : Boolean);
+procedure TIcsIpStrmLog.TlsSslNewSession(Sender: TObject; SslSession: Pointer; WasReused: Boolean; var IncRefCount : Boolean);
 var
     socnr: integer;
 begin
@@ -2828,8 +3117,7 @@ end;
 
 // SSL client, look-up session from external cache
 
-procedure TIcsIpStrmLog.TlsSslGetSession(Sender: TObject;
-                            var SslSession: Pointer; var FreeSession : Boolean);
+procedure TIcsIpStrmLog.TlsSslGetSession(Sender: TObject; var SslSession: Pointer; var FreeSession : Boolean);
 begin
     if NOT (FSslSessCache) then exit;
     with Sender as TSslWSocket do
@@ -2839,19 +3127,24 @@ end;
 // SSL Handshaking done, if OK may check certificate chain
 // called for both client and server, warning different senders
 
-procedure TIcsIpStrmLog.TlsSslHandshakeDone(Sender: TObject;
-          ErrCode: Word; PeerCert: TX509Base; var Disconnect: Boolean);
+procedure TIcsIpStrmLog.TlsSslHandshakeDone(Sender: TObject; ErrCode: Word; PeerCert: TX509Base; var Disconnect: Boolean);
 var
-    socnr: integer;
+    Socnr: integer;
     CertChain: TX509List;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     ChainVerifyResult: LongWord;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
     Hash, info, VerifyInfo: String;
     Safe: Boolean;
+    MyChanInfo: PStrmChanInfo;   { V9.3 }
+    VerifyCode: Integer;         { V9.3 }
 begin
-    socnr := (Sender as TWSocket).Tag ;
-    if (socnr < 0) or (socnr >= FTotSockets) then exit ;
+    { V9.3 TCP server has channel info in client, not table, so set pointer to correct location }
+    Socnr := ChanInfofromSocket(Sender as TWSocket, MyChanInfo);
+     if (Socnr < 0) then
+        Exit;
+  {  socnr := (Sender as TWSocket).Tag ;
+    if (socnr < 0) or (socnr >= FTotSockets) then exit ;   }
     if Assigned(FOnHandshakeDone) then
         FOnHandshakeDone(Sender, ErrCode, PeerCert, Disconnect);
 
@@ -2865,13 +3158,13 @@ begin
                 if (FChanInfo [socnr].AttemptNr >= FRetryAttempts) and (FRetryAttempts > 0) then // May 2015 retry on handshake errors
                 begin
                     FLastErrorStr := FCurTitle + ' SSL Handshake Failed - ' + SslHandshakeRespMsg +
-                                                ', After Total Retries ' + IntToStr (FChanInfo [socnr].AttemptNr) ;
+                                                ', After Total Retries ' + IntToStr (MyChanInfo^.AttemptNr) ;
                     LogChangeState (socnr, logstateStopping) ;     { V8.69 }
                     LogChangeState (socnr, logstateNone) ;
                 end
                 else
                 begin
-                    if FChanInfo [socnr].LogState in [logstateNone, logstateStopping] then
+                    if MyChanInfo^.LogState in [logstateNone, logstateStopping] then
                     begin
                         FLastErrorStr := FCurTitle + ' SSL Handshake Failed - ' + SslHandshakeRespMsg ;
                     end
@@ -2880,8 +3173,8 @@ begin
                         FLastErrorStr := FCurTitle + ' SSL Handshake Failed - ' + SslHandshakeRespMsg;
                         if (FRetryAttempts >= 0) then     { V8.69 -1 means no retry attempts, 0 mean try for ever }
                         begin
-                            FChanInfo [socnr].WaitTimer.Interval := Longword (FRetryWaitSecs) * TicksPerSecond ;
-                            FChanInfo [socnr].WaitTimer.Enabled := true ;
+                            MyChanInfo^.WaitTimer.Interval := Longword (FRetryWaitSecs) * TicksPerSecond ;
+                            MyChanInfo^.WaitTimer.Enabled := true ;
                             FLastErrorStr := FLastErrorStr + ' - Retrying in ' + IntToStr (FRetryWaitSecs) + ' secs' ;
                             LogChangeState (socnr, logstateStart) ;
                         end
@@ -2914,11 +3207,13 @@ begin
 
          // Property SslCertChain contains all certificates in current verify chain
             CertChain := SslCertChain;
+            VerifyCode := PeerCert.VerifyResult;   // V9.3 OpenSSL verification result
+            VerifyInfo := PeerCert.FirstVerifyErrMsg;  // V9.3 earlier
 
          // see if validating against Windows certificate store
             if FLogSslVerMethod = logSslVerWinStore then
             begin
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
                 // start engine
                 if not Assigned (FMsCertChainEngine) then
                     FMsCertChainEngine := TMsCertChainEngine.Create;
@@ -2936,29 +3231,28 @@ begin
                 FMsCertChainEngine.VerifyCert (PeerCert, CertChain, ChainVerifyResult, True);
 
                 Safe := (ChainVerifyResult = 0) or
-                        { We ignore the case if a revocation status is unknown.      }
-                        (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                        (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                        (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                             CERT_TRUST_IS_OFFLINE_REVOCATION);
+                     { We ignore the case if a revocation status is unknown.      }
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                     (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
                { The MsChainVerifyErrorToStr function works on chain error codes     }
                 VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult); // Nov 2016
 
             // MSChain ignores host name, so see if it failed using OpenSSL
-                if PeerCert.VerifyResult = X509_V_ERR_HOSTNAME_MISMATCH then begin  // Nov 2016
+                if VerifyCode = X509_V_ERR_HOSTNAME_MISMATCH then begin  // Nov 2016
                     Safe := False;
                     VerifyInfo := PeerCert.FirstVerifyErrMsg;
                  end;
 {$ELSE}
                 LogProgEvent (socnr, FCurTitle + ' Windows certificate store not available');  { V8.65 }
                 exit ;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
             end
             else if FLogSslVerMethod = logSslVerBundle then
             begin
-                VerifyInfo := PeerCert.FirstVerifyErrMsg;   // Nov 2016
-                Safe := (PeerCert.VerifyResult = X509_V_OK);   { check whether SSL chain verify result was OK }
+             //   VerifyInfo := PeerCert.FirstVerifyErrMsg;   // Nov 2016
+                Safe := (VerifyCode = X509_V_OK);   { check whether SSL chain verify result was OK }
 
               { V8.69 check OCSP to see if revoked, if we got a chain of certificates }
               { note this is a soft check, if we don't have a stapled OCSP response from the TLS handshake, we get it from an
@@ -2967,15 +3261,25 @@ begin
                     FOcspHttp.ClearOcsp;
                     FOcspHttp.OcspCert := PeerCert;
                     FOcspHttp.OcspInters := CertChain;
-                    if (Length(OcspStapleRaw) > 50) and
-                         (OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
-                                                FOcspHttp.OcspRespRaw := OcspStapleRaw;
+                    if (Length(OcspStapleRaw) > 50) and (OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
+                        FOcspHttp.OcspRespRaw := OcspStapleRaw;
                     if FOcspHttp.CheckOcspRevoked(FCliSslContext.GetX509Store, 0) then
                         Safe := False;
                     VerifyInfo := FOcspHttp.OcspLastResp;
                     FOcspHttp.OcspInters := Nil;
                     LogProgEvent (socnr, FCurTitle + ' ' + VerifyInfo)
                 end;
+            end
+
+        { V9.3 allow application to verify chain, perhaps checking public key only  }
+        { the event should change VerifyCode, VerifyInfo, Disconnect so the result get logged sensibly }
+            else if FLogSslVerMethod = logSslVerOwnEvent then begin
+                if Assigned(FOnSslCertVerifyEvent) then begin
+                    FOnSslCertVerifyEvent(Self, CertChain, VerifyCode, VerifyInfo, Disconnect);
+                    if Disconnect and (VerifyCode = X509_V_OK) then
+                        VerifyCode := X509_V_ERR_CERT_SIGNATURE_FAILURE;
+                end;
+                Safe := (VerifyCode = X509_V_OK);
             end
             else
             begin
@@ -2986,8 +3290,7 @@ begin
             if (CertChain.Count > 0) and (CertChain[0].FirstVerifyResult = X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) then
             begin
                 Safe := true ;
-                LogProgEvent (socnr, FCurTitle + ' SSL Self Signed Certificate Succeeded: ' +
-                                                                  IcsUnwrapNames (PeerCert.IssuerCName));
+                LogProgEvent (socnr, FCurTitle + ' SSL Self Signed Certificate Succeeded: ' + IcsUnwrapNames (PeerCert.IssuerCName));
             end;
 
          // tell user verification failed
@@ -3005,7 +3308,7 @@ begin
          // check certificate was issued to remote host for out connection
             else
             begin
-                   LogProgEvent (socnr, FCurTitle + ' SSL Chain Verification Succeeded, Domain: ' + SslCertPeerName);
+               LogProgEvent (socnr, FCurTitle + ' SSL Chain Verification Succeeded, Domain: ' + SslCertPeerName);
             end;
 
        // if certificate checking failed, see if the host is specifically listed as being allowed anyway
@@ -3021,7 +3324,7 @@ begin
             begin
                 info := 'Verify Result: ' + VerifyInfo + IcsCRLF ;   { V8.69 simplify }
                 info := info + IntToStr (CertChain.Count) + ' SSL Certificates in the verify chain:'+ IcsCRLF +
-                                CertChain.AllCertInfo (true, true) ; // Feb 2017 report all certs, backwards
+                                                  CertChain.AllCertInfo (true, true) ; // Feb 2017 report all certs, backwards
                 LogProgEvent (socnr, FCurTitle + ' ' +  info);
             end;
 
@@ -3066,8 +3369,8 @@ var
     socnr: integer ;
     info: string ;
 begin
-    socnr := (Sender as TWSocket).Tag ;
-    if (socnr < 0) or (socnr >= FTotSockets) then exit ;
+    socnr := SocnrfromSocket(Sender as TWSocket) ;  { V9.3 }
+    if (socnr < 0) then exit ;
     OK := 1; // don't check certificate until handshaking over
     if LogRcvdCerts then
     begin
@@ -3081,14 +3384,14 @@ end;
 // Dec 2016 log SSL protocol messages for debugging
 
 procedure TIcsIpStrmLog.TlsSslProtoMsgEvent(Sender: TObject; Info: String; Sending:
-            integer; Version: integer; ContentType: integer; Buffer: PAnsiChar; BuffSize: integer) ;
+                         integer; Version: integer; ContentType: integer; Buffer: PAnsiChar; BuffSize: integer) ;
 var
     socnr: integer;
 begin
-    socnr := (Sender as TWSocket).Tag ;
-    if (socnr < 0) or (socnr >= FTotSockets) then exit ;
+    socnr := SocnrfromSocket(Sender as TWSocket) ;  { V9.3 }
+    if (socnr < 0) then exit ;
     LogProgEvent (socnr, FCurTitle + ' SSL ProtoMsg: ' + info +  ', DataLen=' +
-            IntToStr (BuffSize) + ', Data=' + IcsBufferToHex (Buffer[0], BuffSize)) ;
+                                            IntToStr (BuffSize) + ', Data=' + IcsBufferToHex (Buffer[0], BuffSize)) ;
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}

@@ -4,8 +4,8 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Internet monitoring using raw sockets or Npcap NDIS driver, common
               headers and structures and TIcsTrafficClass.
 Creation:     March 2009
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
 Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
@@ -60,7 +60,8 @@ Jul 21, 2023 - V8.71 Updated units for main ICS library.
                      TIcsTrafficClass uses IcsDomainNameCache component instead of
                        internal wsocket reverse IP lookups.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+Aug 13, 2025 V9.5  IcsCompareGTMem.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -92,10 +93,11 @@ uses
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsDnsQuery,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsIpUtils;
+    Z.ICS9.OverbyteIcsIpUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    CopyRight    : String     = ' TIcsTrafficClass  (c) 2023 V9.0 ';
+    CopyRight    : String     = ' TIcsTrafficClass  (c) 2025 V9.5 ';
 
 const
   sTrafficMask = '%-50s %-50s %-12s %5s %7s %5s %7s %8s %8s' ;
@@ -318,14 +320,14 @@ function CompareIPTraffic (Item1, Item2: Pointer): Integer;
 // Compare returns < 0 if Item1 is less than Item2, 0 if they are equal
 // and > 0 if Item1 is greater than Item2.
 begin
-    result := CompareGTMem (Item1, Item2, TrafficIPCompLen) ;  // warning record must be packed
+    result := IcsCompareGTMem (Item1, Item2, TrafficIPCompLen) ;  // warning record must be packed
 end ;
 
 function CompareServTraffic (Item1, Item2: Pointer): Integer;
 // Compare returns < 0 if Item1 is less than Item2, 0 if they are equal
 // and > 0 if Item1 is greater than Item2.
 begin
-    result := CompareGTMem (Item1, Item2, ServiceCompLen) ;  // warning record must be packed
+    result := IcsCompareGTMem (Item1, Item2, ServiceCompLen) ;  // warning record must be packed
 end ;
 
 constructor TIcsTrafficClass.Create(AOwner: TComponent);
@@ -721,7 +723,7 @@ function IPv6CompFNext (Item1, Item2: Pointer): Integer;
 // Compare returns < 0 if Item1 is less than Item2, 0 if they are equal
 // and > 0 if Item1 is greater than Item2.
 begin
-    Result := CompareGTMem(Item1, Item2, SizeOf(TIcsIPv6Address)) ;
+    Result := IcsCompareGTMem(Item1, Item2, SizeOf(TIcsIPv6Address)) ;
 end ;
 
 procedure TIcsMonFilterClass.SetIpAddr (IpAddr: String);

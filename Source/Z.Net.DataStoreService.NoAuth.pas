@@ -615,7 +615,7 @@ procedure TDataStoreService_NoAuth.UserLinkSuccess(UserDefineIO: TService_RecvTu
 var
   RT: TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   de: TDFE;
-  arr: TDFArrayByte;
+  arr: TDF_ArrayByte;
 begin
   RT := UserDefineIO as TDataStoreService_RecvTunnel_UserDefine_NoAuth;
   de := TDFE.Create;
@@ -1280,7 +1280,7 @@ procedure TDataStoreService_NoAuth.Send_CompletedStorePosTransform(SendCli_: TPe
 var
   de: TDFE;
   i: Integer;
-  arr: TDFArrayInt64;
+  arr: TDF_ArrayInt64;
 begin
   de := TDFE.Create;
   de.WritePointer(BackcallPtr);
@@ -1452,7 +1452,7 @@ end;
 
 procedure TDataStoreClient_NoAuth.Command_DataStoreSecurity(Sender: TPeerIO; InData: TDFE);
 var
-  arr: TDFArrayByte;
+  arr: TDF_ArrayByte;
 begin
   FDataStoreCipherSecurity := TCipherSecurity(InData.Reader.ReadByte);
   arr := InData.Reader.ReadArrayByte;
@@ -1705,7 +1705,7 @@ end;
 procedure TDataStoreClient_NoAuth.Command_CompletedStorePosTransform(Sender: TPeerIO; InData: TDFE);
 var
   BackcallPtr: PStorePosTransformNotify;
-  arr: TDFArrayInt64;
+  arr: TDF_ArrayInt64;
   i: Integer;
   TransformBuff: TZDBStorePosTransformArray;
 begin

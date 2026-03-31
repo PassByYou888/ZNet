@@ -924,7 +924,7 @@ type
 
   TLinesArray = array of TLines;
 
-  TLinesList_Decl = TGenericsList<TLines>;
+  TLinesList_Decl = class(TGenericsList<TLines>);
 
   TLinesList = class(TLinesList_Decl)
   public
@@ -1002,7 +1002,8 @@ type
     procedure Load_From_Bytes(var buff: TBytes);
   end;
 
-  T2DPolygonGraphList_Decl = TGenericsList<T2DPolygonGraph>;
+  T2DPolygonGraphList_Decl = class(TGenericsList<T2DPolygonGraph>)
+  end;
 
   T2DPolygonGraphList = class(T2DPolygonGraphList_Decl)
   end;
@@ -1146,7 +1147,7 @@ type
     property UserData: pointer read FUserData write FUserData;
   end;
 
-  TDeflectionPolygonList_ = TGenericsList<TDeflectionPolygon>;
+  TDeflectionPolygonList_ = class(TGenericsList<TDeflectionPolygon>);
 
   TDeflectionPolygonList = class(TDeflectionPolygonList_)
   public
@@ -1218,7 +1219,7 @@ type
 {$ENDREGION 'DeflectionPolygon'}
 {$REGION 'TriangleList'}
 
-  TTriangleList_Decl = TGenericsList<PTriangle>;
+  TTriangleList_Decl = class(TGenericsList<PTriangle>);
 
   TTriangleList = class(TTriangleList_Decl)
   public
@@ -1248,7 +1249,7 @@ type
 
   PRectPackData = ^TRectPackData;
 
-  TRectPackData_List = TGenericsList<PRectPackData>;
+  TRectPackData_List = class(TGenericsList<PRectPackData>);
 
   TRectPacking_Style = (rsDynamic, rsL2R, rsL2R_Sorted, rsT2B, rsT2B_Sorted);
 
@@ -1305,7 +1306,7 @@ type
     IoU, R1A, R2A, RA: TGeoFloat;
   end;
 
-  TNearest_Box_IoU_Tool_ = TBigList<TNearest_Box_IoU>;
+  TNearest_Box_IoU_Tool_ = class(TBigList<TNearest_Box_IoU>);
 
   TNearest_Box_IoU_Tool = class(TNearest_Box_IoU_Tool_)
   public
@@ -1322,9 +1323,9 @@ type
     procedure Init();
   end;
 
-  TNearest_Box_Tool_ = TBigList<TNearest_Box_Data>;
+  TNearest_Box_Tool_ = class(TBigList<TNearest_Box_Data>);
 
-  TNearest_Box_List_ = TBigList<PNearest_Box_Data>;
+  TNearest_Box_List_ = class(TBigList<PNearest_Box_Data>);
 
   TNearest_Box_List = class(TNearest_Box_List_)
   private
@@ -1336,7 +1337,7 @@ type
     destructor Destroy; override;
   end;
 
-  TNearest_Box_Group_ = TBig_Hash_Pair_Pool<Integer, TNearest_Box_List>;
+  TNearest_Box_Group_ = class(TBig_Hash_Pair_Pool<Integer, TNearest_Box_List>);
 
   TNearest_Box_Group = class(TNearest_Box_Group_)
   public

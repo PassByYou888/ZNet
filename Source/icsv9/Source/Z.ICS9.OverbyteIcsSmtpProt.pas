@@ -7,10 +7,10 @@ Object:       TSmtpCli class implements the SMTP protocol (RFC-821)
               Support authentification (RFC-2104)
               Support HTML mail with embedded images.
 Creation:     09 october 1997
-Version:      V9.0
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               SSL implementation includes code written by Arno Garrels,
               Berlin, Germany
@@ -455,7 +455,13 @@ Jul 19, 2023 V8.71 - If getting an OAuth2 token fails with an error, raise excep
                      Improved error handling when sending recipients.
                      Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Jan 20, 2024 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Builds on Android.
+Aug 7, 2024 V9.3   Moved many types and constants to OverbyteIcsTypes for consolidation.
+                   Moved ParseEmail to OverbyteUtils as IcsParseEmail
+Oct 28, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+                   Fixed bug introduced in V9.3 which corrupted the Content-Transfer-Encoding
+                     header line if not 7bit.
 
 
 Notes: SslType
@@ -535,9 +541,11 @@ uses
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF}
 {$IFNDEF NO_DEBUG_LOG}
     Z.ICS9.OverbyteIcsLogger,
@@ -551,17 +559,13 @@ uses
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
 const
-  SmtpCliVersion     = 900;
-  CopyRight : String = ' SMTP component (c) 1997-2023 Francois Piette V9.0 ';
+  SmtpCliVersion     = 904;
+  CopyRight : String = ' SMTP component (c) 1997-2024 Francois Piette V9.4 ';
   smtpProtocolError  = 20600; {AG}
 {  SMTP_RCV_BUF_SIZE  = 4096;  V8.07 no longer used }
 
-  SmtpDefEncArray : array [0..3] of AnsiString = ('7bit',             '8bit',
-                                                  'quoted-printable', 'base64'); {AG}
 type
     TCustomSmtpClient = class;
-    TSmtpDefaultEncoding      = (smtpEnc7bit,            smtpEnc8bit,
-                                 smtpEncQuotedPrintable, smtpEncBase64);   {AG}
 
     TSmtpHeaderLines = class(TStringList)                                  {AG}
     private
@@ -629,26 +633,6 @@ type
     end;
 
     SmtpException    = class(Exception);
-    TSmtpSendMode    = (smtpToSocket,        smtpToStream,     {AG}
-                        smtpCopyToStream);
-    TSmtpState       = (smtpReady,           smtpDnsLookup,
-                        smtpConnecting,      smtpConnected,
-                        smtpInternalReady,   smtpWaitingBanner,
-                        smtpWaitingResponse, smtpAbort,
-                        smtpInternalBusy);
-    TSmtpMimeState   = (smtpMimeIntro,       smtpMimePlainText,
-                        smtpMimeHtmlText,    smtpMimeImages,
-                        smtpMimeAttach,      smtpMimeDone);
-{Start AG/SSL}
-    TSmtpRequest     = (smtpConnect,         smtpHelo,          smtpMailFrom,
-                        smtpVrfy,            smtpRcptTo,        smtpData,
-                        smtpQuit,            smtpRset,          smtpOpen,
-                        smtpMail,            smtpEhlo,          smtpAuth,
-                     {$IFDEF USE_SSL}
-                        smtpStartTls,
-                     {$ENDIF}
-                        smtpCalcMsgSize,     smtpMailFromSIZE,  smtpToFile,
-                        smtpCustom);
     TSmtpFct         = (smtpFctNone,         smtpFctHelo,       smtpFctConnect,
                         smtpFctMailFrom,     smtpFctRcptTo,     smtpFctData,
                         smtpFctVrfy,         smtpFctQuit,       smtpFctRset,
@@ -657,25 +641,8 @@ type
                         ,smtpFctStartTls
                      {$ENDIF}
                         ,smtpFctCalcMsgSize ,smtpFctMailFromSIZE);
-    TSmtpProxyType
-                     = (smtpNoProxy,         smtpSocks4,        smtpSocks4A,
-                        smtpSocks5,          smtpHttpProxy);
-{End AG/SSL}
     TSmtpFctSet      = set of TSmtpFct;
-    TSmtpContentType = (smtpHtml,            smtpPlainText);
-    TSmtpAuthType    = (smtpAuthNone,        smtpAuthPlain,     smtpAuthLogin,
-                        smtpAuthCramMD5,     smtpAuthCramSha1,  smtpAuthNtlm,
-                        smtpAuthAutoSelect,  smtpAuthXOAuth2,  smtpAuthOAuthBearer);  { V8.65 two OAuths }
-    TSmtpShareMode   = (smtpShareCompat,     smtpShareExclusive,
-                        smtpShareDenyWrite,  smtpShareDenyRead,
-                        smtpShareDenyNone);
-    TSmtpPriority    = (smtpPriorityNone,    smtpPriorityHighest,
-                        smtpPriorityHigh,    smtpPriorityNormal,
-                        smtpPriorityLow,     smtpPriorityLowest);
 
-    {AG start}
-
-    TSmtpEncoding  = (smtpEncodeNone, smtpEncodeBase64, smtpEncodeQP);
     { Do YOU know shorter & readable designations ?? }
     TSmtpBeforeOpenFileAction = (smtpBeforeOpenFileNone, smtpBeforeOpenFileNext,
                                  smtpBeforeOpenFileAbort);
@@ -1327,11 +1294,14 @@ Dec 29, 2007  Reworked the component. After command StartTls completed you
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
+(* V9.3 moved to OverbyteIcsTypes
 type
     TSmtpSslType     = (smtpTlsNone,  smtpTlsImplicit,  smtpTlsExplicit);
  { smtpTlsImplicit means SSL only, usually port 465, officially this port is obsolete }
  { smtpTlsExplicit means optional SSL, ports 25 or 587, sometimes 2525 }
+*)
 
+type
     TCustomSslSmtpCli = class(TSyncSmtpCli)
     protected
         FSslType                    : TSmtpSslType;
@@ -1508,15 +1478,6 @@ function GenerateMessageID : String;                                  {AG}
 { utility                                                                }
 function SmtpRqTypeToStr(RqType: TSmtpRequest): String;               { V8.65 was ShortString }
 function SmtpCliErrorMsgFromErrorCode(ErrCode: Word): String;
-
-{ List of separators accepted between email addresses }
-const
-    SmtpEMailSeparators = [';', ','];
-
-{ V8.65 some literals for applications }
-    SmtpAuthTypeNames: array [TSmtpAuthType] of PChar =
-        ('None','Plain','Login','Cram-Md5','Cram-Sha1','NTLM',
-        'Auto Select','XOAuth2','OAuthBearer');
 
 implementation
 
@@ -1823,8 +1784,7 @@ begin
         else
             FTransferEncoding := DefaultEncoding;
         { Special case with special MBCS }
-        if (FTransferEncoding in [smtpEnc7bit, smtpEnc8bit]) and
-           (IcsIsMBCSCodePage(FCodePage) or (FCodePage = CP_UTF7)) then
+        if (FTransferEncoding in [smtpEnc7bit, smtpEnc8bit]) and (IcsIsMBCSCodePage(FCodePage) or (FCodePage = CP_UTF7)) then
             FTransferEncoding := smtpEncQuotedPrintable;
     end
     else begin
@@ -2557,7 +2517,7 @@ begin
         AuthPlain := AuthPlain + FUserName;
     AuthPlain := AuthPlain + #0;
     AuthPlain := AuthPlain + FPassword;
-    AuthPlain := Base64Encode(AuthPlain);
+    AuthPlain := IcsBase64Encode(AuthPlain);    { V9.4 }
     ExecAsync(smtpAuth, 'AUTH PLAIN ' + AuthPlain, [235], AuthNextPlain);
 end;
 
@@ -2643,14 +2603,14 @@ begin
     smtpAuthXOAuth2 :
         begin                                                                       { V8.65 }
             Response := 'user=' + FUsername + #1 + 'auth=Bearer ' + FOAuthToken + #1#1;
-            ExecAsync(smtpAuth, 'AUTH XOAUTH2 ' + Base64Encode(Response), [235], AuthNextOAuth);
+            ExecAsync(smtpAuth, 'AUTH XOAUTH2 ' + IcsBase64Encode(Response), [235], AuthNextOAuth);     { V9.4 }
         end;
 { OAuth2 includes HTTP header 'Authorization: Bearer token'  }
     smtpAuthOAuthBearer :
         begin                                                                       { V8.65 }
             Response := 'n,a=' + FUsername + ',' + #1 + 'host=' + FHost + #1 +
                         'port=' + FPort + #1 + 'auth=Bearer ' + FOAuthToken + #1#1;
-            ExecAsync(smtpAuth, 'AUTH OAUTHBEARER ' + Base64Encode(Response), [235], AuthNextOAuth);
+            ExecAsync(smtpAuth, 'AUTH OAUTHBEARER ' + IcsBase64Encode(Response), [235], AuthNextOAuth);     { V9.4 }
         end;
     end;
 end;
@@ -2686,7 +2646,7 @@ begin
     end;
 
     FState := smtpInternalReady;
-    ExecAsync(smtpAuth, Base64Encode(FUsername), [334], AuthNextLoginNext);
+    ExecAsync(smtpAuth, IcsBase64Encode(FUsername), [334], AuthNextLoginNext);      { V9.4 }
 end;
 
 
@@ -2700,7 +2660,7 @@ begin
     end;
 
     FState := smtpInternalReady;
-    ExecAsync(smtpAuth, Base64Encode(FPassword), [235], nil);
+    ExecAsync(smtpAuth, IcsBase64Encode(FPassword), [235], nil);     { V9.4 }
 end;
 
 
@@ -2740,13 +2700,12 @@ begin
         Exit;
     end;
     Challenge := AnsiString(Copy(FLastResponse, 5, Length(FLastResponse) - 4));
-    Challenge := Base64Decode(Challenge);
+    Challenge := IcsBase64DecodeA(Challenge);      { V9.4 }
     Pwd := AnsiString(FPassword);  { V7.32 }
-    HMAC_MD5(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(Pwd)^,
-             Length(Pwd), Digest);  { V7.32 }
+    HMAC_MD5(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(Pwd)^, Length(Pwd), Digest);  { V7.32 }
     Response := FUserName + ' ' + MD5DigestToLowerHex(Digest);  { V7.32 }
     FState := smtpInternalReady;
-    ExecAsync(smtpAuth, Base64Encode(Response), [235], nil);
+    ExecAsync(smtpAuth, IcsBase64Encode(Response), [235], nil);    { V9.4 }
 end;
 
 
@@ -2786,13 +2745,12 @@ begin
           Exit;
     end;
     Challenge := AnsiString(Copy(FLastResponse, 5, Length(FLastResponse) - 4));
-    Challenge := Base64Decode(Challenge);
+    Challenge := IcsBase64DecodeA(Challenge);            { V9.4 }
     Pwd := AnsiString(FPassword);  { V7.32 }
-    HMAC_SHA1(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(Pwd)^,
-              Length(Pwd), Digest);  { V7.32 }
+    HMAC_SHA1(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(Pwd)^, Length(Pwd), Digest);  { V7.32 }
     Response := FUsername + ' ' + SHA1DigestToLowerHex(Digest);  { V7.32 }
     FState := smtpInternalReady;
-    ExecAsync(smtpAuth, Base64Encode(Response), [235], nil);
+    ExecAsync(smtpAuth, IcsBase64Encode(Response), [235], nil);       { V9.4 }
 end;
 
 
@@ -2847,7 +2805,7 @@ var
 begin
     if FRequestResult = 334 then begin
         Response := Copy(FLastResponse, 5, Length(FLastResponse) - 4);
-        FErrorMessage := '334  ' + Base64Decode(Response);
+        FErrorMessage := '334  ' + String(IcsBase64Decode(Response));     { V9.4 }
         SetErrorMessage;
     end;
     TriggerRequestDone(FRequestResult);
@@ -2959,6 +2917,11 @@ begin
     RcptToNext;
 end;
 
+{ V9.3 moved ParseEmail to Utils as IcsParseEmail }
+function ParseEmail(FriendlyEmail: String; var FriendlyName : String) : String;
+begin
+    Result := IcsParseEmail(FriendlyEmail, FriendlyName);
+end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { FriendlyEmail                  FriendlyName   Result                      }
@@ -2970,9 +2933,8 @@ end;
 { name@domain.com                empty          name@domain.com             }
 { <name@domain.com>              empty          name@domain.com             }
 { "name@domain.com"              empty          name@domain.com             }
-function ParseEmail(
-    FriendlyEmail    : String;
-    var FriendlyName : String) : String;
+(*
+function ParseEmail(FriendlyEmail: String; var FriendlyName : String) : String;
 var
     I, J  : Integer;
     Flag  : Boolean;
@@ -3039,7 +3001,7 @@ begin
         FriendlyName := '';
     end;
 end;
-
+*)
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TCustomSmtpClient.RcptNameAdd(
@@ -3401,8 +3363,7 @@ begin
     if FItemCount < FHdrLines.Count then begin
         { There are still header lines to send.                           }
         { Truncate the line if too long, or shall we raise an exception?  }
-        StrPLCopy(PAnsiChar(@MsgLine), AnsiString(FHdrLines.Strings[FItemCount]),
-                  Length(MsgLine) - 1);
+        StrPLCopy(PAnsiChar(@MsgLine), AnsiString(FHdrLines.Strings[FItemCount]), Length(MsgLine) - 1);
         TriggerHeaderLine(@MsgLine, SizeOf(MsgLine));
         TriggerDisplay('> ' + String(StrPas(PAnsiChar(@MsgLine))));
 
@@ -3425,9 +3386,7 @@ begin
                 Inc(FLineNum);
                 MsgLine[0] := #0;
                 { Enough room for double a dot and a nul char }
-                TriggerGetData(FLineNum, @MsgLine,
-                               SizeOf(MsgLine) - 2,
-                               FMoreLines);
+                TriggerGetData(FLineNum, @MsgLine, SizeOf(MsgLine) - 2, FMoreLines);
             except
                 FMoreLines := FALSE;
             end;
@@ -3876,6 +3835,7 @@ begin
     GL_En_US_FormatSettings := TFormatSettings.Create(LocaleRef);
     CFRelease(CFStrRef);
     CFRelease(LocaleRef);
+end;
 {$ENDIF}
 {$IFDEF MSWINDOWS}
 begin
@@ -3884,13 +3844,18 @@ begin
   {$ELSE}
     GetLocaleFormatSettings(1033, GL_En_US_FormatSettings); // deprecated
   {$ENDIF}
+end;
 {$ENDIF}
 {$IFDEF LINUX}
 begin
   {$MESSAGE 'TODO PrepareGlobalSmtpFormatSettings'}           { V8.65 pending Linux }
-{$ENDIF LINUX}
 end;
-
+{$ENDIF}
+{$IFDEF ANDROID}
+begin
+  {$MESSAGE 'TODO PrepareGlobalSmtpFormatSettings'}           { V9.1 pending Android }
+end;
+{$ENDIF}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function Rfc822DateTime(t : TDateTime) : String;
@@ -4400,14 +4365,11 @@ begin
             StrPCopy(PAnsiChar(Line), 'Content-Type: multipart/mixed;'#13#10#9'boundary="'
                      + FMimeBoundary + '"');
     end
-    else if (StrLen(PAnsiChar(Line)) > 0) and
-            (StrLIComp(PAnsiChar('CONTENT-TYPE: TEXT'),
-             PAnsiChar(Line), 18) = 0) then                                {AG}
+    else if (StrLen(PAnsiChar(Line)) > 0) and (StrLIComp(PAnsiChar('CONTENT-TYPE: TEXT'), PAnsiChar(Line), 18) = 0) then                                {AG}
         { 7-bit transfer is the default and not required }
         if FMailMsgText.TransferEncoding <> smtpEnc7bit then begin         {AG}
             StrCat(PAnsiChar(Line), PAnsiChar(CRLF + 'Content-Transfer-Encoding: '));
-            StrCat(PAnsiChar(Line),
-                PAnsiChar(SmtpDefEncArray[Ord(FMailMsgText.TransferEncoding)]));
+            StrCat(PAnsiChar(Line),  PAnsiChar(AnsiString(SmtpDefEncArray[FMailMsgText.TransferEncoding])));  { V9.4 }
         end;
     inherited TriggerHeaderLine(Line, Size);
 end;
@@ -4466,8 +4428,7 @@ begin
         FEmailBody.Add('--' + String(FMimeBoundary));
         FEmailBody.Add('Content-Type: ' + FContentTypeStr +
                        '; charset="' + FCharSet + '"');
-        FEmailBody.Add('Content-Transfer-Encoding: ' +
-                        String(SmtpDefEncArray[Ord(FMailMsgText.TransferEncoding)])); {AG}
+        FEmailBody.Add('Content-Transfer-Encoding: ' + SmtpDefEncArray[FMailMsgText.TransferEncoding]); {AG} { V9.3 }
         FEmailBody.Add('');
     end
     else

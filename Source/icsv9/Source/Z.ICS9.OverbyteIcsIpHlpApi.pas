@@ -3,11 +3,11 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Internet Protocol Helper Component for Windows.
 Creation:     2000
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Apr 2024
+Version:      V9.2
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2002-2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
               Based on work by Dirk Claessens
 
@@ -143,6 +143,11 @@ Aug 16, 2023 - V8.71 Updated units for main ICS library.
                  to monitor IP address changes dynamically.
                Added IpHlpGetDnsServers to get list of DNS servers for this PC.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 09, 2024 V9.1  Trying to find msghandler leak in TIcsIpChanges.
+Apr 08, 2024 V9.2  Builds with D7 again.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+
+
 
 
 Pending - TIcsNeighbDevices use multiple threads to avoid timeouts during ARP lookups.
@@ -153,7 +158,9 @@ unit Z.ICS9.OverbyteIcsIpHlpApi;
 
 {$ALIGN ON}
 {$MINENUMSIZE 4}
-{$WEAKPACKAGEUNIT}
+{$IFDEF COMPILER11_UP}
+   {$WEAKPACKAGEUNIT}     { V9.2 keep D7 happy }
+{$ENDIF}
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
 
 {$IFDEF COMPILER14_UP}
@@ -179,15 +186,16 @@ uses
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     Z.ICS9.OverbyteIcsWndControl,
-    Z.ICS9.OverbyteIcsWinsock,
+//    OverbyteIcsWinsock,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsIpUtils,
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsDnsQuery,
-    Z.ICS9.OverbyteIcsTicks64;
+    Z.ICS9.OverbyteIcsTicks64,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    CopyRight    : String     = ' IcsIpHlpApi  (c) 2023 V9.0 ';
+    CopyRight    : String     = ' IcsIpHlpApi  (c) 2024 V9.3 ';
 
 
 // following headers are for low level IpHelper Windows APIs
@@ -5292,7 +5300,7 @@ end;
 // July 2023 new component to monitor IP address changes, based on old functions
 constructor TIcsIpChanges.Create(AOwner: TComponent);
 begin
-    Inherited;
+    Inherited Create(AOwner);     { V9.1 }
     AllocateHWnd;
     FDevFamily := AF_UNSPEC;
     FNotificationHandle := 0;
@@ -5302,8 +5310,11 @@ end;
 //------------------------------------------------------------------------------
 destructor TIcsIpChanges.Destroy;
 begin
-    StopMonitor;
-    Inherited;
+    try
+        StopMonitor;
+    finally
+        Inherited Destroy;       { V9.1 }
+    end;
 end;
 
 
@@ -5345,6 +5356,8 @@ begin
     SendMessage(MyIcsIpChanges.Handle, MyIcsIpChanges.FMsg_WM_IPADDRCHANGE, WPARAM(NotificationType), LPARAM(Row));
 end;
 
+
+//------------------------------------------------------------------------------
 procedure TIcsIpChanges.WndProc(var MsgRec: TMessage);
 var
     PartRow: PMibUnicastIpAddressRow;

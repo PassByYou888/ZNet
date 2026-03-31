@@ -426,7 +426,7 @@ end;
 procedure TC40_Log_DB_Service.cmd_RemoveLog(sender: TPeerIO; InData: TDFE);
 var
   LogDB: SystemString;
-  arry: TDFArrayInteger;
+  arry: TDF_ArrayInteger;
   db_: TC40_Log_DB_ZDB2_HashString;
   i: Integer;
 begin

@@ -10,11 +10,11 @@ Description:  JOSE - Json Object Signing and Encryption, used for:
               Includes OpenSSL Message Authentication Code functions used
               for signing JOSE structures with secret or private/public keys.
 Creation:     Feb 2018
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Jun 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -168,12 +168,26 @@ May 18, 2022 V8.69     Turn off deprecated warnings for YuOpenSSL 3.0 due to use
                        Moved hash digest functions to OverbyteIcsLIBEAY so they can be
                          used with Json stuff.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 28, 2024 V9.1  Removed support for OpenSSL 1.1.1, out of maintenance, saves a lot of code.
+                   Using new TBytes versions of many Base64 and Digest functions since these
+                     mostly use binary that we used to pass in AnsiString, which could cause
+                     confusion.
+                   Added IcsJoseGetSigTB and IcsJoseCheckSigTB taking TBytes arguments,
+                     and IcsJoseHeaderTB returning TBytes.
+Oct 11, 2024 V9.4  Removed Ics.Posix.PXMessages, not needed here.
+                   Using new IcsPkey functions to avoid calling OpenSSL APIs directly.
+                   Added IcsJoseFindAlgPkey to find private key type for algorithm.
+                   Updated Base64 encoding functions to IcsBase64 functions
+Sep 08, 2025 V9.5  IcsJoseFindAlg no longer uses deprecated OpenSSL functions.
+                   IcsJoseJWSJson, IcsJoseGetSigTB, IcsJoseCheckSigTB and IcsJoseCheckJWS
+                     have new EcdsaIEEE boolean flag that specifies Elliptic Key ECDSA
+                     signatures are theshorter IEEE P1363 digest that many applications
+                     expect instead of the longer ASN.1 digest OpenSSL generates.
 
 
 
 Pending
 -------
-
 A REST web server implementatoon to test JWS/JWT properly.
 
 
@@ -202,7 +216,7 @@ unit Z.ICS9.OverbyteIcsSslJose;
 interface
 
 {$IFDEF USE_SSL}
-{$WARN SYMBOL_DEPRECATED OFF}    { VuOpenSSL 3.0 warns about too many old EC_KEY and RSA_ functions }
+{..$WARN SYMBOL_DEPRECATED OFF}    { VuOpenSSL 3.0 warns about too many old EC_KEY and RSA_ functions }
 
 uses
 {$IFDEF MSWINDOWS}
@@ -212,7 +226,7 @@ uses
 {$IFDEF POSIX}
     Posix.Time,
     Z.ICS9.Ics.Posix.WinTypes,
-    Z.ICS9.Ics.Posix.PXMessages,
+//    Ics.Posix.PXMessages,
     Posix.SysTypes,     // size_t
 {$ENDIF}
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
@@ -220,11 +234,6 @@ uses
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$Ifdef Rtl_Namespaces}System.StrUtils{$Else}StrUtils{$Endif},   { V8.65 }
     Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
-{$IFDEF FMX}
-//    Ics.Fmx.OverbyteIcsWSocket,
-{$ELSE}
-//    OverbyteIcsWSocket,                { V8.69 no longer needed }
-{$ENDIF FMX}
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUrl,          { V8.67 }
     Z.ICS9.OverbyteIcsSuperObject,  { V8.65 }
@@ -235,6 +244,8 @@ uses
 
 type
 //  EDigestException = class(Exception);
+
+{ JWT Json Web Tokens - https://www.iana.org/assignments/jwt/jwt.xhtml }
 
 { the JOSE Json Web Signature algorithm "alg" }
 { https://www.iana.org/assignments/jose/jose.xhtml }
@@ -380,6 +391,22 @@ const
            JoseLitalg_PS256, JoseLitalg_PS384, JoseLitalg_PS512,
            JoseLitalg_EdDSA);
 
+ // map JWS algorithms to digest type
+    JoseAlgDigests: array[TJoseAlg] of TEvpDigest = (Digest_None,   { V9.4 }
+           Digest_SHA256, Digest_SHA384, Digest_SHA512,
+           Digest_SHA256, Digest_SHA384, Digest_SHA512,
+           Digest_SHA256, Digest_SHA384, Digest_SHA512,
+           Digest_SHA256, Digest_SHA384, Digest_SHA512,
+           Digest_None);
+
+ // map JWS algorithms to private key type only
+    JoseAlgPkeys: array[TJoseAlg] of Integer = (0,   { V9.4 }
+           EVP_PKEY_HMAC, EVP_PKEY_HMAC, EVP_PKEY_HMAC,
+           EVP_PKEY_RSA, EVP_PKEY_RSA, EVP_PKEY_RSA,
+           EVP_PKEY_EC, EVP_PKEY_EC, EVP_PKEY_EC,
+           EVP_PKEY_RSA_PSS, EVP_PKEY_RSA_PSS, EVP_PKEY_RSA_PSS,
+           EVP_PKEY_X25519);
+
     JoseVerifyLits: array[TJoseVerify] of string = ('Unknown',
         'Verified OK with old public key',  // used passed PublicKey and optionally KeyId
         'Verified OK with new public key',  // PublicKey have been updated with new key
@@ -401,9 +428,8 @@ const
 { V8.69 Moved hash digest functions to OverbyteIcsLIBEAY }
 
 { RFC7515 Jose Header for Json Web Signature or Token, with Acme private fields }
-{ V8.67 returns UTF-8 encoded Json }
-function IcsJoseHeader(const Alg, Typ, Jwk, Kid, Nonce: string;
-                                                const Url: string = ''): AnsiString;
+function IcsJoseHeader(const Alg, Typ, Jwk, Kid, Nonce: string; const Url: string = ''): AnsiString;
+function IcsJoseHeaderTB(const Alg, Typ, Jwk, Kid, Nonce: string; const Url: string = ''): TBytes;   { V9.1 }
 
 { RFC7515 find Json Web Signature hash type }
 function IcsJoseFindHash(JoseAlg: TJoseAlg): TEvpDigest;
@@ -414,16 +440,18 @@ function IcsJoseFindAlgType(Alg: String): TJoseAlg;   { V8.65 }
 { RFC7515 find Json Web Signature algorithm and check private key matches it }
 function IcsJoseFindAlg(JoseAlg: TJoseAlg; PrivateKey: PEVP_PKEY): string;
 
+{ RFC7515 find private key type }
+function IcsJoseFindAlgPkey(JoseAlg: TJoseAlg): Integer;   { V9.4 }
+
 { RFC7517 Jose JSON Web Key (JWK) with Hmac shared secret key }
-function IcsJoseJWKHmac(const Secret, Alg: String;
-                  const Kid: String = ''; const Use: String = ''): String;
+function IcsJoseJWKHmac(const Secret, Alg: String; const Kid: String = ''; const Use: String = ''): String;
 
 { RFC7517 get Hmac shared key from Jose JSON Web Key (JWK) to verify JWS }
 function IcsJoseJWKGetHmac(JWK: String): String;    { V8.65 }
 
 { RFC7517 Jose JSON Web Key (JWK) with public key }
-function IcsJoseJWKPubKey(PrivateKey: PEVP_PKEY; const Alg: String; const
-    Kid: String = ''; const Use: String = ''; Priv: Boolean = False): String;  { V8.65 added Priv }
+function IcsJoseJWKPubKey(PrivateKey: PEVP_PKEY; const Alg: String; const Kid: String = '';
+                                                           const Use: String = ''; Priv: Boolean = False): String;  { V8.65 added Priv }
 
 { RFC7638 get JWK Thumbprint }
 function IcsJoseJWKThumbprint(JWK: String; HashDigest: TEvpDigest = Digest_sha256): String;    { V8.65 }
@@ -431,35 +459,34 @@ function IcsJoseJWKThumbprint(JWK: String; HashDigest: TEvpDigest = Digest_sha25
 { RFC7517 get public key from Jose JSON Web Key (JWK) to verify JWS }
 function IcsJoseJWKGetPKey(JWK: String; var Kid: String): PEVP_PKEY;    { V8.65 }
 
-{ RFC7515 get JWS signature from protected header and payload }
-{ by periods, ie xxx.xxx.xxx }
-function IcsJoseGetSig(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: AnsiString;
-                                                   PrivateKey: PEVP_PKEY): String;
+{ RFC7515 get JWS signature from protected header and payload by periods, ie xxx.xxx.xxx }
+function IcsJoseGetSig(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: AnsiString; PrivateKey: PEVP_PKEY): String;
+function IcsJoseGetSigTB(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: TBytes; PrivateKey: PEVP_PKEY;
+                                                                                     EcdsaIEEE: Boolean = False): String;   { V9.1, V9.5 added EcdsaIEEE }
 
-{ RFC7515 check JWS signature agsinst protected header and payload }
-function IcsJoseCheckSig(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn,
-                       HmacSecret: AnsiString; PublicKey: PEVP_PKEY): Boolean;  { V8.65 }
+{ RFC7515 check JWS signature aginst protected header and payload }
+function IcsJoseCheckSig(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn, HmacSecret: AnsiString; PublicKey: PEVP_PKEY): Boolean;  { V8.65 }
+function IcsJoseCheckSigTB(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn, HmacSecret: TBytes; PublicKey: PEVP_PKEY;
+                                                                                        EcdsaIEEE: Boolean = False): Boolean;  { V9.1. V9.5 }
 
-{ RFC7515 build Json Web Signature or Token, with Acme private fields, }
+{ RFC7515 build Json Web Signature or Token, with Acme v1 private fields, no longer used with Acme v2 }
 { using JWS Compact Serialization with is three base64url blocks separated }
 { by periods, ie xxx.xxx.xxx }
-function IcsJoseJWSComp(JoseAlg: TJoseAlg; const Payload, HmacSecret: string;
-          PrivateKey: PEVP_PKEY; const Typ, Jwk, Kid, Nonce: string;
-                                                 const Url: string = ''): string;
+function IcsJoseJWSComp(JoseAlg: TJoseAlg; const Payload, HmacSecret: string; PrivateKey: PEVP_PKEY;
+                                                             const Typ, Jwk, Kid, Nonce: string; const Url: string = ''): string;
 
-{ RFC7515 build Json Web Signature or Token, with Acme private fields, }
+{ RFC7515 build Json Web Signature or Token, with Acme v2 private fields, }
 { using JWS JSON Serialization with is three Json blocks }
 { used by ACME v2 }
-function IcsJoseJWSJson(JoseAlg: TJoseAlg; const Payload, HmacSecret: string;
-          PrivateKey: PEVP_PKEY; const Typ, Jwk, Kid, Nonce: string;
-                                                 const Url: string = ''): string;
+function IcsJoseJWSJson(JoseAlg: TJoseAlg; const Payload, HmacSecret: string; PrivateKey: PEVP_PKEY;
+                                   const Typ, Jwk, Kid, Nonce: string; const Url: string = ''; EcdsaIEEE: Boolean = False): string;  { V9.5 added EcdsaIEEE }
 
 { build Json Web Token (JWT) by Base64Url encoding three components as long string V8.62 }
 function IcsJoseJWT(const Header, Payload, Signature: string): string;
 
 { RFC7515 verify JWS or JWT from Json or Compact Serialization formats and get payload }
-function IcsJoseCheckJWS(const JWS, OldNonce, HmacSecret: String;
-          var NewPublicKey: PEVP_PKEY; var NewKeyid, Payload: String): TJoseVerify;  { V8.65 }
+function IcsJoseCheckJWS(const JWS, OldNonce, HmacSecret: String; var NewPublicKey: PEVP_PKEY;
+                                        var NewKeyid, Payload: String; EcdsaIEEE: Boolean = False): TJoseVerify;   { V8.65, V9.5 }
 
 
 
@@ -470,11 +497,10 @@ implementation
 {$IFDEF USE_SSL}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
 { RFC7515 Jose Header for Json Web Signature or Token, with Acme private fields }
 { V8.67 rewrite to create UTF-8 encoded Json properly }
-function IcsJoseHeader(const Alg, Typ, Jwk, Kid, Nonce: string;
-                                                const Url: string = ''): AnsiString;
+{ V9.1 returns UTF8 as TBytes }
+function IcsJoseHeaderTB(const Alg, Typ, Jwk, Kid, Nonce: string; const Url: string = ''): TBytes;   { V9.1 }
 var
     JsonResult: TRestParams;
 begin
@@ -491,16 +517,25 @@ begin
         JsonResult.AddItem(JoseParams_nonce, Nonce, RPTypeStr);
     if Url <> '' then
         JsonResult.AddItem(JoseParams_url, Url, RPTypeStr);
-    Result := JsonResult.GetParameters;
+    Result := JsonResult.GetParametersTB;   { V9.1 }
     JsonResult.Free;
 end;
 
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ RFC7515 Jose Header for Json Web Signature or Token, with Acme private fields }
+{ returns UTF8 Json AnsiString }
+function IcsJoseHeader(const Alg, Typ, Jwk, Kid, Nonce: string; const Url: string = ''): AnsiString;
+begin
+    Result := IcsTBytesToStringA(IcsJoseHeaderTB(Alg, Typ, Jwk, Kid, Nonce, Url));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { RFC7517 Jose JSON Web Key (JWK) with Hmac shared secret key }
 { V8.67 rewrite to create Json properly }
-function IcsJoseJWKHmac(const Secret, Alg: String;
-                  const Kid: String = ''; const Use: String = ''): String;
+{ returns UTF8 Json String, ?? should it be AnsiString }
+function IcsJoseJWKHmac(const Secret, Alg: String; const Kid: String = ''; const Use: String = ''): String;
 var
     Klen: Integer;
     JsonResult: TRestParams;
@@ -534,7 +569,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 { RFC7517 get Hmac shared key from Jose JSON Web Key (JWK) to verify JWS }
-
+{ accept Json, returns ?? }
 function IcsJoseJWKGetHmac(JWK: String): String;    { V8.65 }
 var
     JwkJson: ISuperObject;
@@ -554,160 +589,80 @@ end;
 
 { RFC7517 Jose JSON Web Key (JWK) with RSA, EC or Ed25519 public key }
 { V8.65 optionally export private key fields }
-{ RFC7638 JWK Thumbprint which specifies public members must be in alphabetic
-  order and no optional fields }
+{ RFC7638 JWK Thumbprint which specifies public members must be in alphabetic order and no optional fields }
 { V8.67 rewrite to create Json properly }
-{ V8.67 replaced all low level RSA and EC functions with EVP_PKEY_get_x_param functions
-  for OpenSSL 3.0 }
-function IcsJoseJWKPubKey(PrivateKey: PEVP_PKEY; const Alg: String;  const
-        Kid: String = ''; const Use: String = ''; Priv: Boolean = False): String;  { V8.65 added Private }
+{ V8.67 replaced all low level RSA and EC functions with EVP_PKEY_get_x_param functions for OpenSSL 3.0 }
+{ returns UTF8 Json String, ?? should it be AnsiString }
+function IcsJoseJWKPubKey(PrivateKey: PEVP_PKEY; const Alg: String;  const Kid: String = '';
+                                                const Use: String = ''; Priv: Boolean = False): String;  { V8.65 added Private }
 var
-    MyRSA: PRSA;
-    eckey: PEC_KEY;
-    ecgroup: PEC_GROUP;
-    KeyType, Nid, PBuffLen: Integer;
+    KeyType: Integer;
     KeyLen, BufSize: size_t;   { V8.66 }
     JCurve: String;
-    big1, big2, big3: PBIGNUM;
     Buff, CurveNid: AnsiString;
-    PBuff: PAnsiString;
     JsonResult: TRestParams;
 begin
     Result := '';
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;
     if (not Assigned(PrivateKey)) then
-                  Raise EDigestException.Create('Private key required');
+        Raise EDigestException.Create('Private key required');
     JsonResult := TRestParams.Create(Nil);
     JsonResult.PContent := PContJson;
     BufSize := 512;
     try
-        KeyType := EVP_PKEY_base_id(PrivateKey);
+        KeyType := IcsPkeyBaseid(PrivateKey);   { V9.4 }
         if (keytype = EVP_PKEY_RSA) or (keytype = EVP_PKEY_RSA_PSS) then begin
             if (Alg <> '') and (Pos ('RS', Alg) <> 1) and (Pos ('PS', Alg) <> 1) then
-                            Raise EDigestException.Create('Need RSxxx Alg for RSA key');
+                Raise EDigestException.Create('Need RSxxx Alg for RSA key');
 
           { V8.64 RSA functions need 1.1.1e to work with RSA-PSS }
-            KeyLen := EVP_PKEY_size(PrivateKey) * 8;    { V8.67 }
+            KeyLen := IcsPkeySize(PrivateKey) * 8;    { V8.67, V9.4 }
             if KeyLen <= 0 then
                  Raise EDigestException.Create('Failed to read RSA key');
 
           { V8.67 low level stuff accessed by provider for OpenSSL 3.0 and later }
-            if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-                JsonResult.AddItemA(JoseParamkr_e, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_E));
-                JsonResult.AddItem(JoseParamk_kty, JoseLitkty_RSA);
-                JsonResult.AddItemA(JoseParamkr_n, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_N));
+            JsonResult.AddItemA(JoseParamkr_e, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_E));
+            JsonResult.AddItem(JoseParamk_kty, JoseLitkty_RSA);
+            JsonResult.AddItemA(JoseParamkr_n, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_N));
 
-              // output private parameters, don't care about fingerprint order
-                if Priv then begin
-                    JsonResult.AddItemA(JoseParamkr_d, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_D));
-                    JsonResult.AddItemA(JoseParamkr_p, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_FACTOR1));
-                    JsonResult.AddItemA(JoseParamkr_q, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_FACTOR2));
-                    JsonResult.AddItemA(JoseParamkr_dp, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_EXPONENT1));
-                    JsonResult.AddItemA(JoseParamkr_dq, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_EXPONENT2));
-                    JsonResult.AddItemA(JoseParamkr_qi, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_COEFFICIENT1));
-                end;
-            end
-            else begin  // OpenSSL 1.1.1
-                MyRSA := EVP_PKEY_get1_RSA(PrivateKey);
-                if NOT Assigned(myRSA) then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to read RSA key');
-                try
-                    RSA_get0_key(MyRSA, @big1, @big2, @big3);               { V8.66, don't free bigs }
-
-                 // no spaces, alpha order, or thumbnail fails
-                    JsonResult.AddItemA(JoseParamkr_e, IcsBase64UrlEncodeA(IcsGetBinNum(big2)));
-                    JsonResult.AddItem(JoseParamk_kty, JoseLitkty_RSA, RPTypeStr);
-                    JsonResult.AddItemA(JoseParamkr_n, IcsBase64UrlEncodeA(IcsGetBinNum(big1)));
-
-                  // output private parameters, don't care about fingerprint order
-                    if Priv then begin
-                        JsonResult.AddItemA(JoseParamkr_d, IcsBase64UrlEncodeA(IcsGetBinNum(big3)));
-                        RSA_get0_factors(MyRSA, @big1, @big2);
-                        JsonResult.AddItemA(JoseParamkr_p, IcsBase64UrlEncodeA(IcsGetBinNum(big1)));
-                        JsonResult.AddItemA(JoseParamkr_q, IcsBase64UrlEncodeA(IcsGetBinNum(big2)));
-                        RSA_get0_crt_params(MyRSA, @big1, @big2, @big3);
-                        JsonResult.AddItemA(JoseParamkr_dp, IcsBase64UrlEncodeA(IcsGetBinNum(big1)));
-                        JsonResult.AddItemA(JoseParamkr_dq, IcsBase64UrlEncodeA(IcsGetBinNum(big2)));
-                        JsonResult.AddItemA(JoseParamkr_qi, IcsBase64UrlEncodeA(IcsGetBinNum(big3)));
-                    end;
-                finally
-                    RSA_free(MyRSA);
-                end;
+          // output private parameters, don't care about fingerprint order
+            if Priv then begin
+                JsonResult.AddItemA(JoseParamkr_d, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_D));
+                JsonResult.AddItemA(JoseParamkr_p, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_FACTOR1));
+                JsonResult.AddItemA(JoseParamkr_q, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_FACTOR2));
+                JsonResult.AddItemA(JoseParamkr_dp, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_EXPONENT1));
+                JsonResult.AddItemA(JoseParamkr_dq, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_EXPONENT2));
+                JsonResult.AddItemA(JoseParamkr_qi, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_RSA_COEFFICIENT1));
             end;
         end
         else if (keytype = EVP_PKEY_EC) then begin
             if (Alg <> '') and (Pos ('ES', Alg) <> 1) then
-                     Raise EDigestException.Create('Need ESxxx Alg for ECDSA key');
+                Raise EDigestException.Create('Need ESxxx Alg for ECDSA key');
 
           { V8.67 low level stuff accessed by provider for OpenSSL 3.0 and later }
-            if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-                JCurve := JoseLitcrv_P256;
-                CurveNid := IcsEvpGetParamUtf8(PrivateKey, OSSL_PKEY_PARAM_GROUP_NAME);
-                if CurveNid = 'prime256v1' then      // aka secp256r1
-                    JCurve := JoseLitcrv_P256
-                else if CurveNid = 'secp256k1' then   // kobitz version, probably not for JWS
-                    JCurve := JoseLitcrv_P256
-                else if CurveNid = 'secp384r1' then
-                    JCurve := JoseLitcrv_P384
-                else if CurveNid = 'secp521r1' then
-                    JCurve := JoseLitcrv_P521;
-                JsonResult.AddItem(JoseParamke_crv, JCurve, RPTypeStr);
-                JsonResult.AddItem(JoseParamk_kty, JoseLitkty_EC, RPTypeStr);
-                JsonResult.AddItemA(JoseParamke_x, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_EC_PUB_X));
-                JsonResult.AddItemA(JoseParamke_y, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_EC_PUB_Y));
-           //     JsonResult.AddItemA('pub', IcsEvpGetParamBuff(PrivateKey, OSSL_PKEY_PARAM_PUB_KEY));            // TEMP DIAG
-                if Priv then begin
-                   JsonResult.AddItemA(JoseParamke_d, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_PRIV_KEY));
-                end;
-            end
-            else begin
-                eckey := EVP_PKEY_get1_EC_KEY(PrivateKey);
-                if eckey = nil then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to read ECDSA key');
-                ecgroup := EC_KEY_get0_group(eckey);
-                try
-                    if Assigned (ecgroup) then begin
-                        Nid := EC_GROUP_get_curve_name(ecgroup);
-                        case Nid of
-                            NID_X9_62_prime256v1: JCurve := JoseLitcrv_P256;   // aka secp256r1
-                            NID_secp256k1: JCurve := JoseLitcrv_P256;
-                            NID_secp384r1: JCurve := JoseLitcrv_P384;
-                            NID_secp521r1: JCurve := JoseLitcrv_P521;
-                            else
-                                JCurve := JoseLitcrv_P256;
-                        end;
-
-                     { V8.65 get x/y from raw buffer rather than affine_coordinates }
-                        PBuffLen := EC_KEY_key2buf(eckey, EC_KEY_get_conv_form(eckey), @PBuff, Nil);
-                        if PBuffLen = 0 then
-                             Raise EDigestException.Create('Failed to read EC key data');
-                        SetLength(Buff, PBuffLen);
-                        Move(PBuff^, Buff[1], PBuffLen);
-                        OPENSSL_free(PBuff);
-                        KeyLen := (PBuffLen - 1) div 2;
-                        JsonResult.AddItem(JoseParamke_crv, JCurve, RPTypeStr);
-                        JsonResult.AddItem(JoseParamk_kty, JoseLitkty_EC, RPTypeStr);
-                        JsonResult.AddItemA(JoseParamke_x, IcsBase64UrlEncodeA(Copy(Buff, 2, KeyLen)));
-                        JsonResult.AddItemA(JoseParamke_y, IcsBase64UrlEncodeA(Copy(Buff, Keylen + 2, KeyLen)));
-
-                        if Priv then begin
-                            PBuffLen := EC_KEY_priv2buf(eckey, @PBuff);
-                            if PBuffLen > 0 then begin
-                                SetLength(Buff, PBuffLen);
-                                Move(PBuff^, Buff[1], PBuffLen);
-                                OPENSSL_free(PBuff);
-                                JsonResult.AddItemA(JoseParamke_d, IcsBase64UrlEncodeA(Buff));
-                            end;
-                        end;
-                    end;
-                finally
-                    EC_KEY_free(eckey);    { don't free group, corrupts PrivateKey }
-                end;
+            JCurve := JoseLitcrv_P256;
+            CurveNid := IcsEvpGetParamUtf8(PrivateKey, OSSL_PKEY_PARAM_GROUP_NAME);
+            if CurveNid = 'prime256v1' then      // aka secp256r1
+                JCurve := JoseLitcrv_P256
+            else if CurveNid = 'secp256k1' then   // kobitz version, probably not for JWS
+                JCurve := JoseLitcrv_P256
+            else if CurveNid = 'secp384r1' then
+                JCurve := JoseLitcrv_P384
+            else if CurveNid = 'secp521r1' then
+                JCurve := JoseLitcrv_P521;
+            JsonResult.AddItem(JoseParamke_crv, JCurve, RPTypeStr);
+            JsonResult.AddItem(JoseParamk_kty, JoseLitkty_EC, RPTypeStr);
+            JsonResult.AddItemA(JoseParamke_x, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_EC_PUB_X));
+            JsonResult.AddItemA(JoseParamke_y, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_EC_PUB_Y));
+       //     JsonResult.AddItemA('pub', IcsEvpGetParamBuff(PrivateKey, OSSL_PKEY_PARAM_PUB_KEY));            // TEMP DIAG
+            if Priv then begin
+               JsonResult.AddItemA(JoseParamke_d, IcsEvpGetParamBig(PrivateKey, OSSL_PKEY_PARAM_PRIV_KEY));
             end;
         end
         else if (keytype = EVP_PKEY_ED25519) then begin // different type of EC, 1.1.1 and later
             if (Alg <> '') and (Alg <> 'EdDSA') then
-                     Raise EDigestException.Create('Need EdDSA Alg for Ed25519 key');
+                Raise EDigestException.Create('Need EdDSA Alg for Ed25519 key');
             SetLength(Buff, BufSize);
             FillChar(Buff[1], BufSize, #0);
             KeyLen := BufSize;
@@ -771,11 +726,10 @@ end;
 function IcsJoseJWKGetPKey(JWK: String; var Kid: String): PEVP_PKEY;    { V8.65 }
 var
     JwkJson: ISuperObject;
-    rsakey: PRSA;
-    eckey: PEC_KEY;
     pubox, prvod, JCurve, Alg: String;
-    Nid, keytype, ret, ctype, Keylen: Integer;
-    Buff, CurveNid, KeyBin, binpubx, binpuby: AnsiString;
+    keytype, ret, ctype, Keylen: Integer;
+    CurveNid: AnsiString;
+    KeyBin, binpubx, binpuby: TBytes;   { V9.4 was AnsiString }
     pctx: PEVP_PKEY_CTX;
     ParamArray: POSSL_PARAM;
     BuildParams: POSSL_PARAM_BLD;
@@ -784,13 +738,13 @@ var
 
     function BNfromBase64(const S: String): PBIGNUM;
     var
-        Raw: AnsiString;
+        Raw: TBytes;    { V9.4 was AnsiString }
     begin
         if S = '' then
             Result := Nil
         else begin
-            Raw := IcsBase64UrlDecodeA(AnsiString(S));
-            Result := BN_bin2bn(@Raw[1], Length(Raw), nil);
+            Raw := IcsBase64UrlDecodeTB(S);
+            Result := BN_bin2bn(@Raw[0], Length(Raw), nil);
         end;
     end;
 
@@ -798,20 +752,22 @@ var
     begin
         if S = '' then
             Result := Nil
-        else Result := BN_bin2bn(@S[1], Length(S), nil);
+        else
+            Result := BN_bin2bn(@S[1], Length(S), nil);
     end;
 
-    function BinFromBase64(const S: String): AnsiString;
+    function BinFromBase64(const S: String): TBytes;    { V9.4 was AnsiString }
     begin
         if S = '' then
-            Result := ''
+            SetLength(Result, 0)
         else
-            Result := IcsBase64UrlDecodeA(AnsiString(S));
+            Result := IcsBase64UrlDecodeTB(S);
     end;
 
 begin
     Result := Nil;
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;
     JwkJson := SO(JWK);
     if NOT Assigned(JwkJson) then
           Raise EDigestException.Create('JWK not valid Json');
@@ -830,72 +786,43 @@ begin
             Raise EDigestException.Create('Failed to read JWK key values');
 
       { V8.67 low level stuff accessed by provider for OpenSSL 3.0 and later }
-        if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-            BuildParams := OSSL_PARAM_BLD_new;
-            ctype := EVP_PKEY_PUBLIC_KEY;
-            OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_E, bnpube);
-            OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_N, bnpubn);
-            if Assigned(bnprvd) then begin  // got part of the private key
-                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_D, bnprvd);
-                ctype := EVP_PKEY_KEYPAIR;
-                if Assigned(bnprvp) and Assigned(bnprvq) then begin
-                    OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_FACTOR1, bnprvp);
-                    OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_FACTOR2, bnprvq);
-                end;
-                if Assigned(bnprvdp) and Assigned(bnprvdq) and Assigned(bnprvqi) then begin
-                    OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_EXPONENT1, bnprvdp);
-                    OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_EXPONENT2, bnprvdq);
-                    OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_COEFFICIENT1, bnprvqi);
-                end;
+        BuildParams := OSSL_PARAM_BLD_new;
+        ctype := EVP_PKEY_PUBLIC_KEY;
+        OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_E, bnpube);
+        OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_N, bnpubn);
+        if Assigned(bnprvd) then begin  // got part of the private key
+            OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_D, bnprvd);
+            ctype := EVP_PKEY_KEYPAIR;
+            if Assigned(bnprvp) and Assigned(bnprvq) then begin
+                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_FACTOR1, bnprvp);
+                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_FACTOR2, bnprvq);
             end;
-            ParamArray := OSSL_PARAM_BLD_to_param(BuildParams);
-            OSSL_PARAM_BLD_free(BuildParams);
-            if NOT Assigned(ParamArray) then
-                Raise EDigestException.Create('Failed to build RSA key parameter array');
-         //   Alg := IcsParamPrint(ParamArray); // !!! TEMP print our new array
-            pctx := EVP_PKEY_CTX_new_from_name(Nil, 'RSA', Nil);
-       //     pctx := EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, Nil);
-            if (pctx = Nil) then
-                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create RSA context');
-            try
-                if EVP_PKEY_fromdata_init(pctx) <> 1 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to init RSA parameters');
-                ret := EVP_PKEY_fromdata(pctx, @Result, ctype, ParamArray);
-                if ret = -2 then
-                    Raise EDigestException.Create('Parameters not supported for RSA keys')
-                else if ret < 1 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set RSA params');
-            finally
-                OSSL_PARAM_free(ParamArray);
-                EVP_PKEY_CTX_free(pctx);
+            if Assigned(bnprvdp) and Assigned(bnprvdq) and Assigned(bnprvqi) then begin
+                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_EXPONENT1, bnprvdp);
+                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_EXPONENT2, bnprvdq);
+                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_RSA_COEFFICIENT1, bnprvqi);
             end;
-        end
-        else begin
-            rsakey := RSA_new;
-            try
-                if RSA_set0_key(rsakey, bnpubn, bnpube, bnprvd) = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create RSA key');
-
-                if Assigned(bnprvp) and Assigned(bnprvq) then begin
-                    if RSA_set0_factors(rsakey, bnprvp, bnprvq) = 0 then
-                        IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create private RSA key');
-                end;
-                if Assigned(bnprvdp) and Assigned(bnprvdq) and Assigned(bnprvqi) then begin
-                    if RSA_set0_crt_params(rsakey, bnprvdp, bnprvdq, bnprvqi) = 0 then
-                        IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create private RSA key');
-                end;
-                Result := EVP_PKEY_new;
-                if (Pos ('PS', Alg) = 1) then begin  // RSA-PSS key
-                    ret := EVP_PKEY_assign(Result, EVP_PKEY_RSA_PSS, rsakey);
-                    if ret = 1 then RSA_up_ref(rsakey);
-                end
-                else
-                    ret := EVP_PKEY_set1_RSA(Result, rsakey);
-                if ret = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set RSA key');
-            finally
-                RSA_free(rsakey);
-            end;
+        end;
+        ParamArray := OSSL_PARAM_BLD_to_param(BuildParams);
+        OSSL_PARAM_BLD_free(BuildParams);
+        if NOT Assigned(ParamArray) then
+            Raise EDigestException.Create('Failed to build RSA key parameter array');
+     //   Alg := IcsParamPrint(ParamArray); // !!! TEMP print our new array
+        pctx := EVP_PKEY_CTX_new_from_name(Nil, 'RSA', Nil);
+   //     pctx := EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, Nil);
+        if (pctx = Nil) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create RSA context');
+        try
+            if EVP_PKEY_fromdata_init(pctx) <> 1 then
+                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to init RSA parameters');
+            ret := EVP_PKEY_fromdata(pctx, @Result, ctype, ParamArray);
+            if ret = -2 then
+                Raise EDigestException.Create('Parameters not supported for RSA keys')
+            else if ret < 1 then
+                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set RSA params');
+        finally
+            OSSL_PARAM_free(ParamArray);
+            EVP_PKEY_CTX_free(pctx);
         end;
         BN_free(bnpube);   { V8.67 must free pointers }
         BN_free(bnpubn);
@@ -912,89 +839,63 @@ begin
         bnprvd := BnFromBase64(JwkJson.S[JoseParamke_d]);
         JCurve := JwkJson.S[JoseParamke_crv];
         if JCurve = JoseLitcrv_P256 then begin
-            nid := NID_X9_62_prime256v1;   // aka NID_secp256r1
             CurveNid := 'prime256v1';
             Keylen := 32;
         end
         else if JCurve = JoseLitcrv_P384 then begin
-            nid :=  NID_secp384r1;
             CurveNid := 'secp384r1';
             Keylen := 48;
         end
         else if JCurve = JoseLitcrv_P521 then begin
-            nid := NID_secp521r1;
             CurveNid := 'secp521r1';
             Keylen := 66;
         end
         else
             Raise EDigestException.Create('Unknown EC Curve');
-        if (binpubx = '') or (binpuby = '') then
+        if (Length(binpubx) = 0) or (Length(binpuby) = 0) then
             Raise EDigestException.Create('Failed to read JWK key values');
 
       { V8.67 low level stuff accessed by provider for OpenSSL 3.0 and later }
-        if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-
         // build public key from x and y since OSSL_PKEY_PARAM_EC_PUB_X and OSSL_PKEY_PARAM_EC_PUB_Y don't work
-            SetLength(KeyBin, (keylen * 2) + 1);
-            KeyBin[1] := AnsiChar(POINT_CONVERSION_UNCOMPRESSED);
-            Move(binpubx[1], KeyBin[2], Keylen);
-            Move(binpuby[1], KeyBin[KeyLen + 2], Keylen);
+        // V9.4 TBytes base0
+        SetLength(KeyBin, (keylen * 2) + 1);
+        KeyBin[0] := Byte(POINT_CONVERSION_UNCOMPRESSED);
+        Move(binpubx[0], KeyBin[1], Keylen);
+        Move(binpuby[0], KeyBin[KeyLen + 1], Keylen);
 
-            BuildParams := OSSL_PARAM_BLD_new;
-            OSSL_PARAM_BLD_push_utf8_string(BuildParams, OSSL_PKEY_PARAM_GROUP_NAME, PAnsiChar(CurveNid), Length(CurveNid));
-            OSSL_PARAM_BLD_push_octet_string(BuildParams, OSSL_PKEY_PARAM_PUB_KEY, PAnsiChar(KeyBin), Length(KeyBin));
-            ctype := EVP_PKEY_PUBLIC_KEY;
-            if Assigned(bnprvd) then begin  // got part of the private key
-                OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_PRIV_KEY, bnprvd);
-                ctype := EVP_PKEY_KEYPAIR;
-            end;
-            ParamArray := OSSL_PARAM_BLD_to_param(BuildParams);
-            OSSL_PARAM_BLD_free(BuildParams);
-            if NOT Assigned(ParamArray) then
-                Raise EDigestException.Create('Failed to build EC key parameter array');
-            pctx := EVP_PKEY_CTX_new_from_name(Nil, 'EC', Nil);
-       //     pctx := EVP_PKEY_CTX_new_id(nid, Nil);
-            if (pctx = Nil) then
-                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create RSA context');
-            try
-                if EVP_PKEY_fromdata_init(pctx) <> 1 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to init EC parameters');
-                ret := EVP_PKEY_fromdata(pctx, @Result, ctype, ParamArray);
-                if ret = -2 then
-                    Raise EDigestException.Create('Parameters not supported for EC keys')
-                else if ret < 1 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set EC params');
-
-            // test some stuff
-               if CurveNid <> IcsEvpGetParamUtf8(Result, OSSL_PKEY_PARAM_GROUP_NAME) then
-                    Raise EDigestException.Create('Mismatch EC Curve');
-
-            finally
-                OSSL_PARAM_free(ParamArray);
-                EVP_PKEY_CTX_free(pctx);
-            end;
-        end
-        else begin
-            eckey := EC_KEY_new_by_curve_name(nid);
-            if NOT Assigned(eckey) then
-                  IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create new EC key');
-            try
-                if EC_KEY_set_public_key_affine_coordinates(eckey, BNfromBin(binpubx), BNfromBin(binpuby)) = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set EC key points');
-                if Assigned(bnprvd) then begin
-                    if EC_KEY_set_private_key(eckey, bnprvd) = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set EC private key');
-                end;
-                if EC_KEY_check_key(eckey) = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Invalid public EC key');
-                Result := EVP_PKEY_new;
-                if EVP_PKEY_set1_EC_KEY(Result, eckey) = 0 then
-                    IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set EC key');
-            finally
-                EC_KEY_free(eckey);
-            end;
+        BuildParams := OSSL_PARAM_BLD_new;
+        OSSL_PARAM_BLD_push_utf8_string(BuildParams, OSSL_PKEY_PARAM_GROUP_NAME, PAnsiChar(CurveNid), Length(CurveNid));
+        OSSL_PARAM_BLD_push_octet_string(BuildParams, OSSL_PKEY_PARAM_PUB_KEY, PAnsiChar(KeyBin), Length(KeyBin));
+        ctype := EVP_PKEY_PUBLIC_KEY;
+        if Assigned(bnprvd) then begin  // got part of the private key
+            OSSL_PARAM_BLD_push_BN(BuildParams, OSSL_PKEY_PARAM_PRIV_KEY, bnprvd);
+            ctype := EVP_PKEY_KEYPAIR;
         end;
-        BN_free(bnprvd);
+        ParamArray := OSSL_PARAM_BLD_to_param(BuildParams);
+        OSSL_PARAM_BLD_free(BuildParams);
+        if NOT Assigned(ParamArray) then
+            Raise EDigestException.Create('Failed to build EC key parameter array');
+        pctx := EVP_PKEY_CTX_new_from_name(Nil, 'EC', Nil);
+   //     pctx := EVP_PKEY_CTX_new_id(nid, Nil);
+        if (pctx = Nil) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to create RSA context');
+        try
+            if EVP_PKEY_fromdata_init(pctx) <> 1 then
+                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to init EC parameters');
+            ret := EVP_PKEY_fromdata(pctx, @Result, ctype, ParamArray);
+            if ret = -2 then
+                Raise EDigestException.Create('Parameters not supported for EC keys')
+            else if ret < 1 then
+                IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set EC params');
+
+        // test some stuff
+           if CurveNid <> IcsEvpGetParamUtf8(Result, OSSL_PKEY_PARAM_GROUP_NAME) then
+                Raise EDigestException.Create('Mismatch EC Curve');
+
+        finally
+            OSSL_PARAM_free(ParamArray);
+            EVP_PKEY_CTX_free(pctx);
+        end;
     end
     else if JwkJson.S[JoseParamk_kty] = JoseLitkty_OKP then begin
         pubox := JwkJson.S[JoseParamko_x];
@@ -1005,17 +906,17 @@ begin
         else
             Raise EDigestException.Create('Unknown OKP Curve');
         if prvod <> '' then begin
-            Buff := IcsBase64UrlDecodeA(AnsiString(prvod));
-            if Length(Buff) < 20 then
+            KeyBin := IcsBase64UrlDecodeTB(prvod);       { V9.4 }
+            if Length(KeyBin) < 20 then
                 Raise EDigestException.Create('Invalid raw key');
-            Result := EVP_PKEY_new_raw_private_key(keytype, Nil, @Buff[1], Length(Buff));
+            Result := EVP_PKEY_new_raw_private_key(keytype, Nil, @KeyBin[0], Length(KeyBin));
            // sets public key from private part
         end
         else begin
-            Buff := IcsBase64UrlDecodeA(AnsiString(pubox));
-            if Length(Buff) < 20 then
+            KeyBin := IcsBase64UrlDecodeTB(pubox);
+            if Length(KeyBin) < 20 then
                 Raise EDigestException.Create('Invalid raw key');
-            Result := EVP_PKEY_new_raw_public_key(keytype, Nil, @Buff[1], Length(Buff));
+            Result := EVP_PKEY_new_raw_public_key(keytype, Nil, @KeyBin[0], Length(KeyBin));
         end;
         if NOT Assigned(Result) then
             IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to set Ed25519 key');
@@ -1027,25 +928,17 @@ begin
        Raise EDigestException.Create('Failed to create key')
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
 { RFC7515 find Json Web Signature hash type }
-
 function IcsJoseFindHash(JoseAlg: TJoseAlg): TEvpDigest;
 begin
-    Result := Digest_sha256;
-    case JoseAlg of
-        jsigHmac256, jsigRsa256, jsigEcdsa256, jsigRsaPss256: Result := Digest_sha256;
-        jsigHmac384, jsigRsa384, jsigEcdsa384, jsigRsaPss384: Result := Digest_sha384;
-        jsigHmac512, jsigRsa512, jsigEcdsa512, jsigRsaPss512: Result := Digest_sha512;
-        jsigEdDSA: Result := Digest_none;
-    end;
+    Result := JoseAlgDigests[JoseAlg];   { V9.4 use table }
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
 { RFC7515 find Json Web Signature type from literal }
-
 function IcsJoseFindAlgType(Alg: String): TJoseAlg;   { V8.65 }
 var
     JoseAlg: TJoseAlg;
@@ -1059,15 +952,23 @@ begin
     Result := jsigNone;
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ RFC7515 find private key type }
+function IcsJoseFindAlgPkey(JoseAlg: TJoseAlg): Integer;   { V9.4 }
+begin
+    Result := JoseAlgPkeys[JoseAlg];   { V9.4 }
+end;
 
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { RFC7515 find Json Web Signature algorithm literal and check private key matches it }
-
 function IcsJoseFindAlg(JoseAlg: TJoseAlg; PrivateKey: PEVP_PKEY): string;
 var
-    KeyType, Nid: integer;
-    eckey: PEC_KEY;
-    ecgroup: PEC_GROUP;
+    KeyType, Nid, GLen: integer;
+    GName: AnsiString;
+//    eckey: PEC_KEY;
+//    ecgroup: PEC_GROUP;
 begin
     Result := 'none';
     if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;
@@ -1077,10 +978,10 @@ begin
     else if (JoseAlg >= jsigRsa256) then begin
         if not Assigned(PrivateKey) then
                   Raise EDigestException.Create('PrivateKey key required');
-        KeyType := EVP_PKEY_base_id(PrivateKey);
+        KeyType := IcsPkeyBaseid(PrivateKey);   { V9.4 }
 
         if (JoseAlg >= jsigRsa256) and (JoseAlg <= jsigRsa512) then begin
-            if (EVP_PKEY_bits(PrivateKey) < 2048) then    { V8.64 clearer exceptions }
+            if (IcsPkeyBits(PrivateKey) < 2048) then    { V8.64 clearer exceptions, V9.4 }
                    Raise EDigestException.Create('RSA private key 2,048 or longer required');
             if (keytype <> EVP_PKEY_RSA) and (keytype <> EVP_PKEY_RSA_PSS) then  { V8.64 allow PSS as well }
                    Raise EDigestException.Create('RSA private key required');
@@ -1088,7 +989,13 @@ begin
         else if (JoseAlg >= jsigEcdsa256) and (JoseAlg <= jsigEcdsa512) then begin
             if (keytype <> EVP_PKEY_EC) then
                    Raise EDigestException.Create('ECDSA key required');
-            eckey := EVP_PKEY_get1_EC_KEY(PrivateKey);
+            SetLength(GName, 33);
+            if EVP_PKEY_get_group_name(PrivateKey, @GName[1], 32, @Glen) = 0 then   { V9.5 avoid using deprecated EC_GROUP and EC_KEY }
+               Raise EDigestException.Create('Failed to get EC Group Name');
+            SetLength(GName, Glen + 1);  // trailing null
+            Nid := OBJ_txt2nid(@GName[1]);
+
+         {   eckey := EVP_PKEY_get1_EC_KEY(PrivateKey);
             if eckey = nil then
                  Raise EDigestException.Create('Failed to read ECDSA key');
             Nid := NID_X9_62_prime256v1;  // or NID_secp256k1
@@ -1097,7 +1004,7 @@ begin
                 if Assigned (ecgroup) then Nid := EC_GROUP_get_curve_name(ecgroup);
             finally
                 EC_KEY_free(eckey);
-            end;
+            end;    }
             case JoseAlg of
                 jsigEcdsa256: begin
                     if (Nid <> NID_X9_62_prime256v1) and (Nid <> NID_secp256k1) then   // V8.67 alternates
@@ -1115,7 +1022,7 @@ begin
 
         end
         else if (JoseAlg >= jsigRsaPss256) and (JoseAlg <= jsigRsaPss512) then begin
-            if (EVP_PKEY_bits(PrivateKey) < 2048) then   { V8.64 clearer exceptions }
+            if (IcsPkeyBits(PrivateKey) < 2048) then   { V8.64 clearer exceptions, V9.4 }
                    Raise EDigestException.Create('RSA-PSS private key 2,048 or longer required');
             if (keytype <> EVP_PKEY_RSA_PSS) then  { V8.64 }
                    Raise EDigestException.Create('RSA-PSS private key required');
@@ -1130,61 +1037,74 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
 { RFC7515 get JWS signature from protected header and payload }
-{ returns base64 }
-function IcsJoseGetSig(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: AnsiString;
-                                                   PrivateKey: PEVP_PKEY): String;
+{ arguments binary TBytes, returns base64 string }
+function IcsJoseGetSigTB(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: TBytes; PrivateKey: PEVP_PKEY;
+                                                                                        EcdsaIEEE: Boolean = False): String;   { V9.1, V9.5 added EcdsaIEEE }
 var
     HashDigest: TEvpDigest;
 begin
     Result := '';
     HashDigest := IcsJoseFindHash(JoseAlg);
     if ((JoseAlg >= jsigHmac256) and (JoseAlg <= jsigHmac512)) then begin
-        if HmacSecret = '' then
+        if Length(HmacSecret) = 0 then
               Raise EDigestException.Create('HMAC secret key required');
-        Result := String(IcsBase64UrlEncodeA(IcsHMACDigestEx(CombinedEn, HmacSecret, HashDigest)));
+        Result := IcsBase64UrlEncodeTB(IcsHMACDigestExTB(CombinedEn, HmacSecret, HashDigest));
     end
-    else if (JoseAlg >= jsigRsa256) then begin
-        Result := String(IcsBase64UrlEncodeA(IcsAsymSignDigest(CombinedEn, PrivateKey, HashDigest)));
-    end;
+    else if (JoseAlg >= jsigRsa256) then
+        Result := IcsBase64UrlEncodeTB(IcsAsymSignDigestTB(CombinedEn, PrivateKey, HashDigest, EcdsaIEEE));  { V9.5 }
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ RFC7515 get JWS signature from protected header and payload }
+{ arguments binary AnsiString, returns base64 string }
+function IcsJoseGetSig(JoseAlg: TJoseAlg; const CombinedEn, HmacSecret: AnsiString; PrivateKey: PEVP_PKEY): String;
+begin
+    Result := IcsJoseGetSigTB(JoseAlg, IcsStringAToTBytes(CombinedEn), IcsStringAToTBytes(HmacSecret), PrivateKey);
+end;
 
-{ RFC7515 check JWS signature agsinst protected header and payload }
 
-function IcsJoseCheckSig(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn,
-                              HmacSecret: AnsiString; PublicKey: PEVP_PKEY): Boolean;  { V8.65 }
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ RFC7515 check JWS signature against protected header and payload }
+{ arguments binary TBytes }
+function IcsJoseCheckSigTB(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn, HmacSecret: TBytes; PublicKey: PEVP_PKEY;
+                                                                                        EcdsaIEEE: Boolean = False): Boolean;  { V9.1. V9.5 }
 var
     HashDigest: TEvpDigest;
 begin
     Result := False;
     HashDigest := IcsJoseFindHash(JoseAlg);
     if ((JoseAlg >= jsigHmac256) and (JoseAlg <= jsigHmac512)) then begin
-        if HmacSecret = '' then
+        if Length(HmacSecret) = 0 then
               Raise EDigestException.Create('HMAC secret key required');
-        Result := IcsHMACDigestVerify(CombinedEn, HmacSecret, SignatureEn, HashDigest);
+        Result := IcsHMACDigestVerifyTB(CombinedEn, HmacSecret, SignatureEn, HashDigest);
     end
     else if (JoseAlg >= jsigRsa256) then begin
-        Result := IcsAsymVerifyDigest(CombinedEn, SignatureEn, PublicKey, HashDigest);
+        Result := IcsAsymVerifyDigestTB(CombinedEn, SignatureEn, PublicKey, HashDigest, EcdsaIEEE);  { V9.5 }
     end;
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ RFC7515 check JWS signature against protected header and payload }
+{ arguments binary AnsiString }
+function IcsJoseCheckSig(JoseAlg: TJoseAlg; const CombinedEn, SignatureEn, HmacSecret: AnsiString; PublicKey: PEVP_PKEY): Boolean;  { V8.65 }
+begin
+    Result := IcsJoseCheckSigTB(JoseAlg, IcsStringAToTBytes(CombinedEn), IcsStringAToTBytes(SignatureEn), IcsStringAToTBytes(HmacSecret), PublicKey);
+end;
 
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { RFC7515 build Json Web Signature (JWS) or Json Web Token (JWT), }
-{ with Acme private fields, using JWS Compact Serialization which is three }
-{ base64url blocks separated by periods, ie xxx.xxx.xxx }
-
-function IcsJoseJWSComp(JoseAlg: TJoseAlg; const Payload, HmacSecret: string;
-          PrivateKey: PEVP_PKEY; const Typ, Jwk, Kid, Nonce: string;
-                                                 const Url: string = ''): string;
+{ with Acme v1 private fields, using JWS Compact Serialization which is three }
+{ no longer used for Acme v2, replaced by IcsJoseJWSJson }
+{ returns string wth base64url blocks separated by periods, ie xxx.xxx.xxx }
+function IcsJoseJWSComp(JoseAlg: TJoseAlg; const Payload, HmacSecret: string; PrivateKey: PEVP_PKEY;
+                                                   const Typ, Jwk, Kid, Nonce: string; const Url: string = ''): string;
 var
     Alg: String;
-    ProtectedEn, PayloadEn, SignatureEn, CombinedEn: AnsiString;  { V8.67 }
+    ProtectedEn, PayloadEn, SignatureEn, CombinedEn: String;  { V8.67 } { V9.1 was AnsiString }
 begin
     Result := '';
 
@@ -1195,17 +1115,17 @@ begin
     Alg := IcsJoseFindAlg(JoseAlg, PrivateKey);
 
   // build Json header and base64url encode it, V8.67 IcsJoseHeader now does UTF-8 }
-    ProtectedEn := IcsBase64UrlEncodeA(IcsJoseHeader(Alg, Typ, Jwk, Kid, Nonce, Url));
+    ProtectedEn := IcsBase64UrlEncodeTB(IcsJoseHeaderTB(Alg, Typ, Jwk, Kid, Nonce, Url));     { V9.1 }
 
   // base64url encode payload, which may be json
-    PayloadEn := IcsBase64UrlEncodeA(StringToUtf8(Payload));
+    PayloadEn := IcsBase64UrlEncodeTB(StringToUtf8TB(Payload));     { V9.1 }
 
   // combine header and payload and get signature
     CombinedEn := ProtectedEn + '.' + PayloadEn;
-    SignatureEn := AnsiString(IcsJoseGetSig(JoseAlg, CombinedEn, AnsiString(HmacSecret), PrivateKey));
+    SignatureEn := IcsJoseGetSigTB(JoseAlg, IcsStringToTBytes(CombinedEn), IcsStringToTBytes(HmacSecret), PrivateKey);    { V9.1 }
 
  // combine all three together with periods
-    Result := String(ProtectedEn + '.' + PayloadEn + '.' + SignatureEn);
+    Result := ProtectedEn + '.' + PayloadEn + '.' + SignatureEn;
 end;
 
 
@@ -1241,12 +1161,11 @@ end;
 { using JWS JSON Serialization which is three Json blocks }
 { used by Let's Encrypt ACME v2 }
 { note return is UTF-8 Json, but all base64 encoded }
-function IcsJoseJWSJson(JoseAlg: TJoseAlg; const Payload, HmacSecret: string;
-          PrivateKey: PEVP_PKEY; const Typ, Jwk, Kid, Nonce: string;
-                                                 const Url: string = ''): string;
+function IcsJoseJWSJson(JoseAlg: TJoseAlg; const Payload, HmacSecret: string; PrivateKey: PEVP_PKEY;
+                                   const Typ, Jwk, Kid, Nonce: string; const Url: string = ''; EcdsaIEEE: Boolean = False): string;  { V9.5 added EcdsaIEEE }
 var
     Alg: String;
-    ProtectedEn, PayloadEn, SignatureEn, CombinedEn: AnsiString;
+    ProtectedEn, PayloadEn, SignatureEn, CombinedEn: String;    { V9.1 was AnsiString }
     JsonResult: TRestParams;
 begin
     Result := '';
@@ -1258,21 +1177,24 @@ begin
     Alg := IcsJoseFindAlg(JoseAlg, PrivateKey);
 
   // build Json header and base64url encode it, V8.67 IcsJoseHeader now does UTF-8
-    ProtectedEn := IcsBase64UrlEncodeA(IcsJoseHeader(Alg, Typ, Jwk, Kid, Nonce, Url));
+    ProtectedEn := IcsBase64UrlEncodeTB(IcsJoseHeaderTB(Alg, Typ, Jwk, Kid, Nonce, Url));     { V9.1 }
 
   // base64url encode payload, which may be json
-    PayloadEn := IcsBase64UrlEncodeA(StringToUtf8(Payload));
+    if Payload = '' then   { V9.5 blank }
+        PayloadEn := ''
+    else
+        PayloadEn := IcsBase64UrlEncodeTB(StringToUtf8TB(Payload));       { V9.1 }
 
   // combine header and payload and get signature
     CombinedEn := ProtectedEn + '.' + PayloadEn;
-    SignatureEn := AnsiString(IcsJoseGetSig(JoseAlg, CombinedEn, AnsiString(HmacSecret), PrivateKey));
+    SignatureEn := IcsJoseGetSigTB(JoseAlg, IcsStringToTBytes(CombinedEn), IcsStringToTBytes(HmacSecret), PrivateKey, EcdsaIEEE);   { V9.1, V9.5 }
 
  // combine all three base64 strings together as Json
     JsonResult := TRestParams.Create(Nil);  { V8.67 properly }
     JsonResult.PContent := PContJson;
-    JsonResult.AddItemA(JsonSerialprotected, ProtectedEn);
-    JsonResult.AddItemA(JsonSerialpayload, PayloadEn);
-    JsonResult.AddItemA(JsonSerialsignature, SignatureEn);
+    JsonResult.AddItem(JsonSerialprotected, ProtectedEn);
+    JsonResult.AddItem(JsonSerialpayload, PayloadEn);
+    JsonResult.AddItem(JsonSerialsignature, SignatureEn);
     Result := String(JsonResult.GetParameters);
     JsonResult.Free;
 end;
@@ -1290,25 +1212,18 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
 { RFC7515 verify JWS or JWT from Json or Compact Serialization formats and get payload }
 { see description at top of this unit for usage information }
-
-function IcsJoseCheckJWS(const JWS, OldNonce, HmacSecret: String;
-           var NewPublicKey: PEVP_PKEY; var NewKeyid, Payload: String): TJoseVerify;   { V8.65 }
+{ Inputs are strings, Payload output is String }
+function IcsJoseCheckJWS(const JWS, OldNonce, HmacSecret: String; var NewPublicKey: PEVP_PKEY;
+                                        var NewKeyid, Payload: String; EcdsaIEEE: Boolean = False): TJoseVerify;   { V8.65, V9.5 }
 var
     I, J: Integer;
     ProtectedEn, PayloadEn, SignatureEn: AnsiString;
     JwsJson, HdrJson: ISuperObject;
-    Alg, Jwk, Kid, Nonce{, Typ, Use, Url}: String;
+    Alg, Jwk, Kid, Nonce: String;
     JoseAlg: TJoseAlg;
     CombinedEn: AnsiString;
-
-    function GetBlock(const S: AnsiString): String;
-    begin
-        Result := Utf8ToStringW(IcsBase64UrlDecodeA(S));
-    end;
-
 begin
     Result := JVerifyFailNoJWS;
     Payload := '';
@@ -1317,20 +1232,24 @@ begin
      // Json block
         if Pos ('{', JWS) = 1 then begin
         JwsJson := SO(JWS);
-            if NOT Assigned(JwsJson) then Exit;
-             ProtectedEn := AnsiString(JwsJson.S[JsonSerialprotected]);
-             if ProtectedEn = '' then ProtectedEn := AnsiString(JwsJson.S[JsonSerialheader]);
-             PayloadEn := AnsiString(JwsJson.S[JsonSerialpayload]);
-             SignatureEn := AnsiString(JwsJson.S[JsonSerialsignature]);
+            if NOT Assigned(JwsJson) then
+                Exit;
+            ProtectedEn := AnsiString(JwsJson.S[JsonSerialprotected]);
+            if ProtectedEn = '' then
+                ProtectedEn := AnsiString(JwsJson.S[JsonSerialheader]);
+            PayloadEn := AnsiString(JwsJson.S[JsonSerialpayload]);
+            SignatureEn := AnsiString(JwsJson.S[JsonSerialsignature]);
         end
 
      // check for compact serialisation
         else begin
             I := IcsPosEx('.', JWS, 1);
-            if I <= 2 then Exit;
+            if I <= 2 then
+                Exit;
             ProtectedEn := AnsiString(Copy(JWS, 1, I - 1));
             J := PosEx('.', JWS, I + 1);
-            if J <= I then Exit;
+            if J <= I then
+                Exit;
             PayloadEn := AnsiString(Copy(JWS, I + 1, J - I - 1));
             SignatureEn := AnsiString(Copy(JWS, J + 1, 9999));
         end;
@@ -1340,7 +1259,7 @@ begin
 
      // get fields from protected header
         Result := JVerifyFailBadHeader;
-        HdrJson := SO(GetBlock(ProtectedEn));
+        HdrJson := SO(Utf8ToStringTB(IcsBase64UrlDecodeATB(ProtectedEn)));     { V9.1 }
         if NOT Assigned(HdrJson) then Exit;
         Alg := HdrJson.S[JoseParams_alg];
         Jwk := HdrJson.S[JoseParams_jwk];
@@ -1388,8 +1307,8 @@ begin
         if (OldNonce <> '') and (nonce <> OldNonce) then Exit;
 
     // finally verify signature
-        if IcsJoseCheckSig(JoseAlg, CombinedEn, IcsBase64UrlDecodeA(SignatureEn),
-                                                 AnsiString(HmacSecret), NewPublicKey) then begin
+       if IcsJoseCheckSigTB(JoseAlg, IcsStringAToTBytes(CombinedEn), IcsBase64UrlDecodeATB(SignatureEn),
+                                                        IcsStringToTBytes(HmacSecret), NewPublicKey, EcdsaIEEE) then begin { V9.1, V9.5 }
             if (JoseAlg >= jsigRsa256) then begin
                if Jwk <> '' then
                     Result := JVerifyOkNewPubKey
@@ -1398,7 +1317,7 @@ begin
             end
             else
                 Result := JVerifyOkSecret;
-            Payload := GetBlock(PayloadEn);
+            Payload := Utf8ToStringTB(IcsBase64UrlDecodeATB(PayloadEn));    { V9.1 }
         end
         else
             Result := JVerifyFailSignature;

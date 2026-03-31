@@ -5,11 +5,11 @@ Author:       Arno Garrels <arno.garrels@gmx.de>
               Fastream Technologies (www.fastream.com) coders SubZero
               (G. I. Ates) and PeterS (Peter Nikolow), Luke (Boris Evstatiev)
 Creation:     January 7, 2009
-Version:      V9.0
+Version:      V9.4
 Description:  HTTP Digest Access Authentication, RFC 2617.
 EMail:        francois.piette@overbyte.be         http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2009-2023 by François PIETTE
+Legal issues: Copyright (C) 2009-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -54,6 +54,9 @@ May 26, 2022 V8.69 Rewritten to support SHA-256 hash algorithm as well as MD5
                    Nonce calculation now uses ASCII content and is always MD5 so
                      it stays the same length, only server calculates it.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+
+
 
 Note: Mozilla Firefox supports Digest SHA-256, Chrome and Edge do not.
 
@@ -384,7 +387,7 @@ begin
     AnsiData := AnsiString(InttoStr(Secret)) + Realm + AnsiString(FloatToStr(TimeStamp)) + Opaque;
     RawHash := IcsHashDigest(AnsiData, AlgoDigest);
     Move(RawHash[1], Nonce.Hash, 16);  // will truncate SHA256 hash
-    Result := Base64Encode(PAnsiChar(@Nonce), SizeOf(Nonce));
+    Result := IcsBase64EncodeAC(PAnsiChar(@Nonce), SizeOf(Nonce));     { V9.4 }
 end;
 
 
@@ -641,7 +644,7 @@ begin
         Opaque := Copy(ALine, Pos1, Pos2 - Pos1);
     end;
 
-    Buf := Base64Decode(AnsiString(Nonce));
+    Buf := IcsBase64Decode(Nonce);           { V9.4 }
     if Length(Buf) <> SizeOf(TAuthDigestNonceRec) then
         Exit;
 

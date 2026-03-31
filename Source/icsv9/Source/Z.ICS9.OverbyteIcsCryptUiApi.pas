@@ -30,6 +30,8 @@
 { Aug 13, 2019 - V8.63 - Reverted last cnange }
 { Oct 14, 2021 - V8.68 - Trying to keep C++ happy }
 { Aug 08, 2023 V9.0  Updated version to major release 9. }
+{ Jul 11, 2024 V9.3  PCCERT_CONTEXT to PCERTCONTEXT  }
+{ Aug 05, 2024 V9.3  Using define MSCRYPT_Any instead of MSCRYPT_Any. }
 {******************************************************************************}
 
 
@@ -43,7 +45,7 @@ unit Z.ICS9.OverbyteIcsCryptUiApi;
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
 
 interface
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 
 uses
  {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
@@ -844,7 +846,7 @@ type
     hwndParent: HWND;                                    // OPTIONAL
     dwFlags: DWORD;                                      // OPTIONAL
     szTitle: LPCSTR;                                     // OPTIONAL
-    pCertContext: PCCERT_CONTEXT;
+    pCertContext: PCERTCONTEXT;   { V9.3 }
     rgszPurposes: ^LPCSTR;                               // OPTIONAL
     cPurposes: DWORD;                                    // OPTIONAL
     case Integer of
@@ -1253,7 +1255,7 @@ function CryptUIWizImport(
 {$ENDIF}
 
 implementation
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 
 const
   CryptUI = 'Cryptui.dll';

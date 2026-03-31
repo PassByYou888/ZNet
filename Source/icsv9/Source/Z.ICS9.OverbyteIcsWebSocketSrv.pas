@@ -3,11 +3,11 @@
 Author:       Angus Robertson, including work from Jaroslav Kulísek.
 Description:  Websocket server protocol.
 Creation:     Jan 2023
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Jan 2025
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2023 by François PIETTE
+Legal issues: Copyright (C) 1996-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -37,8 +37,23 @@ Legal issues: Copyright (C) 1996-2023 by François PIETTE
 
 Updates:
 Apr 19, 2023 - V8.71 - baseline.
-               The sample demo for this component is OverbyteIcsSslMultiWebServ.dpr.
+               The sample demos for this component are OverbyteIcsSslMultiWebServ.dpr
+                 and OverbyteIcsBasicWebServer.dpr, also IcsAppMon.dpr.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Mar 04, 2024 V9.1  Using OverbyteIcsHtmlUtils instead of CharSetUtils.
+                   Fixed a problem where multiple or partial frames might
+                     arrive together, ensure they are corrected assembled.
+                     Added new frame state wsfsIncompleteHeader when this
+                     happens. Thanks to Jaroslav Kulisek.
+                   Skip websocket upgrade if authentication needed.
+                   Builds without USE_SSL.
+Jan 22, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+                   Prevent close frame being sent repeatedly.
+Aug 05, 2025 V9.5 Wait FConnDelayMs default 1.5 secs before sending welcome message
+                    and triggering WSReady, so 101 response gets sent.  Otherwise
+                    data may be sent before client has switched to websocket mode,
+                    like the ICS Websocket client!
+Sep 19. 2026  V9.6 StreamTempFolder gone, never used.
 
 
 
@@ -84,6 +99,9 @@ unit Z.ICS9.OverbyteIcsWebSocketSrv;
 interface
 
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
+
+{$IFDEF USE_SSL}
+
 {$IFNDEF COMPILER7_UP}
   {$MESSAGE FATAL 'Sorry, we do not want to support ancient compilers any longer'};
 {$ENDIF}
@@ -106,32 +124,32 @@ uses
     {$IFDEF RTL_NAMESPACES}System.Sysutils{$ELSE}Sysutils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.UITypes, System.UIConsts,{$ENDIF}
-    Z.ICS9.OverbyteIcsWinsock,
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
-    Z.ICS9.Ics.Fmx.OverbyteIcsHttpProt,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,
-    Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
+//    Ics.Fmx.OverbyteIcsHttpProt,
+//    Ics.Fmx.OverbyteIcsSslHttpRest,
+//    Ics.Fmx.OverbyteIcsWSocketS,
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpSrv,
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpAppServer,
     Z.ICS9.Ics.Fmx.OverbyteIcsWebSocketCli,
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
-    Z.ICS9.OverbyteIcsHttpProt,
-    Z.ICS9.OverbyteIcsSslHttpRest,
-    Z.ICS9.OverbyteIcsWSocketS,
+//    OverbyteIcsHttpProt,
+//    OverbyteIcsSslHttpRest,
+//    OverbyteIcsWSocketS,
     Z.ICS9.OverbyteIcsHttpSrv,
     Z.ICS9.OverbyteIcsHttpAppServer,
     Z.ICS9.OverbyteIcsWebSocketCli,
 {$ENDIF FMX}
-    Z.ICS9.OverbyteIcsCharsetUtils,
+//  OverbyteIcsCharsetUtils, { V9.1 }
+    Z.ICS9.OverbyteIcsHtmlUtils,    { V9.1 }
     Z.ICS9.OverbyteIcsSha1,
-    Z.ICS9.OverbyteIcsLogger,     { for TLogOption }
+//    OverbyteIcsLogger,     { for TLogOption }
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
 type
@@ -146,7 +164,7 @@ type
     THttpWSSrvConn = class(THttpAppSrvConnection)
     public
         WSClient: Boolean;                       { a WebSocket client is connected }
-        WSPendingReady: Boolean;                 { should ready event be triggered after handshaeke }
+//        WSPendingReady: Boolean;                 { should ready event be triggered after handshaeke }
         WSClosing : Boolean;
         WSReqPage: String;
         WSReqParams: String;
@@ -164,7 +182,7 @@ type
         CurrOutgoingFrame : TWebSocketOutgoingFrame;
         OutgoingFrames : TList;     // send frame queue
         MaxMemStreamSize : Int64;
-        StreamTempFolder : String;   // if is set, then TLimitedSizeMemStream is used
+  //      StreamTempFolder : String;   // if is set, then TLimitedSizeMemStream is used  V9.6 gone, never used
         WSFrameCounter: Integer;
         WSPingEnabled: Boolean;
         WSPingSecs: Integer;
@@ -176,6 +194,10 @@ type
         FOnWSReady: TWSReadyEvent;
         FOnWSPingTimer: TWSPingTimerEvent;
         FPeriodicTimer: TIcsTimer;                              { send regular pings }
+        FReceiveBufferOffset : Integer;  { JK 28.11.2023 }
+        FTriggerConnected: Int64;                                 { V9.5 }
+        FWelcomeMsg: String;                                      { V9.5 }
+        FConnDelayMs: Integer;                                    { V9.5 }
         constructor Create(AOwner: TComponent); override;
         destructor  Destroy; override;
         procedure ConnectionDataSent(Sender : TObject; ErrCode : Word); override;
@@ -207,19 +229,23 @@ type
         property OnWSPingTimer: TWSPingTimerEvent read FOnWSPingTimer write FOnWSPingTimer;
     end ;
 
-
+{$ENDIF USE_SSL}
 
 implementation
 
+{$IFDEF USE_SSL}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor THttpWSSrvConn.Create(AOwner: TComponent);
 begin
     inherited;
     WSClient := False;      // not using WebSocket protocol, skip most code here }
-    WSPendingReady := False;
+    WSClosing := False;    // V9.4
+//    WSPendingReady := False;
     WSPingEnabled := False;
     WSPingSecs := 15;    // our client is 10s, so slower
+    FReceiveBufferOffset := 0;  { JK 28.11.2023 }
+    FConnDelayMs := 1500;    { V9.5 milliseconds until connection event is triggered }
     { rest of WebSocket variables are initialised after handshake since not needed otherwise }
 end;
 
@@ -295,11 +321,16 @@ end;
 procedure THttpWSSrvConn.TriggerGetDocument(var Flags : THttpGetFlag);
 var
     OK: Boolean;
-    Resp, WelcomeMsg: String;
+    Resp{, WelcomeMsg}: String;
 begin
     if NOT WSClient then begin
       // see if swapping to WebSocket connection mode, Firefox sends Connection: keep-alive, Upgrade
         if (Lowercase(RequestUpgrade) = 'websocket') and (Pos('upgrade', Lowercase(RequestConnection)) > 0)  then begin
+
+       { V9.1 authentication need, give up now }
+            if Flags = hg401 then
+            Exit;
+
             Flags := hgWillSendMySelf ;
 
           // look for key
@@ -318,9 +349,9 @@ begin
             WSReqProtocol := Trim(RequestHeader.Values['Sec-WebSocket-Protocol']);
             WSReqExtensions := Trim(RequestHeader.Values['Sec-WebSocket-Extensions']);
             OK := True;
-            WelcomeMsg := '';
+            FWelcomeMsg := '';
             if Assigned(FOnWSHandshake) then  { user can check if page allowed to support websockets }
-                FOnWSHandshake(Self, OK, WelcomeMsg);
+                FOnWSHandshake(Self, OK, FWelcomeMsg);
             if NOT OK then begin
                 KeepAlive := False ;
                 Answer500('Websockets Not Available');
@@ -338,13 +369,14 @@ begin
             CurrOutgoingFrame := nil;
             OutgoingFrames := TList.Create;
             MaxMemStreamSize := 0;
-            StreamTempFolder := '';
-            if WSPingEnabled and (WSPingSecs >= 5) then begin
+//            StreamTempFolder := '';    never used
+            FTriggerConnected := Trigger64Disabled;
+       //     if WSPingEnabled and (WSPingSecs >= 5) then begin  V9.5 always need timer
                 FPeriodicTimer := TIcsTimer.Create(Self);
-                FPeriodicTimer.Interval := 1000;  // 1 second
+                FPeriodicTimer.Interval := 500;  // twice a second
                 FPeriodicTimer.OnTimer := PeriodicTimerTimer;
                 FPeriodicTimer.Enabled := True;
-            end;
+     //       end;
             FAnswerStatus := 200;  // for logging
             Resp := 'HTTP/1.1 101 Switching to WebSocket Protocol' + IcsCRLF +
               'Upgrade: WebSocket' + IcsCRLF +
@@ -352,19 +384,23 @@ begin
             if WSReqProtocol <> '' then
                 Resp := Resp + 'Sec-WebSocket-Protocol: ' + WSReqProtocol; { Should really choose one! }
           { hash challenge key we received with GUID and return it to client }
-            Resp := Resp + 'Sec-WebSocket-Accept: ' + String(Base64Encode(SHA1ofStr(AnsiString(WSReqKey) +
+            Resp := Resp + 'Sec-WebSocket-Accept: ' + String(IcsBase64EncodeA(SHA1ofStr(AnsiString(WSReqKey) +      { V9.4 }
                                                                 '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'))) + IcsCRLF + IcsCRLF;
             KeepAlive := True ;
             SendText(Resp);    // send 101 response header
 
+          { V9.5 sent in timer }
         // risk of sending now since HTTP request has not yet been completed, better in FOnWSReady event
-            if WelcomeMsg <> '' then begin
+        {    if WelcomeMsg <> '' then begin
                 WelcomeMsg := IcsTransChar(WelcomeMsg, IcsCR, IcsSpace);  // CRLF in first message may confuse reveive header handler
                 WelcomeMsg := IcsTransChar(WelcomeMsg, IcsLF, IcsSpace);
                 WSSendText(Nil, WelcomeMsg);  // send first websocket message
                 ConnectionDataSent(Self, 0 );
-            end;
-            WSPendingReady := True;   // trigger event once message is sent
+            end;        }
+
+        { V9.5 wait 1.5 seconds before setting WSReady, to allow 101 request to be sent and processed }
+            FTriggerConnected := IcsGetTrgMSecs64(FConnDelayMs);
+     //       WSPendingReady := True;   // trigger event once message is sent
             PostMessage(Handle, FMsg_WM_HTTP_DONE, 0, 0);
             Exit;
         end;
@@ -379,13 +415,13 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure THttpWSSrvConn.TriggerHttpRequestDone;
 begin
-    if WSClient then begin
+ {   if WSClient then begin      V9.5 moved to timer
         if WSPendingReady then begin
             WSPendingReady := False;
             if Assigned(FOnWSReady) then
                 FOnWSReady(Self);         // event may be used to start pushing messages to client
         end;
-    end;
+    end;  }
     inherited;
 end;
 
@@ -403,6 +439,7 @@ var
   TmpFrame : TWebSocketOutgoingFrame;
   Len : Integer;
   TmpDumpFrame : TWebSocketReceivedFrame;
+  ParsedBytes : Integer;  { JK 28.11.2023 }
 label
   RetrySendFrame;
 begin
@@ -436,7 +473,7 @@ RetrySendFrame :
         if (DebugLevel >= DebugBody) and (TmpFrame.Data is TMemoryStream) then begin
             TmpDumpFrame := TWebSocketReceivedFrame.Create;
             try
-                TmpDumpFrame.Parse((TmpFrame.Data as TMemoryStream).Memory, TmpFrame.Data.Size );
+                TmpDumpFrame.Parse((TmpFrame.Data as TMemoryStream).Memory, TmpFrame.Data.Size, ParsedBytes ); { JK 28.11.2023 }
                 WSLogEvent(WSDumpFrame('Sent', TmpDumpFrame));
             finally
                 TmpDumpFrame.Free;
@@ -523,14 +560,24 @@ end;
 procedure THttpWSSrvConn.ConnectionDataAvailable(Sender: TObject; ErrCode: Word);
 var
   Len : Integer;
+    BufPos : Integer;
+    ParsedBytes : Integer;
 begin
     if NOT WSClient then begin
         inherited;
         exit;
     end;
     if Length(RcvdBuffer) < MaxWSFrameSize then
-    SetLength(RcvdBuffer, MaxWSFrameSize );
-    Len := ReceiveTB(RcvdBuffer);
+        SetLength(RcvdBuffer, MaxWSFrameSize );
+    BufPos := 0;  { JK 28.11.2023 }
+
+    if CurrFrame <> nil then begin
+        if CurrFrame.State = wsfsIncompleteHeader then
+            BufPos := FReceiveBufferOffset;
+          // incomplete header is stored in FReceiveBuffer[0..BufPos-1]
+    end;
+    Len := Receive(@RcvdBuffer[BufPos], Length(RcvdBuffer) - BufPos);
+
 {  if (DebugLevel >= DebugHdr) then begin
      LogEvent( 'WebSocket : ' + Format('FReceiveLen : %d', [FreceiveLen]));
         if Len < 0 then
@@ -538,69 +585,89 @@ begin
       else
         LogEvent( 'WebSocket : Received ' + IntToStr( Len ) + ' bytes...');
     end; }
-    if Len <= 0 then Exit;
+    if Len <= 0 then
+        Exit;
+    Len := Len + BufPos;
+    FReceiveBufferOffset := 0;
+    BufPos := 0;
     LastReceivedDataTickCount := IcsGetTickCount64;
     LastSentPingTickCount := 0;
-    if CurrFrame = nil then
-    CurrFrame := TWebSocketReceivedFrame.Create;
-    if not CurrFrame.Parse(RcvdBuffer, Len) then begin
-        if (DebugLevel >= DebugBody) then
-            WSLogEvent(WSDumpFrame('Received Invalid', CurrFrame));
-        WSClose(wscrUnsupportedData, 'Unknown frame structure');
-        CloseDelayed;
-        Exit;
-    end;
-
-    if CurrFrame.State = wsfsCompleted then begin
-        if CurrFrame.Kind = wsfkContinue then begin
-            if CurrMultiFrame <> nil then begin
-                CurrMultiFrame.IsFinal := CurrFrame.IsFinal;
-                if CurrFrame.Data <> nil then begin
-                    if CurrMultiFrame.Data = nil then begin
-                        CurrMultiFrame.Data := CurrFrame.Data;
-                        CurrFrame.Data := nil;
-                        CurrMultiFrame.DataBytes := CurrFrame.DataBytes;
-                        CurrMultiFrame.StoredBytes := CurrFrame.StoredBytes;
-                    end
-                    else begin
-                        CurrMultiFrame.Data.Size := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
-                        CurrMultiFrame.Data.Position := CurrMultiFrame.DataBytes;
-                        CurrMultiFrame.Data.CopyFrom( CurrFrame.Data, 0 );
-                        CurrMultiFrame.DataBytes := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
-                        CurrMultiFrame.StoredBytes := CurrMultiFrame.StoredBytes + CurrFrame.StoredBytes;
-                    end;
-                end;
-
-                if CurrMultiFrame.IsFinal then begin
-                    if (DebugLevel >= DebugBody) then
-                        WSLogEvent(WSDumpFrame('Received Multiframe', CurrMultiFrame));
-                    ProcessReceivedFrame( CurrMultiFrame );
-                    CurrMultiFrame := nil;
-                end;
+    while Len > 0 do begin   // more frames may be received in FCtrlSocket buffer
+        if CurrFrame = nil then
+            CurrFrame := TWebSocketReceivedFrame.Create;
+        ParsedBytes := 0;
+        if not CurrFrame.Parse( @RcvdBuffer[BufPos], Len, ParsedBytes ) then begin
+            if CurrFrame.State = wsfsIncompleteHeader then begin
+                if BufPos > 0 then
+                    Move( RcvdBuffer[BufPos], RcvdBuffer[0], Len );
+                FReceiveBufferOffset := Len;
+                if (DebugLevel >= DebugBody) then
+                    WSLogEvent( 'WebSocket : Incomplete header' );
+                end
+            else
+            begin
+                if (DebugLevel >= DebugBody) then
+                    WSLogEvent(WSDumpFrame('Received Invalid', CurrFrame));
+                WSClose(wscrUnsupportedData, 'Unknown frame structure');
             end;
-
-      // if there is nothing to connect it to, it is simply discarded
-            CurrFrame.Free;
-            CurrFrame := nil;
-            Exit;
-        end
-        else if not CurrFrame.IsFinal then begin
-      // it's the first frame from the message (because <> CurrFrame.Kind = wsfc Continue)
-      // and it's not final, so if some multiframe message is being processed
-      // it will be discarded
-            if CurrMultiFrame <> nil then
-                CurrMultiFrame.Free;
-            // and the current frame becomes a multiframe
-            CurrMultiFrame := CurrFrame;
-            CurrFrame := nil;
+            CloseDelayed;
             Exit;
         end;
 
-    // if it comes here, the frame is final
-        if (DebugLevel >= DebugBody) then
-            WSLogEvent(WSDumpFrame('Received Singleframe', CurrFrame));
-        ProcessReceivedFrame(CurrFrame);
-        CurrFrame := nil;
+        // set buffer to next frame
+        BufPos := BufPos + ParsedBytes;
+        Len    := Len    - ParsedBytes;
+        if CurrFrame.State = wsfsCompleted then begin
+            if CurrFrame.Kind = wsfkContinue then begin
+                if CurrMultiFrame <> nil then begin
+                    CurrMultiFrame.IsFinal := CurrFrame.IsFinal;
+                    if CurrFrame.Data <> nil then begin
+                        if CurrMultiFrame.Data = nil then begin
+                            CurrMultiFrame.Data := CurrFrame.Data;
+                            CurrFrame.Data := nil;
+                            CurrMultiFrame.DataBytes := CurrFrame.DataBytes;
+                            CurrMultiFrame.StoredBytes := CurrFrame.StoredBytes;
+                        end
+                        else begin
+                            CurrMultiFrame.Data.Size := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
+                            CurrMultiFrame.Data.Position := CurrMultiFrame.DataBytes;
+                            CurrMultiFrame.Data.CopyFrom( CurrFrame.Data, 0 );
+                            CurrMultiFrame.DataBytes := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
+                            CurrMultiFrame.StoredBytes := CurrMultiFrame.StoredBytes + CurrFrame.StoredBytes;
+                        end;
+                    end;
+
+                    if CurrMultiFrame.IsFinal then begin
+                        if (DebugLevel >= DebugBody) then
+                            WSLogEvent(WSDumpFrame('Received Multiframe', CurrMultiFrame));
+                        ProcessReceivedFrame( CurrMultiFrame );
+                        CurrMultiFrame := nil;
+                    end;
+                end;
+
+          // if there is nothing to connect it to, it is simply discarded
+                CurrFrame.Free;
+                CurrFrame := nil;
+                Continue;
+            end
+            else if not CurrFrame.IsFinal then begin
+          // it's the first frame from the message (because <> CurrFrame.Kind = wsfc Continue)
+          // and it's not final, so if some multiframe message is being processed
+          // it will be discarded
+                if CurrMultiFrame <> nil then
+                    CurrMultiFrame.Free;
+                // and the current frame becomes a multiframe
+                CurrMultiFrame := CurrFrame;
+                CurrFrame := nil;
+                Continue;
+            end;
+
+        // if it comes here, the frame is final
+            if (DebugLevel >= DebugBody) then
+                WSLogEvent(WSDumpFrame('Received Singleframe', CurrFrame));
+            ProcessReceivedFrame(CurrFrame);
+            CurrFrame := nil;
+        end;
     end;
 end;
 
@@ -612,6 +679,8 @@ var
     B: TBytes;
 begin
     FPeriodicTimer.Enabled := false;
+    if WSClosing then    { V9.4 prevent multiple calls }
+        Exit;
     case CloseReason of
         wscrNormalClosure : EC.W := 1000;
         wscrGoingAway : EC.W := 1001;
@@ -774,26 +843,43 @@ procedure THttpWSSrvConn.ProcessPeriodicTasks;
 var
     Data: TBytes;
 begin
-    if (OutgoingFrames.Count <= 0) and (CurrOutgoingFrame = nil) and (WSPingSecs >= 5)
-           and (IcsElapsedSecs64(LastReceivedDataTickCount) > WSPingSecs) then begin
-
-       // see if user wants to push data to the client
-        if Assigned(OnWSPingTimer) then begin
-            OnWSPingTimer(Self);
+ { V9.5 wait at least one second before sending welcome message and triggering WSReady, so 101 response gets sent }
+    if IcsTestTrgTick64(FTriggerConnected) then begin
+        FTriggerConnected := Trigger64Disabled;
+        if FWelcomeMsg <> '' then begin
+            FWelcomeMsg := IcsTransChar(FWelcomeMsg, IcsCR, IcsSpace);  // CRLF in first message may confuse reveive header handler
+            FWelcomeMsg := IcsTransChar(FWelcomeMsg, IcsLF, IcsSpace);
+            WSSendText(Nil, FWelcomeMsg);  // send first websocket message
+            ConnectionDataSent(Self, 0 );
         end;
+        if Assigned(FOnWSReady) then
+            FOnWSReady(Self);         // event may be used to start pushing messages to client
+    end;
 
-      // no sending is running and for x seconds nothing arrived, not even a single Byte
-        if LastSentPingTickCount = 0 then begin
-            SetLength(Data, 0);
-            WSSendPing(Data);
-            LastSentPingTickCount := IcsGetTickCount64;
-        end
-        else if IcsElapsedSecs64(LastSentPingTickCount) > 10 then begin
-        // 10 seconds after ping no response
-            WSClose( wscrProtocolError, 'No response to ping' );
-            CloseDelayed;
+ // regular ping for idle connection
+    if WSPingEnabled then begin
+        if (OutgoingFrames.Count <= 0) and (CurrOutgoingFrame = nil) and (WSPingSecs >= 5) and
+                                               (IcsElapsedSecs64(LastReceivedDataTickCount) > WSPingSecs) then begin
+
+           // see if user wants to push data to the client
+            if Assigned(OnWSPingTimer) then begin
+                OnWSPingTimer(Self);
+            end;
+
+          // no sending is running and for x seconds nothing arrived, not even a single Byte
+            if LastSentPingTickCount = 0 then begin
+                SetLength(Data, 0);
+                WSSendPing(Data);
+                LastSentPingTickCount := IcsGetTickCount64;
+            end
+            else if IcsElapsedSecs64(LastSentPingTickCount) > 10 then begin
+            // 10 seconds after ping no response
+                WSClose( wscrProtocolError, 'No response to ping' );
+                CloseDelayed;
+            end;
         end;
     end;
+
     if (OutgoingFrames.Count > 0) and (CurrOutgoingFrame = nil) then
         ConnectionDataSent(Self, 0 );
 end;
@@ -814,6 +900,7 @@ begin
     end;
 end;
 
+{$ENDIF USE_SSL}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 initialization

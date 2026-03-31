@@ -3,10 +3,10 @@
 Author:       François PIETTE
 Description:  TNntpCli is a client for the NNTP protocol (RFC-977)
 Creation:     December 19, 1997
-Version:      V9.0
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -108,6 +108,8 @@ Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Nov 27, 2021 V8.68 BgException now passes exception to AbortComponent virtual handler.
 Jul 19, 2023 V8.71 Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 20, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+Aug 6, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -167,23 +169,26 @@ uses
 { You must define USE_SSL so that SSL code is included in the component.    }
 { Either in OverbyteIcsDefs.inc or in the project/package options.          }
 {$IFDEF USE_SSL}
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//    OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$ENDIF}
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF}
      Z.ICS9.OverbyteIcsMimeUtils,
      Z.ICS9.OverbyteIcsUtils,
-     Z.ICS9.OverbyteIcsWinsock,
-     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+  //   OverbyteIcsWinSock,
+     Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+     Z.ICS9.OverbyteIcsTypes;
 
 const
-    NntpCliVersion     = 900;
-    CopyRight : String = ' TNntpCli (c) 1997-2023 F. Piette V9.0 ';
+    NntpCliVersion     = 903;
+    CopyRight : String = ' TNntpCli (c) 1997-2024 F. Piette V9.3';
 {$IFDEF VER80}
     { Delphi 1 has a 255 characters string limitation }
     NNTP_SND_BUF_SIZE = 255;

@@ -5,10 +5,10 @@ Description:  Delphi component combining both TnCnx and EmulVT components.
               Hence it does ANSI emulation using TCP/IP telnet protocol.
 Author:       François PIETTE
 Creation:     May, 1996
-Version:      V9.0
+Version:      V9.3
 EMail:        http://www.overbyte.be       francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2023 by François PIETTE
+Legal issues: Copyright (C) 1996-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -87,6 +87,7 @@ May 28, 2014  v8.02 DrJohn fixed problem with (border) colours
                     GetScreenText function added
                     Fixed bug during connect if control not visible
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jun 26, 2024 V9.3  Added OverbyteIcsUtils for constants.
 
 
 
@@ -132,12 +133,16 @@ uses
     {$IFDEF RTL_NAMESPACES}Vcl.Controls{$ELSE}Controls{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.IniFiles{$ELSE}IniFiles{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Vcl.Forms{$ELSE}Forms{$ENDIF},
-    Z.ICS9.OverbyteIcsEmulVT,   Z.ICS9.OverbyteIcsTnCnx,
-    Z.ICS9.OverbyteIcsTnOptFrm, Z.ICS9.OverbyteIcsWSocket;
+    Z.ICS9.OverbyteIcsEmulVT,
+    Z.ICS9.OverbyteIcsTnCnx,
+    Z.ICS9.OverbyteIcsTnOptFrm,
+    Z.ICS9.OverbyteIcsUtils,
+//    OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-  TnEmultVTVersion   = 900;
-  CopyRight : String = ' TTnEmulVT (c) 1996-2023 F. Piette V9.0 ';
+  TnEmultVTVersion   = 903;
+  CopyRight : String = ' TTnEmulVT (c) 1996-2024 F. Piette V9.3 ';
 
 type
   TTnEmulVTDataAvailable = procedure (Sender  : TObject;
@@ -494,9 +499,7 @@ begin
         Display('Connected' + #13 + #10);
     end
     else begin
-        Display('Connection failed: ' +
-                WSocketErrorDesc(ErrorCode) +
-                #13 + #10);
+        Display('Connection failed: ' + WSocketErrorDesc(ErrorCode) + #13 + #10);
         if SoundOn then                                               {drjohn}
           MessageBeep(MB_ICONASTERISK);
     end;

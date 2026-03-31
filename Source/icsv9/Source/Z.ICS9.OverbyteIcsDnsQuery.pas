@@ -4,10 +4,10 @@ Author:       François PIETTE
 Description:  Component to query DNS records.
               Implement most of RFC 1035 (A, NS, AAAA, PTR, MX, etc).
 Creation:     January 29, 1999
-Version:      V9.0
+Version:      V9.5
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1999-2023 by François PIETTE
+Legal issues: Copyright (C) 1999-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -140,6 +140,18 @@ Jul 27, 2023 V8.71 Fixed a bug where a second query after calling AbortQuery mig
                   Added GetNetBiosHostByAddr for Windows only to lookup NetBios host
                     name on LAN by IPv4 address.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Sep 09, 2025 V9.5  Fixed AnsiStrings warning in C++.
+                   Published TIcsDomainNameCache DNIndex.
+                   Added DnsQuerySVCB and DnsQueryHTTPS to help HTTPS connections,
+                     specifically TLS Encrypted Client Hello, cloudflare-ech.com.
+                     Note, not decoding the new records yet!!!
+                   Added TIcsDomainNameCache geo information for responses, usually
+                     a code ISO2A or name and/or ASN/ISP name.
+                   The TIcsDomainNameCache LookupIP methods allows geo information to be
+                     passed, which will be displayed the resultant reverse DNS lookup.
+                   The TIcsDomainNameCache LookupHost methods allows an Geo flag
+                     to be passed that will trigger OnGeoEvent allowing the app
+                     to lookup geo information for each IP resolved for the host.
 
 
 
@@ -311,8 +323,8 @@ uses
     Z.ICS9.OverbyteIcsTicks64;       { V8.71 }
 
 const
-  DnsQueryVersion    = 900;
-  CopyRight : String = ' TDnsQuery  (c) 1999-2023 F. Piette V9.0 ';
+  DnsQueryVersion    = 905;
+  CopyRight : String = ' TDnsQuery  (c) 1999-2025 F. Piette V9.5 ';
 
   { Maximum answers (responses) count }
   MAX_ANCOUNT     = 50;
@@ -397,7 +409,9 @@ const
   DnsQueryCDNSKEY      = 60;  // Child wants reflected in DS    [RFC7344]
   DnsQueryOPENPGPKEY   = 61;  // OpenPGP Key     [RFC7929]
   DnsQueryCSYNC        = 62;  // Child-To-Parent Synchronization [RFC7477]
-  DnsQueryZONEMD       = 63;  // message digest for DNS zone  [draft-wessels-dns-zone-digest]
+  DnsQueryZONEMD       = 63;  // message digest for DNS zone  [RFC 8976 ]
+  DnsQuerySVCB         = 64;  // Service Binding [RFC9460] to help HTTPS connections
+  DnsQueryHTTPS        = 65;  // HTTPS Binding [RFC9460] for TLS Encrypted Client Hello   V9.5
 //DnsQuerySPF          = 99;  // [RFC7208]
 //DnsQueryUINFO        = 100; // [IANA-Reserved]
 //DnsQueryUID          = 101; // [IANA-Reserved]
@@ -451,7 +465,7 @@ type
     end;
 
 const
-    DnsReqTable: array[0..40] of TQueryInfo = (
+    DnsReqTable: array[0..42] of TQueryInfo = (
       (Num: DnsQueryA;      Asc: 'A';      Desc: 'Host Address IPv4'),
       (Num: DnsQueryAAAA;   Asc: 'AAAA' ;  Desc: 'Host Address IPv6'),    { V8.71 re-arranged order }
       (Num: DnsQueryCNAME;  Asc: 'CNAME';  Desc: 'Canonical Name'),
@@ -492,16 +506,18 @@ const
       (Num: DnsQueryEUI48;  Asc: 'EUI48';  Desc: 'an EUI-48 address'),
       (Num: DnsQueryEUI64;  Asc: 'EUI64';  Desc: 'an EUI-64 address'),
       (Num: DnsQueryTKEY;   Asc: 'TKEY';   Desc: 'Transaction Key'),
-      (Num: DnsQueryURI;    Asc: 'URI';    Desc: 'URI Certification') );
+      (Num: DnsQueryURI;    Asc: 'URI';    Desc: 'URI Certification'),
+      (Num: DnsQuerySVCB;   Asc: 'SVCB';   Desc: 'Service Binding'),        // V9.5
+      (Num: DnsQueryHTTPS;  Asc: 'HTTPS';  Desc: 'HTTPS Binding ECH') );    // V9.5
 
   { V8.61 status respoonse code literals }
     DnsRCodeTable: array[DnsRCodeNoError..DnsRCodeRefused] of String = (
       'Success', 'Format Error', 'Server Failure', 'Name Error', 'Not Implemented', 'Refused');
 
   { V8.61 perform all (or most) requests sequentually }
-    DnsAllReqTot = 8;                                                { V8.71 added CAA to All }
+    DnsAllReqTot = 9;                                 { V8.71 added CAA to All, V9.5 added HTTPS  }
     DnsAllReqTable:  array[1..DnsAllReqTot] of Integer = (
-       DnsQueryA, DnsQueryAAAA, DnsQueryCNAME, DnsQueryNS, DnsQueryMX, DnsQuerySOA, DnsQueryTXT, DnsQueryCAA);
+       DnsQueryA, DnsQueryAAAA, DnsQueryCNAME, DnsQueryNS, DnsQueryMX, DnsQuerySOA, DnsQueryTXT, DnsQueryCAA, DnsQueryHTTPS);
 
   { V8.61 public DNS servers }
     DnsPublicServerTable: array[0..15] of String = (
@@ -533,7 +549,7 @@ const
 
 type
   TDnsRequestDoneEvent = procedure (Sender : TObject; Error : WORD) of Object;
-  TDnsLogEvent = procedure (Sender: TObject; const Msg: string) of object;
+//TDnsLogEvent = procedure (Sender: TObject; const Msg: string) of object;
 
   TDnsRequestHeader = packed record
       ID      : WORD;
@@ -677,7 +693,7 @@ type
     FTXTRecordArray             : TDnsTXTRecordArray;    { V8.71 for TXT requests }
     FTXTRecordCount             : Integer;               { V8.71 }
     FOnRequestDone              : TDnsRequestDoneEvent;
-    FOnLogEvent                 : TDnsLogEvent;         { V8.71 }
+    FOnLogEvent                 : TIcsAppLogEvent; { V9.5 was TDnsLogEvent;         V8.71 }
     FProto                      : String;                { default to udp  }
     FGotPacketLength            : Boolean; { for tcp, set if packet length received }
     FLengthByte                 : array [0..1] of BYTE; {  for tcp         }
@@ -814,8 +830,8 @@ type
     property ServerMax : Integer read  FServerMax  write FServerMax;   { max server attempts V8.71 }
     property OnRequestDone : TDnsRequestDoneEvent read  FOnRequestDone
                                                   write FOnRequestDone;
-    property OnLogEvent : TDnsLogEvent            read  FOnLogEvent
-                                                  write FOnLogEvent;         { V8.71 }
+    property OnLogEvent : TIcsAppLogEvent         read  FOnLogEvent
+                                                  write FOnLogEvent;    { V9.5  }     { V8.71 }
   end;
 
 
@@ -834,7 +850,7 @@ type
   TDNMethod = (MethodWinsock, MethodUdp, MethodTcp, MethodHttps);
   TDBLANlookup = (LanLookDef, LanLookWSock, LanLookNetBios);
   TDNUpdateEvent = procedure (Sender: TObject; ItemNr: Integer) of object;
-  TDNLogEvent = procedure (Sender: TObject; const Msg: string) of object;
+//TDNLogEvent = procedure (Sender: TObject; const Msg: string) of object;   V9.5 use TIcsAppLogEvent;
 
   TDNItem = record
     Request: String;              // host name or IP address
@@ -843,6 +859,8 @@ type
     ReqFamily: TSocketFamily;     // do we want one or other or both
     Responses4: array of String;  // often IPv4 multiple responses
     Responses6: array of String;  // often IPv6 multiple responses
+    RespGeo4: array of String;     // ISOA2 country code and/or ASN for IPv4 responses
+    RespGeo6: array of String;     // ISOA2 country code and/or ASN for IPv6 responses
     TotResp4: Integer;
     TotResp6: Integer;
     TimeStamp: TDateTime;        // if non-zero, last lookup attempt
@@ -876,7 +894,6 @@ type
     FDnsServerList: TStrings;       // list of DNS servers for DnsQuery component
     FDnsServerStrat: TDnsSrvStrat;
     FDNUpdateEvent: TDNUpdateEvent;
-    FDNLogEvent: TDNLogEvent;
     FDNCacheFile: String;
     FDnsQuerys: array of TDnsQuery;
     FDNWSockets: array of TWSocket;
@@ -884,6 +901,8 @@ type
     FLookupQu: TIcsIntegerList;      // FIFO queue of pending lookups, by ItemNr
     FMaintTimer: TIcsTimer;
     FDefListDone: Boolean;
+    FOnAppLogEvent: TIcsAppLogEvent; { V9.5 TDNLogEvent }
+    FOnGeoEvent: TIcsGeoEvent;       { V9.5 }
     procedure LogEvent (const Info: String);
     procedure TriggerUpdate(ItemNr: Integer);
     procedure WsockDnsRequestDone(Sender : TObject; Error : WORD);
@@ -910,13 +929,19 @@ type
     procedure AddListtoCache(HostList: TStrings);
     function FindRequest(const Request: String): Integer;
     function LookupRequest(const Req: String; Tag: Integer; Sync: Boolean; ReqType: TDNReqType; DNFamily: TSocketFamily = sfAny;
-                                                                      UpdEvent: TDNUpdateEvent = Nil; SkipEvent: Boolean = False): Integer;
-    function LookupHostSync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
-    function LookupIPSync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
-    function LookupHostAsync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
-    function LookupIPAsync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
-    function LookupHostOne(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): String;
-    function LookupIPOne(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): String;
+                                     UpdEvent: TDNUpdateEvent = Nil; SkipEvent: Boolean = False; const Geo: String = ''): Integer;  { V9.5 }
+    function LookupHostSync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                   UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): Integer;  { V9.5 }
+    function LookupIPSync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil;
+                                                                                                const Geo: String = ''): Integer;   { V9.5 }
+    function LookupHostAsync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                   UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): Integer;  { V9.5 }
+    function LookupIPAsync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil;
+                                                                                                const Geo: String = ''): Integer;   { V9.5 }
+    function LookupHostOne(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                    UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): String;  { V9.5 }
+    function LookupIPOne(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil;
+                                                                                                  const Geo: String = ''): String;  { V9.5 }
     function GetHost(const Host: String; DNFamily: TSocketFamily = sfAny): String;
     function GetIP(const IP: String): String;
     procedure MaintClearAll;
@@ -929,6 +954,7 @@ type
     function SaveCacheToFile: Boolean;
     function ReadCacheFromFile: Boolean;
     property TotDNItems: Integer                read FTotDNItems;
+    property DNIndex: TIcsFindList              read FDNIndex;   { V9.5 }
   published
     property DNMethod: TDNMethod                read  FDNMethod  write SetDNMethod;
     property DnsServerList: TStrings            read  FDnsServerList  write FDnsServerList;
@@ -941,7 +967,8 @@ type
     property DefHostList: TStrings              read  FDefHostList  write FDefHostList;
     property DBLANlookup: TDBLANlookup          read  FDBLANlookup  write FDBLANlookup;
     property OnDNUpdateEvent: TDNUpdateEvent    read  FDNUpdateEvent  write FDNUpdateEvent;
-    property OnDNLogEvent: TDNLogEvent          read  FDNLogEvent write FDNLogEvent;
+    property OnAppLogEvent: TIcsAppLogEvent     read  FOnAppLogEvent write FOnAppLogEvent;  { V9.5  }
+    property OnGeoEvent: TIcsGeoEvent           read  FOnGeoEvent write FOnGeoEvent;        { V9.5 }
 end;
 
 
@@ -1882,10 +1909,10 @@ var
                     if (RRRecord.RDLength = 16) and (RRRecord.RDLength = sizeof(fLOCInfo)) then begin
                         Move(RDataPtr^, fLOCInfo, 16);
                         RRRecord.LocDecode := Loc2Geo(fLOCInfo);
-                        RRRecord.RDData := AnsiString('Lat: ' + IntToStr(RRRecord.LocDecode.lad) + #$B0 +
+                        RRRecord.RDData := AnsiString('Lat: ' + IntToStr(RRRecord.LocDecode.lad) + AnsiChar($B0) +
                                          IntToStr(RRRecord.LocDecode.lam) + '''' +
                                          IntToStr(RRRecord.LocDecode.las) + '"' +
-                                         ', Long: ' + IntToStr(RRRecord.LocDecode.lod) + #$B0 +
+                                         ', Long: ' + IntToStr(RRRecord.LocDecode.lod) + AnsiChar($B0) +
                                          IntToStr(RRRecord.LocDecode.lom) + '''' +
                                          IntToStr(RRRecord.LocDecode.los) + '"' +
                                          ', Alt: ' + IntToStr(RRRecord.LocDecode.altitude));
@@ -1926,12 +1953,21 @@ var
 
         // pending, DNSSEC buffers contain several fields, should handle them properly
         // so tempoarily return them as hex
-            DnsQueryRRSIG, DnsQueryDNSKEY, DnsQueryDS, DnsQueryNSEC, DnsQueryNSEC3,
-              DnsQueryCDS, DnsQueryCDNSKEY, DnsQueryTLSA, DnsQuerySMIMEA: begin
+            DnsQueryRRSIG, DnsQueryDNSKEY, DnsQueryDS, DnsQueryNSEC, DnsQueryNSEC3, DnsQueryCDS, DnsQueryCDNSKEY,
+                                                                                     DnsQueryTLSA, DnsQuerySMIMEA: begin
                  SetLength(Temp, RRRecord.RDLength);   { V8.64 }
                  Move(RDataPtr^ , Temp[1], RRRecord.RDLength);
                  RRRecord.RDData := AnsiString(IcsBufferToHex(Temp, RRRecord.RDLength));
+            end;
+
+        //  { V9.5 } pending, Service Binding and HTTSP Binding contain several fields, should handle them properly
+        // so tempoarily return them as hex
+            DnsQuerySVCB, DnsQueryHTTPS: begin
+                 SetLength(Temp, RRRecord.RDLength);
+                 Move(RDataPtr^ , Temp[1], RRRecord.RDLength);
+                 RRRecord.RDData := AnsiString(IcsBufferToHex(Temp, RRRecord.RDLength));
             end
+
             else begin   // assume all other records are textual, TXT, etc, without compression
             //    ExtractName(RespBuffer, RDataPtr, RRRecord.RDData);  failed if multiple TXT responses
                  SetLength(Temp, RRRecord.RDLength - 1);   { V8.64 }
@@ -2242,8 +2278,8 @@ begin
         Exit;
     Phe := WSocket_gethostbyaddr(PAnsiChar(@lAddr), 4, AF_NETBIOS);
     if Phe <> nil then begin
-        SetLength(AStr, StrLen(Phe^.h_name));
-        StrCopy(@AStr[1], Phe^.h_name);
+        SetLength(AStr, IcsStrLen(Phe^.h_name));       { V9.5 avoid warning with ICS version }
+        IcsStrCopy(@AStr[1], Phe^.h_name);             { V9.5 }
         Result := String(AStr);
         if Phe^.h_aliases <> Nil then begin
          //
@@ -2432,8 +2468,8 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsDomainNameCache.LogEvent(const Info: String);
 begin
-    if Assigned(FDNLogEvent) then begin
-        FDNLogEvent(Self, Info);
+    if Assigned(FOnAppLogEvent) then begin         { V9.5 }
+        FOnAppLogEvent(Self, Info);
     end;
 end;
 
@@ -2471,6 +2507,8 @@ var
     MySocket: TWSocket ;
     SocNr, ItemNr, I, TotResp: Integer;
     IP: String;
+    MyFamily: TSocketFamily;   { V9.5 }
+    GeoFlag: Boolean;          { V9.5 }
 begin
     if (FTotDNItems = 0) or (FDNIndex.Count = 0) then
         Exit;
@@ -2487,31 +2525,51 @@ begin
                 LogEvent('WSock-' + IntToStr(SocNr) + ' Look-up failed for ' +  FDNItems[ItemNr].Request);
             end
             else begin
-                FDNItems[ItemNr].DNState := StateOK;
-                TotResp := MySocket.DnsResultList.Count;
+                with FDNItems[ItemNr] do begin
+                    DNState := StateOK;
+                    TotResp := MySocket.DnsResultList.Count;
 
-            // keep IPv4 and IPv6 addresses separately, easier for applications
-                FDNItems[ItemNr].TotResp4 := 0;
-                FDNItems[ItemNr].TotResp6 := 0;
-                SetLength(FDNItems[ItemNr].Responses4, TotResp);
-                SetLength(FDNItems[ItemNr].Responses6, TotResp);
-                if TotResp > 0 then begin
-                    for I := 0 to TotResp - 1 do begin
-                        IP := MySocket.DnsResultList[I];
-                        if WSocketIsIPv4(IP) then begin
-                            FDNItems[ItemNr].Responses4[FDNItems[ItemNr].TotResp4] := IP;
-                            FDNItems[ItemNr].TotResp4 := FDNItems[ItemNr].TotResp4 + 1;
-                        end
-                        else begin
-                            FDNItems[ItemNr].Responses6[FDNItems[ItemNr].TotResp6] := IP;
-                            FDNItems[ItemNr].TotResp6 := FDNItems[ItemNr].TotResp6 + 1;
+                // keep IPv4 and IPv6 addresses separately, easier for applications
+                    TotResp4 := 0;
+                    TotResp6 := 0;
+                    SetLength(Responses4, TotResp);
+                    SetLength(Responses6, TotResp);
+                    GeoFlag := False;  { V9.5 are we doing forward GEO lookups  }
+                    if (Length(RespGeo6) > 0) and (RespGeo6[0] = '@') then begin
+                        GeoFlag := True;
+                        SetLength(RespGeo4, TotResp);
+                        SetLength(RespGeo6, TotResp);
+                        RespGeo6[0] := '';
+                    end;
+                    if TotResp > 0 then begin
+                        for I := 0 to TotResp - 1 do begin
+                            IP := MySocket.DnsResultList[I];  // might be reverse DNS host name, stored as IPv6
+                            WSocketIsIP(IP, MyFamily);
+                            if (DNReqType = ReqTypeDnsForw) and (MyFamily = sfIPv4) then begin  { V9.5 }
+                                Responses4[TotResp4] := IP;
+                                if GeoFlag and Assigned(FOnGeoEvent) then begin
+                                    FOnGeoEvent(Self, IP, RespGeo4[TotResp4]);
+                                end;
+                                TotResp4 := TotResp4 + 1;
+                            end
+                            else begin
+                                Responses6[TotResp6] := IP;
+                                if (MyFamily = sfIPv6) and GeoFlag and Assigned(FOnGeoEvent) then begin
+                                    FOnGeoEvent(Self, IP, RespGeo6[TotResp6]);
+                                end;
+                                TotResp6 := TotResp6 + 1;
+                            end;
+                        end;
+                        SetLength(Responses4, TotResp4);
+                        SetLength(Responses6, TotResp6);
+                        if GeoFlag then begin
+                            SetLength(RespGeo4, TotResp4);
+                            SetLength(RespGeo6, TotResp6);
                         end;
                     end;
-                    SetLength(FDNItems[ItemNr].Responses4, FDNItems[ItemNr].TotResp4);
-                    SetLength(FDNItems[ItemNr].Responses6, FDNItems[ItemNr].TotResp6);
                 end;
                 FDNItems[ItemNr].TTL := FDefTTL; // don't have real TTL
-                LogEvent('WSock-' + IntToStr(SocNr) + ' Look-up OK - ' + MySocket.DnsResultList.CommaText + ' for ' +  FDNItems[ItemNr].Request);
+                LogEvent('WSock-' + IntToStr(SocNr) + ' Look-up OK - ' + BuildRespList(ItemNr) + ' for ' +  FDNItems[ItemNr].Request);
             end;
             TriggerUpdate(ItemNr);  // tell application we're done
         end;
@@ -2680,7 +2738,8 @@ procedure TIcsDomainNameCache.DnsQueryRequestDone(Sender: TObject; Error: Word);
 var
     MyDnsQuery: TDnsQuery;
     SocNr, ItemNr, I, TotResp: Integer;
-    Reply, Replies: String;
+    Reply: String;
+    GeoFlag: Boolean;
 begin
     if (FTotDNItems = 0) or (FDNIndex.Count = 0) then
         Exit;
@@ -2697,44 +2756,56 @@ begin
                 LogEvent('DnsQuery-' + IntToStr(SocNr) + ' Look-up failed for ' +  FDNItems[ItemNr].Request);
             end
             else begin
-                FDNItems[ItemNr].DNState := StateOK;
-                Replies := '';
+                with FDNItems[ItemNr] do begin
+                    DNState := StateOK;
+                    GeoFlag := False;  { V9.5 are we doing forward GEO lookups  }
+                    if (Length(RespGeo6) > 0) and (RespGeo6[0] = '@') then begin
+                        GeoFlag := True;
+                        SetLength(RespGeo4, MyDnsQuery.ARecordCount);
+                        SetLength(RespGeo6, MyDnsQuery.AAAARecordCount + 1);  // might be zero
+                        RespGeo6[0] := '';
+                    end;
 
-            // keep IPv4 and IPv6 addresses separately, easier for applications
-                if FDNItems[ItemNr].DNReqType = ReqTypeDnsForw then begin
-                    TotResp := MyDnsQuery.ARecordCount;
-                    if (TotResp > 0) then begin
-                        FDNItems[ItemNr].TotResp4 := 0;
-                        SetLength(FDNItems[ItemNr].Responses4, TotResp);
-                        for I := 0 to TotResp - 1 do begin
-                            Reply := WSocketIPv4ToStr(Integer(MyDnsQuery.Address[I]));
-                            FDNItems[ItemNr].Responses4[FDNItems[ItemNr].TotResp4] := Reply;
-                            FDNItems[ItemNr].TotResp4 := FDNItems[ItemNr].TotResp4 + 1;
-                            Replies := Replies + Reply + ', ';
+                // keep IPv4 and IPv6 addresses separately, easier for applications
+                    if DNReqType = ReqTypeDnsForw then begin
+                        TotResp := MyDnsQuery.ARecordCount;
+                        if (TotResp > 0) then begin
+                            TotResp4 := 0;
+                            SetLength(Responses4, TotResp);
+                            for I := 0 to TotResp - 1 do begin
+                                Reply := WSocketIPv4ToStr(Integer(MyDnsQuery.Address[I]));
+                                Responses4[TotResp4] := Reply;
+                                if GeoFlag and Assigned(FOnGeoEvent) then begin
+                                    FOnGeoEvent(Self, Reply, RespGeo4[TotResp4]);
+                                end;
+                                TotResp4 := TotResp4 + 1;
+                            end;
+                            SetLength(Responses4, TotResp4);
                         end;
-                        SetLength(FDNItems[ItemNr].Responses4, FDNItems[ItemNr].TotResp4);
                     end;
-                end;
-                if (FDNItems[ItemNr].DNReqType = ReqTypeDnsForw) then
-                    TotResp := MyDnsQuery.AAAARecordCount
-                else
-                    TotResp := MyDnsQuery.PTRRecordCount;
-                if (TotResp > 0) then begin
-                    FDNItems[ItemNr].TotResp6 := 0;
-                    SetLength(FDNItems[ItemNr].Responses6, TotResp);
-                    for I := 0 to TotResp - 1 do begin
-                        if (FDNItems[ItemNr].DNReqType = ReqTypeDnsForw) then
-                            Reply := WSocketIPv6ToStr(MyDnsQuery.Address6[I])
-                        else
-                            Reply := MyDnsQuery.Hostname[I];
-                        FDNItems[ItemNr].Responses6[FDNItems[ItemNr].TotResp6] := Reply;
-                        Replies := Replies + Reply + ', ';
-                        FDNItems[ItemNr].TotResp6 := FDNItems[ItemNr].TotResp6 + 1;
+                    if (DNReqType = ReqTypeDnsForw) then
+                        TotResp := MyDnsQuery.AAAARecordCount
+                    else
+                        TotResp := MyDnsQuery.PTRRecordCount;   // reverse DNS kept in Responses6
+                    if (TotResp > 0) then begin
+                        TotResp6 := 0;
+                        SetLength(Responses6, TotResp);
+                        for I := 0 to TotResp - 1 do begin
+                            if (DNReqType = ReqTypeDnsForw) then
+                                Reply := WSocketIPv6ToStr(MyDnsQuery.Address6[I])
+                            else
+                                Reply := MyDnsQuery.Hostname[I];
+                            Responses6[TotResp6] := Reply;
+                            if (DNReqType = ReqTypeDnsForw) and GeoFlag and Assigned(FOnGeoEvent) then begin
+                                FOnGeoEvent(Self, Reply, RespGeo6[TotResp6]);
+                            end;
+                            TotResp6 := TotResp6 + 1;
+                        end;
+                        SetLength(Responses6, TotResp6);
                     end;
-                    SetLength(FDNItems[ItemNr].Responses6, FDNItems[ItemNr].TotResp6);
                 end;
                 FDNItems[ItemNr].TTL := MyDnsQuery.AnswerTTL[0];
-                LogEvent('DnsQuery-' + IntToStr(SocNr) + ' Look-up OK - ' + Replies + ' for ' +  FDNItems[ItemNr].Request);
+                LogEvent('DnsQuery-' + IntToStr(SocNr) + ' Look-up OK - ' + BuildRespList(ItemNr) + ' for ' +  FDNItems[ItemNr].Request);
             end;
             TriggerUpdate(ItemNr);  // tell application we're done
         end;
@@ -2999,8 +3070,9 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupRequest(const Req: String; Tag: Integer; Sync: Boolean; ReqType: TDNReqType;
-                         DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil; SkipEvent: Boolean = False): Integer;
+// forward or reverse DNS lookup, returns -1 for error, or ItmNr in DNItems array
+function TIcsDomainNameCache.LookupRequest(const Req: String; Tag: Integer; Sync: Boolean; ReqType: TDNReqType; DNFamily:
+            TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil; SkipEvent: Boolean = False; const Geo: String = ''): Integer;
 var
     NewDNItem: TDNItem;
     Flag: Boolean;
@@ -3008,6 +3080,7 @@ var
     EndTimer: Int64;
     MyFamily: TSocketFamily;
     IPv4: TIcsIPv4Address;
+    S: String;
 begin
     Result := -1;
 
@@ -3057,6 +3130,19 @@ begin
         NewDNItem.ReqUpdEvent := UpdEvent;
         NewDNItem.TotResp4 := 0;
         NewDNItem.TotResp6 := 0;
+        S := Geo;
+        if S = '0' then
+            S := ''
+        else if S = '1' then begin
+            if Assigned(FOnGeoEvent) then
+                S := '@'
+            else
+                S := ''
+        end;
+        if S <> '' then begin   { V9.5 keep reverse lookup Geo country and/or ASN or @ for forward lookup }
+            SetLength(NewDNItem.RespGeo6, 1);
+            NewDNItem.RespGeo6[0] := S;
+        end;
         Result := AddNewRec(NewDNItem);
     end;
 
@@ -3092,46 +3178,57 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupHostSync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
+function TIcsDomainNameCache.LookupHostSync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): Integer;  { V9.5 }
 begin
-    Result := LookupRequest(Host, Tag, True, ReqTypeDnsForw, DNFamily, UpdEvent, False);
+    Result := LookupRequest(Host, Tag, True, ReqTypeDnsForw, DNFamily, UpdEvent, False, IntToStr(Ord(Geo)));
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupIPSync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
+function TIcsDomainNameCache.LookupIPSync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                            UpdEvent: TDNUpdateEvent = Nil; const Geo: String = ''): Integer; { V9.5 }
 begin
-    Result := LookupRequest(IP, Tag, True, ReqTypeDnsBack, DNFamily, UpdEvent, False);
+    Result := LookupRequest(IP, Tag, True, ReqTypeDnsBack, DNFamily, UpdEvent, False, Geo);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupHostAsync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
+function TIcsDomainNameCache.LookupHostAsync(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                    UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): Integer;   { V9.5 }
 begin
-    Result := LookupRequest(Host, Tag, False, ReqTypeDnsForw, DNFamily, UpdEvent, False);
+    Result := LookupRequest(Host, Tag, False, ReqTypeDnsForw, DNFamily, UpdEvent, False, IntToStr(Ord(Geo)));
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupIPAsync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): Integer;
+function TIcsDomainNameCache.LookupIPAsync(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                            UpdEvent: TDNUpdateEvent = Nil; const Geo: String = ''): Integer; { V9.5 }
 begin
-    Result := LookupRequest(IP, Tag, False, ReqTypeDnsBack, DNFamily, UpdEvent, False);
+    Result := LookupRequest(IP, Tag, False, ReqTypeDnsBack, DNFamily, UpdEvent, False, Geo);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupHostOne(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): String;
+function TIcsDomainNameCache.LookupHostOne(const Host: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                                     UpdEvent: TDNUpdateEvent = Nil; Geo: Boolean = False): String;  { V9.5 }
 var
     ItemNr: Integer;
 begin
-    ItemNr := LookupRequest(Host, Tag, False, ReqTypeDnsForw, DNFamily, UpdEvent, True);
+    ItemNr := LookupRequest(Host, Tag, False, ReqTypeDnsForw, DNFamily, UpdEvent, True, IntToStr(Ord(Geo)));
     if ItemNr >= 0 then begin
         with FDNItems[ItemNr] do begin
             if DNState = StateOK then begin
-                if ((TotResp4 > 0) and (DNFamily in [sfAny, sfIPv4])) then
-                    Result := Responses4[0]
-                else if ((TotResp6 > 0) and (DNFamily in [sfAny, sfIPv6])) then
+                if ((TotResp4 > 0) and (DNFamily in [sfAny, sfIPv4])) then begin
+                    Result := Responses4[0];
+                    if (Length(RespGeo4) > 0) then
+                        Result := Result + IcsSpace + RespGeo4[0];  { V9.5 add geo country and/or ASN }
+                end
+                else if ((TotResp6 > 0) and (DNFamily in [sfAny, sfIPv6])) then begin
                     Result := Responses6[0];
+                    if (Length(RespGeo6) > 0) and (RespGeo6[0] <> '@') then
+                        Result := Result + IcsSpace + RespGeo6[0];  { V9.5 add geo country and/or ASN }
+                end;
             end;
         end;
     end;
@@ -3139,15 +3236,21 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomainNameCache.LookupIPOne(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny; UpdEvent: TDNUpdateEvent = Nil): String;
+function TIcsDomainNameCache.LookupIPOne(const IP: String; Tag: Integer = 0; DNFamily: TSocketFamily = sfAny;
+                                                             UpdEvent: TDNUpdateEvent = Nil; const Geo: String = ''): String;
 var
     ItemNr: Integer;
 begin
     Result := IP;
-    ItemNr := LookupRequest(IP, Tag, False, ReqTypeDnsBack, DNFamily, UpdEvent, True);
+    ItemNr := LookupRequest(IP, Tag, False, ReqTypeDnsBack, DNFamily, UpdEvent, True, Geo); { V9.5 }
     if ItemNr >= 0 then begin
-        if (FDNItems[ItemNr].DNState = StateOK) and (FDNItems[ItemNr].TotResp6 > 0) then
-            Result := FDNItems[ItemNr].Responses6[0];
+        with FDNItems[ItemNr] do begin
+            if (DNState = StateOK) and (TotResp6 > 0) then begin
+                Result := Responses6[0];
+                if (Length(RespGeo6) > 0) then
+                   Result := Result + IcsSpace + RespGeo6[0];  { V9.5 add geo country and/or ASN }
+            end;
+        end;
     end;
 end;
 
@@ -3180,6 +3283,8 @@ begin
                     if J > 0 then
                         Result := Result + ' | ';
                     Result := Result + Responses4[J];
+                    if (Length(RespGeo4) > J) then
+                        Result := Result + IcsSpace + RespGeo4[J];  { V9.5 add geo country and/or ASN }
                 end;
             end;
             if TotResp6 > 0 then begin
@@ -3187,12 +3292,17 @@ begin
                     if Result <> '' then
                         Result := Result + ' | ';
                     Result := Result + Responses6[J];
+                    if (Length(RespGeo6) > J) then
+                        Result := Result + IcsSpace + RespGeo6[J];   { V9.5 add geo country and/or ASN }
                 end;
             end;
         end
-        else
+        else begin  { failed may still have geo information for reverse lookup }
             Result := 'No Response';
-    end;
+            if (Length(RespGeo6) > 0) and (RespGeo6[0] <> '@') then
+                 Result := Result + IcsSpace + RespGeo6[0];
+        end;
+   end;
 end;
 
 
@@ -3236,25 +3346,30 @@ end;
 function TIcsDomainNameCache.ListCache: String;
 var
     I: Integer;
-    S: String;
+    SB: TIcsStringBuild;   { V9.5 use StringBuild for massive cache sizes }
 begin
-    if FDNIndex.Count = 0 then begin
+    if FTotDNItems = 0 then begin
         Result := 'Name Server Cache is Empty' + IcsCRLF;
         Exit;
     end;
-    Result := 'Name Server Cache, Total Items: ' + IntToStr(FDNIndex.Count) + IcsCRLF;
-    for I := 0 to FDNIndex.Count - 1 do begin
-        with PDNItem(FDNIndex[I])^ do begin
-            S := Request + ' > ' + BuildRespList(Index) + ' ' + GetEnumName(TypeInfo(TDNState), Ord(DNState)) +
-                                ' Stamp=' + TimeToStr(TimeStamp) + ' TTL=' + IntToStr(TTL) + ' Index=' + IntToStr(Index);
-            Result := Result + S + IcsCRLF;
+    SB := TIcsStringBuild.Create(FTotDNItems * 20, True);   // V9.5 use String Builder
+    try
+        SB.AppendBuf('Name Server Cache, Total Items: ' + IntToStr(FTotDNItems) + IcsCRLF);
+        for I := 0 to FTotDNItems - 1 do begin
+              with PDNItem(FDNIndex[I])^ do begin
+                SB.AppendBuf(Request + ' > ' + BuildRespList(Index) + ' ' + GetEnumName(TypeInfo(TDNState), Ord(DNState)) +
+                              ' Stamp=' + TimeToStr(TimeStamp) + ' TTL=' + IntToStr(TTL) + ' Index=' + IntToStr(Index) + IcsCRLF);
+            end;
         end;
+        I := PendingLookups;
+        if I = 0 then
+            SB.AppendBuf('No Pending Lookups' + IcsCRLF)
+        else
+           SB.AppendBuf('Number of Pending Lookups: ' + IntToStr(I) + IcsCRLF);
+        Result := SB.GetWString;
+    finally
+        SB.Free;
     end;
-    I := PendingLookups;
-    if I = 0 then
-        Result := Result + 'No Pending Lookups'
-    else
-       Result := Result + 'Number of Pending Lookups: ' + IntToStr(I);
 end;
 
 

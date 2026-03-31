@@ -5,11 +5,11 @@ Description:  TIcsHttpMulti is a high level HTTP Delphi component that allows
               or listed by parsing links from a web page, using a single
               function call.
 Creation:     May 2001
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Feb 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -46,6 +46,8 @@ transfers, selection using a file mask, unzipping of downloaded files.
 A progress event provides various levels of information for logging or
 display, depending upon application requirements, and allows downloads
 to be cancelled.
+
+Syntax of an URL: protocol://[user[:password]@]server[:port]/path
 
 TIcsHttpMulti descends from ICS THttpCli, and publishes all it's properties and events.
 The component is undocumented, except for source code comments, but end user help is
@@ -173,7 +175,24 @@ Oct 20, 2022 - V8.70 - Removed VclZip support, replaced by TZipFile from System.
 Mar 27, 2023 - V8.71 - Ensure inherited destroy called.
                Using Int64 ticks.
                Handle exception parsing strange web pages.
-Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 08, 2023  V9.0  Updated version to major release 9.
+Dec 12, 2023  V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+              Added new property NoSSL to TIcsHttpMulti that prevents use of HTTPS,
+                     must be set before any requests. HTTP redirected to HTTPS will fail.
+              TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+              SslContext now uses public IcsSslRootCAStore and ignores root bundle.
+Apr 25, 2024  V9.2 Fixed a bug introduced in V8.66 that stopped the application setting
+                authentication, rather than adding it to the URL.
+              Fixed a bug that appeared only for Win64 using Free on a stream that was
+                already closed, instead of NilAndFree which checks first.
+Aug 7, 2024  V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
+                   Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                     the Windows Store can be used for SSL certificate verification.
+Oct 17, 2024 V9.4  Fixed a warning.
+Feb 26, 2025 V9.5  Moved URL processing functions to OverbyteIcsUrl.pas.
+
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -209,7 +228,6 @@ uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Messages{$ELSE}Messages{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
-    Z.ICS9.OverbyteIcsWinCrypt,
 {$ENDIF}
 {$IFDEF POSIX}
     Posix.Time,
@@ -224,34 +242,33 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpProt,
-    Z.ICS9.Ics.Fmx.OverbyteIcsBlacklist,
     Z.ICS9.Ics.Fmx.OverbyteIcsFileCopy,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslSessionCache,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,  { V8.69 }
+{$ENDIF MSCRYPT_Clients}
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsHttpProt,
-    Z.ICS9.OverbyteIcsBlacklist,
     Z.ICS9.OverbyteIcsFileCopy,
     Z.ICS9.OverbyteIcsSslSessionCache,
-    Z.ICS9.OverbyteIcsSslX509Utils,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsMsSslUtils,
-    Z.ICS9.OverbyteIcsSslHttpRest,  { V8.69 }
+{$ENDIF MSCRYPT_Clients}
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
   Z.ICS9.OverByteIcsFtpSrvT,
   Z.ICS9.OverbyteIcsHtmlPars,
   Z.ICS9.OverbyteIcsUrl,
   Z.ICS9.OverbyteIcsTypes,
   Z.ICS9.OverbyteIcsUtils,
-  Z.ICS9.OverbyteIcsLogger
   {$IFDEF Zipping}
-    ,System.Zip            { V8.70 VclZip gone }
+    System.Zip,            { V8.70 VclZip gone }
   {$ENDIF}
-  , Z.ICS9.OverbyteIcsSSLEAY,
-  Z.ICS9.OverbyteIcsLIBEAY,
   Z.ICS9.OverbyteIcsStreams,    { V8.68 }
   Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
@@ -260,7 +277,7 @@ uses
 
 
 const
-    HttpMultiCopyRight : String = ' TIcsHttpMulti (c) 2023 V9.0 ';
+    HttpMultiCopyRight : String = ' TIcsHttpMulti (c) 2025 V9.5 ';
 
 type
     THttpSslVerifyMethod = (httpSslVerNone, httpSslVerBundle, httpSslVerWinStore) ;   // 20 Apr 2015
@@ -280,13 +297,16 @@ type
         fSslRootFile: string ;  // 20 Apr 2015
         fSslRevocation: boolean;   // 20 Apr 2015
         fSslReportChain: boolean ;  // 20 Apr 2015
+{$IFDEF MSCRYPT_Clients}
         fMsCertChainEngine: TMsCertChainEngine;   // 20 Apr 2015
+{$ENDIF MSCRYPT_Clients}
         FSslCliSecurity: TSslCliSecurity;   // June 2018
         fMaxAttempts: integer ;    { V8.60  }
         fAttemptDelay: integer ;   { V8.60  }
         fParseLevels: Integer;     { V8.66 }
         fKeepPartDown: Boolean;    { V8.68 }
         FOcspHttp: TOcspHttp;                 { V8.69 }
+        FNoSSL: Boolean;                      { V9.1 }
   protected
     { Protected declarations }
         fUrlList: String ;
@@ -383,7 +403,8 @@ type
     property AttemptDelay: integer      read fAttemptDelay   write fAttemptDelay ;  { V8.60  }
     property ParseLevels: integer       read fParseLevels    write fParseLevels ;   { V8.66  }
     property KeepPartDown: Boolean      read fKeepPartDown   write fKeepPartDown ;  { V8.68 }
-    property OcspHttp: TOcspHttp        read FOcspHttp       write FOcspHttp;               { V8.69 }
+    property OcspHttp: TOcspHttp        read FOcspHttp       write FOcspHttp;       { V8.69 }
+    property NoSSL: Boolean             read  FNoSSL         write FNoSSL;          { V9.1 }
     property TotProcFiles: integer      read fTotProcFiles ;
     property ProcOKFiles: integer       read fProcOKFiles ;
     property ProcFailFiles: integer     read fProcFailFiles ;
@@ -397,11 +418,13 @@ type
   {$ENDIF}
   end;
 
+(* V9.5 moved to OverbyteIcsUrl.pas
     procedure ParseExURL (const url: string; var Proto, User, Pass,
                             Host, Port, Dirs, Fname, Section, Query: string) ;
     function BuildExURL (const Proto, User, Pass, Host, Port,
                                 Dirs, Fname, Section, Query: string): string ;
     function RelativeName (Dirs, Rname: string): string ;
+*)
 
 {$ENDIF USE_SSL}
 {$ENDIF MSWINDOWS}
@@ -476,7 +499,9 @@ begin
         FreeAndNil (fIcsFileCopy) ;
         FreeAndNil (SrcFileList) ;
         FreeAndNil (TarFileList) ;
+{$IFDEF MSCRYPT_Clients}
         FreeAndNil (FMsCertChainEngine) ;
+{$ENDIF MSCRYPT_Clients}
         FreeAndNil (fExternalSslSessionCache) ;
         FreeAndNil (fSslContext) ;
     finally
@@ -548,6 +573,7 @@ begin
     end
 end;
 
+(* V9.5 moved to OverbyteIcsUrl.pas
 { Syntax of an URL: protocol://[user[:password]@]server[:port]/path[?query]         }
 
 // break down URL into its constituents
@@ -558,7 +584,7 @@ var
     path: string ;
     nsep1, nsep2: integer ;
 begin
-    Z.ICS9.OverbyteIcsUrl.ParseURL (url, Proto, User, Pass, Host, Port, path) ;
+    OverbyteIcsURL.ParseURL (url, Proto, User, Pass, Host, Port, path) ;
     Dirs := '' ;
     Fname := '' ;
     Section := '' ;
@@ -656,7 +682,7 @@ begin
         Result := Dirs + '/' + Rname
     else
         Result := Rname ;
-end ;
+end ;     *)
 
 procedure TIcsHttpMulti.onMagCopyEvent (LogLevel: TIcsCopyLogLevel ; Info: string ;
                                                   var Cancel: boolean) ;
@@ -699,6 +725,15 @@ end ;
 
 procedure TIcsHttpMulti.onHttpLocationChange(Sender : TObject);
 begin
+{ V9.1 can not redirect to HTTPS if SSL disabled }
+    if FNoSSL then begin
+        if IsSSLProtocol(Copy(FLocation, 1, 5)) then begin
+            doCopyEvent (LogLevelDiag, '= ' + FURL + ' Redirected to: ' + FLocation + ', Aborted');
+            FLocation := '';   { stops relocation }
+            FReasonPhrase := 'HTTPS currently disabled';
+            Exit;
+        end;
+    end;
     doCopyEvent (LogLevelDiag, '= ' + FURL + ' Redirected to: ' + FLocation) ;
 end ;
 
@@ -809,7 +844,9 @@ procedure TIcsHttpMulti.OnHttpSslHandshakeDone(Sender: TObject; ErrCode: Word;
                                     PeerCert: TX509Base; var Disconnect: Boolean);
 var
     CertChain: TX509List;
+{$IFDEF MSCRYPT_Clients}              { V9.4 stop a wearing }
     ChainVerifyResult: LongWord;
+{$ENDIF MSCRYPT}
     info, VerifyInfo: String;
     Safe: Boolean;
     HttpCtl: TWSocket ;      // Dec 2016
@@ -838,6 +875,7 @@ begin
     if fHttpSslVerMethod = HttpSslVerWinStore then
     begin
         // start engine
+{$IFDEF MSCRYPT_Clients}
         if not Assigned (FMsCertChainEngine) then
             FMsCertChainEngine := TMsCertChainEngine.Create;
 
@@ -853,12 +891,11 @@ begin
         { Pass the certificate and the chain certificates to the engine      }
         FMsCertChainEngine.VerifyCert (PeerCert, CertChain, ChainVerifyResult, True);
 
-        Safe := (ChainVerifyResult = 0) or
-                { We ignore the case if a revocation status is unknown.      }
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                     CERT_TRUST_IS_OFFLINE_REVOCATION);
+             Safe := (ChainVerifyResult = 0) or
+                     { We ignore the case if a revocation status is unknown.      }
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                     (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
        { The MsChainVerifyErrorToStr function works on chain error codes     }
         VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult); // Nov 2016
@@ -868,6 +905,11 @@ begin
             Safe := False;
             VerifyInfo := PeerCert.FirstVerifyErrMsg;
         end;
+{$ELSE}
+       Safe := False;
+        VerifyInfo := 'Windows certificate store not available';  { V9.3 }
+{$ENDIF MSCRYPT_Any}
+
     end
     else if fHttpSslVerMethod = HttpSslVerBundle then
     begin
@@ -962,7 +1004,7 @@ function TIcsHttpMulti.Download (CheckFiles: boolean): TIcsTaskResult ;
 var
     fnametar, newtardir, dochref, myerror: string ;
     info, curURL, fnametemp: string ;
-    hostname, rootfname: string ;
+    hostname: string ;
     I, J, K, L, donenr, statcode, attemptnr: integer ;
     newsize, totsize: int64 ;    // 10 Oct 2011
     initURLs, {attrs,} curLevel: integer ;
@@ -1005,6 +1047,7 @@ begin
     fProcFailFiles := 0 ;
     fSkippedFiles := 0 ;
     fCancelFlag := false ;
+    DownloadStream := Nil;  { V9.2 }
     NewList := TStringList.Create ;
     Timeout := 300;  { V8.68 sync request timeout }
     ResponseNoException := True;  // June 2018
@@ -1034,45 +1077,50 @@ begin
             exit ;
         end ;
 
-       // June 2018 do SslContext once, may be SSL relocate
-        if not Assigned (fExternalSslSessionCache) then
+    // V9.1 intialise SSL, if allowed
+        if NOT FNoSSL then
         begin
-            fExternalSslSessionCache := TSslAvlSessionCache.Create (self) ;
-        end;
-        FSslContext.SslOptions2 := FSslContext.SslOptions2 +
-           [sslOpt2_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, sslOpt2_NO_RENEGOTIATION]; // March 2018
-        FSslContext.SslCliSecurity := fSslCliSecurity;  // June 2018
-        if fSslSessCache then   // Dec 2016
-        begin
-            FSslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT,
-                sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
-        end;
-        FSslContext.SslECDHMethod := sslECDHAuto ;  // 11 May 2015
-        FSslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT] ;  // Dec 2016
-
-      // 20 Apr 2015 see if verifying server SSL certificate
-        if (FHttpSslVerMethod > HttpSslVerNone) then
-        begin
-            FSslContext.SslVerifyPeer := true ;
-            FSslContext.SslVerifyPeerModes := [SslVerifyMode_PEER] ;
-            FSslContext.SslOcspStatus := true;     { V8.69 use OCSP stapling to get revoked status }
-            rootfname := fSslRootFile ;    // Oct 2015, was fname and corrupted downloads
-            if (Pos (':', rootfname) = 0) then rootfname := ExtractFileDir (ParamStr (0)) + '\' + rootfname ;
-            if NOT FileExists (rootfname) then
+           // June 2018 do SslContext once, may be SSL relocate
+            if not Assigned (fExternalSslSessionCache) then
             begin
-                fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
-            end
-            else
-                fSslContext.SslCAFile := rootfname ;
-        end ;
-        try
-            fSslContext.InitContext;
-        except
-            fReqResponse := 'Error Starting SSL - ' + IcsGetExceptMess (ExceptObject) ;
-            doCopyEvent (LogLevelInfo, fReqResponse) ;
-            result := TaskResFail ;
-            exit ;
-        end;
+                fExternalSslSessionCache := TSslAvlSessionCache.Create (self) ;
+            end;
+            FSslContext.SslOptions2 := FSslContext.SslOptions2 +
+               [sslOpt2_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, sslOpt2_NO_RENEGOTIATION]; // March 2018
+            FSslContext.SslCliSecurity := fSslCliSecurity;  // June 2018
+            if fSslSessCache then   // Dec 2016
+            begin
+                FSslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT,
+                    sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
+            end;
+            FSslContext.SslECDHMethod := sslECDHAuto ;  // 11 May 2015
+            FSslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT] ;  // Dec 2016
+
+          // 20 Apr 2015 see if verifying server SSL certificate
+            if (FHttpSslVerMethod > HttpSslVerNone) then
+            begin
+                FSslContext.SslVerifyPeer := true ;
+                FSslContext.SslVerifyPeerModes := [SslVerifyMode_PEER] ;
+                FSslContext.SslOcspStatus := true;     { V8.69 use OCSP stapling to get revoked status }
+                FSslContext.UseSharedCAStore := True;           { V9.1 ignore fSslRootFile for now  }
+            (*    rootfname := fSslRootFile ;    // Oct 2015, was fname and corrupted downloads
+                if (Pos (':', rootfname) = 0) then rootfname := ExtractFileDir (ParamStr (0)) + '\' + rootfname ;
+                if NOT FileExists (rootfname) then
+                begin
+                    fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
+                end
+                else
+                    fSslContext.SslCAFile := rootfname ;   *)
+            end ;
+            try
+                fSslContext.InitContext;
+            except
+                fReqResponse := 'Error Starting SSL - ' + IcsGetExceptMess (ExceptObject) ;
+                doCopyEvent (LogLevelInfo, fReqResponse) ;
+                result := TaskResFail ;
+                exit ;
+            end;
+       end;
 
     // main loop parsing web pages and building list of files to download
         SetLength (SrcFiles, 1000) ;
@@ -1089,8 +1137,6 @@ begin
             if curURL = '' then continue ;
             if curURL [1] = '*' then continue ;
             if curURL [1] = '#' then continue ;  // 11 Oct 2011
-            UserName := '' ;
-            Password := '' ;
             curLevel := 0;
             J := Pos('|', curURL);  { V8.66 see if processing sub-top level pages }
             if (J > 0) then
@@ -1100,18 +1146,20 @@ begin
             end;
 
         // break down URL, see if rebuilding without logon
-            ParseExURL (curURL, Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query) ;
+            IcsParseExURL (curURL, Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query) ;
             if (Dirs = '') or (Section <> '') then
             begin
-                curURL := BuildExURL (Proto, User, Pass, Host, Port, Dirs, Fname, '', Query) ;
+                curURL := IcsBuildExURL (Proto, User, Pass, Host, Port, Dirs, Fname, '', Query) ;
             end ;
-            ServerAuth := httpAuthNone;   // V8.66
-            ParseExURL (curURL, Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query) ;
+       //     UserName := '' ;
+       //     Password := '' ;
+       //     ServerAuth := httpAuthNone;   // V8.66  V9.2 prevented application setting authentication
+            IcsParseExURL (curURL, Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query) ;
             if User <> '' then
             begin
                 UserName := User ;
                 Password := Pass ;
-                curURL := BuildExURL (Proto, '', '', Host, Port, Dirs, Fname, Section, Query) ;
+                curURL := IcsBuildExURL (Proto, '', '', Host, Port, Dirs, Fname, Section, Query) ;
                 ServerAuth := httpAuthBasic;   // V8.66 avoid initial 401 response
             end ;
             hostname := Host ;   // get host name only less www and .coxxx
@@ -1122,6 +1170,11 @@ begin
                 K := Pos ('.', hostname) ;
                 if ((Length (hostname) - K) <= 6) then hostname := Copy (hostname, 1, Pred (K)) ;
             end ;
+            if FNoSSL and (Proto = 'https') then      { V9.1 }
+            begin
+                doCopyEvent (LogLevelInfo, 'HTTPS not Supported: ' + curURL) ;
+                continue ;
+            end;
             if (Pos ('http', Proto) <> 1) then     // Sept 2001, allow blank files????
             begin
                 if Length (curURL) <> 0 then doCopyEvent (LogLevelInfo, 'Invalid URL: ' + curURL) ;
@@ -1275,6 +1328,7 @@ begin
                                 doCopyEvent (LogLevelDiag, 'Found Link: ' + dochref) ;
                                 if Pos ('ftp://', dochref) > 0 then continue ;
                                 if Pos ('mailto:', dochref) > 0 then continue ;
+                                if FNoSSL and (Pos ('https', dochref) = 1) then continue ;     { V9.1 }
 
                             // check if link is file we want to download or another page we want to search
                                 info := IcsLowerCase (ExtractUNIXName (dochref)) ;  // convert slashes to backslash
@@ -1305,8 +1359,8 @@ begin
                                     begin
                                         if (curLevel >= fParseLevels) then continue;  // skip if not processing next level
                                     end;
-                                    info := RelativeName (Dirs, HTMLParam.Value);
-                                    info := BuildExURL (Proto, User, Pass, Host, Port, '', info, '', '') ;
+                                    info := IcsRelativeName (Dirs, HTMLParam.Value);
+                                    info := IcsBuildExURL (Proto, User, Pass, Host, Port, '', info, '', '') ;
                                 end;
 
                            // save URL in list either to download or parse for more downloads
@@ -1673,7 +1727,7 @@ begin
         if Assigned (fExternalSslSessionCache) then fExternalSslSessionCache.Flush;
         CMask.Free ;
         NewList.Free ;
-        DownloadStream.Free ;
+        FreeAndNil(DownloadStream);   { V9.2 was free, exception for Win64 only }
         if fCancelFlag then
         begin
             result := TaskResAbort ;

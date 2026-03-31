@@ -3,11 +3,11 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  WMI compoments for IP address and DNS server updating.
 Creation:     Mar 2020
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Feb 2024
+Version:      V9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -51,6 +51,11 @@ Aug 20, 2020  - 8.65 - Added IcsWmiChkDnsRec.
                          adding new record.
                         Allowing simple zone names without .
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 07, 2024 V9.1  Puny function renamed.
+                   Added namespace to keep Win64 happy.
+
+
+
 }
 
 unit Z.ICS9.OverbyteIcsWmi;
@@ -201,7 +206,12 @@ type
 
 implementation
 
-uses ActiveX, ComObj, Variants;
+uses
+    {$IFDEF RTL_NAMESPACES}   { V9.1 keep Win64 happy }
+        System.Win.ComObj, Winapi.ActiveX, Variants;
+    {$ELSE}
+        ActiveX, ComObj, Variants;
+    {$ENDIF}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
@@ -1211,7 +1221,7 @@ begin
         Errinfo := 'Host Name Should Include Zone Domain Name - ' + WmiDnsRec.HostName ;
         Exit;
     end;
-    PunyZone := IcsToASCII(Trim(Zone));   { V8.65 }
+    PunyZone := IcsPunyToASCII(Trim(Zone));   { V8.65, V9.1 rename }
     WmiDnsRec.HostName := Trim(IcsLowerCase(WmiDnsRec.HostName));  { V8.65 }
   // don't check illegal characters _ at start of name, used for ACME DNS challenges
     CheckFlag := (Pos('_', WmiDnsRec.HostName) = 0);

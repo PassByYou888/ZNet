@@ -7,11 +7,11 @@ Description:  TIcsTimeServer and TIcsTimeClient, time server and client,
               Note current SNTP is RFC4330 but not looked at it.
               Note that full NTP is not supported.
 Creation:     Aug 2002
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2024
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2002-2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -69,7 +69,15 @@ but has been extensively improved with SNTP support added.
               Built in failure timeout for no response.
               If multiple DNS addresses for host, try alternates on failure.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 13, 2024 V9.1  Corrected NTP version sent to server, we have been sending
+                     v6 for 20 years, when v4 is the latest, which we now send.
+                   Added more NTP servers from cloud providers that are more likely
+                    to be running than private ntp.org servers.
+Jun 03, 2024 V9.2  Changes for Posix.
 
+
+
+Pending - don't seem to get responses from any IPv6 time servers....
 
 Pending - Roughtime a new secure time protocol designed by Google. also s
 upported by Cloudfare.
@@ -96,7 +104,12 @@ improved with SNTP support added.
                        start/stop together and give exception on failure to start.
 09 Dec 2020 - V8.65 - Changes for Posix support.
                       Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
-
+Feb 13, 2024 V9.1  Fixed IcsGetUTCNtpTime always returning midnight due to
+                     strange rounding in newer Delphi versions, meant time
+                     server sent wrong time.
+                   Enable WSocket more friendly exceptions.
+Jun 03, 2024 V9.2  Changes for Posix.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
 Windows mostly used the W32Time service to keep the PC clock up to date, it
@@ -107,12 +120,24 @@ alternate NTP time servers.
 
 There is a test application OverbyteIcsTimeTst.dpr.
 
-NTP time servers, most return four alternate IP addresses.
+ntp.org pool time servers, most return four alternate IP addresses.
 The pool servers change their IP addresses at least hourly, selected from a
 pool of amoslty a few hundred time servers.  Google offers IPV6 addresses,
 ntp.org only IPv4.
 
+ V9.1 added more Google, Cloudfare, Facebook and Apple NTP servers, generally
+  preferred to ntp.org since they have multiple IP addresses widely dispersed
+  around the world
+
 time.google.com
+time1.google.com
+time2.google.com
+time.cloudflare.com
+time.facebook.com
+time1.facebook.com
+time2.facebook.com
+time.apple.com
+time.euro.apple.com
 pool.ntp.org
 0.pool.ntp.org
 1.pool.ntp.org
@@ -160,7 +185,8 @@ uses
     Posix.SysTime,
     Z.ICS9.Ics.Posix.WinTypes,
     Z.ICS9.Ics.Posix.PXMessages,
-{$ENDIF}
+    Posix.SysSocket,               { V9.2 }
+    {$ENDIF}
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     {$IFDEF Rtl_Namespaces}System.DateUtils{$ELSE}DateUtils{$ENDIF},
@@ -171,11 +197,11 @@ uses
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
 {$ENDIF FMX}
-    Z.ICS9.OverbyteIcsUtils;
-
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    CopyRight    : String     = ' OverbyteIcsSntp (c) 2023 V9.0 ';
+    CopyRight    : String     = ' O4erbyteIcsSntp (c) 2024 V9.3 ';
 
 type
     TTimeProtocol = (tpSNTP, tpTCP, tpUDP, tpRoughTime);
@@ -254,7 +280,7 @@ type
   end;
 
   SNTPheader = packed record
-    LIvnMmode:      byte ;       // 01=leap indicator, 234=version (3), 567=mode (3=client)
+    LIvnMmode:      byte ;       // bits 01=leap indicator, bits 234=version (3 or 4), bits 567=mode (3=client, 4=server)
     Statum:         byte ;       // 0=unspecified, 1=primary, >2 secondary
     Poll:           byte ;       // 4 (16 secs), 5 (32 secs), 6 (64 secs), etc
     Precision:      shortint ;   // -6 mains freq clocks, to -20 microsecond accuracy
@@ -359,8 +385,8 @@ var
 begin
     GetSystemTime(SystemTime);
     with SystemTime do begin
-        Result.Seconds := Round (EncodeTime (wHour, wMinute, wSecond, 0) +
-                              ((EncodeDate (wYear, wMonth, wDay) - 2) * SecsPerDay)) ;
+        Result.Seconds := Trunc(EncodeDate (wYear, wMonth, wDay) - 2) * SecsPerDay;    { V9.1 use Trunc instead of Round }
+        Result.Seconds := Result.Seconds + Trunc(EncodeTime (wHour, wMinute, wSecond, 0) * SecsPerDay);
         Result.FracSecs := Round ($FFFFFFFF * (wMilliseconds / 1000)) ;
     end ;
     Result.Seconds := IcsSwap32(Result.Seconds);
@@ -409,8 +435,7 @@ function IcsNtp2TDateTime (NtpTime: TNtpTime): TDateTime ;
 begin
     NtpTime.Seconds := IcsSwap32(NtpTime.Seconds);
     NtpTime.FracSecs := IcsSwap32(NtpTime.FracSecs);
-    result := IcsConvTimeStamp (NtpTime.Seconds) +
-                            ((NtpTime.FracSecs / $FFFFFFFF) / SecsPerDay) ;
+    result := IcsConvTimeStamp (NtpTime.Seconds) + ((Int64(NtpTime.FracSecs) / $FFFFFFFF) / SecsPerDay) ;
 end ;
 
 
@@ -474,6 +499,7 @@ begin
          FWTCPSocket.OnSessionConnected := WUDPSocketSessionConnected;
          FWTCPSocket.OnSessionAvailable := WTCPSocketSessionAvailable;
          FClientSocket.OnDataSent       := ClientOnDataSent;
+         FWTCPSocket.SocketErrs := wsErrFriendly;    { V9.1 }
       except
          FreeAndNil (FWTCPSocket);
          FreeAndNil (FClientSocket);
@@ -491,6 +517,7 @@ begin
          FWUDPSocket.OnSessionConnected := WUDPSocketSessionConnected;
          FWUDPSocket.OnSessionClosed    := WUDPSocketSessionClosed;
          FWUDPSocket.OnDataAvailable    := WUDPSocketDataAvailable;
+         FWUDPSocket.SocketErrs := wsErrFriendly;    { V9.1 }
       except
          FreeAndNil (FWUDPSocket);
       end;
@@ -507,6 +534,7 @@ begin
          FWSNTPSocket.OnSessionConnected := WSNTPSocketSessionConnected;
          FWSNTPSocket.OnSessionClosed    := WSNTPSocketSessionClosed;
          FWSNTPSocket.OnDataAvailable    := WSNTPSocketDataAvailable;
+         FWSNTPSocket.SocketErrs := wsErrFriendly;    { V9.1 }
       except
          FreeAndNil (FWSNTPSocket);
       end;
@@ -669,11 +697,12 @@ begin
     Move (Buffer [0], SNTP, SizeOf (SNTP)) ;
     SNTP.RecvTimeStamp := IcsGetUTCNtpTime ;
 
-    ServVN := (SNTP.LIvnMmode and $38) shr 3 ;  // version (most seem to be 6)
+    ServVN := (SNTP.LIvnMmode and $38) shr 3 ;  // version 3 or 4
     ServMode := SNTP.LIvnMmode and $07 ;        // 3=client, 4=server, 5=broadcast
 
 // ensure that we found an SNTP server meeting RFC 2030
-    if (ServMode = 3) or (ServVN <= 3) then Continue := TRUE;
+    if (ServMode = 3) or (ServVN <= 3) then
+        Continue := TRUE;
 
     if Continue then begin
         if Assigned(FOnQuery) then
@@ -764,8 +793,8 @@ begin
     FWSocket.OnDataAvailable := TimeDataAvailable;
     FWSocket.OnSessionConnected := WSocketSessionConnected;
     FWSocket.OnDnsLookupDone := DnsLookupDone;
-    FWSocket.ComponentOptions := FWSocket.ComponentOptions +
-                                    [wsoAsyncDnsLookup, wsoIcsDnsLookup];
+    FWSocket.ComponentOptions := FWSocket.ComponentOptions + [wsoAsyncDnsLookup, wsoIcsDnsLookup];
+    FWSocket.SocketErrs := wsErrFriendly;    { V9.1 }
     FSocketFamily := sfIPv4;
     FTimeoutTimer := TIcsTimer.Create(FWSocket);
     FTimeoutTimer.Enabled := False;
@@ -822,7 +851,8 @@ begin
     DoProgress('DNS Lookup Results: ' + FWSocket.DnsResultList.CommaText);
 
   // single DNS result, nothing more to do
-    if (FTotDnsResult <= 1) then Exit;
+    if (FTotDnsResult <= 1) then
+        Exit;
 
   // if last succesaful IP address in list of results, use it again
     if (FLastAddrOK <> '') then begin
@@ -847,7 +877,8 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsTimeClient.TimeoutTimerTimer(Sender: TObject);
 begin
-    if FWSocket.State = wsDnsLookup then Exit;  // no timeout for DNS, can be slow
+    if FWSocket.State = wsDnsLookup then
+        Exit;  // no timeout for DNS, can be slow
     FTimeoutTimer.Enabled := False;
     if (FTotDnsResult > 1) and (Attempts <  FTotDnsResult) then begin
         FLastAddrOK := '';
@@ -858,7 +889,8 @@ begin
         FLastAddrOK := '';
         DoProgress('Timeout getting time, failed');
         Abort;
-        if Assigned (FOnTime) then FOnTime(self, 0);  // error
+        if Assigned (FOnTime) then
+            FOnTime(self, 0);  // error
     end;
 end;
 
@@ -913,7 +945,10 @@ begin
     else if FTimeProtocol = tpSNTP then begin
         FWSocket.Proto := 'udp';
         FWSocket.Port := 'ntp';
-        SNTP.LIvnMmode := $33 ; //  Li-0, version=3, mode=3 server
+//        SNTP.LIvnMmode := $33 ; //  Li-0, version=6, mode=3 server  V9.1 v6 does not exist!
+        ServVN := 4;       // V9.1 version 3 or 4
+        ServMode := 3;     // V9.1 3=client, 4=server, 5=broadcast
+        SNTP.LIvnMmode := (ServVN shl 3) OR ServMode;     // V9.1 bitmapped
         DTRequest := IcsGetUTCTime ;    // in case OrigTime gets lost
         SNTP.OrigTimeStamp := IcsGetUTCNtpTime ;
         FWSocket.Connect;   // starts DNS lookup
@@ -932,21 +967,35 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsTimeClient.WSocketSessionConnected(Sender: TObject; Error: Word);
+var
+    SocRemAddr6: TSockAddrIn6;   { V9.1 }
+    Success: Boolean;
 begin
+    FTimeoutTimer.Enabled := False;
     if Error <> 0 then begin
         FLastAddrOK := '';
-        FTimeoutTimer.Enabled := False;
         DoProgress('Connection failed: ' + WSocketErrorMsgFromErrorCode(Error));
-        if Assigned (FOnTime) then FOnTime(self, 0);  // error
+        if Assigned (FOnTime) then
+            FOnTime(self, 0);  // error
         FWSocket.CloseDelayed;
     end
     else begin
+        DoProgress('Connection OK, Sending Request');   { V9.1 }
+        FTimeoutTimer.Enabled := True;    { V9.1 restart timer }
         if FTimeProtocol = tpTCP then
              FWSocket.SendStr(' ')
         else if FTimeProtocol = tpUDP then
              FWSocket.SendStr(' ')
-        else if FTimeProtocol = tpSNTP then
-            FWSocket.Send (@SNTP, SizeOf (SNTP)) ;
+        else if FTimeProtocol = tpSNTP then begin
+            if FWSocket.AddrFormat = AF_INET6 then begin     { V9.1 trying to get response from an IPv6 time server }
+                SocRemAddr6.sin6_family := AF_INET6;
+                SocRemAddr6.sin6_addr := TInAddr6 (WSocketStrToIPv6 (FWSocket.AddrResolvedStr, Success));
+                SocRemAddr6.sin6_port := WSocket_htons (123);
+                FWSocket.SendTo6 (SocRemAddr6, SizeOf (TSockAddrIn6), @SNTP, SizeOf (SNTP));
+            end
+            else
+                FWSocket.Send (@SNTP, SizeOf (SNTP)) ;
+        end;
     end ;
 end;
 
@@ -963,7 +1012,8 @@ begin
         FLastAddrOK := '';
         DoProgress('Date read failed: ' + WSocketErrorMsgFromErrorCode(Error));
         FWSocket.CloseDelayed ;
-        if Assigned (FOnTime) then FOnTime(self, 0) ;  // error
+        if Assigned (FOnTime) then
+            FOnTime(self, 0) ;  // error
         exit ;
     end ;
 
@@ -995,10 +1045,11 @@ begin
 
     // get record for easier handling
         FillChar (SNTP, SizeOf (SNTP), #0);
-        if Count > SizeOf (SNTP) then Count := SizeOf (SNTP) ;
+        if Count > SizeOf (SNTP) then
+            Count := SizeOf (SNTP) ;
         Move (Buffer, SNTP, Count) ;
         ServLI := (SNTP.LIvnMmode and $C0) shr 6 ;  // leap indicator
-        ServVN := (SNTP.LIvnMmode and $38) shr 3 ;  // version (most seem to 6)
+        ServVN := (SNTP.LIvnMmode and $38) shr 3 ;  // version 3 or 4
         ServMode := SNTP.LIvnMmode and $07 ;        // 3=client, 4=server, 5=broadcast
 
      // ensure that we found an SNTP server meeting RFC 2030
@@ -1007,13 +1058,15 @@ begin
             FWSocket.CloseDelayed ;  // UDP does not really close
             FLastAddrOK := '';
             DoProgress('Invalid SNTP Responsed');
-            if Assigned (FOnTime) then FOnTime(self, 0) ;  // error
+            if Assigned (FOnTime) then
+                FOnTime(self, 0) ;  // error
         end ;
 
      // convert NTP time stamps into Delphi dates
         DTTransmit := IcsNtp2TDateTime (SNTP.XmitTimeStamp) ;
         DTOriginate := IcsNtp2TDateTime (SNTP.OrigTimeStamp) ;
-        if DTOriginate = 0 then DTOriginate := DTRequest ;  // may come back as zero
+        if DTOriginate = 0 then
+            DTOriginate := DTRequest ;  // may come back as zero
         DTReceive := IcsNtp2TDateTime (SNTP.RecvTimeStamp) ;
 
      // calculate round trip time and correction needed, in various formats
@@ -1024,7 +1077,8 @@ begin
         SecsDiffDisp := Format ('%.3f', [SecsDifference]) ;
 
       // tell user what happened
-        if Assigned (FOnTime) then FOnTime (self, DTTransmit) ;
+        if Assigned (FOnTime) then
+            FOnTime (self, DTTransmit) ;
         FWSocket.CloseDelayed ;
     end ;
 end;

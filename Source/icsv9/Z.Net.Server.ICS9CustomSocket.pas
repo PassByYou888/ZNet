@@ -43,7 +43,7 @@ interface
 uses
   Messages, Windows,
   SysUtils, Classes,
-  Z.ICS9.OverbyteIcsWSocket, Z.ICS9.OverbyteIcsWinsock;
+  Z.ICS9.OverbyteIcsWSocket, Z.ICS9.OverbyteIcsWinsock, Z.ICS9.OverbyteIcsTypes;
 
 type
   TCustom_ICS9 = class(TWSocket)

@@ -7,10 +7,10 @@ Description:  A very fast external SSL-session-cache component.
               Uses OpenSSL (http://www.openssl.org).
               Uses freeware TSslWSocket component  from ICS
               (Internet Component Suite).
-Version:      V9.0
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2006-2023 by Arno Garrels, Berlin, Germany,
+Legal issues: Copyright (C) 2006-2024 by Arno Garrels, Berlin, Germany,
 
               This software is freeware and provided 'as-is', without any
               express or implied warranty.  In no event will the author be
@@ -53,7 +53,8 @@ Feb 18, 2021 V8.66 Renamed all OpenSSL functions to original names removing ICS
                    Added support for YuOpenSSL which provides OpenSSL in a pre-built
                      DCU linked into applications, rather than using external DLLs.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Nov 17, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+Aug 9, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -98,19 +99,19 @@ uses
 {$IFNDEF NO_DEBUG_LOG}
     Z.ICS9.OverbyteIcsLogger,
 {$ENDIF}
-{$IFNDEF COMPILER15_UP}
-    Z.ICS9.OverbyteIcsTypes,
-{$ENDIF}
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF}
     Z.ICS9.OverbyteIcsSSLEAY,
     Z.ICS9.OverbyteIcsLIBEAY,
     Z.ICS9.OverbyteIcsAvlTrees,
     Z.ICS9.OverbyteIcsUtils
- {$IFDEF YuOpenSSL}, YuOpenSSL{$ENDIF YuOpenSSL};
+ {$IFDEF YuOpenSSL}, YuOpenSSL{$ENDIF YuOpenSSL},
+   Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 type
     ESslSessionCacheException = class(Exception);

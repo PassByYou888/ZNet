@@ -14,10 +14,10 @@ Description:  A place for MIME-charset stuff.
               http://msdn.microsoft.com/en-us/library/ms776446.aspx
               http://www.iana.org/assignments/character-sets
 Creation:     July 17, 2008
-Version:      V9.0
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by François PIETTE
+Legal issues: Copyright (C) 2002-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -94,13 +94,18 @@ Sep 18, 2017 V8.40 Added various functions to find the codepage for an HTML page
 Apr 25, 2018 V8.54 IcsHtmlToStr accepts json/xml as textual
 Apr 24, 2019 V8.61 IcsHtmlToStr returns javascript content as well as XML and Json.
                    IcsHtmlToStr doesn't give up on tiny responses.
-Jan 08, 2020 V8.64 Declare TBytess function parameters as const to avoid reference
+Jan 08, 2020 V8.64 Declare TBytes function parameters as const to avoid reference
                      counting corruption with cast pointers, thanks to Kas Ob for
                      finding this, which caused stack corruption and unexpected
                      errors mainly with 64-bit applications, probably.
 May 24, 2021 V8.67 Replaced Stream.Seek with Stream.Position.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Jan 20, 2024 V9.1  Moved IcsFindHtmlCharset, IcsFindHtmlCodepage, IcsContentCodepage,
+                     IcsHtmlToStr to OverbyteIcsHtmlUtils.
+                   IsValidAnsiCodePage now calls IcsIsValidAnsiCodePage.
+			  	   Preliminary support for Android.
+Jan 28, 2025 V9.4  More external symbols for C++.
+Sep 24, 2025 V9.5  Corrected C++ symbols to compile with Win64, thanks to w0wbagger.
 
 
 //
@@ -284,6 +289,12 @@ unit Z.ICS9.OverbyteIcsCharsetUtils;
 interface
 
 uses
+{$IFDEF USE_ICONV}
+  {$IFDEF ANDROID}
+    // V9.1 Android doesn't support iconv, so undefine USE_ICONV
+    {$UNDEF USE_ICONV}
+  {$ENDIF}
+{$ENDIF}
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
   {$IFDEF USE_ICONV}
@@ -296,7 +307,7 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Contnrs{$ELSE}Contnrs{$ENDIF},
-    Z.ICS9.OverbyteIcsFormDataDecoder,    { V8.50 }
+//    OverbyteIcsFormDataDecoder,    { V8.50 }
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsTypes;  { V8.50 for TBytes }
 
@@ -550,7 +561,7 @@ function  GetCPInfoEx(CodePage: UINT; dwFlags: DWORD; var lpCPInfoEx: CPINFOEX):
 {$ENDIF}
 procedure GetFriendlyCharsetList(Items: TStrings; IncludeList: TMimeCharsets; ClearItems: Boolean = True);
 procedure GetMimeCharsetList(Items: TStrings; IncludeList: TMimeCharsets; ClearItems: Boolean = True);
-
+(*
 { find charset for HTML page in buffer from meta tags }
 function IcsFindHtmlCharset(const HtmlData: TBytes; Count: Integer): String;      { V8.50, V8.64 }
 { find codepage for HTML page in buffer }
@@ -568,9 +579,14 @@ function IcsHtmlToStr(HtmlStream: TStream; ACodePage: Longword;
 { convert HTML page in stream to string with correct codepage }
 function IcsHtmlToStr(HtmlStream: TStream; const ContentHdr: String;
                                             Entities: Boolean = False): UnicodeString; overload;    { V8.50 }
-
+*)
 var
-    IcsSystemCodePage     : LongWord;
+{$IFDEF WIN64}
+    IcsSystemCodePage: LongWord = 0;      { V9.5 }
+{$ELSE}
+    IcsSystemCodePage: LongWord;
+{$ENDIF}
+    {$EXTERNALSYM IcsSystemCodePage}      { V9.4 }
 {$IFDEF MSWINDOWS}
     IcsSystemMaxCharSize  : Integer;
 {$ENDIF}
@@ -665,6 +681,9 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function IsValidAnsiCodePage(ACodePage: LongWord): Boolean;
+begin
+    Result := IcsIsValidAnsiCodePage(ACodePage);    { V9.1 duplicate code }
+(*
 {$IFDEF USE_ICONV}
 var
     CpName : AnsiString;
@@ -698,7 +717,7 @@ var
     Info : _CpInfo;
 begin
     Result := GetCPInfo(ACodePage, Info);
-{$ENDIF}
+{$ENDIF}   *)
 end;
 
 
@@ -1612,7 +1631,7 @@ begin
     end;
 end;
 
-
+(*
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { find charset for HTML page in buffer from meta tags }
 function IcsFindHtmlCharset(const HtmlData: TBytes; Count: Integer): String;    { V8.50, V8.64 }
@@ -1851,7 +1870,7 @@ begin
   // convert html to unicode string
     Result := IcsHtmlToStr(HtmlData, Count, ACodePage, Entities);
 end;
-
+*)
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 

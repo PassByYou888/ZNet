@@ -484,6 +484,9 @@ Apr 13, 2022 V8.69 - Fixed bug in V8.65 that meant Implicit SSL only worked when
                        AUTO_X509_CERTS define since it adds extra HTTP client code. A revoked
                        certificate will be auto ordered.
 Oct 21, 2022 V8.70   Simplified ZLIB support to allow use of System.ZLib.
+Jan 22, 2024 V9.1  Added OverbyteIcsSslBase which now includes TSslContext,TX509Base and TX509List.
+
+Note: no longer supported, please use OverbyteIcsFtpSrv.pas instead.
 
 
 Angus pending -
@@ -566,12 +569,14 @@ uses
     Z.ICS9.OverbyteIcsSslHttpRest,   { V8.69 }
 {$ENDIF} // AUTO_X509_CERTS
 {$ENDIF}
+    Z.ICS9.OverbyteIcsSslBase,     { V9.1 TX509Base }
+    Z.ICS9.OverbyteIcsSslUtils,      { V9.1 TOcspHttp }
     Z.ICS9.OverbyteIcsWSockBuf;    { AG V6.04 }
 
 
 const
-    FtpServerVersion         = 870;
-    CopyRight : String       = ' TFtpServerW (c) 1998-2022 F. Piette V8.70';
+    FtpServerVersion         = 901;
+    CopyRight : String       = ' TFtpServerW (c) 1998-2024 F. Piette V9.1';
     UtcDateMaskPacked        = 'yyyymmddhhnnss';         { angus V1.38 }
     DefaultRcvSize           = 65536; // 16384;    { V7.00 used for both xmit and recv, was 2048, too small, V8.65 }
 

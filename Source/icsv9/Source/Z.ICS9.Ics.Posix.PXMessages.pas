@@ -2,11 +2,11 @@
 
 Author:       Arno Garrels
 Creation:     October 30, 2011
-Description:  Emulates Windows messages on MacOS.
-Version:      V9.0
+Description:  Emulates Windows messages on MacOS. NOTE; never tested on Linux
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2011-2023 by Arno Garrels, Berlin, Germany,
+Legal issues: Copyright (C) 2011-2024 by Arno Garrels, Berlin, Germany,
 
               This software is freeware and provided 'as-is', without any
               express or implied warranty.  In no event will the author be
@@ -45,6 +45,10 @@ Dec 09, 2020 - V8.65 - Corrected bad $MESSAGES typo.
                          specifically those using THtmlViewer like our
                          sample FrameBrowserIcs.dpr, maybe others.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jun 03, 2024 V9.2  Preliminary support for Android.
+Oct 8, 2024  V9.4  Disabled initizations since causes ICS apps to lock up on Linux.
+                   MacOS not supported, not tested for many years.
+
 
 
       Pending - think FMXLinux TPlatformLinux class contains a message pump
@@ -274,9 +278,9 @@ type
   {$IFDEF MACOS}
     FNSApp                : NSApplication;
     function ProcessCocoaAppMessageWithTimeout(ATimeOutSec: LongWord): Boolean;
-  {$ENDIF}
-  {$ENDIF}
     function CheckForSyncMessages(Timeout: Integer = 0): Boolean;
+  {$ENDIF}
+  {$ENDIF}
     function MsgSynchronize(hWnd: HWND; Msg: UINT; wParam: WPARAM;
       lParam: LPARAM; ADestination: TIcsMessagePump;
       out GlobalReadUnlocked: Boolean): LRESULT;
@@ -517,11 +521,13 @@ begin
     Result := CFRunLoopRunInMode(kCFRunLoopDefaultMode, AWaitTimeoutSec, True) = kCFRunLoopRunHandledSource;
 {$ENDIF MACOS}
 {$IFDEF LINUX}
-begin
   {$MESSAGE 'TODO processmessage loop'}           { V8.65 pending Linux }
   Result := False; // Error
-end;
 {$ENDIF LINUX}
+{$IFDEF ANDROID}
+  {$MESSAGE 'TODO processmessage loop'}
+  Result := False; // Error                    { V9.1 }
+{$ENDIF ANDROID}
 end;
 
 
@@ -954,6 +960,7 @@ type
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFDEF MACOS}
 function TIcsMessagePump.CheckForSyncMessages(Timeout: Integer = 0): Boolean;
 var
   SyncProc: PSyncProc;
@@ -1005,6 +1012,7 @@ begin
     FSyncLock.Leave;
   end;
 end;
+{$ENDIF MACOS}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -1634,13 +1642,13 @@ var
   LRunLoopTimerContext: CFRunLoopTimerContext;
   LRunLoopTimerRef: CFRunLoopTimerRef;
   LFireDate: CFAbsoluteTime;
-{$ENDIF MACOS}
   LInterval: Double;
+{$ENDIF MACOS}
   PHandle: TIcsMessagePump.PMessagePumpHandle;
 begin
 {$IFDEF LINUX}
-  {$MESSAGE 'TODO settimer'}           { V8.65 pending Linux }
-  Exit(0);
+//  {$MESSAGE 'TODO settimer'}           { V8.65 pending Linux, V9.3 skip  }
+//  Exit(0);
 {$ENDIF LINUX}
   GlobalSync.BeginRead;
   try
@@ -2179,13 +2187,13 @@ end;
 {$ENDIF POSIX TMultiReadExclusiveWriteSynchronizer}
 
 initialization
-  GLMessagePumps := TGlobalMessagePumpList.Create;
-  GLWindowTree := TGlobalWindowTree.Create;
-  GlobalSync := TMREWSync.Create;
+//  GLMessagePumps := TGlobalMessagePumpList.Create;
+//  GLWindowTree := TGlobalWindowTree.Create;
+//  GlobalSync := TMREWSync.Create;
 
 finalization
-  FreeAndNil(GLWindowTree);
-  FreeAndNil(GLMessagePumps);
-  FreeAndNil(GlobalSync);
+//  FreeAndNil(GLWindowTree);
+//  FreeAndNil(GLMessagePumps);
+//  FreeAndNil(GlobalSync);
 {$ENDIF POSIX}
 end.

@@ -52,8 +52,7 @@
  * Nov 15, 2022  - V8.71 Added function SearchInAll to search for first name anywhere in nested JSON
  *                   objects or arrays, returns value or blank if not found, thanks to PizzaProgram.
  * Aug 08, 2023 V9.0  Updated version to major release 9.
- *
- *
+  *
  *  Pending - make TSuperTokenizer.stack dynamic array so parse depth can grow as needed
  *
  * There is a sample application OverbyteIcsJoseTst.dpr that illustrates parsing Json and XML

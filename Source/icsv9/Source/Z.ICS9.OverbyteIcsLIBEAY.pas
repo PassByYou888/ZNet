@@ -5,10 +5,10 @@ Description:  Delphi encapsulation for LIBEAY32.DLL (OpenSSL)
               Renamed libcrypto32.dll for OpenSSL 1.1.0 and later
               This is only the subset needed by ICS.
 Creation:     Jan 12, 2003
-Version:      V9.0
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2003-2023 by François PIETTE
+Legal issues: Copyright (C) 2003-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               SSL implementation includes code written by Arno Garrels,
@@ -213,15 +213,114 @@ Jul 19, 2023 V8.71 Using Int64 ticks.
                    If neither OpenSSL DLL can be found, report both names instead of just oldest.
                    Ensure OpenSSL is loaded before using hash functions.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 27, 2024 V9.1  Added two more X509 functions.
+                   Removed support for OpenSSL 1.1.1 which is end of life.
+                   Not currently supporting GSSLEAY_DLL_IgnoreOld/New since only 3.x supported.
+                   OverbyteIcsDefs.inc has a new define OpenSSL_ProgramData which causes ICS to
+                     ignore GSSL_DLL_DIR by setting it to shell path CSIDL_COMMON_APPDATA
+                     and sub-directory "ICS-OpenSSl" which is usually "C:\ProgramData\ICS-OpenSSl"
+                     which is where the OpenSSL DLLs and root CA bundles should be placed.
+                   The external OpenSSL DLL files may now be optionally linked into applications
+                     as a resource, to avoid distributing them separately. When the application
+                     runs, it checks to see if the DLLs have be extracted previously, and if not,
+                     creates them from the resource.
+                   The OpenSSL extract directory is shell path CSIDL_COMMON_APPDATA which in
+                     recent Windows versions is "C:\Users\All Users\" aliased as "C:\ProgramData\",
+                     in sub-directory "ICS-OpenSSL" with a sub-directory for each different
+                     OpenSSL major/minor version, ie "3012" for 3.0.12, ie
+                     "C:\ProgramData\ICS-OpenSSL\3012\libcrypto-3.dll".
+                   OverbyteIcsDefs.inc has a new define OpenSSL_Resource_Files which causes the
+                     resource file to be linked, the major/minor version being defined as
+                     OpenSSL_30, OpenSSL_31 or OpenSSL_32 (not supported yet), the actual
+                     resource files are LibV3xOpenSSL32.RES and LibV3xOpenSSL64.RES where x
+                     is the minor version.  Note ICS supports linking specific major/minor
+                     versions of OpenSSL, but only one per application, but not multiple patch
+                     versions which don't have new features, only security and bug fixes.
+                     The RES files are distributed in the zip files with the DLLs from the
+                     ICS wiki site, with the latest versions in the source directory.
+                     If the new resource can not be found or there is a problem extracting
+                     the DLLs, ICS falls back to looking for OpenSSL DLLs as previous
+                     releases or as per define OpenSSL_ProgramData above.
+                   Resource files are available from OpenSSL 3.0.12 and 3.1.4, and later.
+                   Thanks to Michael Ott for the original resource file implementation.
+                   No longer supporting defines OPENSSL_USE_DELPHI_MM (never used),
+                     OPENSSL_NO_ENGINE (deprecated, never used), OPENSSL_USE_RESOURCE_STRINGS
+                     (never used), NO_OSSL_VERSION_CHECK (dangerous), DEFINE OPENSSL_NO_TLSEXT
+                     (TLS needed everywhere), LOADSSL_ERROR_FILE (better debugging now).
+                   Added TBytes versions of the hash and digest functions since all input and
+                     output is binary: IcsHMACDigestTB, IcsHMACDigestExTB, IcsHMACDigestVerifyTB,
+                     IcsHashDigestTB, IcsAsymSignDigestTB, IcsAsymVerifyDigestTB.
+Jun 06, 2024 V9.2  Removed RAND_screen, deprecated 1.1.0 and may not be build in DLL.
+                   Using IcsLinuxGetModuleFileName for Linux.
+                   Added support for OpenSSL 3.3 (April 2024) and 3.4 (due October 2024).
+                   Removed linking OpenSSL 3.1 as a resource, please use 3.2 or 3.3 instead.
+Sep 05, 2024 V9.3  Corrected loading OpenSSL on Posix, only using system supplied DLLs.
+                   On Linux use $Home/Downloads/ICS-OpenSSL/ for certs and roots.
+                   Removed APIs EVP_idea_cbc, EVP_idea_cfb64, EVP_idea_ecb, EVP_idea_ofb,
+                     and EVP_mdc2, all legacy and missing from some DLL builds.
+                   Moved IcsX509VerifyErrorToStr to SslBase.
+Oct 25, 2024 V9.4 Removed EC_GROUP_set_curve_GFxx, EC_GROUP_new, EC_GROUP_clear_free,
+                     depreated since 3.0.0 and missing in some distributions.
+                  Renamed 10 EVP_MD and EVP_PKEY functions that got _get_ added for
+                    OpenSSL 3.0 but we kept the old name, now available as macros.
+                  Added more IcsPkeyxx functions so applications can avoid using
+                    common OpenSSL functions directly, ie
+                  Corrected IcsAsymSignDigestTB and IcsAsymVerifyDigestTB to allow
+                    use wihout a digest for ED/X25519 private keys.
+                  IcsGetBinNum now returns TBytes, update functions using it to TB.
+                  Added support for OpenSSL 3.5 (due April 2025), 3.4 now default.
+Sep 08, 2025 V9.5 Added future support for OpenSSL 3.6 (due Oct 2025) and OpenSSL 4.0
+                   (due Apr 2026), determined by defines in OverbyteIcsDefs.inc.
+                  OpenSSL 3.5.2 is now released, but no new features or APIs are used yet.
+                  Added RSA_verify and EVP_PKEY_get_group_name and OBJ_txt2nid.
+                  Moved 158 deprecated 3.0 exports to new table only built for new
+                    DEFINE OpenSSL_Deprecated, includes RSA_x, EC_x, etc, not needed
+                    for ICS but perhaps for applications that have not been updated to
+                    use newer EVP_ replacements. Now only Using new 3.0 exports.
+                  Added GSSL_LOAD_ERRS which reports any OpenSSL loading errors that
+                    get lost if exceptions are lost.
+                  Ics_Ssl_EVP_PKEY_GetKey has gone, no longer works.
+                  ICS now only creates the C:\ProgramData\ICS-OpenSSL directory if
+                    conditionals OpenSSL_Resource_Files or OpenSSL_ProgramData are
+                    specified meaning OpenSSL files are expected there.  Otherwise
+                    the developer is resonsible for setting GSSL_DLL_DIR to the
+                    OpenSSL DLL directory.
+                  ECDSA binary digest have two formats, ASN.1 used by OpenSSL and
+                    IEEE P1363 which is shorter fixed length and often also used.
+                    Added IcsDigestAsntoIEEE and IcsDigestIEEEtoAsn to convert between
+                    the two formats, and a new EcdsaIEE flag to IcsAsymSignDigestTB
+                    and IcsAsymVerifyDigestTB to use the new format, only effective
+                    when using Elliptic Curve private keys.
+Oct 02, 2025 V9.5 Suppressed linking OpenSSL 3.2 and 3.3 which are no longer updated
+                    for ICS now 3.6 has been released, almost end of support.
 
+Pending - IcsDigestAsntoIEEE does not work correctly with secp521r1 keys.
+
+
+Note: if OpenSSL_Resource_Files if defined, this unit links one specified version of OpenSSL
+as a resource file, see notes for V9.1 above.
+Currently one of OpenSSL 3.0.18, 3.4.3, 3.5.4 and 3.6.0
 
 YuOpenSSL is a commercial product from https://www.yunqa.de/ and is supplied as
-separate compiled DCUs for Delphi 5 to 11.
+separate compiled DCUs for Delphi 5 to 12, offering OpenSSL 3.0.18, 3.3.5, 3.4.3 and 3.5.4
 
 DEFINE YuOpenSSL in Include\OverbyteIcsDefs.inc determines whether the DCU is linked
 or the external DLLs.  Note only one version of OpenSSL can be linked with YuOpenSSL,
-whereas different DLLs can be supported.
+whereas different external DLLs can be supported (but only one resource file).
+If YuOpenSSL us defined, no attempt is made to load OpenSSL DLLs or resource files.
 
+ECDSA and RSA Key Signed Digest Sizes (binary)
+----------------------------------------------
+prime256v1 256 bits key, ASN.1 70 to 72 bytes, IEEE 64 bytes
+secp384r1 384 bits key, ASN.1 102 to 104 bytes, IEEE 96 bytes
+secp521r1 521 bits key, ASN.1 138 to 140 bytes, IEEE 132 bytes
+ED25519 256 bits key, 64 bytes
+ED4489 448 bits key, 114 bytes
+RSA Key 2048 bit, 256 bytes
+RSA Key 3072 bits, 384 bytes
+RSA Key 4096 bits, 512 bytes
+RSA Key 7680 bits, 960 bytes
+RSA Key 15,360 bits, 1,920 bytes
 
 
 Old Cryptography
@@ -279,8 +378,11 @@ New Ed25519, X25519, RSA-PSS keys and signing
 Notes - OpenSSL libcrypto-3 changes from libcrypto-1_1 - June 2021
 Exports gone
 EVP_PKEY_set_alias_type
+Large number of low level algoirthm specific exports deprecated, should use EVP_PKEY
+versions instread or provider methods.
 
 Exports renamed, adding get, old names are kept as non-deprecated alias macros
+V9.4 now using _get_ versions, with old versions as macros
 EVP_MD_block_size to EVP_MD_get_block_size, etc
 EVP_MD_flags
 EVP_MD_pkey_type
@@ -308,7 +410,7 @@ legacy provider is loaded.
 
 {$WARN SYMBOL_DEPRECATED OFF}
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
-{$I Include\Z.ICS9.OverbyteIcsSslDefs.inc}
+{.I Include\OverbyteIcsSslDefs.inc  V9.1 gone }
 {$IFDEF COMPILER12_UP}
     { These are usefull for debugging !}
     {$WARN IMPLICIT_STRING_CAST       OFF}
@@ -316,6 +418,7 @@ legacy provider is loaded.
     {$WARN EXPLICIT_STRING_CAST       OFF}
     {$WARN EXPLICIT_STRING_CAST_LOSS  OFF}
 {$ENDIF}
+{$DEFINE OPENSSL_NO_ENGINE}       { V9.1 deprecated in OpenSSL 3.0 }
 
 unit Z.ICS9.OverbyteIcsLIBEAY;
 
@@ -337,14 +440,17 @@ uses
 {$ENDIF}
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
+{$IFDEF COMPILER16_UP}
+    System.IOUtils,        { V9.1 }
+{$ENDIF}
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsSSLEAY
     {$IFDEF YuOpenSSL}, YuOpenSSL{$ENDIF YuOpenSSL},
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
 const
-    IcsLIBEAYVersion   = 900;
-    CopyRight : String = ' IcsLIBEAY (c) 2003-2023 F. Piette V9.0 ';
+    IcsLIBEAYVersion   = 905;
+    CopyRight : String = ' IcsLIBEAY (c) 2003-2025 F. Piette V9.5 ';
 
 type
     EIcsLibeayException = class(Exception);
@@ -372,6 +478,7 @@ const
     V_ASN1_ENUMERATED                   = 10;
     V_ASN1_UTF8STRING                   = 12;
     V_ASN1_SEQUENCE                     = 16;
+    V_ASN1_SEQUENCE_ENC                 = $30;   { V9.5 aka Structure or Record }
     V_ASN1_SET                          = 17;
     V_ASN1_NUMERICSTRING                = 18;
 { An ASN.1 NumericString object may represent any arbitrary string of numeric }
@@ -972,7 +1079,7 @@ const
     SSL_R_X509_LIB = 268;
     SSL_R_X509_VERIFICATION_SETUP_PROBLEMS = 269;
 
- { following from objects.h }
+ { following from \include\obj.mac.h }
     NID_undef                       =  0;  //AG
     NID_rsaEncryption               =  6;  //AG
     NID_md2WithRSAEncryption        =  7;  //  md2WithRSAEncryption
@@ -1233,6 +1340,8 @@ const
     OPENSSL_MODULES_DIR    = 8;
     OPENSSL_CPU_INFO       = 9;
 
+(* V9.3 moved to OverbyteIcsTypes
+
     X509_V_OK                                           = 0;
     // illegal error (for uninitialized values, to avoid X509_V_OK): 1
     X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT                = 2;
@@ -1319,6 +1428,7 @@ const
     // Certificate transparency
     X509_V_ERR_NO_VALID_SCTS                       = 71;
     X509_V_ERR_PROXY_SUBJECT_NAME_VIOLATION        = 72;
+ *)
 
 { V8.41 Flags for X509V3_add1_i2d  }
     X509V3_ADD_OP_MASK             = $0f;
@@ -1330,8 +1440,9 @@ const
     X509V3_ADD_DELETE              = 5;
     X509V3_ADD_SILENT              = $10;
 
-{ note these literals are not normally used, OpenSSL API instead }
+{ note these literals are not normally used, OpenSSL API instead V9.1  gone }
 {$IFDEF OPENSSL_USE_RESOURCE_STRINGS}
+(*
 resourcestring
   { Verify error strings from x509_txt.c }
   sX509_V_OK                                      = 'ok';
@@ -1409,7 +1520,7 @@ resourcestring
   sX509_V_ERR_NO_VALID_SCTS                     = 'Certificate Transparency required, but no valid SCTs found';
   sX509_V_ERR_PROXY_SUBJECT_NAME_VIOLATION      = 'proxy subject name violation';
   sX509_V_ERR_NUMBER                              = 'Error number ';
-
+ *)
 const
 {$ENDIF}
 
@@ -1757,24 +1868,6 @@ type
 
 //    TPinCallBack = function(ui: PUI; uis: PUI_STRING): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF} //AG
 {$ENDIF}
-(*
-{$IFDEF OPENSSL_USE_DELPHI_MM}
-type
-    TCryptoMallocFunc   = function(Size: size_t): Pointer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-    TCryptoReallocFunc  = function(P: Pointer; Size: size_t): Pointer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-    TCryptoFreeMemFunc  = procedure(P: Pointer); {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-{$ENDIF}
-*)
-{ V8.40 callbacks for CRYPTO_get_ex_new_index }
-(*
-    TCryptoExNewFunc    = procedure(parent: Pointer; ptr: Pointer; ad: PCRYPTO_EX_DATA; idx: integer; argl: DWord; argp: Pointer); {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}  { V8.65 was function }
-    TCryptoExFreeFunc   = procedure(parent: Pointer; ptr: Pointer; ad: PCRYPTO_EX_DATA; idx: integer; argl: DWord; argp: Pointer); {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-    TCryptoExDupFunc    = function(dto: PCRYPTO_EX_DATA; dfrom: PCRYPTO_EX_DATA; srcp: Pointer; idx: integer; argl: DWord; argp: Pointer): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-{ V8.40 progress callback for DH_generate_paramaters and RSA_generate_key_ex }
-    TBNGENCBcallFunc    = function(a: Integer; b: Integer; cb: PBN_GENCB): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-{ V8.49 progress callback for EVP_PKEY_gen }
-    TEVPPKEYCBcallFunc   = function(pctx: PEVP_PKEY_CTX): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}
-*)
 
 { V8.40 classes for CRYPTO_get_ex_new_index }
 const
@@ -1827,51 +1920,6 @@ const
     OSSL_PROVIDERS_DEFAULT : PAnsiChar  = 'default';
     OSSL_PROVIDERS_BASE    : PAnsiChar  = 'base';
 
-{ V8.69 OCSP constants to check certificates }
-    OCSP_REVOKED_STATUS_NOSTATUS                = -1;
-    OCSP_REVOKED_STATUS_UNSPECIFIED             = 0;
-    OCSP_REVOKED_STATUS_KEYCOMPROMISE           = 1;
-    OCSP_REVOKED_STATUS_CACOMPROMISE            = 2;
-    OCSP_REVOKED_STATUS_AFFILIATIONCHANGED      = 3;
-    OCSP_REVOKED_STATUS_SUPERSEDED              = 4;
-    OCSP_REVOKED_STATUS_CESSATIONOFOPERATION    = 5;
-    OCSP_REVOKED_STATUS_CERTIFICATEHOLD         = 6;
-    OCSP_REVOKED_STATUS_REMOVEFROMCRL           = 8;
-
-    OCSP_DEFAULT_NONCE_LENGTH   = 16;
-
-    OCSP_NOCERTS        = $1;
-    OCSP_NOINTERN       = $2;
-    OCSP_NOSIGS         = $4;
-    OCSP_NOCHAIN        = $8;
-    OCSP_NOVERIFY       = $10;
-    OCSP_NOEXPLICIT     = $20;
-    OCSP_NOCASIGN       = $40;
-    OCSP_NODELEGATED    = $80;
-    OCSP_NOCHECKS       = $100;
-    OCSP_TRUSTOTHER     = $200;
-    OCSP_RESPID_KEY     = $400;
-    OCSP_NOTIME         = $800;
-    OCSP_PARTIAL_CHAIN  = $1000;
-
-    OCSP_RESPONSE_STATUS_SUCCESSFUL         = 0;
-    OCSP_RESPONSE_STATUS_MALFORMEDREQUEST   = 1;
-    OCSP_RESPONSE_STATUS_INTERNALERROR      = 2;
-    OCSP_RESPONSE_STATUS_TRYLATER           = 3;
-    OCSP_RESPONSE_STATUS_SIGREQUIRED        = 5;
-    OCSP_RESPONSE_STATUS_UNAUTHORIZED       = 6;
-
-    V_OCSP_RESPID_NAME  = 0;
-    V_OCSP_RESPID_KEY   = 1;
-
-    V_OCSP_CERTSTATUS_GOOD      = 0;
-    V_OCSP_CERTSTATUS_REVOKED   = 1;
-    V_OCSP_CERTSTATUS_UNKNOWN   = 2;
-
-    PEM_STRING_OCSP_REQUEST     = 'OCSP REQUEST';
-    PEM_STRING_OCSP_RESPONSE    = 'OCSP RESPONSE';
-
-
 {$IFNDEF YuOpenSSL}
 const
     ASN1_INTEGER_get :                       function(Asn1_Int : PASN1_INTEGER): Integer; cdecl = nil;
@@ -1883,7 +1931,7 @@ const
     ASN1_STRING_free :                       procedure(a: PASN1_STRING); cdecl = nil;//AG;
     ASN1_STRING_get0_data :                  function(str: PASN1_STRING): PAnsiChar; cdecl = nil;                       { V8.40 aka ASN1_STRING_data until 1.1.0 }
     ASN1_STRING_length :                     function(str: PASN1_STRING): Integer; cdecl = nil;                         { V8.40 }
-    ASN1_STRING_length_set :                 procedure(str: PASN1_STRING; n: Integer); cdecl = nil;                     { V8.40 }
+//  ASN1_STRING_length_set :                 procedure(str: PASN1_STRING; n: Integer); cdecl = nil;                       { V9.5 don't use }
     ASN1_STRING_new :                        function: PASN1_STRING; cdecl = nil;                              { V8.40 }
     ASN1_STRING_print :                      function(B: PBIO; v: PASN1_STRING): integer; cdecl = nil;//AG;
     ASN1_STRING_type :                       function(str: PASN1_STRING): Integer; cdecl = nil;                         { V8.40 }
@@ -1940,125 +1988,15 @@ const
     CRYPTO_memcmp :                          function(in_a, in_b: pointer; len: Integer): Integer; cdecl = Nil;    { V8.52 }
     CRYPTO_new_ex_data :                     function(class_index: integer; obj: pointer; ad: PCRYPTO_EX_DATA): integer; cdecl = Nil;    { V8.40 }
     CRYPTO_set_ex_data :                     function(r: PCRYPTO_EX_DATA; idx: integer; arg: Pointer): integer; cdecl = Nil;             { V8.40 }
-    DH_free :                                procedure(dh: PDH) cdecl = nil;  { V8.07 }
-    DH_check :                               function(dh: PDH; codes: PInteger): Integer; cdecl = Nil;       { V8.40 }   { V8.66 var gone }
-    DH_generate_parameters_ex :              function(dh: PDH; prime_len: Integer; generator: Integer; cb: PBN_GENCB): Integer; cdecl = Nil;  { V8.40 }
-    DH_new :                                 function: PDH;  cdecl = nil;                                       { V8.40 }
-    DH_size :                                function(Dh: PDH): Integer; cdecl = nil;   //Angus
-    DSA_free :                               procedure(DSA: PDSA); cdecl = nil;   //Angus
-    DSA_print :                              function(B: PBIO; Dsa: PDSA; Offset: Integer): Integer; cdecl = nil;//AG;
-    DSA_size :                               function(Dsa: PDSA): Integer; cdecl = nil; //Angus
-    EC_GROUP_check :                         function(group: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_check_discriminant :            function(group: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_clear_free :                    procedure(group: PEC_GROUP); cdecl = nil;                           { V8.40 }
-    EC_GROUP_cmp :                           function(agroup, bgroup: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_copy :                          function(dst: PEC_GROUP; src: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_dup :                           function(src: PEC_GROUP): PEC_GROUP; cdecl = Nil;                   { V8.40 }
-    EC_GROUP_free :                          procedure(group: PEC_GROUP); cdecl = nil;                           { V8.40 }
-    EC_GROUP_get0_cofactor :                 function(group: PEC_GROUP): PBIGNUM; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get0_generator :                function(group: PEC_GROUP): PEC_POINT; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get0_order :                    function(group: PEC_GROUP): PBIGNUM; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get0_seed :                     function(group: PEC_GROUP): PAnsiChar; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_asn1_flag :                 function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_basis_type :                function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_cofactor :                  function(group: PEC_GROUP; cofactor: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_curve_gf2m :                function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
-    EC_GROUP_get_curve_gfp :                 function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
-    EC_GROUP_get_curve_name :                function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_degree :                    function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_ecparameters :              function(group: PEC_GROUP; params: PEC_PARAMETERS): PEC_PARAMETERS; cdecl = nil;     { V8.40 }
-    EC_GROUP_get_ecpkparameters :            function(group: PEC_GROUP; params: PEC_PKPARAMETERS): PEC_PKPARAMETERS; cdecl = nil; { V8.40 }
-    EC_GROUP_get_mont_data :                 function(group: PEC_GROUP): PBN_MONT_CTX; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_order :                     function(group: PEC_GROUP; order: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_pentanomial_basis :         function(group: PEC_GROUP; k1, k2, k3: Pinteger): integer; cdecl = Nil;     { V8.40 }   { V8.66 var gone }
-    EC_GROUP_get_point_conversion_form :     function(group: PEC_GROUP): integer ; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_seed_len :                  function(group: PEC_GROUP): SIZE_T; cdecl = Nil;     { V8.40 }
-    EC_GROUP_get_trinomial_basis :           function(group: PEC_GROUP; k: PInteger): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_method_of :                     function(group: PEC_GROUP): PEC_METHOD; cdecl = Nil;                { V8.40 }
-    EC_GROUP_new :                           function(method: PEC_METHOD): PEC_GROUP; cdecl = Nil;               { V8.40 }
-    EC_GROUP_new_by_curve_name :             function(nid: integer): PEC_GROUP; cdecl = Nil;                     { V8.40 }
-    EC_GROUP_new_curve_GF2m :                function(p, a, b: PBIGNUM; ctx: PBN_CTX): PEC_GROUP; cdecl = Nil;   { V8.40 }
-    EC_GROUP_new_curve_GFp :                 function(p, a, b: PBIGNUM; ctx: PBN_CTX): PEC_GROUP; cdecl = Nil;   { V8.40 }
-    EC_GROUP_new_from_ecparameters :         function (params: PEC_PARAMETERS): PEC_GROUP; cdecl = Nil;          { V8.40 }
-    EC_GROUP_new_from_ecpkparameters :       function(params: PEC_PKPARAMETERS): PEC_GROUP; cdecl = Nil;         { V8.40 }
-    EC_GROUP_order_bits :                    function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_set_asn1_flag :                 procedure(group: PEC_GROUP; flag: integer); cdecl = Nil;     { V8.40 }
-    EC_GROUP_set_curve_GF2m :                function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
-    EC_GROUP_set_curve_GFp :                 function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
-    EC_GROUP_set_curve_name :                procedure(group: PEC_GROUP; nid: integer); cdecl = Nil;     { V8.40 }
-    EC_GROUP_set_generator :                 function(group: PEC_GROUP; generator: PEC_POINT; order, cofactor: PBIGNUM): integer; cdecl = Nil;     { V8.40 }
-    EC_GROUP_set_point_conversion_form :     procedure(group: PEC_GROUP; t_form: integer); cdecl = Nil;     { V8.40 }
-    EC_GROUP_set_seed :                      function(group: PEC_GROUP;  seed: PAnsiChar; len: size_t): size_t; cdecl = Nil;     { V8.40 }
-    EC_KEY_can_sign :                        function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
-    EC_KEY_check_key :                       function(key: PEC_KEY): Integer ; cdecl = Nil;                { V8.40 }
-    EC_KEY_clear_flags :                     procedure(key: PEC_KEY; flags: Integer) ; cdecl = Nil;         { V8.40 }
-    EC_KEY_copy :                            function(dst: PEC_KEY; src: PEC_KEY): PEC_KEY ; cdecl = Nil;  { V8.40 }
-    EC_KEY_dup :                             function(src: PEC_KEY): PEC_KEY; cdecl = Nil;                 { V8.40 }
-    EC_KEY_free :                            procedure (key: PEC_KEY); cdecl = nil;           { V8.07 }
-    EC_KEY_generate_key :                    function(key: PEC_KEY): Integer ; cdecl = Nil;                { V8.40 }
-    EC_KEY_get0_group :                      function(key: PEC_KEY): PEC_GROUP; cdecl = Nil;               { V8.40 }
-    EC_KEY_get0_private_key :                function(key: PEC_KEY): PBIGNUM ; cdecl = Nil;                { V8.40 }
-    EC_KEY_get0_public_key :                 function(key: PEC_KEY): PEC_POINT; cdecl = Nil;               { V8.40 }
-    EC_KEY_get_conv_form :                   function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
-    EC_KEY_get_enc_flags :                   function(key: PEC_KEY): DWord; cdecl = Nil;                   { V8.40 }
-    EC_KEY_get_ex_data :                     function(key: PEC_KEY; idx: Integer): Pointer; cdecl = Nil;   { V8.40 }
-    EC_KEY_get_flags :                       function(const key: PEC_KEY): Integer; cdecl = Nil;           { V8.40 }
-    EC_KEY_key2buf :                         function(key: PEC_KEY; cform: integer; pbuf: PPAnsiChar; ctx: PBN_CTX): integer; cdecl = Nil; { V8.40, V8.65 }
-    EC_KEY_new :                             function: PEC_KEY; cdecl = Nil;                              { V8.40 }
-    EC_KEY_new_by_curve_name :               function (nid: integer): PEC_KEY; cdecl = nil;   { V8.07 }
-    EC_KEY_oct2key :                         function(key: PEC_KEY; buf: PAnsiChar; len: integer; ctx: PBN_CTX): Integer; cdecl = Nil;    { V8.40 }
-    EC_KEY_oct2priv :                        function(key: PEC_KEY; buf: PAnsiChar; len: integer): Integer; cdecl = Nil;    { V8.40 }
-    EC_KEY_precompute_mult :                 function(key: PEC_KEY; ctx: PBN_CTX): Integer; cdecl = Nil;   { V8.40 }
-    EC_KEY_print :                           function(B: PBIO; const EC: PEC_KEY; Offset: Integer): Integer; cdecl = nil;//AG;
-    EC_KEY_priv2buf :                        function(key: PEC_KEY; pbuf: PPAnsiChar): integer; cdecl = Nil;                { V8.40, V8.65 }
-    EC_KEY_priv2oct :                        function(key: PEC_KEY; buf: PAnsiChar; len: integer): Integer; cdecl = Nil;    { V8.40 }
-    EC_KEY_set_asn1_flag :                   procedure(key: PEC_KEY; asn1_flag: Integer); cdecl = Nil;     { V8.40 }
-    EC_KEY_set_conv_form :                   procedure(key: PEC_KEY; cform: integer); cdecl = Nil;          { V8.40 }
-    EC_KEY_set_enc_flags :                   procedure(key: PEC_KEY; flags: DWord); cdecl = Nil;           { V8.40 }
-    EC_KEY_set_flags :                       procedure(key: PEC_KEY; flags: Integer) ; cdecl = Nil;         { V8.40 }
-    EC_KEY_set_group :                       function(key: PEC_KEY; group: PEC_GROUP): Integer; cdecl = Nil; { V8.40 }
-    EC_KEY_set_private_key :                 function(key: PEC_KEY; prv: PBIGNUM): Integer; cdecl = Nil;   { V8.40 }
-    EC_KEY_set_public_key :                  function(key: PEC_KEY; pub: PEC_POINT): Integer; cdecl = Nil; { V8.40 }
-    EC_KEY_set_public_key_affine_coordinates: function(key: PEC_KEY; x: PBIGNUM; y: PBIGNUM): Integer; cdecl = Nil;     { V8.40 }
-    EC_KEY_up_ref :                          function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
-    EC_METHOD_get_field_type :               function(method: PEC_METHOD): integer; cdecl = Nil;     { V8.40 }
-    EC_curve_nid2nist:                       function(nid: Integer): PAnsiChar; cdecl = Nil;                     { V8.40 }
-    EC_curve_nist2nid:                       function(ename: PAnsiChar): Integer; cdecl = Nil;                   { V8.40 }
-    EC_get_builtin_curves :                  function(items: TEC_BUILTIN_CURVES; nitems: size_t): size_t; cdecl = Nil;                    { V8.40 }
-    EC_POINT_get_affine_coordinates_GF2m :   function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    EC_POINT_get_affine_coordinates_GFp :    function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    EC_POINT_free :                          procedure(point: PEC_POINT); cdecl = Nil;                                                     { V8.65 }
-    EC_POINT_new :                           function(group: PEC_GROUP): PEC_POINT; cdecl = Nil;                                           { V8.65 }
-    EC_POINT_set_affine_coordinates_GF2m :   function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    EC_POINT_set_affine_coordinates_GFp :    function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    EC_POINT_method_of :                     function(point: PEC_POINT): PEC_METHOD; cdecl = Nil;                                         { V8.52 }
-    EC_POINT_oct2point :                     function(group: PEC_GROUP; p: PEC_POINT; buf: PAnsiChar; len: Integer;  ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    EC_POINT_point2oct :                     function(group: PEC_GROUP; p: PEC_POINT; form: TPoint_Conversion_Form_t; buf: PAnsiChar; len: Integer; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
-    ECDSA_SIG_free :                         procedure(sig: PECDSA_SIG); cdecl = Nil;          { V8.40 }
-    ECDSA_SIG_get0 :                         procedure(sig: PECDSA_SIG; r: PBIGNUM; s: PBIGNUM); cdecl = Nil;                       { V8.40 }
-    ECDSA_SIG_new :                          function: PECDSA_SIG; cdecl = Nil;                { V8.40 }
-    ECDSA_SIG_set0 :                         function(sig: PECDSA_SIG; r: PBIGNUM; s: PBIGNUM): PECDSA_SIG; cdecl = Nil;            { V8.40 }
-    ECDSA_do_sign :                          function(dgst: PAnsiChar; dgst_len: integer; eckey: PEC_KEY): PECDSA_SIG; cdecl = Nil; { V8.40 }
-    ECDSA_do_sign_ex :                       function(dgst: PAnsiChar; dgst_len: integer; kinv: PBIGNUM; rp: PBIGNUM; eckey: PEC_KEY): PECDSA_SIG; cdecl = Nil; { V8.40 }
-    ECDSA_do_verify :                        function(dgst: PAnsiChar; dgst_len: integer; sig: PECDSA_SIG; eckey: PEC_KEY): integer; cdecl = Nil;               { V8.40 }
-    ECDSA_sign :                             function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: PInteger; eckey: PEC_KEY): integer; cdecl = Nil;   { V8.40, V8.67 correct signlen }
-    ECDSA_sign_ex :                          function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: PInteger; kinv: PBIGNUM; rp: PBIGNUM; eckey: PEC_KEY): integer; cdecl = Nil;  { V8.40, V8.67 correct signlen }
-    ECDSA_sign_setup :                       function(eckey: PEC_KEY; ctc: PBN_CTX; kinv: PBIGNUM; rp: PBIGNUM): integer; cdecl = Nil;                           { V8.40 }
-    ECDSA_size :                             function(eckey: PEC_KEY): integer; cdecl = Nil;    { V8.40 }
-    ECDSA_verify :                           function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: integer; eckey: PEC_KEY): integer; cdecl = Nil;               { V8.40 }
     ERR_clear_error :                        procedure; cdecl = nil; //empties the current thread's error queue
     ERR_error_string :                       function(Err: Cardinal; Buf: PAnsiChar): PAnsiChar; cdecl = nil;
     ERR_error_string_n :                     procedure(Err: Cardinal; Buf: PAnsiChar; Len: size_t); cdecl = nil;
-    ERR_func_error_string:                   function (e: Cardinal): PAnsiChar; cdecl = nil;
     ERR_get_error :                          function: Cardinal; cdecl = nil;
-    ERR_get_error_line_data :                function(const FileName: PPAnsiChar; Line: PInteger; const Data: PPAnsiChar; Flags: PInteger): Cardinal; cdecl = nil;
     ERR_lib_error_string:                    function (e: Cardinal): PAnsiChar; cdecl = nil;   { V8.11 }
     ERR_load_crypto_strings:                 procedure; cdecl = nil;
     ERR_peek_error :                         function : Cardinal; cdecl = nil;
     ERR_peek_last_error :                    function : Cardinal; cdecl = nil;
     ERR_reason_error_string:                 function (e: Cardinal): PAnsiChar; cdecl = nil;
-    ERR_remove_state :                       procedure(ThreadID: Cardinal); cdecl = nil;
-    ERR_remove_thread_state :                procedure(tid: PCRYPTO_THREADID); cdecl = nil;
     EVP_BytesToKey :                         function(const type_: PEVP_CIPHER; const md: PEVP_MD; const salt: PAnsiChar; const data: PAnsiChar; datalen, count : Integer; key, iv: PAnsiChar): Integer; cdecl = nil;
     EVP_CIPHER_CTX_ctrl :                    function(ctx: PEVP_CIPHER_CTX; ctype: Integer; arg: Integer; ptr: Pointer): Integer; cdecl = nil;   { V8.40 }
     EVP_CIPHER_CTX_free :                    procedure(ctx: PEVP_CIPHER_CTX); cdecl = nil;
@@ -2094,12 +2032,11 @@ const
     EVP_MD_CTX_free :                        procedure(ctx: PEVP_MD_CTX); cdecl = Nil;                               { V8.40 }
     EVP_MD_CTX_copy :                        function(outp: PEVP_MD_CTX; inp: PEVP_MD_CTX): Integer; cdecl = Nil;    { V8.40 }
     EVP_MD_CTX_copy_ex :                     function(outp: PEVP_MD_CTX; inp: PEVP_MD_CTX): Integer; cdecl = Nil;    { V8.40 }
-    EVP_MD_type :                            function(md: PEVP_MD): Integer; cdecl = Nil;                       { V8.40, note exported as EVP_MD_get_type with 3.0 }
-    EVP_MD_pkey_type :                       function(md: PEVP_MD): Integer; cdecl = Nil;                       { V8.40, note exported as EVP_MD_get_pkey_type with 3.0 }
-    EVP_MD_size :                            function(md: PEVP_MD): Integer; cdecl = Nil;                       { V8.40, note exported as EVP_MD_get_size with 3.0 }
-    EVP_MD_block_size :                      function(md: PEVP_MD): Integer; cdecl = Nil;                       { V8.40, note exported as EVP_MD_get_blocksize with 3.0 }
-    EVP_MD_flags :                           function(md: PEVP_MD): Integer; cdecl = Nil;                       { V8.40, note exported as EVP_MD_get_flags with 3.0 }
-    EVP_MD_CTX_md :                          function(ctx: PEVP_MD_CTX): PEVP_MD; cdecl = Nil;                  { V8.40 }
+    EVP_MD_get_type :                        function(md: PEVP_MD): Integer; cdecl = Nil;                            { V9.4 using 3.0 name, not old name }
+    EVP_MD_get_pkey_type :                   function(md: PEVP_MD): Integer; cdecl = Nil;                            { V9.4 using 3.0 name, not old name }
+    EVP_MD_get_size :                        function(md: PEVP_MD): Integer; cdecl = Nil;                            { V9.4 using 3.0 name, not old name }
+    EVP_MD_get_block_size :                  function(md: PEVP_MD): Integer; cdecl = Nil;                            { V9.4 using 3.0 name, not old name }
+    EVP_MD_get_flags :                       function(md: PEVP_MD): Integer; cdecl = Nil;                            { V9.4 using 3.0 name, not old name }
     EVP_PKEY_CTX_ctrl :                      function(pctx: PEVP_PKEY_CTX; keytype: Integer; optype: Integer; cmd: Integer; p1: Integer; p2: Pointer): Integer; cdecl = Nil; { V8.49 }
     EVP_PKEY_CTX_ctrl_str :                  function(pctx: PEVP_PKEY_CTX; typestr: PAnsichar; valuestr: PAnsiChar): Integer; cdecl = Nil;   { V8.49 }
     EVP_PKEY_CTX_dup :                       function(pctx: PEVP_PKEY_CTX): PEVP_PKEY_CTX; cdecl = Nil;             { V8.49 }
@@ -2115,10 +2052,8 @@ const
     EVP_PKEY_CTX_set_app_data :              procedure(pctx: PEVP_PKEY_CTX; data: Pointer); cdecl = Nil;            { V8.49 }
     EVP_PKEY_CTX_set_cb :                    procedure(pctx: PEVP_PKEY_CTX; cb: Pointer); cdecl = Nil;              { V8.49 }
     EVP_PKEY_CTX_str2ctrl :                  function(pctx: PEVP_PKEY_CTX; cmd: Integer; estr: PAnsichar): Integer; cdecl = Nil;     { V8.49 }
-    EVP_PKEY_assign :                        function(PKey: PEVP_PKEY; Type_: Integer; Key: Pointer): Integer; cdecl = nil;//AG  V8.65 make it pointer for casting
-    EVP_PKEY_base_id :                       function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                       { V8.40, note exported as EVP_PKEY_get_base_id)with 3.0 }
-    EVP_PKEY_bits :                          function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                       { exported as EVP_PKEY_get_bits with 3.0 }
-    EVP_PKEY_cmp :                           function(a, b: PEVP_PKEY): Integer; cdecl = nil;                        { V8.65 }
+    EVP_PKEY_get_base_id :                   function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                       { V9.4 using 3.0 name, not old name }
+    EVP_PKEY_get_bits :                      function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                       { V9.4 using 3.0 name, not old name }
     EVP_PKEY_decrypt :                       function(pctx: PEVP_PKEY_CTX; eout: PAnsiChar; outlen: Psize_t; const ein: PAnsiChar; inlen: size_t): Integer; cdecl = Nil; { V8.49 }  { V8.66 var gone }
     EVP_PKEY_decrypt_init :                  function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                   { V8.49 }
     EVP_PKEY_derive :                        function(pctx: PEVP_PKEY_CTX; key: PAnsiChar; keylen: size_t): Integer; cdecl = Nil;    { V8.49 }
@@ -2127,38 +2062,35 @@ const
     EVP_PKEY_encrypt :                       function(pctx: PEVP_PKEY_CTX; eout: PAnsiChar; outlen: Psize_t; const ein: PAnsiChar; inlen: size_t): Integer; cdecl = Nil; { V8.49 }   { V8.66 var gone }
     EVP_PKEY_encrypt_init :                  function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                   { V8.49 }
     EVP_PKEY_free :                          procedure(PKey: PEVP_PKEY); cdecl = nil;//AG
-    EVP_PKEY_generate :                      function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;         { V8.67 }
-    EVP_PKEY_get0 :                          function(PKey: PEVP_PKEY): Pointer; cdecl = nil;//AG
-    EVP_PKEY_get1_DH :                       function (pkey: PEVP_PKEY): PDH; cdecl = nil; //Angus
-    EVP_PKEY_get1_DSA :                      function (pkey: PEVP_PKEY): PDSA; cdecl = nil; //Angus
-    EVP_PKEY_get1_EC_KEY :                   function (pkey: PEVP_PKEY): PEC_KEY; cdecl = nil; //Angus
-    EVP_PKEY_get1_RSA :                      function (pkey: PEVP_PKEY): PRSA; cdecl = nil; //Angus
-    EVP_PKEY_get_raw_private_key :           function(PKey: PEVP_PKEY; privkey: PAnsiChar; outlen: Psize_t): Integer; cdecl = nil;           { V8.64 }  { V8.66 var gone }
-    EVP_PKEY_get_raw_public_key :            function(PKey: PEVP_PKEY; pubkey: PAnsiChar; outlen: Psize_t): Integer; cdecl = nil;            { V8.64 }  { V8.66 var gone }
-    EVP_PKEY_id :                            function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                               { V8.64, exported as EVP_PKEY_get_id with 3.0 }
-    EVP_PKEY_keygen :                        function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;      { V8.49 }   { V8.66 var gone }
-    EVP_PKEY_keygen_init :                   function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                           { V8.49 }
+    EVP_PKEY_generate :                      function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;   { V8.67 }
+    EVP_PKEY_get_id :                        function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                                           { V9.4 using 3.0 name, not old name }
+    EVP_PKEY_get_group_name :                function(PKey: PEVP_PKEY; gname: PAnsiChar; gname_sz: Size_t; gname_len: Psize_t): Integer; cdecl = nil; { V9.5 }
+    EVP_PKEY_get_raw_private_key :           function(PKey: PEVP_PKEY; privkey: PAnsiChar; outlen: Psize_t): Integer; cdecl = nil;      { V8.64 }  { V8.66 var gone }
+    EVP_PKEY_get_raw_public_key :            function(PKey: PEVP_PKEY; pubkey: PAnsiChar; outlen: Psize_t): Integer; cdecl = nil;       { V8.64 }  { V8.66 var gone }
+    EVP_PKEY_keygen :                        function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;                     { V8.49 }   { V8.66 var gone }
+    EVP_PKEY_keygen_init :                   function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                                       { V8.49 }
     EVP_PKEY_new :                           function: PEVP_PKEY; cdecl = nil;//AG
     EVP_PKEY_new_mac_key :                   function(keytype: Integer; eng: PEngine; key: PAnsiChar; keylen: Integer): PEVP_PKEY;  cdecl = Nil;  { V8.49 }
-    EVP_PKEY_new_raw_private_key :           function(keytype: Integer; eng: PEngine; key: PAnsiChar; keylen: Integer): PEVP_PKEY; cdecl = nil; { V8.64 }
-    EVP_PKEY_new_raw_public_key :            function(keytype: Integer; eng: PEngine; key: PAnsiChar; keylen: Integer): PEVP_PKEY; cdecl = nil; { V8.64 }
-    EVP_PKEY_paramgen :                      function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;         { V8.49, V8.65 now PPEVP_PKEY }
-    EVP_PKEY_paramgen_init :                 function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                           { V8.49 }
+    EVP_PKEY_new_raw_private_key :           function(keytype: Integer; eng: PEngine; key: PAnsiChar; keylen: Integer): PEVP_PKEY; cdecl = nil;   { V8.64 }
+    EVP_PKEY_new_raw_public_key :            function(keytype: Integer; eng: PEngine; key: PAnsiChar; keylen: Integer): PEVP_PKEY; cdecl = nil;   { V8.64 }
+    EVP_PKEY_paramgen :                      function(pctx: PEVP_PKEY_CTX; pkey: PPEVP_PKEY): Integer; cdecl = Nil;                               { V8.49, V8.65 now PPEVP_PKEY }
+    EVP_PKEY_paramgen_init :                 function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;                                                 { V8.49 }
     EVP_PKEY_print_params :                  function (outbio: PBIO; pkey: PEVP_PKEY; indent: Integer; pctx: PASN1_PCTX): Integer; cdecl = Nil;        { V8.40 }
     EVP_PKEY_print_private :                 function (outbio: PBIO; pkey: PEVP_PKEY; indent: Integer; pctx: PASN1_PCTX): Integer; cdecl = Nil;        { V8.40 }
     EVP_PKEY_print_public :                  function (outbio: PBIO; pkey: PEVP_PKEY; indent: Integer; pctx: PASN1_PCTX): Integer; cdecl = Nil;        { V8.40 }
-    EVP_PKEY_security_bits :                 function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                             { V8.51, exported as EVP_PKEY_get_security_bits with 3.0 }
-//    EVP_PKEY_set_alias_type :                function(Pkey: PEVP_PKEY; ptype: Integer): Integer; cdecl = nil;             { V8.64, gone V8.67 never used }
-    EVP_PKEY_set1_EC_KEY :                   function (pkey: PEVP_PKEY; _ECkey: PEC_KEY ): integer; cdecl = nil;            { V8.65 }
-    EVP_PKEY_set1_RSA :                      function (pkey: PEVP_PKEY; _RSAkey: PRSA ): integer; cdecl = nil;              { V8.64 }
+    EVP_PKEY_get_security_bits :             function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                            { V9.4 using 3.0 name, not old name }
     EVP_PKEY_sign :                          function(pctx: PEVP_PKEY_CTX; sig: PAnsiChar; siglen: Psize_t; tbs: PAnsiChar; tbslen: size_t): Integer; cdecl = Nil;      { V8.49 }   { V8.66 var gone }
     EVP_PKEY_sign_init :                     function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;      { V8.49 }
-    EVP_PKEY_size :                          function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                             { exported as EVP_PKEY_size with 3.0 }
+    EVP_PKEY_get_size :                      function(Pkey: PEVP_PKEY): Integer; cdecl = nil;                            { V9.4 using 3.0 name, not old name }
     EVP_PKEY_up_ref :                        function(Pkey: PEVP_PKEY): Integer; cdecl = nil;          { V8.52 }
     EVP_PKEY_verify :                        function(pctx: PEVP_PKEY_CTX; sig: PAnsiChar; siglen: size_t; tbs: PAnsiChar; tbslen: size_t): Integer; cdecl = Nil;      { V8.49 }
     EVP_PKEY_verify_init :                   function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;      { V8.49 }
     EVP_PKEY_verify_recover :                function(pctx: PEVP_PKEY_CTX; rout: PAnsiChar; routlen: Psize_t; const sig: PAnsiChar; siglen: size_t): Integer; cdecl = Nil;      { V8.49 }  { V8.66 var gone }
     EVP_PKEY_verify_recover_init :           function(pctx: PEVP_PKEY_CTX): Integer; cdecl = Nil;      { V8.49 }
+    EVP_PKEY_missing_parameters:             function(Pkey: PEVP_PKEY): Integer; cdecl = Nil;                      { V9.5 }
+    EVP_PKEY_copy_parameters:                function(Pkey: PEVP_PKEY; FromKey: PEVP_PKEY): Integer; cdecl = Nil;  { V9.5 }
+    EVP_PKEY_parameters_eq:                  function(Pkey: PEVP_PKEY; Bkey: PEVP_PKEY): Integer; cdecl = Nil;     { V9.5 }
+    EVP_PKEY_eq:                             function(Pkey: PEVP_PKEY; Bkey: PEVP_PKEY): Integer; cdecl = Nil;     { V9.5 }
     EVP_SignFinal :                          function(ctx: PEVP_MD_CTX; md: PByte; s: PInteger; pkey: PEVP_PKEY): Integer; cdecl = Nil;        { V8.40, V8.64 corrected declaration }  { V8.66 var gone }
     EVP_VerifyFinal :                        function(ctx: PEVP_MD_CTX; sigbuf: PByte; siglen: Integer; pkey: PEVP_PKEY): Integer; cdecl = Nil;      { V8.40, V8.64 corrected declaration }
     EVP_aes_128_cbc :                        function: PEVP_CIPHER; cdecl = nil;
@@ -2195,12 +2127,7 @@ const
     EVP_enc_null :                           function: PEVP_CIPHER; cdecl = nil; { V8.40 }
     EVP_get_cipherbyname :                   function(name: PAnsiChar): PEVP_CIPHER; cdecl = nil;//AG
     EVP_get_digestbyname :                   function(name: PAnsiChar): PEVP_MD; cdecl = Nil;                   { V8.40 }
-    EVP_idea_cbc :                           function: PEVP_CIPHER; cdecl = nil; { V8.40 }
-    EVP_idea_cfb64 :                         function: PEVP_CIPHER; cdecl = nil; { V8.40 }
-    EVP_idea_ecb :                           function: PEVP_CIPHER; cdecl = nil; { V8.40 }
-    EVP_idea_ofb :                           function: PEVP_CIPHER; cdecl = nil; { V8.40 }
     EVP_md5 :                                function: PEVP_MD; cdecl = nil;//AG
-    EVP_mdc2 :                               function: PEVP_MD; cdecl = nil;     { V8.40 }
     EVP_sha1 :                               function: PEVP_MD; cdecl = nil;//AG
     EVP_sha224 :                             function: PEVP_MD; cdecl = nil;     { V8.40 }
     EVP_sha256 :                             function: PEVP_MD; cdecl = nil;//AG
@@ -2220,10 +2147,10 @@ const
     HMAC :                                   function(evp: pEVP_MD; key: PByte; key_len: integer; data: PByte; data_len: integer; md: PByte; md_len: Pinteger): PByte; cdecl = nil;    { V8.03 }  { V8.66 var gone }
     OBJ_create :                             function(oid, sn, ln: PAnsiChar): Integer; cdecl = nil;  { V8.62 }
     OBJ_nid2ln :                             function(N: Integer): PAnsiChar; cdecl = nil;
-    OBJ_nid2obj :                            function(N: Integer): PASN1_OBJECT; cdecl = nil;    { V8.40 }
+    OBJ_nid2obj :                            function(N: Integer): PASN1_OBJECT; cdecl = nil;         { V8.40 }
     OBJ_nid2sn :                             function(N: Integer): PAnsiChar; cdecl = nil;
     OBJ_obj2nid :                            function(O: PASN1_OBJECT): Integer; cdecl = nil;
-
+    OBJ_txt2nid :                            function(ln: PAnsiChar): Integer; cdecl = nil;           { V9.5 }
     OCSP_BASICRESP_add1_ext_i2d :            function(x: POCSP_BASICRESP; nid: Integer; Value: pointer; crit: Integer; Flags: LongWord): Integer; cdecl = nil; { V8.69 }
     OCSP_BASICRESP_add_ext :                 function(x: POCSP_BASICRESP; Ex: PX509_EXTENSION; loc: Integer): Integer; cdecl = nil; { V8.69 }
     OCSP_BASICRESP_delete_ext :              function(x: POCSP_BASICRESP; loc: Integer): PX509_EXTENSION; cdecl = nil; { V8.69 }
@@ -2335,7 +2262,6 @@ const
     i2d_OCSP_CRLID :                         function(a: POCSP_CRLID; Output: PPAnsiChar): Integer; cdecl = nil;     { V8.69 }
     i2d_OCSP_REQUEST :                       function(a: POCSP_REQUEST; Output: PPAnsiChar): Integer; cdecl = nil;   { V8.69 }
     i2d_OCSP_RESPONSE :                      function(a: POCSP_RESPONSE; Output: PPAnsiChar): Integer; cdecl = nil;  { V8.69 }
-
     OPENSSL_sk_delete :                      function(Stack: PSTACK; Item: Integer): PAnsiChar; cdecl = nil;//AG;
     OPENSSL_sk_dup :                         function(Stack: PSTACK): PSTACK; cdecl = nil;//AG;
     OPENSSL_sk_find :                        function(Stack: PSTACK; Data: PAnsiChar): Integer; cdecl = nil;//AG;
@@ -2352,24 +2278,16 @@ const
     OpenSSL_version_num :                    function: Cardinal; cdecl = nil;               { V8.27  }
     PEM_X509_INFO_read_bio :                 function(B: PBIO; Stack: PSTACK_OF_X509_INFO; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PSTACK_OF_X509_INFO; cdecl = nil;//AG;   { V8.27 was PAnsiChar }
     PEM_do_header :                          function(cipher: PEVP_CIPHER_INFO; data: PAnsiChar; len: PInteger; callback: Pointer{TPem_password_cb}; u: Pointer): Integer; cdecl = nil;//AG;  { V8.66 var gone }
-    PEM_read_bio_DHparams :                  function(B: PBIO; X: PPDH; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PDH; cdecl = nil;  { V8.07 }  { V8.27 was PAnsiChar }
     PEM_read_bio_PKCS7 :                     function(B: PBIO; X: PPPKCS7; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PPKCS7; cdecl = nil;//AG; { V8.27 was PAnsiChar }
     PEM_read_bio_PrivateKey :                function(B: PBIO; X: PPEVP_PKEY; CB: Pointer{TPem_password_cb}; UData: Pointer): PEVP_PKEY; cdecl = nil; //AG   { V8.27 was PAnsiChar }
     PEM_read_bio_PUBKEY :                    function(B: PBIO; X: PPEVP_PKEY; CB: Pointer{TPem_password_cb}; UData: Pointer): PEVP_PKEY; cdecl = nil;         { V8.40 }
-    PEM_read_bio_RSAPrivateKey :             function(B: PBIO; x: PPRSA; cb: Pointer{TPem_password_cb}; u: pointer): PRSA; cdecl = nil;
-    PEM_read_bio_RSAPublicKey :              function(B: PBIO; x: PPRSA; CB: Pointer{TPem_password_cb}; UData: Pointer): PEVP_PKEY; cdecl = nil;              { V8.40 }
-    PEM_read_bio_RSA_PUBKEY :                function(B: PBIO; x: PPRSA; cb: Pointer{TPem_password_cb}; u: pointer): PRSA; cdecl = nil;        { V8.11 }
     PEM_read_bio_X509 :                      function(B: PBIO; C509: PPX509; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PX509; cdecl = nil;     { V8.27 was PAnsiChar }
     PEM_read_bio_X509_CRL :                  function(B: PBIO; CRL: PPX509_CRL; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PX509_CRL; cdecl = nil;//AG    { V8.27 was PAnsiChar }
     PEM_read_bio_X509_REQ :                  function(B: PBIO; X: PPX509_REQ; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PX509_REQ; cdecl = nil;   { V8.40 }
-    PEM_write_bio_DHparams :                 function(B: PBIO; X: PDH): Integer; cdecl = nil;                  { V8.40 }
     PEM_write_bio_PKCS7 :                    function(B: PBIO; P7: PPKCS7): Integer; cdecl = nil;
     PEM_write_bio_PKCS8PrivateKey :          function(B: PBIO; X: PEVP_PKEY; const Enc: PEVP_CIPHER; Kstr: PAnsiChar; Klen: Integer; CallBack: Pointer{TPem_password_cb}; U: Pointer): Integer; cdecl = nil; { V8.40 }
     PEM_write_bio_PUBKEY :                   function(B: PBIO; X: PEVP_PKEY): Integer; cdecl = nil;            { V8.40 }
     PEM_write_bio_PrivateKey :               function(B: PBIO; X: PEVP_PKEY; const Enc: PEVP_CIPHER; Kstr: PAnsiChar; Klen: Integer; CallBack: Pointer{TPem_password_cb}; U: Pointer): Integer; cdecl = nil;//AG
-    PEM_write_bio_RSAPrivateKey :            function(B: PBIO; X: PRSA; const Enc: PEVP_CIPHER; Kstr: PAnsiChar; Klen: Integer; CallBack: Pointer{TPem_password_cb}; U: Pointer): Integer; cdecl = nil; { V8.12 }
-    PEM_write_bio_RSAPublicKey :             function(B: PBIO; X: PRSA): Integer; cdecl = nil; { V8.12 }
-    PEM_write_bio_RSA_PUBKEY :               function(B: PBIO; X: PRSA): Integer; cdecl = nil; { V8.40 }
     PEM_write_bio_X509 :                     function(B: PBIO; Cert: PX509): Integer; cdecl = nil;
     PEM_write_bio_X509_CRL :                 function(B: PBIO; CRL: PX509_CRL) : Integer; cdecl = nil;
     PEM_write_bio_X509_REQ :                 function(B: PBIO; Cert_Req: PX509_REQ) : Integer; cdecl = nil;
@@ -2390,34 +2308,10 @@ const
     RAND_cleanup :                           procedure; cdecl = nil;              { gone V8.27 }
     RAND_load_file :                         function(const FileName: PAnsiChar; Max_Bytes: Integer): Integer; cdecl = nil;
     RAND_poll :                              function: Integer; cdecl = nil;
-    RAND_screen :                            procedure; cdecl = nil;
+//  RAND_screen :                            procedure; cdecl = nil;                { V9.2 gone, deprecated 1.1.0 }
     RAND_seed :                              procedure(Buf: Pointer; Num: Integer); cdecl = nil;
     RAND_status :                            function: Integer; cdecl = nil;
     RAND_write_file :                        function(const FileName: PAnsiChar): Integer; cdecl = nil;
-    RSA_clear_flags :                        procedure(Rsa: PRSA; flags: Integer); cdecl = nil;   { V8.52 }
-    RSA_free :                               procedure(RSA: PRSA); cdecl = nil;
-    RSA_generate_key :                       function(Num: Integer; E: Cardinal; CallBack: Pointer{TRSA_genkey_cb}; cb_arg: Pointer): PRSA; cdecl = nil;//AG
-    RSA_generate_key_ex :                    function(Rsa: PRSA; Bits: Integer; e: Pointer; cb: PBN_GENCB): Integer; cdecl = nil; //Angus  { V8.03 }
-    RSA_get_version :                        function(Rsa: PRSA): Integer; cdecl = nil;          { V8.52 1.1.1 or later }
-    RSA_get0_engine :                        function(Rsa: PRSA): PENGINE; cdecl = nil;          { V8.52 }
-    RSA_get0_key :                           procedure(Rsa: PRSA; n, e, d: PPBIGNUM); cdecl = nil;  { V8.52 }   { V8.66 var gone }
-    RSA_get0_factors :                       procedure(Rsa: PRSA; p, q: PPBIGNUM); cdecl = nil;  { V8.52 }   { V8.66 var gone }
-    RSA_get_multi_prime_extra_count :        function(Rsa: PRSA): Integer; cdecl = nil;             { V8.52 1.1.1 or later }
-    RSA_get0_multi_prime_factors :           function(Rsa: PRSA; primes: PPBIGNUMS): Integer; cdecl = nil;  { V8.52 1.1.1 or later }   { V8.66 var gone }
-    RSA_get0_crt_params :                    procedure(Rsa: PRSA; dmp1, dmq1, iqmp: PPBIGNUM); cdecl = nil;  { V8.52 all set0/get0 1.1.0 or later }  { V8.66 var gone }
-    RSA_get0_multi_prime_crt_params :        function(Rsa: PRSA; exps, coeffs: PPBIGNUMS): Integer; cdecl = nil;       { V8.52 }   { V8.66 var gone }
-    RSA_new :                                function: PRSA; cdecl = nil;            { V8.03 }
-    RSA_print :                              function(B: PBIO; Rsa: PRSA; Offset: Integer): Integer; cdecl = nil;//AG;
-    RSA_private_decrypt :                    function(flen: Integer; from: PAnsiChar; to_: PAnsiChar; rsa: PRSA; padding: Integer): Integer; cdecl = nil;
-    RSA_public_encrypt :                     function(flen: Integer; from: PAnsiChar; to_: PAnsiChar; rsa: PRSA; padding: Integer): Integer; cdecl = nil;
-    RSA_size :                               function(Rsa: PRSA): Integer; cdecl = nil; //Angus
-    RSA_set_flags :                          procedure(Rsa: PRSA; flags: Integer); cdecl = nil;  { V8.52 }
-    RSA_set0_key :                           function(Rsa: PRSA; n: PBIGNUM; e: PBIGNUM; d: PBIGNUM): Integer; cdecl = nil;  { V8.52 }
-    RSA_set0_factors :                       function(Rsa: PRSA; p: PBIGNUM; q: PBIGNUM): Integer; cdecl = nil;  { V8.52 }
-    RSA_set0_crt_params :                    function(Rsa: PRSA; dmp1: PBIGNUM; dmq1: PBIGNUM; iqmp: PBIGNUM): Integer; cdecl = nil;  { V8.52 1.1.1 or later }
-    RSA_set0_multi_prime_params :            function(Rsa: PRSA; primes: PBIGNUMS; exps: PBIGNUMS; coeffs: PBIGNUMS; pnum: Integer): Integer; cdecl = nil;  { V8.52 }
-    RSA_test_flags :                         function(Rsa: PRSA; flags: Integer): Integer; cdecl = nil;  { V8.52 }
-    RSA_up_ref :                             function(Rsa: PRSA): Integer; cdecl = nil;          { V8.65 }
     X509V3_EXT_conf_nid :                    function(Conf: PLHASH; Ctx: PX509V3_CTX; ext_nid: Integer; value: PAnsiChar): PX509_EXTENSION; cdecl = nil;
     X509V3_EXT_d2i :                         function(Ext: PX509_EXTENSION): Pointer; cdecl = nil;//AG;
     X509V3_EXT_get :                         function(Ext: PX509_EXTENSION): PX509V3_EXT_METHOD; cdecl = nil;
@@ -2556,6 +2450,7 @@ const
     X509_get_ext_count :                     function(Cert: PX509): Integer; cdecl = nil;
     X509_get_issuer_name :                   function(Cert: PX509): PX509_NAME; cdecl = nil;
     X509_get_pubkey :                        function(Cert: PX509): PEVP_PKEY; cdecl = nil; //AG;
+    X509_get_X509_PUBKEY :                   function(Cert: PX509): PX509_PUBKEY; cdecl = nil;  { V9.1 }
     X509_get_serialNumber :                  function(Cert: PX509): PASN1_INTEGER; cdecl = nil;
     X509_get_signature_nid :                 function(X: PX509): Integer; cdecl = nil;      { V8.32 OpenSSL 1.1.0 some macros are now exported functions }
     X509_get_subject_name :                  function(Cert: PX509): PX509_NAME; cdecl = nil;
@@ -2585,7 +2480,6 @@ const
     d2i_PUBKEY :                             function(a: PPEVP_PKEY; pp: PPAnsiChar; Len: Integer): PEVP_PKEY; cdecl = nil; { V8.64 }   { V8.66 var gone }
     d2i_PUBKEY_bio :                         function(B: PBIO; a: PPEVP_PKEY): PEVP_PKEY; cdecl = nil;                         { V8.64 }
     d2i_PublicKey :                          function(keytype: Integer; a: PPEVP_PKEY; Buf: PPAnsiChar; Len: Integer): PEVP_PKEY; cdecl = nil; { V8.52 }   { V8.66 var gone }
-    d2i_RSAPrivateKey:                       function(a: PPRSA; pp: PPByte; length: Integer): PRSA; cdecl = nil;   { V8.66 var gone }
     d2i_X509 :                               function(C509: PPX509; Buf: PPAnsiChar; Len: Integer): PX509; cdecl = nil;
     d2i_X509_REQ :                           function(CReq: PPX509_REQ; Buf: PPAnsiChar; Len: Integer): PX509; cdecl = nil;   { V8.40 }
     d2i_X509_REQ_bio :                       function(B: PBIO; Req: PPX509_REQ): PX509_REQ; cdecl = nil;                     { V8.40 }
@@ -2597,23 +2491,179 @@ const
     i2d_PKCS8PrivateKey_bio :                function(B: PBIO; pkey: PEVP_PKEY; const Enc: PEVP_CIPHER; Kstr: PAnsiChar; Klen: Integer; CallBack: Pointer; U: Pointer): Integer; cdecl = nil;  { V8.67 }
     i2d_PrivateKey :                         function(A: PEVP_PKEY; PP: PPAnsiChar): Integer; cdecl = nil;//AG
     i2d_PrivateKey_bio :                     function(B: PBIO; pkey: PEVP_PKEY): Integer; cdecl = nil;//AG
-    i2d_PUBKEY :                             function(a: PEVP_PKEY; pp: PPAnsiChar): Integer; cdecl = nil;                     { V8.64 }
-    i2d_PUBKEY_bio :                         function(B: PBIO;a: PEVP_PKEY): Integer; cdecl = nil;                             { V8.64 }
+    i2d_PUBKEY :                             function(a: PEVP_PKEY; pp: PPAnsiChar): Integer; cdecl = nil;                   { V8.64 }
+    i2d_PUBKEY_bio :                         function(B: PBIO;a: PEVP_PKEY): Integer; cdecl = nil;                           { V8.64 }
     i2d_PublicKey :                          function(a: PEVP_PKEY; pp: PPAnsiChar): Integer; cdecl = nil;                   { V8.52 }
-    i2d_RSAPublicKey:                        function(a: PRSA; pp: PPByte): Integer; cdecl = nil;             { V8.66 var gone }
-    i2d_RSA_PUBKEY:                          function(a: PRSA; pp: PPByte): Integer; cdecl = nil;              { V8.66 var gone }
     i2d_X509 :                               function(Cert: PX509; pOut: PPAnsiChar): Integer; cdecl = nil;//AG
+    i2d_X509_PUBKEY_bio :                    function(B: PBIO; PubKey: PX509_PUBKEY): Integer; cdecl = nil;                  { V9.1 }
     i2d_X509_REQ :                           function(Req: PX509_REQ; pOut: PPAnsiChar): Integer; cdecl = nil;               { V8.40 }
     i2d_X509_REQ_bio :                       function(B: PBIO; Req: PX509_REQ): Integer; cdecl = nil;                        { V8.40 }
     i2d_X509_bio :                           function(B: PBIO; X509: PX509): Integer; cdecl = nil;
+
+{$IFDEF OpenSSL_Deprecated}    { V9.5 }
+{ V9.5 exports deprecated in OpenSSL 3.0 but may still be needed by applications }
+    DH_free :                                procedure(dh: PDH) cdecl = nil;  { V8.07 }
+    DH_check :                               function(dh: PDH; codes: PInteger): Integer; cdecl = Nil;       { V8.40 }   { V8.66 var gone }
+    DH_generate_parameters_ex :              function(dh: PDH; prime_len: Integer; generator: Integer; cb: PBN_GENCB): Integer; cdecl = Nil;  { V8.40 }
+    DH_new :                                 function: PDH;  cdecl = nil;                                       { V8.40 }
+    DH_size :                                function(Dh: PDH): Integer; cdecl = nil;   //Angus
+    DSA_free :                               procedure(DSA: PDSA); cdecl = nil;   //Angus
+    DSA_print :                              function(B: PBIO; Dsa: PDSA; Offset: Integer): Integer; cdecl = nil;//AG;
+    DSA_size :                               function(Dsa: PDSA): Integer; cdecl = nil; //Angus
+    EC_GROUP_clear_free :                    procedure(group: PEC_GROUP); cdecl = nil;                           { V8.40 } { V9.4 gone }
+    EC_GROUP_get_curve_gf2m :                function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 } { V9.4 gone }
+    EC_GROUP_get_curve_gfp :                 function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
+    EC_GROUP_new :                           function(method: PEC_METHOD): PEC_GROUP; cdecl = Nil;               { V8.40 }
+    EC_GROUP_set_curve_GF2m :                function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
+    EC_GROUP_set_curve_GFp :                 function(group: PEC_GROUP; p, a, b: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;    { V8.40 }
+    EC_GROUP_check :                         function(group: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_check_discriminant :            function(group: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_cmp :                           function(agroup, bgroup: PEC_GROUP; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_copy :                          function(dst: PEC_GROUP; src: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_dup :                           function(src: PEC_GROUP): PEC_GROUP; cdecl = Nil;                   { V8.40 }
+    EC_GROUP_free :                          procedure(group: PEC_GROUP); cdecl = nil;                           { V8.40 }
+    EC_GROUP_get0_cofactor :                 function(group: PEC_GROUP): PBIGNUM; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get0_generator :                function(group: PEC_GROUP): PEC_POINT; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get0_order :                    function(group: PEC_GROUP): PBIGNUM; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get0_seed :                     function(group: PEC_GROUP): PAnsiChar; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_asn1_flag :                 function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_basis_type :                function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_cofactor :                  function(group: PEC_GROUP; cofactor: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_curve_name :                function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_degree :                    function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_ecparameters :              function(group: PEC_GROUP; params: PEC_PARAMETERS): PEC_PARAMETERS; cdecl = nil;     { V8.40 }
+    EC_GROUP_get_ecpkparameters :            function(group: PEC_GROUP; params: PEC_PKPARAMETERS): PEC_PKPARAMETERS; cdecl = nil; { V8.40 }
+    EC_GROUP_get_mont_data :                 function(group: PEC_GROUP): PBN_MONT_CTX; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_order :                     function(group: PEC_GROUP; order: PBIGNUM; ctx: PBN_CTX): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_pentanomial_basis :         function(group: PEC_GROUP; k1, k2, k3: Pinteger): integer; cdecl = Nil;     { V8.40 }   { V8.66 var gone }
+    EC_GROUP_get_point_conversion_form :     function(group: PEC_GROUP): integer ; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_seed_len :                  function(group: PEC_GROUP): SIZE_T; cdecl = Nil;     { V8.40 }
+    EC_GROUP_get_trinomial_basis :           function(group: PEC_GROUP; k: PInteger): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_method_of :                     function(group: PEC_GROUP): PEC_METHOD; cdecl = Nil;                { V8.40 }
+    EC_GROUP_new_by_curve_name :             function(nid: integer): PEC_GROUP; cdecl = Nil;                     { V8.40 }
+    EC_GROUP_new_curve_GF2m :                function(p, a, b: PBIGNUM; ctx: PBN_CTX): PEC_GROUP; cdecl = Nil;   { V8.40 }
+    EC_GROUP_new_curve_GFp :                 function(p, a, b: PBIGNUM; ctx: PBN_CTX): PEC_GROUP; cdecl = Nil;   { V8.40 }
+    EC_GROUP_new_from_ecparameters :         function (params: PEC_PARAMETERS): PEC_GROUP; cdecl = Nil;          { V8.40 }
+    EC_GROUP_new_from_ecpkparameters :       function(params: PEC_PKPARAMETERS): PEC_GROUP; cdecl = Nil;         { V8.40 }
+    EC_GROUP_order_bits :                    function(group: PEC_GROUP): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_set_asn1_flag :                 procedure(group: PEC_GROUP; flag: integer); cdecl = Nil;     { V8.40 }
+    EC_GROUP_set_curve_name :                procedure(group: PEC_GROUP; nid: integer); cdecl = Nil;     { V8.40 }
+    EC_GROUP_set_generator :                 function(group: PEC_GROUP; generator: PEC_POINT; order, cofactor: PBIGNUM): integer; cdecl = Nil;     { V8.40 }
+    EC_GROUP_set_point_conversion_form :     procedure(group: PEC_GROUP; t_form: integer); cdecl = Nil;     { V8.40 }
+    EC_GROUP_set_seed :                      function(group: PEC_GROUP;  seed: PAnsiChar; len: size_t): size_t; cdecl = Nil;     { V8.40 }
+    EC_KEY_can_sign :                        function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
+    EC_KEY_check_key :                       function(key: PEC_KEY): Integer ; cdecl = Nil;                { V8.40 }
+    EC_KEY_clear_flags :                     procedure(key: PEC_KEY; flags: Integer) ; cdecl = Nil;         { V8.40 }
+    EC_KEY_copy :                            function(dst: PEC_KEY; src: PEC_KEY): PEC_KEY ; cdecl = Nil;  { V8.40 }
+    EC_KEY_dup :                             function(src: PEC_KEY): PEC_KEY; cdecl = Nil;                 { V8.40 }
+    EC_KEY_free :                            procedure (key: PEC_KEY); cdecl = nil;           { V8.07 }
+    EC_KEY_generate_key :                    function(key: PEC_KEY): Integer ; cdecl = Nil;                { V8.40 }
+    EC_KEY_get0_group :                      function(key: PEC_KEY): PEC_GROUP; cdecl = Nil;               { V8.40 }
+    EC_KEY_get0_private_key :                function(key: PEC_KEY): PBIGNUM ; cdecl = Nil;                { V8.40 }
+    EC_KEY_get0_public_key :                 function(key: PEC_KEY): PEC_POINT; cdecl = Nil;               { V8.40 }
+    EC_KEY_get_conv_form :                   function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
+    EC_KEY_get_enc_flags :                   function(key: PEC_KEY): DWord; cdecl = Nil;                   { V8.40 }
+    EC_KEY_get_ex_data :                     function(key: PEC_KEY; idx: Integer): Pointer; cdecl = Nil;   { V8.40 }
+    EC_KEY_get_flags :                       function(const key: PEC_KEY): Integer; cdecl = Nil;           { V8.40 }
+    EC_KEY_key2buf :                         function(key: PEC_KEY; cform: integer; pbuf: PPAnsiChar; ctx: PBN_CTX): integer; cdecl = Nil; { V8.40, V8.65 }
+    EC_KEY_new :                             function: PEC_KEY; cdecl = Nil;                              { V8.40 }
+    EC_KEY_new_by_curve_name :               function (nid: integer): PEC_KEY; cdecl = nil;   { V8.07 }
+    EC_KEY_oct2key :                         function(key: PEC_KEY; buf: PAnsiChar; len: integer; ctx: PBN_CTX): Integer; cdecl = Nil;    { V8.40 }
+    EC_KEY_oct2priv :                        function(key: PEC_KEY; buf: PAnsiChar; len: integer): Integer; cdecl = Nil;    { V8.40 }
+    EC_KEY_precompute_mult :                 function(key: PEC_KEY; ctx: PBN_CTX): Integer; cdecl = Nil;   { V8.40 }
+    EC_KEY_print :                           function(B: PBIO; const EC: PEC_KEY; Offset: Integer): Integer; cdecl = nil;//AG;
+    EC_KEY_priv2buf :                        function(key: PEC_KEY; pbuf: PPAnsiChar): integer; cdecl = Nil;                { V8.40, V8.65 }
+    EC_KEY_priv2oct :                        function(key: PEC_KEY; buf: PAnsiChar; len: integer): Integer; cdecl = Nil;    { V8.40 }
+    EC_KEY_set_asn1_flag :                   procedure(key: PEC_KEY; asn1_flag: Integer); cdecl = Nil;     { V8.40 }
+    EC_KEY_set_conv_form :                   procedure(key: PEC_KEY; cform: integer); cdecl = Nil;          { V8.40 }
+    EC_KEY_set_enc_flags :                   procedure(key: PEC_KEY; flags: DWord); cdecl = Nil;           { V8.40 }
+    EC_KEY_set_flags :                       procedure(key: PEC_KEY; flags: Integer) ; cdecl = Nil;         { V8.40 }
+    EC_KEY_set_group :                       function(key: PEC_KEY; group: PEC_GROUP): Integer; cdecl = Nil; { V8.40 }
+    EC_KEY_set_private_key :                 function(key: PEC_KEY; prv: PBIGNUM): Integer; cdecl = Nil;   { V8.40 }
+    EC_KEY_set_public_key :                  function(key: PEC_KEY; pub: PEC_POINT): Integer; cdecl = Nil; { V8.40 }
+    EC_KEY_set_public_key_affine_coordinates: function(key: PEC_KEY; x: PBIGNUM; y: PBIGNUM): Integer; cdecl = Nil;     { V8.40 }
+    EC_KEY_up_ref :                          function(key: PEC_KEY): Integer; cdecl = Nil;                 { V8.40 }
+    EC_METHOD_get_field_type :               function(method: PEC_METHOD): integer; cdecl = Nil;     { V8.40 }
+    EC_curve_nid2nist:                       function(nid: Integer): PAnsiChar; cdecl = Nil;                     { V8.40 }
+    EC_curve_nist2nid:                       function(ename: PAnsiChar): Integer; cdecl = Nil;                   { V8.40 }
+    EC_get_builtin_curves :                  function(items: TEC_BUILTIN_CURVES; nitems: size_t): size_t; cdecl = Nil;                    { V8.40 }
+    EC_POINT_get_affine_coordinates_GF2m :   function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    EC_POINT_get_affine_coordinates_GFp :    function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    EC_POINT_free :                          procedure(point: PEC_POINT); cdecl = Nil;                                                     { V8.65 }
+    EC_POINT_new :                           function(group: PEC_GROUP): PEC_POINT; cdecl = Nil;                                           { V8.65 }
+    EC_POINT_set_affine_coordinates_GF2m :   function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    EC_POINT_set_affine_coordinates_GFp :    function(group: PEC_GROUP; p: PEC_POINT; x, y: PBIGNUM; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    EC_POINT_method_of :                     function(point: PEC_POINT): PEC_METHOD; cdecl = Nil;                                         { V8.52 }
+    EC_POINT_oct2point :                     function(group: PEC_GROUP; p: PEC_POINT; buf: PAnsiChar; len: Integer;  ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    EC_POINT_point2oct :                     function(group: PEC_GROUP; p: PEC_POINT; form: TPoint_Conversion_Form_t; buf: PAnsiChar; len: Integer; ctx: PBN_CTX): Integer; cdecl = Nil;  { V8.52 }
+    ECDSA_SIG_free :                         procedure(sig: PECDSA_SIG); cdecl = Nil;          { V8.40 }
+    ECDSA_SIG_get0 :                         procedure(sig: PECDSA_SIG; r: PBIGNUM; s: PBIGNUM); cdecl = Nil;                       { V8.40 }
+    ECDSA_SIG_new :                          function: PECDSA_SIG; cdecl = Nil;                { V8.40 }
+    ECDSA_SIG_set0 :                         function(sig: PECDSA_SIG; r: PBIGNUM; s: PBIGNUM): PECDSA_SIG; cdecl = Nil;            { V8.40 }
+    ECDSA_do_sign :                          function(dgst: PAnsiChar; dgst_len: integer; eckey: PEC_KEY): PECDSA_SIG; cdecl = Nil; { V8.40 }
+    ECDSA_do_sign_ex :                       function(dgst: PAnsiChar; dgst_len: integer; kinv: PBIGNUM; rp: PBIGNUM; eckey: PEC_KEY): PECDSA_SIG; cdecl = Nil; { V8.40 }
+    ECDSA_do_verify :                        function(dgst: PAnsiChar; dgst_len: integer; sig: PECDSA_SIG; eckey: PEC_KEY): integer; cdecl = Nil;               { V8.40 }
+    ECDSA_sign :                             function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: PInteger; eckey: PEC_KEY): integer; cdecl = Nil;   { V8.40, V8.67 correct signlen }
+    ECDSA_sign_ex :                          function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: PInteger; kinv: PBIGNUM; rp: PBIGNUM; eckey: PEC_KEY): integer; cdecl = Nil;  { V8.40, V8.67 correct signlen }
+    ECDSA_sign_setup :                       function(eckey: PEC_KEY; ctc: PBN_CTX; kinv: PBIGNUM; rp: PBIGNUM): integer; cdecl = Nil;                           { V8.40 }
+    ECDSA_size :                             function(eckey: PEC_KEY): integer; cdecl = Nil;    { V8.40 }
+    ECDSA_verify :                           function(xtype: integer; dgst: PAnsiChar; dgst_len: integer; sig: PAnsiChar; signlen: integer; eckey: PEC_KEY): integer; cdecl = Nil;               { V8.40 }
+    ERR_func_error_string:                   function (e: Cardinal): PAnsiChar; cdecl = nil;
+    ERR_get_error_line_data :                function(const FileName: PPAnsiChar; Line: PInteger; const Data: PPAnsiChar; Flags: PInteger): Cardinal; cdecl = nil;
+    ERR_remove_state :                       procedure(ThreadID: Cardinal); cdecl = nil;
+    ERR_remove_thread_state :                procedure(tid: PCRYPTO_THREADID); cdecl = nil;
+    EVP_MD_CTX_md :                          function(ctx: PEVP_MD_CTX): PEVP_MD; cdecl = Nil;                      { V8.40 }
+    EVP_PKEY_assign :                        function(PKey: PEVP_PKEY; Type_: Integer; Key: Pointer): Integer; cdecl = nil;//AG  V8.65 make it pointer for casting
+    EVP_PKEY_cmp :                           function(a, b: PEVP_PKEY): Integer; cdecl = nil;                       { V8.65 }
+    EVP_PKEY_get0 :                          function(PKey: PEVP_PKEY): Pointer; cdecl = nil;//AG
+    EVP_PKEY_get1_DH :                       function (pkey: PEVP_PKEY): PDH; cdecl = nil; //Angus
+    EVP_PKEY_get1_DSA :                      function (pkey: PEVP_PKEY): PDSA; cdecl = nil; //Angus
+    EVP_PKEY_get1_EC_KEY :                   function (pkey: PEVP_PKEY): PEC_KEY; cdecl = nil; //Angus
+    EVP_PKEY_get1_RSA :                      function (pkey: PEVP_PKEY): PRSA; cdecl = nil; //Angus
+    EVP_PKEY_set1_EC_KEY :                   function (pkey: PEVP_PKEY; _ECkey: PEC_KEY ): integer; cdecl = nil;            { V8.65 }
+    EVP_PKEY_set1_RSA :                      function (pkey: PEVP_PKEY; _RSAkey: PRSA ): integer; cdecl = nil;              { V8.64 }
+    PEM_read_bio_DHparams :                  function(B: PBIO; X: PPDH; CallBack: Pointer{TPem_password_cb}; UData: Pointer): PDH; cdecl = nil;  { V8.07 }  { V8.27 was PAnsiChar }
+    PEM_read_bio_RSAPrivateKey :             function(B: PBIO; x: PPRSA; cb: Pointer{TPem_password_cb}; u: pointer): PRSA; cdecl = nil;
+    PEM_read_bio_RSAPublicKey :              function(B: PBIO; x: PPRSA; CB: Pointer{TPem_password_cb}; UData: Pointer): PEVP_PKEY; cdecl = nil;              { V8.40 }
+    PEM_read_bio_RSA_PUBKEY :                function(B: PBIO; x: PPRSA; cb: Pointer{TPem_password_cb}; u: pointer): PRSA; cdecl = nil;        { V8.11 }
+    PEM_write_bio_DHparams :                 function(B: PBIO; X: PDH): Integer; cdecl = nil;                  { V8.40 }
+    PEM_write_bio_RSAPrivateKey :            function(B: PBIO; X: PRSA; const Enc: PEVP_CIPHER; Kstr: PAnsiChar; Klen: Integer; CallBack: Pointer{TPem_password_cb}; U: Pointer): Integer; cdecl = nil; { V8.12 }
+    PEM_write_bio_RSAPublicKey :             function(B: PBIO; X: PRSA): Integer; cdecl = nil; { V8.12 }
+    PEM_write_bio_RSA_PUBKEY :               function(B: PBIO; X: PRSA): Integer; cdecl = nil; { V8.40 }
+    RSA_clear_flags :                        procedure(Rsa: PRSA; flags: Integer); cdecl = nil;   { V8.52 }
+    RSA_free :                               procedure(RSA: PRSA); cdecl = nil;
+    RSA_generate_key :                       function(Num: Integer; E: Cardinal; CallBack: Pointer{TRSA_genkey_cb}; cb_arg: Pointer): PRSA; cdecl = nil;//AG
+    RSA_generate_key_ex :                    function(Rsa: PRSA; Bits: Integer; e: Pointer; cb: PBN_GENCB): Integer; cdecl = nil; //Angus  { V8.03 }
+    RSA_get_version :                        function(Rsa: PRSA): Integer; cdecl = nil;          { V8.52 1.1.1 or later }
+    RSA_get0_engine :                        function(Rsa: PRSA): PENGINE; cdecl = nil;          { V8.52 }
+    RSA_get0_key :                           procedure(Rsa: PRSA; n, e, d: PPBIGNUM); cdecl = nil;  { V8.52 }   { V8.66 var gone }
+    RSA_get0_factors :                       procedure(Rsa: PRSA; p, q: PPBIGNUM); cdecl = nil;  { V8.52 }   { V8.66 var gone }
+    RSA_get_multi_prime_extra_count :        function(Rsa: PRSA): Integer; cdecl = nil;             { V8.52 1.1.1 or later }
+    RSA_get0_multi_prime_factors :           function(Rsa: PRSA; primes: PPBIGNUMS): Integer; cdecl = nil;  { V8.52 1.1.1 or later }   { V8.66 var gone }
+    RSA_get0_crt_params :                    procedure(Rsa: PRSA; dmp1, dmq1, iqmp: PPBIGNUM); cdecl = nil;  { V8.52 all set0/get0 1.1.0 or later }  { V8.66 var gone }
+    RSA_get0_multi_prime_crt_params :        function(Rsa: PRSA; exps, coeffs: PPBIGNUMS): Integer; cdecl = nil;       { V8.52 }   { V8.66 var gone }
+    RSA_new :                                function: PRSA; cdecl = nil;            { V8.03 }
+    RSA_print :                              function(B: PBIO; Rsa: PRSA; Offset: Integer): Integer; cdecl = nil;//AG;
+    RSA_private_decrypt :                    function(flen: Integer; from: PAnsiChar; to_: PAnsiChar; rsa: PRSA; padding: Integer): Integer; cdecl = nil;
+    RSA_public_encrypt :                     function(flen: Integer; from: PAnsiChar; to_: PAnsiChar; rsa: PRSA; padding: Integer): Integer; cdecl = nil;
+    RSA_size :                               function(Rsa: PRSA): Integer; cdecl = nil; //Angus
+    RSA_set_flags :                          procedure(Rsa: PRSA; flags: Integer); cdecl = nil;  { V8.52 }
+    RSA_set0_key :                           function(Rsa: PRSA; n: PBIGNUM; e: PBIGNUM; d: PBIGNUM): Integer; cdecl = nil;  { V8.52 }
+    RSA_set0_factors :                       function(Rsa: PRSA; p: PBIGNUM; q: PBIGNUM): Integer; cdecl = nil;  { V8.52 }
+    RSA_set0_crt_params :                    function(Rsa: PRSA; dmp1: PBIGNUM; dmq1: PBIGNUM; iqmp: PBIGNUM): Integer; cdecl = nil;  { V8.52 1.1.1 or later }
+    RSA_set0_multi_prime_params :            function(Rsa: PRSA; primes: PBIGNUMS; exps: PBIGNUMS; coeffs: PBIGNUMS; pnum: Integer): Integer; cdecl = nil;  { V8.52 }
+    RSA_test_flags :                         function(Rsa: PRSA; flags: Integer): Integer; cdecl = nil;  { V8.52 }
+    RSA_up_ref :                             function(Rsa: PRSA): Integer; cdecl = nil;          { V8.65 }
+    RSA_verify :                             function (type1: Integer; m: pointer; m_len: longword; sigbuf: PAnsichar; siglen: longword; rsa: PRSA): Integer; cdecl = nil; { V9.5 }
+    d2i_RSAPrivateKey:                       function(a: PPRSA; pp: PPByte; length: Integer): PRSA; cdecl = nil;   { V8.66 var gone }
+    i2d_RSAPublicKey:                        function(a: PRSA; pp: PPByte): Integer; cdecl = nil;             { V8.66 var gone }
+    i2d_RSA_PUBKEY:                          function(a: PRSA; pp: PPByte): Integer; cdecl = nil;              { V8.66 var gone }
     i2o_ECPublicKey :                        function(key: PEC_KEY; outp: PAnsiChar): Integer; cdecl = nil;                { V8.52, V8.66 out to outp }
     o2i_ECPublicKey :                        function(key: PPEC_KEY; inp: PAnsiChar; len: Integer): PEC_KEY; cdecl = nil;  { V8.52 }  { V8.66 var gone }
-
-{$IFDEF OPENSSL_USE_DELPHI_MM}
-    CRYPTO_set_mem_functions :               function(M: TCryptoMallocFunc; R: TCryptoReallocFunc; F: TCryptoFreeMemFunc): Integer; cdecl = nil; //AG
-{$ENDIF}
+{$ENDIF OpenSSL_Deprecated}   { V9.5 }
 
 {$IFNDEF OPENSSL_NO_ENGINE}
+(*
     ENGINE_load_builtin_engines :            procedure; cdecl = nil; //AG;
     ENGINE_register_all_complete :           procedure; cdecl = nil; //AG;
     ENGINE_by_id :                           function(const id: PAnsiChar): PENGINE; cdecl = nil; //AG;
@@ -2636,7 +2686,7 @@ const
     UI_method_set_reader :                   function(method: PUI_METHOD; reader: Pointer{{TPinCallBack}):Integer; cdecl = nil; //AG;
     UI_set_result :                          function(ui: PUI; uis: PUI_STRING; const result: PAnsiChar): Integer; cdecl = nil; //AG;
     UI_OpenSSL :                             function: PUI_METHOD; cdecl = nil; //AG;
- (*
+
     http://openssl.org/docs/crypto/engine.html
     Here we'll assume we want to load and register all ENGINE implementations
     bundled with OpenSSL, such that for any cryptographic algorithm required by
@@ -2652,13 +2702,13 @@ const
     RSA key, any bundled ENGINEs that implement RSA_METHOD will be passed to
     ENGINE_init() and if any of those succeed, that ENGINE will be set as the
     default for RSA use from then on.
-    *)
-{$ENDIF}
+   *)
+{$ENDIF OPENSSL_NO_ENGINE}
 
-{$ENDIF YuOpenSSL}
+{.ENDIF YuOpenSSL}
 
-{ V8.67 new for OpenSSL 3.0, V8.68 declare for YuOpenSSL 1.1.1 so it builds }
-{$IF (NOT defined(YuOpenSSL)) or (NOT declared(OPENSSL_VERSION_MAJOR_)) or (OPENSSL_VERSION_MAJOR_ < Integer(3))}
+{ V8.67 new for OpenSSL 3.0, V8.68 declare for YuOpenSSL 1.1.1 so it builds, V9.3 1.1.1 gone }
+{.IF (NOT defined(YuOpenSSL)) or (NOT declared(OPENSSL_VERSION_MAJOR_)) or (OPENSSL_VERSION_MAJOR_ < Integer(3))}
     OPENSSL_version_major :                  function: Integer; cdecl = nil;                                               { V8.67 }
     OPENSSL_version_minor :                  function: Integer; cdecl = nil;                                               { V8.67 }
     OPENSSL_version_patch :                  function: Integer; cdecl = nil;                                               { V8.67 }
@@ -2787,7 +2837,7 @@ const
     OSSL_PARAM_get_BN :                      function(p: POSSL_PARAM; val: PBIGNUM): Integer; cdecl = nil;                         { V8.67 }
     OSSL_PARAM_get_utf8_string :             function(p: POSSL_PARAM; val: PAnsiChar; max_len: size_t): Integer; cdecl = nil;      { V8.67 }
     OSSL_PARAM_get_octet_string :            function(p: POSSL_PARAM; val: PAnsiChar; max_len: size_t; used_len: Psize_t): Integer; cdecl = nil;   { V8.67 }
-{$IFEND} // {$IF (NOT defined(YuOpenSSL)) or (NOT declared(OPENSSL_VERSION_MAJOR_)) or (OPENSSL_VERSION_MAJOR_ < 3)) }
+{$ENDIF}
 
 
 
@@ -2810,23 +2860,26 @@ function IcsSslGetEVPDigest(Digest: TEvpDigest): PEVP_MD;          { V8.40 }
 function OpenSslErrMsg(const AErrCode: Cardinal): String;
 function LastOpenSslErrMsg(Dump: Boolean): AnsiString;
 function IcsSsl_print_error: AnsiString;
-function IcsSsl_print_errors: AnsiString;
+// function IcsSsl_print_errors: AnsiString;                      { V9.5 gone }
 
 { V8.69 digests and hashes - note all digests are binary bytes in AnsiStrings, moved from OverbyteIcsSslJose }
-procedure IcsRaiseLastOpenSslError(EClass: ExceptClass; Dump: Boolean = FALSE;
-                                                        const CustomMsg : AnsiString  = '');
-function IcsHMACDigest(const Data, Key: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
-function IcsHMACDigestEx(const Data, Key: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
-function IcsHMACDigestVerify(const Data, Key, OldDigest: AnsiString;
-                        HashDigest: TEvpDigest = Digest_sha256): Boolean;
-function IcsHashDigest(const Data: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
-function IcsAsymSignDigest(const Data: AnsiString; PrivateKey: PEVP_PKEY;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
-function IcsAsymVerifyDigest(const Data, OldDigest: AnsiString; PublicKey: PEVP_PKEY;
-                HashDigest: TEvpDigest = Digest_sha256): Boolean; Overload;
+procedure IcsRaiseLastOpenSslError(EClass: ExceptClass; Dump: Boolean = FALSE; const CustomMsg : AnsiString  = '');
+function IcsHMACDigest(const Data, Key: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+function IcsHMACDigestEx(const Data, Key: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+function IcsHMACDigestVerify(const Data, Key, OldDigest: AnsiString; HashDigest: TEvpDigest = Digest_sha256): Boolean;
+function IcsHashDigest(const Data: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+function IcsAsymSignDigest(const Data: AnsiString; PrivateKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+function IcsAsymVerifyDigest(const Data, OldDigest: AnsiString; PublicKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256): Boolean; Overload;
+function IcsHMACDigestTB(const Data, Key: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes;  { V9.1 binary arguments so use TBytes }
+function IcsHMACDigestExTB(const Data, Key: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes; { V9.1 binary arguments so use TBytes }
+function IcsHMACDigestVerifyTB(const Data, Key, OldDigest: TBytes; HashDigest: TEvpDigest = Digest_sha256): Boolean;  { V9.1 }
+function IcsHashDigestTB(const Data: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes;        { V9.1 }
+function IcsAsymSignDigestTB(const Data: TBytes; PrivateKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256;
+                                                                                          EcdsaIEEE: Boolean = False): TBytes;  { V9.1, V9.5 added EcdsaIEEE }
+function IcsAsymVerifyDigestTB(const Data, OldDigest: TBytes; PublicKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256;
+                                                                                          EcdsaIEEE: Boolean = False): Boolean; { V9.1, V9.5 added EcdsaIEEE }
+function IcsDigestAsntoIEEE(const AsnDigest: TBytes): TBytes;              { V9.5 }
+function IcsDigestIEEEtoAsn(const IEEEDigest: TBytes): TBytes;             { V9.5 }
 
 // most of these functions replace OpenSSL macros
 function ERR_GET_REASON(ErrCode : Cardinal) : Cardinal; {$IFDEF USE_INLINE} inline; {$ENDIF}
@@ -2849,11 +2902,10 @@ function OpenSslVerStr : String;                                             { V
 function OpenSslFullVer : String;                                            { V8.67 }
 function OpenSslModDir : String;                                             { V8.67 }
 function OpenSslCPU : String;                                                { V8.67 }
-function IcsX509VerifyErrorToStr(ErrCode: Integer): String;
+//function IcsX509VerifyErrorToStr(ErrCode: Integer): String;                { V9.3 moved to SslBase }
 function Ics_X509_LOOKUP_load_file(Ctx: PX509_LOOKUP; FileName: PAnsiChar; Type_: Cardinal): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function Ics_X509_LOOKUP_add_dir(Ctx: PX509_LOOKUP; DirName: PAnsiChar; Type_: Cardinal): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function Ics_EVP_PKEY_dup(PKey: PEVP_PKEY): PEVP_PKEY;       { V8.40 was in wsocket }
-function Ics_Ssl_EVP_PKEY_GetKey(K: PEVP_PKEY): Pointer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function Ics_Ssl_EVP_PKEY_GetType(K: PEVP_PKEY): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function SSL_get_secure_renegotiation_support(S: PSSL): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function Ics_Ssl_ERR_GET_LIB(E: DWORD): Integer;
@@ -2866,9 +2918,9 @@ function EVP_MD_CTX_init(ctx: PEVP_MD_CTX): integer;          { V8.40 }
 procedure EVP_MD_CTX_destroy(ctx: PEVP_MD_CTX);               { V8.40 }
 function EVP_MD_nid(e: PEVP_MD): Integer;                     { V8.40 }
 function EVP_MD_name(e: PEVP_MD): PAnsiChar;                  { V8.40 }
-function EVP_MD_CTX_size(e: PEVP_MD_CTX): Integer;            { V8.40 }
-function EVP_MD_CTX_block_size(e: PEVP_MD_CTX): Integer;      { V8.40 }
-function EVP_MD_CTX_type(e: PEVP_MD_CTX): Integer;            { V8.40 }
+//function EVP_MD_CTX_size(e: PEVP_MD_CTX): Integer;            { V8.40 }    { V9.5 gone }
+//function EVP_MD_CTX_block_size(e: PEVP_MD_CTX): Integer;      { V8.40 }    { V9.5 gone }
+//function EVP_MD_CTX_type(e: PEVP_MD_CTX): Integer;            { V8.40 }    { V9.5 gone }
 function EVP_get_digestbynid(a: Integer): PEVP_MD;            { V8.40 }
 function EVP_get_digestbyobj(a: PASN1_OBJECT): PEVP_MD;       { V8.40 }
 function EVP_get_cipherbynid(a: Integer): PEVP_CIPHER;        { V8.40 }
@@ -2899,7 +2951,11 @@ function RSA_PKEY_CTX_ctrl(pctx: PEVP_PKEY_CTX; optype: Integer; cmd: Integer; p
 function BIO_get_ssl(Bio: PBIO; Sslp: PSSL): Integer;   { V8.51 }
 procedure OPENSSL_free(Addr: Pointer);                  { V8.64 }
 function BN_num_bytes(big: PBIGNUM): Integer;           { V8.67 }
-function IcsGetBinNum(big: PBIGNUM; XLen: Integer = 0): AnsiString;  { V8.67 was internal function }
+function IcsGetBinNum(big: PBIGNUM; XLen: Integer = 0): TBytes;  { V8.67 was internal function, V9.4 TBytes binary result }
+
+{$IFDEF OpenSSL_Deprecated}  { V9.5 gone }
+// function Ics_Ssl_EVP_PKEY_GetKey(K: PEVP_PKEY): Pointer; {$IFDEF USE_INLINE} inline; {$ENDIF}
+{$ENDIF OpenSSL_Deprecated}  { V9.5 }
 
 { V8.67 helpers for OpenSSL 3.0 EVP parameters }
 function IcsParamPrint(Params: POSSL_PARAM): String;
@@ -2911,11 +2967,31 @@ function IcsEvpGetParamUtf8(PKey: PEVP_PKEY; const Key: AnsiString): AnsiString;
 function IcsEvpGetParamBig(PKey: PEVP_PKEY; const Key: AnsiString): AnsiString;
 function IcsEvpGetParamInt(PKey: PEVP_PKEY; const Key: AnsiString): Integer;
 
+{ V9.4 new macros that call 3.0 version with _get_  }
+{
+function EVP_MD_type(md: PEVP_MD): Integer;
+function EVP_MD_pkey_type(md: PEVP_MD): Integer;
+function EVP_MD_size(md: PEVP_MD): Integer;
+function EVP_MD_block_size(md: PEVP_MD): Integer;
+function EVP_MD_flags(md: PEVP_MD): Integer;
+function EVP_PKEY_base_id(Pkey: PEVP_PKEY): Integer;
+function EVP_PKEY_bits(Pkey: PEVP_PKEY): Integer;
+function EVP_PKEY_id(Pkey: PEVP_PKEY): Integer;
+function EVP_PKEY_security_bits(Pkey: PEVP_PKEY): Integer;
+function EVP_PKEY_size(Pkey: PEVP_PKEY): Integer;
+}
+{ V9.4 helpers so apps can avoid using EVP functions }
+function IcsPkeyBaseid(Pkey: PEVP_PKEY): Integer;
+function IcsPkeyBits(Pkey: PEVP_PKEY): Integer;
+function IcsPkeyId(Pkey: PEVP_PKEY): Integer;
+function IcsPkeySecurityBits(Pkey: PEVP_PKEY): Integer;
+function IcsPkeySize(Pkey: PEVP_PKEY): Integer;
+
 function  IcsRandSeedFromFile(const FileName: String; MaxBytes: Integer = -1): Integer;
 
 {$IFNDEF OPENSSL_NO_ENGINE}
-function Ics_UI_set_app_data(r: PUI; arg: Pointer): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
-function Ics_UI_get_app_data(r: PUI): Pointer; {$IFDEF USE_INLINE} inline; {$ENDIF}
+//function Ics_UI_set_app_data(r: PUI; arg: Pointer): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
+//function Ics_UI_get_app_data(r: PUI): Pointer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 {$ENDIF}
 
 procedure IcsRandPoll;
@@ -2924,7 +3000,7 @@ procedure IcsRandPoll;
 
 // V8.35 all OpenSSL exports now in tables, with versions if only available conditionally
 const
-    GLIBEAYImports1: array[0..851] of TOSSLImports = (
+    GLIBEAYImports1: array[0..685] of TOSSLImports = (
 
     (F: @@ASN1_INTEGER_get ;        N: 'ASN1_INTEGER_get';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ASN1_INTEGER_get_int64 ;  N: 'ASN1_INTEGER_get_int64';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.40 }
@@ -2933,9 +3009,9 @@ const
     (F: @@ASN1_INTEGER_set_int64 ;  N: 'ASN1_INTEGER_set_int64';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.40 }
     (F: @@ASN1_INTEGER_set_uint64 ; N: 'ASN1_INTEGER_set_uint64';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@ASN1_STRING_free ;        N: 'ASN1_STRING_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@ASN1_STRING_get0_data ;   N: 'ASN1_STRING_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.40 load deprecated export }
+    (F: @@ASN1_STRING_get0_data ;   N: 'ASN1_STRING_get0_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),       { V9.5 load new export }
     (F: @@ASN1_STRING_length ;      N: 'ASN1_STRING_length';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),         { V8.40 }
-    (F: @@ASN1_STRING_length_set ;  N: 'ASN1_STRING_length_set';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
+//    (F: @@ASN1_STRING_length_set ;  N: 'ASN1_STRING_length_set';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V9.5 don't use }
     (F: @@ASN1_STRING_new ;         N: 'ASN1_STRING_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),            { V8.40 }
     (F: @@ASN1_STRING_print;        N: 'ASN1_STRING_print';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ASN1_STRING_set ;         N: 'ASN1_STRING_set';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),           { V8.50 }
@@ -2992,124 +3068,14 @@ const
     (F: @@CRYPTO_memcmp;            N: 'CRYPTO_memcmp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),        { V8.52 }
     (F: @@CRYPTO_new_ex_data ;      N: 'CRYPTO_new_ex_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@CRYPTO_set_ex_data ;      N: 'CRYPTO_set_ex_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@DH_check ;                   N: 'DH_check';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@DH_free;                     N: 'DH_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@DH_generate_parameters_ex ;  N: 'DH_generate_parameters_ex';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@DH_new ;                     N: 'DH_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@DH_size;                     N: 'DH_size';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@DSA_free;                    N: 'DSA_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@DSA_print;                   N: 'DSA_print';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@DSA_size;                    N: 'DSA_size';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EC_GROUP_check ;                   N: 'EC_GROUP_check';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_check_discriminant ;      N: 'EC_GROUP_check_discriminant';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_clear_free ;              N: 'EC_GROUP_clear_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_cmp ;                     N: 'EC_GROUP_cmp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_copy ;                    N: 'EC_GROUP_copy';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_dup ;                     N: 'EC_GROUP_dup';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_free ;                    N: 'EC_GROUP_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get0_cofactor ;           N: 'EC_GROUP_get0_cofactor';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get0_generator ;          N: 'EC_GROUP_get0_generator';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get0_order ;              N: 'EC_GROUP_get0_order';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get0_seed ;               N: 'EC_GROUP_get0_seed';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_asn1_flag ;           N: 'EC_GROUP_get_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_basis_type ;          N: 'EC_GROUP_get_basis_type';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_cofactor ;            N: 'EC_GROUP_get_cofactor';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_curve_GF2m ;          N: 'EC_GROUP_get_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_curve_GFp ;           N: 'EC_GROUP_get_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_curve_name ;          N: 'EC_GROUP_get_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_degree ;              N: 'EC_GROUP_get_degree';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_ecparameters ;        N: 'EC_GROUP_get_ecparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_ecpkparameters ;      N: 'EC_GROUP_get_ecpkparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_mont_data ;           N: 'EC_GROUP_get_mont_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_order ;               N: 'EC_GROUP_get_order';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_pentanomial_basis ;   N: 'EC_GROUP_get_pentanomial_basis';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_point_conversion_form ; N: 'EC_GROUP_get_point_conversion_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_seed_len ;            N: 'EC_GROUP_get_seed_len';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_get_trinomial_basis ;     N: 'EC_GROUP_get_trinomial_basis';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_method_of ;               N: 'EC_GROUP_method_of';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new ;                     N: 'EC_GROUP_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new_by_curve_name ;       N: 'EC_GROUP_new_by_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new_curve_GF2m ;          N: 'EC_GROUP_new_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new_curve_GFp ;           N: 'EC_GROUP_new_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new_from_ecparameters ;   N: 'EC_GROUP_new_from_ecparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_new_from_ecpkparameters ; N: 'EC_GROUP_new_from_ecpkparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_order_bits ;              N: 'EC_GROUP_order_bits';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_asn1_flag ;           N: 'EC_GROUP_set_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_curve_GF2m ;          N: 'EC_GROUP_set_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_curve_GFp ;           N: 'EC_GROUP_set_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_curve_name ;          N: 'EC_GROUP_set_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_generator ;           N: 'EC_GROUP_set_generator';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_point_conversion_form ; N: 'EC_GROUP_set_point_conversion_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_GROUP_set_seed ;                N: 'EC_GROUP_set_seed';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_can_sign ;         N: 'EC_KEY_can_sign';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_check_key ;        N: 'EC_KEY_check_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_clear_flags ;      N: 'EC_KEY_clear_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_copy ;             N: 'EC_KEY_copy';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_dup ;              N: 'EC_KEY_dup';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_free;   N: 'EC_KEY_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EC_KEY_generate_key ;     N: 'EC_KEY_generate_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get0_group ;       N: 'EC_KEY_get0_group';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get0_private_key ; N: 'EC_KEY_get0_private_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get0_public_key ;  N: 'EC_KEY_get0_public_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get_conv_form ;    N: 'EC_KEY_get_conv_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get_enc_flags ;    N: 'EC_KEY_get_enc_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get_ex_data ;      N: 'EC_KEY_get_ex_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_get_flags ;        N: 'EC_KEY_get_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_key2buf ;          N: 'EC_KEY_key2buf';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_new ;              N: 'EC_KEY_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_new_by_curve_name ;   N: 'EC_KEY_new_by_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EC_KEY_oct2key ;          N: 'EC_KEY_oct2key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_oct2priv ;         N: 'EC_KEY_oct2priv';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_precompute_mult ;  N: 'EC_KEY_precompute_mult';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_print ;   N: 'EC_KEY_print';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EC_KEY_priv2buf ;         N: 'EC_KEY_priv2buf';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_priv2oct ;         N: 'EC_KEY_priv2oct';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_asn1_flag ;    N: 'EC_KEY_set_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_conv_form ;    N: 'EC_KEY_set_conv_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_enc_flags ;    N: 'EC_KEY_set_enc_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_flags ;        N: 'EC_KEY_set_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_group ;        N: 'EC_KEY_set_group';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_private_key ;  N: 'EC_KEY_set_private_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_public_key ;   N: 'EC_KEY_set_public_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_set_public_key_affine_coordinates ;   N: 'EC_KEY_set_public_key_affine_coordinates';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_KEY_up_ref ;           N: 'EC_KEY_up_ref';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_METHOD_get_field_type ; N: 'EC_METHOD_get_field_type';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_POINT_get_affine_coordinates_GFp  ; N: 'EC_POINT_get_affine_coordinates_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_get_affine_coordinates_GF2m ; N: 'EC_POINT_get_affine_coordinates_GF2m';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_free ;           N: 'EC_POINT_free';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
-    (F: @@EC_POINT_new ;            N: 'EC_POINT_new';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
-    (F: @@EC_POINT_set_affine_coordinates_GFp  ; N: 'EC_POINT_set_affine_coordinates_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_set_affine_coordinates_GF2m ; N: 'EC_POINT_set_affine_coordinates_GF2m';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_method_of ;      N: 'EC_POINT_method_of';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_oct2point ;      N: 'EC_POINT_oct2point';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_POINT_point2oct ;      N: 'EC_POINT_point2oct';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@EC_curve_nid2nist ;       N: 'EC_curve_nid2nist';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_curve_nist2nid ;       N: 'EC_curve_nist2nid';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EC_get_builtin_curves ;   N: 'EC_get_builtin_curves';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@ECDSA_SIG_free ;          N: 'ECDSA_SIG_free';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_SIG_get0 ;          N: 'ECDSA_SIG_get0';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_SIG_new ;           N: 'ECDSA_SIG_new';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_SIG_set0 ;          N: 'ECDSA_SIG_set0';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_do_sign ;           N: 'ECDSA_do_sign';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_do_sign_ex ;        N: 'ECDSA_do_sign_ex';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_do_verify ;         N: 'ECDSA_do_verify';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_sign ;              N: 'ECDSA_sign';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_sign_ex ;           N: 'ECDSA_sign_ex';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_sign_setup ;        N: 'ECDSA_sign_setup';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_size ;              N: 'ECDSA_size';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
-    (F: @@ECDSA_verify ;            N: 'ECDSA_verify';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
     (F: @@ERR_clear_error;          N: 'ERR_clear_error';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_error_string ;        N: 'ERR_error_string';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_error_string_n ;      N: 'ERR_error_string_n';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@ERR_func_error_string;    N: 'ERR_func_error_string';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_get_error;            N: 'ERR_get_error';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@ERR_get_error_line_data;  N: 'ERR_get_error_line_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_lib_error_string ;    N: 'ERR_lib_error_string';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_peek_error ;          N: 'ERR_peek_error';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_peek_last_error;      N: 'ERR_peek_last_error';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ERR_reason_error_string;  N: 'ERR_reason_error_string';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@ERR_remove_state ;        N: 'ERR_remove_state';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@ERR_remove_thread_state;  N: 'ERR_remove_thread_state';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@EVP_BytesToKey;           N: 'EVP_BytesToKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@EVP_CIPHER_CTX_ctrl ;     N: 'EVP_CIPHER_CTX_ctrl';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_CIPHER_CTX_free;      N: 'EVP_CIPHER_CTX_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3143,19 +3109,13 @@ const
     (F: @@EVP_MD_CTX_copy ;         N: 'EVP_MD_CTX_copy';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_MD_CTX_copy_ex ;      N: 'EVP_MD_CTX_copy_ex';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_MD_CTX_free ;         N: 'EVP_MD_CTX_free';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
-    (F: @@EVP_MD_CTX_md ;           N: 'EVP_MD_CTX_md';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_MD_CTX_new ;          N: 'EVP_MD_CTX_new';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
     (F: @@EVP_MD_CTX_reset ;        N: 'EVP_MD_CTX_reset';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
-    (F: @@EVP_MD_block_size ;       N: 'EVP_MD_block_size';     MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),{ V8.40 export renamed for 3.0 }
-    (F: @@EVP_MD_block_size ;       N: 'EVP_MD_get_block_size'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
-    (F: @@EVP_MD_flags ;            N: 'EVP_MD_flags';          MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),{ V8.40 export renamed for 3.0 }
-    (F: @@EVP_MD_flags ;            N: 'EVP_MD_get_flags';      MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
-    (F: @@EVP_MD_pkey_type ;        N: 'EVP_MD_pkey_type';      MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),{ V8.40 export renamed for 3.0 }
-    (F: @@EVP_MD_pkey_type ;        N: 'EVP_MD_get_pkey_type';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
-    (F: @@EVP_MD_size ;             N: 'EVP_MD_size';           MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),{ V8.40 export renamed for 3.0 }
-    (F: @@EVP_MD_size ;             N: 'EVP_MD_get_size';       MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
-    (F: @@EVP_MD_type ;             N: 'EVP_MD_type';           MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),{ V8.40 export renamed for 3.0 }
-    (F: @@EVP_MD_type ;             N: 'EVP_MD_get_type';       MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_MD_get_block_size ;   N: 'EVP_MD_get_block_size'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_MD_get_flags ;        N: 'EVP_MD_get_flags';      MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_MD_get_pkey_type ;    N: 'EVP_MD_get_pkey_type';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_MD_get_size ;         N: 'EVP_MD_get_size';       MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_MD_get_type ;         N: 'EVP_MD_get_type';       MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
     (F: @@EVP_PKEY_CTX_ctrl;        N: 'EVP_PKEY_CTX_ctrl';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_CTX_ctrl_str;    N: 'EVP_PKEY_CTX_ctrl_str'; MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_CTX_dup;         N: 'EVP_PKEY_CTX_dup';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
@@ -3171,12 +3131,8 @@ const
     (F: @@EVP_PKEY_CTX_set_app_data;      N: 'EVP_PKEY_CTX_set_app_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_CTX_set_cb;      N: 'EVP_PKEY_CTX_set_cb';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_CTX_str2ctrl;    N: 'EVP_PKEY_CTX_str2ctrl';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),{ V8.49 }
-    (F: @@EVP_PKEY_assign;          N: 'EVP_PKEY_assign';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_base_id;         N: 'EVP_PKEY_base_id';   MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),  { V8.40 export renamed for 3.0 }
-    (F: @@EVP_PKEY_base_id;         N: 'EVP_PKEY_get_base_id'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
-    (F: @@EVP_PKEY_bits;            N: 'EVP_PKEY_bits';      MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),  { V8.40 export renamed for 3.0 }
-    (F: @@EVP_PKEY_bits;            N: 'EVP_PKEY_get_bits';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
-    (F: @@EVP_PKEY_cmp;             N: 'EVP_PKEY_cmp';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.65 }
+    (F: @@EVP_PKEY_get_base_id;         N: 'EVP_PKEY_get_base_id'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX), { V8.67 new export name in 3.0 }
+    (F: @@EVP_PKEY_get_bits;        N: 'EVP_PKEY_get_bits';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
     (F: @@EVP_PKEY_decrypt;         N: 'EVP_PKEY_decrypt';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
     (F: @@EVP_PKEY_decrypt_init;    N: 'EVP_PKEY_decrypt_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),{ V8.49 }
     (F: @@EVP_PKEY_derive;          N: 'EVP_PKEY_derive';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
@@ -3186,15 +3142,8 @@ const
     (F: @@EVP_PKEY_encrypt_init;    N: 'EVP_PKEY_encrypt_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),{ V8.49 }
     (F: @@EVP_PKEY_free;            N: 'EVP_PKEY_free';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@EVP_PKEY_generate;        N: 'EVP_PKEY_generate';      MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 }
-    (F: @@EVP_PKEY_get0;            N: 'EVP_PKEY_get0';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_get1_DH;         N: 'EVP_PKEY_get1_DH';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_get1_DSA;        N: 'EVP_PKEY_get1_DSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_get1_EC_KEY;     N: 'EVP_PKEY_get1_EC_KEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_get1_RSA;        N: 'EVP_PKEY_get1_RSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_PKEY_set1_EC_KEY;     N: 'EVP_PKEY_set1_EC_KEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.65 }
-    (F: @@EVP_PKEY_set1_RSA;        N: 'EVP_PKEY_set1_RSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.64 }
-    (F: @@EVP_PKEY_id;              N: 'EVP_PKEY_id';            MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),  { V8.64 export renamed for 3.0 }
-    (F: @@EVP_PKEY_id;              N: 'EVP_PKEY_get_id';        MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
+    (F: @@EVP_PKEY_get_id;          N: 'EVP_PKEY_get_id';        MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
+    (F: @@EVP_PKEY_get_group_name;  N: 'EVP_PKEY_get_group_name'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX),  { V9.5 }
     (F: @@EVP_PKEY_keygen;          N: 'EVP_PKEY_keygen';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_keygen_init;     N: 'EVP_PKEY_keygen_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
     (F: @@EVP_PKEY_new ;            N: 'EVP_PKEY_new';           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3208,23 +3157,24 @@ const
     (F: @@EVP_PKEY_print_params ;   N: 'EVP_PKEY_print_params';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
     (F: @@EVP_PKEY_print_private ;  N: 'EVP_PKEY_print_private';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
     (F: @@EVP_PKEY_print_public ;   N: 'EVP_PKEY_print_public';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
-    (F: @@EVP_PKEY_security_bits;   N: 'EVP_PKEY_security_bits';   MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),  { V8.51 export renamed for 3.0 }
-    (F: @@EVP_PKEY_security_bits;   N: 'EVP_PKEY_get_security_bits';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
-//    (F: @@EVP_PKEY_set_alias_type;  N: 'EVP_PKEY_set_alias_type';     MI: OSSL_VER_1101; MX: OSSL_VER_MAX), { V8.64 }
-    (F: @@EVP_PKEY_sign;            N: 'EVP_PKEY_sign';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
-    (F: @@EVP_PKEY_sign_init;       N: 'EVP_PKEY_sign_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
-    (F: @@EVP_PKEY_size;            N: 'EVP_PKEY_size';     MI: OSSL_VER_MIN; MX: OSSL_VER_1101ZZ),  { export renamed for 3.0 }
-    (F: @@EVP_PKEY_size;            N: 'EVP_PKEY_get_size'; MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
-    (F: @@EVP_PKEY_up_ref;          N: 'EVP_PKEY_up_ref';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.52 }
-    (F: @@EVP_PKEY_verify;          N: 'EVP_PKEY_verify';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
-    (F: @@EVP_PKEY_verify_init;     N: 'EVP_PKEY_verify_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
-    (F: @@EVP_PKEY_verify_recover;  N: 'EVP_PKEY_verify_recover';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
-    (F: @@EVP_PKEY_verify_recover_init; N: 'EVP_PKEY_verify_recover_init';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
-    (F: @@EVP_SignFinal ;           N: 'EVP_SignFinal';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
-    (F: @@EVP_VerifyFinal ;         N: 'EVP_VerifyFinal';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
-    (F: @@EVP_aes_128_cbc;          N: 'EVP_aes_128_cbc';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_aes_128_ccm ;         N: 'EVP_aes_128_ccm';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
-    (F: @@EVP_aes_128_cfb128 ;      N: 'EVP_aes_128_cfb128';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
+    (F: @@EVP_PKEY_get_security_bits; N: 'EVP_PKEY_get_security_bits';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
+    (F: @@EVP_PKEY_sign;            N: 'EVP_PKEY_sign';           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
+    (F: @@EVP_PKEY_sign_init;       N: 'EVP_PKEY_sign_init';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
+    (F: @@EVP_PKEY_get_size;        N: 'EVP_PKEY_get_size';       MI: OSSL_VER_3000; MX: OSSL_VER_MAX),   { V8.67 new export name in 3.0 }
+    (F: @@EVP_PKEY_up_ref;          N: 'EVP_PKEY_up_ref';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.52 }
+    (F: @@EVP_PKEY_verify;          N: 'EVP_PKEY_verify';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.49 }
+    (F: @@EVP_PKEY_verify_init;     N: 'EVP_PKEY_verify_init';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
+    (F: @@EVP_PKEY_verify_recover;  N: 'EVP_PKEY_verify_recover'; MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
+    (F: @@EVP_PKEY_verify_recover_init; N: 'EVP_PKEY_verify_recover_init';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.49 }
+    (F: @@EVP_PKEY_missing_parameters;   N: 'EVP_PKEY_missing_parameters';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),  { V9.5 }
+    (F: @@EVP_PKEY_copy_parameters; N: 'EVP_PKEY_copy_parameters';MI: OSSL_VER_3000; MX: OSSL_VER_MAX),  { V9.5 }
+    (F: @@EVP_PKEY_parameters_eq;   N: 'EVP_PKEY_parameters_eq';  MI: OSSL_VER_3000; MX: OSSL_VER_MAX),  { V9.5 }
+    (F: @@EVP_PKEY_eq;              N: 'EVP_PKEY_eq';             MI: OSSL_VER_3000; MX: OSSL_VER_MAX),  { V9.5 }
+    (F: @@EVP_SignFinal ;           N: 'EVP_SignFinal';           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
+    (F: @@EVP_VerifyFinal ;         N: 'EVP_VerifyFinal';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
+    (F: @@EVP_aes_128_cbc;          N: 'EVP_aes_128_cbc';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_aes_128_ccm ;         N: 'EVP_aes_128_ccm';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
+    (F: @@EVP_aes_128_cfb128 ;      N: 'EVP_aes_128_cfb128';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
     (F: @@EVP_aes_128_ecb ;         N: 'EVP_aes_128_ecb';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
     (F: @@EVP_aes_128_gcm ;         N: 'EVP_aes_128_gcm';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.40 }
     (F: @@EVP_aes_128_ocb ;         N: 'EVP_aes_128_ocb';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.40 }
@@ -3256,12 +3206,7 @@ const
     (F: @@EVP_enc_null ;            N: 'EVP_enc_null';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),       { V8.40 }
     (F: @@EVP_get_cipherbyname ;    N: 'EVP_get_cipherbyname';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@EVP_get_digestbyname ;    N: 'EVP_get_digestbyname';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EVP_idea_cbc ;            N: 'EVP_idea_cbc';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EVP_idea_cfb64 ;          N: 'EVP_idea_cfb64';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
-    (F: @@EVP_idea_ecb ;            N: 'EVP_idea_ecb';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@EVP_idea_ofb ;            N: 'EVP_idea_ofb';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_md5;                  N: 'EVP_md5';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@EVP_mdc2 ;                N: 'EVP_mdc2';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_ripemd160 ;           N: 'EVP_ripemd160';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@EVP_sha1 ;                N: 'EVP_sha1';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@EVP_sha224 ;              N: 'EVP_sha224';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
@@ -3278,13 +3223,13 @@ const
     (F: @@GENERAL_NAME_get0_value ; N: 'GENERAL_NAME_get0_value';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@GENERAL_NAME_new ;        N: 'GENERAL_NAME_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.40 }
     (F: @@GENERAL_NAME_set0_value ; N: 'GENERAL_NAME_set0_value';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@HMAC  ;              N: 'HMAC';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@OBJ_create ;         N: 'OBJ_create';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.62 }
-    (F: @@OBJ_nid2ln ;         N: 'OBJ_nid2ln';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@OBJ_nid2obj ;        N: 'OBJ_nid2obj';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.40 }
-    (F: @@OBJ_nid2sn ;         N: 'OBJ_nid2sn';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@OBJ_obj2nid;         N: 'OBJ_obj2nid';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-
+    (F: @@HMAC  ;                   N: 'HMAC';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@OBJ_create ;              N: 'OBJ_create';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.62 }
+    (F: @@OBJ_nid2ln ;              N: 'OBJ_nid2ln';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@OBJ_nid2obj ;             N: 'OBJ_nid2obj';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V8.40 }
+    (F: @@OBJ_nid2sn ;              N: 'OBJ_nid2sn';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@OBJ_obj2nid;             N: 'OBJ_obj2nid';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@OBJ_txt2nid;             N: 'OBJ_txt2nid';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),          { V9.5 }
     (F: @@OCSP_BASICRESP_add1_ext_i2d ;        N: 'OCSP_BASICRESP_add1_ext_i2d';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@OCSP_BASICRESP_add_ext ;             N: 'OCSP_BASICRESP_add_ext';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@OCSP_BASICRESP_delete_ext ;          N: 'OCSP_BASICRESP_delete_ext';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3412,24 +3357,16 @@ const
     (F: @@OpenSSL_version ;    N: 'OpenSSL_version';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_X509_INFO_read_bio ;   N: 'PEM_X509_INFO_read_bio';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_do_header;   N: 'PEM_do_header';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_read_bio_DHparams;   N: 'PEM_read_bio_DHparams';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_read_bio_PKCS7 ;   N: 'PEM_read_bio_PKCS7';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_read_bio_PUBKEY ;  N: 'PEM_read_bio_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@PEM_read_bio_PrivateKey;   N: 'PEM_read_bio_PrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_read_bio_RSAPrivateKey ;   N: 'PEM_read_bio_RSAPrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_read_bio_RSAPublicKey ;  N: 'PEM_read_bio_RSAPublicKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@PEM_read_bio_RSA_PUBKEY;   N: 'PEM_read_bio_RSA_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_read_bio_X509;   N: 'PEM_read_bio_X509';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_read_bio_X509_CRL;   N: 'PEM_read_bio_X509_CRL';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_read_bio_X509_REQ ;  N: 'PEM_read_bio_X509_REQ';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
-    (F: @@PEM_write_bio_DHparams ;  N: 'PEM_write_bio_DHparams';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@PEM_write_bio_PKCS7;   N: 'PEM_write_bio_PKCS7';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_write_bio_PKCS8PrivateKey ;  N: 'PEM_write_bio_PKCS8PrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@PEM_write_bio_PUBKEY ;         N: 'PEM_write_bio_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@PEM_write_bio_PrivateKey ;     N: 'PEM_write_bio_PrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_write_bio_RSAPrivateKey;   N: 'PEM_write_bio_RSAPrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_write_bio_RSAPublicKey ;   N: 'PEM_write_bio_RSAPublicKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@PEM_write_bio_RSA_PUBKEY ; N: 'PEM_write_bio_RSA_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@PEM_write_bio_X509 ;       N: 'PEM_write_bio_X509';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_write_bio_X509_CRL ;   N: 'PEM_write_bio_X509_CRL';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@PEM_write_bio_X509_REQ ;   N: 'PEM_write_bio_X509_REQ';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3449,34 +3386,9 @@ const
     (F: @@RAND_bytes;   N: 'RAND_bytes';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@RAND_load_file;   N: 'RAND_load_file';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@RAND_poll;   N: 'RAND_poll';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RAND_screen;   N: 'RAND_screen';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@RAND_seed;   N: 'RAND_seed';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@RAND_status;   N: 'RAND_status';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@RAND_write_file;   N: 'RAND_write_file';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_free;                         N: 'RSA_free';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_generate_key ;                N: 'RSA_generate_key';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_generate_key_ex;              N: 'RSA_generate_key_ex';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_new;                          N: 'RSA_new';                         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_print;                        N: 'RSA_print';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_private_decrypt;              N: 'RSA_private_decrypt';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_public_encrypt;               N: 'RSA_public_encrypt';              MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_size;                         N: 'RSA_size';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@RSA_set0_key;                     N: 'RSA_set0_key';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_set0_factors;                 N: 'RSA_set0_factors';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_set0_crt_params;              N: 'RSA_set0_crt_params';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_set0_multi_prime_params;      N: 'RSA_set0_multi_prime_params';     MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_key;                     N: 'RSA_get0_key';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_factors;                 N: 'RSA_get0_factors';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get_multi_prime_extra_count;  N: 'RSA_get_multi_prime_extra_count'; MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_multi_prime_factors;     N: 'RSA_get0_multi_prime_factors';    MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_crt_params;              N: 'RSA_get0_crt_params';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_multi_prime_crt_params;  N: 'RSA_get0_multi_prime_crt_params'; MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_clear_flags;                  N: 'RSA_clear_flags';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_test_flags;                   N: 'RSA_test_flags';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_set_flags;                    N: 'RSA_set_flags';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get_version;                  N: 'RSA_get_version';                 MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_get0_engine;                  N: 'RSA_get0_engine';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
-    (F: @@RSA_up_ref;                       N: 'RSA_up_ref';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
     (F: @@X509V3_EXT_conf_nid;      N: 'X509V3_EXT_conf_nid';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@X509V3_EXT_d2i ;          N: 'X509V3_EXT_d2i';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@X509V3_EXT_get ;          N: 'X509V3_EXT_get';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3644,7 +3556,6 @@ const
     (F: @@d2i_PUBKEY ;               N: 'd2i_PUBKEY';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.64 }
     (F: @@d2i_PUBKEY_bio ;           N: 'd2i_PUBKEY_bio';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.64 }
     (F: @@d2i_PublicKey ;            N: 'd2i_PublicKey';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.52 }
-    (F: @@d2i_RSAPrivateKey;         N: 'd2i_RSAPrivateKey';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@d2i_X509 ;                 N: 'd2i_X509';           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@d2i_X509_REQ ;             N: 'd2i_X509_REQ';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.40 }
     (F: @@d2i_X509_REQ_bio ;         N: 'd2i_X509_REQ_bio';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.40 }
@@ -3658,14 +3569,10 @@ const
     (F: @@i2d_PUBKEY ;               N: 'i2d_PUBKEY';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.64 }
     (F: @@i2d_PUBKEY_bio ;           N: 'i2d_PUBKEY_bio';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.64 }
     (F: @@i2d_PublicKey ;            N: 'i2d_PublicKey';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.52 }
-    (F: @@i2d_RSAPublicKey ;         N: 'i2d_RSAPublicKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@i2d_RSA_PUBKEY ;           N: 'i2d_RSA_PUBKEY';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@i2d_X509 ;                 N: 'i2d_X509';           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@i2d_X509_REQ ;             N: 'i2d_X509_REQ';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.40 }
     (F: @@i2d_X509_REQ_bio ;         N: 'i2d_X509_REQ_bio';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.40 }
     (F: @@i2d_X509_bio ;             N: 'i2d_X509_bio';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@i2o_ECPublicKey ;          N: 'i2o_ECPublicKey';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.52 }
-    (F: @@o2i_ECPublicKey ;          N: 'o2i_ECPublicKey';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.52 }
 
     (F: @@OPENSSL_version_major ;            N: 'OPENSSL_version_major';            MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
     (F: @@OPENSSL_version_minor ;            N: 'OPENSSL_version_minor';            MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
@@ -3788,15 +3695,178 @@ const
     (F: @@EVP_MD_settable_ctx_params ;     N: 'EVP_MD_settable_ctx_params';     MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
     (F: @@EVP_MD_gettable_ctx_params ;     N: 'EVP_MD_gettable_ctx_params';     MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
     (F: @@EVP_MD_CTX_settable_params ;     N: 'EVP_MD_CTX_settable_params';     MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
-    (F: @@EVP_MD_CTX_gettable_params ;     N: 'EVP_MD_CTX_gettable_params';     MI: OSSL_VER_3000; MX: OSSL_VER_MAX) );      { V8.67 }
+    (F: @@EVP_MD_CTX_gettable_params ;     N: 'EVP_MD_CTX_gettable_params';     MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V8.67 }
 
-{$IFDEF OPENSSL_USE_DELPHI_MM}
-    GLIBEAYImports2: array[0..0] of TOSSLImports = (
-    (F: @@CRYPTO_set_mem_functions ;   N: 'CRYPTO_set_mem_functions';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) ) ;
-{$ENDIF}
+    (F: @@X509_get_X509_PUBKEY ;           N: 'X509_get_X509_PUBKEY';           MI: OSSL_VER_3000; MX: OSSL_VER_MAX),        { V9.1 }
+    (F: @@i2d_X509_PUBKEY_bio ;            N: 'i2d_X509_PUBKEY_bio';            MI: OSSL_VER_3000; MX: OSSL_VER_MAX) );      { V9.1 }
+
+{$IFDEF OpenSSL_Deprecated}   { V9.5 }
+{ V9.5 exports deprecated in OpenSSL 3.0 but may still be needed by applications }
+ GLIBEAYImportsDep: array[0..157] of TOSSLImports = (
+    (F: @@DH_check ;                   N: 'DH_check';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@DH_free;                     N: 'DH_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@DH_generate_parameters_ex ;  N: 'DH_generate_parameters_ex';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@DH_new ;                     N: 'DH_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@DH_size;                     N: 'DH_size';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@DSA_free;                    N: 'DSA_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@DSA_print;                   N: 'DSA_print';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@DSA_size;                    N: 'DSA_size';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EC_GROUP_clear_free ;              N: 'EC_GROUP_clear_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_curve_GF2m ;          N: 'EC_GROUP_get_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_curve_GFp ;           N: 'EC_GROUP_get_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new ;                     N: 'EC_GROUP_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_curve_GF2m ;          N: 'EC_GROUP_set_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_curve_GFp ;           N: 'EC_GROUP_set_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_check ;                   N: 'EC_GROUP_check';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_check_discriminant ;      N: 'EC_GROUP_check_discriminant';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_cmp ;                     N: 'EC_GROUP_cmp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_copy ;                    N: 'EC_GROUP_copy';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_dup ;                     N: 'EC_GROUP_dup';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_free ;                    N: 'EC_GROUP_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get0_cofactor ;           N: 'EC_GROUP_get0_cofactor';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get0_generator ;          N: 'EC_GROUP_get0_generator';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get0_order ;              N: 'EC_GROUP_get0_order';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get0_seed ;               N: 'EC_GROUP_get0_seed';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_asn1_flag ;           N: 'EC_GROUP_get_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_basis_type ;          N: 'EC_GROUP_get_basis_type';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_cofactor ;            N: 'EC_GROUP_get_cofactor';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_curve_name ;          N: 'EC_GROUP_get_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_degree ;              N: 'EC_GROUP_get_degree';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_ecparameters ;        N: 'EC_GROUP_get_ecparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_ecpkparameters ;      N: 'EC_GROUP_get_ecpkparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_mont_data ;           N: 'EC_GROUP_get_mont_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_order ;               N: 'EC_GROUP_get_order';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_pentanomial_basis ;   N: 'EC_GROUP_get_pentanomial_basis';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_point_conversion_form ; N: 'EC_GROUP_get_point_conversion_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_seed_len ;            N: 'EC_GROUP_get_seed_len';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_get_trinomial_basis ;     N: 'EC_GROUP_get_trinomial_basis';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_method_of ;               N: 'EC_GROUP_method_of';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new_by_curve_name ;       N: 'EC_GROUP_new_by_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new_curve_GF2m ;          N: 'EC_GROUP_new_curve_GF2m';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new_curve_GFp ;           N: 'EC_GROUP_new_curve_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new_from_ecparameters ;   N: 'EC_GROUP_new_from_ecparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_new_from_ecpkparameters ; N: 'EC_GROUP_new_from_ecpkparameters';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_order_bits ;              N: 'EC_GROUP_order_bits';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_asn1_flag ;           N: 'EC_GROUP_set_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_curve_name ;          N: 'EC_GROUP_set_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_generator ;           N: 'EC_GROUP_set_generator';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_point_conversion_form ; N: 'EC_GROUP_set_point_conversion_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_GROUP_set_seed ;                N: 'EC_GROUP_set_seed';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_can_sign ;         N: 'EC_KEY_can_sign';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_check_key ;        N: 'EC_KEY_check_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_clear_flags ;      N: 'EC_KEY_clear_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_copy ;             N: 'EC_KEY_copy';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_dup ;              N: 'EC_KEY_dup';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_free;   N: 'EC_KEY_free';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EC_KEY_generate_key ;     N: 'EC_KEY_generate_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get0_group ;       N: 'EC_KEY_get0_group';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get0_private_key ; N: 'EC_KEY_get0_private_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get0_public_key ;  N: 'EC_KEY_get0_public_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get_conv_form ;    N: 'EC_KEY_get_conv_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get_enc_flags ;    N: 'EC_KEY_get_enc_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get_ex_data ;      N: 'EC_KEY_get_ex_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_get_flags ;        N: 'EC_KEY_get_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_key2buf ;          N: 'EC_KEY_key2buf';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_new ;              N: 'EC_KEY_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_new_by_curve_name ;   N: 'EC_KEY_new_by_curve_name';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EC_KEY_oct2key ;          N: 'EC_KEY_oct2key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_oct2priv ;         N: 'EC_KEY_oct2priv';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_precompute_mult ;  N: 'EC_KEY_precompute_mult';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_print ;   N: 'EC_KEY_print';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EC_KEY_priv2buf ;         N: 'EC_KEY_priv2buf';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_priv2oct ;         N: 'EC_KEY_priv2oct';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_asn1_flag ;    N: 'EC_KEY_set_asn1_flag';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_conv_form ;    N: 'EC_KEY_set_conv_form';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_enc_flags ;    N: 'EC_KEY_set_enc_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_flags ;        N: 'EC_KEY_set_flags';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_group ;        N: 'EC_KEY_set_group';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_private_key ;  N: 'EC_KEY_set_private_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_public_key ;   N: 'EC_KEY_set_public_key';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_set_public_key_affine_coordinates ;   N: 'EC_KEY_set_public_key_affine_coordinates';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_KEY_up_ref ;           N: 'EC_KEY_up_ref';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_METHOD_get_field_type ; N: 'EC_METHOD_get_field_type';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_POINT_get_affine_coordinates_GFp  ; N: 'EC_POINT_get_affine_coordinates_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_get_affine_coordinates_GF2m ; N: 'EC_POINT_get_affine_coordinates_GF2m';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_free ;           N: 'EC_POINT_free';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
+    (F: @@EC_POINT_new ;            N: 'EC_POINT_new';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
+    (F: @@EC_POINT_set_affine_coordinates_GFp  ; N: 'EC_POINT_set_affine_coordinates_GFp';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_set_affine_coordinates_GF2m ; N: 'EC_POINT_set_affine_coordinates_GF2m';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_method_of ;      N: 'EC_POINT_method_of';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_oct2point ;      N: 'EC_POINT_oct2point';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_POINT_point2oct ;      N: 'EC_POINT_point2oct';  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@EC_curve_nid2nist ;       N: 'EC_curve_nid2nist';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_curve_nist2nid ;       N: 'EC_curve_nist2nid';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EC_get_builtin_curves ;   N: 'EC_get_builtin_curves';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@ECDSA_SIG_free ;          N: 'ECDSA_SIG_free';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_SIG_get0 ;          N: 'ECDSA_SIG_get0';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_SIG_new ;           N: 'ECDSA_SIG_new';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_SIG_set0 ;          N: 'ECDSA_SIG_set0';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_do_sign ;           N: 'ECDSA_do_sign';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_do_sign_ex ;        N: 'ECDSA_do_sign_ex';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_do_verify ;         N: 'ECDSA_do_verify';     MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_sign ;              N: 'ECDSA_sign';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_sign_ex ;           N: 'ECDSA_sign_ex';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_sign_setup ;        N: 'ECDSA_sign_setup';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_size ;              N: 'ECDSA_size';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ECDSA_verify ;            N: 'ECDSA_verify';        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.67 was missing }
+    (F: @@ERR_func_error_string;    N: 'ERR_func_error_string';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@ERR_get_error_line_data;  N: 'ERR_get_error_line_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@ERR_remove_state ;        N: 'ERR_remove_state';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@ERR_remove_thread_state;  N: 'ERR_remove_thread_state';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_MD_CTX_md ;           N: 'EVP_MD_CTX_md';         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@EVP_PKEY_assign;          N: 'EVP_PKEY_assign';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_cmp;             N: 'EVP_PKEY_cmp';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.65 }
+    (F: @@EVP_PKEY_get0;            N: 'EVP_PKEY_get0';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_get1_DH;         N: 'EVP_PKEY_get1_DH';       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_get1_DSA;        N: 'EVP_PKEY_get1_DSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_get1_EC_KEY;     N: 'EVP_PKEY_get1_EC_KEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_get1_RSA;        N: 'EVP_PKEY_get1_RSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@EVP_PKEY_set1_EC_KEY;     N: 'EVP_PKEY_set1_EC_KEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.65 }
+    (F: @@EVP_PKEY_set1_RSA;        N: 'EVP_PKEY_set1_RSA';      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.64 }
+    (F: @@PEM_read_bio_DHparams;   N: 'PEM_read_bio_DHparams';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@PEM_read_bio_RSAPrivateKey ;   N: 'PEM_read_bio_RSAPrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@PEM_read_bio_RSAPublicKey ;  N: 'PEM_read_bio_RSAPublicKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@PEM_read_bio_RSA_PUBKEY;   N: 'PEM_read_bio_RSA_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@PEM_write_bio_DHparams ;  N: 'PEM_write_bio_DHparams';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@PEM_write_bio_RSAPrivateKey;   N: 'PEM_write_bio_RSAPrivateKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@PEM_write_bio_RSAPublicKey ;   N: 'PEM_write_bio_RSAPublicKey';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@PEM_write_bio_RSA_PUBKEY ; N: 'PEM_write_bio_RSA_PUBKEY';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@RSA_free;                         N: 'RSA_free';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_generate_key ;                N: 'RSA_generate_key';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_generate_key_ex;              N: 'RSA_generate_key_ex';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_new;                          N: 'RSA_new';                         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_print;                        N: 'RSA_print';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_private_decrypt;              N: 'RSA_private_decrypt';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_public_encrypt;               N: 'RSA_public_encrypt';              MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_size;                         N: 'RSA_size';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@RSA_set0_key;                     N: 'RSA_set0_key';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_set0_factors;                 N: 'RSA_set0_factors';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_set0_crt_params;              N: 'RSA_set0_crt_params';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_set0_multi_prime_params;      N: 'RSA_set0_multi_prime_params';     MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_key;                     N: 'RSA_get0_key';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_factors;                 N: 'RSA_get0_factors';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get_multi_prime_extra_count;  N: 'RSA_get_multi_prime_extra_count'; MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_multi_prime_factors;     N: 'RSA_get0_multi_prime_factors';    MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_crt_params;              N: 'RSA_get0_crt_params';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_multi_prime_crt_params;  N: 'RSA_get0_multi_prime_crt_params'; MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_clear_flags;                  N: 'RSA_clear_flags';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_test_flags;                   N: 'RSA_test_flags';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_set_flags;                    N: 'RSA_set_flags';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get_version;                  N: 'RSA_get_version';                 MI: OSSL_VER_1101; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_get0_engine;                  N: 'RSA_get0_engine';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.52 }
+    (F: @@RSA_up_ref;                       N: 'RSA_up_ref';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.65 }
+    (F: @@RSA_verify;                       N: 'RSA_verify';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.5 }
+    (F: @@d2i_RSAPrivateKey;                N: 'd2i_RSAPrivateKey';               MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@i2d_RSAPublicKey ;                N: 'i2d_RSAPublicKey';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@i2d_RSA_PUBKEY ;                  N: 'i2d_RSA_PUBKEY';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@i2o_ECPublicKey ;                 N: 'i2o_ECPublicKey';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),      { V8.52 }
+    (F: @@o2i_ECPublicKey ;                 N: 'o2i_ECPublicKey';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) );     { V8.52 }
+
+{$ENDIF OpenSSL_Deprecated}    { V9.5 }
+
 
 {$IFNDEF OPENSSL_NO_ENGINE}
-    GLIBEAYImports3: array[0..20] of TOSSLImports = (
+ {   GLIBEAYImports3: array[0..20] of TOSSLImports = (
     (F: @@ENGINE_by_id ;   N: 'ENGINE_by_id';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ENGINE_ctrl_cmd_string ;   N: 'ENGINE_ctrl_cmd_string';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@ENGINE_finish;   N: 'ENGINE_finish';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -3817,7 +3887,7 @@ const
     (F: @@UI_new ;   N: 'UI_new';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@UI_new_method;   N: 'UI_new_method';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@UI_set_ex_data ;   N: 'UI_set_ex_data';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@UI_set_result;   N: 'UI_set_result';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) ) ;
+    (F: @@UI_set_result;   N: 'UI_set_result';   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) ) ;  }
 {$ENDIF}
 
 {$ENDIF YuOpenSSL}
@@ -3920,126 +3990,264 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 look for OpenSSL DLLs previously extracted from resource, if not found create them }
+{ only a single minor version can be linked, ie 30, 36, etc, not different patch versions, ie 309, 3012, 3013 }
+
+{$IFDEF MSWINDOWS}  { V9.3 }
+{$IFDEF OpenSSL_Resource_Files}
+// link the DLL resource files into our application
+  {$IFDEF OpenSSL_30}          { LTS supported until Sept 2026 }
+    {$IFDEF WIN32}{$R LibV30OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV30OpenSSL64.RES}{$ENDIF}
+  {$ENDIF}
+//  {$IFDEF  OpenSSL_31}     { V9.2 gone June 2024  }
+//    {$IFDEF WIN32}{$R LibV31OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV31OpenSSL64.RES}{$ENDIF}
+//  {$ENDIF}
+//  {$IFDEF  OpenSSL_32}       { supported until Nov 2025, V9.5 gone Oct 2025 }
+//    {$IFDEF WIN32}{$R LibV32OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV32OpenSSL64.RES}{$ENDIF}
+//  {$ENDIF}
+//  {$IFDEF  OpenSSL_33}     { V9.2 available April 2024, supported until April 2026, V9.5 gone 2025 }
+//    {$IFDEF WIN32}{$R LibV33OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV33OpenSSL64.RES}{$ENDIF}
+//  {$ENDIF}
+  {$IFDEF  OpenSSL_34}     { V9.4 available October 2024, supported until Oct 2026 }
+    {$IFDEF WIN32}{$R LibV34OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV34OpenSSL64.RES}{$ENDIF}
+  {$ENDIF}
+  {$IFDEF  OpenSSL_35}     { V9.4 released April 2025, LTS supported until April 2030 }
+    {$IFDEF WIN32}{$R LibV35OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV35OpenSSL64.RES}{$ENDIF}
+  {$ENDIF}
+  {$IFDEF  OpenSSL_36}     { V9.5 released Oct 2025, supported until Oct 2027 }
+    {$IFDEF WIN32}{$R LibV36OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV36OpenSSL64.RES}{$ENDIF}
+  {$ENDIF}
+  {$IFDEF  OpenSSL_40}     { V9.5due April 2026, supported until April 2028 }
+    {$IFDEF WIN32}{$R LibV40OpenSSL32.RES}{$ENDIF}{$IFDEF WIN64}{$R LibV40OpenSSL64.RES}{$ENDIF}
+  {$ENDIF}
+
+procedure IcsOpenSslResource;
+var
+    DirExtract, Version: String;
+    ResVer: TBytes;
+begin
+    try
+ // get OpenSSL version from resource, none is fatal
+{$IFDEF MSWINDOWS}
+{$IFNDEF CPUX64}
+        ResVer := IcsResourceGetTB('VERNUMV3DLL32', RT_RCDATA);
+{$ELSE}
+        ResVer := IcsResourceGetTB('VERNUMV3DLL64', RT_RCDATA);
+{$ENDIF}
+{$ENDIF}
+        if (NOT Assigned(ResVer)) or (Length(ResVer) = 0) then
+            Exit;
+        Version := IcsTBytesToString(ResVer);
+        DirExtract := GSSL_PUBLIC_DIR + IncludeTrailingPathDelimiter(Version);
+
+     // see if done previously, nothing more to do
+        if FileExists(DirExtract + GLIBEAY_300DLL_Name) then begin
+            GSSL_DLL_DIR := DirExtract;
+            Exit;
+        end;
+
+     // create extract directory, note Win32 and Win64 files go into same directory since they are named differently
+        if NOT ForceDirectories(DirExtract) then
+            Exit;
+
+  // save resources to files, libcrypto/GLIBEAY last since it's checked first
+{$IFDEF MSWINDOWS}
+{$IFNDEF CPUX64}
+        if IcsResourceSaveFile('VernumV3DLL32', DirExtract + Version + '.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('VerstrV3DLL32', DirExtract + 'Version.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('READMEV3DLL32', DirExtract + 'readme.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('LEGACYV3DLL32', DirExtract + OSSL_PROVIDERS_LEGACY + '.dll', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('SSLEAYV3DLL32', DirExtract + GSSLEAY_300DLL_Name, False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('LIBEAYV3DLL32', DirExtract + GLIBEAY_300DLL_Name, False) = 0 then
+            Exit;
+{$ELSE}
+        if IcsResourceSaveFile('VernumV3DLL64', DirExtract + Version + '.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('VerstrV3DLL64', DirExtract + 'Version.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('LICEAYV3DLL64', DirExtract + 'LICENSE.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('READMEV3DLL64', DirExtract + 'readme.txt', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('LEGACYV3DLL64', DirExtract + OSSL_PROVIDERS_LEGACY + '.dll', False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('SSLEAYV3DLL64', DirExtract + GSSLEAY_300DLL_Name, False) = 0 then
+            Exit;
+        if IcsResourceSaveFile('LIBEAYV3DLL64', DirExtract + GLIBEAY_300DLL_Name, False) = 0 then
+            Exit;
+{$ENDIF}
+{$ENDIF}
+
+     // success, set OpenSSL directory to where we extracted files
+        GSSL_DLL_DIR := DirExtract;
+    except
+    end;
+end;
+{$ENDIF OpenSSL_Resource_Files}
+{$ENDIF MSWINDOWS}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function LibeayLoad : Boolean;        { V8.27 make unique }
 {$IFNDEF YuOpenSSL}
-var
-   errs: String ;  { V8.29 }
+//arr
+//   errs: String ;  { V8.29 }   V9.5 replaced by GSSL_LOAD_ERRS
 {$ENDIF YuOpenSSL}
 begin
     Result := TRUE;
+
+ { V9.1 if blank set OpenSSL public directory, usually c:\ProgramData\ICS-OpenSSL\ }
+ { also used for root certificate bundles }
+    if GSSL_PUBLIC_DIR = '' then begin
+{$IFDEF MSWINDOWS}
+        GSSL_PUBLIC_DIR := IcsGetShellPath(CSIDL_COMMON_APPDATA);  // "C:\Users\All Users\" aka "c:\ProgramData\"
+{$ELSE}
+       { V9.3 Linux $Home/Downloads, Android /storage/emulated/0/Download, IOS /storage/emulated/0/Download }
+        GSSL_PUBLIC_DIR := TPath.GetSharedDownloadsPath;
+{$ENDIF}
+        GSSL_PUBLIC_DIR := IncludeTrailingPathDelimiter(GSSL_PUBLIC_DIR) + IncludeTrailingPathDelimiter(GSSL_RES_SUBDIR); { ICS-OpenSSL }
+    end;
+
+// create OpenSSL public directory C:\ProgramData\ICS-OpenSSL\ if using resource files, need to extract them there
+{$IFDEF OpenSSL_Resource_Files}   { V9.5 }
+    ForceDirectories(GSSL_PUBLIC_DIR);
+{$ENDIF OpenSSL_Resource_Files}
+
+// build some common directories, used for samples and servers creating ceritificates
+   GSSL_CERTS_DIR := GSSL_PUBLIC_DIR + GSSL_CERTS_SUBDIR;  // C:\ProgramData\ICS-OpenSSL\ICS-Certs\ or $Home/Downloads/ICS-OpenSSL/ICS-Certs
+   GSSL_ROOTS_DIR := GSSL_PUBLIC_DIR + GSSL_ROOTS_SUBDIR;  // C:\ProgramData\ICS-OpenSSL\ICS-RootCAs\
+
 {$IFNDEF YuOpenSSL}
-    if GLIBEAY_DLL_Handle <> 0 then Exit;  // Already loaded
+    if GLIBEAY_DLL_Handle <> 0 then         // Already loaded
+        Exit;
+
     ICS_OPENSSL_VERSION_NUMBER := 999;      { V8.65 set error here so SsleayLoad knows we tried and failed }
-    if GSSLEAY_DLL_IgnoreNew and GSSLEAY_DLL_IgnoreOld then begin { V8.49 sanity check }
+  { V9.1 not currently supporting GSSLEAY_DLL_IgnoreOld/New since only 3.x }
+//    if GSSLEAY_DLL_IgnoreNew and GSSLEAY_DLL_IgnoreOld then begin { V8.49 sanity check }
         GSSLEAY_DLL_IgnoreOld := false;
         GSSLEAY_DLL_IgnoreNew := false;
-    end;
+//    end;
+
+{ V9.1 application expects DLLs in public directory, but might also load them from resources }
+{ NOTE this overrides anywhere the application might have set }
+{$IFDEF OpenSSL_ProgramData}
+    ForceDirectories(GSSL_PUBLIC_DIR);
+    GSSL_DLL_DIR := GSSL_PUBLIC_DIR;
+{$ENDIF OpenSSL_ProgramData}
+
+{ V9.1 look for OpenSSL DLLs previously extracted from resource, if not found create them }
+{$IFDEF OpenSSL_Resource_Files}
+    IcsOpenSslResource;          {if successful, adjusts GSSL_DLL_DIR to find extracted files }
+{$ENDIF OpenSSL_Resource_Files}
 
 { V8.27 try v1.1.0 and later first with new file name - libcrypto-1_1.dll }
 { V8.27 allow a specific DLL directory to be specified in GSSL_DLL_DIR }
-{ V8.65 try and load OpenSSL 3.0.x first, then 1.1.x, then 1.0.x }
-    Errs := '';
-    if (NOT GSSLEAY_DLL_IgnoreNew) and (MAX_OSSL_VER >= OSSL_VER_3000) then begin  { V8.65 skip 3.0 for IgnoreNew }
-        GLIBEAY_DLL_FileName := GSSL_DLL_DIR+GLIBEAY_300DLL_Name;  { V8.65 }
-        ICS_OPENSSL_VERSION_MAJOR := 3;  { V8.67 }
-        GLIBEAY_DLL_Handle := LoadLibrary(PChar(GLIBEAY_DLL_FileName));
-        Errs := GLIBEAY_DLL_FileName;
-    end;
-    if GLIBEAY_DLL_Handle <= 32 then begin
-        GLIBEAY_DLL_FileName := GSSL_DLL_DIR+GLIBEAY_110DLL_Name;  { V8.29 }
-        ICS_OPENSSL_VERSION_MAJOR := 1;  { V8.67 }
-        GLIBEAY_DLL_Handle := LoadLibrary(PChar(GLIBEAY_DLL_FileName));
-        if Errs <> '' then
-            Errs := Errs + ' or ';
-        Errs := Errs + GLIBEAY_DLL_FileName;   { V8.71 report both DLLs we can not find, not just oldest }
-    end;
-    if GLIBEAY_DLL_Handle > 32 then begin
+{ V8.65 try and load OpenSSL 3.x first, then 1.1.x, then 1.0.x }
+{ V9.1 only supporting 3.x now }
+//    if (NOT GSSLEAY_DLL_IgnoreNew) and (MAX_OSSL_VER >= OSSL_VER_3000) then begin  { V8.65 skip 3.0 for IgnoreNew }
+    GLIBEAY_DLL_FileName := GSSL_DLL_DIR + GLIBEAY_300DLL_Name;  { V8.65 }
+    ICS_OPENSSL_VERSION_MAJOR := 3;  { V8.67 }
+    GLIBEAY_DLL_Handle := LoadLibrary(PChar(GLIBEAY_DLL_FileName));
+    GSSL_LOAD_ERRS := '';
 
+    if GLIBEAY_DLL_Handle > 32 then begin
         // all SSLeay_xx functions renamed to OpenSSL_xx with v1.1.0 and later
         OpenSSL_version_num := GetProcAddress(GLIBEAY_DLL_Handle, FN_OpenSSL_version_num);
         if @OpenSSL_version_num = nil then begin
             FreeLibrary(GLIBEAY_DLL_Handle);
             GLIBEAY_DLL_Handle := 0;
             ICS_OPENSSL_VERSION_MAJOR := 0;  { V8.67 }
-            raise EIcsLIBEAYException.Create('Failed to load OpenSSL file ' + Errs);   {V8.71 better exception }
+            GSSL_LOAD_ERRS := 'Failed to load OpenSSL file: ' + GLIBEAY_DLL_FileName + ' - OpenSSL_version_num Not Found';  { V9.3 }
+            raise EIcsLIBEAYException.Create(GSSL_LOAD_ERRS);
         end;
     end
 
- { could not find 3.0 or 1.1, see if allowed unsupported stuff }
+ { could not find OpenSSL, fatal }
     else begin
-        raise EIcsLIBEAYException.Create('Failed to load OpenSSL file ' + Errs);    {V8.71 better exception }
+        GSSL_LOAD_ERRS := GLIBEAY_DLL_FileName + ' - Handle ' + IntToStr(GLIBEAY_DLL_Handle);  { V9.3 }
+        if FileExists(GLIBEAY_DLL_FileName) then
+            GSSL_LOAD_ERRS := 'File Exists!! - ' +  GSSL_LOAD_ERRS;    // TEMP DIAG
+        raise EIcsLIBEAYException.Create(GSSL_LOAD_ERRS);
     end;
 
   { get full path of the DLL we found }
     SetLength(GLIBEAY_DLL_FileName, 256);
-    SetLength(GLIBEAY_DLL_FileName, GetModuleFileName(GLIBEAY_DLL_Handle,
-                          PChar(GLIBEAY_DLL_FileName), Length(GLIBEAY_DLL_FileName)));
+{$IFDEF LINUX}
+    SetLength(GLIBEAY_DLL_FileName, IcsLinuxGetModuleFileName(GLIBEAY_DLL_Handle, PChar(GLIBEAY_DLL_FileName),
+                                                                    Length(GLIBEAY_DLL_FileName), FN_OpenSSL_version_num));  { V9.2 }
+{$ELSE}
+    SetLength(GLIBEAY_DLL_FileName, GetModuleFileName(GLIBEAY_DLL_Handle, PChar(GLIBEAY_DLL_FileName), Length(GLIBEAY_DLL_FileName)));
+{$ENDIF}
 
   { Version Check }
     ICS_OPENSSL_VERSION_NUMBER := OpenSSL_version_num;
 
-{$IFNDEF NO_OSSL_VERSION_CHECK}
-    if (ICS_OPENSSL_VERSION_NUMBER < MIN_OSSL_VER) or
-             (ICS_OPENSSL_VERSION_NUMBER > MAX_OSSL_VER) then begin
+{xIFNDEF NO_OSSL_VERSION_CHECK V9.1 gone }
+    if (ICS_OPENSSL_VERSION_NUMBER < MIN_OSSL_VER) or (ICS_OPENSSL_VERSION_NUMBER > MAX_OSSL_VER) then begin
         FreeLibrary(GLIBEAY_DLL_Handle);
         GLIBEAY_DLL_Handle := 0;
-        errs := 'Unsupported OpenSSL version (' + '0x' + IntToHex(ICS_OPENSSL_VERSION_NUMBER, 8) + ') !'#13#10 +
+        GSSL_LOAD_ERRS := 'Unsupported OpenSSL version (' + '0x' + IntToHex(ICS_OPENSSL_VERSION_NUMBER, 8) + ') !'#13#10 +
                   'Supported versions are 0x' + IntToHex(MIN_OSSL_VER, 8) +' - 0x' + IntToHex(MAX_OSSL_VER, 8) + #13#10 +
                     'FileName: ' + GLIBEAY_DLL_FileName;
         ICS_OPENSSL_VERSION_NUMBER := 999;      { V8.65 set error here }
-        raise EIcsLibeayException.Create(errs);
+        raise EIcsLibeayException.Create(GSSL_LOAD_ERRS);
     end;
-{$ENDIF}
+{xENDIF}
 
    {$IFDEF MSWINDOWS}
    { V8.38 check authenticode digital signature on DLL }
-    if GSSL_SignTest_Check then IcsVerifySslDll (GLIBEAY_DLL_FileName);
+    if GSSL_SignTest_Check then
+        IcsVerifySslDll (GLIBEAY_DLL_FileName);
   {$ENDIF}
 
   { V8.35 load all main GLIBEAY_DLL exports }
-    errs := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImports1) ;
-    if errs <> '' then begin
+    GSSL_LOAD_ERRS := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImports1) ;
+    if GSSL_LOAD_ERRS  <> '' then begin
         ICS_OPENSSL_VERSION_NUMBER := 999;      { V8.65 set error here }
-        raise  EIcsSsleayException.Create('Unable to load ' + GLIBEAY_DLL_FileName + '. Can not find: ' + errs);
+        GSSL_LOAD_ERRS := 'Unable to load ' + GLIBEAY_DLL_FileName + '. Can not find: ' + GSSL_LOAD_ERRS;
+        raise EIcsLibeayException.Create(GSSL_LOAD_ERRS);
     end;
 
-{$IFDEF OPENSSL_USE_DELPHI_MM}
- { V8.35 load memory manager GLIBEAY_DLL exports }
-    errs := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImports2) ;
-    if errs <> '' then begin
+{ V9.5 exports deprecated in OpenSSL 3.0 but may still be needed by applications }
+{$IFDEF OpenSSL_Deprecated}  { V9.5 }
+    GSSL_LOAD_ERRS := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImportsDep) ;
+    if GSSL_LOAD_ERRS <> '' then begin
         ICS_OPENSSL_VERSION_NUMBER := 999;      { V8.65 set error here }
-        raise  EIcsSsleayException.Create('Unable to load ' + GLIBEAY_DLL_FileName + '. Can not find: ' + errs);
+        GSSL_LOAD_ERRS := 'Unable to load ' + GLIBEAY_DLL_FileName + ' Deprecated Eports. Can not find: ' + GSSL_LOAD_ERRS;
+        raise EIcsLibeayException.Create(GSSL_LOAD_ERRS);
     end;
-{$ENDIF}
+{$ENDIF OpenSSL_Deprecated}   { V9.5 }
 
 {$IFNDEF OPENSSL_NO_ENGINE}
-  { V8.35 load engine GLIBEAY_DLL exports }
-    errs := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImports3) ;
-    if errs <> '' then begin
+  { V8.35 load engine GLIBEAY_DLL exports V9.1 gone }
+(*   GSSL_LOAD_ERRS := SslGetImports (GLIBEAY_DLL_Handle, GLIBEAYImports3) ;
+    if GSSL_LOAD_ERRS <> '' then begin
         ICS_OPENSSL_VERSION_NUMBER := 999;      { V8.65 set error here }
-        raise  EIcsSsleayException.Create('Unable to load ' + GLIBEAY_DLL_FileName + '. Can not find: ' + errs);
-    end;
+        rGSSL_LOAD_ERRS := 'Unable to load ' + GLIBEAY_DLL_FileName + '. Can not find: ' + GSSL_LOAD_ERRS;
+        raise EIcsLibeayException.Create(GSSL_LOAD_ERRS);
+    end;  *)
 {$ENDIF}
 
 { V8.67 keep OpenSSL 3.0 version numbers }
-    if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-        ICS_OPENSSL_VERSION_MAJOR := OPENSSL_version_major;
-        ICS_OPENSSL_VERSION_MINOR := OPENSSL_version_minor;
-        ICS_OPENSSL_VERSION_PATCH := OPENSSL_version_patch;
-        ICS_OPENSSL_VERSION_PRE_RELEASE := OPENSSL_version_pre_release;
-    end
-    else
-        ICS_OPENSSL_VERSION_MINOR := 1;  { only support 1.1 }
+    ICS_OPENSSL_VERSION_MAJOR := OPENSSL_version_major;
+    ICS_OPENSSL_VERSION_MINOR := OPENSSL_version_minor;
+    ICS_OPENSSL_VERSION_PATCH := OPENSSL_version_patch;
+    ICS_OPENSSL_VERSION_PRE_RELEASE := OPENSSL_version_pre_release;
 
 {$ENDIF YuOpenSSL}
 
 { V8.67 see if loading OpenSSL 3.0 providers, might be loading from config file }
-    if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-        if GSSLEAY_LOAD_LEGACY then
-            LibeayLoadProviders(True, False);
-        ICS_OSSL3_LOADED_LEGACY := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_LEGACY) = 1);
-        ICS_OSSL3_LOADED_FIPS := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_FIPS) = 1);
-    end;
+//    if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
+    if GSSLEAY_LOAD_LEGACY then
+        LibeayLoadProviders(True, False);
+    ICS_OSSL3_LOADED_LEGACY := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_LEGACY) = 1);
+    ICS_OSSL3_LOADED_FIPS := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_FIPS) = 1);
+//    end;
 
  { V8.62 add extra objects to create certificates  }
     if ICS_NID_acmeIdentifier = 0 then
@@ -4056,27 +4264,28 @@ var
 begin
     Result := False;
     if NOT (Legacy or Fips) then Exit;
-    if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
-        Path := AnsiString(ExtractFilePath(GLIBEAY_DLL_FileName));
-        OSSL_PROVIDER_set_default_search_path(Nil, PAnsiChar(Path));
-        if Legacy then begin
-            GSSLEAY_PROVIDER_DEFAULT := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_DEFAULT);  { must also load default }
-            if NOT Assigned(GSSLEAY_PROVIDER_DEFAULT) then
-                raise EIcsSsleayException.Create('Unable to load OpenSSL default module: ' + String(GetLastOpenSslErrMsg));
-            GSSLEAY_PROVIDER_LEGACY := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_LEGACY);
-            Result := Assigned(GSSLEAY_PROVIDER_LEGACY);
-        end
-        else if Fips then begin
-            GSSLEAY_PROVIDER_FIPS := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_FIPS);
-            Result := Assigned(GSSLEAY_PROVIDER_FIPS);
-        end;
-        ICS_OSSL3_LOADED_LEGACY := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_LEGACY) = 1);
-        ICS_OSSL3_LOADED_FIPS := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_FIPS) = 1);
+//    if ICS_OPENSSL_VERSION_MAJOR >= 3 then begin
+    Path := AnsiString(ExtractFilePath(GLIBEAY_DLL_FileName));
+    OSSL_PROVIDER_set_default_search_path(Nil, PAnsiChar(Path));
+    if Legacy then begin
+        GSSLEAY_PROVIDER_DEFAULT := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_DEFAULT);  { must also load default }
+        if NOT Assigned(GSSLEAY_PROVIDER_DEFAULT) then
+            raise EIcsSsleayException.Create('Unable to load OpenSSL default module: ' + String(GetLastOpenSslErrMsg));
+        GSSLEAY_PROVIDER_LEGACY := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_LEGACY);
+        Result := Assigned(GSSLEAY_PROVIDER_LEGACY);
+    end
+    else if Fips then begin
+        GSSLEAY_PROVIDER_FIPS := OSSL_PROVIDER_load(Nil, OSSL_PROVIDERS_FIPS);
+        Result := Assigned(GSSLEAY_PROVIDER_FIPS);
     end;
+    ICS_OSSL3_LOADED_LEGACY := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_LEGACY) = 1);
+    ICS_OSSL3_LOADED_FIPS := (OSSL_PROVIDER_available(Nil, OSSL_PROVIDERS_FIPS) = 1);
+//    end;
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+(* V9.3 moved to SslBase
 function IcsX509VerifyErrorToStr(ErrCode: Integer): String;
 begin
 {$IFNDEF OPENSSL_USE_RESOURCE_STRINGS}
@@ -4183,10 +4392,11 @@ begin
     end;
 {$ENDIF}
 end;
-
+*)
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFNDEF OPENSSL_NO_ENGINE}
+(*
 function Ics_UI_set_app_data(r: PUI; arg: Pointer): Integer;
 begin
     Result := UI_set_ex_data(r, 0, arg);
@@ -4198,6 +4408,7 @@ function Ics_UI_get_app_data(r: PUI): Pointer;
 begin
     Result := UI_get_ex_data(r, 0);
 end;
+*)
 {$ENDIF}
 
 
@@ -4457,9 +4668,9 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function OpenSslDir : String;
 begin
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then
-        Result := String(StrPas(OpenSSL_version(OPENSSL_DIR)))
-    else
+//  if ICS_OPENSSL_VERSION_MAJOR < 3 then
+//      Result := String(StrPas(OpenSSL_version(OPENSSL_DIR)))
+//  else
         Result := String(StrPas(OPENSSL_info(OPENSSL_INFO_CONFIG_DIR)));    { V8.67 }
 
 end;
@@ -4482,19 +4693,19 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function OpenSslModDir : String;      { V8.67 }
 begin
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then
-        Result := String(StrPas(OpenSSL_version(OPENSSL_MODULES_DIR)))
-    else
-        Result := String(StrPas(OPENSSL_info(OPENSSL_INFO_MODULES_DIR)));
+//  if ICS_OPENSSL_VERSION_MAJOR < 3 then
+//      Result := String(StrPas(OpenSSL_version(OPENSSL_MODULES_DIR)))
+// else
+      Result := String(StrPas(OPENSSL_info(OPENSSL_INFO_MODULES_DIR)));
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function OpenSslCPU : String;         { V8.67 }
 begin
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then
-        Result := String(StrPas(OpenSSL_version(OPENSSL_CPU_INFO)))
-    else
+//  if ICS_OPENSSL_VERSION_MAJOR < 3 then
+//      Result := String(StrPas(OpenSSL_version(OPENSSL_CPU_INFO)))
+//  else
         Result := String(StrPas(OPENSSL_info(OPENSSL_INFO_CPU_SETTINGS)));
 end;
 
@@ -4589,16 +4800,18 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Ics_Ssl_EVP_PKEY_GetKey(K: PEVP_PKEY): Pointer;
+{$IFDEF OpenSSL_Deprecated}  { V9.5 gone }
+{ function Ics_Ssl_EVP_PKEY_GetKey(K: PEVP_PKEY): Pointer;
 begin
-    Result := EVP_PKEY_get0(K);        { V8.40 }
-end;
+    Result := EVP_PKEY_get0(K);
+end;  }
+{$ENDIF OpenSSL_Deprecated}  { V9.5 }
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function Ics_Ssl_EVP_PKEY_GetType(K: PEVP_PKEY): Integer;
 begin
-     Result := EVP_PKEY_base_id(K);        { V8.40 }
+     Result := EVP_PKEY_get_base_id(K);        { V8.40 }
 end;
 
 
@@ -4652,7 +4865,7 @@ end;
 { V8.40 macros }
 function EVP_MD_nid(e: PEVP_MD): Integer;
 begin
-    result := EVP_MD_type(e);
+    result := EVP_MD_get_type(e);
 end;
 
 
@@ -4666,9 +4879,10 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.40 macros }
+(* V9.5 gone
 function EVP_MD_CTX_size(e: PEVP_MD_CTX): Integer;
 begin
-    result := EVP_MD_size(EVP_MD_CTX_md(e));
+    result := EVP_MD_get_size(EVP_MD_CTX_md(e));
 end;
 
 
@@ -4676,7 +4890,7 @@ end;
 { V8.40 macros }
 function EVP_MD_CTX_block_size(e: PEVP_MD_CTX): Integer;
 begin
-    result := EVP_MD_block_size(EVP_MD_CTX_md(e));
+    result := EVP_MD_get_block_size(EVP_MD_CTX_md(e));
 end;
 
 
@@ -4684,9 +4898,9 @@ end;
 { V8.40 macros }
 function EVP_MD_CTX_type(e: PEVP_MD_CTX): Integer;
 begin
-    result := EVP_MD_type(EVP_MD_CTX_md(e));
+    result := EVP_MD_get_type(EVP_MD_CTX_md(e));
 end;
-
+*)
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -4904,10 +5118,7 @@ function RSA_PKEY_CTX_ctrl(pctx: PEVP_PKEY_CTX; optype: Integer; cmd: Integer; p
 var
     keytype: Integer;
 begin
-    if ICS_OPENSSL_VERSION_NUMBER < OSSL_VER_1101 then
-        keytype := EVP_PKEY_RSA
-    else
-        keytype := -1;     { means RSA or RSA-PSS }
+    keytype := -1;     { means RSA or RSA-PSS }
     result := EVP_PKEY_CTX_ctrl(pctx, keytype, optype, cmd, p1, p2);
 end;
 
@@ -4931,6 +5142,98 @@ end;
 function BN_num_bytes(big: PBIGNUM): Integer;                     { V8.67 }
 begin
     Result := (BN_num_bits(big) + 7) div 8;
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.4 new macros that call 3.0 version with _get_  }
+function EVP_MD_type(md: PEVP_MD): Integer;
+begin
+    Result := EVP_MD_get_type(md);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_MD_pkey_type(md: PEVP_MD): Integer;
+begin
+    Result := EVP_MD_get_pkey_type(md);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_MD_size(md: PEVP_MD): Integer;
+begin
+    Result := EVP_MD_get_size(md);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_MD_block_size(md: PEVP_MD): Integer;
+begin
+    Result := EVP_MD_get_block_size(md);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_MD_flags(md: PEVP_MD): Integer;
+begin
+    Result := EVP_MD_get_flags(md);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_PKEY_base_id(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_base_id(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_PKEY_bits(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_bits(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_PKEY_id(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_id(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_PKEY_security_bits(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_security_bits(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function EVP_PKEY_size(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_size(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.4 ICS helpers so apps can avoid using EVP functions }
+function IcsPkeyBaseid(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_base_id(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsPkeyBits(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_bits(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsPkeyId(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_id(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsPkeySecurityBits(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_bits(Pkey);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsPkeySize(Pkey: PEVP_PKEY): Integer;
+begin
+    Result := EVP_PKEY_get_size(Pkey);
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -5029,8 +5332,6 @@ function IcsPkeyParamGettable(PKey: PEVP_PKEY): String;
 var
     Params: POSSL_PARAM;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     Params := EVP_PKEY_gettable_params(Pkey);
     Result := IcsParamPrint(Params);
 end;
@@ -5042,8 +5343,6 @@ function IcsPkeyParamSettable(PKey: PEVP_PKEY): String;
 var
     Params: POSSL_PARAM;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     Params := EVP_PKEY_settable_params(Pkey);
     Result := IcsParamPrint(Params);
 end;
@@ -5064,14 +5363,13 @@ var
 //    Big: PBIGNUM;
 begin
     Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     for I := 0 to TotBuff - 1 do begin
         SetLength(BuffArray[I], BuffSize);
         FillChar(BuffArray[I] [1], BuffSize, #0);
     end;
 
  // build array of parameters for which we want returned data values, need somewhere for values to be stored
-    KeyType := EVP_PKEY_base_id(PKey);
+    KeyType := EVP_PKEY_get_base_id(PKey);
     if (keytype = EVP_PKEY_RSA) or (keytype = EVP_PKEY_RSA_PSS) then begin
         KeyLit := 'RSA Key Parameters:' + IcsCRLF;
         StaticParams[0] := OSSL_PARAM_construct_int(OSSL_PKEY_PARAM_BITS, @IntArray[0]);
@@ -5142,19 +5440,17 @@ end;
 function IcsEvpGetParamBuff(PKey: PEVP_PKEY; const Key: AnsiString): AnsiString;
 var
     OutLen: size_t;
-    Buff: AnsiString;
+    Buff: TBytes;                  { V9.4 was AnsiString }
 const
     BSize = 1024;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     SetLength(Buff, BSize);
-    FillChar(Buff[1], BSize, #0);
+    FillChar(Buff[0], BSize, #0);
     OutLen := 0;
-    if EVP_PKEY_get_octet_string_param(PKey, PAnsiChar(Key), @Buff[1], BSize, @OutLen) = 0 then
+    if EVP_PKEY_get_octet_string_param(PKey, PAnsiChar(Key), @Buff[0], BSize, @OutLen) = 0 then
         EParametertException.Create('Failed to read key parameter: ' + Key);
     SetLength(Buff, OutLen);
-    Result := IcsBase64UrlEncodeA(Buff);
+    Result := IcsBase64UrlEncodeATB(Buff);
 end;
 
 
@@ -5167,8 +5463,6 @@ var
 const
     BSize = 1024;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     SetLength(Buff, BSize);
     FillChar(Buff[1], BSize, #0);
     OutLen := 0;
@@ -5185,12 +5479,10 @@ function IcsEvpGetParamBig(PKey: PEVP_PKEY; const Key: AnsiString): AnsiString;
 var
     bign: PBIGNUM;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     bign := BN_new;
     if EVP_PKEY_get_bn_param(PKey, PAnsiChar(Key), @bign) = 0 then
         EParametertException.Create('Failed to read key parameter: ' + Key);
-    Result := IcsBase64UrlEncodeA(IcsGetBinNum(bign));
+    Result := IcsBase64UrlEncodeATB(IcsGetBinNum(bign));             { V9.4 }
     BN_free(bign);
 end;
 
@@ -5199,28 +5491,25 @@ end;
 { V8.67 get an integer parameter from a private key, OpenSSL 3.0 and later only }
 function IcsEvpGetParamInt(PKey: PEVP_PKEY; const Key: AnsiString): Integer;
 begin
-    Result := 0;
-    if ICS_OPENSSL_VERSION_MAJOR < 3 then Exit;
     if EVP_PKEY_get_int_param(PKey, PAnsiChar(Key), @Result) = 0 then
         EParametertException.Create('Failed to read key parameter: ' + Key);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ convert an OpenSSL BIGNUM into binary AnsiString }
+{ convert an OpenSSL BIGNUM into binary TBytes }
 
-function IcsGetBinNum(big: PBIGNUM; XLen: Integer = 0): AnsiString;  { V8.67 was internal function }
+function IcsGetBinNum(big: PBIGNUM; XLen: Integer = 0): TBytes;  { V8.67 was internal function, V9.4 TBytes binary result }
 var
     NumLen{, L}: integer;
 begin
-    Result := '';
+    SetLength(Result, 0);
     if NOT Assigned (big) then Exit;
     SetLength(Result, BN_num_bytes(big) + 1);
-    NumLen := BN_bn2bin(big, @Result[1]);
+    NumLen := BN_bn2bin(big, @Result[0]);
     SetLength(Result, NumLen);
     if (XLen <> 0) and (XLen <> NumLen) then
-         Raise EParametertException.Create('Invalid BigNum Length, expected ' +
-                                IntToStr(XLen) + 'actual ' + IntToStr(NumLen));
+         Raise EParametertException.Create('Invalid BigNum Length, expected ' + IntToStr(XLen) + 'actual ' + IntToStr(NumLen));
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -5241,10 +5530,10 @@ begin
 
             // Load LIBEAY DLL, V8.27 change Load and WhichFailedToLoad to unique names
             // Must be loaded before SSlEAY for the versioncheck to work!
-            LibeayLoad;   { now libcrypto-1_1.dll }
+            LibeayLoad;   { now libcrypto-3.dll }
 
             // Load SSlEAY DLL
-            SsleayLoad;   { now libssl-1_1.dll }
+            SsleayLoad;   { now libssl-3.dll }
 
            // Global system initialization, V8.27 not needed for 1.1.0 and later, gone V8.66
             try   { V8.38 moved here so don't hide earlier exception messages }
@@ -5254,8 +5543,8 @@ begin
 
             {$IFNDEF OPENSSL_NO_ENGINE}
                 //* Load all bundled ENGINEs into memory and make them visible */
-                if ICS_OPENSSL_VERSION_MAJOR = 1 then  { V8.67 }
-                    ENGINE_load_builtin_engines;
+             //   if ICS_OPENSSL_VERSION_MAJOR = 1 then  { V8.67 }
+             //       ENGINE_load_builtin_engines;
             {$ENDIF}
             except
                 raise EIcsSsleayException.Create('Unable to initialise OpenSSL');
@@ -5290,7 +5579,8 @@ begin
             GSSLEAY_PROVIDER_FIPS := Nil;
 
            { V8.27 sanity check }
-            if (GSSLEAY_DLL_Handle = 0) and (GLIBEAY_DLL_Handle = 0) then Exit;
+            if (GSSLEAY_DLL_Handle = 0) and (GLIBEAY_DLL_Handle = 0) then
+                Exit;
 
          { V8.33 free GLIBEAY_DLL_Handle before GSSLEAY_DLL_Handle to avoid exception }
             if GLIBEAY_DLL_Handle <> 0 then begin
@@ -5328,6 +5618,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.68 never used, prints longer error information, OpenSSL 3.0 use new ERR_get_error_all instead }
+(* V9.5 gone
 function IcsSsl_print_errors: AnsiString;
 var
     Flags    : Integer;
@@ -5339,14 +5630,14 @@ begin
     result := '' ;
     ErrCode := ERR_get_error_line_data(@FileName, @Line, @Data, @Flags);
     while ErrCode <> 0 do begin
-        if Result <> '' then Result := Result + #13#10;
-        Result := Result + 'error code: ' + IcsIntToStrA(ErrCode) +
-                          ' in ' + FileName + ' line ' + IcsIntToStrA(line);
+        if Result <> '' then
+            Result := Result + #13#10;
+        Result := Result + 'error code: ' + IcsIntToStrA(ErrCode) + ' in ' + FileName + ' line ' + IcsIntToStrA(line);
         if (Data <> nil) and ((Flags and ERR_TXT_STRING) <> 0) then
                 Result := Result + #13#10 + 'error data: ' + StrPas(Data);
         ErrCode := ERR_get_error_line_data(@FileName, @Line, @Data, @Flags);
     end;
-end;
+end; *)
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -5397,10 +5688,10 @@ begin
         Cipher_des_ede3_cfb64 :     result := EVP_des_ede3_cfb64;
         Cipher_des_ede3_ecb :       result := EVP_des_ede3_ecb;
         Cipher_des_ede3_ofb :       result := EVP_des_ede3_ofb;
-        Cipher_idea_cbc :           result := EVP_idea_cbc;
-        Cipher_idea_cfb64 :         result := EVP_idea_cfb64;
-        Cipher_idea_ecb :           result := EVP_idea_ecb;
-        Cipher_idea_ofb :           result := EVP_idea_ofb;
+//        Cipher_idea_cbc :           result := EVP_idea_cbc;         { V9.3 gone }
+//        Cipher_idea_cfb64 :         result := EVP_idea_cfb64;
+//        Cipher_idea_ecb :           result := EVP_idea_ecb;
+//        Cipher_idea_ofb :           result := EVP_idea_ofb;
     else
         Result := EVP_enc_null;
     end;
@@ -5412,7 +5703,7 @@ function IcsSslGetEVPDigest(Digest: TEvpDigest): PEVP_MD;      { V8.40 }
 begin
     case Digest of
         Digest_md5 :                result := EVP_md5;
-        Digest_mdc2 :               result := EVP_mdc2;
+//        Digest_mdc2 :               result := EVP_mdc2;       { V9.3 gone }
         Digest_sha1 :               result := EVP_sha1;
         Digest_sha224 :             result := EVP_sha224;
         Digest_sha256 :             result := EVP_sha256;
@@ -5485,12 +5776,10 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsRaiseLastOpenSslError(EClass: ExceptClass; Dump: Boolean = FALSE;
-                                                const CustomMsg : AnsiString  = '');     { V8.69 }
+procedure IcsRaiseLastOpenSslError(EClass: ExceptClass; Dump: Boolean = FALSE; const CustomMsg : AnsiString  = '');     { V8.69 }
 begin
     if Length(CustomMsg) > 0 then
-        raise EClass.Create(String(IcsCRLF + CustomMsg + IcsCRLF +
-                            LastOpenSslErrMsg(Dump) + IcsCRLF))
+        raise EClass.Create(String(IcsCRLF + CustomMsg + IcsCRLF + LastOpenSslErrMsg(Dump) + IcsCRLF))
     else
         raise EClass.Create(String(IcsCRLF + LastOpenSslErrMsg(Dump) + IcsCRLF));
 end;
@@ -5498,35 +5787,41 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ create HMAC hash keyed message authentication code for some data with a simple
-  key, using md5, sha1, sha256, sha512, etc, the old way  }
-
-function IcsHMACDigest(const Data, Key: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+{ create HMAC hash keyed message authentication code for some binary data with a simple key, using md5, sha1, sha256, sha512, etc, the old way  }
+{ binary arguments and result in TBytes }
+function IcsHMACDigestTB(const Data, Key: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes;  { V9.1 binary arguments so use TBytes }
 var
     DigLen: integer;
     Digest: array [0..EVP_MAX_MD_SIZE] of Byte;   // binary result, not hex or base64
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;
+    SetLength(Result, 0);
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;
     DigLen := 0;
-    HMAC(IcsSslGetEVPDigest(HashDigest), @Key[1], Length(Key),                   { V8.66 was PAnsiChar }
-                                   @Data[1], Length(Data), @Digest, @DigLen);
+    HMAC(IcsSslGetEVPDigest(HashDigest), @Key[0], Length(Key), @Data[0], Length(Data), @Digest, @DigLen); { V8.66 was PAnsiChar }
     if DigLen > 0 then begin
-        SetLength( Result, DigLen);
-        Move(Digest[0], Result[1], DigLen);
+        SetLength(Result, DigLen);
+        Move(Digest[0], Result[0], DigLen);
     end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ create HMAC hash keyed message authentication code for some binary data with a simple key, using md5, sha1, sha256, sha512, etc, the old way  }
+{ binary arguments and result in AnsiString }
+function IcsHMACDigest(const Data, Key: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+begin
+   Result := IcsTBytesToStringA(IcsHMACDigestTB(IcsStringAToTBytes(Data), IcsStringAToTBytes(Key), HashDigest));
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { create HMAC hash keyed message authentication code for some data with a simple
   key, using md5, sha1, sha256, sha512, etc, the new way  }
-
-function IcsHMACDigestEx(const Data, Key: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+{ binary arguments and result in TBytes }
+function IcsHMACDigestExTB(const Data, Key: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes;  { V9.1 binary arguments so use TBytes }
 var
-    Signature: array [0..1025] of AnsiChar;   // binary result, not hex or base64
+//    Signature: array [0..1025] of AnsiChar;   // binary result, not hex or base64
     PKey: PEVP_PKEY;
     Etype: PEVP_MD;
     DigestCtx: PEVP_MD_CTX;
@@ -5534,34 +5829,37 @@ var
     SigLen: size_t;           { V8.64 }
     Ret: integer;
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;   { V8.71 }
+    SetLength(Result, 0);
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;   { V8.71 }
     PKey := EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, Nil, PAnsiChar(Key), Length(Key));
     DigestCtx := EVP_MD_CTX_new;
     try
         Etype := IcsSslGetEVPDigest(HashDigest);
         if NOT Assigned(Etype) then
-              Raise EDigestException.Create('Unsupported hash digest ' +
-                           GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+              Raise EDigestException.Create('Unsupported hash digest ' + GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
     // ?? this might not be necessary...test it
         Ret := EVP_DigestInit_Ex(DigestCtx, Etype, Nil);
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to initialise hash digest');
+        if (Ret <= 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to initialise hash digest');
         Ret := EVP_DigestSignInit(DigestCtx, @PkeyCtx, Etype, Nil, PKey);    { V8.66 }
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to initialise signing digest');
+        if (Ret <= 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to initialise signing digest');
      // Update can be called repeatedly for large streams
         ret := EVP_DigestSignUpdate(DigestCtx, Pointer(Data), Length(Data));
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to update signing digest');
-        SigLen := SizeOf(Signature);
-        ret := EVP_DigestSignFinal(DigestCtx, @Signature, @SigLen);
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to finalise signing digest');
-        if SigLen > 0 then begin
-            SetLength(Result, SigLen);
-            Move(Signature[0], Result[1], SigLen);
+        if (Ret <= 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to update signing digest');
+        SigLen := 1025; // SizeOf(Signature);
+        SetLength(Result, SigLen);
+        ret := EVP_DigestSignFinal(DigestCtx, @Result[0], @SigLen);     // V9.1 was   @Signature
+        if (Ret <= 0) then begin
+            SetLength(Result, 0);
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to finalise signing digest');
         end;
+     //   if SigLen >= 0 then begin
+        SetLength(Result, SigLen);
+        //    Move(Signature[0], Result[0], SigLen);
+     //   end;
     finally
         EVP_MD_CTX_free(DigestCtx);
         EVP_PKEY_free(Pkey);  { V8.64 }
@@ -5570,11 +5868,31 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ verify a HMAC hash keyed message authentication code for some data with a simple
-  key, using md5, sha1, sha256, sha512, etc, the new way  }
+{ create HMAC hash keyed message authentication code for some binary data with a simple key, using md5, sha1, sha256, sha512, etc, the old way  }
+{ binary arguments and result in AnsiString }
+function IcsHMACDigestEx(const Data, Key: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+begin
+   Result := IcsTBytesToStringA(IcsHMACDigestExTB(IcsStringAToTBytes(Data), IcsStringAToTBytes(Key), HashDigest));
+end;
 
-function IcsHMACDigestVerify(const Data, Key, OldDigest: AnsiString;
-                        HashDigest: TEvpDigest = Digest_sha256): Boolean;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ verify a HMAC hash keyed message authentication code for some data with a simple key, using md5, sha1, sha256, sha512, etc, the new way  }
+{ binary arguments in TBytes }
+function IcsHMACDigestVerifyTB(const Data, Key, OldDigest: TBytes; HashDigest: TEvpDigest = Digest_sha256): Boolean;  { V9.1 }
+var
+    NewDigest: TBytes;
+begin
+    NewDigest := IcsHMACDigestExTB(Data, Key, HashDigest);
+  // constant time comparison to avoid timing attacks
+    Result := (CRYPTO_memcmp(PAnsiChar(OldDigest), PAnsiChar(NewDigest), Length(NewDigest)) = 0);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ verify a HMAC hash keyed message authentication code for some data with a simple key, using md5, sha1, sha256, sha512, etc, the new way  }
+{ binary arguments in AnsiString }
+function IcsHMACDigestVerify(const Data, Key, OldDigest: AnsiString; HashDigest: TEvpDigest = Digest_sha256): Boolean;
 var
     NewDigest: AnsiString;
 begin
@@ -5583,40 +5901,39 @@ begin
     Result := (CRYPTO_memcmp(PAnsiChar(OldDigest), PAnsiChar(NewDigest), Length(NewDigest)) = 0);
 end;
 
-
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { create a hash digest for a string, using numerous hashes, SHA, SHA2, SHA3, shake }
-
-function IcsHashDigest(const Data: AnsiString;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+{ binary arguments and result in TBytes }
+function IcsHashDigestTB(const Data: TBytes; HashDigest: TEvpDigest = Digest_sha256): TBytes;        { V9.1 }
 var
     DigestCtx: PEVP_MD_CTX;
     Etype: PEVP_MD;
     DigLen, Ret: integer;
-    Digest: array [0..EVP_MAX_MD_SIZE] of AnsiChar;   // binary result, not hex or base64
+ //   Digest: array [0..EVP_MAX_MD_SIZE] of AnsiChar;   // binary result, not hex or base64
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;   { V8.71 }
+    SetLength(Result, 0);
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;   { V8.71 }
     DigestCtx := EVP_MD_CTX_new;
     try
         Etype := IcsSslGetEVPDigest(HashDigest);
         if NOT Assigned(Etype) then
-              Raise EDigestException.Create('Unsupported hash digest ' +
-                           GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+              Raise EDigestException.Create('Unsupported hash digest ' + GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
         Ret := EVP_DigestInit_Ex(DigestCtx, Etype, Nil);
-        if (Ret = 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to initialise hash digest');
+        if (Ret = 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to initialise hash digest');
      // Update can be called repeatedly for large streams
         ret := EVP_DigestUpdate(DigestCtx, PByte(Data), Length(Data));
-        if (Ret = 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to update hash digest');
-        ret := EVP_DigestFinal_Ex(DigestCtx, @Digest, @DigLen);
-        if (Ret = 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to finalise hash digest');
-        if DigLen > 0 then begin
-            SetLength( Result, DigLen);
-            Move(Digest[0], Result[1], DigLen);
+        if (Ret = 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to update hash digest');
+        DigLen := EVP_MAX_MD_SIZE + 1;
+        SetLength(Result, DigLen);
+        ret := EVP_DigestFinal_Ex(DigestCtx, @Result[0], @DigLen);   { V9.1 was Digest }
+        if (Ret = 0) then begin
+            SetLength(Result, 0);
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to finalise hash digest');
         end;
+        SetLength(Result, DigLen);
     finally
         EVP_MD_CTX_free(DigestCtx);
     end;
@@ -5624,42 +5941,53 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ create asymmetic MAC hash keyed message authentication code for some data with
-  a private key, using md5, sha1, sha256, sha512, etc  }
-{Note - ECDSA keys contain a random element so are dfferent each time for same data }
+{ create a hash digest for a string, using numerous hashes, SHA, SHA2, SHA3, shake }
+{ binary arguments and result in AnsiString }
+function IcsHashDigest(const Data: AnsiString; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+begin
+   Result := IcsTBytesToStringA(IcsHashDigestTB(IcsStringAToTBytes(Data), HashDigest));
+end;
 
-function IcsAsymSignDigest(const Data: AnsiString; PrivateKey: PEVP_PKEY;
-                HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ create asymmetic MAC hash keyed message authentication code for some data with a private key, using md5, sha1, sha256, sha512, etc  }
+{ V9.5 added option to return an fixed length IEEE P1363 ECDSA digest instead of an RFC3279 ASN encoded digest }
+{ binary arguments and result in TBytes }
+function IcsAsymSignDigestTB(const Data: TBytes; PrivateKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256;
+                                                                                          EcdsaIEEE: Boolean = False): TBytes;  { V9.1, V9.5 added EcdsaIEEE }
 var
-    Signature: array [0..8000] of AnsiChar;   // binary result, not hex or base64, V8.67 larger
     Etype: PEVP_MD;
     PkeyCtx: PEVP_PKEY_CTX;
     DigestCtx: PEVP_MD_CTX;
     SigLen: size_t;           { V8.64 }
-    Ret, keytype: integer;
+    Ret, keytype, PKeyLlen: integer;
+    DigestASNTB: TBytes;    { V9.5 }
 begin
-    Result := '';
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;   { V8.71 }
+    SetLength(Result, 0);
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;   { V8.71 }
     if not Assigned(PrivateKey) then
-              Raise EDigestException.Create('Private key required');
-    keytype := EVP_PKEY_base_id(PrivateKey);
-    if (keytype <> EVP_PKEY_RSA) and (keytype <> EVP_PKEY_EC) and
-        (keytype <> EVP_PKEY_ED25519) and (keytype <> EVP_PKEY_RSA_PSS) then
-              Raise EDigestException.Create('Unsupported private key type');
+         Raise EDigestException.Create('Private key required');
+    keytype := EVP_PKEY_get_base_id(PrivateKey);
+    if (keytype <> EVP_PKEY_RSA) and (keytype <> EVP_PKEY_EC) and (keytype <> EVP_PKEY_ED25519) and (keytype <> EVP_PKEY_RSA_PSS) then
+        Raise EDigestException.Create('Unsupported private key type');
+    if (keytype <> EVP_PKEY_EC) then    { V9.5 EcdsaIEEE only for EC keys }
+        EcdsaIEEE := False;
+    PKeyLlen :=  EVP_PKEY_get_size(PrivateKey);  { V9.4 result should be no larger than key size }
 
     DigestCtx := EVP_MD_CTX_new;
     PkeyCtx := Nil;
-    SigLen := SizeOf(Signature);
     try
-        Etype := IcsSslGetEVPDigest(HashDigest);
-        if keytype = EVP_PKEY_ED25519 then
-            EType := Nil // Needs 1.1.1
-        else if NOT Assigned(Etype) then
-            Raise EDigestException.Create('Unsupported hash digest ' +
-                           GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+        if HashDigest <> Digest_None then begin   { V9.4 some keys don't use a hash, Ed25519 and Ed448 }
+            Etype := IcsSslGetEVPDigest(HashDigest);
+            if NOT Assigned(Etype) then
+                Raise EDigestException.Create('Unsupported hash digest ' + GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+        end
+        else
+            EType := Nil;
         Ret := EVP_DigestSignInit(DigestCtx, @PkeyCtx, Etype, Nil, PrivateKey);
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                         'Failed to initialise signing digest');
+        if (Ret <= 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to initialise signing digest');
 
  { send an algorithm specific control operation to context }
  { V8.64 these were never called since PkeyCtx was never set due to
@@ -5689,14 +6017,19 @@ begin
 
         end;   *)
 
-        ret := EVP_DigestSign(DigestCtx, @Signature, @SigLen,
-                                                PAnsiChar(Data), Length(Data));  // Needs 1.1.1  }
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to finalise signing digest');
-        if SigLen > 0 then begin
-            SetLength(Result, SigLen);
-            Move(Signature[0], Result[1], SigLen);
+        SigLen := PKeyLlen * 2;   { V9.4 was 8000, but should be no larger than key size }
+        SetLength(DigestASNTB, SigLen);
+        ret := EVP_DigestSign(DigestCtx, @DigestASNTB[0], @SigLen,  PAnsiChar(Data), Length(Data));
+        if (Ret <= 0) then begin
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to finalise signing digest');
         end;
+        SetLength(DigestASNTB, SigLen);
+
+    { V9.5 convert an RFC3279 ASN encoded ECDSA digest from EVP_DigestSign to shorter fixed length IEEE P1363 often used instead. }
+        if EcdsaIEEE then
+            Result := IcsDigestAsntoIEEE(DigestASNTB)
+        else
+            Result := DigestASNTB;
     finally
         EVP_MD_CTX_free(DigestCtx);
     end;
@@ -5704,39 +6037,56 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ verify asymmetic MAC hash keyed message authentication code for some data with
-  a public key object, using md5, sha1, sha256, sha512, etc  }
+{ create asymmetic MAC hash keyed message authentication code for some data with a private key, using md5, sha1, sha256, sha512, etc  }
+{Note - ECDSA keys contain a random element so are dfferent each time for same data }
+{ binary arguments and result in AnsiString }
+function IcsAsymSignDigest(const Data: AnsiString; PrivateKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256): AnsiString;
+begin
+   Result := IcsTBytesToStringA(IcsAsymSignDigestTB(IcsStringAToTBytes(Data), PrivateKey, HashDigest));
+end;
 
-function IcsAsymVerifyDigest(const Data, OldDigest: AnsiString; PublicKey: PEVP_PKEY;
-                HashDigest: TEvpDigest = Digest_sha256): Boolean;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ verify asymmetic MAC hash keyed message authentication code for some data with a public key object, using md5, sha1, sha256, sha512, etc  }
+{ V9.5 added option to accept a fixed length IEEE P1363 ECDSA digest instead of an RFC3279 ASN encoded digest }
+{ binary arguments in TBytes }
+function IcsAsymVerifyDigestTB(const Data, OldDigest: TBytes; PublicKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256;
+                                                                                          EcdsaIEEE: Boolean = False): Boolean; { V9.1, V9.5 added EcdsaIEEE }
 var
     Etype: PEVP_MD;
     DigestCtx: PEVP_MD_CTX;
     PkeyCtx: PEVP_PKEY_CTX;   { V8.64 }
     Ret, keytype: integer;
+    DigestASNTB: TBytes;    { V9.5 }
 begin
     Result := false;
-    if ICS_OPENSSL_VERSION_NUMBER = 0 then IcsLoadSsl;   { V8.71 }
+    if ICS_OPENSSL_VERSION_NUMBER = 0 then
+        IcsLoadSsl;   { V8.71 }
     if not Assigned(PublicKey) then
-              Raise EDigestException.Create('Public key required');
-    keytype := EVP_PKEY_base_id(PublicKey);
-    if (keytype <> EVP_PKEY_RSA) and (keytype <> EVP_PKEY_EC) and
-        (keytype <> EVP_PKEY_ED25519) and (keytype <> EVP_PKEY_RSA_PSS) then
-              Raise EDigestException.Create('Unsupported public key type');
+         Raise EDigestException.Create('Public key required');
+    keytype := EVP_PKEY_get_base_id(PublicKey);
+    if (keytype <> EVP_PKEY_RSA) and (keytype <> EVP_PKEY_EC) and (keytype <> EVP_PKEY_ED25519) and (keytype <> EVP_PKEY_RSA_PSS) then
+        Raise EDigestException.Create('Unsupported public key type');
+
+ { V9.5 convert a fixed length IEEE P1363 ECDSA digest to RFC3279 ASN encoded digest for EVP_DigestVerify }
+    if (keytype = EVP_PKEY_EC) and EcdsaIEEE then
+        DigestASNTB := IcsDigestIEEEtoAsn(OldDigest)
+    else
+        DigestASNTB := OldDigest;
     DigestCtx := EVP_MD_CTX_new;
     PkeyCtx := Nil;
     try
-        Etype := IcsSslGetEVPDigest(HashDigest);
-        if keytype = EVP_PKEY_ED25519 then
-            EType := Nil // Needs 1.1.1
-        else if NOT Assigned(Etype) then
-            Raise EDigestException.Create('Unsupported hash digest ' +
-                           GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+        if HashDigest <> Digest_None then begin   { V9.4 some keys don't use a hash, Ed25519 and Ed448 }
+            Etype := IcsSslGetEVPDigest(HashDigest);
+            if NOT Assigned(Etype) then
+                Raise EDigestException.Create('Unsupported hash digest ' + GetEnumName(TypeInfo(TEvpDigest), Ord(HashDigest)));
+        end
+        else
+            EType := Nil;
         Ret := EVP_DigestVerifyInit(DigestCtx, @PkeyCtx, Etype, Nil, PublicKey);
-        if (Ret <= 0) then IcsRaiseLastOpenSslError(EDigestException, FALSE,
-                                    'Failed to initialise signing digest');
-        ret := EVP_DigestVerify(DigestCtx, PAnsiChar(OldDigest),
-                            Length(OldDigest), PAnsiChar(Data), Length(Data));
+        if (Ret <= 0) then
+            IcsRaiseLastOpenSslError(EDigestException, FALSE, 'Failed to initialise signing digest');
+        ret := EVP_DigestVerify(DigestCtx, PAnsiChar(DigestASNTB), Length(DigestASNTB), PAnsiChar(Data), Length(Data));
         if (Ret = 1) then
             Result := True
         else
@@ -5747,6 +6097,128 @@ begin
     finally
         EVP_MD_CTX_free(DigestCtx);
     end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ verify asymmetic MAC hash keyed message authentication code for some data with a public key object, using md5, sha1, sha256, sha512, etc  }
+{ binary arguments and result in AnsiString }
+function IcsAsymVerifyDigest(const Data, OldDigest: AnsiString; PublicKey: PEVP_PKEY; HashDigest: TEvpDigest = Digest_sha256): Boolean;
+begin
+   Result := IcsAsymVerifyDigestTB(IcsStringAToTBytes(Data), IcsStringAToTBytes(OldDigest), PublicKey, HashDigest);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert an RFC3279 ASN encoded ECDSA digest from EVP_DigestSign to shorter fixed length IEEE P1363 often used instead. }
+{ ASN version is DER ASN with two 32 (SHA256), 48 (SHA384) or 66 (SHA521) byte numbers that needs to be extracted and
+  concatenated to create the P1363 signature }
+{ binary arguments in TBytes }
+function IcsDigestAsntoIEEE(const AsnDigest: TBytes): TBytes;   { V9.5 }
+var
+    OffsetIn, OffSetOut, DigLen: Integer;
+
+    procedure GetOneInt;
+    var
+        NumLen: Integer;
+    begin
+        if AsnDigest[OffsetIn] <> V_ASN1_INTEGER then
+            Exit;
+        NumLen := AsnDigest[OffsetIn + 1];  // length of integer, short form only
+        if NumLen < 60 then begin // 256 and 388 bits
+            if (AsnDigest[OffsetIn + 2] = 0) then begin  // padding zero if first byte >=$80
+                OffsetIn := OffsetIn + 3;
+                NumLen := NumLen - 1;  // remove padding
+            end
+            else
+                OffsetIn := OffsetIn + 2;
+        end
+        else begin  // 521 bits need to make each integer 66 long by padding with zeros in output
+            if (NumLen < 64) or (NumLen > 66) then  // sanity test
+                Exit;
+       //  !!! pending, bug here, last four bytes of second integer not copied or zeroed
+            OffsetIn := OffsetIn + 2;  // copy leading zero, if one
+            OffsetOut := OffsetOut + 66 - NumLen;
+        end;
+        Move(AsnDigest[OffsetIn], Result[OffsetOut], NumLen);   // copy integer to output
+        OffsetIn := OffsetIn + NumLen;
+        OffsetOut := OffsetOut + NumLen;
+    end;
+
+begin
+    SetLength(Result, 0);
+    DigLen := Length(AsnDigest);
+    if DigLen < 70 then
+        Exit;
+    if AsnDigest[0] <> V_ASN1_SEQUENCE_ENC then  // ASN sequence or record follows
+        Exit;
+    OffsetIn := 1;
+    DigLen := AsnDigest[1];  // length of all sequences
+    if DigLen = $81 then begin  // long form length, means next byte is length
+        OffsetIn := OffsetIn + 1;
+        DigLen := AsnDigest[1];
+    end;
+    SetLength(Result, DigLen);
+    ZeroMemory(Result, DigLen);
+    OffsetIn := OffsetIn + 1;
+    OffsetOut := 0;
+    GetOneInt;  // get first large integer
+    GetOneInt;  // second
+    SetLength(Result, OffsetOut); // shorten output
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert fixed length IEEE P1363 ECDSA digest to RFC3279 ASN encoded ECDSA digest for EVP_DigestVerify }
+{ binary arguments in TBytes }
+function IcsDigestIEEEtoAsn(const IEEEDigest: TBytes): TBytes;   { V9.5 }
+var
+    OffsetIn, OffSetOut, OffsetLen, DigLen, IntLen: Integer;
+
+    procedure SetOneInt;
+ //   var
+ //       NumLen: Integer;
+    begin
+        Result[OffsetOut] := V_ASN1_INTEGER;
+        OffsetOut := OffsetOut + 1;
+        if IEEEDigest[OffsetIn] >= $80 then begin // need extra null so not confused as signed integer
+          //  NumLen := IntLen + 1;  // length of integer
+            Result[OffsetOut] := IntLen + 1;
+            OffsetOut := OffsetOut + 1;
+            Result[OffsetOut] := 0;   // extra null
+            OffsetOut := OffsetOut + 1;
+        end
+        else begin
+         //   NumLen := IntLen;
+            Result[OffsetOut] := IntLen;
+            OffsetOut := OffsetOut + 1;
+        end;
+        Move(IEEEDigest[OffsetIn], Result[OffsetOut], IntLen);   // copy integer to output
+        OffsetIn := OffsetIn + IntLen;
+        OffsetOut := OffsetOut + IntLen;
+    end;
+
+begin
+    SetLength(Result, 0);
+    DigLen := Length(IEEEDigest);
+ // two 256, 384 or 512 bit EC integer }
+    if (DigLen <> 64) and (DigLen <> 96) and (DigLen <> 132) then
+        Exit;
+    IntLen := DigLen div 2;
+    SetLength(Result, (IntLen * 2) + 8);  // space for ASN bytes
+    Result[0] := V_ASN1_SEQUENCE_ENC;  // ASN sequence or record follows
+    OffsetIn := 0;
+    if DigLen < 129 then
+        OffsetLen := 1
+    else begin
+        Result[1] := $81;  // long form length
+        OffsetLen := 2;
+    end;
+    OffsetOut := OffsetLen + 1;
+    SetOneInt;  // set first large integer
+    SetOneInt;  // second
+    Result[OffSetLen] := OffsetOut - OffsetLen - 1;    // set sequence length
+    SetLength(Result, OffsetOut);   // correct output length
 end;
 
 

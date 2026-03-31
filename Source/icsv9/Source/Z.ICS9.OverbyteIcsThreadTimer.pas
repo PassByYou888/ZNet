@@ -7,10 +7,10 @@ Description:  TIcsThreadTimer implements a custom timer class. In doesn't
               It uses resources (handles) very sparingly so 10K timers
               are virtually possible, see OverbyteIcsThreadTimerDemo.
 Creation:     Jul 24, 2009
-Version:      V9.0
+Version:      V9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by François PIETTE
+Legal issues: Copyright (C) 2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or

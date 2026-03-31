@@ -4,11 +4,11 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  TIcsWhoisCli is a Whois protocol client using TWSocket
               Conform to RFC-954 (which is not really very detailed)
 Creation:     Aug 2002
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2024
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2002-2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -46,6 +46,8 @@ Sept 2017 - V8.50 -   Made unicode compatible.
                       Added full built-in whois server directory.
 Dec 09, 2020 V8.65  Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+
 
 
 WHOIS - Howto
@@ -125,12 +127,13 @@ uses
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
 {$ENDIF FMX}
-    Z.ICS9.OverbyteIcsUtils;
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 
 const
-    WhoisCliVersion            = 900;
-    CopyRight    : String     = ' WhoisCli (c) 2023 V9.0 ';
+    WhoisCliVersion            = 903;
+    CopyRight    : String     = ' WhoisCli (c) 2024 V9.3 ';
 
 
 type
@@ -442,15 +445,13 @@ begin
     FWSocket1.OnDataAvailable := WSocketDataAvailable;
     FWSocket1.OnSessionClosed := WSocketSessionClosed;
   { use async DNS to avoid needing DnsLookpDone event }
-    FWSocket1.ComponentOptions := FWSocket1.ComponentOptions +
-                                    [wsoAsyncDnsLookup, wsoIcsDnsLookup];
+    FWSocket1.ComponentOptions := FWSocket1.ComponentOptions + [wsoAsyncDnsLookup, wsoIcsDnsLookup];
     FWSocket2 := TWSocket.Create(Self);
     FWSocket2.OnSessionConnected := WSocketSessionConnected;
     FWSocket2.OnDataAvailable := WSocketDataAvailable;
     FWSocket2.OnSessionClosed := WSocketSessionClosed;
   { use async DNS to avoid needing DnsLookpDone event }
-    FWSocket2.ComponentOptions := FWSocket2.ComponentOptions +
-                                    [wsoAsyncDnsLookup, wsoIcsDnsLookup];
+    FWSocket2.ComponentOptions := FWSocket2.ComponentOptions + [wsoAsyncDnsLookup, wsoIcsDnsLookup];
     FHost := 'whois.ripe.net' ;
 end;
 

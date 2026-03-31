@@ -1519,6 +1519,7 @@ type
 
   TMT19937 = class(TCore_Object_Intermediate)
   public
+    // base map
     class function CoreToDelphi: Boolean; static;
     class function InstanceNum(): Integer; static;
     class procedure SetSeed(seed: Integer); static;
@@ -1536,6 +1537,29 @@ type
     class procedure RandF(dest: PSingle; num: NativeInt); overload; static;
     class function RandD: Double; overload; static;
     class procedure RandD(dest: PDouble; num: NativeInt); overload; static;
+    class function Random: Extended;
+    // random range
+    class function RandomRange(const rnd: TMT19937Random; const min_, max_: Integer): Integer; overload; static;
+    class function RandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; overload; static;
+    class function RandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload; static;
+    class function RandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload; static;
+    class function RandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload; static;
+    class function RandomRange(const min_, max_: Integer): Integer; overload; static;
+    class function RandomRange64(const min_, max_: Int64): Int64; overload; static;
+    class function RandomRangeS(const min_, max_: Single): Single; overload; static;
+    class function RandomRangeD(const min_, max_: Double): Double; overload; static;
+    class function RandomRangeF(const min_, max_: Double): Double; overload; static;
+    class function RR(const rnd: TMT19937Random; const min_, max_: Integer): Integer; overload; static;
+    class function RR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64; overload; static;
+    class function RRS(const rnd: TMT19937Random; const min_, max_: Single): Single; overload; static;
+    class function RRD(const rnd: TMT19937Random; const min_, max_: Double): Double; overload; static;
+    class function RRF(const rnd: TMT19937Random; const min_, max_: Double): Double; overload; static;
+    class function RR(const min_, max_: Integer): Integer; overload; static;
+    class function RR64(const min_, max_: Int64): Int64; overload; static;
+    class function RRS(const min_, max_: Single): Single; overload; static;
+    class function RRD(const min_, max_: Double): Double; overload; static;
+    class function RRF(const min_, max_: Double): Double; overload; static;
+    // MT19937 core save
     class procedure SaveToStream(stream: TCore_Stream); static;
     class procedure LoadFromStream(stream: TCore_Stream); static;
   end;

@@ -534,7 +534,7 @@ type
   TZDB2_Th_CMD_Queue = TCriticalOrderStruct<TZDB2_Th_CMD>;
 {$ENDREGION 'Command_Queue'}
 {$REGION 'Command_Dispatch'}
-  TZDB2_Th_Queue_Instance_Pool = TCritical_BigList<TZDB2_Th_Queue>;
+  TZDB2_Th_Queue_Instance_Pool = class(TCritical_BigList<TZDB2_Th_Queue>);
 
   TZDB2_Th_Queue = class(TCore_Object_Intermediate)
   private

@@ -38,14 +38,21 @@ Jul 2023  V8.71 -  Added TOAuthBrowser and TSslWebSocketCli
                    Added TIcsDomainNameCache and TIcsDomNameCacheHttps
                    Added TIcsNeighbDevices and TIcsIpChanges
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 19, 2023 V9.1  Version and SVN URL only.
+                   Added OverbyteIcsDnsHttps, OverbyteIcsSslUtils and OverbyteIcsSslBase.
+                  Tryng to add TX509Base and TX509List, may not be useful.
+Apr 08, 2024 V9.2 Version only.
+Sep 25, 2024 V9.3 Using RegisterSelectionEditor and TSelectionEditor to ensure that
+                    OerbyteIcsTypes and OverbyteIcsSslBase get added to the Uses of
+                    applications that drop components onto forms, XE2 and later only.
+                  Added TIcsAppMonCli.
+Jan 24, 2025 V9.4 Added TIcsAppMonSrv, D10.4 and later currently
+Mar 07, 2025 V9.5 Version only.
 
 }
 
 
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
-{$IFDEF USE_SSL}
-    {$I Include\Z.ICS9.OverbyteIcsSslDefs.inc}
-{$ENDIF}
 (*
 {$IFDEF BCB}
   { So far no FMX support for C++ Builder, to be removed later }
@@ -103,6 +110,9 @@ uses
       Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpOAuth,  { V8.69 }
       Z.ICS9.OverbyteIcsOAuthFormFmx,          { V8.71 }
       Z.ICS9.Ics.Fmx.OverbyteIcsWebSocketCli,  { V8.71 }
+      Z.ICS9.Ics.Fmx.OverbyteIcsDnsHttps,      { V9.1 }
+      Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,        { V9.1 TX509Base, TSslBaseComponent }
+      Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
     {$ENDIF}
     Z.ICS9.Ics.Fmx.OverByteIcsWSocketE,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
@@ -144,7 +154,14 @@ uses
       {$ENDIF}
       Z.ICS9.OverbyteIcsWebSocketCli,  { V8.71 }
       Z.ICS9.OverbyteIcsMQTT,          { V8.71 }
-    {$ENDIF}
+      Z.ICS9.OverbyteIcsDnsHttps,      { V9.1 }
+      Z.ICS9.OverbyteIcsSslBase,       { V9.1 TX509Base, TSslBaseComponent }
+      Z.ICS9.OverbyteIcsSslUtils,      { V9.1 }
+      {$IFDEF COMPILER27_UP}              // !! TEMP D10.4 and later
+      Z.ICS9.OverbyteIcsAppMonCli,     { V9.3 }
+      Z.ICS9.OverbyteIcsAppMonSrv,     { V9.4}
+     {$ENDIF}
+    {$ENDIF USE_SSL}
     Z.ICS9.OverByteIcsWSocketE,
     Z.ICS9.OverbyteIcsWSocketS,
     Z.ICS9.OverbyteIcsSysLogClient,
@@ -166,10 +183,13 @@ uses
       Z.ICS9.OverbyteIcsFileCopyW,
       Z.ICS9.OverbyteIcsFtpMultiW,
       Z.ICS9.OverbyteIcsHttpMultiW,
-   {$ENDIF}
+   {$ENDIF DELPHI11}
     // VCL only
     Z.ICS9.OverbyteIcsMultiProgressBar,
-    Z.ICS9.OverbyteIcsEmulVT, Z.ICS9.OverbyteIcsTnCnx, Z.ICS9.OverbyteIcsTnEmulVT, Z.ICS9.OverbyteIcsTnScript,
+    Z.ICS9.OverbyteIcsEmulVT,
+    Z.ICS9.OverbyteIcsTnCnx,
+    Z.ICS9.OverbyteIcsTnEmulVT,
+    Z.ICS9.OverbyteIcsTnScript,
     {$IFNDEF BCB}
       Z.ICS9.OverbyteIcsWSocketTS,
     {$ENDIF}
@@ -182,26 +202,42 @@ uses
     {$IFNDEF BCB}
       Z.ICS9.OverbyteIcsCookies,
     {$ENDIF !BCB}
-  {$ENDIF}
+  {$ENDIF ICS_COMMON}
   {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
-  {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF};
+  {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
+    DesignIntf, DesignEditors;    { V9.3 }
+
+{ V9.3 used to add required units to projects }
+{$IFDEF COMPILER16_UP}
+type
+  TIcsTypesSelEdt = class(TSelectionEditor)
+  public
+    procedure RequiresUnits(Proc: TGetStrProc); override;
+  end;
+
+  TIcsSslTypesSelEdt = class(TSelectionEditor)
+  public
+    procedure RequiresUnits(Proc: TGetStrProc); override;
+  end;
+{$ENDIF}
 
 procedure Register;
 
 implementation
 
+{$IFDEF COMPILER10_UP}
+    {$IFDEF MSWINDOWS}
 uses
-{$IFDEF MSWINDOWS}
-  {$IFDEF COMPILER10_UP}
-    {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
-    ToolsApi,
-  {$ENDIF}
-  {$IFDEF COMPILER6_UP}
-    DesignIntf, DesignEditors;
-  {$ELSE}
-    DsgnIntf;
-  {$ENDIF}
+        {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
+        ToolsApi;
+        {$IFDEF COMPILER6_UP}
+//          DesignIntf, DesignEditors;
+        {$ELSE}
+//          DsgnIntf;
+        {$ENDIF}
+    {$ENDIF}
 {$ENDIF}
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure Register;
@@ -244,6 +280,33 @@ begin
       TIcsFileCopy,      { V8.60 }
       TIcsDomainNameCache  { V8.71 }
     ]);
+
+{ V9.3 used to add required units to projects }
+{$IFDEF COMPILER16_UP}
+   RegisterSelectionEditor(TWSocket, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TWSocketServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(THttpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(THttpServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(THttpAppSrv, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TMultipartHttpDownloader, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TFtpClient, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TFtpServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TMultipartFtpDownloader, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSmtpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSyncSmtpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(THtmlSmtpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TPop3Cli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSyncPop3Cli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TNntpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(THtmlNntpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TDnsQuery, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TFingerCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TPing, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsFileCopy, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsBlacklist, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsDomainNameCache, TIcsTypesSelEdt);
+{$ENDIF}
+
 {$ENDIF}
 {$IFDEF VCL}
     RegisterComponents('Overbyte ICS', [
@@ -265,6 +328,21 @@ begin
       TIcsIpChanges,     { V8.71 }
       TIcsNeighbDevices  { V8.71 }
     ]);
+
+{ V9.3 used to add required units to projects }
+{$IFDEF COMPILER16_UP}
+   RegisterSelectionEditor(TSysLogClient, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSysLogServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSnmpCli, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSmtpServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TSmtpServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsTimeServer, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsTimeClient, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsMonSocket, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsIpChanges, TIcsTypesSelEdt);
+   RegisterSelectionEditor(TIcsNeighbDevices, TIcsTypesSelEdt);
+{$ENDIF}
+
 {$ENDIF VCL}
 {$IFDEF ICS_COMMON}
     RegisterComponents('Overbyte ICS', [
@@ -276,7 +354,8 @@ begin
    {$IFNDEF BCB}
       TIcsCookies,
    {$ENDIF !BCB}
-      TTimeList, TIcsLogger
+      TTimeList,
+      TIcsLogger
     ]);
 {$ENDIF}
 
@@ -317,7 +396,7 @@ begin
       {$ENDIF}
       TSslWebSocketCli,      { V8.71 }
       TIcsDomNameCacheHttps, { V8.71 }
-
+      TX509Base,             { V9.1 }
       {$IFDEF DELPHI11}
         TSslFtpClientW,  { V8.60 }
         TSslFtpServerW,  { V8.60 }
@@ -331,18 +410,59 @@ begin
         TSslSmtpServer,
         TIcsMQTTServer,      { V8.71 }
         TIcsMQTTClient,      { V8.71 }
+      {$IFDEF COMPILER27_UP}              // !! TEMP D10.4 and later
+        TIcsAppMonCli,         { V9.3 }
+        TIcsAppMonSrv,         { V9.4 }
+      {$ENDIF}
     {$ENDIF VCL}
     {$IFNDEF OPENSSL_NO_ENGINE}
-      TSslEngine,
+    //  TSslEngine,        V9.1 gone
     {$ENDIF}
       TIcsInetAlive   { V8.66 }
     ]);
+
+{ V9.3 used to add required units to projects }
+{$IFDEF COMPILER16_UP}
+    {$IFDEF VCL_OR_FMX}
+       RegisterSelectionEditor(TSslWSocket, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslWSocketServer, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslHttpCli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslHttpServer, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslHttpAppSrv, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslFtpClient, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslFtpServer, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslSmtpCli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslHtmlSmtpCli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslPop3Cli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslNntpCli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsProxy, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsHttpProxy, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslHttpRest, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSimpleWebSrv, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TRestOAuth, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslX509Certs, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsIpStrmLog, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsFtpMulti, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsHttpMulti, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TDnsQueryHttps, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TOAuthBrowser, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TSslWebSocketCli, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsDomNameCacheHttps, TIcsSslTypesSelEdt);
+    {$IFDEF VCL}
+       RegisterSelectionEditor(TSslSmtpServer, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsMQTTServer, TIcsSslTypesSelEdt);
+       RegisterSelectionEditor(TIcsMQTTServer, TIcsSslTypesSelEdt);
+    {$ENDIF VCL}
+       RegisterSelectionEditor(TIcsInetAlive, TIcsSslTypesSelEdt);
+
+    {$ENDIF VCL_OR_FMX}
+{$ENDIF}
+
   {$ENDIF VCL_OR_FMX}
 {$ENDIF USE_SSL}
 
 {$IFDEF VCL_OR_FMX}
-    RegisterPropertyEditor(TypeInfo(AnsiString), TWSocket, 'LineEnd',
-      TWSocketLineEndProperty);
+    RegisterPropertyEditor(TypeInfo(AnsiString), TWSocket, 'LineEnd', TWSocketLineEndProperty);
 {$ENDIF}
 
 {$IFDEF COMPILER10_UP}
@@ -355,6 +475,27 @@ begin
 
 end;
 
+{ V9.3 used to add required units to projects }
+{$IFDEF COMPILER16_UP}
+procedure TIcsTypesSelEdt.RequiresUnits(Proc: TGetStrProc);
+begin
+    inherited RequiresUnits(Proc);
+    Proc('OverbyteIcsTypes');
+end;
+
+procedure TIcsSslTypesSelEdt.RequiresUnits(Proc: TGetStrProc);
+begin
+    inherited RequiresUnits(Proc);
+    Proc('OverbyteIcsTypes');
+{$IFDEF USE_SSL}
+  {$IFDEF FMX}
+    Proc('Ics.Fmx.OverbyteIcsSslBase');
+  {$ELSE}
+    Proc('OverbyteIcsSslBase');
+  {$ENDIF}
+{$ENDIF USE_SSL}
+end;
+{$ENDIF}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFDEF COMPILER10_UP}
@@ -370,18 +511,18 @@ const
         sIcsSplashImg   = 'ICSPRODUCTICON';
     {$ENDIF}
 {$ENDIF}
-    sIcsLongProductName = 'Internet Component Suite V9.0';
+    sIcsLongProductName = 'Internet Component Suite V9.5';
     sIcsFreeware        = 'Freeware';
     sIcsDescription     = sIcsLongProductName + #13#10 +
-                          //'Copyright (C) 1996-2023 by François PIETTE'+ #13#10 +
+                          //'Copyright (C) 1996-2024 by François PIETTE'+ #13#10 +
                           // Actually there's source included with different
                           // copyright, so either all or none should be mentioned
                           // here.
                           'https://www.overbyte.eu/' + #13#10 +
                           'Wiki: https://wiki.overbyte.eu/' + #13#10 +
                           'Support: https://en.delphipraxis.net/forum/37-ics-internet-component-suite/' + #13#10 +
-                          'svn://svn.overbyte.be/ics/trunk' + #13#10 +
-                          'https://svn.overbyte.be/svn/ics/trunk' + #13#10 +
+                          'svn://svn.overbyte.be/icsv9' + #13#10 +
+                          'https://svn.overbyte.be/svn/icsv9' + #13#10 +
                           'User and password = "ics"';
 
 var

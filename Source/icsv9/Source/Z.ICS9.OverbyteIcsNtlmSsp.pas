@@ -2,9 +2,9 @@
 Author:       Arno Garrels <arno.garrels@gmx.de>
 Description:  Server-side NTLM, validation of user credentials using Windows SSPI.
 Creation:     Sep 04, 2006
-Version:      V9.0
+Version:      V9.4
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2005-2023 by Arno Garrels, Berlin, Germany
+Legal issues: Copyright (C) 2005-2024 by Arno Garrels, Berlin, Germany
 
               This software is provided 'as-is', without any express or
               implied warranty.  In no event will the author be held liable
@@ -54,6 +54,7 @@ Mar 29, 2019 V8.61 OAS : for NTLM with Session on Windows Domain,
                    update TNtlmAuthSession for Client as well as Server
 Sep 06, 2021 V8.67 Added Utils for base64.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -438,7 +439,7 @@ begin
       // if all is ok then "OutSecBuff.cbBuffer" contain size of result data
       // so adjust "Msg" size
       Setlength (Msg, OutSecBuff.cbBuffer) ;
-      Result := Base64Encode (Msg) ;
+      Result := IcsBase64EncodeA (Msg) ;     { V9.4 }
 
     except
         FState := lsDoneErr;
@@ -631,7 +632,7 @@ begin
         CleanupLogonSession;
         Exit;
     end;
-    FNtlmMessage := String(NtlmAccept(Base64Decode(AnsiString(InBuffer))));
+    FNtlmMessage := String(NtlmAccept(IcsBase64Decode(InBuffer)));   { V9.4 }
     Result       := FState = lsDoneOk;
 end;
 
@@ -792,7 +793,7 @@ begin
 
         if FState = lsInAuth then begin
             SetLength(Result, OutSecBuff.cbBuffer);
-            Result := Base64Encode(Result);
+            Result := IcsBase64EncodeA(Result);            { V9.4 }
         end;
     except
         FState := lsDoneErr;

@@ -3,13 +3,13 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Forward and Reverse SSL HTTP Proxy
 Creation:     May 2017
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Sept 2025
+Version:      V9.5
 Sponsor:      This component was sponsored in part by Avenir Health and
               Banxia Software Ltd. http://www.avenirhealth.org
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -255,6 +255,30 @@ Jun 20, 2023 V8.71 Ensure inherited destroy called.
                      is requested.
                    Fixed auto certificate ordering reading well-known file on unicode compilers.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 22, 2023 V9.1  Added OverbyteIcsHtmlUtils.
+                   Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+                   Target SslContent uses UseSharedCAStore instead of RootCA property.
+                   Support CONNECT ALPN: header (RFC7659), to forward ALPN to target.
+                   If source sends SSL ALPN, forward it to target. Perhaps optional or
+                     at least remove h2 and h3 which we don't support.
+Sep 16, 2024 V9.3  Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                     the Windows Store can be used for SSL certificate verification.
+                   BgExceptions for client now sent to application BgException event handler.
+                   Added ListenAny method, are any hosts listening.
+Jan 21, 2025 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+                   Added SocketFamily to TProxyTarget and the INI file, so target
+                     connections can be restricted to TSocketFamily values,  default
+                     sfIPv4, or sfIPv6, sfAny, or prefer sfAnyIPv4, sfAnyIPv6.
+                   Added property SrvTotSess count of server session connections.
+Sep 29, 2025 V9.5 Added OCSP conditionals. Note properties OcspSrvStapling and OcspSrvHttp are
+                    still published, but ignore without define OpenSSL_OcspStaple.
+                  Don't read DHParams from INI file, no longer used.
+                  Updated IcsLoadTIcsHttpProxyFromIni to read new default certificate
+                     properties for TSslWSocketServer, note these are only public in this
+                     component and not published so can not be set in the IDE.
+                  Added write property to SourceServer.
 
 
 pending...
@@ -303,7 +327,7 @@ uses
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     {$IFDEF Rtl_Namespaces}System.StrUtils{$ELSE}StrUtils{$ENDIF},
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//    OverbyteIcsSsleay, OverbyteIcsLibeay,
 //  Include\OverbyteIcsZlib.inc}
     Z.ICS9.OverbyteIcsZlibHigh,
     {$IFDEF USE_ZLIB_OBJ}
@@ -317,8 +341,13 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslSessionCache,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,    { V8.57 }
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+//  OverbyteIcsWinCrypt,
+{$ENDIF MSCRYPT_Clients}
+//    Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$IFDEF AUTO_X509_CERTS}  { V8.59 }
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Certs,  { V8.57 }
 {$ENDIF} // AUTO_X509_CERTS
@@ -327,19 +356,22 @@ uses
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsWSocketS,
     Z.ICS9.OverbyteIcsSslSessionCache,
-    Z.ICS9.OverbyteIcsMsSslUtils,      { V8.57 }
-    Z.ICS9.OverbyteIcsSslHttpRest,     { V8.69 }
+//  OverbyteIcsSslHttpRest,      { V8.69, gone V9.1  }
+    Z.ICS9.OverbyteIcsSslUtils,     { V9.1 }
+    Z.ICS9.OverbyteIcsSslBase,      { V9.1 TX509Base }
+{$IFDEF MSCRYPT_Clients}
+    Z.ICS9.OverbyteIcsMsSslUtils,    { V8.57 }
+//  OverbyteIcsWinCrypt,
+{$ENDIF MSCRYPT_Clients}
 {$IFDEF AUTO_X509_CERTS}  { V8.59 }
     Z.ICS9.OverbyteIcsSslX509Certs,    { V8.57 }
 {$ENDIF} // AUTO_X509_CERTS
 {$ENDIF FMX}
-{$IFDEF MSWINDOWS}
-    Z.ICS9.OverbyteIcsWinCrypt,
-{$ENDIF MSWINDOWS}
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsMimeUtils,
     Z.ICS9.OverbyteIcsFormDataDecoder,
     Z.ICS9.OverbyteIcsCharsetUtils,   { V8.50 }
+    Z.ICS9.OverbyteIcsHtmlUtils,      { V9.1 }
     Z.ICS9.OverbyteIcsUrl,
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
@@ -347,9 +379,9 @@ uses
 { NOTE - these components only build with SSL, there is no non-SSL option }
 
 const
-    THttpServerVersion = 900;
-    CopyRight : String = ' TIcsHttpProxy (c) 2023 F. Piette V9.01 ';
-    DefServerHeader : string = 'Server: ICS-Proxy-V9.0';
+    THttpServerVersion = 905;
+    CopyRight : String = ' TIcsHttpProxy (c) 2025 F. Piette V9.5 ';
+    DefServerHeader : string = 'Server: ICS-Proxy-V9.5';
  { V8.67 using IcsXBYTE literals to make sizes clearer }
     CompressMinSize = 5*IcsKBYTE;    // 5K minimum to make it worth compressing a page
     CompressMaxSize = 5*IcsMBYTE;    // 5M bigger takes too long
@@ -358,12 +390,6 @@ const
     MaxBodyDumpSize = 200*IcsKBYTE;  // 200K maximum length of body to log
     Ssl_Session_ID_Context = 'IcsProxy';
     MaxPipelineReqs = 10;
- {   cLF = #10;    V8.67 using IcsLF, etc instead
-    cFF = #12;
-    cCR = #13;
-    cCRLF: PChar = cCR+cLF;
-    cCRLF_ = cCR+cLF;
-    cDoubleCRLF = cCR+cLF+cCR+cLF;  }
     FlushSslCacheMins = 120;  // how often to clear SSL domain cache
     WellKnownDir = '/.well-known/';
     { see http://www.iana.org/assignments/well-known-uris/well-known-uris.xhtml }
@@ -388,6 +414,7 @@ type
   TPxyChunkState   = (PxyChunkGetSize, PxyChunkGetExt, PxyChunkGetData, PxyChunkSkipDataEnd, PxyChunkDone);
   TCertVerMethod   = (CertVerNone, CertVerBundle, CertVerWinStore);
   TDebugLevel      = (DebugNone, DebugConn, DebugSsl, DebugHttpHdr, DebugHttpBody, DebugChunks, DebugAll);
+// beware conflicts with THttpDebugLevel in Types, used by most other components
   THttpReqMethod   = (httpMethodNone, httpMethodGet, httpMethodPost, httpMethodHead, httpMethodOptions,
                       httpMethodPut, httpMethodDelete, httpMethodTrace, httpMethodPatch, httpMethodConnect);
   THttpReqState   =  (httpStNone, httpStReqStart, httpStReqHdrWait, httpStWaitResp, httpStRespStart,
@@ -427,6 +454,7 @@ type
     FIdleTimeout: Integer;
     FUpdateHttp: Boolean;
     FUpdateHtml: Boolean;
+    FSocketFamily: TSocketFamily;    { V9.4 }
   protected
     function GetDisplayName: string; override;
   published
@@ -451,6 +479,8 @@ type
                                                  write FUpdateHttp;
     property UpdateHtml : Boolean                read  FUpdateHtml
                                                  write FUpdateHtml;
+    property SocketFamily: TSocketFamily         read  FSocketFamily
+                                                 write FSocketFamily;    { V9.4 }
   end;
 
 
@@ -497,6 +527,7 @@ type
     FLogDescr: String;              // source description and clientId for logging
     FSrcPendClose: Boolean;         // close local client once all data forwarded
     FTarClosedFlag: Boolean;        // target has closed, must send any pending data to source
+    FSrcAlpn: TStringList;          // SSL ALPN list       { V9.1 }
   protected
     procedure SourceDataAvailable(Sender: TObject; Error: Word);
     procedure SourceSessionClosed(Sender: TObject; Error: Word); Virtual;
@@ -554,7 +585,7 @@ type
     FSslSessCache: TSslAvlSessionCache;
     FTarSslCtx: TSslContext;
     FTarSslCertList: TStringList;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
     FMsCertChainEngine: TMsCertChainEngine;   { V8.50 }
 {$ENDIF}
     FOcspTarHttp: TOcspHttp;                  { V8.69 }
@@ -578,6 +609,7 @@ type
     FTimerBusyFlag: Boolean;
     FCurDate: Integer;
     FFlushTick: Int64;      { V8.71 }
+    FSrvTotSess: Integer;   { V9.4 count sessions }
     FOnSrcConnect: TWSocketClientConnectEvent;    // when source client connects
     FOnSrcDisconnect: TWSocketClientConnectEvent; // when source client disconnects
     FOnTarConnect: TWSocketClientConnectEvent;    // when remote target connects
@@ -609,28 +641,21 @@ type
     procedure SetSslCertAutoOrder(const Value : Boolean);         { V8.57 }
   protected
    { Protected declarations }
-    procedure IcsLogEvent (Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+    procedure IcsLogEvent (Sender: TObject; LogOption: TLogOption; const Msg : String);
     procedure LogProgEvent (const Msg : String);
     procedure LogErrEvent (const Msg : String);
-    procedure SocketBgException(Sender: TObject;
-                          E: Exception; var CanClose: Boolean);
+    procedure SocketBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
     procedure ServerClientCreate(Sender : TObject; Client : TWSocketClient);
-    procedure ServerClientConnect(Sender: TObject;
-                                  Client: TWSocketClient; Error: Word);
-    procedure ServerClientDisconnect(Sender: TObject;
-                                 Client: TWSocketClient; Error: Word);
-    procedure ServerSetSessionIDContext(Sender : TObject;
-                                    var SessionIDContext : TSslSessionIdContext);
+    procedure ServerClientConnect(Sender: TObject; Client: TWSocketClient; Error: Word);
+    procedure ServerClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
+    procedure ServerSetSessionIDContext(Sender : TObject; var SessionIDContext : TSslSessionIdContext);
     procedure ServerSvrNewSession(Sender: TObject; SslSession, SessId: Pointer;
-                                            Idlen: Integer; var AddToInternalCache: Boolean);
+                                                        Idlen: Integer; var AddToInternalCache: Boolean);
     procedure ServerSvrGetSession(Sender: TObject; var SslSession: Pointer; SessId: Pointer;
-                                                        Idlen: Integer; var IncRefCount: Boolean);
+                                                                Idlen: Integer; var IncRefCount: Boolean);
     procedure ServerVerifyPeer(Sender: TObject; var Ok : Integer; Cert: TX509Base);
-    procedure ServerHandshakeDone(Sender: TObject; ErrCode: Word;
-                                PeerCert: TX509Base; var Disconnect : Boolean);
-    procedure ServerServerName(Sender: TObject;
-                          var Ctx: TSslContext; var ErrCode: TTlsExtError);
+    procedure ServerHandshakeDone(Sender: TObject; ErrCode: Word; PeerCert: TX509Base; var Disconnect : Boolean);
+    procedure ServerServerName(Sender: TObject; var Ctx: TSslContext; var ErrCode: TTlsExtError);
     procedure ServerAlpnSelect(Sender: TObject;
         ProtoList: TStrings; var SelProto : String; var ErrCode: TTlsExtError);  { V8.57 }
     procedure WndProc(var MsgRec: TMessage); override;
@@ -647,17 +672,18 @@ type
     destructor Destroy; override;
     function  FindPxyTarget(const Tag: String): Integer;
     function  FindPxySourceHost(const HHostName: String; MLIndx: Integer): Integer;
-    function  ValidateHosts(Stop1stErr: Boolean=True;
-                                           NoExceptions: Boolean=False): String;
-    function  RecheckSslCerts(var CertsInfo: String;
-                  Stop1stErr: Boolean=True; NoExceptions: Boolean=False): Boolean;
+    function  ValidateHosts(Stop1stErr: Boolean=True; NoExceptions: Boolean=False): String;
+    function  RecheckSslCerts(var CertsInfo: String; Stop1stErr: Boolean=True; NoExceptions: Boolean=False): Boolean;
     procedure Start;
     procedure Stop;
     function  ListenAllOK: Boolean;
+    function  ListenAny: Boolean;                                              { V9.3 }
     function  ListenStates: String;
     property  Running: Boolean                      read  GetRunning;
     property  ClientCount: Integer                  read  GetClientCount;
-    property  SourceServer: TSslWSocketServer       read  FSourceServer;
+    property  SourceServer: TSslWSocketServer       read  FSourceServer
+                                                    write FSourceServer;    { V9.5 }
+    property  SrvTotSess: Integer                   read  FSrvTotSess;  { V9.4 count sessions }
   published
       { Published declarations }
     property  IcsHosts : TIcsHostCollection         read  GetIcsHosts
@@ -799,6 +825,7 @@ type
     FRequestStartLine: String;           // HTTP request start line
     FRequestUpgrade: String;             // HTTP request header field
     FRequestUserAgent: String;           // HTTP request header field
+    FRequestALPN: String;                // HTTP request header field   { V9.1 }
 //    FRequestAcceptLanguage: String;    // HTTP request header field
 //    FRequestAuth: String;              // HTTP request header field
 { following are parsed from HTTP response header }
@@ -885,6 +912,7 @@ type
     property  RequestProxyAuthorization : String    read  FRequestProxyAuthorization;
     property  RequestProxyConnection: String        read  FRequestProxyConnection;
     property  RequestReferer : String               read  FRequestReferer write FRequestReferer;   { V8.65 }
+    property  RequestALPN: String                   read  FRequestALPN;                            { V9.1 }
     property  RequestStartLine: String              read  FRequestStartLine;
     property  RequestUpgrade : string               read  FRequestUpgrade;
     property  RequestUserAgent : String             read  FRequestUserAgent;
@@ -986,10 +1014,8 @@ type
   end;
 
 { public functions }
-function IcsLoadProxyTargetsFromIni(MyIniFile: TCustomIniFile; ProxyTargets:
-               TProxyTargets; const Prefix: String = 'Target'): Integer;
-procedure IcsLoadTIcsHttpProxyFromIni(MyIniFile: TCustomIniFile; IcsHttpProxy:
-                TIcsHttpProxy; const Section: String = 'Proxy');
+function IcsLoadProxyTargetsFromIni(MyIniFile: TCustomIniFile; ProxyTargets: TProxyTargets; const Prefix: String = 'Target'): Integer;
+procedure IcsLoadTIcsHttpProxyFromIni(MyIniFile: TCustomIniFile; IcsHttpProxy: TIcsHttpProxy; const Section: String = 'Proxy');
 
 {$ENDIF}  { USE_SSL }
 
@@ -1072,6 +1098,7 @@ begin
 { V8.71 Ensure inherited destroy called }
     try
         FreeAndNil(FTarSocket) ;
+        FreeAndNil(FSrcAlpn);  { V9.1 }
     finally
         inherited Destroy;
     end;
@@ -1339,6 +1366,7 @@ begin
   { important, set AsyncDnsLookup so we don't need OnDnsLookup event }
     FTarSocket.ComponentOptions := [wsoNoReceiveLoop, wsoAsyncDnsLookup, wsoIcsDnsLookup];
     FTarSocket.LocalAddr := FProxySource.FLocalAddr;
+    FTarSocket.SocketFamily := SocketFamily ;   { V9.4 }
     FTarSocket.Addr := '';
     FTarSocket.SocketErrs := wsErrFriendly;
     FTarSocket.CreateCounter;
@@ -1362,7 +1390,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { log source, find target according to HostTag }
-{ note this is overwritten for the HTTP client, it's more compicated }
+{ note this is overwritten for the HTTP client, it's more complicated }
 procedure TProxyClient.TargetCheck;
 begin
     Self.FLogDescr := FHostTag + ' - ' + FProxySource.IcsHosts[IcsHostIdx].Descr +    { V8.49 }
@@ -1443,7 +1471,10 @@ begin
     FTarClosedFlag := False;
     FTarSocket.Counter.SetConnected;  // reset
     FTarCurHost := FTarHost;  // used to see if need to reconnect later
-    FTarSocket.SslEnable := FTarSsl;
+    FTarSocket.SslEnable := FTarSsl; // or (FTarPort = '443');  { V9.1 }
+    if Assigned(FSrcAlpn) then begin
+        FTarSocket.SetSslAlpnProtocols(FSrcAlpn);  { V9.1 set ALPN, should it be optional ?? }
+    end;
     FTarSocket.SslServerName := FTarHost;  // SNI
   { localhost fails if real local address used }
     if (FTarHost = ICS_LOCAL_HOST_V4) or (IcsLowerCase(FTarHost) = 'localhost') then
@@ -1496,8 +1527,10 @@ begin
         if Assigned(FProxySource.FOnTarConnect) then
             FProxySource.FOnTarDisconnect(FProxySource, Self, Error);
         if FTarSocket.SslEnable then begin
-            if (FProxySource.DebugLevel >= DebugSsl) then
-                    LogTarEvent('Remote starting SSL handshake to ' + FTarHost);
+            if (FProxySource.DebugLevel >= DebugSsl) then begin
+                LogTarEvent('Remote starting SSL handshake to ' + FTarHost);
+                LogTarEvent('Remote ALPN: ' + FTarSocket.SslAlpnProtocols.CommaText); // V9.1 !!! TEMP
+            end;
             FTarSocket.StartSslHandshake;
         end
         else begin
@@ -1529,9 +1562,9 @@ procedure TProxyClient.TargetHandshakeDone(Sender: TObject; ErrCode: Word;
                                     PeerCert: TX509Base; var Disconnect : Boolean);
 var
     CertChain: TX509List;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
     ChainVerifyResult: LongWord;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Any}
     Hash, info, VerifyInfo: String;
     Safe: Boolean;
 begin
@@ -1567,7 +1600,7 @@ begin
         CertChain := SslCertChain;
 
      { see if validating against Windows certificate store, V8.50 not on MacOS  }
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
         if FProxySource.CertVerTar = CertVerWinStore then begin
 
             { start engine }
@@ -1585,13 +1618,11 @@ begin
 
           { Pass the certificate and the chain certificates to the engine      }
             FProxySource.FMsCertChainEngine.VerifyCert (PeerCert, CertChain, ChainVerifyResult, True);
-
             Safe := (ChainVerifyResult = 0) or
-                    { We ignore the case if a revocation status is unknown.      }
-                    (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                    (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                    (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                         CERT_TRUST_IS_OFFLINE_REVOCATION);
+                     { We ignore the case if a revocation status is unknown.      }
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                     (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
           { The MsChainVerifyErrorToStr function works on chain error codes     }
             VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult);
@@ -1614,12 +1645,11 @@ begin
         OCSP HTTP server and cache it but don't wait for the response. So next attempt comes from cache.  }
         if (Safe and FProxySource.SslRevocation and PeerCert.IsCertLoaded and (CertChain.Count > 0)) then begin
             FProxySource.FOcspTarHttp.ClearOcsp;
-            FProxySource.FOcspTarHttp.DebugLevel := Z.ICS9.OverbyteIcsSSLEAY.DebugSsl;
+            FProxySource.FOcspTarHttp.DebugLevel := Z.ICS9.OverbyteIcsTypes.DebugSsl;    { V9.3 }
             FProxySource.FOcspTarHttp.OcspCert := PeerCert;
             FProxySource.FOcspTarHttp.OcspInters := CertChain;
-            if (Length(OcspStapleRaw) > 50) and
-                 (OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
-                                        FProxySource.FOcspTarHttp.OcspRespRaw := OcspStapleRaw;
+            if (Length(OcspStapleRaw) > 50) and (OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
+                FProxySource.FOcspTarHttp.OcspRespRaw := OcspStapleRaw;
             if FProxySource.FOcspTarHttp.CheckOcspRevoked(SslContext.GetX509Store, 0) then
                 Safe := False;
             VerifyInfo := FProxySource.FOcspTarHttp.OcspLastResp;
@@ -1632,12 +1662,10 @@ begin
         end ;
 
       { allow self signed certs }
-        if (CertChain.Count > 0) and (CertChain[0].FirstVerifyResult =
-                                          X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) then begin
+        if (CertChain.Count > 0) and (CertChain[0].FirstVerifyResult = X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) then begin
             Safe := true;
             if (FProxySource.DebugLevel >= DebugSsl) then
-                LogTarEvent('SSL self signed certificate succeeded: ' +
-                                         PeerCert.UnwrapNames (PeerCert.IssuerCName));
+                LogTarEvent('SSL self signed certificate succeeded: ' + PeerCert.UnwrapNames (PeerCert.IssuerCName));
         end;
 
       { tell user verification failed }
@@ -1672,11 +1700,11 @@ begin
       { tell user about all the certificates we found }
         if (FProxySource.DebugLevel >= DebugSsl) and
             (FProxySource.SslReportChain) and (CertChain.Count > 0) then begin
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
             if (FProxySource.CertVerTar = CertVerWinStore) then
                  info := 'Verify result: ' + MsCertVerifyErrorToStr(CertChain[0].CustomVerifyResult) + #13#10
             else
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Any}
                  info := 'Verify result: ' + CertChain[0].FirstVerifyErrMsg + #13#10 ;
             info := info + IntToStr(CertChain.Count) + ' SSL certificates in the verify chain:' +
                                                          #13#10 + CertChain.AllCertInfo (true, true) ;
@@ -1795,7 +1823,7 @@ begin
     FSocketErrs := wsErrFriendly;
     FMaxClients := 999;
     FRxBuffSize := DefRxBuffSize;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
    FMsCertChainEngine := Nil;
 {$ENDIF}
     FIcsLog := TIcsLogger.Create (nil);
@@ -1815,7 +1843,7 @@ begin
 { V8.71 Ensure inherited destroy called }
     try
         Stop;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
         FreeAndNil(FMsCertChainEngine);
 {$ENDIF}
         FOcspTarHttp.Free;    { V8.69 }
@@ -1881,8 +1909,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsProxy.IcsLogEvent(Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+procedure TIcsProxy.IcsLogEvent(Sender: TObject; LogOption: TLogOption; const Msg : String);
 begin
     if Assigned (FonProxyProg) then FonProxyProg(Self, LogOption, Msg) ;
 end ;
@@ -1931,9 +1958,9 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TIcsProxy.GetRootCA: String;
 begin
-    if Assigned(FSourceServer) then
-        Result := FSourceServer.RootCA
-    else
+   // if Assigned(FSourceServer) then
+   //     Result := FSourceServer.RootCA
+ //   else
         Result := '';
 end;
 
@@ -1941,7 +1968,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsProxy.SetRootCA(const Value: String);
 begin
-    if Assigned(FSourceServer) then FSourceServer.RootCA := Value;
+ //   if Assigned(FSourceServer) then FSourceServer.RootCA := Value;     V9.1 gone
 end;
 
 
@@ -2042,9 +2069,11 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TIcsProxy.GetOcspSrvStapling: Boolean;                        { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSourceServer) then
         Result := TSslWSocketServer(FSourceServer).OcspSrvStapling
     else
+{$ENDIF} // OpenSSL_OcspStaple
         Result := False;
 end;
 
@@ -2052,17 +2081,21 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsProxy.SetOcspSrvStapling(const Value : Boolean);          { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSourceServer) then
         TSslWSocketServer(FSourceServer).OcspSrvStapling := Value;
+{$ENDIF} // OpenSSL_OcspStaple
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TIcsProxy.GetOcspSrvHttp: TOcspHttp;                             { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSourceServer) then
         Result := TSslWSocketServer(FSourceServer).OcspSrvHttp
     else
+{$ENDIF} // OpenSSL_OcspStaple
         Result := nil;
 end;
 
@@ -2070,8 +2103,10 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsProxy.SetOcspSrvHttp(const Value : TOcspHttp);               { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSourceServer) then
         TSslWSocketServer(FSourceServer).OcspSrvHttp := Value;
+{$ENDIF} // OpenSSL_OcspStaple
 end;
 
 
@@ -2141,6 +2176,17 @@ function TIcsProxy.ListenAllOK: Boolean;
 begin
     if Assigned(FSourceServer) then
         Result := FSourceServer.ListenAllOK
+    else
+        Result := False;
+end;
+
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function TIcsProxy.ListenAny: Boolean;     { V9.3 }
+begin
+    if Assigned(FSourceServer) then
+        Result := FSourceServer.ListenAny
     else
         Result := False;
 end;
@@ -2280,12 +2326,13 @@ begin
     FTarSslCtx.SslECDHMethod := sslECDHAuto;
     FTarSslCtx.SslCipherList := sslCiphersNoDH;
     FTarSslCtx.SslOptions2 := [];                { V8.66 }
-    if RootCA <> '' then begin
+    FTarSslCtx.UseSharedCAStore := True;         { V9.1 }
+{    if RootCA <> '' then begin                   V9.1 ignored for now
         if (Pos(PEM_STRING_HDR_BEGIN, RootCA) > 0) then
             FTarSslCtx.SslCALines.Text := RootCA
         else
             FTarSslCtx.SslCAFile := RootCA;
-    end;
+    end;    }
     FTarSslCtx.InitContext;
 
   { setup SocketServer events and properties, start it  }
@@ -2351,8 +2398,10 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsProxy.SocketBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
 begin
-    LogErrEvent('Socket Bg Exception - ' + E.Message);
+    LogErrEvent('Proxy Client Bg Exception - ' + E.Message);
     CanClose := true ;
+    if Assigned(Self.OnBgException) then
+        Self.OnBgException(Sender, E, CanClose);   { V9.3 tell application }
 end;
 
 
@@ -2372,6 +2421,7 @@ var
 begin
     MyClient := Client as TProxyClient;
     MyClient.FProxySource := Self;  // before logging
+    FSrvTotSess := FSrvTotSess + 1;  { V9.4 count sessions }
     try
         if Error <> 0 then begin
             if Assigned(FOnSrcConnect) then
@@ -2475,6 +2525,15 @@ end;
 procedure TIcsProxy.ServerAlpnSelect(Sender: TObject;
     ProtoList: TStrings; var SelProto : String; var ErrCode: TTlsExtError);  { V8.57 }
 begin
+    with Sender as TProxyClient do begin
+        if ProtoList.Count > 0 then begin          { V9.1 keep ALPN to send to client }
+            if NOT Assigned(FSrcAlpn) then
+                FSrcAlpn := TStringList.Create;
+            FSrcAlpn.Assign(ProtoList);
+            if (DebugLevel >= DebugSsl) then
+                LogSrcEvent('Client ALPN: ' + FSrcAlpn.CommaText);
+        end;
+    end;
     if Assigned(FOnSslAlpnSelect) then
         FOnSslAlpnSelect(Sender, ProtoList, SelProto, ErrCode);
 end;
@@ -3308,7 +3367,7 @@ begin
         with FProxySource as TIcsHttpProxy do begin
             if Assigned(FonHttpPxyAuth) then begin
                 if Pos ('basic ', IcsLowercase(FRequestProxyAuthorization)) = 1 then
-                    Arg := Base64Decode(Copy(FRequestProxyAuthorization, 7, 999))
+                    Arg := String(IcsBase64Decode(Copy(FRequestProxyAuthorization, 7, 999)))    { V9.4 }
                 else
                     Arg := FRequestProxyAuthorization;
                 LogTarEvent('Testing Proxy-Authorization: ' + Arg);
@@ -3344,7 +3403,7 @@ begin
             Close;
             Exit;
         end;
-        FTarSsl := False;  // no SSL for tunnel itself
+        FTarSsl := False;  // SSL set later
         FTunnelling := True; // so we don't process anything more
         FHttpReqHdr := '';   // do not forward this request, create 200 response on succesful connect
     end
@@ -3767,15 +3826,24 @@ begin
             K := Pos (':', Line) + 1;
             if Lines = 1 then begin
                 FRequestStartLine := Line;
-                if (Pos('GET ', Line) = 1) then FRequestMethod := httpMethodGet;
-                if (Pos('POST ', Line) = 1) then FRequestMethod := httpMethodPost;
-                if (Pos('HEAD ', Line) = 1) then FRequestMethod := httpMethodHead;
-                if (Pos('OPTIONS ', Line) = 1) then FRequestMethod := httpMethodOptions;
-                if (Pos('PUT ', Line) = 1) then FRequestMethod := httpMethodPut;
-                if (Pos('DELETE ', Line) = 1) then FRequestMethod := httpMethodDelete;
-                if (Pos('TRACE ', Line) = 1) then FRequestMethod := httpMethodTrace;
-                if (Pos('PATCH ', Line) = 1) then FRequestMethod := httpMethodPatch;
-                if (Pos('CONNECT ', Line) = 1) then FRequestMethod := httpMethodConnect;
+                if (Pos('GET ', Line) = 1) then
+                    FRequestMethod := httpMethodGet;
+                if (Pos('POST ', Line) = 1) then
+                    FRequestMethod := httpMethodPost;
+                if (Pos('HEAD ', Line) = 1) then
+                    FRequestMethod := httpMethodHead;
+                if (Pos('OPTIONS ', Line) = 1) then
+                    FRequestMethod := httpMethodOptions;
+                if (Pos('PUT ', Line) = 1) then
+                    FRequestMethod := httpMethodPut;
+                if (Pos('DELETE ', Line) = 1) then
+                    FRequestMethod := httpMethodDelete;
+                if (Pos('TRACE ', Line) = 1) then
+                    FRequestMethod := httpMethodTrace;
+                if (Pos('PATCH ', Line) = 1) then
+                    FRequestMethod := httpMethodPatch;
+                if (Pos('CONNECT ', Line) = 1) then
+                    FRequestMethod := httpMethodConnect;
                 L := Pos(' ', Line);
                 If (L > 0) then Line := Copy(Line, L + 1, 99999); // strip request
                 L := Pos(' HTTP/1', Line);
@@ -3786,12 +3854,18 @@ begin
             end
             else if (K > 3) then begin
                 Arg := IcsTrim(Copy(Line, K, 999)); // convert any arguments we scan to lower case later
-                if (Pos('Accept:', Line) = 1) then FRequestAccept := Arg;
-                if (Pos('Accept-Encoding:', Line) = 1) then FRequestAcceptEncoding := IcsLowercase(Arg);
-                if (Pos('Connection:', Line) = 1) then FRequestConnection := IcsLowercase(Arg);   // Keep-Alive or Close
-                if (Pos('Content-Length:', Line) = 1) then FRequestContentLength := atoi64(Arg);
-                if (Pos('Content-Type:', Line) = 1) then FRequestContentType := IcsLowercase(Arg);
-                if (Pos('Cookie:', Line) = 1) then FRequestCookies := Arg;
+                if (Pos('Accept:', Line) = 1) then
+                    FRequestAccept := Arg;
+                if (Pos('Accept-Encoding:', Line) = 1) then
+                    FRequestAcceptEncoding := IcsLowercase(Arg);
+                if (Pos('Connection:', Line) = 1) then
+                    FRequestConnection := IcsLowercase(Arg);   // Keep-Alive or Close
+                if (Pos('Content-Length:', Line) = 1) then
+                    FRequestContentLength := atoi64(Arg);
+                if (Pos('Content-Type:', Line) = 1) then
+                    FRequestContentType := IcsLowercase(Arg);
+                if (Pos('Cookie:', Line) = 1) then
+                    FRequestCookies := Arg;
                 if (Pos('Host:', Line) = 1) then begin
                     FRequestHost := Arg;
                     L := Pos(':', FRequestHost);
@@ -3811,12 +3885,26 @@ begin
                         FRequestIfModSince := 0;
                     end;
                 end;
-                if (Pos('Keep-Alive:', Line) = 1) then FRequestKeepAlive := Arg;
-                if (Pos('Proxy-Authorization:', Line) = 1) then FRequestProxyAuthorization := Arg;
-                if (Pos('Proxy-Connection:', Line) = 1) then FRequestProxyConnection := IcsLowercase(Arg);
-                if (Pos('Referer:', Line) = 1) then FRequestReferer := IcsLowercase(Arg);
-                if (Pos('Upgrade:', Line) = 1) then FRequestUpgrade := Arg;
-                if (Pos('User-Agent:', Line) = 1) then FRequestUserAgent := Arg;
+                if (Pos('Keep-Alive:', Line) = 1) then
+                    FRequestKeepAlive := Arg;
+                if (Pos('Proxy-Authorization:', Line) = 1) then
+                    FRequestProxyAuthorization := Arg;
+                if (Pos('Proxy-Connection:', Line) = 1) then
+                    FRequestProxyConnection := IcsLowercase(Arg);
+                if (Pos('Referer:', Line) = 1) then
+                    FRequestReferer := IcsLowercase(Arg);
+                if (Pos('Upgrade:', Line) = 1) then
+                    FRequestUpgrade := Arg;
+                if (Pos('User-Agent:', Line) = 1) then
+                    FRequestUserAgent := Arg;
+                if (Pos('ALPN:', Line) = 1) then begin
+                    FRequestALPN := String(IcsPercentDecode(AnsiString(Arg)));        { V9.1 }
+                    if NOT Assigned(FSrcAlpn) then
+                        FSrcAlpn := TStringList.Create;
+                    FSrcAlpn.CommaText := FRequestALPN;
+                    if (FProxySource.DebugLevel >= DebugHttpHdr) then
+                        LogTarEvent('Target APLN set: ' + FSrcAlpn.CommaText);
+                end;
             end
             else begin
                 if (FProxySource.DebugLevel >= DebugHttpHdr) then
@@ -4903,8 +4991,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsLoadProxyTargetsFromIni(MyIniFile: TCustomIniFile; ProxyTargets:
-               TProxyTargets; const Prefix: String = 'Target'): Integer;
+function IcsLoadProxyTargetsFromIni(MyIniFile: TCustomIniFile; ProxyTargets: TProxyTargets; const Prefix: String = 'Target'): Integer;
 var
     J: Integer;
     section, S: String;
@@ -4937,6 +5024,9 @@ begin
             IdleTimeout := MyIniFile.ReadInteger(section, 'IdleTimeout', 0);
             UpdateHttp := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'UpdateHttp', 'False'));
             UpdateHtml := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'UpdateHtml', 'False'));
+            SocketFamily := TSocketFamily(GetEnumValue(TypeInfo (TSocketFamily),          { V9.4 }
+                 IcsTrim(MyIniFile.ReadString(Section, 'SocketFamily'+S, 'sfIPv4'))));
+            if SocketFamily > High(TSocketFamily) then SocketFamily := sfIPv4;             { V9.4 }
         end;
     end;
 end;
@@ -4944,8 +5034,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsLoadTIcsHttpProxyFromIni(MyIniFile: TCustomIniFile; IcsHttpProxy:
-                TIcsHttpProxy; const Section: String = 'Proxy');
+procedure IcsLoadTIcsHttpProxyFromIni(MyIniFile: TCustomIniFile; IcsHttpProxy: TIcsHttpProxy; const Section: String = 'Proxy');
 var
     S: String;
     V: Integer;
@@ -4961,7 +5050,7 @@ begin
         ServerHeader := IcsTrim(MyIniFile.ReadString(Section, 'ServerHeader', ''));
         LocalAddr := MyIniFile.ReadString(Section, 'LocalAddr', '');
         RootCA := IcsTrim(MyIniFile.ReadString(Section, 'RootCA', ''));
-        DHParams := MyIniFile.ReadString(Section, 'DHParams', '');
+//      DHParams := MyIniFile.ReadString(Section, 'DHParams', '');                   V9.5 gone
         S := IcsTrim(MyIniFile.ReadString (Section, 'DebugLevel', ''));
         if S = '' then
             V := -1
@@ -5005,8 +5094,36 @@ begin
         SslCertAutoOrder := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'SslCertAutoOrder', 'False')); { V8.57 }
         CertExpireDays := MyIniFile.ReadInteger(Section, 'CertExpireDays', CertExpireDays);                 { V8.57 }
 {$IFDEF AUTO_X509_CERTS}
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
         OcspSrvStapling := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'OcspSrvStapling', 'False'));   { V8.69 }
+{$ENDIF} // OpenSSL_OcspStaple
 {$ENDIF}
+
+    { V9.5 new certificate ordering defaults in SocketServer }
+{$IFDEF AUTO_X509_CERTS}
+    with IcsHttpProxy.SourceServer do begin
+        SrvSupplierTitle := Trim(MyIniFile.ReadString(section, 'SrvSupplierTitle', ''));
+        SrvAcmeSupplier := TAcmeSupplier(GetEnumValue (TypeInfo (TAcmeSupplier),
+                                               IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeSupplier', 'AcmeLetsEncrypt'))));
+        if (SrvAcmeSupplier > High(TAcmeSupplier)) or (SrvAcmeSupplier < Low(TAcmeSupplier)) then
+            SrvAcmeSupplier := AcmeLetsEncrypt;
+        SrvAcmeCertProfile := IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeCertProfile', ''));
+        SrvAcmeCertValidity :=  MyIniFile.ReadInteger(section, 'SrvAcmeCertValidity', 90);
+        SrvCertChallenge := TChallengeType(GetEnumValue (TypeInfo (TChallengeType),
+                                                      IcsTrim(MyIniFile.ReadString(section, 'SrvCertChallenge', 'ChallNone'))));
+        if SrvCertChallenge > High(TChallengeType) then
+            SrvCertChallenge := ChallNone;
+        SrvCertPKeyType := TSslPrivKeyType(GetEnumValue (TypeInfo (TSslPrivKeyType),
+                                                IcsTrim(MyIniFile.ReadString(section, 'SrvCertPKeyType', 'PrivKeyRsa2048'))));
+        if SrvCertPKeyType > High(TSslPrivKeyType) then
+            SrvCertPKeyType := PrivKeyRsa2048;
+        SrvCertSignDigest := TEvpDigest(GetEnumValue (TypeInfo (TEvpDigest),
+                                              IcsTrim(MyIniFile.ReadString(section, 'SrvCertSignDigest', 'Digest_sha256'))));
+       if SrvCertSignDigest > High(TEvpDigest) then
+            SrvCertSignDigest := Digest_sha256;
+    end;
+{$ENDIF}
+
     end;
 end;
 

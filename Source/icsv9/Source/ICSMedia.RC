@@ -1,0 +1,5 @@
+ICSTWSOCKETBMP  BITMAP "OverbyteIcsWSocket.TWSocket.bmp"
+ICSICON24BMP    BITMAP "IcsIcon24.bmp"
+ICSICON16       RCDATA "IcsIcon16.ico"
+ICSICON24       RCDATA "IcsIcon24.ico"
+ICSICONGIF      RCDATA "IcsIcon.gif"

@@ -141,6 +141,7 @@ Apr 20, 2023 - V8.71 Updated units for main ICS library.
                      Removed support for WinPCap 3 and earlier and XP and earlier.
                      Added IPv6 support.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
 
@@ -172,12 +173,13 @@ uses
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
-    Z.ICS9.OverbyteIcsWinsock,
-    Z.ICS9.OverbyteIcsUtils;
+ //   OverbyteIcsWinsock,
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 
 const
-    CopyRight    : String     = ' Npcap NDIS Driver  (c) 2023 V9.0 ';
+    CopyRight    : String     = ' Npcap NDIS Driver  (c) 2024 V9.3 ';
 
 Type
   // For future combatibility

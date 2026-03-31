@@ -3,14 +3,14 @@
 Original Author: Ian Baker, ADV Systems 2003
 Updated by:   Angus Robertson, Magenta Systems Ltd
 Creation:     20 September 2013
-Version:      V9.0
+Version:      V9.4
 Description:  Implements a TWSocket-based SMTP server component.
               For further details please see
               RFC-821, RFC-1869, RFC-1870, RFC-1893, RFC-1985,
               RFC-2034, RFC-2025, RFC-2920
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1999-2023 by François PIETTE
+Legal issues: Copyright (C) 1999-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               <francois.piette@overbyte.be>
 
@@ -147,6 +147,8 @@ Mar 10, 2020 V8.64 Added support for International Domain Names for Applications
                       Currently just DnsQuery returns Unicode.
 Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 17, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
 
@@ -226,12 +228,14 @@ uses
     Ics.Fmx.Z.ICS9.OverbyteIcsWSockBuf,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
     Z.ICS9.Ics.Fmx.OverbyteIcsSmtpProt,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsWSockBuf,
     Z.ICS9.OverbyteIcsWSocketS,
     Z.ICS9.OverbyteIcsSmtpProt,  // just using some public utility functions
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF}
     Z.ICS9.OverbyteIcsDnsQuery,
     Z.ICS9.OverbyteIcsMimeUtils,
@@ -242,8 +246,8 @@ uses
     Z.ICS9.OverbyteIcsTypes;
 
 const
-    SmtpCliVersion     = 900;
-    CopyRight : String = ' SMTP Server (c) 1997-2023 Francois Piette V9.0 ';
+    SmtpCliVersion     = 904;
+    CopyRight : String = ' SMTP Server (c) 1997-2024 Francois Piette V9.4 ';
 
 const
   // ESMTP commands. Please note that not all are implemented - use AddCommand() to add a handler of your own
@@ -1865,7 +1869,7 @@ begin
           // Extract any authentication stuff.- PLAIN and LOGIN, optionally
                 EncodedAuth := ExtractArg (Parameters);
                 if Length (EncodedAuth) > 1 then
-                    DecodedAuth := Base64Decode (EncodedAuth);
+                    DecodedAuth := String(IcsBase64Decode (EncodedAuth));   { V9.4 }
                 break;
             end;
         end;
@@ -1918,19 +1922,17 @@ begin
             if Length (DecodedAuth) > 1 then
             begin
                 FUserName :=  DecodedAuth;
-                EncodedAuth := Base64Encode ('Password');
+                EncodedAuth := IcsBase64Encode ('Password');    { V9.4 }
             end
             else
-                EncodedAuth := Base64Encode ('Username');
+                EncodedAuth := IcsBase64Encode ('Username');    { V9.4 }
             SendStatus (s334, '', [EncodedAuth]);
         end
-        else if (FSmtpSrvAuthType = smtpsAuthCramMD5) or
-                             (FSmtpSrvAuthType = smtpsAuthCramSha1) then
+        else if (FSmtpSrvAuthType = smtpsAuthCramMD5) or (FSmtpSrvAuthType = smtpsAuthCramSha1) then
         begin
             FAuthWait2nd := true;
-            FAuthChallenge := AnsiString (FloatToStr (Now) + '@' +
-                                                FSmtpServer.FServerHost);
-            EncodedAuth := String (Base64Encode (FAuthChallenge));
+            FAuthChallenge := AnsiString (FloatToStr (Now) + '@' + FSmtpServer.FServerHost);
+            EncodedAuth := String(IcsBase64EncodeA (FAuthChallenge));    { V9.4 }
             SendStatus (s334, '', [EncodedAuth]);
         end;
     end;
@@ -1962,7 +1964,7 @@ begin
         EncodedAuth := ExtractArg (Parameters);
         if Length (EncodedAuth) > 1 then
         begin
-            DecodedAuth := Base64Decode (EncodedAuth);
+            DecodedAuth := String(IcsBase64Decode (EncodedAuth));     { V9.4 }
             if FSmtpSrvAuthType = smtpsAuthPlain then
             begin
              // contains 3 arguments, username(null)mailfrom(null)password
@@ -1976,7 +1978,8 @@ begin
                     if I > 0 then // ignore mailfrom, badly documented
                     begin
                         inc (I);
-                        if Length (DecodedAuth) >= I then Password := Copy (DecodedAuth, I, 999);
+                        if Length (DecodedAuth) >= I then
+                            Password := Copy (DecodedAuth, I, 999);
                     end;
                 end;
             end
@@ -1986,14 +1989,13 @@ begin
                 begin
                     FUserName :=  DecodedAuth;
                     FAuthWait2nd := true;
-                    EncodedAuth := Base64Encode ('Password');
+                    EncodedAuth := IcsBase64Encode ('Password');    { V9.4 }
                     SendStatus (s334, '', [EncodedAuth]);
                 end
                 else
                     Password := DecodedAuth;
             end
-            else if (FSmtpSrvAuthType = smtpsAuthCramMD5) or
-                                        (FSmtpSrvAuthType = smtpsAuthCramSha1) then
+            else if (FSmtpSrvAuthType = smtpsAuthCramMD5) or (FSmtpSrvAuthType = smtpsAuthCramSha1) then
             begin
                 I := Pos (' ', DecodedAuth);  // contains username(space)hash
                 if I > 0 then

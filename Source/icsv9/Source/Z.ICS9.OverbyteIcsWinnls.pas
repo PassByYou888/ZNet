@@ -8,6 +8,9 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
                    also IPv6 support, include files now in sub-directory
 Oct 14, 2021 - V8.68 - Trying to keep C++ happy
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Sep 04, 2024 V9.5  Fixed can not assign constants error with modern compilers.
+
+
 }
 
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
@@ -60,11 +63,13 @@ implementation
 
 const
   LibNormaliz = 'Normaliz.dll';
+
+var  { V9.5 can not assign constants }
   _IsNormalizedString : function (NormForm: TNormForm; lpString: LPCWSTR;
     cwLength: Integer): BOOL; stdcall = nil;
   _NormalizeString : function(NormForm: TNormForm; lpSrcString: LPCWSTR;
     cwSrcLength: Integer; lpDstString: LPWSTR; cwDstLength: Integer): Integer; stdcall = nil;
-var
+
   hNormaliz: THandle = 0;
 
 function LoadNormalizeLib: Boolean;

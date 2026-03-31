@@ -4,11 +4,11 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  OAuth2 and OAuth1A authentication, and components to send cloud
               email and Tweets, all using the TSslHttpRest component.
 Creation:     March 2022
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Sept 2025
+Version:      V9.6
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -90,11 +90,23 @@ default redirect used by TRestOAuth is http:/localhost:8080/.  There are also
 two API URLs, one for the authorization endpoint (displayed in the browser) and
 then the token exchange endpoint for REST requests.  Some sites may provide OAuth2
 details with the URL (host)/.well-known/openid-configuration as Json, ie:
-https://accounts.google.com/.well-known/openid-configuration .   Finally, OAuth
-may require the token Scope to be specified, it's purpose or access rights
-depending on the server. This component includes TOAuthUri records that are
-designed to set-up common OAuth2 account settings for Google, Microsoft and
-other end points.
+https://accounts.google.com/.well-known/openid-configuration .  OAuth may require
+the token Scope to be specified, it's purpose or access rights depending on the
+server. This component includes TOAuthUri records that are designed to set-up
+common OAuth2 account settings for Google, Microsoft and other end points.
+
+There are many differing OAuth2 implementations, that often behave in different
+manners, and may need special handling, for which ICS has OAuthOptions, a set
+of TOAuthOption:
+  OAopAuthNoRedir        - do not send redirect_url.
+  OAopAuthNoScope        - do not send scope.
+  OAopAuthNoState        - do not send state.
+  OAopAuthPrompt         - send approval prompt.
+  OAopAuthAccess         - send access type.
+  OAopAuthGrantedScope   - include granted scope for Google.
+  OAopAuthRespMode       - send resp_mode for Microsoft.
+  OAopAuthLoginHint      - show login hint for Microsoft.
+  OAopAuthBasic          - use Basic Authentication with client id and secret.
 
 Note that in addition to granting tokens using an Authorization Code from a
 browser login, some OAuth implementations may support grants for client
@@ -249,9 +261,26 @@ Jul 19, 2022 - V8.71 - Support TRestOAuth authentication OAuthTypeEmbed (embedde
                        Log the parameters passed to OAuth grant requests.
                        Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 21, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Added new OAuthOption of OAopAuthBasic which means use Basic Authentication
+                     with client id and secret instead of sending them as parameters.
+                   Added some documentation about OAuthOptions, needs more detail.
+                   Microsoft 365 Rest Email now supports EmailFmtRaw for both GetEmail and
+                     SendEmail to receive and send RFC822 SMTP format messages (like GMail)
+                     prepared by the TSslHtmlSmtpCli component with HTML content and
+                     attachments, and received message can be decoded using TMimeDecodeW.
+                   New TRestEmailType of RestEmailNone where we don't want REST email, beware
+                     ordial values changed if saved instead of literals, default now None.
+                   TSimpleWebServer now logs SSL client hello.
+Apr 23, 2024 V9.2  Disable SslSessCache for TRestOAuth.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+Jul 15, 2025 V9.5  Added new OAuthOption of OAopAuthNoSecret which allows blank client secret
+                    for public clients using corporate accounts with a tenant GUID.
+Sep 13, 2025 V9.6  Added TSimpleWebSrv onGeoEvent that allows the application to look-up
+                     geo information like country and ASN for each new remote connection.
 
 
-        pending - login to Twitter fails due to no posted data, but sending tweets works with token..
+        pending - login to Twitter fails due to no posted data, but sending tweets works with token.
 
 
 Note - FMX applications require the FMX conditional to ensure the correct OAuth form is linked.
@@ -317,6 +346,7 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpProt,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslJose,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
@@ -324,18 +354,20 @@ uses
     Z.ICS9.OverbyteIcsHttpProt,
     Z.ICS9.OverbyteIcsSslHttpRest,
     Z.ICS9.OverbyteIcsSslJose,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
     Z.ICS9.OverbyteIcsLogger,         { for TLogOption }
-    Z.ICS9.OverbyteIcsFormDataDecoder,
+    Z.ICS9.OverbyteIcsHtmlUtils,      { V9.1 was FormDecode }
     Z.ICS9.OverbyteIcsSuperObject,
     Z.ICS9.OverbyteIcsTicks64,
-    Z.ICS9.OverbyteIcsStreams;   { V8.68 }
+    Z.ICS9.OverbyteIcsStreams,    { V8.68 }
+    Z.ICS9.OverbyteIcsMimeUtils;  { V9.1 }
 
 { NOTE - these components only build with SSL, there is no non-SSL option }
 
 const
-    THttpOAuthVersion = 900;
-    CopyRight : String = ' TSslHttpOAuth (c) 2023 F. Piette V9.0 ';
+    THttpOAuthVersion = 905;
+    CopyRight : String = ' TSslHttpOAuth (c) 2025 F. Piette V9.5 ';
     TestState = 'Testing-Redirect';
     MimeAppCert = 'application/pkix-cert';          { V8.69 }
 
@@ -364,7 +396,9 @@ type
                   OAopAuthAccess,     { OAuth Auth Request send access type V8.63 }
                   OAopAuthGrantedScope, { OAuth Auth include granted scope V8.65 Google }
                   OAopAuthRespMode,   { OAuth Auth Request send resp_mode V8.65  Microsoft }
-                  OAopAuthLoginHint); { OAuth Auth Request send resp_mode V8.65 Microsoft }
+                  OAopAuthLoginHint,  { OAuth Auth Request show login hint V8.65 Microsoft }
+                  OAopAuthBasic,      { OAuth Auth Request use Basic Authentication with client id and secret V9.1 }
+                  OAopAuthNoSecret);  { OAuth Auth Request allow blank client secret for public clients V9.5 }
   TOAuthOptions = set of TOAuthOption;
 
 
@@ -407,7 +441,7 @@ type
     { Private declarations }
     FDebugLevel: THttpDebugLevel;
     FWebSrvIP: string;
-    FWebSrvIP2: string;          { V8.65 might need I{v6 as well }
+    FWebSrvIP2: string;          { V8.65 might need IPv6 as well }
     FWebSrvPort: string;
     FWebSrvPortSsl: string;
     FWebSrvCertBundle: string;   { following V8.62 for SSL }
@@ -418,14 +452,14 @@ type
     FOnServerProg: THttpRestProgEvent;
     FOnSimpWebSrvReq: TSimpleWebSrvReqEvent;
     FOnSimpWebSrvAlpn: TClientAlpnChallgEvent;
+    FOnGeoEvent: TIcsGeoEvent;   { V9.6 }
   protected
     { Protected declarations }
     procedure LogEvent(const Msg : String);
-    procedure SocketBgException(Sender: TObject;
-                          E: Exception; var CanClose: Boolean);
+    procedure SocketBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
     procedure ServerClientConnect(Sender: TObject; Client: TWSocketClient; Error: Word); virtual;
-    procedure ServerClientDisconnect(Sender: TObject;
-                                 Client: TWSocketClient; Error: Word);
+    procedure ServerClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
+    procedure ServerSslServerName(Sender: TObject; var Ctx: TSslContext; var ErrCode: TTlsExtError);   { V9.1 }
     procedure IcsLogEvent (Sender: TObject; LogOption: TLogOption; const Msg : String);
   public
     { Public declarations }
@@ -466,7 +500,8 @@ type
                                                     write FOnServerProg;
     property OnSimpWebSrvAlpn: TClientAlpnChallgEvent read  FOnSimpWebSrvAlpn
                                                     write FOnSimpWebSrvAlpn; { V8.62 }
-
+    property OnGeoEvent: TIcsGeoEvent               read  FOnGeoEvent
+                                                    write FOnGeoEvent;        { V9.6 }
   end;
 
 { TRestOAuth is for handling 0Auth authorization to web apps. Beware OAuth
@@ -496,14 +531,6 @@ type
 const
   OAuthUriNone: TOAuthUri = (
     CAccName: 'None' );
-
-  OAuthUriCertCenter: TOAuthUri = (
-    CAccName: 'CertCenter Account';
-    CConsoleUrl: 'https://my.certcenter.com/my/dashboard';
-    CAppUrl: 'https://www.certcenter.com/oauth2/auth';
-    CRedirectUrl: 'http://localhost:8080/certcenter/';
-    CTokenUrl: 'https://api.certcenter.com/oauth2/token';
-    CScope: 'write' );
 
   OAuthUriGoogle: TOAuthUri = (
     CAccName: 'Google Account';
@@ -804,10 +831,14 @@ type
 
 
 { V8.65 TIcsRestEmail to send and receive email with Google and Microsoft REST APIs }
-
-  TRestEmailType = (RestEmailGoogle, RestEmailMSRest, RestEmailMSSmtp);
+type
+  TRestEmailType = (RestEmailNone, RestEmailGoogle, RestEmailMSRest, RestEmailMSSmtp);   { V9.1 added None, others changed!! }
   TRestEmailFmt = (EmailFmtHdr, EmailFmtRaw, EmailFmtFull);
+const
+  RestEmailTypeLits: array[TRestEmailType] of string =
+        ('None','Google Gmail','Microsoft REST Mail APIs','Microsoft SMTP/POP3');      { V9.1 }
 
+type
   TIcsRestEmail = class(TIcsWndControl)
   private
     { Private declarations }
@@ -864,7 +895,7 @@ type
     function     GetProfile: boolean;
     function     ListEmails(const Query: String = ''; const MBLabels: String = 'INBOX'; MaxNr: Integer = 100): boolean;
     function     GetEmail(const Id: String; EmailFmt: TRestEmailFmt = EmailFmtHdr): boolean;
-    function     SendEmail(const Content: String): boolean;
+    function     SendEmail(const Content: String; EmailFmt: TRestEmailFmt = EmailFmtFull): boolean;  { V9.1 added EmailFmt }
     function     DeleteEmail(const Id: String): boolean;
     property     NewAccEmail: string                read  FNewAccEmail;
     property     NewAccName: string                 read  FNewAccName;
@@ -1000,6 +1031,7 @@ begin
     FWebServer.BannerTooBusy := '';
     FWebServer.ClientClass := TSimpleClientSocket;
     FWebServer.OnClientConnect := ServerClientConnect;
+    FWebServer.OnSslServerName := ServerSslServerName;  { V9.1 }
     FWebServer.OnClientDisconnect := ServerClientDisconnect;
     FWebServer.OnBgException := SocketBgException;
     FWebServer.SocketErrs := wsErrFriendly;
@@ -1103,7 +1135,7 @@ begin
         if CloseClients and (FWebServer.ClientCount > 0) then begin
             for I := 0 to Pred (FWebServer.ClientCount) do begin
                 if FWebServer.Client [I].State = wsConnected then
-                                          FWebServer.Client [I].Close;
+                    FWebServer.Client [I].Close;
             end ;
         end ;
     except
@@ -1143,8 +1175,7 @@ end ;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TSimpleWebSrv.IcsLogEvent(Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+procedure TSimpleWebSrv.IcsLogEvent(Sender: TObject; LogOption: TLogOption; const Msg : String);
 begin
     if Assigned(FOnServerProg) then
         FOnServerProg(Self, LogOption, Msg) ;
@@ -1171,14 +1202,20 @@ end ;
 procedure TSimpleWebSrv.ServerClientConnect(Sender: TObject; Client: TWSocketClient; Error: Word);
 var
     Cli: TSimpleClientSocket;
+    GeoInfo: String;
 begin
     if Error <> 0 then begin
         LogEvent('Server listen connect error: ' + WSocketErrorDesc(Error));  { V8.63 }
         Client.Close;
         exit;
     end;
-    if FDebugLevel >= DebugConn then
-       LogEvent({RFC3339_DateToStr(Now) + } 'Client Connected from Address ' + IcsFmtIpv6Addr(Client.GetPeerAddr));
+    if FDebugLevel >= DebugConn then begin
+        GeoInfo := '';
+        if Assigned(FOnGeoEvent) then begin   { V9.6 see if application has GEO tools, for country and ASN }
+            FOnGeoEvent(Self, Client.SessIpInfo.RemoteAddr, GeoInfo);
+        end;
+       LogEvent('Client Connected from Address ' + Client.SessIpInfo.RemoteAddr + IcsSpace + GeoInfo);
+    end;
     Cli := Client as TSimpleClientSocket;
     Cli.WebSrv := Self;
     Cli.LineMode := false;
@@ -1193,11 +1230,22 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TSimpleWebSrv.ServerClientDisconnect(Sender: TObject;
-                                 Client: TWSocketClient; Error: Word);
+procedure TSimpleWebSrv.ServerClientDisconnect(Sender: TObject; Client: TWSocketClient; Error: Word);
 begin
     if FDebugLevel >= DebugConn then
         LogEvent('Client Disconnected') ;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TSimpleWebSrv.ServerSslServerName(Sender: TObject; var Ctx: TSslContext; var ErrCode: TTlsExtError);   { V9.1 }
+var
+    ClientCnx : TSimpleClientSocket;
+begin
+    if FDebugLevel >= DebugSsl then  begin
+        ClientCnx := Sender as TSimpleClientSocket;
+        LogEvent('Client Hello ' + Trim(WSocketGetCliHelloStr(ClientCnx.CliHelloData))) ;
+    end;
 end;
 
 
@@ -1257,7 +1305,8 @@ begin
     RequestUserAgent := '';
 
  { process one line in header at a time }
-    if Length(HttpReqHdr) <= 4 then Exit;  // sanity check
+    if Length(HttpReqHdr) <= 4 then
+        Exit;  // sanity check
     I := 1; // start of line
     Lines := 1;
     for J := 1 to Length(HttpReqHdr) - 2 do begin
@@ -1266,10 +1315,14 @@ begin
             Line := Copy(HttpReqHdr, I, J - I);
             K := Pos (':', Line) + 1;
             if Lines = 1 then begin
-                if (Pos('GET ', Line) = 1) then RequestMethod := httpGet;
-                if (Pos('POST ', Line) = 1) then RequestMethod := httpPost;
-                if (Pos('HEAD ', Line) = 1) then RequestMethod := httpHead;
-                if (Pos('PUT ', Line) = 1) then RequestMethod := httpPut;
+                if (Pos('GET ', Line) = 1) then
+                    RequestMethod := httpGet;
+                if (Pos('POST ', Line) = 1) then
+                    RequestMethod := httpPost;
+                if (Pos('HEAD ', Line) = 1) then
+                    RequestMethod := httpHead;
+                if (Pos('PUT ', Line) = 1) then
+                    RequestMethod := httpPut;
                 L := Pos(' ', Line);
                 if (L > 0) then Line := Copy(Line, L + 1, 99999); // strip request
                 L := Pos(' HTTP/1', Line);
@@ -1291,7 +1344,8 @@ begin
             end
             else if (K > 3) then begin
                 Arg := IcsTrim(Copy(Line, K, 999)); // convert any arguments we scan to lower case later
-                if (Pos('Content-Length:', Line) = 1) then RequestContentLength := atoi64(Arg);
+                if (Pos('Content-Length:', Line) = 1) then
+                    RequestContentLength := atoi64(Arg);
                 if (Pos('Host:', Line) = 1) then begin
                     RequestHost := IcsLowerCase(Arg);  { need to separate host and port before punycoding }
                     L := Pos(':', RequestHost);
@@ -1306,8 +1360,10 @@ begin
                         RequestHost := RequestHostName;       { V8.64 }
                     end;
                 end;
-                if (Pos('Referer:', Line) = 1) then RequestReferer := IcsLowercase(Arg);
-                if (Pos('User-Agent:', Line) = 1) then RequestUserAgent := Arg;
+                if (Pos('Referer:', Line) = 1) then
+                    RequestReferer := IcsLowercase(Arg);
+                if (Pos('User-Agent:', Line) = 1) then
+                    RequestUserAgent := Arg;
             end;
             Lines := Lines + 1;
             I := J + 2;  // start of next line
@@ -1392,6 +1448,7 @@ begin
     FWebServer.OnSimpWebSrvReq := WebSrvReq;
     HttpRest := TSslHttpRest.Create(self);
     HttpRest.OnHttpRestProg := RestProg;
+    HttpRest.SslSessCache := False;           { V9.2 don't need cache } 
     FWebSrvIP := ICS_LOCAL_HOST_NAME;         { V8.65 }
     FWebSrvPort := '8080';
     FDebugLevel := DebugConn;
@@ -1789,7 +1846,7 @@ begin
     SignBase := AnsiString(IcsUpperCase(Req)) + IcsAmpersand +
                    UrlEncodeToA(Url, CP_UTF8, True) +
                         IcsAmpersand + UrlEncodeToA(String(Params), CP_UTF8, True);
-    Result := String(Base64Encode(IcsHMACDigestEx(SignBase, SignKey, Digest_sha1)));
+    Result := String(IcsBase64EncodeA(IcsHMACDigestEx(SignBase, SignKey, Digest_sha1)));    { V9.4 }
     LogEvent('OAuth1 Params: ' + String(Params) + IcsCRLF +
              'SignBase: ' + String(SignBase) +  IcsCRLF +
              'SignKey; ' + String(SignKey) + IcsCRLF +
@@ -1840,7 +1897,7 @@ begin
         SetError(OAuthErrParams, 'Can Not Start Authorization, Invalid App URL: ' + FAppUrl);
         Exit;
     end;
-    if (FClientId = '') or (FClientSecret = '') then begin
+    if (FClientId = '') or (NOT (OAopAuthNoSecret in FOAOptions) and (FClientSecret = '')) then begin  { V9.5 secret optional }
         SetError(OAuthErrParams, 'Can Not Start Authorization, Need Client ID and Secret');
         Exit;
     end;
@@ -1996,8 +2053,17 @@ var
     Info, Refresh, URL: string;
 begin
     Result := false;
-    HttpRest.DebugLevel := FDebugLevel;                  { V8.65 }
-    LogEvent(String(HttpRest.RestParams.GetParameters));         { V8.71 }
+    HttpRest.DebugLevel := FDebugLevel;                       { V8.65 }
+    LogEvent(String(HttpRest.RestParams.GetParameters));      { V8.71 }
+
+ { V9.1 some OAuth2 servers need Basic Authentication with the secrets }
+    if (OAopAuthBasic in FOAOptions) then begin
+        HttpRest.ServerAuth := httpAuthBasic;
+        HttpRest.Username := FClientId;
+        HttpRest.Password := FClientSecret;
+    end
+    else
+        HttpRest.ServerAuth := httpAuthNone;
     if FMsUserAuthority = '' then
        FMsUserAuthority := OAuthMsUserAuthDef;           { V8.70 }
     URL := StringReplace(FTokenUrl, '<MsUserAuth>', FMsUserAuthority, [rfReplaceAll, rfIgnoreCase]); { V8.70 }
@@ -2073,7 +2139,7 @@ begin
         SetError(OAuthErrParams, 'Can Not Start Authorization, Missing Auth Code');
         Exit;
     end;
-    if (FClientId = '') or (FClientSecret = '') then begin
+    if (FClientId = '') or (NOT (OAopAuthNoSecret in FOAOptions) and (FClientSecret = '')) then begin  { V9.5 secret optional }
         SetError(OAuthErrParams, 'Can Not Start Authorization, Need Client ID and Secret');
         Exit;
     end;
@@ -2135,8 +2201,12 @@ begin
         HttpRest.RestParams.AddItem('grant_type', 'authorization_code', True);         { V8.71 don't encode _ }
         HttpRest.RestParams.AddItem('code', FAuthCode, True);
         HttpRest.RestParams.AddItem('redirect_uri', FRedirectUrl);
-        HttpRest.RestParams.AddItem('client_id', FClientId, True);
-        HttpRest.RestParams.AddItem('client_secret', FClientSecret, True);
+     { V9.1 some OAuth2 servers use Basic Authentication with the secrets }
+        if NOT (OAopAuthBasic in FOAOptions) then begin
+            HttpRest.RestParams.AddItem('client_id', FClientId, True);
+            if (FClientSecret <> '') then                                              { V9.5 }
+                HttpRest.RestParams.AddItem('client_secret', FClientSecret, True);
+        end;
         if (NOT (OAopAuthNoScope in FOAOptions)) and (FScope <> '') then
             HttpRest.RestParams.AddItem('scope', FScope);
         Result := GetToken;
@@ -2152,7 +2222,7 @@ begin
         SetError(OAuthErrParams, 'Can Not Start Authorization, Missing Refresh Token');
         Exit;
     end;
-    if (FClientId = '') or (FClientSecret = '') then begin
+    if (FClientId = '') or (NOT (OAopAuthNoSecret in FOAOptions) and (FClientSecret = '')) then begin  { V9.5 secret optional }
         SetError(OAuthErrParams, 'Can Not Start Authorization, Need Client ID and Secret');
         Exit;
     end;
@@ -2163,8 +2233,12 @@ begin
     HttpRest.RestParams.AddItem('refresh_token', FRefreshToken, true);
     LogEvent('Redirect URL: ' + FRedirectUrl);                { V8.70 tell user }
     HttpRest.RestParams.AddItem('redirect_uri', FRedirectUrl);
-    HttpRest.RestParams.AddItem('client_id', FClientId, True);
-    HttpRest.RestParams.AddItem('client_secret', FClientSecret, true);
+ { V9.1 some OAuth2 servers use Basic Authentication with the secrets }
+    if NOT (OAopAuthBasic in FOAOptions) then begin
+        HttpRest.RestParams.AddItem('client_id', FClientId, True);
+        if (FClientSecret <> '') then                                              { V9.5 }
+            HttpRest.RestParams.AddItem('client_secret', FClientSecret, True);
+    end;
     Result := GetToken;
 end;
 
@@ -2177,7 +2251,7 @@ begin
         SetError(OAuthErrParams, 'Can Not Start Authorization, Missing Username or Password');
         Exit;
     end;
-    if (FClientId = '') or (FClientSecret = '') then begin
+    if (FClientId = '') or (NOT (OAopAuthNoSecret in FOAOptions) and (FClientSecret = '')) then begin  { V9.5 secret optional }
         SetError(OAuthErrParams, 'Can Not Start Authorization, Need Client ID and Secret');
         Exit;
     end;
@@ -2187,8 +2261,12 @@ begin
     HttpRest.RestParams.AddItem('grant_type', 'password', True);         { V8.71 don't encode _ }
     HttpRest.RestParams.AddItem('username', User);
     HttpRest.RestParams.AddItem('password', Pass);
-    HttpRest.RestParams.AddItem('client_id', FClientId, True);
-    HttpRest.RestParams.AddItem('client_secret', FClientSecret, true);
+ { V9.1 some OAuth2 servers use Basic Authentication with the secrets }
+    if NOT (OAopAuthBasic in FOAOptions) then begin
+        HttpRest.RestParams.AddItem('client_id', FClientId, True);
+        if (FClientSecret <> '') then                                              { V9.5 }
+            HttpRest.RestParams.AddItem('client_secret', FClientSecret, True);
+    end;
     if (NOT (OAopAuthNoScope in FOAOptions)) and (FScope <> '') then
         HttpRest.RestParams.AddItem('scope', FScope);
     Result := GetToken;
@@ -2199,7 +2277,7 @@ end;
 function TRestOAuth.GrantAppToken: boolean;
 begin
     Result := false;
-    if (FClientId = '') or (FClientSecret = '') then begin
+    if (FClientId = '') or (NOT (OAopAuthNoSecret in FOAOptions) and (FClientSecret = '')) then begin  { V9.5 secret optional }
         SetError(OAuthErrParams, 'Can Not Start Authorization, Need Client ID and Secret');
         Exit;
     end;
@@ -2207,8 +2285,12 @@ begin
     HttpRest.RestParams.PContent := PContUrlencoded;
      { note don't URL encode dynamic OAuth stuff }
     HttpRest.RestParams.AddItem('grant_type', 'client_credentials', True);    { V8.71 don't encode _ }
-    HttpRest.RestParams.AddItem('client_id', FClientId, True);
-    HttpRest.RestParams.AddItem('client_secret', FClientSecret, true);
+ { V9.1 some OAuth2 servers use Basic Authentication with the secrets }
+    if NOT (OAopAuthBasic in FOAOptions) then begin
+        HttpRest.RestParams.AddItem('client_id', FClientId, True);
+        if (FClientSecret <> '') then                                              { V9.5 }
+            HttpRest.RestParams.AddItem('client_secret', FClientSecret, True);
+    end;
     if (NOT (OAopAuthNoScope in FOAOptions)) and (FScope <> '') then
         HttpRest.RestParams.AddItem('scope', FScope, False);
     Result := GetToken;
@@ -2600,7 +2682,7 @@ begin
     FRestOAuth.ProtoType := OAuthv2;
     FOAAuthType := FRestOAuth.AuthType;   { V8.66 }
     FMsUserAuth := FRestOAuth.MsUserAuthority;  { V8.70 }
-    FRestEmailType := RestEmailGoogle;
+    FRestEmailType := RestEmailNone;            { V9.1 was Google }
     FLoginTimeout := 120;                 { V8.66 was 30, but need to get past several web pages }
     FWaitSecs := 0;
     FHdrFieldList := 'to,from,subject,date';
@@ -2611,8 +2693,14 @@ end;
 destructor TIcsRestEmail.Destroy;
 begin
     try
-        FreeAndNil(FRestOAuth);
-        FreeAndNil(HttpRest);
+        try
+            FreeAndNil(FRestOAuth);     { V9.2 sanity checks }
+        except
+        end;
+        try
+            FreeAndNil(HttpRest);
+        except
+        end;
     finally
         inherited Destroy;
     end;
@@ -2903,8 +2991,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Google get list of email IDs, no headers or anything, currently just the first MaxNr }
 { Microsoft Outlook, also returns headera }
-function TIcsRestEmail.ListEmails(const Query: String = '';
-                    const MBLabels: String = 'INBOX'; MaxNr: Integer = 100): boolean;
+function TIcsRestEmail.ListEmails(const Query: String = ''; const MBLabels: String = 'INBOX'; MaxNr: Integer = 100): boolean;
 var
     EmailURL: String;
     StatCode: Integer;
@@ -2969,30 +3056,35 @@ begin
         EmailURL := FBaseURL + 'me/messages/' + Id;
     end
     else if FRestEmailType = RestEmailMSRest then begin
-        HttpRest.RestParams.AddItem('$select', FHdrFieldList);
-        EmailURL := FBaseURL + 'me/messages/' + Id;
+     //   HttpRest.RestParams.AddItem('$select', FHdrFieldList);  { V9.1 not needed }
+        EmailURL := FBaseURL + 'me/messages/' + Id ;
+        if EmailFmt = EmailFmtRaw then
+            EmailURL := EmailURL + '/$value';  { V9.1 get raw response instead of Json  }
     end
     else
         Exit;
     StatCode := HttpRest.RestRequest(httpGET, EmailURL, False, '');
+    FResponseRaw := HttpRest.ResponseRaw;
+    FResponseJson := HttpRest.ResponseJson;
     if (StatCode <> 200) then
         SetRestError
     else begin
-        if Assigned(HttpRest.ResponseJson) then
+        if (EmailFmt = EmailFmtRaw) and (Length (FResponseRaw) > 32) then   { V9.1 check got something }
+            Result := True
+        else if Assigned(FResponseJson) then
             Result := True;
     end;
-    FResponseRaw := HttpRest.ResponseRaw;
-    FResponseJson := HttpRest.ResponseJson;
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsRestEmail.SendEmail(const Content: String): boolean;
+function TIcsRestEmail.SendEmail(const Content: String; EmailFmt: TRestEmailFmt = EmailFmtFull): boolean;  { V9.1 added EmailFmt }
 var
-    EmailURL: String;
+    EmailURL, RawParams: String;
     StatCode: Integer;
 begin
     Result := False;
     if NOT CommonSettings then Exit;
+    RawParams := '';
 
   // Gmail needs an RFC822 raw email prepared by the SMTP client component
     if FRestEmailType = RestEmailGoogle then begin
@@ -3001,15 +3093,21 @@ begin
         EmailURL := FBaseURL + 'me/messages/send';
     end
 
-  // Microsoft Outlook sends message as Json
+  // Microsoft Outlook sends message as Json or RFC822 raw email
     else if FRestEmailType = RestEmailMSRest then begin
         EmailURL := FBaseURL + 'me/sendMail';
-        HttpRest.RestParams.AddItem('message', Content, True); // raw json
-        HttpRest.RestParams.PContent := PContBodyJson;
+        if EmailFmt = EmailFmtRaw then begin
+            RawParams := IcsBase64Encode(Content);
+            HttpRest.ContentTypePost := 'text/plain';
+        end
+        else begin
+            HttpRest.RestParams.AddItem('message', Content, True); // raw json
+            HttpRest.RestParams.PContent := PContBodyJson;
+        end;
     end
     else
         Exit;
-    StatCode := HttpRest.RestRequest(httpPOST, EmailURL, False, '');
+    StatCode := HttpRest.RestRequest(httpPOST, EmailURL, False, RawParams);
     if (StatCode = 202) then     // Microsoft Outlook does not return any Id
         Result := True
     else if (StatCode <> 200) then
@@ -3074,7 +3172,7 @@ begin
 { Warning - Ideally these settings should be encrypted!! }
 
     MyRestEmail.RestEmailType := TRestEmailType(GetEnumValue (TypeInfo (TRestEmailType),
-                     IcsTrim(MyIniFile.ReadString(Section, 'RestEmailType', 'RestEmailGoogle'))));
+                     IcsTrim(MyIniFile.ReadString(Section, 'RestEmailType', 'RestEmailNone'))));
     if MyRestEmail.RestEmailType > High(TRestEmailType) then
         MyRestEmail.RestEmailType := RestEmailGoogle;
     MyRestEmail.ClientId := MyIniFile.ReadString (section, 'ClientId', '');

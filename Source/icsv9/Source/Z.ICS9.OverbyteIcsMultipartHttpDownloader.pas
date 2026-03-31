@@ -2,14 +2,14 @@
 
 Author:       François PIETTE
 Creation:     March 2007
-Version:      V9.0 ALPHA CODE
+Version:      V9.3 ALPHA CODE
 Description:  TMultipartHttpDownloader is a component to download files using
               simultaneous connections to speedup download. The demo make
               also use of the TMultiProgressBar (included in ICS) which is
               a segmented progress bar.
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2012-2023 by François PIETTE
+Legal issues: Copyright (C) 2012-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -50,6 +50,7 @@ Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Nov 27, 2021 V8.68 BgException now passes exception to AbortComponent virtual handler.
 Jan 26, 2023 V8.71 Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3   Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -102,12 +103,12 @@ uses
 {$ENDIF}
     Z.ICS9.OverbyteIcsUrl,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+    Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    MultipartHttpDownloaderVersion = 900;
-    CopyRight : String             = ' TMultipartHttpDownloader ' +
-                                     '(c) 2023 F. Piette V9.0 ';
+    MultipartHttpDownloaderVersion = 903;
+    CopyRight : String             = ' TMultipartHttpDownloader (c) 2024 F. Piette V9.3 ';
 
 type
     TDisplayEvent             = procedure (Sender       : TObject;

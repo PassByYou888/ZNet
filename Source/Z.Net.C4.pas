@@ -90,7 +90,7 @@ type
   end;
 
   TC40_DependNetworkInfoArray = array of TC40_DependNetworkInfo;
-  TC40_DependNetworkInfoList = TGenericsList<TC40_DependNetworkInfo>;
+  TC40_DependNetworkInfoList = class(TGenericsList<TC40_DependNetworkInfo>);
 
   IC40_PhysicsService_Event = interface
     procedure C40_PhysicsService_Build_Network(Sender: TC40_PhysicsService; Custom_Service_: TC40_Custom_Service);
@@ -130,9 +130,7 @@ type
     procedure DoUserOut(Custom_Service_: TC40_Custom_Service; Trigger_: TCore_Object);
   end;
 
-  TC40_PhysicsServicePool_Decl = TGenericsList<TC40_PhysicsService>;
-
-  TC40_PhysicsServicePool = class(TC40_PhysicsServicePool_Decl)
+  TC40_PhysicsServicePool = class(TGenericsList<TC40_PhysicsService>)
   public
     procedure Progress;
     procedure Enabled_Progress;
@@ -390,9 +388,7 @@ type
     function GetOrCreateC40Client(PhysicsTunnel_: TC40_PhysicsTunnel; Param_: U_String): TC40_Custom_Client;
   end;
 
-  TC40_InfoList_Decl = TGenericsList<TC40_Info>;
-
-  TC40_InfoList = class(TC40_InfoList_Decl)
+  TC40_InfoList = class(TGenericsList<TC40_Info>)
   public
     AutoFree: Boolean;
     constructor Create(AutoFree_: Boolean);
@@ -489,10 +485,9 @@ type
 
   TC40_Custom_Service_Class = class of TC40_Custom_Service;
 
-  TC40_Custom_ServicePool_Decl = TGenericsList<TC40_Custom_Service>;
   TC40_Custom_Service_Array = array of TC40_Custom_Service;
 
-  TC40_Custom_ServicePool = class(TC40_Custom_ServicePool_Decl)
+  TC40_Custom_ServicePool = class(TGenericsList<TC40_Custom_Service>)
   private
     FIPV6_Seed: Word;
   public
@@ -554,11 +549,9 @@ type
 
   TC40_Custom_Client_Class = class of TC40_Custom_Client;
 
-  TC40_Custom_ClientPool_Decl = TGenericsList<TC40_Custom_Client>;
-
   TC40_Custom_Client_Array = array of TC40_Custom_Client;
 
-  TC40_Custom_ClientPool = class(TC40_Custom_ClientPool_Decl)
+  TC40_Custom_ClientPool = class(TGenericsList<TC40_Custom_Client>)
   private
   public
     procedure Progress;
@@ -726,9 +719,7 @@ type
 
   PC40_RegistedData = ^TC40_RegistedData;
 
-  TC40_RegistedDataList_Decl = TGenericsList<PC40_RegistedData>;
-
-  TC40_RegistedDataList = class(TC40_RegistedDataList_Decl)
+  TC40_RegistedDataList = class(TGenericsList<PC40_RegistedData>)
   public
     destructor Destroy; override;
     procedure Clean;

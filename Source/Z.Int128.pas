@@ -248,6 +248,58 @@ type
     procedure Dec_(var x: UInt128; const v: UInt128); overload;
   end;
 
+function Max(const v1, v2: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: integer): integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: UInt128): UInt128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Max(const v1, v2: Int128): Int128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+
+function Min(const v1, v2: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: integer): integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: UInt128): UInt128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Min(const v1, v2: Int128): Int128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+
+function Clamp(const v, min_, max_: integer): integer; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: UInt64): UInt64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Cardinal): Cardinal; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Word): Word; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Byte): Byte; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Int64): Int64; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: SmallInt): SmallInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: ShortInt): ShortInt; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Double): Double; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Single): Single; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: UInt128): UInt128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function Clamp(const v, min_, max_: Int128): Int128; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+
+function InRange(const v, min_, max_: integer): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: UInt64): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Cardinal): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Word): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Byte): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Int64): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: SmallInt): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: ShortInt): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Double): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Single): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: UInt128): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+function InRange(const v, min_, max_: Int128): Boolean; {$IFDEF INLINE_ASM} inline; {$ENDIF INLINE_ASM} overload;
+
 const
   varType_UInt128 = $187;
   Ten: UInt128 = (dc0: $A; dc1: 0);
@@ -1802,6 +1854,402 @@ begin
   Lock;
   x := x - v;
   UnLock;
+end;
+
+function Max(const v1, v2: UInt64): UInt64;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Cardinal): Cardinal;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Word): Word;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Byte): Byte;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Int64): Int64;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: integer): integer;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: SmallInt): SmallInt;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: ShortInt): ShortInt;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Double): Double;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Single): Single;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: UInt128): UInt128;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Max(const v1, v2: Int128): Int128;
+begin
+  if v1 > v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: UInt64): UInt64;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Cardinal): Cardinal;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Word): Word;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Byte): Byte;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Int64): Int64;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: integer): integer;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: SmallInt): SmallInt;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: ShortInt): ShortInt;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Double): Double;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Single): Single;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: UInt128): UInt128;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Min(const v1, v2: Int128): Int128;
+begin
+  if v1 < v2 then
+      Result := v1
+  else
+      Result := v2;
+end;
+
+function Clamp(const v, min_, max_: integer): integer;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: UInt64): UInt64;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Cardinal): Cardinal;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Word): Word;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Byte): Byte;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Int64): Int64;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: SmallInt): SmallInt;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: ShortInt): ShortInt;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Double): Double;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Single): Single;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: UInt128): UInt128;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function Clamp(const v, min_, max_: Int128): Int128;
+begin
+  if min_ > max_ then
+      Result := Clamp(v, max_, min_)
+  else if v > max_ then
+      Result := max_
+  else if v < min_ then
+      Result := min_
+  else
+      Result := v;
+end;
+
+function InRange(const v, min_, max_: integer): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: UInt64): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Cardinal): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Word): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Byte): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Int64): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: SmallInt): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: ShortInt): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Double): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Single): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: UInt128): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
+end;
+
+function InRange(const v, min_, max_: Int128): Boolean;
+begin
+  Result := (v >= Min(min_, max_)) and (v <= Max(min_, max_));
 end;
 
 initialization

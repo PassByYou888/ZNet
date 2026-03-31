@@ -2,11 +2,11 @@
 
 Author:       François PIETTE
 Creation:     Aug 08, 2004 (extracted from various ICS components)
-Version:      V9.0
+Version:      V9.5
 Description:  This unit contain support routines for URL handling.
 EMail:        francois.piette@overbyte.be         http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               <francois.piette@overbyte.be>
 
@@ -74,7 +74,7 @@ Oct 17, 2020 V8.65 For UrlEncode RFC3986 section 2.1 says four unreserved chars
                       option to ensure this.
                    IcsUrlEncode uses AnsiString and RfcStrict.
                    UrlEncodeEx always uses RfcStrict.
-Sep 21, 2021 V8.67 Moved TRestParama here from OverbyteIcsSslHttpRest to
+Sep 21, 2021 V8.67 Moved TRestParams here from OverbyteIcsSslHttpRest to
                      ease circular references.
                    RestParams has a new method AddItemNULL to add a null,
                      in Json this will be unquoted.
@@ -86,6 +86,60 @@ Sep 21, 2021 V8.67 Moved TRestParama here from OverbyteIcsSslHttpRest to
                      on all Delphi editions.  There is a REST server sample
                       OverbyteIcsDDWebService.dpr that illustrates SQL lookups.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 27, 2024  V9.1 Redesigned TRestParams to build parameters into ParamStream
+                     using GetParamStream, to allow parameters including very
+                     large files and since the HTTP component needs a post
+                     stream rather than a string, mainly for multipart/form-data
+                     parameters, see below, GetParams still returns an AnsiString
+                     while GetParametersTB returns TBytes.
+                   Added new TRestParams content type of PContNone to make them
+                     easier to disable, beware ordial values have changed if this
+                     saved rather than a literal.
+                   Added new TRestParams content type PContFormData to create
+                      multipart/form-data parameters, according to RFC7578 which
+                      may include multiple binary files and _charset_ part.
+                   The TRestParams AddItem method has a new optional ContentType
+                     argument, currently used for PContFormData only.
+                   Added TParamType of RPTypeFile for binary file content.
+                   Added new TRestParams AddItemFile method that takes a full
+                     binary file name with optional file size and ContentType,
+                     the latter two will be looked up if not supplied, content
+                     from file extension and a MIME table.
+                   Added new TRestParams FormDataUtf8 property that if true
+                     will add a FormData _charset_ part with utf-8 and send
+                     all textual content as utf-8 without UrlEncoding.
+                   Added GetEstParamSize that returns Int64 estimated size
+                      of the parameters, to allow the application to allocate
+                      a TFileStream instead of TMemoryStream if massive files
+                      are included, typically more than 50MB.
+                   Added IcsPercentEncode and IcsPercentDecode to percent encode and
+                     decode any non 7-bit characters, ignore charsets. Similar to
+                     UrlEncode but does not change spaces or special chars, except %.
+                   Moved IcsExtractURLEncodedValue here from OverbyteIcsSslHttpRest.
+                   Moved ExtractURLEncodedParamList and GetCookieValue here from
+                     OverbyteIcsHttpSrv with Ics, old versions use these.
+                   ExtractURLEncodedParamList has new optional Values parameter than adds
+                     all values to the strings as name=value.
+                   The ResultSet2Json method of TRestParamsSrv has a new optional query
+                     parameter that is added to the Json to assist processing.
+Jun 04, 2024 V9.2  Builds with D7 again.
+                   RestParams MimeBoundary no longer includes extra -- at start that
+                     are required preceding boundaries within parts, so multipart/form-data
+                     has a shorter boundary.
+Jan 17. 2024 V9.4  Removed fmShareCompat warning.
+                   TRestParams AddItemSO now has Escape parameter defaulting to True, so
+                      non-ASCII characters are escaped by default.
+Aug 06, 2025 V9.5  Moved IcsParseExURL, IcsBuildExURL and IcsRelativeName from unit
+                     OverbyteIcsHttpMulti.pas, added Ics, used to break down and
+                     build URLs, including Section and Query parts.
+                   Added new TRestParams RParamFmt property that for Json only defines
+                     whether nested objects or an array should be formatted, default is
+                     RPFmtNestObj (Nested Objects, same as previously), or  RPFmtArrayVal
+                     (Array of Values) if first element is any array, or RPFmtArrayObj
+                     (Array of Objects) where each element is treated as object in the
+                     array. Note RPFmtArrayObj allows duplicate names in Add methods,
+                     since output into different objects.
+Sep 23, 2025 V9.6  Fixed typo in PContentLits.
 
 
 
@@ -121,50 +175,109 @@ uses
     {$IFDEF RTL_NAMESPACES}Data.DB{$ELSE}DB{$ENDIF},   { V8.67 }
 {$ENDIF}
     Z.ICS9.OverbyteIcsSuperObject,    { V8.67 }
-    Z.ICS9.OverbyteIcsUtils;
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsStreams,        { V9.1 }
+    Z.ICS9.OverbyteIcsMimeUtils,      { V9.1 }
+    Z.ICS9.OverbyteIcsTypes; // for TBytes and TThreadID V9.2
 
 const
-    IcsUrlVersion        = 900;
-    CopyRight : String   = ' TIcsURL (c) 1997-2023 F. Piette V9.0 ';
+    IcsUrlVersion        = 905;
+    CopyRight : String   = ' TIcsURL (c) 1997-2025 F. Piette V9.5 ';
 
 { Syntax of an URL: protocol://[user[:password]@]server[:port]/path }
-procedure ParseURL(const URL : String;
-                   var Proto, User, Pass, Host, Port, Path : String);
+procedure ParseURL(const URL : String; var Proto, User, Pass, Host, Port, Path : String);
 function  Posn(const s, t : String; count : Integer) : Integer;
+
 { V8.64 build a URL without changing any encoding }
 function IcsBuildURL(const Proto, User, Pass, Host, Port, Path: string): string ;
+
+{ V9.5 moved from OverbyteIcsHttpMulti.pas, added Ics }
+procedure IcsParseExURL (const url: string; var Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query: string) ;
+function IcsBuildExURL (const Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query: string): string ;
+function IcsRelativeName (Dirs, Rname: string): string ;
+
 { V8.64 convert the Unicode domain host name in a URL to A-Label (Punycode ASCII) and vice versa }
 function IcsURLtoASCII(const Input: string): string ;
 function IcsURLtoUnicode(const Input: string): string ;
 
 { following functions are not for host domain names, but Unicode paths and queries in URLs }
-function UrlEncode(const S: String; DstCodePage: LongWord = CP_UTF8;
-                                     RfcStrict: Boolean = False): String;          { V8.65 }
-function UrlDecode(const S     : String;
-                   SrcCodePage : LongWord = CP_ACP;
-                   DetectUtf8  : Boolean = TRUE) : String;
+function UrlEncode(const S: String; DstCodePage: LongWord = CP_UTF8; RfcStrict: Boolean = False): String;          { V8.65 }
+function UrlDecode(const S: String; SrcCodePage: LongWord = CP_ACP;  DetectUtf8: Boolean = TRUE) : String;
 {$IFDEF COMPILER12_UP}
                    overload;
-function UrlDecode(const S     : RawByteString;
-                   SrcCodePage : LongWord = CP_ACP;
-                   DetectUtf8  : Boolean = TRUE) : UnicodeString; overload;
+function UrlDecode(const S: RawByteString; SrcCodePage: LongWord = CP_ACP; DetectUtf8: Boolean = TRUE) : UnicodeString; overload;
 {$ENDIF}
 function IcsUrlEncode(const AStr: AnsiString; RfcStrict: Boolean = False): AnsiString;  { V8.65 }
-function UrlEncodeToA(const S: String; DstCodePage: LongWord = CP_UTF8;
-                                           RfcStrict: Boolean = False): AnsiString;   { V8.65 }
+function UrlEncodeToA(const S: String; DstCodePage: LongWord = CP_UTF8;  RfcStrict: Boolean = False): AnsiString;   { V8.65 }
 function UrlEncodeEx(const S: String): String;                                        { V8.65 }
+{ V9.1 percent encode any non 7-bit characters }
+function IcsPercentEncode(const AStr: AnsiString): AnsiString;                        { V9.1 }
+function IcsPercentDecode(const AStr: AnsiString): AnsiString;                        { V9.1 }
+
+function IcsEscapeJson(const AStr: AnsiString): AnsiString;  { V8.66 renamed and made public }
+
+{ V9.1 moved from OverbyteIcsSslHttpRest }
+{ Retrieve a single value by name out of an URL encoded data stream.        }
+function IcsExtractURLEncodedValue(
+    Msg         : PChar;            { URL Encoded stream                    }
+    Name        : String;           { Variable name to look for             }
+    var Value   : String;           { Where to put variable value           }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE): Boolean; overload;
+
+function IcsExtractURLEncodedValue(
+    const Msg   : String;           { URL Encoded stream                     }
+    Name        : String;           { Variable name to look for              }
+    var Value   : String;           { Where to put variable value            }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE): Boolean; overload;
+
+ { V9.1 moved from OverbyteIcsHttpSrv, addd Ics, originals call these }
+function IcsGetCookieValue(
+    const CookieString : String;    { Cookie string from header line        }
+    const Name         : String;    { Cookie name to look for               }
+    var Value          : String)    { Where to put variable value           }
+    : Boolean;                      { Found or not found that's the question}
+
+function IcsExtractURLEncodedParamList(
+    Msg       : PChar;             { URL Encoded stream                     }
+    Params    : TStrings;          { Where to put the list of parameters    }
+    Values    : Boolean = False;   { V9.1 Should values be added name=value }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE)
+    : Integer; overload;           { Number of parameters found             }
+
+function IcsExtractURLEncodedParamList(
+    const Msg : String;            { URL Encoded stream                     }
+    Params    : TStrings;          { Where to put the list of parameters    }
+    Values    : Boolean = False;   { V9.1 Should values be added name=value }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE)
+    : Integer; overload;           { Number of parameters found             }
 
 
+{ TRestParams }
+
+{ V8.64 added Body versions and XML }
+{ V8.66 added CommaList for OAuth1
 { V8.67 moved from OverbyteIcsSslHttpRest to ease circular references }
+{ V9.1 added PContNone and PContFormData, beware ordial values changed if this saved rather than a literal }
 type
-  TPContent = (PContUrlencoded, PContJson, PContXML, PContBodyUrlEn, PContBodyJson, PContBodyXML,  { V8.64 added Body versions and XML }
-                  PContCommaList); { V8.66 added CommaList for OAuth1 }
+  TPContent = (PContNone, PContUrlencoded, PContJson, PContXML, PContBodyUrlEn, PContBodyJson, PContBodyXML,
+                  PContFormData, PContCommaList);
 
-  TRParamType = (RPTypeStr, RPTypeInt, RPTypeDate, RPTypeFloat, RPTypeBool, RPTypeObj, RPTypeArray, RPTypeNull); { V8.65, V8.67 added Null }
+{ V8.67 added Null }
+{ V9.1 added File }
+  TRParamType = (RPTypeStr, RPTypeInt, RPTypeDate, RPTypeFloat, RPTypeBool, RPTypeObj, RPTypeArray, RPTypeNull, RPTypeFile);
+  TRPJsonFmt = (RPJFmtNestObj, RPJFmtArrayVal, RPJFmtArrayObj);                                                 { V9.5 }
 
 const
   RParamTypeLits: array[TRParamType] of string =
-        ('RPTypeStr','RPTypeInt','RPTypeDate','RPTypeFloat','RPTypeBool','RPTypeObj','RPTypeArray', 'RPTypeNull');  { V8.65 }
+        ('RPTypeStr','RPTypeInt','RPTypeDate','RPTypeFloat','RPTypeBool','RPTypeObj','RPTypeArray', 'RPTypeNull', 'RPTypeFile');
+  RPJsonFmtLits: array[TRPJsonFmt] of string = ('Nested Objects', 'Array of Values', 'Array of Objects');   { V9.5 }
+  PContentLits: array[TPContent] of string = ('None','URL Encoded ? URL', 'Json ? URL', 'XML ? URL',
+        'URL Encoded Body','Json Body', 'XML Body', 'Form-Data Body', 'Comma List');                       { V9.5 }
+  MaxMemoryStreamSize =  (IcsMBYTE * 500);   { V9.1 use TFileStream for params more than 50MB }
 
 { TRestParam is one REST parameter }
 type
@@ -176,6 +289,8 @@ type
     FRParamType: TRParamType;     { V8.65 }
     FPValObj: ISuperObject;       { V8.65 }
     FPValArray: TStrings;         { V8.65 }
+    FPConType: String;            { V9.1 }
+    FPFileSize: Int64;            { V9.1 }
   protected
     function GetDisplayName: string; override;
   published
@@ -186,13 +301,17 @@ type
     property PValue : String              read  FPValue
                                           write FPValue;
     property PRaw : boolean               read  FPRaw
-                                          write FPRaw;
+                                          write FPRaw;       { unused, don't break old code }
     property RParamType: TRParamType      read  FRParamType
                                           write FRParamType;
     property PValObj: ISuperObject        read  FPValObj
                                           write FPValObj;
     property PValArray: TStrings          read  FPValArray
                                           write FPValArray;
+    property PConType : String            read  FPConType
+                                          write FPConType;      { V9.1 }
+    property PFileSize: Int64             read  FPFileSize
+                                          write FPFileSize;     { V9.1 }
   end;
 
 { TRestParams defines a collection of  REST parameters }
@@ -202,6 +321,12 @@ type
     FPContent: TPContent;
     FSortList: TStringList;    { V8.65 }
     FRfcStrict: Boolean;       { V8.65 RFC3986 strict urlencoding }
+    FMimeBoundary: AnsiString;        { V9.1 }
+    FMimeTypesList: TMimeTypesList;   { V9.1 }
+    FFormDataUtf8: Boolean;           { V9.1 }
+    FParamStream: TStream;            { V9.1 }
+    FStreamFlag: Boolean;             { V9.1 }
+    FRPJsonFmt: TRPJsonFmt;           { V9.5 }
     function GetItem(Index: Integer): TRestParam;
     procedure SetItem(Index: Integer; Value: TRestParam);
   protected
@@ -209,28 +334,40 @@ type
   public
     constructor Create(Owner: TPersistent);
     destructor Destroy; Override;
-//    procedure Clear; Override;                                                { V8.65 }
     procedure RebuildSortList;                                                  { V8.65 }
-    function GetParameters(Sorted: Boolean = False): AnsiString;  { V8.65 added sorted }
+//    function GetParamStr(Sorted: Boolean = False): AnsiString;                  { V9.1 }
+    function GetParameters(Sorted: Boolean = False): AnsiString;                { V8.65 added sorted }
+    function GetParametersTB(Sorted: Boolean = False): TBytes;                  { V9.1  }
+    function GetParamStream(Sorted: Boolean = False): Boolean;                  { V9.1 }
+    function GetEstParamSize: Int64;                                            { V9.1 }
+    function GetStreamSize: Int64;                                              { V9.1 }
     function IndexOf(const aName: String): Integer;
     procedure AddItem(const aName, aValue: String; aRaw: Boolean = False); overload;
-    procedure AddItem(const aName, aValue: String; RParamType: TRParamType); overload;   { V8.65 }
+    procedure AddItem(const aName, aValue: String; RParamType: TRParamType; aContype: String = ''); overload;   { V8.65. V9.1 aContype }
     procedure AddItemA(const aName: String; const aValue: AnsiString; aRaw: Boolean = False);      { V8.67 }
     procedure AddItem(const aName: String; aValue: Integer); overload;          { V8.65 }
     procedure AddItem(const aName: String; aValue: Double); overload;           { V8.65 }
     procedure AddItem(const aName: String; aValue: Boolean); overload;          { V8.65 }
-    procedure AddItemSO(const aName: String; aValue: ISuperObject);             { V8.65 }
+    procedure AddItemSO(const aName: String; aValue: ISuperObject; Escape: Boolean = True);  { V8.65, V9.4 added Escape }
     procedure AddItemAR(const aName: String; aValue: TStrings);                 { V8.65 }
     procedure AddItemDT(const aName: String; aValue: TDateTime);                { V8.65 }
     procedure AddItemNULL(const aName: String);                                 { V8.67 }
+    procedure AddItemFile(const aName: String; aFileName: String; aFileSize: Int64; aContype: String = ''); { V9.1 }
     procedure RemoveItem(const aName: String);                                  { V8.65 }
     property Items[Index: Integer]: TRestParam      read GetItem
                                                     write SetItem; default;
+    property MimeBoundary: AnsiString               read  FMimeBoundary;       { V9.1 }
   published
     property PContent: TPContent                    read  FPContent
                                                     write FPContent;
     property RfcStrict: Boolean                     read  FRfcStrict            { V8.65 }
                                                     write FRfcStrict;
+    property FormDataUtf8: Boolean                  read  FFormDataUtf8         { V9.1 }
+                                                    write FFormDataUtf8;
+    property ParamStream: TStream                   read  FParamStream          { V9.1 }
+                                                    write FParamStream;
+    property RPJsonFmt: TRPJsonFmt                  read  FRPJsonFmt
+                                                    write FRPJsonFmt;           { V9.5 }
   end;
 
 { V8.67 TRestParamsSrv extends TRestParams for database REST servers }
@@ -269,12 +406,11 @@ type
   public
     constructor  Create;
     destructor   Destroy; override;
-    function     JsonErr(RestErr: TRestErr; const ErrDesc: String = ''): AnsiString;
-    function     ResultSet2Json(DataSet: TDataSet; var JsonStr: AnsiString; MaxRecs: Integer = 0): Boolean;
+    function     JsonErr(RestErr: TRestErr; const ErrDesc: String = ''; const Query: String = ''): AnsiString;   { V9.1 added Query }
+    function     ResultSet2Json(DataSet: TDataSet; var JsonStr: AnsiString; MaxRecs: Integer = 0; const Query: String = ''): Boolean; { V9.1 added Query }
   end;
 {$ENDIF}
 
-function IcsEscapeJson(const AStr: AnsiString): AnsiString;  { V8.66 renamed and made public }
 
 implementation
 
@@ -330,9 +466,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Syntax of an URL: protocol://[user[:password]@]server[:port]/path         }
-procedure ParseURL(
-    const url : String;
-    var Proto, User, Pass, Host, Port, Path : String);
+procedure ParseURL(const url: String; var Proto, User, Pass, Host, Port, Path: String);
 var
     p, q, i : Integer;
     s       : String;
@@ -506,13 +640,16 @@ begin
     Result := Proto + '://' ;
     if User <> '' then begin
         Result := Result + User ;
-        if Pass <> '' then Result := Result + ':' + Pass ;
+        if Pass <> '' then
+            Result := Result + ':' + Pass ;
         Result := Result + '@' ;
     end ;
     Result := Result + Host ;
-    if Port <> '' then Result := Result + ':' + Port ;
+    if Port <> '' then
+        Result := Result + ':' + Port ;
     if Path <> '' then begin
-        if Path[1] <> '/' then Result := Result + '/' ;
+        if Path[1] <> '/' then
+            Result := Result + '/' ;
         Result := Result + Path ;
     end;
 end ;
@@ -550,19 +687,21 @@ var
     RStr   : AnsiString;
     HexStr : String[2];
     ACh    : AnsiChar;
+    ALen   : Integer;  { V9.5 }
 begin
-    SetLength(RStr, Length(AStr) * 3);
+    Result := '';     { V9.5 }
+    ALen := Length(AStr);
+    if ALen = 0 then
+        Exit;
+    SetLength(RStr, ALen * 3);
     J := 0;
-    for I := 1 to Length(AStr) do begin
+    for I := 1 to ALen do begin
         ACh := AStr[I];
-        if ((ACh >= '0') and (ACh <= '9')) or
-              ((ACh >= 'a') and (ACh <= 'z')) or
-                  ((ACh >= 'A') and (ACh <= 'Z')) then begin
+        if ((ACh >= '0') and (ACh <= '9')) or ((ACh >= 'a') and (ACh <= 'z')) or ((ACh >= 'A') and (ACh <= 'Z')) then begin
             Inc(J);
             RStr[J] := ACh;
         end
-        else if RfcStrict and ((ACh = '.') or (ACh = '-') or
-                         (ACh = '_')  or (ACh = '~')) then begin
+        else if RfcStrict and ((ACh = '.') or (ACh = '-') or (ACh = '_')  or (ACh = '~')) then begin
             Inc(J);
             RStr[J] := ACh;
         end
@@ -583,8 +722,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.65 RFC3986 section 2.1 says four unreserved chars (- . _ -) should not
   be percent encoded, so added RfcStrict option to ensure this, Strings }
-function UrlEncodeToA(const S: String; DstCodePage: LongWord = CP_UTF8;
-                                            RfcStrict: Boolean = False): AnsiString;
+function UrlEncodeToA(const S: String; DstCodePage: LongWord = CP_UTF8; RfcStrict: Boolean = False): AnsiString;
 var
     AStr   : AnsiString;
 begin
@@ -601,8 +739,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function UrlEncode(const S: String; DstCodePage: LongWord = CP_UTF8;
-                                             RfcStrict: Boolean = False): String; { V8.65 added RfcStrict }
+function UrlEncode(const S: String; DstCodePage: LongWord = CP_UTF8; RfcStrict: Boolean = False): String; { V8.65 added RfcStrict }
 begin
     Result := String(UrlEncodeToA(S, DstCodePage, RfcStrict));
 end;
@@ -616,8 +753,70 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function UrlDecode(const S : String; SrcCodePage: LongWord = CP_ACP;
-  DetectUtf8: Boolean = TRUE) : String;
+{ V9.1 percent encode any non 7-bit characters, per RFC3986  }
+{ similar to UrlEncode but does not change spaces or special characters, except % }
+function IcsPercentEncode(const AStr: AnsiString): AnsiString;
+var
+    I, J   : Integer;
+    RStr   : AnsiString;
+    HexStr : String[2];
+    ACh    : AnsiChar;
+    ALen   : Integer;  { V9.5 }
+begin
+    Result := '';     { V9.5 }
+    ALen := Length(AStr);
+    if ALen = 0 then
+        Exit;
+    SetLength(RStr, ALen * 3);
+    J := 0;
+    for I := 1 to ALen do begin
+        ACh := AStr[I];
+        if (ACh <= #127) and (Ach <> '%') then begin
+            Inc(J);
+            RStr[J] := ACh;
+        end
+        else begin
+            Inc(J);
+            RStr[J] := '%';
+            HexStr  := IcsIntToHexA(Ord(ACh), 2);
+            Inc(J);
+            RStr[J] := HexStr[1];
+            Inc(J);
+            RStr[J] := HexStr[2];
+        end;
+    end;
+    SetLength(RStr, J);
+    Result := RStr;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 percent decode, ignores charsets, per RFC3986 }
+function IcsPercentDecode(const AStr: AnsiString): AnsiString;
+var
+    I, J, L : Integer;
+    ACh      : AnsiChar;
+begin
+    L := Length(AStr);
+    SetLength(Result, L);
+    I := 1;
+    J := 0;
+    while (I <= L) do begin
+        ACh := AnsiChar(AStr[I]);
+        if ACh = '%' then begin
+            ACh := AnsiChar(htoi2(PAnsiChar(@AStr[I + 1])));
+            Inc(I, 2);
+        end;
+        Inc(J);
+        Result[J] := ACh;
+        Inc(I);
+    end;
+    SetLength(Result, J);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function UrlDecode(const S: String; SrcCodePage: LongWord = CP_ACP; DetectUtf8: Boolean = TRUE) : String;
 var
     I, J, L : Integer;
     U8Str   : AnsiString;
@@ -655,8 +854,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFDEF COMPILER12_UP}
-function UrlDecode(const S: RawByteString; SrcCodePage: LongWord = CP_ACP;
-  DetectUtf8: Boolean = TRUE): UnicodeString;
+function UrlDecode(const S: RawByteString; SrcCodePage: LongWord = CP_ACP; DetectUtf8: Boolean = TRUE): UnicodeString;
 var
     I, J, L : Integer;
     U8Str   : AnsiString;
@@ -685,9 +883,6 @@ begin
         Result := AnsiToUnicode(U8Str, SrcCodePage);
 end;
 {$ENDIF}
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -728,10 +923,13 @@ begin
     FOwner := Owner;
     inherited Create(TRestParam);
     FPContent := PContUrlencoded;
-    FRfcStrict := false;  { V8.65 trur means strict RFC URL encoding }
+    FFormDataUtf8 := True;
+    FRfcStrict := false;  { V8.65 true means strict RFC URL encoding }
     FSortList := TStringList.Create;
     FSortList.Sorted := True;
     FSortList.CaseSensitive := True;
+    FParamStream:= Nil;       { V9.1 }
+    FRPJsonFmt := RPJFmtNestObj;           { V9.5 }
 end;
 
 
@@ -739,6 +937,9 @@ end;
 destructor TRestParams.Destroy;
 begin
     FreeAndNil(FSortList);
+    FreeAndNil(FMimeTypesList);
+    if FStreamFlag then
+        FreeAndNil(FParamStream);      { V9.1 }
     inherited Destroy;
 end;
 
@@ -770,7 +971,8 @@ var
     I: Integer;
 begin
     Result := -1;
-    if Count = 0 then Exit;
+    if Count = 0 then
+        Exit;
     for I := 0 to Count - 1 do begin
         if Items[I].PName = aName then begin
             Result := I;
@@ -786,7 +988,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -801,7 +1003,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TRestParams.AddItem(const aName, aValue: String; RParamType: TRParamType);   { V8.65 }
+procedure TRestParams.AddItem(const aName, aValue: String; RParamType: TRParamType; aContype: String = '');   { V8.65, V9.1 aContype }
 var
     Index: Integer;
     MyInt: Integer;
@@ -809,12 +1011,13 @@ var
     MyStr: String;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
     Items[Index].PName := aName;
     Items[Index].PValue := aValue;
+    Items[Index].FPConType := aContype;   { V9.1 optional for Form-Data }
 
 { check non-string types are acceptable to Json, otherwise make them strings }
     if RParamType = RPTypeInt then begin
@@ -828,8 +1031,10 @@ begin
   { boolean made lower case, also accepts Y/N }
     if RParamType = RPTypeBool then begin
         MyStr := IcsLowercase(aValue);
-        if Pos('y', MyStr) = 1 then MyStr := 'true';
-        if Pos('n', MyStr) = 1 then MyStr := 'false';
+        if Pos('y', MyStr) = 1 then
+            MyStr := 'true';
+        if Pos('n', MyStr) = 1 then
+            MyStr := 'false';
         if (MyStr <> 'true') and (MyStr <> 'false') then
             RParamType := RPTypeStr
         else
@@ -840,8 +1045,8 @@ begin
         if (MyInt < 2) then
             RParamType := RPTypeStr
         else begin
-           if NOT (((aValue[1]='{') and (aValue[MyInt]='}')) or
-                   ((aValue[1]='[') and (aValue[MyInt]=']'))) then RParamType := RPTypeStr;
+            if NOT (((aValue[1]='{') and (aValue[MyInt]='}')) or ((aValue[1]='[') and (aValue[MyInt]=']'))) then
+                RParamType := RPTypeStr;
         end;
     end;
     if RParamType = RPTypeArray then begin
@@ -867,7 +1072,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -884,7 +1089,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -901,7 +1106,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -916,19 +1121,19 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TRestParams.AddItemSO(const aName: String; aValue: ISuperObject);     { V8.65 }
+procedure TRestParams.AddItemSO(const aName: String; aValue: ISuperObject; Escape: Boolean = True);  { V8.65, V9.4 added Escape }
 var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
     Items[Index].PName := aName;
     Items[Index].PValObj := aValue;
     if Assigned(aValue) then
-        Items[Index].PValue := aValue.AsJson(false,false)  { no indent, no escape }
+        Items[Index].PValue := aValue.AsJson(false, Escape)  { no indent, escape optional }
     else
         Items[Index].PValue := '';
     Items[Index].RParamType := RPTypeObj;
@@ -942,7 +1147,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -962,16 +1167,16 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
     Items[Index].PName := aName;
-//    Items[Index].PValDate := aValue;
     Items[Index].PValue := RFC3339_DateToStr(aValue);
     Items[Index].RParamType := RPTypeDate;
     Items[Index].PRaw := False;
 end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TRestParams.AddItemNULL(const aName: String);                                 { V8.67 }
@@ -979,7 +1184,7 @@ var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index < 0 then begin
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
         Index := Count;
         Add;
     end;
@@ -989,13 +1194,43 @@ begin
     Items[Index].PRaw := False;
 end;
 
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TRestParams.AddItemFile(const aName: String; aFileName: String; aFileSize: Int64; aContype: String = ''); { V9.1 }
+var
+    Index: Integer;
+begin
+    Index := IndexOf(aName);
+    if (Index < 0) or (FRPJsonFmt = RPJFmtArrayObj) then begin   { V9.5 array of objects allows duplicates }
+        Index := Count;
+        Add;
+    end;
+    Items[Index].PName := aName;
+    Items[Index].PValue := aFileName;
+    if aFileSize > 0 then
+        Items[Index].FPFileSize := aFileSize
+    else
+        Items[Index].FPFileSize := IcsGetFileSize(Trim(aFileName));
+    if aContype = '' then begin
+        if NOT Assigned(FMimeTypesList) then
+            FMimeTypesList := TMimeTypesList.Create(Nil);
+        Items[Index].FPConType := FMimeTypesList.TypeFromFile(Trim(aFileName));
+    end
+    else
+        Items[Index].FPConType := aContype;
+    Items[Index].RParamType := RPTypeFile;
+    Items[Index].PRaw := False;
+end;
+
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TRestParams.RemoveItem(const aName: string);                      { V8.65 }
 var
     Index: Integer;
 begin
     Index := IndexOf(aName);
-    if Index >= 0 then Delete(Index);
+    if Index >= 0 then
+        Delete(Index);
 end;
 
 
@@ -1028,7 +1263,8 @@ begin
     Result := '';
     outoff := 1;
     inlen := Length(AStr);
-    if inlen = 0 then Exit;
+    if inlen = 0 then
+        Exit;
     SetLength(Result, inlen * 2);
     Ch := Pointer(AStr);
     for I := 1 to inlen do begin
@@ -1078,7 +1314,8 @@ begin
     Result := '';
     outoff := 1;
     inlen := Length(AStr);
-    if inlen = 0 then Exit;
+    if inlen = 0 then
+        Exit;
     SetLength(Result, inlen * 2);
     Ch := Pointer(AStr);
     for I := 1 to inlen do begin
@@ -1102,17 +1339,113 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$WARN NO_RETVAL OFF}
-{ Delphi 2007 gives a false 'Return value undefined', stop the warning }
-function TRestParams.GetParameters(Sorted: Boolean = False): AnsiString;  { V8.65 added sorted }
+{ V9.1 get estimated parameter size, to decide whether larger than memory so TFileStream is needed }
+function TRestParams.GetEstParamSize: Int64;
+var
+    I: Integer;
+begin
+    Result := 0;
+    if Count > 0 then begin
+        for I := 0 to Count - 1 do begin
+            Result := Result + Length(Items[I].PName) + 5;
+            if (FPContent = PContFormData) then begin
+                Result := Result + 100;  // boundary, headers
+                if (Items[I].RParamType = RPTypeFile) then begin
+                    if Items[I].PFileSize < 0 then
+                        Items[I].PFileSize := IcsGetFileSize(Trim(Items[I].PValue));
+                    Result := Result + Items[I].PFileSize;
+                end
+                else
+                    Result := Result + Length(Items[I].PValue);
+            end
+            else
+                Result := Result + Length(Items[I].PValue) + 5;
+        end;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 build stream from parameters }
+{ FParamStream must be created first and cleared, either TMemoryStream or TFileStream
+  for very large parameters like gigabyte files }
+function TRestParams.GetParamStream(Sorted: Boolean = False): Boolean;
 var
     I, J, K, ArrayLen, Len: integer;
-    PN, PV: AnsiString;
+    UploadFile, PVS: String;
+    PN, PV, PFN, PCT: AnsiString;
     JFlag: Boolean; { V8.62 }
+    FileStream: TIcsBufferedFileStream;
+    FLen, SLen: Int64;
+    XBoundary: AnsiString;
+
+    procedure AddToStream(const S: AnsiString);
+    begin
+        if S <> '' then
+            ParamStream.Write(S[1], Length(S));
+    end;
+
+// V9.5 add Json object to stream
+    procedure AddOneObject(ItemNr: Integer);
+    var
+        K: Integer;
+    begin
+        PN := StringToUtf8(Trim(Items[ItemNr].PName));
+        if PN <> '' then begin
+            ArrayLen := 0;
+            JFlag := False;
+
+         { V8.65 see if building Json array from StringList }
+            if (Items[ItemNr].RParamType = RPTypeArray) and Assigned(Items[ItemNr].PValArray) then
+                ArrayLen := Items[ItemNr].PValArray.Count;
+            if ArrayLen > 0 then begin
+                PV := '[';
+                for K := 0 to ArrayLen - 1 do begin
+                    if K >= 1 then
+                        PV := PV + ',';
+                    PV := PV + '"' + IcsEscapeJson(StringToUtf8(Trim(Items[ItemNr].PValArray[K]))) + '"';
+                end;
+                PV := PV + ']';
+                JFlag := True;
+            end
+         { simple single value }
+            else begin
+                PV := StringToUtf8(Trim(Items[ItemNr].PValue));
+                if NOT Items[ItemNr].PRaw then
+                    PV := IcsEscapeJson(PV);
+            end;
+            Len := Length(PV);
+
+          { V8.62 check if adding Json, don't quote it }
+            if Len >= 2 then
+                JFlag := ((PV[1]='{') and (PV[Len]='}')) or ((PV[1]='[') and (PV[Len]=']'));
+
+          { V8.65 data types that don't need quotes }
+            if Items[ItemNr].RParamType in [RPTypeInt, RPTypeFloat, RPTypeBool, RPTypeObj, RPTypeNull] then  { V8.67 added Null }
+                JFlag := True;
+            AddToStream('"' + PN + '":');
+            if NOT JFlag then
+                AddToStream('"');
+            AddToStream(PV);
+            if NOT JFlag then
+                AddToStream('"');
+        end;
+    end;
+
+
 begin
-    if Sorted then RebuildSortList; { V8.65 do we need to build sort list }
+    Result := True;
+    if NOT Assigned(FParamStream) then
+        raise Exception.Create('Must set ParamStream before getting parameters');
+
+    FParamStream.Position := 0;
+    if FPContent = PContNone then     { V9.1 content disabled }
+        Exit;
+    if Sorted then
+        RebuildSortList; { V8.65 do we need to build sort list }
+
+ { build URL Encoded parameters, generally added after URL or as POST body }
     if FPContent in [PContUrlencoded, PContBodyUrlen] then begin  { V8.64 added Body version }
-        Result := '';
         if Count > 0 then begin
             for J := 0 to Count - 1 do begin
                 if Sorted then
@@ -1123,78 +1456,93 @@ begin
                 if PN <> '' then begin
                     K := 0;
                     ArrayLen := 0;
+
                 { V8.65 array is added as multiple identical name=value pairs }
                 { beware this may not always be supported, but works for Google APIs }
-                    if (Items[I].RParamType = RPTypeArray) and Assigned(Items[I].FPValArray) then
+                    if (Items[I].RParamType = RPTypeArray) and Assigned(Items[I].PValArray) then
                         ArrayLen := Items[I].FPValArray.Count;
                     while true do begin
                         if ArrayLen > 0 then
-                            PV := StringToUtf8(Trim(Items[I].FPValArray[K]))
+                            PV := StringToUtf8(Trim(Items[I].PValArray[K]))
                         else
                             PV := StringToUtf8(Trim(Items[I].PValue));
-                        if Result <> '' then
-                            Result := Result + '&';
-                        Result := Result + PN + '=';
+                        if FParamStream.Size > 0 then
+                            AddToStream('&');
+                        AddToStream(PN + '=');
                         if Items[I].PRaw then
-                            Result := Result + PV
+                            AddToStream(PV)
                         else
-                            Result := Result + IcsUrlEncode(PV, FRfcStrict);  { V8.65 added strict }
+                            AddToStream(IcsUrlEncode(PV, FRfcStrict));  { V8.65 added strict }
                         inc(K);
-                        if K >= ArrayLen then break;
+                        if K >= ArrayLen then
+                            break;
                     end;
                 end;
             end;
         end;
     end
+
+  { build block of Json from parameters }
     else if FPContent in [PContJson, PContBodyJson] then begin  { V8.64 added Body version }
-        Result := '{';
-        if Count > 0 then begin
-            for J := 0 to Count - 1 do begin
-                if Sorted then
-                    I := Integer(FSortList.Objects[J])
-                else
-                    I := J;
-                PN := StringToUtf8(Trim(Items[I].PName));
-                if PN <> '' then begin
-                    ArrayLen := 0;
-                    JFlag := False;
-                 { V8.65 see if building Json array from StringList }
-                    if (Items[I].RParamType = RPTypeArray) and Assigned(Items[I].FPValArray) then
-                        ArrayLen := Items[I].FPValArray.Count;
-                    if ArrayLen > 0 then begin
-                        PV := '[';
-                        for K := 0 to ArrayLen - 1 do begin
-                            if K >= 1 then PV := PV + ',';
-                            PV := PV + '"' + IcsEscapeJson(StringToUtf8(Trim(Items[I].FPValArray[K]))) + '"';
-                        end;
-                        PV := PV + ']';
-                        JFlag := True;
-                    end
-                    else begin
-                        PV := StringToUtf8(Trim(Items[I].PValue));
-                        if NOT Items[I].PRaw then
-                            PV := IcsEscapeJson(PV);
-                    end;
-                    Len := Length(PV);
-                  { V8.62 check if adding Json, don't quote it }
-                    if Len >= 2 then
-                            JFlag := ((PV[1]='{') and (PV[Len]='}')) or
-                                            ((PV[1]='[') and (PV[Len]=']'));
-                  { V8.65 data types that don't need quotes }
-                    if Items[I].RParamType in [RPTypeInt, RPTypeFloat, RPTypeBool, RPTypeObj, RPTypeNull] then  { V8.67 added Null }
-                        JFlag := True;
-                    if Length(Result) > 1 then Result := Result + ',';
-                    Result := Result + '"' + PN + '":';
-                    if NOT JFlag then Result := Result + '"';
-                    Result := Result + PV;
-                    if NOT JFlag then Result := Result + '"';
+
+      { V9.5 single Json objeect, that may have nested objects  }
+        if FRPJsonFmt = RPJFmtNestObj then begin;
+            AddToStream('{');
+            if Count > 0 then begin
+                for J := 0 to Count - 1 do begin
+                    if Sorted then
+                        I := Integer(FSortList.Objects[J])
+                    else
+                        I := J;
+                    if FParamStream.Size > 1 then
+                       AddToStream(',');
+                    AddOneObject(I);   { V9.5 commonise code }
                 end;
             end;
+            AddToStream('}');
+        end
+
+     { V9.5 simple array using array value from first parameter only, ignored if more than one item or not RPTypeArray }
+        else if FRPJsonFmt = RPJFmtArrayVal then begin;
+            AddToStream('[');
+            if Count = 1 then begin
+                if (Items[0].RParamType = RPTypeArray) and Assigned(Items[0].PValArray) then
+                    ArrayLen := Items[0].PValArray.Count;
+                if ArrayLen > 0 then begin
+                    for K := 0 to ArrayLen - 1 do begin
+                        if K >= 1 then
+                            AddToStream(',');
+                        AddToStream(IcsEscapeJson(StringToUtf8(Trim(Items[0].PValArray[K]))));
+                    end;
+                end;
+            end;
+            AddToStream(']');
+        end
+
+      { V9.5 each item in parameter is output as an object within a array }
+        else if FRPJsonFmt = RPJFmtArrayObj then begin;
+            AddToStream('[');
+            if Count > 0 then begin
+                for J := 0 to Count - 1 do begin
+                    if Sorted then
+                        I := Integer(FSortList.Objects[J])
+                    else
+                        I := J;
+                    if FParamStream.Size > 1 then
+                       AddToStream(',');
+                    AddToStream('{');
+                    AddOneObject(I);
+                    AddToStream('}');
+                end;
+            end;
+            AddToStream(']');
         end;
-        Result := Result + '}'
+
     end
+
+  { build block of XML }
     else if FPContent in [PContXml, PContBodyXml] then begin  { V8.64 new }
-        Result := '<?xml version="1.0" encoding="UTF-8"><ICS>';
+        AddToStream('<?xml version="1.0" encoding="UTF-8"><ICS>');
         if Count > 0 then begin
             for J := 0 to Count - 1 do begin
             { V8.65 XML does not supports arrays so use string instead }
@@ -1205,20 +1553,20 @@ begin
                 PN := StringToUtf8(Trim(Items[I].PName));
                 if PN <> '' then begin
                     PV := StringToUtf8(Trim(Items[I].PValue));
-                    Result := Result + '<' + EscapeXML(PN) + '>';
+                    AddToStream('<' + EscapeXML(PN) + '>');
                     if Items[I].PRaw then
-                        Result := Result + PV
+                        AddToStream(PV)
                     else
-                        Result := Result + EscapeXML(PV);
-                    Result := Result + '</' + EscapeXML(PN) + '>';
+                        AddToStream(EscapeXML(PV));
+                    AddToStream('</' + EscapeXML(PN) + '>');
                 end;
             end;
         end;
-        Result := Result + '</ICS>';
+        AddToStream('</ICS>');
     end
+
   { V8.65 comma separate quoted values for OAuth1 Authhorize: header }
     else if FPContent = PContCommaList then begin
-        Result := '';
         if Count > 0 then begin
             for J := 0 to Count - 1 do begin
             { V8.65 OAuth1 does not need arrays so use string instead }
@@ -1229,21 +1577,150 @@ begin
                 PN := StringToUtf8(Trim(Items[I].PName));
                 if PN <> '' then begin
                     PV := StringToUtf8(Trim(Items[I].PValue));
-                    if Result <> '' then Result := Result + ', ';
-                    Result := Result + AnsiString(PN) + '="';
+                    if FParamStream.Size > 0 then
+                        AddToStream(', ');
+                    AddToStream(PN + '="');
                     if Items[I].PRaw then
-                        Result := Result + PV
+                        AddToStream(PV)
                     else
-                        Result := Result + IcsUrlEncode(PV, FRfcStrict);
-                    Result := Result + '"';
+                        AddToStream(IcsUrlEncode(PV, FRfcStrict));
+                    AddToStream('"');
                 end;
             end;
         end;
     end
-    else
-        Result := '';
+
+  { V9.1 create MIME multipart/form-data parameters  }
+  { note all strings are converted to UTF-8 and sent as 8-bit if FormDataUtf8=True, otherwise percent encoded to 7-bit }
+  { names should generally be 7-bit only }
+    else if (FPContent = PContFormData) then begin
+        if FMimeBoundary = '' then     { V9.2 replaced confusing --- with xX, this gets added to multipart/form-data header }
+            FMimeBoundary := 'XxXx' + AnsiString(IntToHex(Random(MaxInt), 8) + IntToHex(Random(MaxInt), 8)) + 'XxXx';
+        XBoundary := '--' + FMimeBoundary;  { V9.2 internal use with extra -- }
+        if Count > 0 then begin
+            FileStream := Nil;
+            AddToStream(XBoundary + IcsCRLF);
+
+        // if we set charset=utf-8, we can send utf8 without any encoding
+            if FFormDataUtf8 then
+                AddToStream('Content-Disposition: form-data; name="_charset_"' + IcsCRLF +
+                                    IcsCRLF + 'utf-8' +
+                                    IcsCRLF + XBoundary + IcsCRLF);
+            for J := 0 to Count - 1 do begin
+                if Sorted then
+                    I := Integer(FSortList.Objects[J])
+                else
+                    I := J;
+                PN := StringToUtf8(Trim(Items[I].PName));
+                if NOT FFormDataUtf8 then
+                    PN := IcsPercentEncode(PN);
+                if PN <> '' then begin
+                    PCT := AnsiString(Items[I].PConType);  { content-type may be optional set earlier }
+
+               { open file and send binary content }
+                    if (Items[I].RParamType = RPTypeFile) then begin
+                        UploadFile := Trim(Items[I].PValue);
+                        FLen := Items[I].PFileSize;
+                        if FLen <= 0 then
+                            FLen := IcsGetFileSize(UploadFile);
+                        if (Flen > 0) then begin
+                            PFN := StringToUtf8(ExtractFileName(UploadFile));
+                            if NOT FFormDataUtf8 then
+                                PFN := IcsPercentEncode(PFN);
+                            if PCT = '' then  { required, should have been set according to file extension earlier }
+                                PCT := 'application/octet-stream';
+                            AddToStream('Content-Disposition: form-data; name="' + PN + '"; filename="' + PFN + '"' + IcsCRLF +
+                                                                'Content-Type: ' + PCT + IcsCRLF + IcsCRLF);   // blank file before content
+                            try
+                                try
+                                    FileStream := TIcsBufferedFileStream.Create(UploadFile, fmOpenRead, 0, IcsMBYTE);   { V9.4 remove warning }
+                                    FileStream.Position := 0;
+                               // need a new method with a callback for progress forGB files that may take minutes
+                                    SLen := FParamStream.CopyFrom(FileStream, Flen);
+                                    if (SLen <> Flen) then
+                                        Result := False;  // failed, tell user
+                                except
+                                    Result := False;   // failed, tell user
+                                end;
+                            finally
+                                FileStream.Destroy;
+                            end;
+                            AddToStream(IcsCRLF + XBoundary + IcsCRLF);  // CRLF and boundary at end of stream }
+                        end
+                        else
+                           Result := False;   // failed, tell user
+                    end
+                    else begin
+                      { assume all other parameters are textual, no processing for objects like Json }
+                        K := 0;
+                        ArrayLen := 0;
+                        if (Items[I].RParamType = RPTypeArray) and Assigned(Items[I].FPValArray) then
+                            ArrayLen := Items[I].PValArray.Count;
+                        while true do begin
+                            if ArrayLen > 0 then
+                                PVS := Trim(Items[I].PValArray[K])
+                            else
+                                PVS := Trim(Items[I].PValue);
+                            if Items[I].RParamType = RPTypeObj then
+                                PV := AnsiString(PVS)
+                            else begin
+                                PV := StringToUtf8(PVS);
+                                if NOT FFormDataUtf8 then
+                                    PV := IcsPercentEncode(PV);
+                            end;
+                            AddToStream('Content-Disposition: form-data; name="' + PN + '"' + IcsCRLF);
+                            if PCT <> '' then
+                                AddToStream(PCT + IcsCRLF);  // ie'Content-Type: application/json
+                            AddToStream(IcsCRLF + PV +
+                                        IcsCRLF + XBoundary + IcsCRLF);
+                            inc(K);
+                            if K >= ArrayLen then break;
+                        end;
+                    end;
+                end;
+            end;
+            FParamStream.Position := FParamStream.Size - 2;   // remove final CRLF
+            AddToStream('--' + IcsCRLF);     // -- after boundary is end of content
+        end;
+    end;
+    FParamStream.Position := 0;
 end;
-{$WARN NO_RETVAL ON}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function TRestParams.GetStreamSize: Int64;        { V9.1 }
+begin
+    if Assigned(FParamStream) then
+        Result := FParamStream.Size
+    else
+        Result := -1;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function TRestParams.GetParametersTB(Sorted: Boolean = False): TBytes;  { V9.1  }
+begin
+    SetLength(Result, 0);
+    if GetEstParamSize > MaxMemoryStreamSize then  // 50MB too large for memory stream
+        Exit;
+    if NOT Assigned(FParamStream) then begin
+        FParamStream := TMemoryStream.Create;
+        FStreamFlag := True;
+    end;
+    (FParamStream as TMemoryStream).Clear;
+    if NOT GetParamStream(Sorted) then
+        Exit;
+    FParamStream.Position := 0;
+    SetLength(Result, GetStreamSize);
+    FParamStream.Read(Result[0], GetStreamSize);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function TRestParams.GetParameters(Sorted: Boolean = False): AnsiString;  { V8.65 added sorted }
+begin
+    Result := IcsTBytesToStringA(GetParametersTB(Sorted));
+end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -1279,8 +1756,9 @@ end;
   "reccount":0,
   "errno":x,
   "errdesc":"xxxxxx"
+  "query":"myquery"
   }
-function TRestParamsSrv.JsonErr(RestErr: TRestErr; const ErrDesc: String = ''): AnsiString;
+function TRestParamsSrv.JsonErr(RestErr: TRestErr; const ErrDesc: String = ''; const Query: String = ''): AnsiString;     { V9.1 added Query }
 begin
     FJsonResult.Clear;
     FJsonResult.AddItem('success', false);
@@ -1290,6 +1768,8 @@ begin
         FJsonResult.AddItem('errdesc', ErrDesc)
     else
         FJsonResult.AddItem('errdesc', RestErrLits[RestErr]);
+    if Query <> '' then                       { V9.1 }
+            FJsonResult.AddItem('query', Query);
     Result := FJsonResult.GetParameters;
 end;
 
@@ -1299,9 +1779,10 @@ end;
 {
   "success": true,
   "reccount":1,
+  "query":"myquery"
   "records":[]
   }
-function TRestParamsSrv.ResultSet2Json(DataSet: TDataSet; var JsonStr: AnsiString; MaxRecs: Integer = 0): Boolean;
+function TRestParamsSrv.ResultSet2Json(DataSet: TDataSet; var JsonStr: AnsiString; MaxRecs: Integer = 0; const Query: String = ''): Boolean; { V9.1 added Query }
 var
     Recs, Flds, J: Integer;
     FName: String;
@@ -1337,8 +1818,9 @@ begin
             end;
             if Recs > 1 then
                 FJsonArray.AppendBufA(',');
-            FJsonArray.AppendBufA(FJsonRecord.GetParameters);
-            if (MaxRecs > 0) and (Recs > MaxRecs) then break;
+            FJsonArray.AppendBufA(FJsonRecord.GetParameters);   // UTF8
+            if (MaxRecs > 0) and (Recs > MaxRecs) then
+                break;
             DataSet.Next ;
         end;
         FJsonArray.AppendBufA(']');
@@ -1348,8 +1830,10 @@ begin
         end;
         FJsonResult.AddItem('success', true);
         FJsonResult.AddItem('reccount', Recs);
-        FJsonResult.AddItem('records', String(FJsonArray.GetAString), True);
-        JsonStr := FJsonResult.GetParameters;
+        if Query <> '' then                       { V9.1 }
+            FJsonResult.AddItem('query', Query);
+        FJsonResult.AddItemA('records', FJsonArray.GetAString, True);
+        JsonStr := FJsonResult.GetParameters;  // UTF8
         FJsonRecord.Clear;
         FJsonResult.Clear;
         FJsonArray.Clear;
@@ -1362,5 +1846,341 @@ end;
 {$ENDIF}
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
+{ Retrieve a single value by name out of an URL encoded data stream         }
+{ In the stream, every space is replaced by a '+'. The '%' character is     }
+{ an escape character. The next two are 2 digits hexadecimal codes ascii    }
+{ code value. The stream is constitued by name=value couples separated      }
+{ by a single '&' character. The special characters are coded by the '%'    }
+{ followed by hex-ascii character code.                                     }
+function IcsExtractURLEncodedValue(
+    Msg         : PChar;    { URL Encoded stream                     }
+    Name        : String;   { Variable name to look for              }
+    var Value   : String;   { Where to put variable value            }
+    SrcCodePage : LongWord; { D2006 and older CP_UTF8 only           }
+    DetectUtf8  : Boolean): Boolean;              { Found or not found that's the question }
+var
+    NameLen  : Integer;
+    FoundLen : Integer; {tps}
+    Ch       : AnsiChar;
+    P, Q     : PChar;
+    U8Str    : AnsiString;
+begin
+    Result  := FALSE;
+    Value   := '';
+    if Msg = nil then         { Empty source }
+        Exit;
 
+    NameLen := Length(Name);
+    U8Str := '';
+    P := Msg;
+    while P^ <> #0 do begin
+        Q := P;
+        while (P^ <> #0) and (P^ <> '=') do
+            Inc(P);
+        FoundLen := P - Q; {tps}
+        if P^ = '=' then
+            Inc(P);
+        if (StrLIComp(Q, @Name[1], NameLen) = 0) and
+           (NameLen = FoundLen) then begin  {tps}
+            while (P^ <> #0) and (P^ <> '&') do begin
+                Ch := AnsiChar(Ord(P^)); // should contain nothing but < ord 128
+                if Ch = '%' then begin
+                    if P[1] <> #0 then    // V1.35 Added test
+                        Ch := AnsiChar(htoi2(P + 1));
+                    Inc(P, 2);
+                end
+                else if Ch = '+' then
+                    Ch := ' ';
+                U8Str := U8Str + Ch;
+                Inc(P);
+            end;
+            Result := TRUE;
+            break;
+         end;
+         while (P^ <> #0) and (P^ <> '&') do
+             Inc(P);
+        if P^ = '&' then
+            Inc(P);
+    end;
+    if (SrcCodePage = CP_UTF8) or (DetectUtf8 and IsUtf8Valid(U8Str)) then
+{$IFDEF COMPILER12_UP}
+        Value := Utf8ToStringW(U8Str)
+    else
+        Value := AnsiToUnicode(U8Str, SrcCodePage);
+{$ELSE}
+        Value := Utf8ToStringA(U8Str)
+    else
+        Value := U8Str;
+{$ENDIF}
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsExtractURLEncodedValue(
+    const Msg   : String;           { URL Encoded stream                    }
+    Name        : String;           { Variable name to look for             }
+    var Value   : String;           { Where to put variable value           }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE): Boolean; overload;
+begin
+    Result := IcsExtractURLEncodedValue(PChar(Msg), Name, Value, SrcCodePage, DetectUtf8);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ return parameters as TStrings, name or name=value }
+{ unlike ExtractURLEncodedValue control codes are left escaped too avoid multiple line values }
+function IcsExtractURLEncodedParamList(
+    Msg       : PChar;             { URL Encoded stream                     }
+    Params    : TStrings;          { Where to put the list of parameters    }
+    Values    : Boolean = False;   { V9.1 Should values be added name=value }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE): Integer;    {  Number of parameters found             }
+var
+    Name     : String;
+    FoundLen : Integer;
+    P, Q     : PChar;
+    U8Str    : AnsiString;
+    Value    : String;
+    Ch       : AnsiChar;
+begin
+    Result  := 0;
+    if Assigned(Params) then
+        Params.Clear;
+    if Msg = nil then         { Empty source }
+        Exit;
+
+    U8Str := '';
+    P     := Msg;
+    while P^ <> #0 do begin
+        Q := P;
+        while (P^ <> #0) and (P^ <> '=') do
+            Inc(P);
+        FoundLen := P - Q;
+        if P^ = '=' then
+            Inc(P);
+        if Assigned(Params) then begin
+            Name := Copy(Q, 0, FoundLen);
+    //        Params.Add(Name);
+        end;
+        Inc(Result);
+         if NOT Values then begin  { V9.1 are we skipping values }
+            Params.Add(Name);
+            while (P^ <> #0) and (P^ <> '&') do
+                Inc(P);
+         end
+         else begin    { V9.1 get value }
+            U8Str := '';
+            while (P^ <> #0) and (P^ <> '&') do begin
+                Ch := AnsiChar(Ord(P^)); // should contain nothing but < ord 128
+                if Ch = '%' then begin
+                    if P[1] <> #0 then begin
+                        Ch := AnsiChar(htoi2(P + 1));
+                        if Ch >= IcsSpace then  // leave control codes escaped
+                            Inc(P, 2)
+                        else
+                            Ch := '%';
+                    end;
+                end
+                else if Ch = '+' then
+                    Ch := ' ';
+                U8Str := U8Str + Ch;
+                Inc(P);
+            end;
+            if (SrcCodePage = CP_UTF8) or (DetectUtf8 and IsUtf8Valid(U8Str)) then
+{$IFDEF COMPILER12_UP}
+                Value := Utf8ToStringW(U8Str)
+            else
+                Value := AnsiToUnicode(U8Str, SrcCodePage);
+{$ELSE}
+            Value := Utf8ToStringA(U8Str)
+            else
+            Value := U8Str;
+{$ENDIF}
+            Params.Add(Name + '=' + Value);
+         end;
+         if P^ = '&' then
+            Inc(P);
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsExtractURLEncodedParamList(
+    const Msg : String;            { URL Encoded stream                     }
+    Params    : TStrings;          { Where to put the list of parameters    }
+    Values    : Boolean = False;   { V9.1 Should values be added name=value }
+    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
+    DetectUtf8  : Boolean  = TRUE)
+    : Integer;                     { Number of parameters found             }
+begin
+    Result := IcsExtractURLEncodedParamList(PChar(Msg), Params, Values, SrcCodePage, DetectUtf8);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsGetCookieValue(
+    const CookieString : String;   { Cookie string from header line         }
+    const Name         : String;   { Cookie name to look for                }
+    var   Value        : String)   { Where to put variable value            }
+    : Boolean;                     { Found or not found that's the question }
+var
+    NameLen : Integer;
+    FoundLen : Integer; { V7.42 }
+    Ch      : Char;
+    P, Q    : PChar;
+begin
+    Value   := '';
+    Result  := FALSE;
+
+    if (CookieString = '') or (Name = '') then
+        Exit;
+
+    NameLen := Length(Name);
+    P := @CookieString[1];
+    while P^ <> #0 do begin
+        while (P^ <> #0) and (P^ = ' ') do
+            Inc(P);
+        Q := P;
+        while (P^ <> #0) and (P^ <> '=') do
+            Inc(P);
+        FoundLen := P - Q; { V7.42 }
+        if P^ = '=' then
+            Inc(P);
+        if (StrLIComp(Q, @Name[1], NameLen) = 0) and
+           (NameLen = FoundLen) then begin  { V7.42 }
+            while (P^ <> #0) and (P^ <> ';') do begin
+                Ch := P^;
+                if Ch = '%' then begin
+                    Ch := chr(htoi2(P + 1));
+                    Inc(P, 2);
+                end
+                else if Ch = '+' then
+                    Ch := ' ';
+                Value := Value + Ch;
+                Inc(P);
+            end;
+            Result := TRUE;
+            break;
+        end;
+        while (P^ <> #0) and (P^ <> ';') do
+            Inc(P);
+        if P^ = ';' then
+            Inc(P);
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 moved from OverbyteIcsHttpMulti.pas, added Ics }
+{ Syntax of an URL: protocol://[user[:password]@]server[:port]/path[?query]         }
+
+// break down URL into its constituents
+procedure IcsParseExURL (const url: string; var Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query: string) ;
+var
+    path: string ;
+    nsep1, nsep2: integer ;
+begin
+    Z.ICS9.OverbyteIcsUrl.ParseURL (url, Proto, User, Pass, Host, Port, path) ;
+    Dirs := '' ;
+    Fname := '' ;
+    Section := '' ;
+    Query := '' ;
+    if path = '' then
+        exit ;
+    nsep1 := Pos ('#', path) ;
+
+// remove section from path and keep it
+    if (nsep1 > 0) then begin
+        if nsep1 < length (path) then begin
+            Section := copy (path, succ (nsep1), 999) ;
+            nsep2 := Pos ('?', Section) ;
+            if (nsep2 > 0) then begin
+                if nsep2 < length (Section) then
+                    Query := copy (Section, succ (nsep2), 999) ;
+                Section := copy (Section, 1, pred (nsep2)) ;
+            end ;
+        end ;
+        path := copy (path, 1, pred (nsep1)) ;
+    end
+// remove query from path and keep it
+    else begin
+        nsep2 := Pos ('?', path) ;
+        if (nsep2 > 0) then begin
+            if nsep2 < length (path) then
+                Query := copy (path, succ (nsep2), 999) ;
+            path := copy (path, 1, pred (nsep2)) ;
+        end ;
+    end ;
+
+// remove file name from path and keep it and Dirs separately (no leading / on either)
+    nsep1 := LastDelimiter ('/', path);
+    if nsep1 > 1 then Dirs := copy (path, 2, pred (nsep1)) ;
+    Fname := copy (path, succ (nsep1), 99) ;
+end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+// build URL from the many (optional) constituent parts
+function IcsBuildExURL (const Proto, User, Pass, Host, Port, Dirs, Fname, Section, Query: string): string ;
+begin
+    result := Proto + '://' ;
+    if User <> '' then begin
+        Result := Result + User ;
+        if Pass <> '' then Result := Result + ':' + Pass ;
+        Result := Result + '@' ;
+    end ;
+    Result := Result + Host ;
+    if Port <> '' then
+        Result := Result + ':' + Port ;
+    Result := Result + '/' ;
+    if Dirs <> '' then begin
+        Result := Result + Dirs ;
+        if Dirs [Length (Dirs)] <> '/' then
+            Result := Result + '/' ;
+    end ;
+    if Pos('/', Fname) = 1 then        // V8.66 strip leading / from file
+        Result := Result + Copy(Fname, 2, 999)
+    else
+        Result := Result + Fname ;
+    if Section <> '' then
+        Result := Result + '#' + Section ;
+    if Query <> '' then
+        Result := Result + '?' + Query ;
+end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+// builds a new relative combined Dirs/Fname from relative name
+// /magsys/other/ and ../mbs/index.htm gives /magsys/mbs/index.htm
+// /magsys/other/ and /mbs/index.htm gives /mbs/index.htm
+function IcsRelativeName (Dirs, Rname: String): string ;
+var
+    nsep: integer ;
+begin
+    result := Rname ;
+    Dirs := trim (Dirs) ;
+    if Dirs <> '' then begin
+        if Dirs [Length (Dirs)] = '/' then
+           SetLength (Dirs, Pred (Length (Dirs))) ;  // remove last /
+    end ;
+    while (Pos ('../', Rname) = 1) do  begin
+        Rname := Copy (Rname, 4, 999) ;  // remove ../
+        nsep := LastDelimiter ('/', Dirs) ;
+        if nsep > 1 then
+            Dirs := Copy (Dirs, 1, pred (nsep))
+        else
+            Dirs := '' ;
+    end ;
+    if Length (Rname) = 0 then
+        exit ;
+    if (Rname [1] = '/') then
+        Dirs := '' ;    // assume root
+    if Dirs <> '' then
+        Result := Dirs + '/' + Rname
+    else
+        Result := Rname ;
+end ;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 end.

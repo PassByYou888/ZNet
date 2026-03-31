@@ -597,7 +597,7 @@ begin
                   Z_DLL_NOT_FOUND               : zlibProblemString := 'Dll not found';
                   Z_UNKNOWN_COMPRESSION_VERSION : zlibProblemString := 'Unknwon compression stream version';
                   Z_CHECK_PROBLEM               : zlibProblemString := 'Check problem';
-                                           else   zlibProblemString := 'Error ' + AnsiString(inttostr(-Code));
+                                           else   zlibProblemString := 'Error n' + AnsiString(inttostr(-Code));
                end;
           end else
                zlibProblemString := ZLibErrMsg[Code];

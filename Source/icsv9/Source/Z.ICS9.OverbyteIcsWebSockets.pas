@@ -5,10 +5,10 @@ Description:  Websocket server implementation (HIXIE and HYBIE protocols)
               (ported from phpws project)
 Creation:     05 Mar 2012
 Updated:      Aug 2023
-Version:      V9.0
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1999-2023 by François PIETTE
+Legal issues: Copyright (C) 1999-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               Portions Copyright (C) 2011, 2012 Chris Tanaskoski,
@@ -70,6 +70,7 @@ Jan 05, 2023 - V8.71 - Several improvements by Vitaly Volkov:
                        Corrected opcode for PongFrame so client does not respond with
                          a pong after sending a ping.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
 Note - January 2022 - there is a new WebSocket server class unit OverbyteIcsWebSocketSrv
@@ -724,7 +725,7 @@ end;
 
 class function TWebSocketFunctions.calcHybiResponse(challenge: AnsiString): AnsiString;
 begin
-  Result := Base64Encode(SHA1ofStr(challenge + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'));
+  Result := IcsBase64EncodeA(SHA1ofStr(challenge + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'));   { V9.4 }
 end;
 
 procedure HixieTest;
@@ -840,7 +841,7 @@ end;
 
 class function TWebSocketFunctions.randHybiKey: AnsiString;
 begin
-    Result := Base64Encode(
+    Result := IcsBase64EncodeA(                                                                              { V9.4 }
             AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256))
             + AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256))
             + AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256)) + AnsiChar(random(256))

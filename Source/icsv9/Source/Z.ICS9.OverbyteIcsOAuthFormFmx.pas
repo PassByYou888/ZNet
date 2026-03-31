@@ -4,11 +4,11 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  OAuth authentication browser window FMX form.  May use MSIE or
               Edge on Windows with 10.4 and later, probably.
 Creation:     Dec 2022
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Feb 2024
+Version:      V9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -39,6 +39,7 @@ Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
 Updates:
 Dec 13, 2022 - V8.71 - baseline.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 23, 2024 V9.1  Builds without USE_SSL.
 
 
 
@@ -82,6 +83,8 @@ unit Z.ICS9.OverbyteIcsOAuthFormFmx;
 {$DEFINE FMX}
 
 interface
+
+{$IFDEF USE_SSL}
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
@@ -138,9 +141,13 @@ var
   OAuthLoginForm: TOAuthLoginForm;
   OALoginFormShowing: Boolean;
 
+{$ENDIF USE_SSL}
+
 implementation
 
-{$R *.FMX}
+{$R *.fmx}
+
+{$IFDEF USE_SSL}
 
 procedure TOAuthLoginForm.Log(Line: String);
 begin
@@ -349,5 +356,6 @@ begin
     end;
 end;
 
+{$ENDIF USE_SSL}
 
 end.

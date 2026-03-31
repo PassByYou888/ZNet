@@ -42,6 +42,7 @@ Feb 08, 2010 V1.01 F. Piette moved NILVALUE to SysLogDefs so that it can be
 May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
                    also IPv6 support, include files now in sub-directory
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -62,7 +63,8 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     Z.ICS9.OverbyteIcsSysLogDefs,
-    Z.ICS9.OverbyteIcsWSocket;
+    Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 type
     ESysLogClientException = class(Exception);

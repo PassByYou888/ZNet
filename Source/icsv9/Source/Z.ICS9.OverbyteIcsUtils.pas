@@ -3,10 +3,10 @@
 Author:       Arno Garrels <arno.garrels@gmx.de>
 Description:  A place for common utilities.
 Creation:     Apr 25, 2008
-Version:      V9.0
+Version:      V9.5
 EMail:        http://www.overbyte.be       francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by François PIETTE
+Legal issues: Copyright (C) 2002-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -265,8 +265,78 @@ Jul 19, 2023 V8.71 Corrected RFC3339_DateToStr to add colon to time zone, RFC335
                      of OverbyteIcsIconv and USE_ICONV which have been removed.
                      IcsIconvNameFromCodePage is now POSIX instead of USE_ICONV.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 08, 2024 V9.1  Added IcsTBToHex for a TBytes buffer.
+                   IcsTBytesToString now sets length if not specified.
+                   Added IcsFormatHexStr to break long hex string into groups and lines,
+                     defaulting to eight chars per group, 64 per line.
+                   Added IcsStrRemCntls to replace control codes (< space) in string
+                     with ~,  optionally leaving line endings, IcsStrRemCntlsA takes
+                     an AnsiString or buffer, IcsStrRemCntlsTB is TBytes buffer.
+                   Added IcsStrBeakup to break up text into multiple lines of specified
+                     length, default 80.
+                   Added IcsTimeToZStr to convert DataTime to string hh:mm:ss:zzz.
+                   Added IcsResourceGetTB to read TBytes from a named resource.
+                   Added IcsResourceSaveFile to save a file from a named resource.
+                   Report mobile platforms to IcsBuiltWithEx.
+                   Fix some problems building for Android.
+                   IcsFileStreamW now only for non-unicode compilers.
+                   Added IcsDataSaveFile and IcsDataLoadFile to save TBytes to
+                     a file, and load it from a file, no error reporting.
+                   Another IcsMoveTBytesToString overload for AnsiString.
+                   Renamed IcsToASCII to IcsPunyToAsci and IcsToUnicode to
+                     IcsPunyToUnicode so they don't get used for the wrong purpose.
+                   Added IcsTBytesToStringA, IcsStringToTBytes and IcsStringAToTBytes
+                     for simple TBytes to/from Ansi and Unicode strings.
+                   Added Base64EncodeTB for a TBytes buffer, Base64EncodeA for AnsiString,
+                     Base64DecodeTB to a TBytes buffer.
+                   Added IcsBase64UrlDecodeTB and IcsBase64UrlDecodeATB to TBytes, and
+                     IcsBase64UrlEncodeTB and IcsBase64UrlEncodeATB from TBytes.
+                   Added Utf8ToStringTB for TBytes to String.
+                   Added function IcsAbsolutisePath, moved from HttpSrv.
+Aug 07, 2024 V9.3  IcsResourceGetTB now supported on Posix.
+                   IcsGetCompName now supported on Posix.
+                   Moved various IPv4/6 conversion functions here from OverbyteIcsWSocket
+                     so they can be used without sockets.
+                   IcsBuiltWith reports new versions of Delphi 12.
+                   Moved IcsSimpleLogging here from Blacklist.
+                   Moved IcsParseEmail here from SmtpProt.
+                   Moved many literals to Types.
+Jan 06, 2025 V9.4  Finished cleanup of old Base64 functions, by added new IcsBase64
+                     functions using TBytes internally to replace old Base64 functions
+                     that used AnsiChars, no overloaded versions for simplicity.
+                     Old Base64 versions retained as deprecated for user applications,
+                     please update to the IcsBase versions.
+                   Added IcsTBytesCompare to compare two TBytes.
+                   Added IcsOutputDebugStr for Posix and Windows, from Logger.
+                   Added IcsDateToAStr and IcsDateTimeToAStr with alpha month (Jan/Feb).
+Aug 14, 2025 V9.5  Added MaskIpAddr to mask an ASCII IP address,
+                     ie 192.168.1.222/255.255.255.0 gives 192.168.1.0.
+                   Added IcsHexToTB, skips : separators.
+                   Added IcsLinesToDynArray to convert multiple lines of text into
+                     multiple strings, one per line.
+                   Updated IcsBuiltWith for Delphi 13 and 14 (future).
+                   Added IcsReverseIPArpa to convert daddress to reverse DNS lookup
+                     arpa domain name, no period on end.
+                   Added IcsIntToKbyte, better name for IntToKbyte.
+                   Added WSocketFamilyFromAF find TSocketFamily from Windows APIs.
+                   Moved IcsInitializeAddr and IcsSizeOfAddr here from WSocket.
+                   Added IcsInitializeIpv6 to clear an TIcsIPv6Address.
+                   Added WSocketIPv6ToSocAddr convert binary IPv6 into SocAddr.
+                   Added IcsIPv4AddrFromSocAddr get binary IPv4 from SocAddr.
+                   Added IcsIPv6AddrFromSocAddr get binary IPv6 from SocAddr.
+                   Added IcsFamilyFromSocAddr get Socket Family from SocAddr.
+                   Added WSocketIPStrToSocAddr convert ASCII IP address and port into SocAddr.
+                   Added IcsIpBytes convert an IPv4/v6 SocAddr into TTcsIpBytes, 4 or 16 byte TBytes.
+                   Added IcsIpBytesToStr to convert TcsIpBytes into string IPv4/v6 address.
+                   Try to stop a range error in IcsGetUAgeSizeFile.
+                   Added IcsCompareTBytes to compare two binary TByes, used by sorting functions.
+Nov 2025 V9.5      Fixed IcsBuiltWith to compiler with Delphi 13.
 
 
+IcsSimpleLogging is a non-buffered log file function which writes text
+to the end of old or new file, opening and closing file for each line,
+ignoring any errors, not designed for continual updating!  The file name
+is in date/time mask format, typically for one log file per day.
 
  * * *  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 unit Z.ICS9.OverbyteIcsUtils;
@@ -301,16 +371,26 @@ interface
 {$IFDEF POSIX}
     {$DEFINE PUREPASCAL}
 {$ENDIF}
+{$IFDEF ANDROID}
+    {$UNDEF USE_ICONV}       { V9.1 }
+{$ENDIF}
 
 uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     Z.ICS9.OverbyteIcsWinnls,
+    {$IFDEF Rtl_Namespaces}System.Win.Registry{$ELSE}Registry{$ENDIF},   { V9.4 }
 {$ENDIF}
 {$IFDEF POSIX}
-    Posix.SysTypes, Posix.Iconv, Posix.Errno,
-    Posix.Unistd, Posix.Stdio, Posix.SysStatvfs,
-    Posix.PThread, Posix.Time,
+    Posix.SysTypes,
+    Posix.Iconv,
+    Posix.Errno,
+    Posix.Unistd,
+    Posix.Stdio,
+    Posix.SysStatvfs,
+    Posix.PThread,
+    Posix.Time,
+    Posix.NetDB,         { V9.3 for PAddrInfo }
     Z.ICS9.Ics.Posix.WinTypes,
   {$IFDEF MACOS}
     Macapi.CoreFoundation,
@@ -323,9 +403,12 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysConst{$ELSE}SysConst{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$IFDEF Rtl_Namespaces}System.DateUtils{$ELSE}DateUtils{$ENDIF},  { V8.60 }
+    {$IFDEF Rtl_Namespaces}System.Types{$ELSE}Types{$ENDIF},          { V9.1 }
 {$IFDEF COMPILER16_UP}
+//    System.Generics.Collections,                                   { V9.1 }
     System.SyncObjs,
     System.IOUtils,    { V8.64 }
+    {$IFDEF Rtl_Namespaces}System.TimeSpan{$ELSE}TimeSpan{$ENDIF},    { V9.1 }
 {$ENDIF}
 {$IFDEF COMPILER12_UP}
     {$IFDEF RTL_NAMESPACES}System.AnsiStrings{$ELSE}AnsiStrings{$ENDIF},
@@ -334,7 +417,7 @@ uses
     StrUtils,   { V8.65 not needed for XE3 and later }
 {$ENDIF}
     Z.ICS9.OverbyteIcsMD5,
-    Z.ICS9.OverbyteIcsTypes; // for TBytes and TThreadID
+    Z.ICS9.OverbyteIcsTypes; // common types
 
 type
 {$IFNDEF COMPILER12_UP}
@@ -385,6 +468,7 @@ const
     CP_UTF32      = 12000;
     CP_UTF32Be    = 12001;
 
+(* moved to OverbyteIcsTypes
 { V8.52 some useful string constants, make sure names are unique }
 const
   IcsNULL            =  #0;
@@ -462,6 +546,7 @@ const
   sPathExtended = '\\?\';         { \\?\d:\filepath }
   sPathExtendedUNC = '\\?\UNC\';  { \\?\UNC\server\share\filepath }
   IcsMaxPath = 260;
+*)
 
 var
   IcsFormatSettings: TFormatSettings;  { V8.60 }
@@ -502,6 +587,7 @@ type
     TRtlCompareUnicodeString = function(String1, String2: PUnicode_String; CaseInSensitive: Boolean): Integer; stdcall;
 {$ENDIF}
 
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
 {$IFNDEF COMPILER12_UP}
     TIcsFileStreamW = class(THandleStream)
 {$ELSE}
@@ -517,6 +603,9 @@ type
         destructor  Destroy; override;
         property    FileName: UnicodeString read FFileName;
     end;
+{$ENDIF UNICODE}
+
+
     function  IcsIsValidAnsiCodePage(const CP: LongWord): Boolean;
 {$IFDEF POSIX}              { V8.71 was USE_ICONV }
 const
@@ -533,9 +622,11 @@ const
     function  RFC1123_Date(aDate : TDateTime; AddTZ: Boolean = False) : String;      { V8.09, V8.62 AddTZ }
     function  RFC1123_UtcDate(aDate : TDateTime) : String;    { V8.62 }
     function  RFC1123_StrToDate(aDate : String; UseTZ: Boolean = False) : TDateTime;  { V8.09, V8.62 UseTZ }
-    function  RFC3339_StrToDate(aDate: String; UseTZ: Boolean = False): TDateTime;   { V8.53, V8.62 UseTZ }
-    function  RFC3339_DateToStr(DT: TDateTime; AddTZ: Boolean = False): String;   { V8.53, V8.62 AddTZ }
-    function  RFC3339_DateToUtcStr(DT: TDateTime): String;    { V8.62 }
+    function  RFC3339_StrToDate(aDate: String; UseTZ: Boolean = False): TDateTime; { aka ISO 8601 date } { V8.53, V8.62 UseTZ }
+    function  RFC3339_DateToStr(DT: TDateTime; AddTZ: Boolean = False): String;    { aka ISO 8601 date } { V8.53, V8.62 AddTZ }
+    function  RFC3339_DateToUtcStr(DT: TDateTime): String;   { aka ISO 8601 date }  { V8.62 }
+    function  IcsDateToAStr(const DateTime: TDateTime): string;                   { V9.4 }
+    function  IcsDateTimeToAStr(const DateTime: TDateTime): string;               { V9.4 }
     function  IcsGetUTCTime: TDateTime;                       { V8.60 }
     function  IcsSetUTCTime (DateTime: TDateTime): boolean ;  { V8.60 }
     function  IcsGetNewTime (DateTime, Difference: TDateTime): TDateTime ; { V8.60 }
@@ -598,6 +689,7 @@ const
     function  StringToUtf8TB(const Str: UnicodeString): TBytes; {$IFDEF USE_INLINE} inline; {$ENDIF}                       { V8.71 }
     function  Utf8ToStringW(const Str: RawByteString): UnicodeString; {$IFDEF USE_INLINE} inline; {$ENDIF}
     function  Utf8ToStringA(const Str: RawByteString; ACodePage: LongWord = CP_ACP): AnsiString; {$IFDEF USE_INLINE} inline; {$ENDIF}
+    function  Utf8ToStringTB(const Str: TBytes): UnicodeString; {$IFDEF USE_INLINE} inline; {$ENDIF}              { V9.1 }
     function  CheckUnicodeToAnsi(const Str: UnicodeString; ACodePage: LongWord = CP_ACP): Boolean;
     { This is a weak check, it does not detect whether it's a valid UTF-8 byte }
     function  IsUtf8TrailByte(const B: Byte): Boolean; {$IFDEF USE_INLINE} inline; {$ENDIF}
@@ -621,7 +713,10 @@ const
     function  IcsBufferToHex(const Buf; Size: Integer): String; overload;
     function  IcsBufferToHex(const Buf; Size: Integer; Separator: Char): String; overload;
     function  IcsBufferToHex(const BufStr: AnsiString): String; overload;    { V8.53 }
+    function  IcsTBToHex(const BufTB: TBytes): String; overload;             { V9.1 }
     function  IcsHexToBin(const HexBuf: AnsiString): AnsiString;             { V8.53 }
+    function IcsHexToTB(const HexBuf: AnsiString): TBytes;                   { V9.5 }
+    function  IcsFormatHexStr(const HexStr: String; GroupLen: Integer = 8; LineLen: Integer = 64): String;     { V9.1 }
     function  IsXDigit(Ch : WideChar): Boolean; overload;
     function  IsXDigit(Ch : AnsiChar): Boolean; overload;
     function  XDigit(Ch : WideChar): Integer; overload;
@@ -741,36 +836,43 @@ const
 { we receive socket as single byte raw data into TBytes buffer without a
   character set, then convertit onto Delphi Strings for ease of processing }
 { Beware - this function treats buffers as ANSI, no Unicode conversion }
+{$IFDEF UNICODE}
     procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
-                      var Dest: String; OffsetTo: Integer; Count: Integer); overload; { V8.49 }
+                                                var Dest: String; OffsetTo: Integer; Count: Integer); overload; { V8.49 }
+{$ENDIF}
+    procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
+                                               var Dest: AnsiString; OffsetTo: Integer; Count: Integer); overload; { V9.1 }
 { this function converts buffers to Unicode }
     procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
         var Dest: UnicodeString; OffsetTo: Integer; Count: Integer; ACodePage: LongWord); overload; { V8.50 }
 { this function converts buffers to Unicode }
     procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
         var Dest: AnsiString; OffsetTo: Integer; Count: Integer; ACodePage: LongWord); overload; { V8.50 }
-    function IcsTBytesToString(const Buffer: TBytes; Count: Integer; ACodePage: LongWord = CP_UTF8): UnicodeString;  { V8.71 }
+    function IcsTBytesToString(const Buffer: TBytes; Count: Integer=0; ACodePage: LongWord = CP_UTF8): UnicodeString;  { V8.71 V9.1 added = 0 }
+    function IcsTBytesToStringA(const Buffer: TBytes; Count: Integer= 0): AnsiString;            { V9.1 }
 { Beware - this function treats buffers as ANSI, no Unicode conversion }
 {$IFDEF UNICODE}
-    function IcsMoveStringToTBytes(const Source: String; var Buffer: TBytes;
-                                                        Count: Integer): Integer; overload;  { V8.50 }
+    function IcsMoveStringToTBytes(const Source: String; var Buffer: TBytes; Count: Integer): Integer; overload;  { V8.50 }
 {$ENDIF}
-    function IcsMoveStringToTBytes(const Source: AnsiString; var Buffer: TBytes;
-                                                        Count: Integer): integer; overload;  { V8.69 }
+    function IcsMoveStringToTBytes(const Source: AnsiString; var Buffer: TBytes; Count: Integer): integer; overload;  { V8.69 }
     function IcsMoveStringToTBytes(const Source: UnicodeString; var Buffer: TBytes;
-                 Count: Integer; ACodePage: LongWord; Bom: Boolean = false): Integer; overload;  { V8.50 }
+                                      Count: Integer; ACodePage: LongWord; Bom: Boolean = false): Integer; overload;  { V8.50 }
     procedure IcsMoveTBytes(var Buffer: TBytes; OffsetFrom: Integer; OffsetTo: Integer;
-                                Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}   { V8.49 }
+                                                                  Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}   { V8.49 }
     procedure IcsMoveTBytesEx(const BufferFrom: TBytes; var BufferTo: TBytes;
-              OffsetFrom, OffsetTo, Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}  { V8.49 }
+                                               OffsetFrom, OffsetTo, Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}  { V8.49 }
+    function IcsStringToTBytes(const Source: String; ACodePage: LongWord = CP_UTF8): TBytes;   { V9.1 }
+    function IcsStringAToTBytes(const Source: AnsiString): TBytes;                             { V9.1 }
 { Pos that ignores nulls in the TBytes buffer, so avoid PAnsiChar functions }
     function IcsTBytesPos(const Substr: String; const S: TBytes; Offset, Count: Integer): Integer;  { V8.49 }
     function IcsTBytesStarts(const Source: TBytes; Find: PAnsiChar) : Boolean;    { V8.49, V8.64 }
     function IcsTBytesContains(const Source : TBytes; Find : PAnsiChar) : Boolean;   { V8.49, V8.64 }
+    function IcsTBytesCompare(const Input1, Input2: TBytes): Boolean;                { V9.4 }
     function IcsFmtIpv6Addr (const Addr: string): string;              { V8.52 }
     function IcsFmtIpv6AddrPort (const Addr, Port: string): string;    { V8.52 }
     function IcsStripIpv6Addr (const Addr: string): string;            { V8.52 }
     function IntToKbyte (Value: Int64; Bytes: boolean = false): String; { V8.54  moved here from OverbyteIcsFtpSrvT }
+    function IcsIntToKbyte (Value: Int64; Bytes: boolean = false): String; { V9.5 better name for IntToKbyte }
     function IcsWireFmtToStrList(const Buffer: TBytes; Len: Integer; SList: TStrings): Integer;  { V8.57, V8.64 }
     function IcsWireFmtToCSV(const Buffer: TBytes; Len: Integer): String;   { V8.64 }
     function IcsStrListToWireFmt(SList: TStrings; var Buffer: TBytes): Integer;            { V8.57 }
@@ -796,18 +898,16 @@ const
     function IcsPathDosToUnixW(const Path: UnicodeString): UnicodeString;   { V8.60 }
     function IcsSecsToStr(Seconds: Integer): String;         { V8.60 }
     function IcsGetTempPath: String;                         { V8.60 }
-{$IFDEF MSWINDOWS}   { V8.64 not MacOS }
-    function IcsGetCompName: String;                         { V8.57 }
-{$ENDIF}
+    function IcsGetCompName: String;                         { V8.57, V9.3 Posix }
     function IcsPunyDecode(const Input: String; var ErrFlag: Boolean): UnicodeString;    { V8.64 }
     function IcsPunyEncode(const Input: UnicodeString; var ErrFlag: Boolean): String;    { V8.64 }
-    function IcsToASCII(const Input: UnicodeString; UseSTD3AsciiRules: Boolean; var ErrFlag: Boolean): String; overload;     { V8.64 }
+    function IcsPunyToASCII(const Input: UnicodeString; UseSTD3AsciiRules: Boolean; var ErrFlag: Boolean): String; overload;     { V8.64 } { V9.1 added Puny }
     function IcsIDNAToASCII(const Input: UnicodeString; UseSTD3AsciiRules: Boolean; var ErrFlag: Boolean): String; overload; { V8.64 }
-    function IcsToASCII(const Input: UnicodeString): String; overload;        { V8.64 }
+    function IcsPunyToASCII(const Input: UnicodeString): String; overload;        { V8.64 } { V9.1 added Puny }
     function IcsIDNAToASCII(const Input: UnicodeString): String; overload;    { V8.64 }
-    function IcsToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString; overload;     { V8.64 }
+    function IcsPunyToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString; overload;     { V8.64 }   { V9.1 added Puny }
     function IcsIDNAToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString; overload; { V8.64 }
-    function IcsToUnicode(const Input: String): UnicodeString; overload;      { V8.64 }
+    function IcsPunyToUnicode(const Input: String): UnicodeString; overload;      { V8.64 } { V9.1 added Puny }
     function IcsIDNAToUnicode(const Input: String): UnicodeString; overload;  { V8.64 }
     function IcsAnsiPosEx(const SubStr, Str: AnsiString; Offset: Integer = 1): Integer; { V8.65 }
     function IcsPosEx(const SubStr, Str: UnicodeString; Offset: Integer = 1): Integer;  { V8.65 }
@@ -821,6 +921,22 @@ const
 {$IFDEF MSWINDOWS}
     function IcsIsProgAdmin: Boolean;                                            { V8.71 }
 {$ENDIF}
+    function IcsStrRemCntlsA(const S: AnsiString; LeaveCRLF: Boolean = True): String; { V9.1 }
+    function IcsStrRemCntls(const S: String; LeaveCRLF: Boolean = True): String;      { V9.1 }
+    function IcsStrRemCntlsTB(const TB: TBytes; LeaveCRLF: Boolean = True): String;   { V9.1 }
+    function IcsStrBeakup(const S: String; MaxLine: Integer = 132): String;           { V9.1 }
+    function IcsTimeToZStr(const DT: TDateTime): string;                              { V9.1 }
+    function IcsResourceGetTB(const ResName: String; const ResType: PChar = RT_RCDATA): TBytes;          { V9.1 }
+    function IcsResourceSaveFile(const ResName, FileName: String; Replace: Boolean = False): Integer;    { V9.1 }
+    function IcsDataSaveFile(const Data: TBytes; const FileName: String; Replace: Boolean = False): Boolean; { V9.1 }
+    function IcsDataLoadFile(const FileName: String; MaxLen: Integer = 10240000): TBytes;                    { V9.1 }
+    function IcsAbsolutisePath(const Path : String) : String;          { V9.1 moved from HttpSrv }
+    function IcsParseEmail(FriendlyEmail: String; var FriendlyName : String) : String;  { V9.3 moved from SmtpProt }
+    procedure IcsSimpleLogging (const FNameMask, Msg: String);                          { V9.3 moved from Blacklist }
+    procedure IcsOutputDebugStr(const AMsg: String);                                    { V9.4 was in Logger }
+    function IcsLinesToDynArray(const Lines: String): TStringDynArray;                 { V9.5 }
+
+
 
  { V8.54 Tick and Trigger functions for timing stuff moved here from OverbyteIcsFtpSrvT   }
  { V8.71 none of these 32-bit tick functions are used in ICS, only 64-bit functions in OverbyteIcsTicks64 }
@@ -1134,6 +1250,15 @@ var
   function IcsVerifyTrust (const Fname: string; const HashOnly,
                           Expired: boolean; var Response: string): integer;
 
+var
+{ V8.67 copied from OverbyteIcsIniFiles and made general purpose }
+    hSHFolderDLL: HMODULE;
+    f_SHGetFolderPath: function(hwndOwner: HWND; nFolder: Integer;
+        hToken: THandle; dwFlags: DWORD; pszPath: PWideChar): HRESULT; stdcall;
+{ returns a shell path according to the CSIDL literals, ie CSIDL_LOCAL_APPDATA }
+    function IcsGetShellPath(CSIDL: Integer): UnicodeString;
+{$ENDIF}
+
 { V8.67 Literals for IcsGetShellPath, to get the windows path to specified system shell directories. }
 { V8.68 externals for C++ }
 {$EXTERNALSYM CSIDL_DESKTOP}
@@ -1270,21 +1395,11 @@ const
     CSIDL_SAMPLE_PICTURES         = $0042 ;
     CSIDL_SAMPLE_VIDEOS           = $0043 ;
     CSIDL_PHOTOALBUMS             = $0045 ;
-
     CSIDL_FLAG_CREATE             = $8000 ;     // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
     CSIDL_FLAG_DONT_VERIFY        = $4000 ;     // combine with CSIDL_ value to return an unverified folder path
     CSIDL_FLAG_NO_ALIAS           = $1000 ;
     CSIDL_FLAG_PER_USER_INIT      = $0800 ;
     CSIDL_FLAG_MASK               = $FF00 ;     // mask for all possible flag values
-
-var
-{ V8.67 copied from OverbyteIcsIniFiles and made general purpose }
-    hSHFolderDLL: HMODULE;
-    f_SHGetFolderPath: function(hwndOwner: HWND; nFolder: Integer;
-        hToken: THandle; dwFlags: DWORD; pszPath: PWideChar): HRESULT; stdcall;
-{ returns a shell path according to the CSIDL literals, ie CSIDL_LOCAL_APPDATA }
-    function IcsGetShellPath(CSIDL: Integer): UnicodeString;
-{$ENDIF}
 
 type
 { V8.60 descendent of TList added a Find function using binary search identical to sorting }
@@ -1301,7 +1416,8 @@ type
                                                       var index: Integer): Boolean; virtual;     { V8.65 }
   end;
 
-  function CompareGTMem (P1, P2: Pointer; Length: Integer): Integer ;
+  function IcsCompareGTMem (P1, P2: Pointer; Length: Integer): Integer ;    { V9.5 added Ics }
+  function IcsCompareTBytes(const T1, T2: TBytes): Integer; // 0=equal, >=1 T1 more than T2, <=-1 T1 less than T2  { V9.5 }
 
 { V8.67 TIcsStringBuild Class moved from OverbyteIcsBlacklist }
 type
@@ -1333,16 +1449,17 @@ type
                                      write FCharSize;    { V8.67 }
   end;
 
+
 { V8.67 moved from OverbyteIcsMimeUtils to ease circular references,
   less CLR versions }
 const
-    Base64Out: array [0..64] of Char = (
+ {   Base64Out: array [0..64] of Char = (
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
         'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
         'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/', '='
-    );
+    );    }
     Base64OutA: array [0..64] of AnsiChar = (
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
         'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
@@ -1363,17 +1480,55 @@ const
          46,  47,  48,  49,  50,  51, 255, 255, 255, 255, 255
     );
 
-{ Base 64 encoding }
-function  Base64Encode(const Input : AnsiString) : AnsiString; overload;
-function  Base64Encode(const Input : PAnsiChar; Len : Integer) : AnsiString; overload;
+{ V9.4 Base 64 encoding, old versions working with AnsiChars, ICS does not used any of these
+  but retained as deprecated for user applications, please update to the IcsBase versions }
+function  Base64Encode(const Input : AnsiString) : AnsiString; overload; deprecated;
+function  Base64Encode(const Input : PAnsiChar; Len : Integer) : AnsiString; overload; deprecated;
 {$IFDEF COMPILER12_UP}
-function  Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload;
-function  Base64Encode(const Input : UnicodeString) : UnicodeString; overload;
+function  Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload; deprecated;
+function  Base64Encode(const Input : UnicodeString) : UnicodeString; overload; deprecated;
 {$ENDIF}
-function  Base64Decode(const Input : AnsiString) : AnsiString; overload;
+function  Base64Decode(const Input : AnsiString) : AnsiString; overload; deprecated;
 {$IFDEF COMPILER12_UP}
-function  Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload;
-function  Base64Decode(const Input : UnicodeString) : UnicodeString; overload;
+function  Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload; deprecated;
+function  Base64Decode(const Input : UnicodeString) : UnicodeString; overload; deprecated;
+{$ENDIF}
+function Base64EncodeTB(Input: TBytes) : String; deprecated;                        { V9.1 }
+function Base64EncodeA(const Input : AnsiString) : AnsiString; deprecated;          { V9.1 avoid overload confusion }
+function Base64DecodeTB(const Input : AnsiString): TBytes; overload; deprecated;    { V9.1 }
+{$IFDEF COMPILER12_UP}
+function Base64DecodeTB(const Input : UniCodeString): TBytes; overload; deprecated;  { V9.1 }
+{$ENDIF}
+
+
+{ V9.4 Base 64 encoding, new versions working with TBytes }
+{ encode binary TBytes into ASCII Base64 Ansistring }
+function IcsBase64EncodeTB(const Input: TBytes): AnsiString;       { V9.4 }
+
+{ encode binary AnsiChar pointer buffer with length into ASCII Base64 AnsiString  (replaces old Base64Encode) }
+function IcsBase64EncodeAC(const Input: PAnsiChar; Len: Integer): AnsiString;   { V9.4 }
+
+{ encode non binary content String ASCII Base64 String }
+function IcsBase64Encode(const Input: String): String;             { V9.4 }
+
+{ encode binary content AnsiString ASCII Base64 Ansistring }
+function IcsBase64EncodeA(const Input: AnsiString): AnsiString;    { V9.4 }
+
+{ decode ASCII Base64 in AnsiString to binary TBytes }
+function IcsBase64DecodeTB(const Input: AnsiString): TBytes;       { V9.4 }
+
+{ decode ASCII Base64 in AnsiString to binary AnsiString }
+function IcsBase64DecodeA(const Input: AnsiString): AnsiString;    { V9.4 }
+
+{ decode ASCII Base64 in String to binary AnsiString }
+function IcsBase64Decode(const Input: String): AnsiString;      { V9.4 }
+
+{$IFDEF COMPILER12_UP}
+{ decode ASCII Base64 in UnicodeString to UnicodeString with specific CodePage, not binary }
+function IcsBase64DecodeU(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload;  { V9.4 }
+
+{ decode ASCII Base64 in UnicodeString to UnicodeString with default CodePage, not binary }
+function IcsBase64DecodeU(const Input : UnicodeString) : UnicodeString; overload;    { V9.4 }
 {$ENDIF}
 
 { V8.67 moved from OverbyteIcsSslJose to ease circular references }
@@ -1382,10 +1537,60 @@ function IcsJsonPair(const S1, S2: String): String;
 { RFC4658 base64 decode with trailing == removed, need to add them back  }
 function IcsBase64UrlDecode(const Input: String): String;
 function IcsBase64UrlDecodeA(const Input: AnsiString): AnsiString;    { V8.67 }
+function IcsBase64UrlDecodeTB(const Input: String): TBytes;           { V9.1 }
+function IcsBase64UrlDecodeATB(const Input: AnsiString): TBytes;      { V9.1 }
 
 { RFC4658 base64 encode with trailing == removed and made URL safe, no CRLF allowed either  }
 function IcsBase64UrlEncode(const Input: String): String;
 function IcsBase64UrlEncodeA(const Input: AnsiString): AnsiString;    { V8.67 }
+function IcsBase64UrlEncodeTB(const Input: TBytes): String;           { V9.1 }
+function IcsBase64UrlEncodeATB(const Input: TBytes): AnsiString;      { V9.1 }
+
+{ V9.3 moved from OverbyteIcsWSocket, so may be used without sockets }
+function  WSocketIsDottedIP(const S : AnsiString) : Boolean; overload;       { V8.70 }
+function  WSocketIsDottedIP(const S : UnicodeString) : Boolean; overload;    { V8.70 }
+function  WSocketIPv4ToStr(const AIcsIPv4Addr: TIcsIPv4Address): string;
+function  WSocketIPv6ToStr(const AIcsIPv6Addr: TIcsIPv6Address): string; overload;
+function  WSocketIPv6Same(const IP1, IP2: TIcsIPv6Address): Boolean;          { V8.71 }
+function  WSocketStrToIPv4(const S: string; out Success: Boolean): TIcsIPv4Address;
+function  WSocketStrToIPv6(const S: string; out Success: Boolean): TIcsIPv6Address; overload;
+function  WSocketStrToIPv6(const S: string; out Success : Boolean; out ScopeID : Cardinal): TIcsIPv6Address; overload;
+function  WSocketIsIPv4(const S: string): Boolean;
+function  WSocketIsIP(const S: string; out ASocketFamily: TSocketFamily): Boolean;
+function  WSocketIsIPEx(const S: string; out ASocketFamily: TSocketFamily): Boolean;  { V8.01 }
+function  IcsReverseIP(const IP : String) : AnsiString;                       { V8.71 moved from DnsQuery }
+function  IcsReverseIPv6(const IPv6: String): AnsiString;                     { V8.71 moved from DnsQuery }
+function  IcsReverseIPArpa(const IP: String): AnsiString;                     { V9.5 }
+function  IcsSocIpBytes(const ASockAddr: TSockAddrIn6): TTcsIpBytes;          { V9.5 }
+function  IcsIpBytesToStr(IpBytes: TTcsIpBytes): String;                      { V9.5 }
+function  WSocketIPv6ToStr(const AIn6: PSockAddrIn6): string; overload;
+function  WSocketSockAddrToStr(const ASockAddr: TSockAddrIn6): string;        { V8.71 }
+function  WSocketIPv4ToSocAddr(IPv4: Integer; Port: Integer = 0): TSockAddrIn6; overload;   { V8.71 }  { V9.5 added port }
+function  WSocketIPv4ToSocAddr(IPv4: Cardinal; Port: Integer = 0): TSockAddrIn6; overload;  { V8.71 }  { V9.5 added port }
+function  WSocketIPv6ToSocAddr(AIPv6Addr: TIcsIPv6Address; Port: Integer = 0): TSockAddrIn6;              { V9.5 }
+function  WSocketIPStrToSocAddr(const S: string; out Success: Boolean; Port: Integer = 0): TSockAddrIn6;  { V9.5 }
+function  WSocketFamilyToAF(AFamily: TSocketFamily): Integer;                         { V8.71 }
+function  IcsIPv6AddrFromAddrInfo(AddrInfo: PAddrInfo): TIcsIPv6Address;
+function  IcsIPv4AddrFromSocAddr(const ASockAddr: TSockAddrIn6): TIcsIPv4Address;     { V9.5 }
+function  IcsIPv6AddrFromSocAddr(const ASockAddr: TSockAddrIn6): TIcsIPv6Address;     { V9.5 }
+function  IcsFamilyFromSocAddr(const ASockAddr: TSockAddrIn6): TSocketFamily;         { V9.5 }
+function  WSocketFamilyFromAF(AFamily: Integer): TSocketFamily;                       { V9.5 }
+procedure IcsInitializeAddr(var AAddr: TSockAddrIn6; AIPVersion: TSocketFamily); {$IFDEF USE_INLINE} inline; {$ENDIF} { V9.5 moved from WSocket }
+procedure IcsInitializeIpv6(var IPv6: TIcsIPv6Address); { V9.5 }
+function  IcsSizeOfAddr(const AAddr: TSockAddrIn6): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF} { V9.5 moved from WSocket }
+function  IcsMaskIpv4Addr(const IpStr, IpMask: String): String;                      { V9.5 }
+
+function  WSocketErrorDesc(ErrCode: Integer) : String;
+function  WSocketProxyErrorDesc(ErrCode : Integer) : String;
+function  WSocketIsProxyErrorCode(ErrCode: Integer): Boolean; {$IFDEF USE_INLINE} inline; {$ENDIF}
+function  WSocketHttpTunnelErrorDesc(ErrCode : Integer) : String;
+function  WSocketSocksErrorDesc(ErrCode : Integer) : String;
+function  WSocketErrorMsgFromErrorCode(ErrCode : Integer) : String;
+function  WSocketGetErrorMsgFromErrorCode(ErrCode : Integer) : String;
+function  GetWinsockErr(ErrCode: Integer) : String;
+function  GetWindowsErr(ErrCode: Integer): String;
+
+
 
 var
     GSeed32 : LongWord = 0;   { V8.65 moved to top }
@@ -1560,17 +1765,30 @@ end;
 {$ENDIF}
 {$IFDEF POSIX}
 var
-    Ctx: iconv_t;
+  Encoding: TEncoding;
+  CodePageStr: AnsiString;
+  I: Integer;
 begin
     Result := (CP <> 1200) and (CP <> 1201) and (CP <> 12000) and (CP <> 12001);
     if Result then
     begin
-        Ctx := iconv_open(PAnsiChar(IcsIconvNameFromCodePage(CP)), ICONV_UNICODE);
-        if Ctx = iconv_t(-1) then
-            Result := False
-        else begin
-            iconv_close(Ctx);
-            Result := True;
+        // Find the corresponding character encoding for the code page
+        for I := Low(IconvCodepageMapping) to High(IconvCodepageMapping) do
+        begin
+            if IconvCodepageMapping[I].C = CP then
+            begin
+                CodePageStr := IconvCodepageMapping[I].A;
+                Break;
+            end;
+        end;
+
+        // Try to get the encoding for the code page
+        try
+            Encoding := TEncoding.GetEncoding(CodePageStr);
+            Result := Assigned(Encoding);
+        except
+            on E: EEncodingError do
+                Result := False;
         end;
     end;
 end;
@@ -1599,21 +1817,15 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function IcsGetTickCount: LongWord;
-{$IFDEF MSWINDOWS}
 begin
+{$IFDEF MSWINDOWS}
     Result := {$IFDEF RTL_NAMESPACES}Winapi.{$ENDIF}Windows.GetTickCount;
 {$ENDIF}
 {$IFDEF POSIX}
-{$IFDEF LINUX}
-//var
-//    t: tms;
-begin
-//    Result := Cardinal(Int64(Cardinal(times(t)) * 1000) div sysconf(_SC_CLK_TCK));
-    Result := System.Classes.TThread.GetTickCount; { V8.65 system.pas provides this for all OS }
-{$ENDIF}
 {$IFDEF MACOS}
-begin
     Result := AbsoluteToNanoseconds(UpTime) div 1000000;
+{$ELSE}
+    Result := System.Classes.TThread.GetTickCount; { V8.65 system.pas provides this for all OS }
 {$ENDIF MACOS}
 {$ENDIF POSIX}
     if Result = 0 then
@@ -1632,6 +1844,7 @@ begin
         Result := -1;
 {$ENDIF}
 {$IFDEF POSIX}
+{$IFDEF MACOS}
 var
     FN  : RawByteString; // Path or file name
     Buf : _statvfs;
@@ -1641,7 +1854,13 @@ begin
         Result := Int64(Buf.f_bfree) * Int64(Buf.f_frsize)  { V8.65 }
     else
         Result := -1;
-{$ENDIF}
+{$ELSE}
+begin
+ //   Result := SysUtils.DiskFree(APath);   // Windows only
+      {$MESSAGE 'TODO DiskFree for Android'}
+        Result := -1;
+{$ENDIF MACOS}
+{$ENDIF POSIX}
 end;
 
 
@@ -1661,7 +1880,8 @@ begin
         Result := 0; // Error
     end;
 end;
-{$ENDIF}
+{$ENDIF WINDOWS}
+{$IFDEF POSIX}
 {$IFDEF MACOS}
 var
     LTZ: CFTimeZoneRef;
@@ -1687,13 +1907,15 @@ begin
         CFRelease(LTZ);
     end;
 end;
-{$ENDIF}
-{$IFDEF LINUX}
+{$ELSE}
+var
+    TimeZone: TTimeZone;
 begin
-  {$MESSAGE 'TODO LocalTimeZoneBias'}           { V8.65 pending Linux }
-  Result := 0; // Error
+    TimeZone := TTimeZone.Local;
+    Result := -Round(TimeZone.GetUtcOffset(Now).TotalMinutes);
 end;
-{$ENDIF}
+{$ENDIF MACOS}
+{$ENDIF POSIX}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.62 Get time zone bias as string, ie -0730 }
@@ -1810,6 +2032,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.53 RFC3339 string date to TDateTime, aka ISO 8601 date }
+{ note ISO 8601 requires T for time separator, RFC3339 allows space instead }
 { V8.62 optionally process time zone and convert to local time }
 {  yyyy-mm-ddThh:nn:ssZ (ISODateTimeMask), might be NULL
    yyyy-mm-ddThh:nn:ss.sss (milliseconds on end
@@ -1868,7 +2091,7 @@ begin
 { V8.62 check for time zone, Z, GMT, +07:00, +0200, -1000, -03:30 }
     if Length(aDate) < (tzoffset + 2) then Exit ;  // no time zone
     sign := aDate [tzoffset];
-    if (sign = '-') or (sign = '+') then begin // ignore Z
+    if (sign = '-') or (sign = '+') then begin // ignore Z which means +0000
         tzvalue := StrToIntDef(copy (aDate, tzoffset + 1, 2), 0) * 60;
         if Length(aDate) > (tzoffset + 4) then begin
             if (aDate [tzoffset + 3] = '3') or (aDate [tzoffset + 4] = '3') then
@@ -1879,7 +2102,7 @@ begin
         else
             Result := Result - (tzvalue / MinutesPerDay);
     end;
-    Result := Result - (IcsGetLocalTimeZoneBias / MinutesPerDay);
+    Result := Result - (IcsGetLocalTimeZoneBias / MinutesPerDay);  // correct for summer time
 end ;
 
 
@@ -1902,11 +2125,27 @@ end ;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.62 RFC3339 TDateTime to UTC then to time zone string, aka ISO 8601 date }
-{ TDateTime to to yyyy-mm-ddThh:nn:ss+hhmm - no quotes, no Z }
+{ TDateTime to to yyyy-mm-ddThh:nn:ss - no quotes, no Z }
 function RFC3339_DateToUtcStr(DT: TDateTime): String;
 begin
     Result := RFC3339_DateToStr(IcsDateTimeToUTC(DT), False);
 end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.4 TDateTimne to string with short alphabetic month and time, ie 01-Jan-2025 14:15:16, mainly for logging  }
+function IcsDateTimeToAStr(const DateTime: TDateTime): string;
+begin
+  DateTimeToString(Result, DateTimeAlphaMask, DateTime);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.4 TDateTimne to string with short alphabetic month, ie 01-Jan-2025, mainly for logging  }
+function IcsDateToAStr(const DateTime: TDateTime): string;
+begin
+  DateTimeToString(Result, DateAlphaMask, DateTime);
+end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -2290,7 +2529,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsUsAscii(const Str: RawByteString): Boolean;
+function IsUsAscii(const Str: RawByteString): Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I : Integer;
 begin
@@ -2304,7 +2543,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsUsAscii(const Str: UnicodeString): Boolean;
+function IsUsAscii(const Str: UnicodeString): Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I : Integer;
 begin
@@ -2321,7 +2560,7 @@ end;
 { Assumes parameter Str does not contain any 8Bit characters otherwise they   }
 { are replaced by FailCh. When we use plain ASCII payload this could be the   }
 { fastes cast. Sometimes we handle 7 bit strings only.                        }
-function UnicodeToUsAscii(const Str: UnicodeString; FailCh: AnsiChar): AnsiString;
+function UnicodeToUsAscii(const Str: UnicodeString; FailCh: AnsiChar): AnsiString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I   : Integer;
     Len : Integer;
@@ -2338,7 +2577,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function UnicodeToUsAscii(const Str: UnicodeString): AnsiString;
+function UnicodeToUsAscii(const Str: UnicodeString): AnsiString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := UnicodeToUsAscii(Str, DefaultFailChar);
 end;
@@ -2346,7 +2585,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts an UnicodeString to an AnsiString.                                 }
-function UnicodeToAnsi(const Str: UnicodeString; ACodePage: LongWord; SetCodePage: Boolean = False): RawByteString;
+function UnicodeToAnsi(const Str: UnicodeString; ACodePage: LongWord; SetCodePage: Boolean = False): RawByteString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Len, Len2 : Integer;
 begin
@@ -2372,7 +2611,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts an UnicodeString to an AnsiString using current code page.         }
-function UnicodeToAnsi(const Str: UnicodeString): RawByteString;
+function UnicodeToAnsi(const Str: UnicodeString): RawByteString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := UnicodeToAnsi(Str, CP_ACP);
 end;
@@ -2380,7 +2619,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.67 overload with specified size buffer that may include nulls }
-function AnsiToUnicode(const Buffer; BufferSize: Integer; ACodePage: LongWord): UnicodeString;
+function AnsiToUnicode(const Buffer; BufferSize: Integer; ACodePage: LongWord): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Len, Len2 : Integer;
 begin
@@ -2406,7 +2645,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function AnsiToUnicode(const Str: PAnsiChar; ACodePage: LongWord): UnicodeString;
+function AnsiToUnicode(const Str: PAnsiChar; ACodePage: LongWord): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Len, Len2 : Integer;
 begin
@@ -2433,7 +2672,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function UnicodeToAnsi(const Str: PWideChar; ACodePage: LongWord;
-  SetCodePage: Boolean = False): RawByteString;
+  SetCodePage: Boolean = False): RawByteString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Len, Len2 : Integer;
 begin
@@ -2464,7 +2703,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function AnsiToUnicode(const Str: RawByteString; ACodePage: LongWord): UnicodeString;
+function AnsiToUnicode(const Str: RawByteString; ACodePage: LongWord): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 {var
     Len, Len2 : Integer;  }
 begin
@@ -2488,14 +2727,14 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function AnsiToUnicode(const Str: RawByteString): UnicodeString;
+function AnsiToUnicode(const Str: RawByteString): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := AnsiToUnicode(Pointer(Str), Length(Str), CP_ACP);     { V8.67 }
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function UsAsciiToUnicode(const Str: RawByteString; FailCh: AnsiChar): UnicodeString;
+function UsAsciiToUnicode(const Str: RawByteString; FailCh: AnsiChar): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I  : Integer;
     P  : PSmallInt;
@@ -2513,7 +2752,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function UsAsciiToUnicode(const Str: RawByteString): UnicodeString;
+function UsAsciiToUnicode(const Str: RawByteString): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := UsAsciiToUnicode(Str, DefaultFailChar);
 end;
@@ -3020,7 +3259,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { BufferCodePage may include CP_UTF16, CP_UTF16Be, CP_UTF32 and CP_UTF32Be, or CP_UTF8 etc }
 function IcsBufferToUnicode(const Buffer; BufferSize: Integer;
-  BufferCodePage: LongWord; out FailedByteCount: Integer): UnicodeString;
+  BufferCodePage: LongWord; out FailedByteCount: Integer): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     WCharCnt: Integer;
 begin
@@ -3041,7 +3280,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { BufferCodePage may include CP_UTF16, CP_UTF16Be, CP_UTF32 and CP_UTF32Be, or CP_UTF8 etc }
 function IcsBufferToUnicode(const Buffer; BufferSize: Integer;
-  BufferCodePage: LongWord; RaiseFailedBytes: Boolean = FALSE): UnicodeString;
+  BufferCodePage: LongWord; RaiseFailedBytes: Boolean = FALSE): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     FailedBytes : Integer;
 begin
@@ -3113,7 +3352,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function  IcsGetBufferCodepage(Buf: PAnsiChar; ByteCount: Integer): LongWord;  { V8.07 }
+function  IcsGetBufferCodepage(Buf: PAnsiChar; ByteCount: Integer): LongWord; {$IFDEF ANDROID} overload; {$ENDIF} { V8.07 }
 var
   LBOMSize: Integer;
 begin
@@ -3122,8 +3361,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsGetBufferCodepage(Buf: PAnsiChar; ByteCount: Integer;              { V8.07 }
-  out BOMSize: Integer): LongWord;
+function IcsGetBufferCodepage(Buf: PAnsiChar; ByteCount: Integer; out BOMSize: Integer): LongWord; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := CP_ACP;
     BOMSize := 0;
@@ -3158,7 +3396,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Assumes that the string is a Windows, UTF-16 little endian wide string      }
 function StreamWriteString(AStream: TStream; Str: PWideChar; cLen: Integer;
-  ACodePage: LongWord; WriteBOM: Boolean): Integer;
+  ACodePage: LongWord; WriteBOM: Boolean): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     SBuf  : array [0..2047] of Byte;
     Len   : Integer;
@@ -3257,7 +3495,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function StreamWriteString(AStream: TStream; Str: PWideChar; cLen: Integer;
-  ACodePage: LongWord): Integer;
+  ACodePage: LongWord): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := StreamWriteString(AStream, Str, cLen, ACodePage, FALSE);
 end;
@@ -3265,7 +3503,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function StreamWriteString(AStream: TStream; const Str: UnicodeString;
- ACodePage: LongWord; WriteBOM: Boolean): Integer;
+ ACodePage: LongWord; WriteBOM: Boolean): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := StreamWriteString(AStream, Pointer(Str), Length(Str),
                                 ACodePage, WriteBom);
@@ -3273,7 +3511,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function StreamWriteString(AStream: TStream; const Str: UnicodeString): Integer;
+function StreamWriteString(AStream: TStream; const Str: UnicodeString): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result:= StreamWriteString(AStream, Pointer(Str), Length(Str),
                                CP_ACP, FALSE);
@@ -3281,8 +3519,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function StreamWriteString(AStream: TStream; const Str: UnicodeString;
-  ACodePage: LongWord): Integer;
+function StreamWriteString(AStream: TStream; const Str: UnicodeString; ACodePage: LongWord): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result:= StreamWriteString(AStream, Pointer(Str), Length(Str),
                                ACodePage, FALSE);
@@ -3291,7 +3528,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { This one is around 3-4 times faster } { AG }
-function atoi(const Str : RawByteString): Integer;
+function atoi(const Str : RawByteString): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     P : PAnsiChar;
 begin
@@ -3314,7 +3551,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { This one is around 3-4 times faster } { AG }
-function atoi(const Str : UnicodeString): Integer;
+function atoi(const Str : UnicodeString): Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     P : PWideChar;
 begin
@@ -3339,7 +3576,7 @@ end;
 {$IFDEF STREAM64}
 
 { This one is around 3-4 times faster } { AG }
-function atoi64(const Str : RawByteString): Int64;
+function atoi64(const Str : RawByteString): Int64; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     P : PAnsiChar;
 begin
@@ -3362,7 +3599,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { This one is around 3-4 times faster } { AG }
-function atoi64(const Str : UnicodeString): Int64;
+function atoi64(const Str : UnicodeString): Int64; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     P : PWideChar;
 begin
@@ -3394,7 +3631,7 @@ end;
 
 
 { * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * }
-function StringToUtf8(const Str: UnicodeString): RawByteString;
+function StringToUtf8(const Str: UnicodeString): RawByteString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := UnicodeToAnsi(Str, CP_UTF8, True);
 end;
@@ -3464,7 +3701,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function StringToUtf8(const Str: RawByteString; ACodePage: LongWord = CP_ACP): RawByteString;
+function StringToUtf8(const Str: RawByteString; ACodePage: LongWord = CP_ACP): RawByteString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := ConvertCodepage(Str, ACodePage, CP_UTF8);
 end;
@@ -3474,6 +3711,13 @@ end;
 function Utf8ToStringW(const Str: RawByteString): UnicodeString;
 begin
     Result := AnsiToUnicode(Pointer(Str), Length(Str), CP_UTF8);         { V8.67 }
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function Utf8ToStringTB(const Str: TBytes): UnicodeString;               { V9.1 }
+begin
+    Result := AnsiToUnicode(Pointer(Str), Length(Str), CP_UTF8);
 end;
 
 
@@ -3547,7 +3791,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function CharsetDetect(const Buf: Pointer; Len: Integer): TCharsetDetectResult;
+function CharsetDetect(const Buf: Pointer; Len: Integer): TCharsetDetectResult; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     PEndBuf   : PByte;
     PBuf      : PByte;
@@ -3634,21 +3878,21 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function CharsetDetect(const Str: RawByteString): TCharsetDetectResult;
+function CharsetDetect(const Str: RawByteString): TCharsetDetectResult; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := CharsetDetect(Pointer(Str), Length(Str));
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsUtf8Valid(const Str: RawByteString): Boolean;
+function IsUtf8Valid(const Str: RawByteString): Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := CharSetDetect(Pointer(Str), Length(Str)) <> cdrUnknown;
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsUtf8Valid(const Buf: Pointer; Len: Integer): Boolean;
+function IsUtf8Valid(const Buf: Pointer; Len: Integer): Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := CharSetDetect(Buf, Len) <> cdrUnknown;
 end;
@@ -3771,7 +4015,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function XDigit(Ch : WideChar) : Integer;
+function XDigit(Ch : WideChar) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     case Ch of
         '0'..'9' : Result := Ord(Ch) - Ord('0');
@@ -3782,7 +4026,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function XDigit(Ch : AnsiChar) : Integer;
+function XDigit(Ch : AnsiChar) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     case Ch of
         '0'..'9' : Result := Ord(Ch) - Ord('0');
@@ -3800,7 +4044,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsXDigit(Ch : WideChar) : Boolean;
+function IsXDigit(Ch : WideChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := ((Ch >= '0') and (Ch <= '9')) or
               ((Ch >= 'a') and (Ch <= 'f')) or
@@ -3809,7 +4053,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsXDigit(Ch : AnsiChar) : Boolean;
+function IsXDigit(Ch : AnsiChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := ((Ch >= '0') and (Ch <= '9')) or
               ((Ch >= 'a') and (Ch <= 'f')) or
@@ -3818,7 +4062,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function htoin(Value : PWideChar; Len : Integer) : Integer;
+function htoin(Value : PWideChar; Len : Integer) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I : Integer;
 begin
@@ -3834,7 +4078,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function htoin(Value : PAnsiChar; Len : Integer) : Integer;
+function htoin(Value : PAnsiChar; Len : Integer) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     I : Integer;
 begin
@@ -3850,14 +4094,14 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function htoi2(Value : PWideChar) : Integer;
+function htoi2(Value : PWideChar) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := htoin(Value, 2);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function htoi2(Value : PAnsiChar) : Integer;
+function htoi2(Value : PAnsiChar) : Integer; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := htoin(Value, 2);
 end;
@@ -3868,7 +4112,7 @@ const
     HexTable : array[0..15] of Char =
     ('0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F');
 
-function IcsBufferToHex(const Buf; Size: Integer; Separator: Char): String;
+function IcsBufferToHex(const Buf; Size: Integer; Separator: Char): String; {$IFDEF ANDROID} overload; {$ENDIF}
 const
     Fact = 3;
 var
@@ -3893,7 +4137,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsBufferToHex(const Buf; Size: Integer): String;
+function IcsBufferToHex(const Buf; Size: Integer): String; {$IFDEF ANDROID} overload; {$ENDIF}
 const
     Fact = 2;
 var
@@ -3920,11 +4164,20 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function  IcsBufferToHex(const BufStr: AnsiString): String; overload;    { V8.53 }
+function IcsBufferToHex(const BufStr: AnsiString): String; overload;    { V8.53 }
 begin
     Result := '';
     if Length(BufStr) > 0 then
         Result := IcsBufferToHex(BufStr[1], Length(BufStr));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsTBToHex(const BufTB: TBytes): String;                      { V9.1 }
+begin
+    Result := '';
+    if Length(BufTB) > 0 then
+        Result := IcsBufferToHex(BufTB[0], Length(BufTB));    { V9.4 fixed 1>0 }
 end;
 
 
@@ -3943,72 +4196,129 @@ begin
     end;
 end;
 
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsHexToTB(const HexBuf: AnsiString): TBytes;             { V9.5 }
+var
+    Source: PAnsiChar;
+    I, binlen, hexlen: integer;
+begin
+    hexlen := Length(hexBuf);
+    SetLength(Result, hexlen);
+    binlen := 0;
+    I := 1;
+    Source := Pointer (HexBuf) ;
+    while (I < hexlen) do begin
+        Result[binlen] := htoin(Source, 2);
+        I := I + 2;
+        Inc (Source, 2);
+        binlen := binlen + 1;
+        if HexBuf[I] = ':'  then begin   { skip colon separators }
+            I := I + 1;
+            Inc (Source, 1);
+        end;
+    end;
+    SetLength(Result, binlen);
+end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsCharInSysCharSet(Ch : WideChar; const ASet : TSysCharSet) : Boolean;
+{ break long hex string (or anything really) into groups and lines, 0=none }
+function IcsFormatHexStr(const HexStr: String; GroupLen: Integer = 8; LineLen: Integer = 64): String;     { V9.1 }
+var
+    Len, Offset, NewLen: Integer;
+begin
+    Result := HexStr;
+    Len := Length(HexStr);
+    if (Len = 0) then
+        Exit;
+    if (GroupLen > 1) then begin
+        Offset := 1;
+        Result := '';
+        while OffSet <= Length(HexStr) do begin
+            if Offset > 1 then
+                Result := Result + IcsSpace;
+            Result := Result + Copy(HexStr, Offset, GroupLen);
+            Offset := Offset + GroupLen;
+        end;
+    end;
+    if (LineLen > 1) then begin
+        NewLen := LineLen;
+        if GroupLen > 0 then
+            NewLen := NewLen + (LineLen div GroupLen);
+        Offset := NewLen + 1;
+        while OffSet <= Length(Result) do begin
+            Insert(IcsCRLF, Result, Offset);
+            Offset := Offset + NewLen + 2;
+        end;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IsCharInSysCharSet(Ch : WideChar; const ASet : TSysCharSet) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := (Ord(Ch) < 256) and (AnsiChar(Ch) in ASet);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsCharInSysCharSet(Ch : AnsiChar; const ASet : TSysCharSet) : Boolean;
+function IsCharInSysCharSet(Ch : AnsiChar; const ASet : TSysCharSet) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Ch in ASet;
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsDigit(Ch : WideChar) : Boolean;
+function IsDigit(Ch : WideChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := (Ch >= '0') and (Ch <= '9');
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsDigit(Ch : AnsiChar) : Boolean;
+function IsDigit(Ch : AnsiChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Ch in ['0'..'9'];
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsSpace(Ch : WideChar) : Boolean;
+function IsSpace(Ch : WideChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := (Ch = ' ') or (Ch = #9);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsSpace(Ch : AnsiChar) : Boolean;
+function IsSpace(Ch : AnsiChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Ch in [' ', #9];
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsCRLF(Ch : WideChar) : Boolean;
+function IsCRLF(Ch : WideChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := (Ch = #10) or (Ch = #13);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsCRLF(Ch : AnsiChar) : Boolean;
+function IsCRLF(Ch : AnsiChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Ch in [#10, #13];
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsSpaceOrCRLF(Ch : WideChar) : Boolean;
+function IsSpaceOrCRLF(Ch : WideChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := (Ch = ' ') or (Ch = #9) or (Ch = #10) or (Ch = #13);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IsSpaceOrCRLF(Ch : AnsiChar) : Boolean;
+function IsSpaceOrCRLF(Ch : AnsiChar) : Boolean; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Ch in [' ', #9, #10, #13];
 
@@ -4016,7 +4326,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function stpblk(PValue : PWideChar) : PWideChar;
+function stpblk(PValue : PWideChar) : PWideChar; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := PValue;
     while IsSpaceOrCRLF(Result^) do
@@ -4025,7 +4335,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function stpblk(PValue : PAnsiChar) : PAnsiChar;
+function stpblk(PValue : PAnsiChar) : PAnsiChar; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := PValue;
     while IsSpaceOrCRLF(Result^) do
@@ -4066,8 +4376,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsNormalizeString(const S: UnicodeString;
-  NormForm: TIcsNormForm): UnicodeString;
+function IcsNormalizeString(const S: UnicodeString; NormForm: TIcsNormForm): UnicodeString;
 {$IFDEF MSWINDOWS}
 var
     Cnt   : Integer;
@@ -5744,9 +6053,10 @@ begin
     SResult := {$IFDEF RTL_NAMESPACES}System.{$ENDIF}SysUtils.FindFirst(LongFile, faAnyFile, SearchRec);
     if SResult = 0 then begin
      {$IFDEF MSWINDOWS}
+        TempSize.QuadPart := 0;  { V9.5 }
         TempSize.LowPart  := SearchRec.FindData.nFileSizeLow ;
         TempSize.HighPart := SearchRec.FindData.nFileSizeHigh ;
-        FSize             := TempSize.QuadPart ;
+        FSize             := Int64(TempSize.QuadPart);  { V9.5 unsigned to signed cast }
         FileUDT := FileTimeToDateTime (SearchRec.FindData.ftLastWriteTime);
       {$ENDIF}
       {$IFDEF POSIX}
@@ -5816,7 +6126,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 { TIcsFileStreamW }
-
+{$IFNDEF UNICODE}     { V9.1 not needed for unicode compilers }
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor TIcsFileStreamW.Create(const FileName: UnicodeString; Mode: Word);
 begin
@@ -5904,6 +6214,7 @@ begin
 {$ENDIF}
     inherited Destroy;
 end;
+{$ENDIF UNICODE}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -6232,15 +6543,20 @@ end;
 { we receive socket as single byte raw data into TBytes buffer without a
   character set, then convert it onto Delphi Strings for ease of processing }
 { Beware - this function treats buffers as ANSI, no Unicode conversion }
+{ beware Dest string is not cleared, and may be partiallly overritten according to offsets }
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
-                      var Dest: String; OffsetTo: Integer; Count: Integer);  { V8.49 }
 {$IFDEF UNICODE}
+{ V9.1 separate Unicode and Ansi versions so both can be used in unicode apps }
+procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer; var Dest: String; OffsetTo: Integer; Count: Integer);  { V8.49 }
 var
     PSrc  : PByte;
     PDest : PChar;
 begin
     PSrc  := Pointer(Buffer);
+    if (Count <= 0) or (Count > Length(Buffer)) then   { V9.1 sanity check }
+        Count := Length(Buffer);
+    if OffsetTo = 0 then
+        OffsetTo := 1;
     if Length(Dest) < (OffsetTo + Count - 1) then
         SetLength(Dest, OffsetTo + Count - 1);
     PDest := Pointer(Dest);
@@ -6251,27 +6567,42 @@ begin
         Inc(OffsetFrom);
         Dec(Count);
     end;
-{$ELSE}
+end;
+{$ENDIF}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert TBytes into AnsiString }
+{ beware Dest string is not cleared, and may be partiallly overritten according to offsets }
+procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer; var Dest: AnsiString; OffsetTo: Integer; Count: Integer);  { V9.1 }
 begin
+    if (Count <= 0) or (Count > Length(Buffer)) then
+        Count := Length(Buffer);
+    if OffsetTo = 0 then
+        OffsetTo := 1;
     if Length(Dest) < (OffsetTo + Count - 1) then
         SetLength(Dest, OffsetTo + Count - 1);
     Move(Buffer[OffsetFrom], Dest[OffsetTo], Count);
-{$ENDIF}
 end;
-
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { we receive socket as single byte raw data into TBytes buffer without a
-  character set, then convertit onto Delphi Strings for ease of processing }
+  character set, then convert it onto Delphi Strings for ease of processing }
 { this function handles Unicode conversion, returns widestring }
+{ beware Dest string is not cleared, and may be partiallly overritten according to offsets }
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
-        var Dest: UnicodeString; OffsetTo: Integer; Count: Integer; ACodePage: LongWord);  { V8.50 }
+                           var Dest: UnicodeString; OffsetTo: Integer; Count: Integer; ACodePage: LongWord);  { V8.50 }
 var
     WS: UnicodeString;
     FailedByteCount: Integer;
 begin
+    Dest := '';
+    if NOT Assigned(Buffer) then   { V9.1 sanity check }
+        Exit;
+    if (Count <= 0) or (Count > Length(Buffer)) then   { V9.1 sanity check }
+        Count := Length(Buffer);
 //    if (ACodePage = CP_UTF16) or (ACodePage = CP_UTF16Be) then
     WS := IcsBufferToUnicode(Pointer(@Buffer[OffsetFrom])^, Count, ACodePage, FailedByteCount);
 //     else
@@ -6288,6 +6619,7 @@ end;
 { we receive socket as single byte raw data into TBytes buffer without a
   character set, then convertit onto Delphi Strings for ease of processing }
 { this function handles Unicode conversion, returns AnsiString }
+{ beware Dest string is not cleared, and may be partiallly overritten according to offsets }
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure IcsMoveTBytesToString(const Buffer: TBytes; OffsetFrom: Integer;
         var Dest: AnsiString; OffsetTo: Integer; Count: Integer; ACodePage: LongWord);  { V8.50 }
@@ -6302,55 +6634,34 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { simple conversion of TBytes to unicode string }
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsTBytesToString(const Buffer: TBytes; Count: Integer; ACodePage: LongWord = CP_UTF8): UnicodeString;  { V8.71 }
+function IcsTBytesToString(const Buffer: TBytes; Count: Integer = 0; ACodePage: LongWord = CP_UTF8): UnicodeString;  { V8.71 V9.1 added = 0 }
 begin
     Result := '';
-    IcsMoveTBytesToString(Buffer, 0, Result, 0, Count, ACodePage);
+    IcsMoveTBytesToString(Buffer, 0, Result, 1, Count, ACodePage);
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ Converts a String to a TBytes buffer as ANSI, no Unicode conversion }
-(* V8.69 seperate unicode and ansi versions so they can be used separetly
-function IcsMoveStringToTBytes(const Source: String; var Buffer: TBytes;
-                                                Count: Integer): integer;  { V8.50 }
-{$IFDEF UNICODE}
-var
-    PDest : PByte;
-    PSrc  : PChar;
-    I     : Integer;
+{ simple conversion of TBytes to Ansistring }
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsTBytesToStringA(const Buffer: TBytes; Count: Integer= 0): AnsiString;            { V9.1 }
 begin
-    PSrc  := Pointer(Source);
-    if Count > Length(Source) then
-        Count := Length(Source);
-    if Length(Buffer) < Count then
-        SetLength(Buffer, Count);
-    PDest := Pointer(Buffer);
-    for I := 0 to Count - 1 do begin
-        PDest[I] := Byte(PSrc[I]);
-    end;
-{$ELSE}
-begin
-    if Count > Length(Source) then
-        Count := Length(Source);
-    if Length(Buffer) < Count then
-        SetLength(Buffer, Count);
-    Move(Source[1], Buffer[0], Count);
-{$ENDIF}
-    Result := Count;
-end;  *)
+    Result := '';
+    IcsMoveTBytesToString(Buffer, 0, Result, 1, Count);
+end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts a Unicode String to a TBytes buffer as ANSI, no Unicode conversion }
 {$IFDEF UNICODE}
-function IcsMoveStringToTBytes(const Source: String; var Buffer: TBytes;
-                                                       Count: Integer): integer;  { V8.69 }
+function IcsMoveStringToTBytes(const Source: String; var Buffer: TBytes; Count: Integer): integer;  { V8.69 }
 var
     PDest : PByte;
     PSrc  : PChar;
     I     : Integer;
 begin
     PSrc  := Pointer(Source);
-    if Count > Length(Source) then
+    if (Count = 0) or (Count > Length(Source)) then
         Count := Length(Source);
     if Length(Buffer) < Count then
         SetLength(Buffer, Count);
@@ -6364,10 +6675,9 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts an ANSI String to a TBytes buffer }
-function IcsMoveStringToTBytes(const Source: AnsiString; var Buffer: TBytes;
-                                                          Count: Integer): integer;  { V8.69 }
+function IcsMoveStringToTBytes(const Source: AnsiString; var Buffer: TBytes; Count: Integer): integer;  { V8.69 }
 begin
-    if Count > Length(Source) then
+    if (Count = 0) or (Count > Length(Source)) then
         Count := Length(Source);
     if Length(Buffer) < Count then
         SetLength(Buffer, Count);
@@ -6379,57 +6689,71 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts an UnicodeString to a TBytes buffer with correct codepage }
 function IcsMoveStringToTBytes(const Source: UnicodeString; var Buffer: TBytes;
-                            Count: Integer; ACodePage: LongWord; Bom: Boolean = false): Integer;  { V8.50 }
+                                               Count: Integer; ACodePage: LongWord; Bom: Boolean = false): Integer;  { V8.50 }
 var
     Len2, Offset: Integer;
     Newbom: TBytes;
 begin
-    Result := 0;
-    if Length(Source) < Count then Count := Length(Source);
-    if Count > 0 then begin
+    if (Count = 0) or (Count > Length(Source)) then
+         Count := Length(Source);
 
-      // two byte code page, cheat and copy unicode string with CP_UTF16 BOM
-        if (ACodePage = CP_UTF16) or (ACodePage = CP_UTF16Be) then begin
-            Newbom := IcsGetBomBytes(CP_UTF16);
+  // two byte code page, cheat and copy unicode string with CP_UTF16 BOM
+    if (ACodePage = CP_UTF16) or (ACodePage = CP_UTF16Be) then begin
+        Newbom := IcsGetBomBytes(CP_UTF16);
+        Offset := Length(Newbom);
+        Result := (Count * 2) + Offset;
+        if Length(Buffer) < Result then
+            SetLength(Buffer, Result);
+        Move(newbom[0], Buffer[0], Offset);
+        Move(Source[1], Buffer[2], Count);
+    end
+
+ // handle all other codepages
+    else begin
+        Result := IcsWcToMb(ACodePage, 0, Pointer(Source), Count, nil, 0, nil, nil);
+        Offset := 0;
+        SetLength(NewBom, 0); { V8.54 keep D7 happy }
+        if Bom then begin
+            Newbom := IcsGetBomBytes(ACodePage);
             Offset := Length(Newbom);
-            Result := (Count * 2) + Offset;
-            if Length(Buffer) < Result then
-                SetLength(Buffer, Result);
-            Move(newbom[0], Buffer[0], Offset);
-            Move(Source[1], Buffer[2], Count);
-        end
-
-     // handle all other codepages
-        else begin
-            Result := IcsWcToMb(ACodePage, 0, Pointer(Source), Count, nil, 0, nil, nil);
-            Offset := 0;
-            SetLength(NewBom, 0); { V8.54 keep D7 happy }
-            if Bom then begin
-                Newbom := IcsGetBomBytes(ACodePage);
-                Offset := Length(Newbom);
-                Result := Result + Offset;
+            Result := Result + Offset;
+        end;
+        if Length(Buffer) < Result then
+            SetLength(Buffer, Result);
+        if Result > 0 then begin
+            if Bom and (Length(NewBom) > 0) then begin { V8.54 keep D7 happy }
+                Move(NewBom[0], Buffer[0], Offset);
             end;
-            if Length(Buffer) < Result then
+            Len2 := IcsWcToMb(ACodePage, 0, Pointer(Source), Count, PAnsiChar(@Buffer[Offset]), Result, nil, nil);
+            if Len2 <> Result then begin // May happen, very rarely
+                Result := Len2 + Offset;
                 SetLength(Buffer, Result);
-            if Result > 0 then begin
-                if Bom and (Length(NewBom) > 0) then begin { V8.54 keep D7 happy }
-                    Move(NewBom[0], Buffer[0], Offset);
-                end;
-                Len2 := IcsWcToMb(ACodePage, 0, Pointer(Source), Count,
-                                    PAnsiChar(@Buffer[Offset]), Result, nil, nil);
-                if Len2 <> Result then begin // May happen, very rarely
-                    Result := Len2 + Offset;
-                    SetLength(Buffer, Result);
-                end;
             end;
         end
     end;
 end;
 
 
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Converts an UnicodeString to a TBytes buffer with correct codepage }
+function IcsStringToTBytes(const Source: String; ACodePage: LongWord = CP_UTF8): TBytes;   { V9.1 }
+begin
+    SetLength(Result, 0);
+    IcsMoveStringToTBytes(Source, Result, Length(Source), ACodePage, False);
+end;
+
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsMoveTBytes(var Buffer: TBytes; OffsetFrom: Integer; OffsetTo: Integer;
-                                Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}   { V8.49 }
+{ Converts an ANSI String to a TBytes buffer }
+function IcsStringAToTBytes(const Source: AnsiString): TBytes;                         { V9.1 }
+begin
+    SetLength(Result, 0);
+    IcsMoveStringToTBytes(Source, Result, Length(Source));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure IcsMoveTBytes(var Buffer: TBytes; OffsetFrom: Integer; OffsetTo: Integer; Count: Integer); {$IFDEF USE_INLINE} inline; {$ENDIF}   { V8.49 }
 begin
     Move(Buffer[OffsetFrom], Buffer[OffsetTo], Count);
 end;
@@ -6446,7 +6770,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ Pos that ignores nulls in the TBytes buffer, so avoid PAnsiChar functions }
+{ Pos that ignores nulls in the TBytes buffer base 0, so avoid PAnsiChar functions, returns -1 not found }
 function IcsTBytesPos(const Substr: String; const S: TBytes; Offset, Count: Integer): Integer;  { V8.49 }
 var
     Ch: Byte;
@@ -6455,7 +6779,14 @@ var
 begin
     Result := -1;
     SubLen := Length(Substr);
-    if SubLen = 0 then Exit;
+    if SubLen = 0 then
+        Exit;
+    if Length(S) = 0 then
+        Exit;
+    if (Count <= 0) or (Count > Length(S)) then   { V9.1 sanity check }
+        Count := Length(S);
+    if (Offset >= Count) then
+        Offset := 0;
     Ch := Byte(SubStr[1]);
     for I := Offset to Count - SubLen do begin
         if S[I] = Ch then begin
@@ -6505,6 +6836,17 @@ begin
       Result := TRUE;
 {$ENDIF}
 end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ case sensitive comparison of two TBytes }
+ function IcsTBytesCompare(const Input1, Input2: TBytes): Boolean;                { V9.4 }
+ begin
+    Result := False;
+    if (Length(Input1) <> Length(Input2)) then
+        Exit;
+    Result := CompareMem(@Input1[0], @Input2[0], Length(Input1));
+ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -6614,6 +6956,11 @@ begin
     else
         Result := Result + suffix;
 end ;
+
+function IcsIntToKbyte (Value: Int64; Bytes: boolean = false): String;  { V9.5 better name }
+begin
+    Result := IntToKbyte (Value, Bytes);
+end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -6978,8 +7325,9 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.57 get the computer name from networking, moved from web sample }
-{$IFDEF MSWINDOWS}   { V8.64 not MacOS }
+{ V9.3 supported on Posix }
 function IcsGetCompName: String;
+{$IFDEF MSWINDOWS}   { V8.64 not MacOS }
 var
     Buffer: array[0..255] of WideChar ;
     NLen: DWORD ;
@@ -6989,6 +7337,13 @@ begin
     NLen := Length (Buffer) ;
     if GetComputerNameW (Buffer, NLen) then Result := Buffer ;
 end ;
+{$ELSE}
+var
+    Hostname: TBytes;   // ?? should this be a global
+begin
+    Hostname := IcsDataLoadFile('/etc/hostname', 32);
+    Result := IcsTBytesToString(Hostname);
+end;
 {$ENDIF}
 
 
@@ -7074,10 +7429,41 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 compare two binary TByes, used by sorting functions }
+function IcsCompareTBytes(const T1, T2: TBytes): Integer; // 0=equal, >=1 T1 more than T2, <=-1 T1 less than T2  { V9.5 }
+var
+    Len1, Len2, Last, Idx: Integer;
+begin
+    Len1 := Length(T1);
+    Len2 := Length(T2);
+    if (Len1 = Len2) then begin
+        if (Len1 = 0) or CompareMem(@T1[0], @T2[0], Len1) then begin
+            Result := 0;   // compared same
+            Exit;
+        end;
+    end;
+    Result := Len1 - Len2;
+    if (Len1 > 0) and (Len2 > 0) then begin
+        if (Result < 0) then
+            Last := Len1
+        else
+            Last := Len2;
+        Idx := 0;
+        while (Idx < Last) do begin
+            if T1[Idx] <> T2[Idx] then begin  // exit at first mismatch
+                Result := T1[Idx] - T2[Idx];
+                Exit;
+            end;
+            Idx := Idx + 1;
+        end;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.60 compare two memory buffers, used for sorting.
  ideally ASM SysUtils.CompareMem should be modified to return less or greater }
-
-function CompareGTMem (P1, P2: Pointer; Length: Integer): Integer;
+function IcsCompareGTMem (P1, P2: Pointer; Length: Integer): Integer;       { V9.5 added Ics }
 var
     I: Integer;
     PC1, PC2: PAnsiChar;
@@ -7556,7 +7942,7 @@ end;
 
 { converts a Unicode label (no dota) into A-Label (Punycode ASCII) if any characters over x7F,
   preceding with ASCII Compatible Encoding (ACE) prefix xn-- }
-function IcsToASCII(const Input: UnicodeString; UseSTD3AsciiRules: Boolean; var ErrFlag: Boolean): String;
+function IcsPunyToASCII(const Input: UnicodeString; UseSTD3AsciiRules: Boolean; var ErrFlag: Boolean): String;    { V9.1 added Puny }
 var
     Nonascii: Boolean;
     I: Integer;
@@ -7570,10 +7956,7 @@ begin
 
     if UseSTD3AsciiRules then begin
         for I := 1 to Length(Input) do begin
-        //    C := ;
             if NOT IcsIsSTD3Ascii(Ord(Input[I])) then Exit;  // error CONTAINS_NON_LDH
-         //   if (C <= $2c) or (C = $2e) or (C = $2f) or ((C >= $3a) and (C <= $40)) or
-         //            ((C >= $5b) and (C <= $60)) or ((C >= $7b) and (C <= $7f)) then Exit;  // error CONTAINS_NON_LDH
         end;
         if (Pos('-', Input) = 1) or (Pos('-', Input) = Length(Input)) then Exit;  // error CONTAINS_HYPHEN
     end;
@@ -7630,14 +8013,14 @@ begin
         for I := 1 to Length(Input) do begin
             Ch:=Input[I];
             if (Ch = '.')  or (Ch = #$3002)  or (Ch = #$ff0e) or (Ch = #$ff61) then  begin
-                Result := Result + IcsToASCII(Node, UseSTD3AsciiRules, ErrFlag) + '.';
+                Result := Result + IcsPunyToASCII(Node, UseSTD3AsciiRules, ErrFlag) + '.';
                 if ErrFlag then Exit;
                 Node := '';
             end
             else
                 Node := Node + Ch;
         end;
-        Result := Result + IcsToASCII(Node, True, ErrFlag);
+        Result := Result + IcsPunyToASCII(Node, True, ErrFlag);
     end;
 end;
 
@@ -7645,11 +8028,11 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { converts a Unicode label (no dota) into A-Label (Punycode ASCII) if any characters over x7F,
   preceding with ASCII Compatible Encoding (ACE) prefix xn-- }
-function IcsToASCII(const Input: UnicodeString): String;
+function IcsPunyToASCII(const Input: UnicodeString): String;          { V9.1 added Puny }
 var
     ErrFlag: Boolean;
 begin
-    Result := IcsToASCII(Input, False, ErrFlag);
+    Result := IcsPunyToASCII(Input, False, ErrFlag);
     if ErrFlag then Result := AnsiString(Input);
 end;
 
@@ -7688,7 +8071,7 @@ end;
 
 { converts an A-Label (Punycode ASCII) into Unicode label if ACE (ASCII Compatible
   Encoding) prefix xn-- found, returns unchanged if conversion fails }
-function IcsToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString;
+function IcsPunyToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF} { V9.1 added Puny }
 var
   Original, Working, Newone: String;
   Output: UnicodeString;
@@ -7709,7 +8092,7 @@ begin
     end;
 
  // now convert it back to ASCII to confirm our decoding worked
-    Newone := IcsToASCII(Output, false, ErrFlag);
+    Newone := IcsPunyToASCII(Output, false, ErrFlag);
     if ErrFlag then begin
         exit;
     end;
@@ -7724,7 +8107,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { converts a A-Label (Punycode ASCII) domain or host name into Unicode if any ACE (ASCII
   Compatible Encoding) prefixes xn-- are found, returns unchanged if conversion fails }
-function IcsIDNAToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString;
+function IcsIDNAToUnicode(const Input: String; var ErrFlag: Boolean): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Ch: Char;
     I: Integer;
@@ -7740,13 +8123,13 @@ begin
         for I := 1 to Length(Input) do begin
             Ch := Input[I];
             if (Ch = '.') then begin
-                Result := Result + IcsToUnicode(Node, ErrFlag) + Ch;
+                Result := Result + IcsPunyToUnicode(Node, ErrFlag) + Ch;
                 Node := '';
             end
             else
                 Node := Node + Ch;
         end;
-        Result := Result + IcsToUnicode(Node, ErrFlag);
+        Result := Result + IcsPunyToUnicode(Node, ErrFlag);
     end;
 end;
 
@@ -7754,18 +8137,18 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { converts an A-Label (Punycode ASCII) into Unicode label if ACE (ASCII Compatible
   Encoding) prefix xn-- found, returns unchanged if conversion fails }
-function IcsToUnicode(const Input: String): UnicodeString;
+function IcsPunyToUnicode(const Input: String): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     ErrFlag: Boolean;
 begin
-    Result := IcsToUnicode(Input, ErrFlag);
+    Result := IcsPunyToUnicode(Input, ErrFlag);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { converts a A-Label (Punycode ASCII) domain or host name into Unicode if any ACE (ASCII
   Compatible Encoding) prefixes xn-- are found, returns unchanged if conversion fails }
-function IcsIDNAToUnicode(const Input: String): UnicodeString;
+function IcsIDNAToUnicode(const Input: String): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     ErrFlag: Boolean;
 begin
@@ -7954,10 +8337,10 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$IFDEF MSWINDOWS}
 { V8.67 copied from OverbyteIcsIniFiles and made general purpose }
 { returns a shell path according to the CSIDL literals, ie CSIDL_LOCAL_APPDATA }
 function IcsGetShellPath(CSIDL: Integer): UnicodeString;
+{$IFDEF MSWINDOWS}
 var
     Buf: array[0..MAX_PATH - 1] of WideChar;
 const
@@ -7973,46 +8356,122 @@ begin
         Exit;
     if Succeeded(f_SHGetFolderPath(0, CSIDL, 0, SHGFP_TYPE_CURRENT, Buf)) then
         Result := Buf;
-end;
+{$ELSE}
+begin
+    if CSIDL = CSIDL_COMMON_APPDATA then    { V9.1 look for TPath equivalents }
+        Result := TPath.GetPublicPath
+    else if CSIDL = CSIDL_LOCAL_APPDATA then
+        Result := TPath.GetHomePath
+    else
+        Result := TPath.GetCachePath;
 {$ENDIF MSWINDOWS}
+end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Base64Encode(const Input : PAnsiChar; Len: Integer) : AnsiString;
-var
-    Count : Integer;
-    I     : Integer;
+{ V9.4 Base 64 encoding, old versions working with AnsiChars, ICS does not used any of these
+  but retained as deprecated for user applications, please update to the IcsBase versions }
+function  Base64Encode(const Input : AnsiString) : AnsiString; overload; deprecated;
 begin
-    Count := 0;
+    Result := AnsiString(IcsBase64Encode(String(Input)));
+end;
+
+function  Base64Encode(const Input : PAnsiChar; Len : Integer) : AnsiString; overload; deprecated;
+begin
+    Result := IcsBase64EncodeAC(Input, Len);
+end;
+
+{$IFDEF COMPILER12_UP}
+function  Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload; deprecated;
+begin
+    Result := IcsBase64Encode(Input);
+end;
+
+function  Base64Encode(const Input : UnicodeString) : UnicodeString; overload; deprecated;
+begin
+    Result := IcsBase64Encode(Input);
+end;
+{$ENDIF}
+
+function  Base64Decode(const Input : AnsiString) : AnsiString; overload; deprecated;
+begin
+    Result := IcsBase64DecodeA(Input);
+end;
+
+{$IFDEF COMPILER12_UP}
+function  Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload; deprecated;
+begin
+    Result := IcsBase64DecodeU(Input, ACodePage);
+end;
+
+function  Base64Decode(const Input : UnicodeString) : UnicodeString; overload; deprecated;
+begin
+    Result := IcsBase64DecodeU(Input);
+end;
+{$ENDIF}
+
+function Base64EncodeTB(Input: TBytes) : String; deprecated;                        { V9.1 }
+begin
+    Result := IcsBase64EncodeTB(Input);
+end;
+
+function Base64EncodeA(const Input : AnsiString) : AnsiString; deprecated;          { V9.1 avoid overload confusion }
+begin
+    Result := IcsBase64EncodeA(Input);
+end;
+
+function Base64DecodeTB(const Input : AnsiString): TBytes; overload; deprecated;    { V9.1 }
+begin
+    Result := IcsBase64DecodeTB(Input);
+end;
+
+{$IFDEF COMPILER12_UP}
+function Base64DecodeTB(const Input : UniCodeString): TBytes; overload; deprecated;  { V9.1 }
+begin
+end;
+{$ENDIF}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ encode binary TBytes into ASCII Base64 Ansistring }
+function IcsBase64EncodeTB(const Input: TBytes): AnsiString;       { V9.4 }
+var
+    Count, Len, I: Integer;
+begin
+    Count := 0;  // TBytes input  is base0
+    Len := Length(Input);
+    if Len = 0 then begin    { V9.5 }
+        SetLength(Result, 0);
+        Exit;
+    end;
     I := Len;
     while (I mod 3) > 0 do
         Inc(I);
     I := (I div 3) * 4;
     SetLength(Result, I);
-    I := 0;
+    I := 0;  // AnsString is base1
     while Count < Len do begin
         Inc(I);
-        Result[I] := Base64OutA[(Byte(Input[Count]) and $FC) shr 2];
+        Result[I] := Base64OutA[(Input[Count] and $FC) shr 2];
         if (Count + 1) < Len then begin
             Inc(I);
-            Result[I] := Base64OutA[((Byte(Input[Count]) and $03) shl 4) +
-                                    ((Byte(Input[Count + 1]) and $F0) shr 4)];
+            Result[I] := Base64OutA[((Input[Count] and $03) shl 4) + ((Input[Count + 1] and $F0) shr 4)];
             if (Count + 2) < Len then begin
                 Inc(I);
-                Result[I] := Base64OutA[((Byte(Input[Count + 1]) and $0F) shl 2) +
-                                       ((Byte(Input[Count + 2]) and $C0) shr 6)];
+                Result[I] := Base64OutA[((Input[Count + 1] and $0F) shl 2) + ((Input[Count + 2] and $C0) shr 6)];
                 Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 2]) and $3F)];
+                Result[I] := Base64OutA[(Input[Count + 2] and $3F)];
             end
             else begin
                 Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 1]) and $0F) shl 2];
+                Result[I] := Base64OutA[(Input[Count + 1] and $0F) shl 2];
                 Inc(I);
                 Result[I] := '=';
             end
         end
         else begin
             Inc(I);
-            Result[I] := Base64OutA[(Byte(Input[Count]) and $03) shl 4];
+            Result[I] := Base64OutA[(Input[Count] and $03) shl 4];
             Inc(I);
             Result[I] := '=';
             Inc(I);
@@ -8023,27 +8482,56 @@ begin
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Base64Encode(const Input : AnsiString) : AnsiString;
+{ encode binary buffer into ASCII Base64 Ansistring }
+function IcsBase64EncodeAC(const Input: PAnsiChar; Len: Integer): AnsiString;   { V9.4 }
+var
+    Buffer: TBytes;
 begin
-    Result := Base64Encode(PAnsiChar(Input), Length(Input));
+    SetLength(Buffer, Len);
+    Move(Input[0], Buffer[0], Len);
+    Result := IcsBase64EncodeTB(Buffer);
 end;
 
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ encode binary content AnsiString ASCII Base64 Ansistring }
+function IcsBase64EncodeA(const Input: AnsiString): AnsiString;            { V9.4 }
+var
+    Buffer: TBytes;
+    Len: Integer;
+begin
+    Len := Length(Input);
+    SetLength(Buffer, Len);
+    Move(Input[1], Buffer[0], Len);
+    Result := IcsBase64EncodeTB(Buffer);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ encode non-binary content String ASCII Base64 string }
+function IcsBase64Encode(const Input: String): String;            { V9.4 }
+begin
+    Result := String(IcsBase64EncodeA(AnsiString(Input)));
+end;
+
+
+(*
 {$IFDEF COMPILER12_UP}
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts the UnicodeString to AnsiString using the code page specified,   }
 { converts the Base64 AnsiString result to Unicode using default code page. }
-function Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString;
+function Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
-    Result := String(Base64Encode(UnicodeToAnsi(Input, ACodePage)));
+    Result := String(Base64EncodeA(UnicodeToAnsi(Input, ACodePage)));          { V9.1 }
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Converts the UnicodeString to AnsiString using the default code page,     }
 { converts the Base64 AnsiString result to Unicode using default code page. }
-function Base64Encode(const Input : UnicodeString) : UnicodeString;
+function Base64Encode(const Input : UnicodeString) : UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
-    Result := String(Base64Encode(AnsiString(Input)));
+    Result := String(Base64EncodeA(AnsiString(Input)));                      { V9.1 }
 end;
 {$ENDIF}
 
@@ -8072,16 +8560,13 @@ begin
             DataIn2 := Base64In[Byte(Input[Count+2])];
             DataIn3 := Base64In[Byte(Input[Count+3])];
             Inc(I);
-            Result[I] := AnsiChar(((DataIn0 and $3F) shl 2) +
-                                  ((DataIn1 and $30) shr 4));
+            Result[I] := AnsiChar(((DataIn0 and $3F) shl 2) + ((DataIn1 and $30) shr 4));
             if DataIn2 <> $40 then begin
                 Inc(I);
-                Result[I] := AnsiChar(((DataIn1 and $0F) shl 4) +
-                                      ((DataIn2 and $3C) shr 2));
+                Result[I] := AnsiChar(((DataIn1 and $0F) shl 4) + ((DataIn2 and $3C) shr 2));
                 if DataIn3 <> $40 then begin
                     Inc(I);
-                    Result[I] :=  AnsiChar(((DataIn2 and $03) shl 6) +
-                                           (DataIn3 and $3F));
+                    Result[I] :=  AnsiChar(((DataIn2 and $03) shl 6) + (DataIn3 and $3F));
                 end;
             end;
             Count := Count + 4;
@@ -8090,12 +8575,78 @@ begin
     SetLength(Result, I);
 end;
 
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ input ASCII base64, output binary TBytes }
+function Base64DecodeTB(const Input : AnsiString): TBytes;            { V9.1 }
+begin
+    Result := IcsStringAToTBytes(Base64Decode(Input));
+end;
+*)
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ decode ASCII Base64 in AnsiString to binary TBytes }
+function IcsBase64DecodeTB(const Input: AnsiString): TBytes;    { V9.4 }
+var
+    Count   : Integer;
+    Len     : Integer;
+    I       : Integer;
+    DataIn0 : Byte;
+    DataIn1 : Byte;
+    DataIn2 : Byte;
+    DataIn3 : Byte;
+begin
+    Count := 1;  // base1 string
+    Len   := Length(Input);
+    I     := -1;  // base0
+    SetLength(Result, Len + 2);
+    while Count <= Len do begin
+        if Byte(Input[Count]) in [13, 10] then   // skip CR and LF
+            Inc(Count)
+        else begin
+            DataIn0 := Base64In[Byte(Input[Count])];
+            DataIn1 := Base64In[Byte(Input[Count+1])];
+            DataIn2 := Base64In[Byte(Input[Count+2])];
+            DataIn3 := Base64In[Byte(Input[Count+3])];
+            Inc(I);
+            Result[I] := ((DataIn0 and $3F) shl 2) + ((DataIn1 and $30) shr 4);
+            if DataIn2 <> $40 then begin
+                Inc(I);
+                Result[I] := ((DataIn1 and $0F) shl 4) + ((DataIn2 and $3C) shr 2);
+                if DataIn3 <> $40 then begin
+                    Inc(I);
+                    Result[I] := ((DataIn2 and $03) shl 6) + (DataIn3 and $3F);
+                end;
+            end;
+            Count := Count + 4;
+        end;
+    end;
+    SetLength(Result, I + 1);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ decode ASCII Base64 in AnsiString to binary AnsiString }
+function IcsBase64DecodeA(const Input: AnsiString): AnsiString;      { V9.4 }
+var
+    Output: TBytes;
+begin
+    Output := IcsBase64DecodeTB(Input);
+    Result := IcsTBytesToStringA(Output);
+end;
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ decode ASCII Base64 in String to binary AnsiString }
+function IcsBase64Decode(const Input: String): AnsiString;      { V9.4 }
+begin
+    Result := IcsBase64DecodeA(AnsiString(Input));
+end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Input must not be converted since it is plain US-ASCII, assumes one input }
 { char can safely be casted to one byte.                                    }
 {$IFDEF COMPILER12_UP}
-function Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString;
+(*
+function Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 var
     Count   : Integer;
     Len     : Integer;
@@ -8119,16 +8670,13 @@ begin
             DataIn2 := Base64In[Byte(Input[Count+2])];
             DataIn3 := Base64In[Byte(Input[Count+3])];
             Inc(I);
-            Buf[I] := AnsiChar(((DataIn0 and $3F) shl 2) +
-                               ((DataIn1 and $30) shr 4));
+            Buf[I] := AnsiChar(((DataIn0 and $3F) shl 2) + ((DataIn1 and $30) shr 4));
             if DataIn2 <> $40 then begin
                 Inc(I);
-                Buf[I] := AnsiChar(((DataIn1 and $0F) shl 4) +
-                                   ((DataIn2 and $3C) shr 2));
+                Buf[I] := AnsiChar(((DataIn1 and $0F) shl 4) + ((DataIn2 and $3C) shr 2));
                 if DataIn3 <> $40 then begin
                     Inc(I);
-                    Buf[I] :=  AnsiChar(((DataIn2 and $03) shl 6) +
-                                        (DataIn3 and $3F));
+                    Buf[I] :=  AnsiChar(((DataIn2 and $03) shl 6) + (DataIn3 and $3F));
                 end;
             end;
             Count := Count + 4;
@@ -8140,11 +8688,39 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Base64Decode(const Input : UnicodeString) : UnicodeString;
+function Base64Decode(const Input : UnicodeString) : UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}
 begin
     Result := Base64Decode(Input, CP_ACP);
 end;
-{$ENDIF}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ input ASCII base64, output binary TBytes }
+function Base64DecodeTB(const Input : UniCodeString): TBytes; {$IFDEF ANDROID} overload; {$ENDIF}        { V9.1 }
+begin
+    Result := IcsStringToTBytes(Base64Decode(Input));
+end;
+*)
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ decode ASCII Base64 in UnicodeString to binary UnicodeString with specific CodePage }
+function IcsBase64DecodeU(const Input: UnicodeString; ACodePage: LongWord): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF} { V9.4 }
+var
+    Output: AnsiString;
+begin
+    Output := IcsBase64DecodeA(Ansistring(Input));
+    Result := AnsiToUnicode(Output, ACodePage);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ decode ASCII Base64 in UnicodeString to binary UnicodeString with default CodePage }
+function IcsBase64DecodeU(const Input: UnicodeString): UnicodeString; {$IFDEF ANDROID} overload; {$ENDIF}   { V9.4 }
+begin
+    Result := IcsBase64DecodeU(Input, CP_ACP);
+end;
+
+{$ENDIF COMPILER12_UP}
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -8152,7 +8728,7 @@ end;
 { WARNING - this function ignores Json character escaping and UTF8 encoding,
   and is only intended to build simple Json for JWS and JKW, not payloads,
   use ISuperObject, TRestParams or proper Json libraries.  }
-
+{ input and output, strings, no conversion }
 function IcsJsonPair(const S1, S2: String): String;   { V8.65 }
 var
     Len: Integer;
@@ -8166,80 +8742,165 @@ begin
         Result := Result + IcsDQUOTE + S2 + IcsDQUOTE;
 end;
 
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-
-{ RFC4658 base64 with trailing == removed, need to add them back  }
-
-function IcsBase64UrlDecode(const Input: String): String;
-var
-    S: String;
-    NewLen, I: Integer;
-begin
-    S := Input;
-    NewLen := ((3 + Length(S)) div 4) * 4;   { V8.64 too long }
-    while (NewLen > Length(S)) do S := S + '=';
-    for I := 1 to Length(S) do begin
-        if S[I] = '-' then S[I] := '+';
-        if S[I] = '_' then S[I] := '/';
-    end;
-    Result := Base64Decode(S);
-end ;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 { V8.67 RFC4658 base64 with trailing == removed, need to add them back  }
-{ use for binary fields }
-
-function IcsBase64UrlDecodeA(const Input: AnsiString): AnsiString;
+{ decode ASCII Base64Url in AnsiString to binary TBytes, use for binary fields }
+function IcsBase64UrlDecodeATB(const Input: AnsiString): TBytes;      { V9.4 reworked }
 var
-    S: AnsiString;
-    NewLen, I: Integer;
+    Work: AnsiString;
+    NewLen, OldLen, I: Integer;
 begin
-    S := Input;
-    NewLen := ((3 + Length(S)) div 4) * 4;   { V8.64 too long }
-    while (NewLen > Length(S)) do S := S + '=';
+    Work := Input;
+    OldLen := Length(Work);
+    NewLen := ((3 + OldLen) div 4) * 4;   { V8.64 too long }
+    SetLength(Work, NewLen);
+    while (OldLen < NewLen) do begin   // pad too short input so decoding works
+        OldLen := OldLen + 1;
+        Work [OldLen] := '=';
+    end;
+    for I := 1 to NewLen do begin
+        if Work[I] = '-' then
+            Work[I] := '+';
+        if Work[I] = '_' then
+            Work[I] := '/';
+    end;
+    Result := IcsBase64DecodeTB(Work);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+{ V8.67 RFC4658 base64 with trailing == removed, need to add them back  }
+{ decode ASCII Base64Url in String to binary TBytes, use for binary fields }
+function IcsBase64UrlDecodeTB(const Input: String): TBytes;           { V9.4 reworked }
+begin
+    Result := IcsBase64UrlDecodeATB(AnsiString(Input));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+{ RFC4658 base64 with trailing == removed and made URL safe, no CRLF allowed either  }
+{ input binary TBytes, output ASCII Base64Url in Ansistring, use for binary stuff that may have nulls }
+function IcsBase64UrlEncodeATB(const Input: TBytes): AnsiString;      { V9.4 reworked }
+var
+    I: Integer;
+begin
+    Result := IcsBase64EncodeTB(Input);
+    while (Length(Result) > 0) and (Result[Length(Result)] = '=') do
+        SetLength(Result, Length(Result) - 1);
+    for I := 1 to Length(Result) do begin
+        if Result[I] = '+' then
+            Result[I] := '-';
+        if Result[I] = '/' then
+            Result[I] := '_';
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+{ RFC4658 base64 with trailing == removed and made URL safe, no CRLF allowed either  }
+{ input binary TBytes, output ASCII Base64Url in string }
+function IcsBase64UrlEncodeTB(const Input: TBytes): String;           { V9.1 }
+begin
+   Result := String(IcsBase64UrlEncodeATB(Input));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+{ RFC4658 base64 with trailing == removed, need to add them back  }
+{ input ASCII Base64Url, output binary in string, don't use for binary !!! }
+function IcsBase64UrlDecode(const Input: String): String;
+var
+    Work: TBytes;
+//    S: String;
+//    NewLen, I: Integer;
+begin
+{    S := Input;
+    NewLen := ((3 + Length(S)) div 4) * 4;
+    while (NewLen > Length(S)) do
+        S := S + '=';
     for I := 1 to Length(S) do begin
         if S[I] = '-' then S[I] := '+';
         if S[I] = '_' then S[I] := '/';
     end;
-    Result := Base64Decode(S);
+    Result := Base64Decode(S);  }
+
+    Work := IcsBase64UrlDecodeTB(Input);   { V9.4 reworked }
+    Result := IcsTBytesToString(Work);
 end ;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
-{ RFC4658 base64 with trailing == removed and made URL safe, no CRLF allowed either  }
-{ don't use for binary stuff, unicode gets converted }
-
-function IcsBase64UrlEncode(const Input: String): String;
+{ V8.67 RFC4658 base64 with trailing == removed, need to add them back  }
+{ input ASCII base64, output binary in AnsiString, use for binary }
+function IcsBase64UrlDecodeA(const Input: AnsiString): AnsiString;
 var
-    I: Integer;
+    Work: TBytes;
+//    S: String;
+//    NewLen, I: Integer;
 begin
-    Result := Base64Encode(Input);
-    while (Length(Result) > 0) and (Result[Length(Result)] = '=') do
-                                   SetLength(Result, Length(Result) - 1);
-    for I := 1 to Length(Result) do begin
-        if Result[I] = '+' then Result[I] := '-';
-        if Result[I] = '/' then Result[I] := '_';
+ {   S := Input;
+    NewLen := ((3 + Length(S)) div 4) * 4;
+    while (NewLen > Length(S)) do
+        S := S + '=';
+    for I := 1 to Length(S) do begin
+        if S[I] = '-' then S[I] := '+';
+        if S[I] = '_' then S[I] := '/';
     end;
+    Result := Base64Decode(S);   }
+
+    Work := IcsBase64UrlDecodeATB(Input);          { V9.4 reworked }
+    Result := IcsTBytesToString(Work);
 end ;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 { RFC4658 base64 with trailing == removed and made URL safe, no CRLF allowed either  }
-{ always use this version for binary fields that may have nulls }
-
+{ input binary AnsiString, output ASCII base64 in Ansistring, use for binary stuff that may have nulls }
 function IcsBase64UrlEncodeA(const Input: AnsiString): AnsiString;
 var
-    I: Integer;
+    Buffer: TBytes;
+    Len: Integer;
 begin
-    Result := Base64Encode(PAnsiChar(Input), Length(Input));  { V8.67 avoid string conversions }
+    Len := Length(Input);
+    SetLength(Buffer, Len);
+    Move(Input[1], Buffer[0], Len);
+    Result := IcsBase64UrlEncodeATB(Buffer);                         { V9.4 reworked }
+
+{    Result := Base64Encode(PAnsiChar(Input), Length(Input));
     while (Length(Result) > 0) and (Result[Length(Result)] = '=') do
-                                   SetLength(Result, Length(Result) - 1);
+        SetLength(Result, Length(Result) - 1);
     for I := 1 to Length(Result) do begin
         if Result[I] = '+' then Result[I] := '-';
         if Result[I] = '/' then Result[I] := '_';
-    end;
+    end;   }
+end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+
+{ RFC4658 base64 with trailing == removed and made URL safe, no CRLF allowed either  }
+{ input binary string, output ASCII base64 in string, don't use for binary stuff, unicode gets converted }
+function IcsBase64UrlEncode(const Input: String): String;
+//var
+//    I: Integer;
+begin
+   Result := String(IcsBase64UrlEncodeA(AnsiString(Input)));        { V9.4 reworked }
+
+{    Result := Base64Encode(Input);
+    while (Length(Result) > 0) and (Result[Length(Result)] = '=') do
+        SetLength(Result, Length(Result) - 1);
+    for I := 1 to Length(Result) do begin
+        if Result[I] = '+' then Result[I] := '-';
+        if Result[I] = '/' then Result[I] := '_';
+    end;  }
 end ;
 
 
@@ -8253,8 +8914,7 @@ begin
     Result := False;
 {$IFDEF MSWINDOWS}
     if IcsGetFileSize (FileName) < 0 then exit;
-    hFileRes := CreateFile (PChar (FileName), GENERIC_READ or GENERIC_WRITE, 0,
-                                   nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0) ;
+    hFileRes := CreateFile (PChar (FileName), GENERIC_READ or GENERIC_WRITE, 0,  nil, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0) ;
     Result := (hFileRes = INVALID_HANDLE_VALUE);
     if NOT Result then CloseHandle(hFileRes);
 {$ENDIF}
@@ -8310,15 +8970,24 @@ end;
 function IcsBuiltWith: String;
 begin
     Result := '?';
+{$IFDEF VER380}
+    Result := '14.0';        { V9.5 future }
+{$ENDIF}
+{$IFDEF Ver370}
+    Result := '13.0';         { V9.5 fixed Nov 2025 }
+    {$IF Declared(RTLVersion131)}Result := '13.1';{$IFEND}    // guessing
+{$ENDIF}
 {$IFDEF VER360}
     Result := '12.0';
+    {$IF Declared(RTLVersion121)}Result := '12.1';{$IFEND}
+    {$IF Declared(RTLVersion122)}Result := '12.2';{$IFEND}   // V9.3
+    {$IF Declared(RTLVersion123)}Result := '12.3';{$IFEND}   // V9.4
 {$ENDIF}
 {$IFDEF VER350}
     Result := '11.0';
     {$IF Declared(RTLVersion111)}Result := '11.1';{$IFEND}
     {$IF Declared(RTLVersion112)}Result := '11.2';{$IFEND}  // all declared
     {$IF Declared(RTLVersion113)}Result := '11.3';{$IFEND}  // all declared V8.71
-    {$IF Declared(RTLVersion114)}Result := '11.4';{$IFEND}  // guessing
 {$ENDIF}
 {$IFDEF VER340}
     Result := '10.4';
@@ -8356,6 +9025,7 @@ begin
 {$IFDEF LCL}Result := 'Lazarus ' + lcl_version;{$ENDIF}
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.70 returns an extended compiler version number or name and platform  }
 function IcsBuiltWithEx: String;
@@ -8366,13 +9036,18 @@ Result := Result + IcsBuiltWith;
 {$IFDEF WIN64}Result := Result + ' Win64';{$ENDIF}
 {$IFDEF MACOS32}Result := Result + ' macOS32';{$ENDIF}
 {$IFDEF MACOS64}Result := Result + ' macOS64';{$ENDIF}
-{$IFDEF Linux}Result := Result + ' Linux64';{$ENDIF}
+{$IFDEF Linux32}Result := Result + ' Linux32';{$ENDIF}      { V9.1 }
+{$IFDEF Linux64}Result := Result + ' Linux64';{$ENDIF}
+{$IFDEF Android32}Result := Result + ' Android32';{$ENDIF}  { V9.1 }
+{$IFDEF Android64}Result := Result + ' Android64';{$ENDIF}  { V9.1 }
+{$IFDEF IOS}Result := Result + ' IOS';{$ENDIF}              { V9.1 }
+{$IFDEF OSX}Result := Result + ' OSX';{$ENDIF}              { V9.1 }
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { case insensitive text at start of line }
-function IcsTextOnStart( const ATextOnStart, AText : String ): Boolean;   { V8.71 }
+function IcsTextOnStart(const ATextOnStart, AText : String ): Boolean;   { V8.71 }
 var
   LText, LTextStart, i : Longint;
 begin
@@ -8392,7 +9067,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { case insensitive text at start of line }
-function IcsTextOnStartA( const ATextOnStart, AText : AnsiString ): Boolean;  { V8.71 }
+function IcsTextOnStartA(const ATextOnStart, AText : AnsiString ): Boolean;  { V8.71 }
 var
   LText, LTextStart, i : Longint;
 begin
@@ -8467,18 +9142,1541 @@ begin
 end;
 {$ENDIF}
 
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 replace control codes (< space) in String with ~, result is String }
+function IcsStrRemCntls(const S: String; LeaveCRLF: Boolean = True): String;
+var
+    Len, Offset: Integer;
+    Source: PChar;
+begin
+    Result := S;
+    Len := Length(Result);
+    Source := Pointer (Result);
+    Offset := 1;
+    while Offset <= Len do
+    begin
+        if (Source^ < IcsSpace) then begin
+            if (Source^ = IcsNull) then
+                Source^ := '~'
+            else if ((Source^ <> IcsCR) and (Source^ <> IcsLF)) then
+                Source^ := '~'
+            else if (NOT (LeaveCRLF)) then
+                Source^ := '~' ;
+        end;
+        Inc (Source) ;
+        Inc (Offset) ;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 replace control codes (< space) in AnsiString with ~, result is String }
+function IcsStrRemCntlsA(const S: AnsiString; LeaveCRLF: Boolean = True): String;
+var
+    Work: AnsiString;
+    Len, Offset: Integer;
+    Source: PAnsiChar;
+begin
+    Work := S;
+    Len := Length(Work);
+    Source := Pointer (Work);
+    Offset := 1;
+    while Offset <= Len do
+    begin
+        if (Source^ < IcsSpace) then begin
+            if (Source^ = IcsNull) then
+                Source^ := '~'
+            else if ((Source^ <> IcsCR) and (Source^ <> IcsLF)) then
+                Source^ := '~'
+            else if (NOT (LeaveCRLF)) then
+                Source^ := '~' ;
+        end;
+        Inc (Source) ;
+        Inc (Offset) ;
+    end;
+    Result := String(Work);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 replace control codes (< space) in TBytes with ~, result is String }
+function IcsStrRemCntlsTB(const TB: TBytes; LeaveCRLF: Boolean = True): String;
+var
+    Work: AnsiString;
+begin
+    SetLength(Work, Length(TB));
+    Move(TB[0], Work[1], Length(TB));
+    Result := IcsStrRemCntlsA(Work, LeaveCRLF);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 break up text into multiple lines ol specified length, default 132, no CRLF at end }
+function IcsStrBeakup(const S: String; MaxLine: Integer = 132): String;
+var
+    LfPos, LLen, Offset, SLen: Integer;
+begin
+    Result := '';
+    SLen := Length(S);
+    if SLen = 0 then
+        Exit;
+    if MaxLine < 8 then
+        MaxLine := 8;
+    Offset := 1;
+    while Offset < SLen do begin
+        LfPos := IcsPosEx(IcsCRLF, S, Offset);
+        LLen := LfPos - Offset + 2;  // add CRLF
+        if (LfPos = 0) or (LLen > (MaxLine + 2)) then begin
+            LLen := MaxLine;
+            Result := Result + Copy (S, Offset, Llen) + IcsCRLF;
+        end
+        else
+            Result := Result + Copy (S, Offset, Llen);
+        Offset := Offset + LLen;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 convert DataTime to string hh:mm:ss:zzz }
+function IcsTimeToZStr(const DT: TDateTime): string;
+begin
+    DateTimeToString(Result, ISOLongTimeMask, DT);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 read TBytes from a named resource }
+function IcsResourceGetTB(const ResName: String; const ResType: PChar = RT_RCDATA): TBytes;
+var
+    ResStream : TResourceStream;
+    ActualRead: Integer;
+begin
+    SetLength(Result, 0);
+    try
+        ResStream := TResourceStream.Create(HInstance, ResName, ResType);
+        try
+            if Assigned(ResStream) then begin
+                SetLength(Result, ResStream.Size);
+                if ResStream.Size > 0 then begin
+                    ActualRead := ResStream.Read(Result[0], ResStream.Size);
+                    SetLength(Result, ActualRead);
+                end;
+            end;
+        finally
+            ResStream.Free;
+        end;
+    except
+        SetLength(Result, 0);
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 save file from a named resource, optionally replace, returns size or 0 for error }
+{ for no replace, if old file exists and is same size, skips save and returns size, ie OK }
+function IcsResourceSaveFile(const ResName, FileName: String; Replace: Boolean = False): Integer;
+var
+    ResStream : TResourceStream;
+    OldSize: Integer;
+begin
+    Result := 0;
+    try
+        ResStream := TResourceStream.Create(HInstance, ResName, RT_RCDATA);
+        try
+            OldSize := IcsGetFileSize(FileName);
+            if Replace then begin
+                if (OldSize <> 0) then
+                    IcsDeleteFile(FileName, True);
+                ResStream.SaveToFile(FileName);
+            end
+            else begin
+                if (OldSize <> ResStream.Size) then   // skip if same size
+                    ResStream.SaveToFile(FileName);
+            end;
+            Result := ResStream.Size;
+        finally
+            ResStream.Free;
+        end;
+    except
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 write TBytes to a file, optionally replacing, true is OK }
+function IcsDataSaveFile(const Data: TBytes; const FileName: String; Replace: Boolean = False): Boolean; { V9.1 }
+var
+    NewFStream: TFileStream;
+    Attempts: integer;
+begin
+    Result := False ; ;
+    if Length(Data) = 0 then
+        Exit;
+    for Attempts := 1 to 3 do begin
+        try
+            if FileExists(FileName) then begin
+                if NOT Replace then
+                    Exit;
+                if NOT DeleteFile(FileName) then
+                    exit ;
+            end;
+            if NOT ForceDirectories(ExtractFileDir (FileName)) then
+                continue;
+            try
+                NewFStream := TFileStream.Create (FileName, fmCreate) ;
+                NewFStream.WriteBuffer(Data[0], Length(Data)) ;
+                Result := true ;
+                Exit;
+            finally
+                FreeAndNil(NewFStream) ;
+            end;
+        except
+        end;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 read TBytes from a file, blank for failure, default max 10MB }
+function IcsDataLoadFile(const FileName: String; MaxLen: Integer = 10240000): TBytes;  { V9.1 }
+var
+    OldFStream: TFileStream;
+    FSize: Int64;
+begin
+    SetLength(Result, 0);
+    if FileExists(FileName) then
+    try
+        try
+            OldFStream := TFileStream.Create (FileName, fmShareDenyNone) ;
+            FSize := OldFStream.Size;
+            if FSize > MaxLen then
+                FSize := MaxLen;
+            SetLength(Result, FSize);
+            if FSize  > 0 then
+                OldFStream.Read(Result[0], Fsize);
+        finally
+            FreeAndNil(OldFStream) ;
+        end;
+    except
+    end;
+end;
+
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ removes /. and /.. from path to absolutise it, used by ICS demos }
+{ ie "C:\DelphiComp\ics\demos-delphi-vcl\bin\Win32\Release\..\..\..\app.ini" to "C:\DelphiComp\ics\demos-delphi-vcl\app.ini" }
+{ ie "C:\DelphiComp\ics\demos-delphi-vcl\bin\Win32\Release\..\..\..\..\demos-data\WebServData" to "C:\DelphiComp\ics\demos-data\WebServData" }
+function IcsAbsolutisePath(const Path : String) : String;          { V9.1 moved from HttpSrv }
+var
+    I, J, N : Integer;
+begin
+    if (Path = '') or (Path = '.') or  (Path = '..') then begin
+        Result := '';
+        Exit;
+    end;
+
+    Result := Path;
+    N      := 0;
+    if (Length(Result) > 2) and
+       (Copy(Result, Length(Result) - 1, 2) = {$IFDEF MSWINDOWS} '\.' {$ELSE} '/.' {$ENDIF}) then
+       Result := Copy(Result, 1, Length(Result) - 2);
+
+    if Length(Result) > 1 then begin
+       if (Result[1] = PathDelim) and (Result[2] = PathDelim) then begin
+            N := 2;
+            while (N < Length(Result)) and (Result[N + 1] <> PathDelim) do
+                Inc(N);
+       end
+       else if Result[2] = ':' then
+           N := 2;
+    end;
+
+    if (Copy(Result, N + 1, 5) = PathDelim) or
+       (Copy(Result, N + 1, 5) = {$IFDEF MSWINDOWS} '\.' {$ELSE} '/.' {$ENDIF}) then begin
+       Result := Copy(Result, 1, N + 1);
+       Exit;
+    end;
+
+    while TRUE do begin
+        I := Pos({$IFDEF MSWINDOWS} '\.\' {$ELSE} '/./' {$ENDIF}, Result);
+        if I <= N then
+            break;
+        Delete(Result, I, 2);
+    end;
+    while TRUE do begin
+        I := Pos({$IFDEF MSWINDOWS} '\..' {$ELSE} '/..' {$ENDIF}, Result);
+        if I <= N then
+            break;
+        J := I - 1;
+        while (J > N) and (Result[J] <> PathDelim) do
+            Dec(J);
+        if J <= N then
+            Delete(Result, J + 2, I - J + 2)
+        else
+            Delete(Result, J, I - J + 3);
+    end;
+end;
+
+{ V9.3 moved various IPv4/6 conversion functions here from OverbyteIcsWSocket }
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Check for a valid numeric dotted IPv4 address such as 192.161.65.25         }
+{ Accept leading and trailing spaces.                                       }
+{ Note. full numeric IP not supported. ie 3650250390                        }
+function WSocketIsDottedIP(const S : AnsiString) : Boolean;
+var
+    I          : Integer;
+    DotCount   : Integer;
+    NumVal     : Integer;
+begin
+    Result     := FALSE;
+    DotCount   := 0;
+    NumVal     := 0;
+    I          := 1;
+
+    { Skip leading spaces }
+    while (I <= Length(S)) and (S[I] = ' ') do
+        Inc(I);
+    { Can't begin with a dot }
+    if (I <= Length(S)) and (S[I] = '.') then
+        Exit;
+    { Scan full string }
+    while I <= Length(S) do begin
+        if S[I] = '.' then begin
+            Inc(DotCount);
+            if (DotCount > 3) or (NumVal > 255) then
+                Exit;
+            NumVal := 0;
+            { A dot must be followed by a digit }
+            if (I >= Length(S)) or (not (AnsiChar(S[I + 1]) in ['0'..'9'])) then
+                Exit;
+        end
+        else if AnsiChar(S[I]) in ['0'..'9'] then begin
+            NumVal := NumVal * 10 + Ord(S[I]) - Ord('0');
+            if NumVal > 255 then
+                Exit;  { V8.66 max IPv4 address, stop integer overflow }
+        end
+        else begin
+            { Not a digit nor a dot. Accept spaces until end of string }
+            while (I <= Length(S)) and (S[I] = ' ') do
+                Inc(I);
+            if I <= Length(S) then
+                Exit;  { Not a space, do not accept }
+            break;     { Only spaces, accept        }
+        end;
+        Inc(I);
+    end;
+    { We must have exactly 3 dots }
+    if (DotCount <> 3) or (NumVal > 255) then
+        Exit;
+    Result := TRUE;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketIsDottedIP(const S : UnicodeString) : Boolean;     { V8.70 }
+begin
+    Result := WSocketIsDottedIP(AnsiString(S));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketIsIPv4(const S: string): Boolean;
+var
+    I      : Integer;
+    DotCnt : Integer;
+    NumVal : Integer;
+    Ch     : Char;
+    P      : PChar;
+begin
+    Result := FALSE;
+    DotCnt := 0;
+    NumVal := -1;
+    P      := PChar(S);
+    for I := 1 to Length(S) do
+    begin
+        Ch := P[I - 1];
+        case Ch of
+          '.' :
+              begin
+                  Inc(DotCnt);
+                  if (DotCnt > 3) or (NumVal = -1) then
+                      Exit;
+                  NumVal := -1;
+              end;
+          '0'..'9':
+              begin
+                  if NumVal = -1 then
+                      NumVal := Ord(Ch) - Ord('0')
+                  else
+                      NumVal := NumVal * 10 + Ord(Ch) - Ord('0');
+                  if NumVal > 255 then
+                      Exit;
+              end;
+          else
+              Exit;
+        end;
+    end;
+
+    Result := DotCnt = 3;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Byte order translated }
+function WSocketIPv4ToStr(const AIcsIPv4Addr: TIcsIPv4Address): string;
+begin
+{$IFNDEF BIG_ENDIAN}
+    Result := IntToStr(AIcsIPv4Addr and $FF)+ '.' +
+              IntToStr((AIcsIPv4Addr shr  8) and $FF) + '.' +
+              IntToStr((AIcsIPv4Addr shr 16) and $FF) + '.' +
+              IntToStr((AIcsIPv4Addr shr 24) and $FF);
+{$ELSE}
+    Result := IntToStr((AIcsIPv4Addr shr 24) and $FF) + '.' +
+              IntToStr((AIcsIPv4Addr shr 16) and $FF) + '.' +
+              IntToStr((AIcsIPv4Addr shr  8) and $FF) + '.' +
+              IntToStr(AIcsIPv4Addr and $FF);
+{$ENDIF}
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Byte order translated }
+function WSocketStrToIPv4(const S: string; out Success: Boolean): TIcsIPv4Address;
+var
+    I          : Integer;
+    DotCount   : Integer;
+    NumVal     : Integer;
+    Len        : Integer;
+    Ch         : Char;
+    Bytes      : array [0..3] of Byte;
+begin
+    Result    := TIcsIPv4Address($FFFFFFFF);
+    Success   := FALSE;
+    Len       := Length(S);
+    if Len < 6 then
+        Exit;
+    DotCount  := 0;
+    NumVal    := -1;
+    for I := 1 to Len do
+    begin
+        Ch := S[I];
+        case Ch of
+          '.' :
+              begin
+                  if (NumVal > -1) and (DotCount < 3) then
+                      Bytes[DotCount] := NumVal
+                  else
+                      Exit;
+                  Inc(DotCount);
+                  NumVal := -1;
+              end;
+          '0'..'9':
+              begin
+                  if NumVal < 0 then
+                      NumVal := Ord(Ch) - Ord('0')
+                  else
+                      NumVal := NumVal * 10 + Ord(Ch) - Ord('0');
+                  if NumVal > 255 then
+                      Exit;
+              end;
+          else
+              Exit;
+        end;
+    end;
+
+    if (NumVal > -1) and (DotCount = 3) then
+    begin
+        Bytes[DotCount] := NumVal;
+    {$IFNDEF BIG_ENDIAN}
+        Result := PIcsIPv4Address(@Bytes)^;
+    {$ELSE}
+        Result := IcsSwap32(PIcsIPv4Address(@Bytes)^);
+    {$ENDIF}
+        Success := TRUE;
+    end;
+
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Byte order translated }
+function WSocketIPv6ToStr(const AIcsIPv6Addr: TIcsIPv6Address): string;
+var
+    I : Integer;
+    Zeros1, Zeros2 : set of Byte;
+    Zeros1Cnt, Zeros2Cnt : Byte;
+    OmitFlag : Boolean;
+begin
+    Result := '';
+    Zeros1 := [];
+    Zeros2 := [];
+    Zeros1Cnt := 0;
+    Zeros2Cnt := 0;
+    for I := Low(AIcsIPv6Addr.Words) to High(AIcsIPv6Addr.Words) do
+    begin
+        if AIcsIPv6Addr.Words[I] = 0 then
+        begin
+            Include(Zeros1, I);
+            Inc(Zeros1Cnt);
+        end
+        else if Zeros1Cnt > Zeros2Cnt then
+        begin
+            Zeros2Cnt := Zeros1Cnt;
+            Zeros2    := Zeros1;
+            Zeros1    := [];
+            Zeros1Cnt := 0;
+        end;
+    end;
+    if Zeros1Cnt > Zeros2Cnt then
+    begin
+        Zeros2    := Zeros1;
+        Zeros2Cnt := Zeros1Cnt;
+    end;
+
+   if Zeros2Cnt = 0 then
+   begin
+        for I := Low(AIcsIPv6Addr.Words) to High(AIcsIPv6Addr.Words) do
+        begin
+            if I = 0 then
+            {$IFNDEF BIG_ENDIAN}
+                Result := IntToHex(IcsSwap16(AIcsIPv6Addr.Words[I]), 1)
+            {$ELSE}
+                Result := IntToHex(AIcsIPv6Addr.Words[I], 1)
+            {$ENDIF}
+            else
+            {$IFNDEF BIG_ENDIAN}
+                Result := Result + ':' + IntToHex(IcsSwap16(AIcsIPv6Addr.Words[I]), 1);
+            {$ELSE}
+                Result := Result + ':' + IntToHex(AIcsIPv6Addr.Words[I], 1);
+            {$ENDIF}
+        end;
+    end
+    else begin
+        OmitFlag := FALSE;
+        for I := Low(AIcsIPv6Addr.Words) to High(AIcsIPv6Addr.Words) do
+        begin
+            if not (I in Zeros2) then
+            begin
+                if OmitFlag then
+                begin
+                    if Result = '' then
+                        Result := '::'
+                    else
+                        Result := Result + ':';
+                    OmitFlag := FALSE;
+                end;
+                if I < High(AIcsIPv6Addr.Words) then
+                {$IFNDEF BIG_ENDIAN}
+                    Result := Result + IntToHex(IcsSwap16(AIcsIPv6Addr.Words[I]), 1) + ':'
+                {$ELSE}
+                    Result := Result + IntToHex(AIcsIPv6Addr.Words[I], 1) + ':'
+                {$ENDIF}
+                else
+                {$IFNDEF BIG_ENDIAN}
+                    Result := Result + IntToHex(IcsSwap16(AIcsIPv6Addr.Words[I]), 1);
+                {$ELSE}
+                    Result := Result + IntToHex(AIcsIPv6Addr.Words[I], 1);
+                {$ENDIF}
+            end
+            else
+                OmitFlag := TRUE;
+        end;
+        if OmitFlag then
+        begin
+            if Result = '' then
+                Result := '::'
+            else
+                Result := Result + ':';
+        end;
+        if Result = '' then
+            Result := '::';
+    end;
+    Result := IcsLowerCase(Result);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ TIcsIPv6Address is record of words, so need to compare memory }
+function  WSocketIPv6Same(const IP1, IP2: TIcsIPv6Address): Boolean;         { V8.71 }
+begin
+    Result := CompareMem(@IP1, @IP2, SizeOf(TIcsIPv6Address));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Byte order translated }
+function WSocketStrToIPv6(const S: string; out Success: Boolean): TIcsIPv6Address;
+var
+    ScopeID : Cardinal;
+begin
+    Result := WSocketStrToIPv6(S, Success, ScopeID);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ Byte order translated }
+function WSocketStrToIPv6(const S: string; out Success: Boolean; out ScopeID: Cardinal): TIcsIPv6Address;
+const
+    Colon       = ':';
+    Percent     = '%';
+var
+    ColonCnt    : Integer;
+    I           : Integer;
+    NumVal      : Integer;
+    Ch          : Char;
+    P           : PChar;
+    SLen        : Integer;
+    OmitPos     : Integer;
+    OmitCnt     : Integer;
+    PartCnt     : Byte;
+    ScopeFlag   : Boolean;
+begin
+    Success     := FALSE;
+    FillChar(Result.Words[0], SizeOf(Result), 0);
+    SLen := Length(S);
+    if (SLen < 1) or (SLen > (4 * 8) + 7) then
+        Exit;
+    ColonCnt := 0;
+    P := PChar(S);
+    for I := 0 to SLen - 1 do
+        if (P[I] = Colon) then
+            Inc(ColonCnt);
+    if ColonCnt > 7 then
+        Exit;
+    OmitPos := Pos('::', S) - 1;
+    if OmitPos > -1 then
+        OmitCnt := 8 - ColonCnt
+    else begin
+        OmitCnt := 0; // Make the compiler happy
+        if (P[0] = Colon) or (P[SLen - 1] = Colon) then
+            Exit;
+    end;
+    NumVal    := -1;
+    ColonCnt  := 0;
+    PartCnt   := 0;
+    I         := 0;
+    ScopeID   := 0;
+    ScopeFlag := FALSE;
+    while I < SLen do
+    begin
+        Ch := P[I];
+        case Ch of
+            Percent : // scope_id / interface ID follows
+                begin
+                    if ScopeFlag then
+                        Exit
+                    else
+                        ScopeFlag := TRUE;
+
+                    PartCnt := 0;
+                    if NumVal > -1 then
+                    begin
+                    {$IFNDEF BIG_ENDIAN}
+                        Result.Words[ColonCnt] := IcsSwap16(NumVal);
+                    {$ELSE}
+                        Result.Words[ColonCnt] := NumVal;
+                    {$ENDIF}
+                        NumVal := -1;
+                    end;
+                end;
+            Colon :
+                begin
+                    if ScopeFlag then
+                        Exit;
+                    PartCnt := 0;
+                    if NumVal > -1 then
+                    begin
+                    {$IFNDEF BIG_ENDIAN}
+                        Result.Words[ColonCnt] := IcsSwap16(NumVal);
+                    {$ELSE}
+                        Result.Words[ColonCnt] := NumVal;
+                    {$ENDIF}
+                        NumVal := -1;
+                    end;
+                    if (OmitPos = I) then
+                    begin
+                        Inc(ColonCnt, OmitCnt);
+                        Inc(I);
+                    end;
+                    Inc(ColonCnt);
+                    if ColonCnt > 7 then
+                        Exit;
+                end;
+            '0'..'9':
+                begin
+                    Inc(PartCnt);
+                    if NumVal < 0 then
+                        NumVal := (Ord(Ch) - Ord('0'))
+                    else if ScopeFlag then
+                        NumVal := NumVal * 10 + (Ord(Ch) - Ord('0'))
+                    else
+                        NumVal := NumVal * 16 + (Ord(Ch) - Ord('0'));
+                    if (NumVal > High(Word)) or (PartCnt > 4) then
+                        Exit;
+                end;
+            'a'..'z',
+            'A'..'Z' :
+                begin
+                    if ScopeFlag then
+                        Exit;
+                    Inc(PartCnt);
+                    if NumVal < 0 then
+                        NumVal := ((Ord(Ch) and 15) + 9)
+                    else
+                        NumVal := NumVal * 16 + ((Ord(Ch) and 15) + 9);
+                    if (NumVal > High(Word)) or (PartCnt > 4) then
+                        Exit;
+                end;
+            else
+                Exit;
+        end;
+        Inc(I);
+    end;
+
+    if (NumVal > -1) and (ColonCnt > 1) then
+    begin
+        if not ScopeFlag then
+        begin
+        {$IFNDEF BIG_ENDIAN}
+            Result.Words[ColonCnt] := IcsSwap16(NumVal);
+        {$ELSE}
+            Result.Words[ColonCnt] := NumVal;
+        {$ENDIF}
+        end
+        else
+            ScopeID := NumVal;
+    end;
+    Success := ColonCnt > 1;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketIsIP(const S: string; out ASocketFamily: TSocketFamily): Boolean;
+begin
+    Result := WSocketIsIPv4(S);
+    if Result then
+        ASocketFamily := sfIPv4
+    else begin
+        WSocketStrToIPv6(S, Result);
+        if Result then
+            ASocketFamily := sfIPv6
+        else
+            ASocketFamily := sfAny;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketIsIPEx(const S: string; out ASocketFamily: TSocketFamily): Boolean;   { V8.01 }
+begin
+    Result := WSocketIsIP(S, ASocketFamily);
+    if Result then begin
+        if S = ICS_ANY_HOST_V4 then
+            ASocketFamily := sfAnyIPv4
+        else if S = ICS_ANY_HOST_V6 then
+            ASocketFamily := sfAnyIPv6;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsReverseIP(const IP : String) : AnsiString;    { V8.71 moved from DnsQuery }
+var
+    I, J : Integer;
+begin
+    Result := '';
+    if Length(IP) = 0 then
+        Exit;
+    J := Length(IP);
+    I := J;
+    while I >= 0 do begin
+        if (I = 0) or (IP[I] = '.') then begin
+            Result := Result + '.' + AnsiString(Copy(IP, I + 1, J - I));
+            J := I - 1;
+        end;
+        Dec(I);
+    end;
+    if Result[1] = '.' then
+        Delete(Result, 1, 1);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsReverseIPv6(const IPv6: String): AnsiString;    { V8.71 moved from DnsQuery }
+var
+    I, J: Integer;
+    Pair: Word;
+    IPv6Addr: TIcsIPv6Address;
+    Success: Boolean;
+    Hex: AnsiString;
+begin
+    Result := '';
+    IPv6Addr := WSocketStrToIPv6(IPv6, Success);
+    if NOT Success then Exit;
+    for I := 7 downto 0 do begin
+        pair := IPv6Addr.Words[I];
+    {$IFNDEF BIG_ENDIAN}
+        pair := IcsSwap16(pair);
+    {$ENDIF}
+        Hex := AnsiString(IntToHex(pair, 4));
+        for J := 4 downto 1 do
+            Result := Result + Hex[J] + '.';
+    end;
+    Result := IcsLowerCaseA(Result);
+    SetLength(Result, Length(Result) - 1);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert an IPv4/v6 SocAddr into 4 or 16 byte binary address TBytes }
+function  IcsSocIpBytes(const ASockAddr: TSockAddrIn6): TTcsIpBytes;            { V9.5 }
+begin
+    if ASockAddr.sin6_family = AF_INET6 then begin
+        SetLength(Result, 16);
+        Move(ASockAddr.sin6_addr.u6_addr16, Result[0], 16);
+    end
+    else if ASockAddr.sin6_family = AF_INET then begin
+        SetLength(Result, 4);
+        Move(PSockAddrIn(@ASockAddr).sin_addr.S_byte[0], Result[0], 4);
+    end
+    else
+        SetLength(Result, 0);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert 4 or 16 byte binary address TBytes into string IPv4/v6 address }
+function IcsIpBytesToStr(IpBytes: TTcsIpBytes): String;   { V9.5 }
+var
+    AIPv6: TIcsIPv6Address;
+    AIPv4: in_addr;
+begin
+    Result := '';
+    if Length(IpBytes) = 16 then begin
+        Move(IpBytes[0], AIPv6.Words[0], 16);
+        Result := WSocketIPv6ToStr(AIPv6);
+    end
+    else if Length(IpBytes) = 4 then begin
+        Move(IpBytes[0], AIPv4.S_byte[0], 4);
+        Result := WSocketIPv4ToStr(AIPv4.S_addr);
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert ASCII IP address to reverse DNS lookup arpa domain name, no period on end }
+// IPv6  4321:0:1:2:3:4:567:89ab becomes  b.a.9.8.7.6.5.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.0.0.0.0.1.2.3.4.ip6.arpa
+// IPv4  217.146.102.139 becomes 139.102.146.217.in-addr.arpa
+function IcsReverseIPArpa(const IP: String): AnsiString;    { V9.5 }
+var
+    SocFamily: TSocketFamily;
+begin
+    Result := AnsiString(IP);
+    if WSocketIsIP(IP, SocFamily) then begin
+        if SocFamily = sfIPv6 then
+            Result := IcsReverseIPv6(IP) + '.ip6.arpa'
+        else if SocFamily = sfIPv4 then
+            Result := IcsReverseIP(IP) + '.in-addr.arpa'
+    end
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert IPv6 address in PSockAddrIn6 record to ASCII string }
+{ Returns the scope ID as well, if not null }
+function WSocketIPv6ToStr(const AIn6: PSockAddrIn6): string;
+begin
+    if (AIn6 <> nil) and (AIn6.sin6_family = AF_INET6) then begin   { V9.5 family check }
+        if AIn6^.sin6_scope_id = 0 then
+            Result := WSocketIPv6ToStr(PIcsIPv6Address(@AIn6^.sin6_addr)^)
+        else
+            Result := WSocketIPv6ToStr(PIcsIPv6Address(@AIn6^.sin6_addr)^) + '%' + IntToStr(AIn6^.sin6_scope_id);
+    end
+    else
+        Result := '';
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert binary IPV4 address and port into TSockAddrIn6 record for winsock APIs }
+function  WSocketIPv4ToSocAddr(IPv4: Integer; Port: Integer = 0): TSockAddrIn6;       { V8.71 }  { V9.5 added port }
+begin
+    Result := WSocketIPv4ToSocAddr(Cardinal(IPv4), Port);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert binary IPV4 address and port into TSockAddrIn6 record for winsock APIs }
+{ also works with TIcsIPv4Address }
+function  WSocketIPv4ToSocAddr(IPV4: Cardinal; Port: Integer = 0): TSockAddrIn6;      { V8.71 } { V9.5 added port }
+begin
+    IcsInitializeAddr(Result, sfIPv4);
+    PSockAddrIn(@Result)^.sin_addr.S_addr := IPv4;
+    PSockAddrIn(@Result)^.sin_port := Port;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert binary IPv6 address and port into TSockAddrIn6 record for winsock APIs }
+function  WSocketIPv6ToSocAddr(AIPv6Addr: TIcsIPv6Address; Port: Integer = 0): TSockAddrIn6;     { V9.5 }
+begin
+    IcsInitializeAddr(Result, sfIPv6);
+    Move(AIPv6Addr.Words, Result.sin6_addr.u6_addr16, 16);
+    Result.sin6_port := Port;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert ASCII IPv4 or IPv6 address and port into TSockAddrIn6 record for winsock APIs }
+function  WSocketIPStrToSocAddr(const S: string; out Success: Boolean; Port: Integer = 0): TSockAddrIn6;  { V9.5 }
+var
+    ASocFamily: TSocketFamily;
+    AIPv6: TIcsIPv6Address;
+    AIPv4: TIcsIPv4Address;
+begin
+    IcsInitializeAddr(Result, sfAny);
+    Success := WSocketIsIPEx(S, ASocFamily);
+    if NOT Success then
+        Exit;
+    if ASocFamily = sfIPv4 then begin
+        AIPv4 := WSocketStrToIPv4(S, Success);
+        if NOT Success then
+            Exit;
+        Result := WSocketIPv4ToSocAddr(AIPv4, Port);
+    end
+    else if ASocFamily = sfIPv6 then begin
+        AIPv6 := WSocketStrToIPv6(S, Success);
+        if NOT Success then
+            Exit;
+        Result := WSocketIPv6ToSocAddr(AIPv6, Port);
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert IP address from TSockAddrIn6 record from winsock APIs into string }
+function  WSocketSockAddrToStr(const ASockAddr: TSockAddrIn6): string;          { V8.71 }
+begin
+    if ASockAddr.sin6_family = AF_INET6 then
+        Result := WSocketIPv6ToStr(PIcsIPv6Address(@ASockAddr.sin6_addr)^)
+    else
+        Result := WSocketIPv4ToStr(PSockAddrIn(@ASockAddr).sin_addr.S_addr);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert IPv6 address from PAddrInfo record from winsock APIs into binary }
+function IcsIPv6AddrFromAddrInfo(AddrInfo: PAddrInfo): TIcsIPv6Address; {$IFDEF USE_INLINE} inline; {$ENDIF}
+begin
+    Result := PIcsIPv6Address(@PSockAddrIn6(AddrInfo^.ai_addr)^.sin6_addr)^;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ find TSocketFamily from  TSockAddrIn6 record from winsock APIs }
+function  IcsFamilyFromSocAddr(const ASockAddr: TSockAddrIn6): TSocketFamily;         { V9.5 }
+begin
+    if ASockAddr.sin6_family = AF_INET then
+        Result := sfIPv4
+    else if ASockAddr.sin6_family = AF_INET6 then
+        Result := sfipv6
+    else
+        Result := sfAny;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert IPv4 address from TSockAddrIn6 record from winsock APIs into binary }
+function IcsIPv4AddrFromSocAddr(const ASockAddr: TSockAddrIn6): TIcsIPv4Address; {$IFDEF USE_INLINE} inline; {$ENDIF}  { V9.5 }
+begin
+    if ASockAddr.sin6_family = AF_INET then
+        Result := PSockAddrIn(@ASockAddr).sin_addr.S_addr
+    else
+        Result := 0;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ convert IPv6 address from TSockAddrIn6 record from winsock APIs into binary }
+function IcsIPv6AddrFromSocAddr(const ASockAddr: TSockAddrIn6): TIcsIPv6Address; {$IFDEF USE_INLINE} inline; {$ENDIF}  { V9.5 }
+begin
+    if ASockAddr.sin6_family = AF_INET6 then
+        Result := PIcsIPv6Address(@ASockAddr.sin6_addr)^
+    else
+        IcsInitializeIpv6(Result);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ find family for Windows APIs from TSocketFamily }
+function  WSocketFamilyToAF(AFamily: TSocketFamily): Integer;         { V8.71 }
+begin
+    if AFamily in [sfIPv4, sfAnyIPv4] then
+        Result := AF_INET
+    else if AFamily in [sfIPv6, sfAnyIPv6] then
+        Result := AF_INET6
+    else
+        Result := AF_UNSPEC;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ find TSocketFamily from family for Windows APIs  }
+function  WSocketFamilyFromAF(AFamily: Integer): TSocketFamily;         { V9.5 }
+begin
+    if AFamily = AF_INET then
+        Result := sfIPv4
+    else if AFamily = AF_INET6 then
+        Result := sfipv6
+    else
+        Result := sfAny;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure IcsInitializeAddr(var AAddr: TSockAddrIn6; AIPVersion: TSocketFamily); {$IFDEF USE_INLINE} inline; {$ENDIF} { V9.5 moved from WSocket }
+begin
+    FillChar(AAddr, SizeOf(TSockAddrIn6), 0);
+    if AIPVersion = sfIPv6 then
+        AAddr.sin6_family := AF_INET6
+    else
+        AAddr.sin6_family := AF_INET;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure IcsInitializeIpv6(var IPv6: TIcsIPv6Address); {$IFDEF USE_INLINE} inline; {$ENDIF} { V9.5 }
+begin
+    FillChar(IPv6, SizeOf(TIcsIPv6Address), 0);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function IcsSizeOfAddr(const AAddr: TSockAddrIn6): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF} { V9.5 moved from WSocket }
+begin
+    if AAddr.sin6_family = AF_INET6 then
+        Result := SizeOf(TSockAddrIn6)
+    else
+        Result := SizeOf(TSockAddrIn);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketSocksErrorDesc(ErrCode : Integer) : String;
+begin
+    case ErrCode of
+        socksNoError              : Result := 'No Error';
+        socksProtocolError        : Result := 'Protocol Error';
+        socksVersionError         : Result := 'Version Error';
+        socksAuthMethodError      : Result := 'Authentication Method Error';
+        socksGeneralFailure       : Result := 'General Failure';
+        socksConnectionNotAllowed : Result := 'Connection Not Allowed';
+        socksNetworkUnreachable   : Result := 'Network Unreachable';
+        socksHostUnreachable      : Result := 'Host Unreachable';
+        socksConnectionRefused    : Result := 'Connection Refused';
+        socksTtlExpired           : Result := 'TTL Expired';
+        socksUnknownCommand       : Result := 'Unknown Command';
+        socksUnknownAddressType   : Result := 'Unknown Address Type';
+        socksUnassignedError      : Result := 'Unassigned Error';
+        socksInternalError        : Result := 'Internal Error';
+        socksDataReceiveError     : Result := 'Data Receive Error';
+        socksAuthenticationFailed : Result := 'Authentication Failed';
+        socksRejectedOrFailed     : Result := 'Rejected Or Failed';
+        socksHostResolutionFailed : Result := 'Host Resolution Failed';
+        else
+            Result := 'Not a SOCKS error';
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketHttpStatusCodeDesc(HttpStatusCode : Integer) : String;
+const
+    sHttpStatusCode = 'HTTP status code';
+begin
+    { Rather lengthy, I know, anyway RAM is cheap today. }
+    if (HttpStatusCode >= 100) and (HttpStatusCode < 600) then
+    begin
+        case HttpStatusCode of
+            100       : Result := 'Continue';
+            101       : Result := 'Switching Protocols';
+            102       : Result := 'Processing';
+
+            200       : Result := 'OK';
+            201       : Result := 'Created';
+            202       : Result := 'Accepted';
+            203       : Result := 'Non-Authoritative Information';
+            204       : Result := 'No Content';
+            205       : Result := 'Reset Content';
+            206       : Result := 'Partial Content';
+            207       : Result := 'Multi-Status (WebDAV)';
+
+            300       : Result := 'Multiple Choices';
+            301       : Result := 'Moved Permanently';
+            302       : Result := 'Found';
+            303       : Result := 'See Other';
+            304       : Result := 'Not Modified';
+            305       : Result := 'Use Proxy';
+            306       : Result := 'Switch Proxy';
+            307       : Result := 'Temporary Redirect';
+
+            400       : Result := 'Bad Request';
+            401       : Result := 'Unauthorized';
+            402       : Result := 'Payment Required';
+            403       : Result := 'Forbidden';
+            404       : Result := 'Not Found';
+            405       : Result := 'Method Not Allowed';
+            406       : Result := 'Not Acceptable';
+            407       : Result := 'Proxy Authentication Required';
+            408       : Result := 'Request Timeout';
+            409       : Result := 'Conflict';
+            410       : Result := 'Gone';
+            411       : Result := 'Length Required';
+            412       : Result := 'Precondition Failed';
+            413       : Result := 'Request Entity Too Large';
+            414       : Result := 'Request-URI Too Long';
+            415       : Result := 'Unsupported Media Type';
+            416       : Result := 'Requested Range Not Satisfiable';
+            417       : Result := 'Expectation Failed';
+            418       : Result := 'I''m a teapot';
+            422       : Result := 'Unprocessable Entity (WebDAV)';
+            423       : Result := 'Locked (WebDAV)';
+            424       : Result := 'Failed Dependency (WebDAV)';
+            425       : Result := 'Unordered Collection';
+            444       : Result := 'No Response';
+            426       : Result := 'Upgrade Required';
+            449       : Result := 'Retry With';
+            450       : Result := 'Blocked by Windows Parental Controls';
+            499       : Result := 'Client Closed Request';
+
+            500       : Result := 'Internal Server Error';
+            501       : Result := 'Not Implemented';
+            502       : Result := 'Bad Gateway';
+            503       : Result := 'Service Unavailable';
+            504       : Result := 'Gateway Timeout';
+            505       : Result := 'HTTP Version Not Supported';
+            506       : Result := 'Variant Also Negotiates';
+            507       : Result := 'Insufficient Storage (WebDAV)';
+            509       : Result := 'Bandwidth Limit Exceeded';
+            510       : Result := 'Not Extended';
+            else
+                Result := sHttpStatusCode + ' ' + IntToStr(HttpStatusCode);
+        end;
+    end
+    else
+        Result := 'Not a ' + sHttpStatusCode;
+
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+//const
+//  sHttpVersionError = 'Proxy server must support HTTP/1.1';
+
+function WSocketHttpTunnelErrorDesc(ErrCode : Integer) : String;
+const
+    sNotAHttpTunnelError = 'Not a HTTP tunnel error';
+var
+    LErr : Integer;
+begin
+    if (ErrCode >= ICS_HTTP_TUNNEL_BASEERR) and
+       (ErrCode <= ICS_HTTP_TUNNEL_MAXERR) then
+    begin
+        LErr := ErrCode - ICS_HTTP_TUNNEL_BASEERR;
+        if (LErr >= 100) and (LErr < 600) then
+        begin
+            if LErr = 200 then
+                Result := 'No Error'
+            else
+                Result := WSocketHttpStatusCodeDesc(LErr);
+        end
+        else begin
+            case ErrCode of
+                ICS_HTTP_TUNNEL_PROTERR :
+                    Result := 'Protocol Error';
+                ICS_HTTP_TUNNEL_GENERR  :
+                    Result := 'General Failure';
+                ICS_HTTP_TUNNEL_VERSIONERR :
+                    Result := sHttpVersionError;
+                else
+                    Result := sNotAHttpTunnelError;
+            end;
+        end;
+    end
+    else
+        Result := sNotAHttpTunnelError;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketProxyErrorDesc(ErrCode : Integer) : String;
+begin
+    if (ErrCode >= ICS_HTTP_TUNNEL_BASEERR) and (ErrCode <= ICS_HTTP_TUNNEL_MAXERR) then
+        Result := 'HTTP Proxy - ' + WSocketHttpTunnelErrorDesc(ErrCode)
+    else if (ErrCode >= ICS_SOCKS_BASEERR) and ((ErrCode <= ICS_SOCKS_MAXERR)) then
+        Result := 'SOCKS - ' + WSocketSocksErrorDesc(ErrCode)
+    else
+        Result := 'Not a proxy error';
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketIsProxyErrorCode(ErrCode: Integer): Boolean;
+begin
+    Result := ((ErrCode >= ICS_SOCKS_BASEERR) and
+               (ErrCode <= ICS_SOCKS_MAXERR)) or
+              ((ErrCode >= ICS_HTTP_TUNNEL_BASEERR) and
+               (ErrCode <= ICS_HTTP_TUNNEL_MAXERR));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketErrorMsgFromErrorCode(ErrCode: Integer) : String;
+begin
+    if WSocketIsProxyErrorCode(ErrCode) then
+        Result := WSocketProxyErrorDesc(ErrCode)
+    else
+        Result := {$IFDEF MSWINDOWS} 'Winsock - ' {$ELSE} 'Socket - ' {$ENDIF} +
+                  WSocketErrorDesc(ErrCode);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketGetErrorMsgFromErrorCode(ErrCode : Integer) : String;
+begin
+    Result := WSocketErrorMsgFromErrorCode(ErrCode) + ' (#' + IntToStr(ErrCode) + ')';
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function SocketErrorDesc(ErrCode : Integer) : String;
+begin
+    case ErrCode of
+    0:
+      Result := 'No Error';
+    WSAEINTR:
+      Result := 'Interrupted system call';
+    WSAEBADF:
+      Result := 'Bad file number';
+    WSAEACCES:
+      Result := 'Permission denied';
+    WSAEFAULT:
+      Result := 'Bad address';
+    WSAEINVAL:
+      Result := 'Invalid argument';
+    WSAEMFILE:
+      Result := 'Too many open files';
+    WSAEWOULDBLOCK:
+      Result := 'Operation would block';
+    WSAEINPROGRESS:
+      Result := 'Operation now in progress';
+    WSAEALREADY:
+      Result := 'Operation already in progress';
+    WSAENOTSOCK:
+      Result := 'Socket operation on non-socket';
+    WSAEDESTADDRREQ:
+      Result := 'Destination address required';
+    WSAEMSGSIZE:
+      Result := 'Message too long';
+    WSAEPROTOTYPE:
+      Result := 'Protocol wrong type for socket';
+    WSAENOPROTOOPT:
+      Result := 'Protocol not available';
+    WSAEPROTONOSUPPORT:
+      Result := 'Protocol not supported';
+    WSAESOCKTNOSUPPORT:
+      Result := 'Socket type not supported';
+    WSAEOPNOTSUPP:
+      Result := 'Operation not supported on socket';
+    WSAEPFNOSUPPORT:
+      Result := 'Protocol family not supported';
+    WSAEAFNOSUPPORT:
+      Result := 'Address family not supported by protocol family';
+    WSAEADDRINUSE:
+      Result := 'Address already in use';
+    WSAEADDRNOTAVAIL:
+      Result := 'Address not available';
+    WSAENETDOWN:
+      Result := 'Network is down';
+    WSAENETUNREACH:
+      Result := 'Network is unreachable';
+    WSAENETRESET:
+      Result := 'Network dropped connection on reset';
+    WSAECONNABORTED:
+      Result := 'Connection aborted';
+    WSAECONNRESET:
+      Result := 'Connection reset by peer';
+    WSAENOBUFS:
+      Result := 'No buffer space available';
+    WSAEISCONN:
+      Result := 'Socket is already connected';
+    WSAENOTCONN:
+      Result := 'Socket is not connected';
+    WSAESHUTDOWN:
+      Result := 'Can''t send after socket shutdown';
+    WSAETOOMANYREFS:
+      Result := 'Too many references: can''t splice';
+    WSAETIMEDOUT:
+      Result := 'Connection timed out';
+    WSAECONNREFUSED:
+      Result := 'Connection refused';
+    WSAELOOP:
+      Result := 'Too many levels of symbolic links';
+    WSAENAMETOOLONG:
+      Result := 'File name too long';
+    WSAEHOSTDOWN:
+      Result := 'Host is down';
+    WSAEHOSTUNREACH:
+      Result := 'No route to host';
+    WSAENOTEMPTY:
+      Result := 'Directory not empty';
+    WSAEPROCLIM:
+      Result := 'Too many processes';
+    WSAEUSERS:
+      Result := 'Too many users';
+    WSAEDQUOT:
+      Result := 'Disc quota exceeded';
+    WSAESTALE:
+      Result := 'Stale NFS file handle';
+    WSAEREMOTE:
+      Result := 'Too many levels of remote in path';
+  {$IFDEF MSWINDOWS}
+    WSASYSNOTREADY:
+      Result := 'Network sub-system is unusable';
+    WSAVERNOTSUPPORTED:
+      Result := 'WinSock DLL cannot support this application';
+    WSANOTINITIALISED:
+      Result := 'WinSock not initialized';
+  {$ENDIF}
+    WSAHOST_NOT_FOUND:
+      Result := 'Host not found';
+    WSATRY_AGAIN:
+      Result := 'Non-authoritative host not found';
+    WSANO_RECOVERY:
+      Result := 'Non-recoverable error';
+    WSANO_DATA:
+      Result := 'No Data';
+    WSASERVICE_NOT_FOUND:
+      Result := 'Service not found'; // Name resolution
+    else
+  {$IFDEF MSWINDOWS}
+      Result := 'Not a Winsocket error';
+  {$ELSE}
+      Result := 'Not a socket error';
+  {$ENDIF}
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function WSocketErrorDesc(ErrCode : Integer) : String;
+begin
+    Result := SocketErrorDesc(ErrCode);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function GetWinsockErr(ErrCode: Integer): String ;    { V5.26 }
+begin
+    Result := SocketErrorDesc(ErrCode) + ' (#' + IntToStr(ErrCode) + ')' ;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function GetWindowsErr(ErrCode: Integer): String ;    { V5.26 }
+    {$IFDEF USE_INLINE} inline; {$ENDIF}
+begin
+    Result := SysErrorMessage(ErrCode) + ' (#' + IntToStr(ErrCode) + ')' ;
+end;
+
+{ V9.3 moved from SmtpProt }
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ FriendlyEmail                  FriendlyName   Result                      }
+{ ----------------------------   ------------   --------------              }
+{ myname <name@domain.com>       'myname'       name@domain.com             }
+{ myname name@domain.com         'myname'       name@domain.com             }
+{ "my name" <name@domain.com>    'my name'      name@domain.com             }
+{ 'my name' <name@domain.com>    'my name'      name@domain.com             }
+{ name@domain.com                empty          name@domain.com             }
+{ <name@domain.com>              empty          name@domain.com             }
+{ "name@domain.com"              empty          name@domain.com             }
+
+function IcsParseEmail(FriendlyEmail: String; var FriendlyName : String) : String;
+var
+    I, J  : Integer;
+    Flag  : Boolean;
+    Delim : Char;
+begin
+    Result       := '';
+    FriendlyName := '';
+    Flag         := (Pos('<', FriendlyEmail) > 0);
+    { Skip spaces }
+    I := 1;
+    while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] = ' ') do
+        Inc(I);
+    if I > Length(FriendlyEmail) then
+        Exit;
+    { Check if quoted string }
+    if (FriendlyEmail[I] = '"') or (FriendlyEmail[I] = '''') then begin
+        Delim := FriendlyEmail[I];
+        { Skip opening quote }
+        Inc(I);
+        { Go to closing quote }
+        J := I;
+        while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> Delim) do
+            Inc(I);
+        FriendlyName := Copy(FriendlyEmail, J, I - J);
+        Inc(I);
+        if Flag then begin
+            { Go to less-than sign }
+            while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> '<') do
+                Inc(I);
+            Inc(I);
+            J := I;
+            while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> '>') do
+                Inc(I);
+            Result := Copy(FriendlyEmail, J, I - J);
+        end
+        else
+            Result := Trim(Copy(FriendlyEmail, I, Length(FriendlyEmail)));
+    end
+    else begin
+        if Flag then begin
+            { Go to less-than sign }
+            J := I;
+            while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> '<') do
+                Inc(I);
+            FriendlyName := Trim(Copy(FriendlyEmail, J, I - J));
+            Inc(I);
+            { Go to greater-than sign }
+            J := I;
+            while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> '>') do
+                Inc(I);
+            Result := Copy(FriendlyEmail, J, I - J);
+        end
+        else begin
+            { No <..>, goto next space }
+            J := I;
+            while (I <= Length(FriendlyEmail)) and (FriendlyEmail[I] <> ' ') do
+                Inc(I);
+            FriendlyName := Trim(Copy(FriendlyEmail, J, I - J));
+            Result       := Trim(Copy(FriendlyEmail, I + 1, Length(FriendlyEmail)));
+        end;
+    end;
+    if (Result = '') and (Pos('@', FriendlyName) > 0) then begin
+        Result       := FriendlyName;
+        FriendlyName := '';
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.3 moved from Blacklist }
+{ V8.60 simple log file update, write text to end of old or new file, opening
+  and closing file, ignores any errors, not designed for continual updating!
+  The file name is date/time mask format, typically for one log file per day,
+  avoid time unless you wants lots of files each day.
+  Example FNameMask: "mylog-"yyyymmdd".log" or "c:\temp\mylog-"yyyymmdd".log"
+  note any non-mask characters are quoted so path needed quote at start.
+  If no drive or path is specified, writes to the program directory. }
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure IcsSimpleLogging (const FNameMask, Msg: String);
+var
+    LogFileName, S: String;
+    F: TextFile;
+begin
+    S := FormatDateTime (ISOTimeMask, Time) + ' ' + Msg;
+    try
+        LogFileName := FormatDateTime (FNameMask, Date) ;
+        if (Pos ('//', LogFileName) <> 1) and (Pos (':', LogFileName) <> 2) then
+            LogFileName := IncludeTrailingPathDelimiter (ExtractFileDir (ParamStr (0))) + LogFileName ;
+        AssignFile (F, LogFileName);
+        if FileExists (LogFileName) then begin
+            Append (F);
+        end
+        else begin
+            Rewrite (F);
+        end;
+        Writeln (F, S);
+        CloseFile(F);
+    except
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure IcsOutputDebugStr(const AMsg: String); {$IFDEF USE_INLINE} inline; {$ENDIF}  { V9.4 was in Logger }
+begin
+  {$IFDEF POSIX}
+    System.WriteLn(AMsg);
+  {$ENDIF}
+  {$IFDEF MSWINDOWS}
+    {$IFDEF RTL_NAMESPACES}Winapi.{$ENDIF}Windows.OutputDebugString(PChar(AMsg));
+  {$ENDIF}
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 mask an ASCII IPv4 address }
+{ ie 192.168.1.222/255.255.255.0 gives 192.168.1.0, 192.168.1.222/255.255.0.0 gives 192.168.0.0 }
+function IcsMaskIpv4Addr(const IpStr, IpMask: String): String;      { V9.5 }
+var
+    AddrLong, MaskLong: LongWord;
+    OK: Boolean;
+begin
+    Result :='';
+    AddrLong := WSocketStrToIPv4(IpStr, OK);
+    if NOT OK then
+        Exit;
+    MaskLong := WSocketStrToIPv4(IpMask, OK);
+    if NOT OK then
+        Exit;
+     AddrLong := AddrLong AND MaskLong;
+     Result :=  WSocketIPv4ToStr(AddrLong);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.5 convert multiple lines of text into multiple strings, one per line }
+function IcsLinesToDynArray(const Lines: String): TStringDynArray;   { V9.5 }
+var
+    SL: TStringList;
+    I: Integer;
+begin
+    SetLength(Result, 0);
+    if Length(Lines) = 0 then
+        Exit;
+    SL := TStringList.Create;
+    try
+        SL.Text := Lines;
+        SetLength(Result, SL.Count);
+        for I := 0 to SL.Count - 1 do
+            Result[I] := SL[I];
+    finally
+       SL.Free;
+    end;
+end;
+
+
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 
 initialization
-    TicksTestOffset := 0 ;
+    TicksTestOffset := 0 ;    { V9.0 these ticks no longer used in ICS }
 { force GetTickCount wrap in 5 mins - next line normally commented out }
 {    TicksTestOffset := MaxLongWord - GetTickCount - (5 * 60 * 1000);  }
     GetIcsFormatSettings;  { V8.60 }
 finalization
 {$IFDEF MSWINDOWS}
-    if WinTrustHandle <> 0 then FreeLibrary (WinTrustHandle);
+    if WinTrustHandle <> 0 then
+        FreeLibrary (WinTrustHandle);
     WinTrustHandle := 0;
-    if hSHFolderDLL <> 0 then FreeLibrary(hSHFolderDLL);  { V8.67 }
+    if hSHFolderDLL <> 0 then
+        FreeLibrary(hSHFolderDLL);  { V8.67 }
     hSHFolderDLL := 0;
 {$ENDIF MSWINDOWS}
 end.

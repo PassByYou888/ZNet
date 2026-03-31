@@ -791,6 +791,261 @@ begin
   MT19937RandD(dest, Num);
 end;
 
+class function TMT19937.Random: Extended;
+const
+  f: Extended = 1.0 / (Int64(1) shl 32);
+begin
+  Result := f * Cardinal(InternalMT19937__()^.GenRand_MT19937());
+end;
+
+class function TMT19937.RandomRange(const rnd: TMT19937Random; const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand32(mn - mx) + mx
+  else
+      Result := rnd.Rand32(mx - mn) + mn;
+end;
+
+class function TMT19937.RandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand64(mn - mx) + mx
+  else
+      Result := rnd.Rand64(mx - mn) + mn;
+end;
+
+class function TMT19937.RandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single;
+begin
+  Result := (TMT19937.RandomRange64(rnd, Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+class function TMT19937.RandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RandomRange64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RandomRange64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RandomRange(const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand32(mn - mx) + mx
+  else
+      Result := MT19937Rand32(mx - mn) + mn;
+end;
+
+class function TMT19937.RandomRange64(const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand64(mn - mx) + mx
+  else
+      Result := MT19937Rand64(mx - mn) + mn;
+end;
+
+class function TMT19937.RandomRangeS(const min_, max_: Single): Single;
+begin
+  Result := (TMT19937.RandomRange64(Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+class function TMT19937.RandomRangeD(const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RandomRange64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RandomRangeF(const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RandomRange64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RR(const rnd: TMT19937Random; const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand32(mn - mx) + mx
+  else
+      Result := rnd.Rand32(mx - mn) + mn;
+end;
+
+class function TMT19937.RR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := rnd.Rand64(mn - mx) + mx
+  else
+      Result := rnd.Rand64(mx - mn) + mn;
+end;
+
+class function TMT19937.RRS(const rnd: TMT19937Random; const min_, max_: Single): Single;
+begin
+  Result := (TMT19937.RR64(rnd, Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+class function TMT19937.RRD(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RRF(const rnd: TMT19937Random; const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RR(const min_, max_: Integer): Integer;
+var
+  mn, mx: Integer;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand32(mn - mx) + mx
+  else
+      Result := MT19937Rand32(mx - mn) + mn;
+end;
+
+class function TMT19937.RR64(const min_, max_: Int64): Int64;
+var
+  mn, mx: Int64;
+begin
+  if min_ = max_ then
+    begin
+      Result := min_;
+      exit;
+    end;
+  mn := min_;
+  mx := max_;
+
+  if mn > mx then
+      inc(mn)
+  else
+      inc(mx);
+
+  if mn > mx then
+      Result := MT19937Rand64(mn - mx) + mx
+  else
+      Result := MT19937Rand64(mx - mn) + mn;
+end;
+
+class function TMT19937.RRS(const min_, max_: Single): Single;
+begin
+  Result := (TMT19937.RR64(Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+end;
+
+class function TMT19937.RRD(const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
+class function TMT19937.RRF(const min_, max_: Double): Double;
+begin
+  Result := (TMT19937.RR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+end;
+
 class procedure TMT19937.SaveToStream(stream: TCore_Stream);
 begin
   MT19937SaveToStream(stream);

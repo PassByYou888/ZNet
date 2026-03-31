@@ -47,6 +47,7 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
                    also IPv6 support, include files now in sub-directory
 Aug 4, 2020 V8.65 - Removed Endian function not needed and requires ASM
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 23, 2023 V9.1  No assembler on Android.
 
 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -61,6 +62,9 @@ unit Z.ICS9.OverbyteIcsCRC;
 {$IFNDEF CPUX64}
   {$DEFINE USE_ASM} //Remove this line to use pascal instead of assembler
 {$ENDIF}
+{$IFDEF ANDROID}
+    {$UNDEF USE_ASM}       { V9.1 }
+{$ENDIF}
 
 interface
 
@@ -69,8 +73,8 @@ uses
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF};
 
 const
-    CRCVersion         = 900;
-    CopyRight : String = ' CRC32 (c) 1997-2023 F. Piette V9.0 ';
+    CRCVersion         = 901;
+    CopyRight : String = ' CRC32 (c) 1997-2023 F. Piette V9.1 ';
     DefaultMode =  fmOpenRead or fmShareDenyWrite;   { V1.04 }
 
 type

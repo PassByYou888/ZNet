@@ -40,6 +40,8 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
 May 4, 2018 - V8.54 - keep D7 happy
 Oct 5, 2018 - V8.57 - Using IcsStrLen to resolve compiler warnings
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 23, 2023 V9.1  No ICONV on Android.
+
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 unit Z.ICS9.OverbyteIcsCsc;
@@ -66,6 +68,9 @@ unit Z.ICS9.OverbyteIcsCsc;
 
 { Iconv lib is loaded dynamically at run-time in Windows  }
 {.$DEFINE USE_ICONV}
+{$IFDEF ANDROID}
+    {$UNDEF USE_ICONV}       { V9.1 }
+{$ENDIF}
 
 { MLang.DLL is loaded dynamically at run-time, used only  }
 { in Windows with true MBCS and if iconv is not available }

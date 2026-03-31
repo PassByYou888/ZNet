@@ -5,10 +5,10 @@ Description:  Delphi encapsulation for SSLEAY32.DLL (OpenSSL)
               Renamed libssl32.dll for OpenSSL 1.1.0 and later
               This is only the subset needed by ICS.
 Creation:     Jan 12, 2003
-Version:      V9.0
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2003-2023 by François PIETTE
+Legal issues: Copyright (C) 2003-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               SSL implementation includes code written by Arno Garrels,
@@ -181,10 +181,49 @@ Jul 03, 2023 V8.71 Added OSSL_VER_3100 and OSSL_VER_3200 lits for OpenSSL 3.1 an
                      3.2 but no ICS functions need them yet.
                    Added TSslLoadSource for IcsHosts Windows Store support.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 25, 2025 V9.1  Removed support for OpenSSL 1.1.1 which is end of life.
+                   No longer supporting defines OPENSSL_USE_DELPHI_MM (never used),
+                     OPENSSL_NO_ENGINE (deprecated, never used), OPENSSL_USE_RESOURCE_STRINGS
+                     (never used), NO_OSSL_VERSION_CHECK (dangerous), DEFINE OPENSSL_NO_TLSEXT
+                     (TLS needed everywhere), LOADSSL_ERROR_FILE (better debugging now).
+                   Added GSSLEAY_RES_SUBDIR defaults to "ICS-OpenSSL", where OpenSSL
+                     files will be saved and accessed in linked as a resource in the
+                     application, with a sub-directory for each different version.
+                   Added SSL_CTX_set_cert_store.
+                   Added GSSL_CERTS_DIR and GSSL_ROOTS_DIR globals where ICS looks for
+                     SSL/TLS certificates and bundles, GSSL_INTER_CNAME for ICS Intermediate.
+Jun 03, 2024 V9.2  Corrected OpenSSL3 file names for Posix/MacOS, added names for Linux.
+                   Added IcsLinuxGetModuleFileName for Linux.
+Sep 05, 2024 V9.3  Moved many types and constants to OverbyteIcsTypes for consolidation.
+                   Fixed Linux names again, requires Ubuntu 22.04 for OpenSSL 3.
+                   IcsVerifySslDll is now a function that returns true if digital
+                     signing tests fails, and prevent OpenSSL from loading but no
+                     exception since it may be called before forms are available.
+                   Added YuOpenSSL version of POSSL_PARAM_BLD.
+                   Added SSL_get0_group_name for 3.2 for handshake reporting.
+                   Added SSL_CTX_set_ciphersuites to set TLS/1.3 ciphers.
+Nov 14, 2024 V9.4  When reporting export load errors, added space between names so
+                     errors word wrap.
+                   No longer check OpenSSL DLLs are digitally signed for Windows XP,
+                     2003, Vista and 2008, they don't recognise SHA-256 code signing,
+                     not tested since no longer have those old versions available.
+Jul 17, 2025 V9.5 Added SSL_CTX_set_keylog_callback, allows Wireshark to use TLS keys.
+                  Added newish TLSEXT_TYPE_s for recent OpenSSL versions.
+                  Added TLSEXT_cert_type_x509/rpk for raw public keys.
+                  Added various cert_type functions for raw public keys.
+                  Removed SSL_SESSION_get_time and SSL_SESSION_set_time, never used
+                    and deprecated in 3.4 (replaced by _ex versions).
+                  Added GSSL_LOAD_ERRS which reports any OpenSSL loading errors that
+                    get lost if exceptions are lost.
+                  Added SSL_set_tlsext_host_name with AnsiString argument.
+
+
+Note: if OpenSSL_Resource_Files if defined, they are linked by OverbyteIcsLIBEAY.pas
+according to defines in OverbyteIcsDefs.inc.
 
 
 YuOpenSSL is a commercial product from https://www.yunqa.de/ and is supplied as
-separate compiled DCUs for Delphi 5 to 10.4.
+separate compiled DCUs for Delphi 5 to 12.
 
 DEFINE YuOpenSSL in Include\OverbyteIcsDefs.inc determines whether the DCU is linked
 or the external DLLs.  Note only one version of OpenSSL can be linked with YuOpenSSL,
@@ -246,8 +285,9 @@ SSL_get_peer_certificate to SSL_get1_peer_certificate
 {$H+}                                 { Use long strings                    }
 {$J+}                                 { Allow typed constant to be modified }
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
-{$I Include\Z.ICS9.OverbyteIcsSslDefs.inc}
+{.I Include\OverbyteIcsSslDefs.inc  V9.1 gone }
 {$A8}
+{$DEFINE OPENSSL_NO_ENGINE}       { V9.1 deprecated in OpenSSL 3.0 }
 
 unit Z.ICS9.OverbyteIcsSSLEAY;
 
@@ -262,23 +302,25 @@ uses
   {$IFDEF POSIX}
     Posix.Errno,
     Posix.SysTypes, { V8.65 for size_t }
+    Posix.Dlfcn,    { V9.2 }
+    Posix.Unistd,   { V9.2 }
     System.Types,   { V8.49 types needed for DWORD }
   {$ENDIF}
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils
-    {$IFDEF YuOpenSSL}, YuOpenSSL{$ENDIF YuOpenSSL};
+    {$IFDEF YuOpenSSL}, YuOpenSSL {$ENDIF YuOpenSSL};
 
 const
-    IcsSSLEAYVersion   = 900;
-    CopyRight : String = ' IcsSSLEAY (c) 2003-2023 F. Piette V9.0 ';
+    IcsSSLEAYVersion   = 905;
+    CopyRight : String = ' IcsSSLEAY (c) 2003-2025 F. Piette V9.5 ';
 
-{$IF defined(YuOpenSSL) and not declared (OPENSSL_VERSION_MAJOR_)}   { V8.68 }
-    OPENSSL_VERSION_MAJOR_ = 1;
+{.IF defined(YuOpenSSL) and not declared (OPENSSL_VERSION_MAJOR_)}   { V8.68 } { V9.3 not supporting 1.1.1 }
+{    OPENSSL_VERSION_MAJOR_ = 1;
     OPENSSL_VERSION_MINOR_ = 1;
     OPENSSL_VERSION_PATCH_ = 1;
-    OPENSSL_VERSION_PRE_RELEASE_ = '';
-{$IFEND}
+    OPENSSL_VERSION_PRE_RELEASE_ = '';   }
+{.$IFEND}
 
     EVP_MAX_IV_LENGTH                 = 16;       { 03/02/07 AG }
     EVP_MAX_BLOCK_LENGTH              = 32;       { 11/08/07 AG }
@@ -289,19 +331,34 @@ const
 { V8.65 POSIX not MACOS }
 var
     GLIBEAY_DLL_Handle          : THandle = 0;
-    GLIBEAY_110DLL_Name         : String  =
-            {$IFDEF POSIX}'/usr/lib/libcrypto.dylib';{$ELSE}   { V8.32 !!!! not tested, unknown file name }
-                {$IFDEF CPUX64}'libcrypto-1_1-x64.dll';{$ELSE}'libcrypto-1_1.dll';{$ENDIF} {$ENDIF}     { V8.27 }
     GLIBEAY_300DLL_Name         : String  =
-            {$IFDEF POSIX}'/usr/lib/libcrypto.dylib';{$ELSE}   { !!!! not tested, unknown file name }
-                {$IFDEF CPUX64}'libcrypto-3-x64.dll';{$ELSE}'libcrypto-3.dll';{$ENDIF} {$ENDIF}     { V8.67 }
-    GSSLEAY_110DLL_Name         : String  =
-            {$IFDEF POSIX}'/usr/lib/libssl.dylib';{$ELSE}
-                {$IFDEF CPUX64}'libssl-1_1-x64.dll';{$ELSE}'libssl-1_1.dll';{$ENDIF}{$ENDIF}   { V8.27 }
+            {$IFDEF LINUX}
+              //  '/usr/local/ssl/lib64/libcrypto.so';
+          //    '/usr/lib/x86_64-linux-gnu/libcrypto.so.3';     { V9.3 Umbuntu Linux }
+                'libcrypto.so.3';     { V9.3 Linux }
+            {$ELSE}
+                {$IFDEF POSIX}                           { V9.2 MacOS }
+                    'libcrypto.3.dylib';
+                {$ELSE}
+                    {$IFDEF CPUX64}'libcrypto-3-x64.dll';{$ELSE}'libcrypto-3.dll';{$ENDIF}     { V8.67 Windows }
+                {$ENDIF}
+            {$ENDIF}
     GSSLEAY_300DLL_Name         : String  =
-            {$IFDEF POSIX}'/usr/lib/libssl.dylib';{$ELSE}
-                {$IFDEF CPUX64}'libssl-3-x64.dll';{$ELSE}'libssl-3.dll';{$ENDIF}{$ENDIF}   { V8.67 }
-    {$IFDEF YuOpenSSL}
+            {$IFDEF LINUX}
+             //   '/usr/local/ssl/lib64/libssl.so';
+             // '/usr/lib/x86_64-linux-gnu/libssl.so.3';         { V9.3 Linux, fails since path for GLIBEAY is added }
+                'libssl.so.3';         { V9.3 Linux }
+            {$ELSE}
+                {$IFDEF POSIX}
+                    'libssl.3.dylib';                    { V9.2 MacOS }
+                {$ELSE}
+                    {$IFDEF CPUX64}'libssl-3-x64.dll';{$ELSE}'libssl-3.dll';{$ENDIF}   { V8.67 Windows }
+                {$ENDIF}
+            {$ENDIF}
+
+(* V9.3 moved to OverbyteIcsTypes as variables
+
+{$IFDEF YuOpenSSL}
     GLIBEAY_DLL_FileName        : String  = 'Statically Linked';  { V8.66 }
     GSSLEAY_DLL_FileName        : String  = 'Statically Linked';  { V8.66 }
     GSSLStaticLinked            : Boolean = True;                 { V8.66 }
@@ -310,6 +367,7 @@ var
     GSSLEAY_DLL_FileName        : String  = '*NOT_LOADED*';
     GSSLStaticLinked            : Boolean = False;                 { V8.66 }
     {$ENDIF YuOpenSSL}
+
     GSSLEAY_DLL_Handle          : THandle = 0;
     GSSLEAY_DLL_FileVersion     : String = '';
     GSSLEAY_DLL_FileDescription : String = '';
@@ -317,7 +375,7 @@ var
     GSSLEAY_DLL_IgnoreNew       : Boolean = False;
  { V8.69 don't attempt to use old name libcrypto-1_1.dll, use libcrypto-3_0.dll }
     GSSLEAY_DLL_IgnoreOld       : Boolean = False;  { V8.69 false, don't ignore 1.1 }
- { NOTE - both true now allowed }
+ { NOTE - both true now allowed, V9.1 both ignored since 1.1 no longer supported }
  { V8.27 write buffer size, was fixed at 4096, but send used a 16K buffer }
     GSSL_BUFFER_SIZE            : Integer = 16384;
  { V8.27 if set before OpenSSL loaded, will use this directory for DLLs, must have trailing \ }
@@ -345,6 +403,25 @@ var
     GSSLEAY_PROVIDER_LEGACY     : Pointer;           { V8.67 POSSL_PROVIDER for legacy provider, if loaded }
     GSSLEAY_PROVIDER_FIPS       : Pointer;           { V8.67 POSSL_PROVIDER for FIPS provider, if loaded }
 
+ { V9.1 sub-directory in GSSLEAY_PUBLIC_DIR where OpenSSL is expected }
+    GSSL_RES_SUBDIR          : String = 'ICS-OpenSSL';
+ { V9.1 if blank when OpenSSL loaded, set to TPath.GetPublicPath or c:\ProgramData, with GSSLEAY_RES_SUBDIR added }
+ { ICS looks for OpenSSL DLLs and root CA bundles in this directory }
+ { if the OpenSSL DLLs are linked as resource, a version sub-directory will be added }
+    GSSL_PUBLIC_DIR         : string = '';
+
+{ V9.1 directories built when SSL loads for ICS certificates and Root CAs }
+    GSSL_CERTS_SUBDIR       : String = 'ICS-Certs\';
+    GSSL_ROOTS_SUBDIR       : String = 'ICS-RootCAs\';
+    GSSL_ROOTCA_NAME        : String = 'ICSRootCA.pem';
+    GSSL_LOCALHOST_NAME     : String = 'localhost-bundle.pem';
+    GSSL_INTER_NAME         : String = 'ICS_Intermediate_Short-bundle.pem';
+    GSSL_DEFROOT_NAME       : String = 'DefRootCABundle.pem';
+    GSSL_EXTRAROOT_NAME     : String = 'ExtraRootCABundle.pem';
+    GSSL_CERTS_DIR          : String = '';      // C:\ProgramData\ICS-OpenSSL\ICS-Certs\
+    GSSL_ROOTS_DIR          : String = '';      // C:\ProgramData\ICS-OpenSSL\ICS-RootCAs\
+    GSSL_INTER_FILE         : String = 'Internal';   // means use resource file, change for a real file name
+    GSSL_INTER_CNAME        : String = 'ICS Intermediate';   // part name, may have Short added
 
   { V8.62 dynamically added NID objects, if any set need call OBJ_cleanup on close down }
     ICS_NID_acmeIdentifier      : Integer = 0;
@@ -356,20 +433,15 @@ const
 { last digit is 0 for dev/beta, F for final release }
 { V8.27 moved from OverbyteIcsLIBEAY  }
 { V8.66 1.0.2 and 1.1.0 support ceased Dec 2019, now removed from ICS }
+{ V9.1 1.1.1 support ceased Sept 2023, now removed from ICS }
     OSSL_VER_MIN    = $0000000F; // minimum version     { V8.35 }
     OSSL_VER_1101   = $1010100F; // 1.1.1 base                { V8.57 }
-    OSSL_VER_1101A  = $1010101F; // 1.1.1a                    { V8.59 }
-    OSSL_VER_1101B  = $1010102F; // 1.1.1b                    { V8.59 }
-    OSSL_VER_1101C  = $1010103F; // 1.1.1c                    { V8.64 }
-    OSSL_VER_1101D  = $1010104F; // 1.1.1d                    { V8.65 }
-    OSSL_VER_1101E  = $1010105F; // 1.1.1e                    { V8.65 }
-    OSSL_VER_1101F  = $1010106F; // 1.1.1f                    { V8.65 }
-    OSSL_VER_1101G  = $1010107F; // 1.1.1g                    { V8.65 }
-    OSSL_VER_1101H  = $1010108F; // 1.1.1h                    { V8.65 }
     OSSL_VER_1101ZZ = $10101FFF; // 1.1.1zz not yet released  { V8.57 }
     OSSL_VER_3000   = $30000000; // 3.0.0 base                { V8.65 }
     OSSL_VER_3100   = $30100000; // 3.1.0 base                { V8.71 }
     OSSL_VER_3200   = $30200000; // 3.2.0 base                { V8.71 }
+    OSSL_VER_3300   = $30300000; // 3.3.0 base                { V9.1 }
+    OSSL_VER_3400   = $30400000; // 3.4.0 base                { V9.1 }
     OSSL_VER_3LAST  = $3FFFFFFF; // 3 last                    { V8.67 }
     OSSL_VER_MAX    = $FFFFFFFF; // maximum version           { V8.35 }
 
@@ -378,12 +450,13 @@ const
     { OpenSSL libraries for ICS are available for download here:              }
     { http://wiki.overbyte.be/wiki/index.php/ICS_Download                     }
 
-    MIN_OSSL_VER   = OSSL_VER_1101;   { V8.66 minimum is now 1.1.1 }
-//    MAX_OSSL_VER   = OSSL_VER_1101ZZ; { V8.57 1.1.1zz }
+    MIN_OSSL_VER   = OSSL_VER_3000;   { V9.1 minimum is now 3.0 }
     MAX_OSSL_VER   = OSSL_VER_3LAST;    { V8.67 }
+*)
 
+const
     { V8.41 PEM base64 file titles }
-    PEM_STRING_HDR_BEGIN   = '-----BEGIN ';    { six hyphens }
+    PEM_STRING_HDR_BEGIN   = '-----BEGIN ';    { five hyphens }
     PEM_STRING_HDR_END     = '-----END ';
     PEM_STRING_HDR_TAIL    = '-----'+#13#10;
     PEM_STRING_X509_OLD    = 'X509 CERTIFICATE' ;
@@ -412,13 +485,18 @@ const
     PEM_STRING_PARAMETERS  = 'PARAMETERS' ;
     PEM_STRING_CMS         = 'CMS' ;
 
+(* V9.3 moved to OverbyteIcsTypes
 { V8.56 TLS Application-Layer Protocol Negotiation (ALPN) Protocol IDs }
 { received from one client: h2,h2-14,h2-15,h2-16,h2-17,spdy/1,spdy/2,spdy/3,spdy/3.1,spdy/4,http/1.1,h2-fb,webrtc,c-webrtc,ftp }
+{ another: http/0.9,http/1.0,http/1.1,spdy/1,spdy/2,spdy/3,h2,h2c,hq  }
+{ another: hq,h2c,h2,spdy/3,spdy/2,spdy/1,http/1.1,http/1.0,http/0.9 }
+{ most common: h2,http/1.1 }
     ALPN_ID_HTTP10        = 'http/1.0';
     ALPN_ID_HTTP11        = 'http/1.1';
-    ALPN_ID_HTTP2         = 'h2';
-    ALPN_ID_HTTP2S        = 'h2s';
-    ALPN_ID_HTTP214       = 'h2-14';   { and -15, -16, -17 }
+    ALPN_ID_HTTP2         = 'h2';       { HTTP/2 over TLS }
+    ALPN_ID_HTTP3         = 'h3';       { HTTP/3 }
+    ALPN_ID_HTTP2S        = 'h2s';      { HTTP/2 over TCP }
+    ALPN_ID_HTTP214       = 'h2-14';   { and -15, -16, -17 versions }
 //    ALPN_ID_SPDY1         = 'spdy/1';
 //    ALPN_ID_SPDY2         = 'spdy/2';
     ALPN_ID_SPDY3         = 'spdy/3';
@@ -431,8 +509,9 @@ const
     ALPN_ID_IMAP          = 'imap';
     ALPN_ID_POP3          = 'pop3';
     ALPN_ID_ACME_TLS1     = 'acme-tls/1';
-
-
+    ALPN_ID_DNS_TCP       = 'dot';
+    ALPN_ID_MQTT          = 'mqtt';
+*)
 type
 
     TOSSLImports = record   { V8.35 }
@@ -448,9 +527,9 @@ type
     //PInteger = ^Integer;
     PPByte = ^PByte;              { V8.66 }
     PCRYPTO_THREADID = Pointer; { V8.66 ^TCRYPTO_THREADID_st;  }
-{$IFNDEF OPENSSL_NO_ENGINE}
-    PENGINE = Pointer; { V8.66 ^TEngine_st; }
-{$ENDIF}
+{xIFNDEF OPENSSL_NO_ENGINE}
+    PENGINE = Pointer; { V8.66 ^TEngine_st; }       { V9.1 engine gone, but some APIs use this pointer }
+{xENDIF}
     PSSL            = Pointer; { V8.66 ^TSSL_st;}
     PPSSL           = ^PSSL;    { V8.51 }
     PSSL_SESSION    = Pointer; { V8.66 ^TSSL_SESSION_st; }
@@ -634,7 +713,7 @@ type
 type
     PEVP_CIPHER_CTX = Pointer; { V8.66 ^TEVP_CIPHER_CTX_st;  }
 {$IFDEF OPENSSL_NO_ENGINE}
-    PEngine = Pointer; { V8.66 ^TEngine_st; }
+//PEngine = Pointer; { V8.66 ^TEngine_st; }
 {$ENDIF}
 
     TASN1_ENCODING_st = packed record
@@ -1332,15 +1411,16 @@ type
     POSSL_DISPATCH = Pointer;          { ossl_dispatch_st }
     POSSL_ITEM = Pointer;              { ossl_item_st }
     POSSL_ALGORITHM = Pointer;         { ossl_algorithm_st }
-    {$IF declared(OPENSSL_VERSION_MAJOR_) and (OPENSSL_VERSION_MAJOR_ >= Integer(3))}
-    OSSL_PARAM = YuOpenSSL.OSSL_PARAM;
-    POSSL_PARAM = YuOpenSSL.OSSL_PARAM_ptr;
+    {$IFDEF YuOpenSSL}
+        OSSL_PARAM = YuOpenSSL.OSSL_PARAM;
+        POSSL_PARAM = YuOpenSSL.OSSL_PARAM_ptr;
+        POSSL_PARAM_BLD = YuOpenSSL.OSSL_PARAM_BLD_ptr;   { V9.3 }
     {$ELSE}
-    OSSL_PARAM = ossl_param_st;        { ossl_param_st }
-    POSSL_PARAM = ^OSSL_PARAM;         { ossl_param_st }
-    {$IFEND}
+        OSSL_PARAM = ossl_param_st;        { ossl_param_st }
+        POSSL_PARAM = ^OSSL_PARAM;         { ossl_param_st }
+        POSSL_PARAM_BLD = Pointer;         { ossl_param_bld_st }
+    {$ENDIF}
     PPOSSL_PARAM = ^POSSL_PARAM;
-    POSSL_PARAM_BLD = Pointer;         { ossl_param_bld_st }
     POSSL_ENCODER = Pointer;           { ossl_encoder_st }
     POSSL_ENCODER_CTX = Pointer;       { ossl_encoder_ctx_st }
     POSSL_DECODER = Pointer;           { ossl_decoder_st }
@@ -1578,6 +1658,8 @@ type
     TSsl_client_hello_cb = function(s: PSSL; al: PInteger; arg: Pointer): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF} { V8.64 client hello callback, 1.1.1 and later, replaces servername_cb } { V8.66 var gone }
 
     TOSSL_PROVIDER_cb = function(provider: POSSL_PROVIDER; cbdata: Pointer): Integer; {$IFNDEF YuOpenSSL}cdecl;{$ENDIF} { V8.67 }
+
+    TSSL_CTX_keylog_cb_func = procedure (ssl:  PSSL; line: PAnsiChar); {$IFNDEF YuOpenSSL}cdecl;{$ENDIF}   { V9.5 }
 
 *)
 
@@ -2088,9 +2170,12 @@ const
     TLSEXT_TYPE_heartbeat                       = 15;  { V8.56 }
     TLSEXT_TYPE_application_layer_protocol_negotiation = 16;  { V8.56 }
     TLSEXT_TYPE_signed_certificate_timestamp    = 18;  { V8.56 }
+    TLSEXT_TYPE_client_cert_type                = 19;  { V9.5 raw public keys }
+    TLSEXT_TYPE_server_cert_type                = 20;  { V9.5 raw public keys }
     TLSEXT_TYPE_padding                         = 21;  { V8.56 }
     TLSEXT_TYPE_encrypt_then_mac                = 22;  { V8.56 }
     TLSEXT_TYPE_extended_master_secret          = 23;  { V8.56 }
+    TLSEXT_TYPE_compress_certificate            = 27;  { V9.5 RFC8879 }
     TLSEXT_TYPE_session_ticket                  = 35;
     { As defined for TLS1.3 }
     TLSEXT_TYPE_psk                             = 41;  { V8.56 }
@@ -2102,6 +2187,7 @@ const
     TLSEXT_TYPE_post_handshake_auth             = 49;  { V8.56 }
     TLSEXT_TYPE_signature_algorithms_cert       = 50;  { V8.56 }
     TLSEXT_TYPE_key_share                       = 51;  { V8.56 }
+    TLSEXT_TYPE_quic_transport_parameters       = 57;  { V9.5 }
  { Temporary extension type }
     TLSEXT_TYPE_renegotiate                     = $ff01;  { V8.56 }
     TLSEXT_TYPE_next_proto_neg                  = 13172;  { V8.64 }
@@ -2119,6 +2205,13 @@ const
     SSL_CLIENT_HELLO_SUCCESS                    = 1;
     SSL_CLIENT_HELLO_ERROR                      = 0;
     SSL_CLIENT_HELLO_RETRY                      = -1;
+
+ { V9.5 TLS Certificate Type (for RFC7250) }
+ { https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#tls-extensiontype-values-3 }
+    TLSEXT_cert_type_x509                       = 0;
+    TLSEXT_cert_type_pgp                        = 1; { recognized, but not supported }
+    TLSEXT_cert_type_rpk                        = 2; { raw public key }
+    TLSEXT_cert_type_1609dot2                   = 3; { recognized, but not supported, RFC 8902 Intelligent Transport Systems (ITS) Certificates }
 
 // V8.51 Extension context codes
 // This extension is only allowed in TLS
@@ -2144,6 +2237,8 @@ const
     SSL_EXT_TLS1_3_CERTIFICATE              = $1000;
     SSL_EXT_TLS1_3_NEW_SESSION_TICKET       = $2000;
     SSL_EXT_TLS1_3_CERTIFICATE_REQUEST      = $4000;
+
+(* V9.3 moved to OverbyteIcsTypes
 
 type
   { V8.57 whether an SSL server asks a client to send an SSL certificate }
@@ -2271,7 +2366,7 @@ const
  //        0,0,0,0,0,0,128{,192,256});
 
 type
-   { V8.57 SSL/TLS certifioate root validation method }
+   { V8.57 SSL/TLS certificate root validation method }
     TCertVerMethod   = (CertVerNone, CertVerBundle, CertVerWinStore);
 
    { V8.57 Logging debug level }
@@ -2340,6 +2435,7 @@ type
 const
     sslCliSecDefault = sslCliSecTls12;  { V8.55 recommended default, V8.69 changed to 1.2 or better }
 
+*)
 
 {$IFNDEF YuOpenSSL}  { only needed if using external DLL, otherwise all defined in YuOpenSSL.dcu }
 const
@@ -2358,6 +2454,7 @@ const
     SSL_CTX_get0_security_ex_data :          function(Ctx: PSSL_CTX): Pointer; cdecl = nil;            { V8.40 }
     SSL_CTX_get_cert_store :                 function(const Ctx: PSSL_CTX): PX509_STORE; cdecl = nil; //AG
     SSL_CTX_get_client_cert_cb:              function(CTX: PSSL_CTX): Pointer{TClient_cert_cb}; cdecl = nil; //AG
+    SSL_CTX_get_keylog_callback:             function(const CTX: PSSL_CTX): Pointer{TSSL_CTX_keylog_cb_func}; cdecl = nil;   { V9.5 }
     SSL_CTX_get_ex_data :                    function(const C: PSSL_CTX; Idx: Integer): PAnsiChar; cdecl = nil;
     SSL_CTX_get_security_level :             function(Ctx: PSSL_CTX): Integer; cdecl = nil;             { V8.40 }
     SSL_CTX_get_verify_depth :               function(const ctx: PSSL_CTX): Integer; cdecl = nil; //AG
@@ -2374,7 +2471,10 @@ const
     SSL_CTX_set1_param :                     function(Ctx: PSSL_CTX; vpm: PX509_VERIFY_PARAM): integer; cdecl = nil;  { V8.39 1.0.2 }
     SSL_CTX_set_alpn_protos :                function(Ctx: PSSL_CTX; protos: Pointer; protos_len: integer): integer; cdecl = nil;  { V8.56 }
     SSL_CTX_set_alpn_select_cb :             procedure(Ctx: PSSL_CTX; cb: Pointer{TSsl_alpn_cb}; arg: Pointer); cdecl = nil;  { V8.56 }
+    SSL_CTX_set_cert_store :                 procedure(Ctx: PSSL_CTX; Store: PX509_STORE); cdecl = nil;                       { V9.1 }
+    SSL_CTX_set1_cert_store :                procedure(Ctx: PSSL_CTX; Store: PX509_STORE); cdecl = nil;                       { V9.1 }
     SSL_CTX_set_cipher_list :                function(C: PSSL_CTX; CipherString: PAnsiChar): Integer; cdecl = nil;
+    SSL_CTX_set_ciphersuites :               function(C: PSSL_CTX; CipherString: PAnsiChar): Integer; cdecl = nil;            { V9.3 }
     SSL_CTX_set_client_CA_list :             procedure(C: PSSL_CTX; List: PSTACK_OF_X509_NAME); cdecl = nil; //AG
     SSL_CTX_set_client_cert_cb:              procedure(CTX: PSSL_CTX; CB: Pointer{TClient_cert_cb}); cdecl = nil; //AG
     SSL_CTX_set_client_hello_cb :            procedure(C: PSSL_CTX; cb: Pointer{TSsl_client_hello_cb}; arg: Pointer); cdecl = nil;  { V8.64 }
@@ -2383,6 +2483,7 @@ const
     SSL_CTX_set_default_verify_paths :       function(C: PSSL_CTX): Integer; cdecl = nil;
     SSL_CTX_set_ex_data :                    function(C: PSSL_CTX; Idx: Integer; Arg: PAnsiChar): Integer; cdecl = nil;
     SSL_CTX_set_info_callback:               procedure(ctx: PSSL_CTX; cb : Pointer{TSetInfo_cb}); cdecl = nil;
+    SSL_CTX_set_keylog_callback:             procedure(ctx: PSSL_CTX; cb : Pointer{TSSL_CTX_keylog_cb_func}); cdecl = nil;  { V9.5 }
     SSL_CTX_set_msg_callback :               procedure(Ctx: PSSL_CTX; cb: Pointer{TProto_msg_cb}); cdecl = nil;  { V8.40 }
     SSL_CTX_set_security_callback :          procedure(Ctx: PSSL_CTX; cb: Pointer{TSecurity_level_cb}); cdecl = nil;   { V8.40 }
     SSL_CTX_set_security_level :             procedure(Ctx: PSSL_CTX; level: Integer); cdecl = nil;     { V8.40 }
@@ -2397,9 +2498,9 @@ const
     SSL_CTX_use_certificate_chain_file :     function(C: PSSL_CTX; const FileName: PAnsiChar): Integer; cdecl = nil;
     SSL_CTX_use_certificate_file :           function(C: PSSL_CTX; const FileName: PAnsiChar; type_: Integer): Integer; cdecl = nil; //AG
     SSL_SESSION_get_id:                      function (const Ses: PSSL_SESSION; Len: PInteger): PAnsiChar; cdecl = nil; //AG    { V8.66 var gone }
-    SSL_SESSION_get_time :                   function(const Sess: PSSL_SESSION): Cardinal; cdecl = nil;
+//    SSL_SESSION_get_time :                   function(const Sess: PSSL_SESSION): Cardinal; cdecl = nil;             { V9.5 gone }
     SSL_SESSION_get_timeout :                function(const Sess: PSSL_SESSION): Cardinal; cdecl = nil;
-    SSL_SESSION_set_time :                   function(Sess: PSSL_SESSION; T: Cardinal): Cardinal; cdecl = nil;
+//    SSL_SESSION_set_time :                   function(Sess: PSSL_SESSION; T: Cardinal): Cardinal; cdecl = nil;      { V9.5 gone }
     SSL_SESSION_set_timeout :                function(Sess: PSSL_SESSION; T: Cardinal): Cardinal; cdecl = nil;
     SSL_accept :                             function(S: PSSL): Integer; cdecl = nil;
     SSL_add_client_CA :                      function(ssl: PSSL; CaCert: PX509): Integer; cdecl = nil; //AG
@@ -2421,6 +2522,7 @@ const
     SSL_do_handshake :                       function(S: PSSL): Integer; cdecl = nil; //AG
     SSL_free :                               procedure(S: PSSL); cdecl = nil;
     SSL_get0_alpn_selected :                 procedure(S: PSSL; data: PPointer; len: PInteger); cdecl = nil;  { V8.56 }
+    SSL_get0_group_name :                    function(S: PSSL): PAnsiChar; cdecl = nil;                               { V9.3 }
     SSL_get0_param :                         function(S: PSSL): PX509_VERIFY_PARAM; cdecl = nil;                      { V8.39 1.0.2 }
     SSL_get0_security_ex_data :              function(S: PSSL): Pointer; cdecl = nil;                  { V8.40 }
     SSL_get1_session :                       function(S: PSSL): PSSL_SESSION; cdecl = nil;
@@ -2462,7 +2564,7 @@ const
     SSL_set1_param :                         function(S: PSSL; vpm: PX509_VERIFY_PARAM): integer; cdecl = nil;        { V8.39 1.0.2 }
     SSL_set_SSL_CTX:                         function(S: PSSL; ctx: PSSL_CTX): PSSL_CTX; cdecl = nil;
     SSL_set_accept_state :                   procedure(S: PSSL); cdecl = nil; //AG
-    SSL_set_alpn_protos :                    function(S: PSSL; protos: TBytes; protos_len: integer): integer; cdecl = nil;  { V8.56 }
+    SSL_set_alpn_protos :                    function(S: PSSL; protos: Pointer; protos_len: integer): integer; cdecl = nil;  { V9.1 }
     SSL_set_bio :                            procedure(S: PSSL; RBio: PBIO; WBio: PBIO); cdecl = nil;
     SSL_set_client_CA_list :                 procedure(s: PSSL; List: PSTACK_OF_X509_NAME); cdecl = nil; //AG
     SSL_set_connect_state :                  procedure(S: PSSL); cdecl = nil;
@@ -2502,8 +2604,24 @@ const
     BIO_new_buffer_ssl_connect :             function(Ctx: PSSL_CTX): PBIO; cdecl = nil;                   // V8.51
     BIO_ssl_copy_session_id :                function(BioTo: PBIO; BioFrom: PBIO): Integer ; cdecl = nil;  // V8.51
     BIO_ssl_shutdown :                       procedure(Bio: PBIO); cdecl = nil;                            // V8.51
+
+    SSL_add_expected_rpk :                   function(S: PSSL; rpk: PEVP_PKEY): Integer; cdecl = nil;     { V9.5 }
+    SSL_get_negotiated_client_cert_type :    function(S: PSSL): Integer; cdecl = nil;                     { V9.5 }
+    SSL_get_negotiated_server_cert_type :    function(S: PSSL): Integer; cdecl = nil;                     { V9.5 }
+    SSL_get0_peer_rpk :                      function(S: PSSL): PEVP_PKEY; cdecl = nil;                   { V9.5 }
+    SSL_SESSION_get0_peer_rpk :              function(SS: PSSL_SESSION): PEVP_PKEY; cdecl = nil;          { V9.5 }
+    SSL_set1_client_cert_type :              function(S: PSSL; val: PAnsiChar; len: size_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_set1_server_cert_type :              function(S: PSSL; val: PAnsiChar; len: size_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_CTX_set1_client_cert_type :          function(Ctx: PSSL_CTX; val: PAnsiChar; len: size_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_CTX_set1_server_cert_type :          function(Ctx: PSSL_CTX; val: PAnsiChar; len: size_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_get0_client_cert_type :              function(S: PSSL; OutData: PPAnsiChar; OutLen: Psize_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_get0_server_cert_type :              function(S: PSSL; OutData: PPAnsiChar; OutLen: Psize_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_CTX_get0_client_cert_type :          function(Ctx: PSSL_CTX; OutData: PPAnsiChar; OutLen: Psize_t): Integer; cdecl = nil;  { V9.5 }
+    SSL_CTX_get0_server_cert_type :          function(Ctx: PSSL_CTX; OutData: PPAnsiChar; OutLen: Psize_t): Integer; cdecl = nil;  { V9.5 }
+
+
 {$IFNDEF OPENSSL_NO_ENGINE}
-    SSL_CTX_set_client_cert_engine :         function(Ctx: PSSL_CTX; e: PENGINE): Integer; cdecl = nil; //AG
+ // SSL_CTX_set_client_cert_engine :         function(Ctx: PSSL_CTX; e: PENGINE): Integer; cdecl = nil; //AG
 {$ENDIF}
 
 {$ENDIF YuOpenSSL}
@@ -2514,7 +2632,7 @@ function SslGetImports (Handle: THandle; List: array of TOSSLImports): string ; 
 
 { V8.38 Windows API to check authenticode code signing digital certificate on OpenSSL files }
 {$IFDEF MSWINDOWS} { V8.49 }
-procedure IcsVerifySslDll (const Fname: string);
+function IcsVerifySslDll (const Fname: string): Boolean;   { V9.3 now a function }
 {$ENDIF}
 
 // macro functions not exported from DLL
@@ -2540,6 +2658,7 @@ function  SSL_CTX_clear_chain_certs(C: PSSL_CTX): Integer;   {$IFDEF USE_INLINE}
 function  SSL_CTX_build_cert_chain(C: PSSL_CTX; flags: integer): Integer;   {$IFDEF USE_INLINE} inline; {$ENDIF}    { V8.27 }
 
 function Ics_SSL_set_tlsext_host_name(const S: PSSL; const name: String): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}  { V8.66 renamed since not OpenSSL compat }
+function SSL_set_tlsext_host_name(const S: PSSL; const name: AnsiString): Integer;   { V9.5 OpenSSL compatible AnsiString }
 function SSL_CTX_set_tlsext_servername_callback(ctx: PSSL_CTX; cb: Pointer{TCallback_ctrl_fp}): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function SSL_CTX_set_tlsext_servername_arg(ctx: PSSL_CTX; arg: Pointer): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
 function SSL_set_tlsext_debug_callback(S: PSSL; cb: Pointer{TCallback_ctrl_fp}): Integer; {$IFDEF USE_INLINE} inline; {$ENDIF}
@@ -2580,7 +2699,22 @@ procedure  SSL_set_msg_callback_arg(S: PSSL; arg: Pointer); {$IFDEF USE_INLINE} 
 {$IFNDEF YuOpenSSL}
 // V8.35 all OpenSSL exports now in tables, with versions if only available conditionally
 const
-    GSSLEAYImports1: array[0..159] of TOSSLImports = (
+    GSSLEAYImports1: array[0..176] of TOSSLImports = (
+
+    (F: @@SSL_add_expected_rpk;                   N: 'SSL_add_expected_rpk';                      MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_get_negotiated_client_cert_type;    N: 'SSL_get_negotiated_client_cert_type';       MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_get_negotiated_server_cert_type;    N: 'SSL_get_negotiated_server_cert_type';       MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_get0_peer_rpk;                      N: 'SSL_get0_peer_rpk';                         MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_SESSION_get0_peer_rpk;              N: 'SSL_SESSION_get0_peer_rpk';                 MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_set1_client_cert_type;              N: 'SSL_set1_client_cert_type';                 MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_set1_server_cert_type;              N: 'SSL_set1_server_cert_type';                 MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_CTX_set1_client_cert_type;          N: 'SSL_CTX_set1_client_cert_type';             MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_CTX_set1_server_cert_type;          N: 'SSL_CTX_set1_server_cert_type';             MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_get0_client_cert_type;              N: 'SSL_get0_client_cert_type';                 MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_get0_server_cert_type;              N: 'SSL_get0_server_cert_type';                 MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_CTX_get0_client_cert_type;          N: 'SSL_CTX_get0_client_cert_type';             MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+    (F: @@SSL_CTX_get0_server_cert_type;          N: 'SSL_CTX_get0_server_cert_type';             MI: OSSL_VER_3200; MX: OSSL_VER_MAX),    { V9.5 }
+
     (F: @@BIO_f_ssl;                              N: 'BIO_f_ssl';                                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@BIO_new_buffer_ssl_connect;             N: 'BIO_new_buffer_ssl_connect';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.51 }
     (F: @@BIO_new_ssl;                            N: 'BIO_new_ssl';                               MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),    { V8.51 }
@@ -2605,6 +2739,7 @@ const
     (F: @@SSL_CTX_get_cert_store;                 N: 'SSL_CTX_get_cert_store';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_get_client_cert_cb;             N: 'SSL_CTX_get_client_cert_cb';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_get_ex_data;                    N: 'SSL_CTX_get_ex_data';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@SSL_CTX_get_keylog_callback;            N: 'SSL_CTX_get_keylog_callback';               MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V9.5 }
     (F: @@SSL_CTX_get_options;                    N: 'SSL_CTX_get_options';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.51 }
     (F: @@SSL_CTX_get_security_level;             N: 'SSL_CTX_get_security_level';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
     (F: @@SSL_CTX_get_verify_depth;               N: 'SSL_CTX_get_verify_depth';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -2617,18 +2752,22 @@ const
     (F: @@SSL_CTX_sess_set_get_cb;                N: 'SSL_CTX_sess_set_get_cb';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_sess_set_new_cb;                N: 'SSL_CTX_sess_set_new_cb';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_sess_set_remove_cb;             N: 'SSL_CTX_sess_set_remove_cb';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@SSL_CTX_set0_security_ex_data;          N: 'SSL_CTX_set0_security_ex_data';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
-    (F: @@SSL_CTX_set1_param;                     N: 'SSL_CTX_set1_param';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.39 }
+    (F: @@SSL_CTX_set0_security_ex_data;          N: 'SSL_CTX_set0_security_ex_data';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@SSL_CTX_set1_param;                     N: 'SSL_CTX_set1_param';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.39 }
+    (F: @@SSL_CTX_set_cert_store;                 N: 'SSL_CTX_set_cert_store';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.1 }
+    (F: @@SSL_CTX_set1_cert_store;                N: 'SSL_CTX_set1_cert_store';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.1 }
     (F: @@SSL_CTX_set_cipher_list;                N: 'SSL_CTX_set_cipher_list';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+    (F: @@SSL_CTX_set_ciphersuites;               N: 'SSL_CTX_set_ciphersuites';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.3 }
     (F: @@SSL_CTX_set_client_CA_list;             N: 'SSL_CTX_set_client_CA_list';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_set_client_cert_cb;             N: 'SSL_CTX_set_client_cert_cb';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@SSL_CTX_set_client_hello_cb;             N: 'SSL_CTX_set_client_hello_cb';              MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.64 }
+    (F: @@SSL_CTX_set_client_hello_cb;             N: 'SSL_CTX_set_client_hello_cb';              MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.64 }
     (F: @@SSL_CTX_set_default_passwd_cb;          N: 'SSL_CTX_set_default_passwd_cb';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_set_default_passwd_cb_userdata; N: 'SSL_CTX_set_default_passwd_cb_userdata';    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_set_default_verify_paths;       N: 'SSL_CTX_set_default_verify_paths';          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_set_ex_data;                    N: 'SSL_CTX_set_ex_data';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_CTX_set_info_callback;              N: 'SSL_CTX_set_info_callback';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@SSL_CTX_set_msg_callback;               N: 'SSL_CTX_set_msg_callback';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
+    (F: @@SSL_CTX_set_keylog_callback;            N: 'SSL_CTX_set_keylog_callback';               MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V9.5 }
+    (F: @@SSL_CTX_set_msg_callback;               N: 'SSL_CTX_set_msg_callback';                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
     (F: @@SSL_CTX_set_options;                    N: 'SSL_CTX_set_options';                       MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.51 }
     (F: @@SSL_CTX_set_security_callback;          N: 'SSL_CTX_set_security_callback';             MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
     (F: @@SSL_CTX_set_security_level;             N: 'SSL_CTX_set_security_level';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
@@ -2644,9 +2783,9 @@ const
     (F: @@SSL_CTX_use_certificate_file;           N: 'SSL_CTX_use_certificate_file';              MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_SESSION_free;                       N: 'SSL_SESSION_free';                          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_SESSION_get_id;                     N: 'SSL_SESSION_get_id';                        MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@SSL_SESSION_get_time;                   N: 'SSL_SESSION_get_time';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+//  (F: @@SSL_SESSION_get_time;                   N: 'SSL_SESSION_get_time';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.5 gone }
     (F: @@SSL_SESSION_get_timeout;                N: 'SSL_SESSION_get_timeout';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
-    (F: @@SSL_SESSION_set_time;                   N: 'SSL_SESSION_set_time';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
+//  (F: @@SSL_SESSION_set_time;                   N: 'SSL_SESSION_set_time';                      MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V9.5 gone }
     (F: @@SSL_SESSION_set_timeout;                N: 'SSL_SESSION_set_timeout';                   MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_accept;                             N: 'SSL_accept';                                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_add_client_CA;                      N: 'SSL_add_client_CA';                         MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -2669,8 +2808,9 @@ const
     (F: @@SSL_do_handshake;                       N: 'SSL_do_handshake';                          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_free;                               N: 'SSL_free';                                  MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_get0_alpn_selected;                 N: 'SSL_get0_alpn_selected';                    MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.56 }
-    (F: @@SSL_get0_param;                         N: 'SSL_get0_param';                            MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),     { V8.39 }
-    (F: @@SSL_get0_security_ex_data;              N: 'SSL_get0_security_ex_data';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),  { V8.40 }
+    (F: @@SSL_get0_group_name;                    N: 'SSL_get0_group_name';                       MI: OSSL_VER_3200; MX: OSSL_VER_MAX),  { V9.3 }
+    (F: @@SSL_get0_param;                         N: 'SSL_get0_param';                            MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.39 }
+    (F: @@SSL_get0_security_ex_data;              N: 'SSL_get0_security_ex_data';                 MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),   { V8.40 }
     (F: @@SSL_get1_session;                       N: 'SSL_get1_session';                          MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_get1_supported_ciphers;             N: 'SSL_get1_supported_ciphers';                MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
     (F: @@SSL_get_SSL_CTX;                        N: 'SSL_get_SSL_CTX';                           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX),
@@ -2743,13 +2883,22 @@ const
     (F: @@i2d_SSL_SESSION;                        N: 'i2d_SSL_SESSION';                           MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) );
 
 {$IFNDEF OPENSSL_NO_ENGINE}
-    GSSLEAYImports2: array[0..0] of TOSSLImports = (
-    (F: @@SSL_CTX_set_client_cert_engine;         N: 'SSL_CTX_set_client_cert_engine';            MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) );
+//  GSSLEAYImports2: array[0..0] of TOSSLImports = (
+//  (F: @@SSL_CTX_set_client_cert_engine;         N: 'SSL_CTX_set_client_cert_engine';            MI: OSSL_VER_MIN; MX: OSSL_VER_MAX) );
 {$ENDIF}
 
 {$ENDIF YuOpenSSL}
 
 {$ENDIF} // USE_SSL
+
+{$IFDEF LINUX}
+function IcsLinuxGetModuleFileName(           { V9.2 }
+    Module: HMODULE;
+    Buffer: PChar;
+    BufLen: Integer;
+    Sym: PAnsiChar): Integer;
+{$ENDIF}
+
 
 implementation
 
@@ -2760,19 +2909,42 @@ implementation
 {$IFDEF MSWINDOWS}
 
 { V8.38 Windows API to check authenticode code signing digital certificate on OpenSSL files }
-procedure IcsVerifySslDll (const Fname: string);
+{ V9.3 return true for failed with error in GSSL_SignTest_FailError }
+{ note GSSL_SignTest_Failed and GSSL_SignTest_FailError are for applications to report an
+   error if OpenSSL fails to load }
+{ beware this function may be called when SslBase is created before any forms are available to show errors }
+function IcsVerifySslDll (const Fname: string): Boolean;
 var
     ErrCode: integer;
     TrustResp: String;
 begin
+    Result := False;  // OK
+
+{ V9.4 Windows XP, 2003, Vista and 2008 do not recognise SHA-256 code signing }
+{ Windows 7 should work provided KB4474419 is installed }
+    if (Win32MajorVersion < 10) then begin
+        if (Win32MajorVersion < 6) or (Win32MajorVersion = 0) then begin  // minor 0=Vista/2008, 1=7/2008R2, 2=8/2012, 3=8.1/2012R2
+            GSSL_SignTest_Failed := True;
+            GSSL_SignTest_FailError := 'Signing check skipped, Windows is too old';
+            Exit;
+        end;
+    end;
     ErrCode := IcsVerifyTrust (FName, NOT GSSL_SignTest_Certificate, false, TrustResp);
     if (ErrCode = TRUST_E_SUBJECT_NOT_TRUSTED) or (ErrCode = TRUST_E_BAD_DIGEST) or
-         (ErrCode = TRUST_E_NOSIGNATURE) or (ErrCode = TRUST_E_EXPLICIT_DISTRUST) then begin
-         raise  EIcsSsleayException.Create('Failed to load ' + FName + ' - ' + TrustResp);
+                          (ErrCode = TRUST_E_NOSIGNATURE) or (ErrCode = TRUST_E_EXPLICIT_DISTRUST) then begin
+        Result := True;  { V9.4 was returning false... }
+        GSSL_SignTest_Failed := True;
+        GSSL_SignTest_FailError := 'Failed to load ' + FName + ' - ' + TrustResp;
+     //    raise  EIcsSsleayException.Create('Failed to load ' + FName + ' - ' + TrustResp);
+        Exit;
     end;
     if GSSL_SignTest_Certificate and ((ErrCode = CERT_E_CHAINING) or
-        (ErrCode = CERT_E_UNTRUSTEDROOT) or (ErrCode = CERT_E_UNTRUSTEDTESTROOT)) then begin
-         raise  EIcsSsleayException.Create('Failed to load ' + FName + ' - ' + TrustResp);
+                         (ErrCode = CERT_E_UNTRUSTEDROOT) or (ErrCode = CERT_E_UNTRUSTEDTESTROOT)) then begin
+        Result := True;
+        GSSL_SignTest_Failed := True;
+        GSSL_SignTest_FailError := 'Failed to load ' + FName + ' - ' + TrustResp;
+    //     raise  EIcsSsleayException.Create('Failed to load ' + FName + ' - ' + TrustResp);
+        Exit;
     end;
 end;
 
@@ -2790,81 +2962,212 @@ begin
         result := 'No import list specified' ;
     end;
     for I := 0 to Length(List) - 1 do begin
-        if (ICS_OPENSSL_VERSION_NUMBER >= List[I].MI) and
-               (ICS_OPENSSL_VERSION_NUMBER <= List[I].MX) then begin
+        if (ICS_OPENSSL_VERSION_NUMBER >= List[I].MI) and (ICS_OPENSSL_VERSION_NUMBER <= List[I].MX) then begin
             {$IFDEF POSIX}               { V8.65 }
             List[I].F^ := GetProcAddress (Handle, PChar(string(List[I].N)));
             {$ELSE}
             List[I].F^ := GetProcAddress (Handle, List[I].N);
             {$ENDIF}
             if List[I].F^ = nil then
-                result := result + String(List[I].N) + ',' ;
+                result := result + String(List[I].N) + ', ' ;  { V9.4 added space so error word wrap }
         end;
     end;
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFDEF LINUX}
+// There is bug in GetModuleFileName in Delphi 11.1: It search for a
+// symbol ('dbkFCallWrapperAddr') that doesn't exists in OpenSSL libraries
+// and for that reason fails. The modified code below takes one more argument
+// with the symbol to search for. You MUST pass the name of a symbol that
+// exist in the module.
+function IcsLinuxGetModuleFileName(                              { V9.2 }
+    Module : HMODULE;
+    Buffer : PChar;
+    BufLen : Integer;
+    Sym    : PAnsiChar): Integer;
+var
+    Addr          : Pointer;
+    Info          : dl_info;
+    Temp          : Integer;
+    ProcBuff      : array [0..MAX_PATH] of AnsiChar;
+    FoundInModule : HMODULE;
+    fname         : string;
+begin
+    Result := 0;
+    if BufLen <= 0 then
+        Exit;
+    Buffer^ := #0;
+    if (Module = MainInstance) or (Module = 0) then begin
+        // First, try the dlsym approach.
+        // dladdr fails to return the name of the main executable
+        // in glibc prior to 2.1.91
+
+{       Look for a dynamic symbol exported from this program.
+        _DYNAMIC is not required in a main program file.
+        If the main program is compiled with Delphi, it will always
+        have a resource section, named @Sysinit@ResSym.
+        If the main program is not compiled with Delphi, dlsym
+        will search the global name space, potentially returning
+        the address of a symbol in some other shared object library
+        loaded by the program.  To guard against that, we check
+        that the address of the symbol found is within the
+        main program address range.  }
+
+        dlerror;   // clear error state;  dlsym doesn't
+        if Module = 0 then
+            Module := RTLD_DEFAULT;
+        Addr := dlsym(Module, 'SysinitResSym');
+        if (Addr <> nil)
+           and (dlerror = nil)
+           and (dladdr(UIntPtr(Addr), Info) <> 0)
+           and (Info.dli_fname <> nil)
+           and (Info.dli_fbase = ExeBaseAddress) then begin
+            Result := strlen(Info.dli_fname);
+            if Result >= BufLen then
+                Result := BufLen-1;
+
+            // dlinfo may not give a full path.  Compare to /proc/self/exe,
+            // take longest result.
+            Temp := readlink('/proc/self/exe', ProcBuff, MAX_PATH);
+            if Temp >= BufLen then
+                Temp := BufLen-1;
+            if Temp > Result then begin
+                Utf8ToUnicode(Buffer, BufLen, ProcBuff, Temp);
+                Result := Temp;
+            end
+            else
+                Move(Info.dli_fname^, Buffer^, Result);
+            Buffer[Result] := #0;
+            Exit;
+        end;
+
+        // Try inspecting the /proc/ virtual file system
+        // to find the program filename in the process info
+        Result := readlink(PAnsiChar('/proc/self/exe'), ProcBuff, MAX_PATH);
+        if Result <> -1 then begin
+            if Result >= BufLen then
+                Result := BufLen-1;
+            ProcBuff[Result] := #0;
+            Utf8ToUnicode(Buffer, BufLen, ProcBuff, Result);
+        end;
+    end
+    else begin
+{       For shared object libraries, we can rely on the dlsym technique.
+        Look for a dynamic symbol in the requested module.
+        Don't assume the module was compiled with Delphi.
+        We look for a dynamic symbol with the name _DYNAMIC.  This
+        exists in all ELF shared object libraries that export
+        or import symbols;  If someone has a shared object library that
+        contains no imports or exports of any kind, this will probably fail.
+        If dlsym can't find the requested symbol in the given module, it
+        will search the global namespace and could return the address
+        of a symbol from some other module that happens to be loaded
+        into this process.  That would be bad, so we double check
+        that the module handle of the symbol found matches the
+        module handle we asked about.}
+
+        dlerror;   // clear error state;  dlsym doesn't
+        Addr := dlsym(Module, Sym);
+        if (Addr <> nil) and (dlerror = nil)
+            and (dladdr(UIntPtr(Addr), Info) <> 0) then begin
+            if Info.dli_fbase = ExeBaseAddress then
+                Info.dli_fname := nil;
+            FoundInModule := HMODULE(dlopen(PAnsiChar(UTF8Encode(Info.dli_fname)), RTLD_LAZY));
+            if FoundInModule <> 0 then
+                dlclose(FoundInModule);
+            if Module = FoundInModule then begin
+                if Assigned(Info.dli_fname) then begin
+                    fname := string(PUTF8Char(Info.dli_fname));
+                    Result := Length(fname);
+                    if Result >= BufLen then
+                        Result := BufLen - 1;
+                    Move(PChar(fname)^, Buffer^, Result*sizeof(Char));
+                end
+                else
+                    Result := 0;
+                Buffer[Result] := #0;
+            end;
+        end;
+    end;
+    if Result < 0 then
+        Result := 0;
+end;
+{$ENDIF LINUX}
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function SsleayLoad : Boolean;      {  V8.27 make unique }
 {$IFNDEF YuOpenSSL}
-var
-    errs: String;   { V8.29 }
+//var
+//    errs: String;   { V8.29 }   V9,5 now reported in GSSL_LOAD_ERRS
 {$ENDIF YuOpenSSL}
 begin
     Result := TRUE;
 
 {$IFNDEF YuOpenSSL}
-    if GSSLEAY_DLL_Handle <> 0 then Exit; // Already loaded
+    if GSSLEAY_DLL_Handle <> 0 then
+        Exit; // Already loaded
 
   { V8.27 sanity check }
     if ICS_OPENSSL_VERSION_NUMBER = 0 then begin
-       raise EIcsSsleayException.Create('Must load libcrypto DLL before libssl DLL');  { V8.65 modern names }
+        GSSL_LOAD_ERRS := 'Must load libcrypto DLL before libssl DLL';  { V9.5 }
+        raise EIcsSsleayException.Create(GSSL_LOAD_ERRS);
     end;
 
  { V8.65 see if LibeayLoad so we report that error again and not this unit }
     if ICS_OPENSSL_VERSION_NUMBER = 999 then begin
-       raise EIcsSsleayException.Create('Failed to load OpenSSL file ' + GLIBEAY_DLL_FileName);
+        GSSL_LOAD_ERRS := 'Failed to load OpenSSL file ' + GLIBEAY_DLL_FileName;
+        raise EIcsSsleayException.Create(GSSL_LOAD_ERRS);
     end;
 
 { V8.65 open SSL DLL in same directory as LIBEAY DLL }
     GSSLEAY_DLL_FileName := ExtractFilePath(GLIBEAY_DLL_FileName);
-    if ICS_OPENSSL_VERSION_NUMBER >= OSSL_VER_3000 then
-        GSSLEAY_DLL_FileName := GSSLEAY_DLL_FileName + GSSLEAY_300DLL_Name
-    else
-        GSSLEAY_DLL_FileName := GSSLEAY_DLL_FileName + GSSLEAY_110DLL_Name;
+    GSSLEAY_DLL_FileName := GSSLEAY_DLL_FileName + GSSLEAY_300DLL_Name;
     GSSLEAY_DLL_Handle := LoadLibrary(PChar(GSSLEAY_DLL_FileName));
     if GSSLEAY_DLL_Handle < 32 then begin
         GSSLEAY_DLL_Handle := 0;
         FreeLibrary(GLIBEAY_DLL_Handle);     { V8.65 free other DLL now }
         GLIBEAY_DLL_Handle := 0;
         ICS_OPENSSL_VERSION_NUMBER := 0;
-        raise EIcsSsleayException.Create('Failed to load OpenSSL file ' + GSSLEAY_DLL_FileName);
+        GSSL_LOAD_ERRS := 'Failed to load OpenSSL file ' + GSSLEAY_DLL_FileName;
+        raise EIcsSsleayException.Create(GSSL_LOAD_ERRS);
     end;
 
 { get full file name }
     SetLength(GSSLEAY_DLL_FileName, 256);
-    SetLength(GSSLEAY_DLL_FileName, GetModuleFileName(GSSLEAY_DLL_Handle,
-                 PChar(GSSLEAY_DLL_FileName), Length(GSSLEAY_DLL_FileName)));
+{$IFDEF LINUX}
+    SetLength(GSSLEAY_DLL_FileName, IcsLinuxGetModuleFileName(GSSLEAY_DLL_Handle,
+                                                   PChar(GSSLEAY_DLL_FileName), Length(GSSLEAY_DLL_FileName), 'SSL_version')); { V9.2 }
+{$ELSE}
+    SetLength(GSSLEAY_DLL_FileName, GetModuleFileName(GSSLEAY_DLL_Handle, PChar(GSSLEAY_DLL_FileName), Length(GSSLEAY_DLL_FileName)));
+{$ENDIF}
 
   {$IFDEF MSWINDOWS}
-    IcsGetFileVerInfo(GSSLEAY_DLL_FileName,      { V8.27 use full path }
-                   GSSLEAY_DLL_FileVersion,
-                   GSSLEAY_DLL_FileDescription);
+      IcsGetFileVerInfo(GSSLEAY_DLL_FileName, GSSLEAY_DLL_FileVersion, GSSLEAY_DLL_FileDescription);     { V8.27 use full path }
 
-   { V8.38 check authenticode digital signature on DLL }
-    if GSSL_SignTest_Check then IcsVerifySslDll (GSSLEAY_DLL_FileName);
+ { V8.38 check authenticode digital signature on DLL }
+       if GSSL_SignTest_Check then
+        if IcsVerifySslDll (GSSLEAY_DLL_FileName) then begin   { V9.3 stop now }
+            ICS_OPENSSL_VERSION_NUMBER := 999;                 { V9.3 don't try to load again }
+            Exit;
+        end;
   {$ENDIF}
 
   { V8.35 load all main GSSLEAY_DLL exports }
-    errs := SslGetImports (GSSLEAY_DLL_Handle, GSSLEAYImports1) ;
-    if errs <> '' then
-        raise  EIcsSsleayException.Create('Unable to load ' + GSSLEAY_DLL_FileName + '. Can not find: ' + errs);
+    GSSL_LOAD_ERRS := GSSL_LOAD_ERRS + SslGetImports (GSSLEAY_DLL_Handle, GSSLEAYImports1) ;
+    if GSSL_LOAD_ERRS <> '' then begin
+        GSSL_LOAD_ERRS := 'Unable to load ' + GSSLEAY_DLL_FileName + '. Can not find: ' + GSSL_LOAD_ERRS;
+        raise EIcsSsleayException.Create(GSSL_LOAD_ERRS);
+    end;
 
 {$IFNDEF OPENSSL_NO_ENGINE}
-  { V8.35 load engine GSSLEAY_DLL exports }
-    errs := SslGetImports (GSSLEAY_DLL_Handle, GSSLEAYImports2) ;
-    if errs <> '' then
-        raise  EIcsSsleayException.Create('Unable to load ' + GSSLEAY_DLL_FileName + '. Can not find: ' + errs);
+  { V8.35 load engine GSSLEAY_DLL exports V9.1 gone }
+//  errs := SslGetImports (GSSLEAY_DLL_Handle, GSSLEAYImports2) ;
+//  if errs <> '' then
+//      raise  EIcsSsleayException.Create('Unable to load ' + GSSLEAY_DLL_FileName + '. Can not find: ' + errs);
 {$ENDIF}
+
 {$ENDIF YuOpenSSL}
 end;
 
@@ -2893,8 +3196,14 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function Ics_SSL_set_tlsext_host_name(const S: PSSL; const name: String): Integer;   { V8.66 renamed since not OpenSSL compat }
 begin
-    Result := SSL_ctrl(S, SSL_CTRL_SET_TLSEXT_HOSTNAME,
-                          TLSEXT_NAMETYPE_host_name, Pointer(AnsiString(name)));
+    Result := SSL_ctrl(S, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, Pointer(AnsiString(name)));
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function SSL_set_tlsext_host_name(const S: PSSL; const name: AnsiString): Integer;   { V9.5 OpenSSL compatible AnsiString }
+begin
+    Result := SSL_ctrl(S, SSL_CTRL_SET_TLSEXT_HOSTNAME, TLSEXT_NAMETYPE_host_name, Pointer(name));
 end;
 
 

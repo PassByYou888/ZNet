@@ -4,10 +4,10 @@ Author:       François PIETTE
 Description:  THttpAppSrv is a specialized THttpServer component to ease
               his use for writing application servers.
 Creation:     Dec 20, 2003
-Version:      V9.0
+Version:      V9.5
 EMail:        francois.piette@overbyte.be         http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2003-2023 by François PIETTE
+Legal issues: Copyright (C) 2003-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -135,8 +135,70 @@ Jul 23, 2021 V8.67 Added NO_CACHE_EX as Cache-Control: no-cache to replace Pragm
 May 26, 2022 V8.69 Added OCSP (Online Certificate Status Protocol) support using the TOcspHttp.
                    Read OcspSrvStapling property from INI file.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 05, 2023 V9.1  Added properties PostedDataTB and PostedDataStr to return posted data in
+                     easier to use types than an PAnsiChar buffer.
+                   Added MaxUploadMB defaults to 200 MBbyte to restrict maximum size of POST
+                     or PUT requests.
+                   Added MaxStreamMB defaults to 50 MBbyte as the maximum TMemoryStream size
+                     before a TFileStream is instead used with a temporary file name.
+                   Added PostedDataStream to which POST and PUT content is written which
+                     is what TFormDataAnalyser needs, PostedData pointer now points to
+                     the stream memory rather than a stack buffer.  This change allows
+                     file uploads larger than memory, up to MaxUploadSize.
+                   Added new property NoSSL that prevents use of HTTPS, must be set before
+                     server is started.
+                   INI file reads NoSSl, MaxUploadMB and MaxStreamMB.
+                   PUT requests now save uploaded data similarly to POST.
+Apr 17, 2024 V9.2  Builds with D7 again.
+                   POST and PUT template pages now correctly support authentication.
+Aug 09, 2024 V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
+Nov 21, 2024 V9.4  Fixed memory leak with multiple virtual PUT and POST documents,
+                     thanks to Yves Vermeersch.
+Jun 25, 2025 V9.5  INI file reads AttachmentTypes.
+                   Added OCSP conditionals.
+                   Don't read DHParams from INI without DEFINE OpenSSL_Deprecated, no
+                     longer needed for modern cyphers.
+                   GetDispatchVirtualDocument and DeleteDispatchVirtualDocument now handle
+                     uploaded content similarly to POST/PUT, except it must be smaller
+                     than MaxStreamMB (50MB).
+Sep 25, 2025 V9.5  Updated IcsLoadTHttpAppSrvFromIni to read new default certificate
+                     properties for TSslWSocketServer, note these are only public in this
+                     component and not published so can not be set in the IDE.
 
 
+
+Content Upload strategies
+Web clients can upload content to web servers using POST or PUT requests, provided there is a
+web page handler ready to receive the content and do something with it.
+
+With the basic THttpServer component, the application has events with user written code that
+handles all this upload activity.
+
+The THttpAppSrv component has page handling built-in, orginally for REST type applications
+with relatively small content sizes, to reduce the code needed in the application, specifically
+content is saved for later processing as AnsiString data in a stack memory.  This AnsiString
+is then written to a disk file for simple uploads or if multipart/form-data written to a
+TStream for processing by the TFormDataAnalyser component that will save one or more parts as
+disk files.  But this limits the size of uploads to memory.
+
+With V9.1, the THttpAppSrv component now saves content uploads directly to a TStream, by
+default a TMemoryStream but optionally a TFileStream if larger content is received, we
+should always know the actual content size from the request header.  If the content size is
+more than MaxUploadSize (default 200MB) the request will fail with a 403 error, if more than
+MaxStreamSize (default 50MB) a temporary TFileStream will be created in the specified
+UploadDir defaulting to the system TEMP directory if blank.  This stream can be passed to
+TFormDataAnalyser for saving as files and will be deleted afterwards, or renamed if being
+directly saved as a file. If the upload content is REST type parameters, Json, XML, etc,
+PostedDataTB and PostedDataStr return the content in easy to manipulate data types.
+
+
+
+
+
+
+Example from \Samples\Delphi\SslInternet\OverbyteIcsSslMultiWebServ.ini which can
+be read using the functions IcsLoadTHttpAppSrvFromIni and IcsLoadIcsHostsFromIni.
 
 
 [WebAppServer]
@@ -145,8 +207,6 @@ MaxSessions=
 SessionTimeout=14400
 ; CA root bundle to validate certificates and local chains
 RootCA=c:\certificates\RootCaCertsBundle.pem
-; needed for DH and DHE ciphers
-DHParams=c:\certificates\dhparams2048.pem
 ; should maximum speed limit be imposed
 BandwidthLimitKB=0
 ; how long idle clients should remain open
@@ -164,13 +224,44 @@ PersistentHeader=
 Options=[hoContentEncoding,hoSendServerHdr,hoAllowPut]
 ; should browser send certificate: sslCliCertNone, sslCliCertOptional, sslCliCertRequire
 SslCliCertMethod=sslCliCertNone
+; how many new connections should be queued before rejecting new connections
+ListenBacklog=25
+; maximum upload content size in MBytes
+MaxUploadMB=205
+; maximum memory stream size in MBytes before temporary disk file is used
+MaxStreamMB=51
+; set true if no SSL/TLS connections allowed on port 443 or other ports
+NoSSL=False
 ; should server automatically order and install SSL certificates, also needs CertSupplierProto specified
 ; also needs a Certificate Supplier Account to be created first
 SslCertAutoOrder=True
 ; how many days before expiry of SSL certificates should warnings and AutoOrder start
 CertExpireDays=30
-; how many new connections should be queued before rejecting new connections
-ListenBacklog=25
+X509ProxyURL=
+SrvSupplierTitle=LetsEncrypt-New
+SrvAcmeSupplier=AcmeLetsEncrypt
+SrvAcmeCertProfile=tlsserver
+SrvAcmeCertValidity=90
+SrvCertChallenge=ChallAlpnApp
+SrvCertPKeyType=PrivKeyECsecp256
+SrvCertSignDigest=Digest_sha256
+
+[Host4]
+Hosts=test7.ftptest.org,test7.ftptest.org.uk,test7.ftptest.co.uk
+HostTag=HTTP-FTPTEST
+Desc=test7-LetsEncrypt
+BindIpAddr=192.168.1.123
+BindNonPort=80
+BindSslPort=443
+HostEnabled=False
+SslSecLevel=sslSrvSecInterFS
+WellKnownPath=c:\websites\well-known\
+WebRedirectURL=https://www.telecom-tariffs.co.uk/
+WebRedirectStat=301
+SslCert=c:\certificates\local\test7_ftptest_org.pfx
+SslPassword=password
+CliCertMethod=sslCliCertNone
+CertSupplierProto=SuppProtoAcmeV2
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *_*}
 {$IFNDEF ICS_INCLUDE_MODE}
@@ -208,25 +299,29 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.IniFiles{$ELSE}IniFiles{$ENDIF},
+    {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
 {$IFDEF COMPILER7_UP}
     {$IFDEF RTL_NAMESPACES}System.StrUtils{$ELSE}StrUtils{$ENDIF},
 {$ENDIF}
-  Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$IFDEF FMX}
     FMX.Types,
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,         { V9.5 }
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpSrv,
 {$ELSE}
-//    {$IFDEF RTL_NAMESPACES}Vcl.ExtCtrls{$ELSE}ExtCtrls{$ENDIF},  { V8.57 }
     Z.ICS9.OverbyteIcsWndControl,       { V8.57 }
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsWSocketS,         { V9.5 }
     Z.ICS9.OverbyteIcsHttpSrv,
 {$ENDIF}
-    {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     Z.ICS9.OverbyteIcsWebSession,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsFormDataDecoder;
+    Z.ICS9.OverbyteIcsFormDataDecoder,
+    Z.ICS9.OverbyteIcsStreams,       { V9.1 }
+    Z.ICS9.OverbyteIcsCharsetUtils,  { V9.1 }
+    Z.ICS9.OverbyteIcsTypes; // for TBytes and TThreadID V9.2
 
 type
     THttpAppSrvDisplayEvent = procedure(Sender    : TObject;
@@ -239,14 +334,25 @@ type
     TMyHttpHandler        = procedure (var Flags: THttpGetFlag) of object;
     TUrlHandler           = class;
     THttpAppSrv           = class;
+
     THttpAppSrvConnection = class(THttpConnection)
     protected
         FOnDestroying  : TNotifyEvent;
         FAppServer     : THttpAppSrv;
+        FPostedDataPtr : PAnsiChar;                                  { V9.1 }
+        FPostedDataTB  : TBytes;                                     { V9.1 }
+        FPostedDataStr : String;                                     { V9.1 }
+        FRxBuffer      : TBytes;                                     { V9.1 }
         function GetHostName: String;
+        function GetPostedData: PAnsiChar;                           { V9.1 }
+        function GetPostedDataTB: TBytes;                            { V9.1 }
+        function GetPostedDataStr: String;                           { V9.1 }
     public
-        PostedData     : PAnsiChar; // Will hold dynamically allocated buffer
-        PostedDataLen  : Integer;   // Keep track of received byte count.
+//        PostedData     : PAnsiChar; // Will hold dynamically allocated buffer  { V9.1 now points to TBytes }
+        PostedDataLen  : Int64;    // Keep track of received byte count. V9.1 was integer
+        PostedDataStream: TStream;                                   { V9.1 }
+        PostTempName   : String;                                     { V9.1 }
+        MaxPostMB      : Integer;                                    { V9.1 }
         WSessions      : TWebSessions;
         WSession       : TWebSession;
         WSessionID     : String;
@@ -265,24 +371,19 @@ type
                                 UserData                 : TObject;
                                 Tags                     : array of const) : Boolean; overload; virtual;
         function   ValidateSession: Boolean; virtual;
-        procedure  BeforeGetHandler(Proc   : TMyHttpHandler;
-                                    var OK : Boolean); virtual;
-        procedure  BeforeObjGetHandler(SObj   : TUrlHandler;
-                                       var OK : Boolean); virtual;
-        procedure  BeforePostHandler(Proc   : TMyHttpHandler;
-                                     var OK : Boolean); virtual;
-        procedure  BeforeObjPostHandler(SObj   : TUrlHandler;
-                                        var OK : Boolean); virtual;
+        procedure  BeforeGetHandler(Proc   : TMyHttpHandler; var OK : Boolean); virtual;
+        procedure  BeforeObjGetHandler(SObj   : TUrlHandler; var OK : Boolean); virtual;
+        procedure  BeforePostHandler(Proc   : TMyHttpHandler; var OK : Boolean); virtual;
+        procedure  BeforeObjPostHandler(SObj   : TUrlHandler; var OK : Boolean); virtual;
         procedure  NoGetHandler(var OK : Boolean); virtual;
-        procedure  BeforeDeleteHandler(Proc   : TMyHttpHandler;
-                                    var OK : Boolean); virtual;      { V8.67 }
-        procedure  BeforeObjDeleteHandler(SObj   : TUrlHandler;
-                                       var OK : Boolean); virtual;   { V8.67 }
-        procedure  BeforePutHandler(Proc   : TMyHttpHandler;
-                                    var OK : Boolean); virtual;      { V8.67 }
-        procedure  BeforeObjPutHandler(SObj   : TUrlHandler;
-                                       var OK : Boolean); virtual;   { V8.67 }
-        property HostName : String read GetHostName;
+        procedure  BeforeDeleteHandler(Proc   : TMyHttpHandler; var OK : Boolean); virtual;      { V8.67 }
+        procedure  BeforeObjDeleteHandler(SObj   : TUrlHandler; var OK : Boolean); virtual;   { V8.67 }
+        procedure  BeforePutHandler(Proc   : TMyHttpHandler; var OK : Boolean); virtual;      { V8.67 }
+        procedure  BeforeObjPutHandler(SObj   : TUrlHandler; var OK : Boolean); virtual;   { V8.67 }
+        property PostedData   : PAnsiChar     read GetPostedData;    { V9.1 }
+        property PostedDataTB : TBytes        read GetPostedDataTB;  { V9.1 }
+        property PostedDataStr : String       read GetPostedDataStr; { V9.1 }
+        property HostName : String            read GetHostName;
         property OnDestroying  : TNotifyEvent read  FOnDestroying
                                               write FOnDestroying;
         property AppServer : THttpAppSrv      read  FAppServer
@@ -434,7 +535,10 @@ type
         FPutHandler      : THttpHandlerList;      { V8.67 }
         FGetAllowedPath  : THttpAllowedPath;
         FWSessions       : TWebSessions;
-        FSessionTimer    : TIcsTimer;  { V8.57 }
+        FSessionTimer    : TIcsTimer;             { V8.57 }
+        FMaxUploadMB     : Int64;                 { V9.1 100M }
+        FMaxStreamMB     : Int64;                 { V9.1 100M }
+        FUploadDir       : String;                { V9.1, if blank used TEMP }
         FMsg_WM_FINISH   : UINT;
         FHasAllocateHWnd : Boolean;
         FOnDeleteSession : TDeleteSessionEvent;
@@ -445,29 +549,17 @@ type
         function  MsgHandlersCount: Integer; override;
         procedure WndProc(var MsgRec: TMessage); override;
         procedure WMFinish(var msg: TMessage);
-        function GetDispatchVirtualDocument(ClientCnx: THttpAppSrvConnection;
-                                            var Flags: THttpGetFlag): Boolean;
-        function GetDispatchNormalDocument(ClientCnx: THttpConnection;
-                                           var Flags: THttpGetFlag): Boolean;
-        function PostDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection;
-                                             var Flags : THttpGetFlag;
-                                             ExecFlag  : Boolean): Boolean;
-        function DeleteDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection;    { V8.67 }
-                                             var Flags : THttpGetFlag): Boolean;
-        function PutDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection;       { V8.67 }
-                                             var Flags : THttpGetFlag): Boolean;
-        procedure TriggerPostDocument(Sender    : TObject;
-                                      var Flags : THttpGetFlag); override;
-        procedure TriggerGetDocument(Sender    : TObject;
-                                     var Flags : THttpGetFlag); override;
-        procedure TriggerHeadDocument(       { V7.05 can not ignore HEAD command }
-                                     Sender     : TObject;
-                                     var Flags  : THttpGetFlag); override;
+        function GetDispatchVirtualDocument(ClientCnx: THttpAppSrvConnection; var Flags: THttpGetFlag; ExecFlag: Boolean = True): Boolean;  { V9.5 added Exec }
+        function GetDispatchNormalDocument(ClientCnx: THttpConnection; var Flags: THttpGetFlag): Boolean;
+        function PostDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection; var Flags : THttpGetFlag; ExecFlag  : Boolean): Boolean;
+        function DeleteDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection; var Flags : THttpGetFlag; ExecFlag: Boolean = True): Boolean; { V9.5 added Exec }
+        function PutDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection; var Flags : THttpGetFlag; ExecFlag  : Boolean = False): Boolean;  { V9.1 added Exec }
+        procedure TriggerPostDocument(Sender : TObject; var Flags : THttpGetFlag); override;
+        procedure TriggerGetDocument(Sender : TObject; var Flags : THttpGetFlag); override;
+        procedure TriggerHeadDocument(Sender : TObject; var Flags  : THttpGetFlag); override;
         procedure TriggerPostedData(Sender: TObject; ErrCode: WORD); override;
-        procedure TriggerDeleteDocument(Sender    : TObject;                         { V8.67 }
-                                     var Flags : THttpGetFlag); override;
-        procedure TriggerPutDocument(Sender    : TObject;                            { V8.67 }
-                                     var Flags : THttpGetFlag); override;
+        procedure TriggerDeleteDocument(Sender : TObject; var Flags : THttpGetFlag); override; { V8.67 }
+        procedure TriggerPutDocument(Sender : TObject; var Flags : THttpGetFlag); override;    { V8.67 }
         procedure TriggerClientConnect(Client : TObject; ErrCode : WORD); override;
         function  GetSessions(nIndex: Integer): TWebSession;
         function  GetSessionsCount: Integer;
@@ -535,8 +627,14 @@ type
     published
         property SessionTimeout  : Integer                read  GetSessionTimeout
                                                           write SetSessionTimeout;
-        property MaxSessions  : Integer                   read  GetMaxSessions         { V8.02 }
+        property MaxSessions     : Integer                read  GetMaxSessions         { V8.02 }
                                                           write SetMaxSessions;
+        property MaxUploadMB     : Int64                  read  FMaxUploadMB
+                                                          write FMaxUploadMB;         { V9.1 }
+        property MaxStreamMB     : Int64                  read  FMaxStreamMB
+                                                          write FMaxStreamMB;         { V9.1 }
+        property UploadDir       : String                 read  FUploadDir
+                                                          write FUploadDir;           { V9.1 }
         property OnDeleteSession : TDeleteSessionEvent    read  FOnDeleteSession
                                                           write FOnDeleteSession;
         property OnVirtualException : TVirtualExceptionEvent read  FOnVirtualExceptionEvent
@@ -576,31 +674,6 @@ procedure IcsLoadTHttpAppSrvFromIni(MyIniFile: TCustomIniFile; HttpAppSrv:
 
 {$ENDIF} // USE_SSL
 
-{$IFDEF MSWINDOWS} // todo: make it POSIX compatible
-function ReverseTextFileToHtmlToString(
-    const LogViewURL : String;
-    const TextFont   : String;
-    const LinksFont  : String;
-    const FirstText  : String;
-    const NextText   : String;
-    const PrevText   : String;
-    const LastText   : String;
-    const FileName   : String;
-    const APageSize  : Integer;           // 0 is default page size
-    const APosInt    : Integer) : String; // Start position, 0 is end of file
-procedure ReverseTextFileToHtmlToStream(
-    Stream           : TStream;
-    const LogViewURL : String;
-    const TextFont   : String;
-    const LinksFont  : String;
-    const FirstText  : String;
-    const NextText   : String;
-    const PrevText   : String;
-    const LastText   : String;
-    const FileName   : String;
-    const APageSize  : Integer;      // 0 is default page size
-    const APosInt    : Integer);     // Start position, 0 is end of file
-{$ENDIF}
 const
     NO_CACHE: String     = 'Pragma: no-cache' + #13#10 + 'Expires: -1' + #13#10;
     NO_CACHE_EX: String  = 'Cache-Control: no-cache' + #13#10;         { V8.67 the HTTP/1.1 version }
@@ -635,20 +708,25 @@ begin
     FHttpSslEnable             := FALSE;  // V8.02, renamed V8.50
     FWSocketServer.SslEnable   := FALSE;  // V8.02
 {$ENDIF}
+    FMaxUploadMB := 200;         { V9.1 }
+    FMaxStreamMB := 50;          { V9.1 }
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 destructor THttpAppSrv.Destroy;
 begin
-    FreeAndNil(FSessionTimer);
-    FreeAndNil(FGetHandler);
-    FreeAndNil(FGetAllowedPath);
-    FreeAndNil(FPostHandler);
-    FreeAndNil(FDeleteHandler);
-    FreeAndNil(FPutHandler);
-    FreeAndNil(FWSessions);
-    inherited;
+    try        { V9.4 }
+        FreeAndNil(FSessionTimer);
+        FreeAndNil(FGetHandler);
+        FreeAndNil(FGetAllowedPath);
+        FreeAndNil(FPostHandler);
+        FreeAndNil(FDeleteHandler);
+        FreeAndNil(FPutHandler);
+        FreeAndNil(FWSessions);
+    finally
+        inherited;
+    end;
 end;
 
 
@@ -1022,10 +1100,8 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function THttpAppSrv.PostDispatchVirtualDocument(
-    ClientCnx : THttpAppSrvConnection;
-    var Flags : THttpGetFlag;
-    ExecFlag  : Boolean): Boolean;
+function THttpAppSrv.PostDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection;
+                                                            var Flags : THttpGetFlag; ExecFlag  : Boolean): Boolean;
 var
     Proc     : TMethod;
     OK       : Boolean;
@@ -1095,9 +1171,34 @@ begin
                 end;
             end
             else begin
-                ReallocMem(ClientCnx.PostedData,
-                           ClientCnx.RequestContentLength + 1);
+             { V9.1 abort request now if content too large }
+                if (FMaxUploadMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxUploadMB) then begin
+                    Flags := hg403;
+                    Exit;
+                end;
+
+             { V9.1 create stream, FileStream for very large content, otherwise MemoryStream  }
+                if Assigned(ClientCnx.PostedDataStream) then       { V9.4 Yves Vermeersch }
+                   ClientCnx.PostedDataStream.Free;
+                ClientCnx.MaxPostMB := FMaxStreamMB;
+                if (FMaxStreamMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxStreamMB) then begin
+                    if FUploadDir = '' then
+                        FUploadDir := IcsGetTempPath;
+                    FUploadDir := IncludeTrailingPathDelimiter(FUploadDir);
+                    ClientCnx.PostTempName := FUploadDir + 'ics-httpserv' + IntToStr(Random(999999999)) + '.tmp';
+                    ClientCnx.PostedDataStream := TIcsBufferedFileStream.Create(ClientCnx.PostTempName, fmCreate OR fmShareDenyNone, MAX_BUFSIZE);
+                end
+                else begin
+                    ClientCnx.PostedDataStream := TMemoryStream.Create;
+                    TMemoryStream(ClientCnx.PostedDataStream).SetSize(ClientCnx.RequestContentLength);
+                 //   ReallocMem(ClientCnx.PostedData, ClientCnx.RequestContentLength + 1);   { V9.1 gone }
+                end;
+
+            { V9.1 content PostData pointer will be set if accessed, ditto TBytes and String version }
                 ClientCnx.PostedDataLen  := 0;
+                ClientCnx.FPostedDataPtr := Nil;        { V9.1 }
+                SetLength(ClientCnx.FPostedDataTB, 0);  { V9.1 }
+                ClientCnx.FPostedDataStr := '';         { V9.1 }
                 ClientCnx.FLineMode      := FALSE;
                 Flags                    := hgAcceptData;
             end;
@@ -1110,9 +1211,117 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function THttpAppSrv.GetDispatchVirtualDocument(
-    ClientCnx : THttpAppSrvConnection;
-    var Flags : THttpGetFlag) : Boolean;
+function THttpAppSrv.PutDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection;
+                                            var Flags : THttpGetFlag; ExecFlag: Boolean = False): Boolean;  { V9.1 added Exec }
+var
+    I, J    : Integer;
+    PathBuf : String;
+    Status  : Boolean;
+    Proc    : TMethod;
+    OK      : Boolean;
+    Disp    : THttpDispatchElement;
+    SObj    : TUrlHandler;
+begin
+    for I := 0 to FPutHandler.Count - 1 do begin
+        Disp := FPutHandler.Disp[I];
+        PathBuf := Disp.Path;
+        J := Length(PathBuf);
+        if PathBuf[J] = '*' then begin
+            SetLength(PathBuf, J - 1);
+            Status := AnsiStartsText(PathBuf, ClientCnx.Path);
+        end
+        else
+            Status := (CompareText(PathBuf, ClientCnx.Path) = 0);
+
+      { if HostTag specified, match it }
+{$IFDEF USE_SSL}
+        if Status and (ClientCnx.HostTag <> '') and (Disp.HostTag <> '') then begin
+            if (Disp.HostTag <> ClientCnx.HostTag) then Status := False;
+        end;
+{$ENDIF}
+
+        if Status then begin
+            Result    := TRUE;
+            if ExecFlag then begin    { V9.1 support upload using PUT }
+                Disp      := FPutHandler.Disp[I];
+                Flags     := Disp.FLags;
+                OK        := TRUE;
+                if Disp.Proc <> nil then begin
+                    Proc.Code := Disp.Proc;
+                    Proc.Data := ClientCnx;
+                    ClientCnx.BeforePutHandler(TMyHttpHandler(Proc), OK);
+                    if OK and (Proc.Code <> nil) then
+                        TMyHttpHandler(Proc)(FLags);
+                end
+                else if Disp.SObjClass <> nil then begin
+                    SObj := Disp.SobjClass.Create(Self);
+                    try
+                        SObj.FClient        := ClientCnx;
+                        SObj.FFlags         := Disp.FLags;
+                        SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
+                        SObj.FWndHandle     := FHandle;
+                        SObj.FMethod        := httpMethodPut;
+                        ClientCnx.OnDestroying := SObj.ClientDestroying;
+                        ClientCnx.BeforeObjPutHandler(SObj, OK);
+                        if OK then begin
+                            SObj.Execute;
+                            Flags := SObj.FFlags;
+                        end
+                        else begin
+                            Flags := SObj.FFlags;
+                            FreeAndNil(SObj);
+                        end;
+                    except
+                        on E:Exception do
+                        begin
+                            FreeAndNil(SObj);
+                            if Assigned (FOnVirtualExceptionEvent) then
+                                FOnVirtualExceptionEvent (Self, E, httpMethodPut, ClientCnx.Path);
+                        end;
+                    end;
+                end;
+            end
+            else begin    { V9.1 support upload using PUT }
+             { V9.1 abort request now if content too large }
+                if (FMaxUploadMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxUploadMB) then begin
+                    Flags := hg403;
+                    Exit;
+                end;
+
+             { V9.1 create stream, FileStream for very large content, otherwise MemoryStream  }
+                if Assigned(ClientCnx.PostedDataStream) then       { V9.4 Yves Vermeersch }
+                   ClientCnx.PostedDataStream.Free;
+                ClientCnx.MaxPostMB := FMaxStreamMB;
+                if (FMaxStreamMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxStreamMB) then begin
+                    if FUploadDir = '' then
+                        FUploadDir := IcsGetTempPath;
+                    FUploadDir := IncludeTrailingPathDelimiter(FUploadDir);
+                    ClientCnx.PostTempName := FUploadDir + 'ics-httpserv' + IntToStr(Random(999999999)) + '.tmp';
+                    ClientCnx.PostedDataStream := TIcsBufferedFileStream.Create(ClientCnx.PostTempName, fmCreate OR fmShareDenyNone, MAX_BUFSIZE);
+                end
+                else begin
+                    ClientCnx.PostedDataStream := TMemoryStream.Create;
+                    TMemoryStream(ClientCnx.PostedDataStream).SetSize(ClientCnx.RequestContentLength);
+                end;
+
+            { V9.1 content PostData pointer will be set if accessed, ditto TBytes and String version }
+                ClientCnx.PostedDataLen  := 0;
+                ClientCnx.FPostedDataPtr := Nil;        { V9.1 }
+                SetLength(ClientCnx.FPostedDataTB, 0);  { V9.1 }
+                ClientCnx.FPostedDataStr := '';         { V9.1 }
+                ClientCnx.FLineMode      := FALSE;
+                Flags                    := hgAcceptData;
+            end;
+            Exit;
+        end;
+    end;
+    Result := FALSE;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function THttpAppSrv.GetDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection; var Flags : THttpGetFlag;
+                                                                        ExecFlag: Boolean = True): Boolean;  { V9.5 added Exec }
 var
     I, J    : Integer;
     PathBuf : String;
@@ -1142,42 +1351,61 @@ begin
 
         if Status then begin
             Result    := TRUE;
-            Disp      := FGetHandler.Disp[I];
-            Flags     := Disp.FLags;
-            OK        := TRUE;
-            if Disp.Proc <> nil then begin
-                Proc.Code := Disp.Proc;
-                Proc.Data := ClientCnx;
-                ClientCnx.BeforeGetHandler(TMyHttpHandler(Proc), OK);
-                if OK and (Proc.Code <> nil) then
-                    TMyHttpHandler(Proc)(FLags);
-            end
-            else if Disp.SObjClass <> nil then begin
-                SObj := Disp.SobjClass.Create(Self);
-                try
-                    SObj.FClient        := ClientCnx;
-                    SObj.FFlags         := Disp.FLags;
-                    SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
-                    SObj.FWndHandle     := FHandle;
-                    SObj.FMethod        := httpMethodGet;
-                    ClientCnx.OnDestroying := SObj.ClientDestroying;
-                    ClientCnx.BeforeObjGetHandler(SObj, OK);
-                    if OK then begin
-                        SObj.Execute;
-                        Flags := SObj.FFlags;
-                    end
-                    else begin
-                        Flags := SObj.FFlags;
-                        FreeAndNil(SObj);
-                    end;
-                except
-                    on E:Exception do
-                    begin
-                        FreeAndNil(SObj);
-                        if Assigned (FOnVirtualExceptionEvent) then  { V7.05 }
-                            FOnVirtualExceptionEvent (Self, E, httpMethodGet, ClientCnx.Path);
+            if ExecFlag then begin    { V9.5 support upload using GET }
+                Disp      := FGetHandler.Disp[I];
+                Flags     := Disp.FLags;
+                OK        := TRUE;
+                if Disp.Proc <> nil then begin
+                    Proc.Code := Disp.Proc;
+                    Proc.Data := ClientCnx;
+                    ClientCnx.BeforeGetHandler(TMyHttpHandler(Proc), OK);
+                    if OK and (Proc.Code <> nil) then
+                        TMyHttpHandler(Proc)(FLags);
+                end
+                else if Disp.SObjClass <> nil then begin
+                    SObj := Disp.SobjClass.Create(Self);
+                    try
+                        SObj.FClient        := ClientCnx;
+                        SObj.FFlags         := Disp.FLags;
+                        SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
+                        SObj.FWndHandle     := FHandle;
+                        SObj.FMethod        := httpMethodGet;
+                        ClientCnx.OnDestroying := SObj.ClientDestroying;
+                        ClientCnx.BeforeObjGetHandler(SObj, OK);
+                        if OK then begin
+                            SObj.Execute;
+                            Flags := SObj.FFlags;
+                        end
+                        else begin
+                            Flags := SObj.FFlags;
+                            FreeAndNil(SObj);
+                        end;
+                    except
+                        on E:Exception do
+                        begin
+                            FreeAndNil(SObj);
+                            if Assigned (FOnVirtualExceptionEvent) then  { V7.05 }
+                                FOnVirtualExceptionEvent (Self, E, httpMethodGet, ClientCnx.Path);
+                        end;
                     end;
                 end;
+            end
+            else begin    { V9.5 support small upload using GET }
+             { abort request now if content too large for stream }
+                if (FMaxStreamMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxStreamMB) then begin
+                    Flags := hg403;
+                    Exit;
+                end;
+                ClientCnx.PostedDataStream := TMemoryStream.Create;
+                TMemoryStream(ClientCnx.PostedDataStream).SetSize(ClientCnx.RequestContentLength);
+
+            { content PostData pointer will be set if accessed, ditto TBytes and String version }
+                ClientCnx.PostedDataLen  := 0;
+                ClientCnx.FPostedDataPtr := Nil;
+                SetLength(ClientCnx.FPostedDataTB, 0);
+                ClientCnx.FPostedDataStr := '';
+                ClientCnx.FLineMode      := FALSE;
+                Flags                    := hgAcceptData;
             end;
             Exit;
         end;
@@ -1188,9 +1416,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function THttpAppSrv.GetDispatchNormalDocument(
-    ClientCnx : THttpConnection;
-    var Flags : THttpGetFlag) : Boolean;
+function THttpAppSrv.GetDispatchNormalDocument(ClientCnx : THttpConnection; var Flags : THttpGetFlag) : Boolean;
 var
     I    : Integer;
     Elem : THttpAllowedElement;
@@ -1237,9 +1463,8 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function THttpAppSrv.DeleteDispatchVirtualDocument(          { V8.67 }
-    ClientCnx : THttpAppSrvConnection;
-    var Flags : THttpGetFlag) : Boolean;
+function THttpAppSrv.DeleteDispatchVirtualDocument(ClientCnx : THttpAppSrvConnection; var Flags : THttpGetFlag;
+                                                                    ExecFlag: Boolean = True): Boolean;  { V9.1 added Exec }
 var
     I, J    : Integer;
     PathBuf : String;
@@ -1269,42 +1494,61 @@ begin
 
         if Status then begin
             Result    := TRUE;
-            Disp      := FDeleteHandler.Disp[I];
-            Flags     := Disp.FLags;
-            OK        := TRUE;
-            if Disp.Proc <> nil then begin
-                Proc.Code := Disp.Proc;
-                Proc.Data := ClientCnx;
-                ClientCnx.BeforeDeleteHandler(TMyHttpHandler(Proc), OK);
-                if OK and (Proc.Code <> nil) then
-                    TMyHttpHandler(Proc)(FLags);
-            end
-            else if Disp.SObjClass <> nil then begin
-                SObj := Disp.SobjClass.Create(Self);
-                try
-                    SObj.FClient        := ClientCnx;
-                    SObj.FFlags         := Disp.FLags;
-                    SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
-                    SObj.FWndHandle     := FHandle;
-                    SObj.FMethod        := httpMethodDelete;
-                    ClientCnx.OnDestroying := SObj.ClientDestroying;
-                    ClientCnx.BeforeObjDeleteHandler(SObj, OK);
-                    if OK then begin
-                        SObj.Execute;
-                        Flags := SObj.FFlags;
-                    end
-                    else begin
-                        Flags := SObj.FFlags;
-                        FreeAndNil(SObj);
-                    end;
-                except
-                    on E:Exception do
-                    begin
-                        FreeAndNil(SObj);
-                        if Assigned (FOnVirtualExceptionEvent) then
-                            FOnVirtualExceptionEvent (Self, E, httpMethodDelete, ClientCnx.Path);
+            if ExecFlag then begin    { V9.5 support upload using DELETE }
+                Disp      := FDeleteHandler.Disp[I];
+                Flags     := Disp.FLags;
+                OK        := TRUE;
+                if Disp.Proc <> nil then begin
+                    Proc.Code := Disp.Proc;
+                    Proc.Data := ClientCnx;
+                    ClientCnx.BeforeDeleteHandler(TMyHttpHandler(Proc), OK);
+                    if OK and (Proc.Code <> nil) then
+                        TMyHttpHandler(Proc)(FLags);
+                end
+                else if Disp.SObjClass <> nil then begin
+                    SObj := Disp.SobjClass.Create(Self);
+                    try
+                        SObj.FClient        := ClientCnx;
+                        SObj.FFlags         := Disp.FLags;
+                        SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
+                        SObj.FWndHandle     := FHandle;
+                        SObj.FMethod        := httpMethodDelete;
+                        ClientCnx.OnDestroying := SObj.ClientDestroying;
+                        ClientCnx.BeforeObjDeleteHandler(SObj, OK);
+                        if OK then begin
+                            SObj.Execute;
+                            Flags := SObj.FFlags;
+                        end
+                        else begin
+                            Flags := SObj.FFlags;
+                            FreeAndNil(SObj);
+                        end;
+                    except
+                        on E:Exception do
+                        begin
+                            FreeAndNil(SObj);
+                            if Assigned (FOnVirtualExceptionEvent) then
+                                FOnVirtualExceptionEvent (Self, E, httpMethodDelete, ClientCnx.Path);
+                        end;
                     end;
                 end;
+            end
+            else begin    { V9.5 support small upload using DELETE }
+             { abort request now if content too large for stream }
+                if (FMaxStreamMB > 0) and ((ClientCnx.RequestContentLength div IcsMBYTE) > FMaxStreamMB) then begin
+                    Flags := hg403;
+                    Exit;
+                end;
+                ClientCnx.PostedDataStream := TMemoryStream.Create;
+                TMemoryStream(ClientCnx.PostedDataStream).SetSize(ClientCnx.RequestContentLength);
+
+            { content PostData pointer will be set if accessed, ditto TBytes and String version }
+                ClientCnx.PostedDataLen  := 0;
+                ClientCnx.FPostedDataPtr := Nil;
+                SetLength(ClientCnx.FPostedDataTB, 0);
+                ClientCnx.FPostedDataStr := '';
+                ClientCnx.FLineMode      := FALSE;
+                Flags                    := hgAcceptData;
             end;
             Exit;
         end;
@@ -1312,100 +1556,25 @@ begin
     Result := FALSE;
 end;
 
+
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function THttpAppSrv.PutDispatchVirtualDocument(                { V8.67 }
-    ClientCnx : THttpAppSrvConnection;
-    var Flags : THttpGetFlag) : Boolean;
+procedure THttpAppSrv.TriggerGetDocument(Sender : TObject; var Flags  : THttpGetFlag);
 var
-    I, J    : Integer;
-    PathBuf : String;
-    Status  : Boolean;
-    Proc    : TMethod;
-    OK      : Boolean;
-    Disp    : THttpDispatchElement;
-    SObj    : TUrlHandler;
+    NoUpload: Boolean;
+    ClientCnx: THttpAppSrvConnection;
 begin
-    for I := 0 to FPutHandler.Count - 1 do begin
-        Disp := FPutHandler.Disp[I];
-        PathBuf := Disp.Path;
-        J := Length(PathBuf);
-        if PathBuf[J] = '*' then begin
-            SetLength(PathBuf, J - 1);
-            Status := AnsiStartsText(PathBuf, ClientCnx.Path);
-        end
-        else
-            Status := (CompareText(PathBuf, ClientCnx.Path) = 0);
-
-      { if HostTag specified, match it }
-{$IFDEF USE_SSL}
-        if Status and (ClientCnx.HostTag <> '') and (Disp.HostTag <> '') then begin
-            if (Disp.HostTag <> ClientCnx.HostTag) then Status := False;
-        end;
-{$ENDIF}
-
-        if Status then begin
-            Result    := TRUE;
-            Disp      := FPutHandler.Disp[I];
-            Flags     := Disp.FLags;
-            OK        := TRUE;
-            if Disp.Proc <> nil then begin
-                Proc.Code := Disp.Proc;
-                Proc.Data := ClientCnx;
-                ClientCnx.BeforePutHandler(TMyHttpHandler(Proc), OK);
-                if OK and (Proc.Code <> nil) then
-                    TMyHttpHandler(Proc)(FLags);
-            end
-            else if Disp.SObjClass <> nil then begin
-                SObj := Disp.SobjClass.Create(Self);
-                try
-                    SObj.FClient        := ClientCnx;
-                    SObj.FFlags         := Disp.FLags;
-                    SObj.FMsg_WM_FINISH := FMsg_WM_FINISH;
-                    SObj.FWndHandle     := FHandle;
-                    SObj.FMethod        := httpMethodPut;
-                    ClientCnx.OnDestroying := SObj.ClientDestroying;
-                    ClientCnx.BeforeObjPutHandler(SObj, OK);
-                    if OK then begin
-                        SObj.Execute;
-                        Flags := SObj.FFlags;
-                    end
-                    else begin
-                        Flags := SObj.FFlags;
-                        FreeAndNil(SObj);
-                    end;
-                except
-                    on E:Exception do
-                    begin
-                        FreeAndNil(SObj);
-                        if Assigned (FOnVirtualExceptionEvent) then
-                            FOnVirtualExceptionEvent (Self, E, httpMethodPut, ClientCnx.Path);
-                    end;
-                end;
-            end;
-            Exit;
-        end;
-    end;
-    Result := FALSE;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure THttpAppSrv.TriggerGetDocument(
-     Sender     : TObject;
-     var Flags  : THttpGetFlag);
-begin
-//OutputDebugString(PChar('HTTP_GET  ' + (Sender as THttpAppSrvConnection).Path));
     inherited TriggerGetDocument(Sender, Flags);
-    if Flags in [hgWillSendMySelf, hg404, hg403, hg401, hgAcceptData,   { V7.03 don't ignore Flags }
-                                                        hgSendDirList] then
+    if Flags in [hgWillSendMySelf, hg404, hg403, hg401, hgAcceptData, hgSendDirList] then  { V7.03 don't ignore Flags }
         Exit ;
 
     // Handle all virtual documents. Returns TRUE if document handled.
-    if GetDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags) then
+    ClientCnx := Sender as THttpAppSrvConnection;
+    NoUpload := (ClientCnx.RequestContentLength = 0);     { V9.5 see if GET has content length header }
+    if GetDispatchVirtualDocument(ClientCnx, Flags, NoUpload) then
         Exit;
 
     // Handle all normal (static) documents. Returns TRUE if document handled.
-    if GetDispatchNormalDocument(Sender as THttpConnection, Flags) then
+    if GetDispatchNormalDocument(ClientCnx, Flags) then
         Exit;
 
     // Reject anything else
@@ -1414,14 +1583,10 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure THttpAppSrv.TriggerHeadDocument(       { V7.05 can not ignore HEAD command }
-     Sender     : TObject;
-     var Flags  : THttpGetFlag);
+procedure THttpAppSrv.TriggerHeadDocument(Sender: TObject;var Flags: THttpGetFlag);
 begin
-//OutputDebugString(PChar('HTTP_HEAD  ' + (Sender as THttpAppSrvConnection).Path));
     inherited TriggerHeadDocument(Sender, Flags);
-    if Flags in [hgWillSendMySelf, hg404, hg403, hg401, hgAcceptData,
-                                                        hgSendDirList] then
+    if Flags in [hgWillSendMySelf, hg404, hg403, hg401, hgAcceptData, hgSendDirList] then
         Exit ;
 
     // Handle all virtual documents. Returns TRUE if document handled.
@@ -1441,14 +1606,15 @@ procedure THttpAppSrv.TriggerPostDocument(
     Sender    : TObject;
     var Flags : THttpGetFlag);
 begin
-//OutputDebugString(PChar('HTTP_POST ' + (Sender as THttpAppSrvConnection).Path));
     inherited TriggerPostDocument(Sender, Flags);
+    if Flags in [hgWillSendMySelf, hg404, hg403, hg401] then  { V9.2 }
+        Exit ;
 
     // Handle all virtual documents. Returns TRUE if document handled.
-    if PostDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags, FALSE) then
+    if PostDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags, FALSE) then   // no upload data
         Exit;
 
-    // Reject anything else
+    // Reject anything else - static documents not allowed for POST since they can not accept data
     Flags := hg404;
 end;
 
@@ -1459,7 +1625,6 @@ procedure THttpAppSrv.TriggerDeleteDocument(           { V8.67 }
      Sender     : TObject;
      var Flags  : THttpGetFlag);
 begin
-//OutputDebugString(PChar('HTTP_DELETE  ' + (Sender as THttpAppSrvConnection).Path));
     inherited TriggerDeleteDocument(Sender, Flags);
     if Flags in [hgWillSendMySelf, hg404, hg403, hg401] then
         Exit ;
@@ -1468,7 +1633,7 @@ begin
     if DeleteDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags) then
         Exit;
 
-    // Reject anything else
+    // Reject anything else - static documents not allowed
     Flags := hg404;
 end;
 
@@ -1478,16 +1643,15 @@ procedure THttpAppSrv.TriggerPutDocument(           { V8.67 }
      Sender     : TObject;
      var Flags  : THttpGetFlag);
 begin
-//OutputDebugString(PChar('HTTP_PUT  ' + (Sender as THttpAppSrvConnection).Path));
     inherited TriggerPutDocument(Sender, Flags);
-    if Flags in [hgWillSendMySelf, hg404, hg403, hg401] then
+    if Flags in [hgWillSendMySelf, hg404, hg403, hg401] then   { V9.2 }
         Exit ;
 
     // Handle all virtual documents. Returns TRUE if document handled.
-    if PutDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags) then
+    if PutDispatchVirtualDocument(Sender as THttpAppSrvConnection, Flags, FALSE) then   // no upload data
         Exit;
 
-    // Reject anything else
+    // Reject anything else - static documents not allowed
     Flags := hg404;
 end;
 
@@ -1575,44 +1739,59 @@ procedure THttpAppSrv.TriggerPostedData(
     ErrCode    : WORD);
 var
     Len        : Integer;
-    Remains    : Integer;
-    Junk       : array [0..255] of char;
+    Remains    : Int64;       { V9.1 }
     ClientCnx  : THttpAppSrvConnection;
     Dummy      : THttpGetFlag;
 begin
     ClientCnx := Sender as THttpAppSrvConnection;
+    if NOT Assigned(ClientCnx.FRxBuffer) then
+        SetLength(ClientCnx.FRxBuffer, MAX_BUFSIZE);    { V9.1 new buffer }
 
     { How much data do we have to receive ? }
     Remains := ClientCnx.RequestContentLength - ClientCnx.PostedDataLen;
     if Remains <= 0 then begin
         { We got all our data. Junk anything else ! }
-        Len := ClientCnx.Receive(@Junk, SizeOf(Junk) - 1);
-        if Len >= 0 then
-            Junk[Len] := #0;
+        ClientCnx.ReceiveTB(ClientCnx.FRxBuffer, MAX_BUFSIZE);   { V9.1 new buffer }
+        ClientCnx.PostedDataReceived;        { V9.2 }
         Exit;
     end;
     { Receive as much data as we need to receive. But warning: we may       }
     { receive much less data. Data will be split into several packets we    }
-    { have to assemble in our buffer.                                       }
-    Len := ClientCnx.Receive(ClientCnx.PostedData + ClientCnx.PostedDataLen, Remains);
-    { Sometimes, winsock doesn't wants to givve any data... }
-    if Len <= 0 then
-        Exit;
+    { have to assemble in our buffer. }
+//    Len := ClientCnx.Receive(ClientCnx.PostedData + ClientCnx.PostedDataLen, Remains);
 
-    { Add received length to our count }
-    Inc(ClientCnx.PostedDataLen, Len);
-    { Add a nul terminating byte (handy to handle data as a string) }
-    ClientCnx.PostedData[ClientCnx.PostedDataLen] := #0;
-    { Display receive data so far }
-    //Display('Data: ''' + StrPas(ClientCnx.PostedData) + '''');
+   { V9.1 read local buffer and write stream, might be TFileStream }
+    while (Remains > 0) do begin
+        Len := ClientCnx.ReceiveTB(ClientCnx.FRxBuffer, MAX_BUFSIZE);
+        { Sometimes, winsock doesn't wants to givve any data... }
+        if Len <= 0 then
+            Break;
+        ClientCnx.PostedDataStream.Write(ClientCnx.FRxBuffer, Len);
+        { Add received length to our count }
+        Inc(ClientCnx.PostedDataLen, Len);
+        Remains := Remains - Len;
+        { Add a nul terminating byte (handy to handle data as a string) }
+     //   ClientCnx.PostedData[ClientCnx.PostedDataLen] := #0;    { V9.1 not a string }
+    end;
 
     { When we received the whole thing, we can process it }
     if ClientCnx.PostedDataLen = ClientCnx.RequestContentLength then begin
+        ClientCnx.PostedDataStream.Position := 0;  { back to start }
         { First we must tell the component that we've got all the data }
         ClientCnx.PostedDataReceived;
         // Execute the request
-        if PostDispatchVirtualDocument(ClientCnx, Dummy, TRUE) then
-            Exit;
+        if (ClientCnx.RequestMethod = httpMethodPost) then begin
+            if PostDispatchVirtualDocument(ClientCnx, Dummy, TRUE) then
+                Exit;
+        end;
+        if (ClientCnx.RequestMethod = httpMethodPut) then begin        { V9.1 handle PUT uploads }
+            if PutDispatchVirtualDocument(ClientCnx, Dummy, TRUE) then
+                Exit;
+        end;
+        if (ClientCnx.RequestMethod = httpMethodGet) then begin        { V9.5 handle GET uploads }
+            if GetDispatchVirtualDocument(ClientCnx, Dummy, TRUE) then
+                Exit;
+        end;
         ClientCnx.Answer404;
     end;
 end;
@@ -1624,11 +1803,18 @@ begin
     if Assigned(FOnDestroying) then
         FOnDestroying(Self);
 
-    if Assigned(PostedData) then begin
+  {  if Assigned(PostedData) then begin
         FreeMem(PostedData);
         PostedData := nil;
         PostedDataLen    := 0;
+    end;   }
+    if Assigned(PostedDataStream) then begin      { V9.1 }
+        PostedDataStream.Free;
+        PostedDataStream := Nil;
     end;
+    if (PostTempName <> '') and FileExists(PostTempName) then    { V9.1 }
+            IcsDeleteFile(PostTempName, True);
+    PostTempName := '';
     inherited Destroy;
 end;
 
@@ -1735,6 +1921,61 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 get posted data as TBytes from string }
+{ if content larger then 50MB only get that much data }
+function THttpAppSrvConnection.GetPostedDataTB: TBytes;
+var
+    MaxLen: Int64;
+begin
+    if NOT Assigned(FPostedDataTB) then
+        SetLength(FPostedDataTB, 0);
+    if (Length(FPostedDataTB) = 0) then begin
+        MaxLen := PostedDataLen;
+        if (MaxPostMB = 0) then    // should be set to MaxStreamMB
+            MaxPostMB := 10;
+        if (MaxLen > (MaxPostMB * IcsMBYTE))  then
+            MaxLen := MaxPostMB * IcsMBYTE;
+        SetLength(FPostedDataTB, MaxLen + 1);
+        if PostedDataLen = 0 then
+            SetLength(FPostedDataTB, 0)
+        else begin
+            PostedDataStream.Position := 0;
+            PostedDataStream.Read(FPostedDataTB[0], MaxLen);
+            PostedDataStream.Position := 0;
+        end;
+        FPostedDataTB[MaxLen] := 0;    // trailing null for AnsiString casting
+        SetLength(FPostedDataTB, MaxLen);
+    end;
+    Result := FPostedDataTB;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 get posted data as TBytes }
+{ beware fails if content length over MaxStreamSize since we have a filestream }
+function THttpAppSrvConnection.GetPostedData: PAnsiChar;                           { V9.1 }
+begin
+    if (FPostedDataPtr = Nil) and (PostedDataLen > 0) then begin
+        GetPostedDataTB;
+        FPostedDataPtr := @FPostedDataTB[0];
+    end;
+    Result := FPostedDataPtr;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 get posted data as String, keeping embedded nulls  }
+{ works with Ansi or Unicode strings, but no unicode conversion }
+function THttpAppSrvConnection.GetPostedDataStr: String;
+begin
+    if (FPostedDataStr = '') and (PostedDataLen > 0) and Assigned(PostedData) then begin
+        IcsMoveTBytesToString(GetPostedDataTB, 0, FPostedDataStr, 1, PostedDataLen);
+    end;
+    Result := FPostedDataStr;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure THttpAppSrv.SaveSessionsToFile(const FileName: String);
 begin
     if Assigned(FWSessions) then
@@ -1765,9 +2006,7 @@ begin
         Result := nil
     else begin
         if (nIndex < 0) or (nIndex >= FWSessions.Count) then
-            raise ERangeError.Create('THttpAppSrv.Sessions[' +
-                                     IntToStr(nIndex) +
-                                     ']: Index out of range');
+            raise ERangeError.Create('THttpAppSrv.Sessions[' + IntToStr(nIndex) + ']: Index out of range');
         Result := FWSessions.Sessions[nIndex];
     end;
 end;
@@ -1839,221 +2078,6 @@ begin
         FWSessions.RemoveAged;
 end;
 
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$IFDEF MSWINDOWS}
-function ReverseTextFileToHtmlToString(
-    const LogViewURL : String;
-    const TextFont   : String;
-    const LinksFont  : String;
-    const FirstText  : String;
-    const NextText   : String;
-    const PrevText   : String;
-    const LastText   : String;
-    const FileName   : String;
-    const APageSize  : Integer;           // 0 is default page size
-    const APosInt    : Integer) : String; // Start position, 0 is end of file
-var
-    Stream : TMemoryStream;
-begin
-    Stream := TMemoryStream.Create;
-    try
-        ReverseTextFileToHtmlToStream(Stream, LogViewURL,
-                                      TextFont, LinksFont,
-                                      FirstText, NextText, PrevText, LastText,
-                                      FileName,
-                                      APageSize, APosInt);
-        SetLength(Result, Stream.Size);
-        Stream.Seek(0, 0);
-        Stream.Read(Result[1], Stream.Size);
-    finally
-        Stream.Free;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure ReverseTextFileToHtmlToStream(
-    Stream           : TStream;
-    const LogViewURL : String;
-    const TextFont   : String;
-    const LinksFont  : String;
-    const FirstText  : String;
-    const NextText   : String;
-    const PrevText   : String;
-    const LastText   : String;
-    const FileName   : String;
-    const APageSize  : Integer;      // 0 is default page size
-    const APosInt    : Integer);     // Start position, 0 is end of file
-var
-    Line        : String;
-    PageSize    : Integer;
-    PosInt      : Integer;
-    PosNext     : Integer;
-    PosPrev     : Integer;
-    FileHdl     : THANDLE;
-//  OpenBuf     : _OFSTRUCT;
-    MapHdl      : THandle;
-    MapAddr     : PChar;
-    FSize       : Integer;
-    P, Q        : PChar;
-    R, S        : PChar;
-    Count       : Integer;
-    PageSizeStr : String;
-    Links       : String;
-begin
-    if APageSize > 0 then begin
-        PageSizeStr := '&pagesize=' + IntToStr(APageSize);
-        PageSize    := APageSize;
-    end
-    else begin
-        PageSizeStr := '';
-        PageSize    := 25;
-    end;
-
-//  FileHdl := OpenFile(PChar(FileName), OpenBuf, OF_READ);
-    FileHdl := IcsFileCreateW(FileName, OPEN_EXISTING);
-    if FileHdl = HFILE_ERROR then begin
-        Line := 'Unable to open file';
-        Stream.Write(Line[1], Length(Line));
-        Exit;
-    end;
-    FSize := GetFileSize(FileHdl, nil);
-    if FSize <= 0 then begin
-        CloseHandle(FileHdl);
-        Line := 'File is empty';
-        Stream.Write(Line[1], Length(Line));
-        Exit;
-    end;
-
-    MapHdl := CreateFileMapping(FileHdl, nil, PAGE_READONLY, 0, 0, nil);
-    if MapHdl = 0 then begin
-        CloseHandle(FileHdl);
-        Line := 'Unable to create file mapping';
-        Stream.Write(Line[1], Length(Line));
-        Exit;
-    end;
-
-    MapAddr := MapViewOfFile(MapHdl, FILE_MAP_READ, 0, 0, 0);
-    if MapAddr = nil then begin
-        CloseHandle(MapHdl);
-        CloseHandle(FileHdl);
-        Line := 'Unable to map view of file';
-        Stream.Write(Line[1], Length(Line));
-        Exit;
-    end;
-
-    if (APosInt = 0) or (APosInt >= FSize) then
-        PosInt := FSize - 1
-    else
-        PosInt := APosInt;
-
-    if PosInt < 0 then begin
-        // Start with last page, that is start of file
-        P       := MapAddr;
-        PosNext := 0;
-        // Go forward PAGE_SIZE lines
-        R     := MapAddr;
-        Count := PageSize - 1;
-        while (R < (MapAddr + FSize)) and (Count >= 0) do begin
-            while (R < (MapAddr + FSize)) and (R^ <> #10) do
-                Inc(R);
-            Inc(R);
-            Dec(Count);
-        end;
-        Q := R - 1;
-        Count := PageSize - 1;
-    end
-    else begin
-        Q := MapAddr + PosInt;
-        // Go back PAGE_SIZE lines
-        P     := Q;
-        Count := PageSize;
-        while (P > MapAddr) and (Count >= 0) do begin
-            while (P > MapAddr) and (P^ <> #10) do
-                Dec(P);
-            if P^ <> #10 then
-                break;
-            Dec(P);
-            Dec(Count);
-        end;
-        PosNext := P - MapAddr;
-        if P^ = #10 then
-            Inc(PosNext);
-        if (P < Q) and (P^ = #13) then
-            Inc(P);
-        if (P < Q) and (P^ = #10) then
-            Inc(P);
-        R     := Q + 1;
-        Count := PageSize;
-    end;
-
-    // Go forward PAGE_SIZE lines
-    while (R < (MapAddr + FSize)) and (Count >= 0) do begin
-        while (R < (MapAddr + FSize)) and (R^ <> #10) do
-            Inc(R);
-        Inc(R);
-        Dec(Count);
-    end;
-    PosPrev := R - MapAddr;
-    if PosPrev >= FSize then
-        PosPrev := FSize - 1;
-
-    try
-        Links := LinksFont;
-
-        if PageSizeStr = '' then
-            Links := Links + '<A HREF="' + LogViewUrl + '">' +
-                             FirstText + '</A>  '
-        else
-            Links := Links + '<A HREF="' + LogViewUrl + '?' +
-                             Copy(PageSizeStr, 2, 20) + '">' +
-                             FirstText + '</A>  ';
-
-        if PosNext > 0 then
-            Links := Links + '<A HREF="' + LogViewUrl + '?'  +
-                             'pos=' + IntToStr(PosNext) + PageSizeStr +
-                             '">' + NextText + '</A>  '
-        else
-            Links := Links + NextText + ' ';
-
-        if PosPrev > PosInt  then
-            Links := Links + '<A HREF="' + LogViewUrl + '?pos=' +
-                             IntToStr(PosPrev) + PageSizeStr + '">' + PrevText + '</A>  '
-        else
-            Links := Links + PrevText + ' ';
-
-        Links := Links + '<A HREF="' + LogViewUrl + '?'  +
-                         'pos=%2D1' + PageSizeStr + '">' + LastText + '</A>  ';
-        Stream.Write(Links[1], Length(Links));
-
-        Line := '<BR><BR>' + TextFont;
-        Stream.Write(Line[1], Length(Line));
-        S := Q;
-        while (S >= P) do begin
-            R := S;
-            while (S > P) and (S^ <> #10) do
-                Dec(S);
-            if S^ = #10 then
-                Inc(S);
-            if R > S then begin
-                SetString(Line, S, R - S);
-                Line := TextToHtmlText(Line) + '<BR>' + #13#10;
-                Stream.Write(Line[1], Length(Line));
-            end;
-            Dec(S, 2);
-        end;
-
-        Line := '<BR>';
-        Stream.Write(Line[1], Length(Line));
-        Stream.Write(Links[1], Length(Links));
-    finally
-        UnmapViewOfFile(MapAddr);
-        CloseHandle(MapHdl);
-        CloseHandle(FileHdl);
-    end;
-end;
-{$ENDIF}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure THttpAppSrvConnection.BeforeGetHandler(
@@ -2266,8 +2290,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TUrlHandler.AnswerStream(const Status, ContType, Header: String;
-        LastModified   : TDateTime = 0);                                       { V8.67 }
+procedure TUrlHandler.AnswerStream(const Status, ContType, Header: String; LastModified   : TDateTime = 0);                                       { V8.67 }
 begin
     if Assigned(Client) then
         Client.AnswerStream(FFlags, Status, ContType, Header, LastModified);    { V8.67 }
@@ -2442,8 +2465,7 @@ end;
 {$IFDEF USE_SSL}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsLoadTHttpAppSrvFromIni(MyIniFile: TCustomIniFile; HttpAppSrv:
-                THttpAppSrv; const Section: String = 'HttpAppSrv');
+procedure IcsLoadTHttpAppSrvFromIni(MyIniFile: TCustomIniFile; HttpAppSrv: THttpAppSrv; const Section: String = 'HttpAppSrv');
 begin
     if NOT Assigned (MyIniFile) then
         raise ESocketException.Create('Must open and assign INI file first');
@@ -2466,7 +2488,9 @@ begin
         BandwidthSampling := MyIniFile.ReadInteger(Section, 'BandwidthSampling', BandwidthSampling);
         ServerHeader := IcsTrim(MyIniFile.ReadString(Section, 'ServerHeader', ServerHeader));
         RootCA := IcsTrim(MyIniFile.ReadString(Section, 'RootCA', ''));
+{$IFDEF OpenSSL_Deprecated}   { V9.5 }
         DHParams := IcsTrim(MyIniFile.ReadString(Section, 'DHParams', ''));
+{$ENDIF OpenSSL_Deprecated}   { V9.5 }
         SessionTimeout := MyIniFile.ReadInteger(Section, 'SessionTimeout', SessionTimeout);
         MaxSessions := MyIniFile.ReadInteger(Section, 'MaxSessions', MaxSessions);
         SslCliCertMethod := TSslCliCertMethod(GetEnumValue (TypeInfo (TSslCliCertMethod),
@@ -2478,10 +2502,43 @@ begin
         IcsStrToSet(TypeInfo (THttpOption), MyIniFile.ReadString (section, 'Options', '[]'), FOptions, SizeOf(Options)); { V8.57 }
      // ie Options=[hoContentEncoding,hoAllowDirList,hoSendServerHdr,hoAllowPut]
         ListenBacklog := MyIniFile.ReadInteger(Section, 'ListenBacklog', ListenBacklog);  { V8.57 }
-{$IFDEF AUTO_X509_CERTS}
-        OcspSrvStapling := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'OcspSrvStapling', 'False')); { V8.69 }
-{$ENDIF}
+        MaxUploadMB := MyIniFile.ReadInteger(Section, 'MaxUploadMB', 205);                { V9.1 200M }
+        MaxStreamMB := MyIniFile.ReadInteger(Section, 'MaxStreamMB', 51);                 { V9.1 50M }
+        NoSSL := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'NoSSL', 'False'));     { V9.1 }
+        AttachmentTypes := IcsTrim(MyIniFile.ReadString(Section, 'AttachmentTypes', AttachmentTypes));   { V9.5 }
     end;
+
+{$IFDEF AUTO_X509_CERTS}
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
+        OcspSrvStapling := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'OcspSrvStapling', 'False')); { V8.69 }
+{$ENDIF} // OpenSSL_OcspStaple
+{$ENDIF}
+
+    { V9.5 new certificate ordering defaults in SocketServer }
+{$IFDEF AUTO_X509_CERTS}
+    with HttpAppSrv.WSocketServer as TSslWSocketServer do begin
+        SrvSupplierTitle := Trim(MyIniFile.ReadString(section, 'SrvSupplierTitle', ''));
+        SrvAcmeSupplier := TAcmeSupplier(GetEnumValue (TypeInfo (TAcmeSupplier),
+                                               IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeSupplier', 'AcmeLetsEncrypt'))));
+        if (SrvAcmeSupplier > High(TAcmeSupplier)) or (SrvAcmeSupplier < Low(TAcmeSupplier)) then
+            SrvAcmeSupplier := AcmeLetsEncrypt;
+        SrvAcmeCertProfile := IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeCertProfile', ''));
+        SrvAcmeCertValidity :=  MyIniFile.ReadInteger(section, 'SrvAcmeCertValidity', 90);
+        SrvCertChallenge := TChallengeType(GetEnumValue (TypeInfo (TChallengeType),
+                                                      IcsTrim(MyIniFile.ReadString(section, 'SrvCertChallenge', 'ChallNone'))));
+        if SrvCertChallenge > High(TChallengeType) then
+            SrvCertChallenge := ChallNone;
+        SrvCertPKeyType := TSslPrivKeyType(GetEnumValue (TypeInfo (TSslPrivKeyType),
+                                                IcsTrim(MyIniFile.ReadString(section, 'SrvCertPKeyType', 'PrivKeyRsa2048'))));
+        if SrvCertPKeyType > High(TSslPrivKeyType) then
+            SrvCertPKeyType := PrivKeyRsa2048;
+        SrvCertSignDigest := TEvpDigest(GetEnumValue (TypeInfo (TEvpDigest),
+                                              IcsTrim(MyIniFile.ReadString(section, 'SrvCertSignDigest', 'Digest_sha256'))));
+       if SrvCertSignDigest > High(TEvpDigest) then
+            SrvCertSignDigest := Digest_sha256;
+    end;
+{$ENDIF}
+
 end;
 {$ENDIF}
 

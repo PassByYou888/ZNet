@@ -209,7 +209,7 @@ var
 
 implementation
 
-{$R *.DFM}
+{$R *.dfm}
 
 const
     KeyTop             = 'Top';

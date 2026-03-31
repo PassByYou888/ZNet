@@ -614,7 +614,7 @@ procedure TDataStoreService_VirtualAuth.UserLinkSuccess(UserDefineIO: TService_R
 var
   RT: TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   de: TDFE;
-  arr: TDFArrayByte;
+  arr: TDF_ArrayByte;
 begin
   RT := UserDefineIO as TDataStoreService_RecvTunnel_UserDefine_VirtualAuth;
   de := TDFE.Create;
@@ -1279,7 +1279,7 @@ procedure TDataStoreService_VirtualAuth.Send_CompletedStorePosTransform(SendCli_
 var
   de: TDFE;
   i: Integer;
-  arr: TDFArrayInt64;
+  arr: TDF_ArrayInt64;
 begin
   de := TDFE.Create;
   de.WritePointer(BackcallPtr);
@@ -1451,7 +1451,7 @@ end;
 
 procedure TDataStoreClient_VirtualAuth.Command_DataStoreSecurity(Sender: TPeerIO; InData: TDFE);
 var
-  arr: TDFArrayByte;
+  arr: TDF_ArrayByte;
 begin
   FDataStoreCipherSecurity := TCipherSecurity(InData.Reader.ReadByte);
   arr := InData.Reader.ReadArrayByte;
@@ -1704,7 +1704,7 @@ end;
 procedure TDataStoreClient_VirtualAuth.Command_CompletedStorePosTransform(Sender: TPeerIO; InData: TDFE);
 var
   BackcallPtr: PStorePosTransformNotify;
-  arr: TDFArrayInt64;
+  arr: TDF_ArrayInt64;
   i: Integer;
   TransformBuff: TZDBStorePosTransformArray;
 begin

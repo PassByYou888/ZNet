@@ -82,6 +82,7 @@
   {$UNDEF debug}
   {$DEFINE release}
   {$DEFINE INLINE_ASM}
+  {$Z+}
   {$R-}
   {$I-}
   {$S-}

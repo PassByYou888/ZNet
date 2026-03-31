@@ -6,11 +6,11 @@ Description:  This unit encapsulate the ICMP.DLL into a VCL of type TPing.
               Works only in 32 bits mode (no Delphi 1) under NT or 95.
               If you wants to build a console mode program, use the TICMP
               object. You'll have a much smaller program.
-Version:      V9.0
+Version:      V9.3
 Creation:     January 6, 1997
 EMail:        http://www.overbyte.be       francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -80,6 +80,8 @@ Mar 10, 2020 V8.64 Added support for International Domain Names for Applications
 Sep 03, 2020 V8.65 Attempting to support Posix.
 Nov 27, 2021 V8.68 BgException now passes exception to AbortComponent virtual handler.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 6, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+                   Added OverbyteIcsUtils for IP functions
 
 
 Pending - ping using raw ICMP socket, will be async and should work on POSIX/MacOS
@@ -144,11 +146,13 @@ uses
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsIcmp,
 {$ENDIF FMX}
-    Z.ICS9.OverbyteIcsWinsock;
+    Z.ICS9.OverbyteIcsUtils,
+//  OverbyteIcsWinsock;
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-  PingVersion           = 900;
-  CopyRight : String    = ' TPing (c) 1997-2023 F. Piette V9.0 ';
+  PingVersion           = 903;
+  CopyRight : String    = ' TPing (c) 1997-2024 F. Piette V9.3 ';
 
 type
   TDnsLookupDone = procedure (Sender: TObject; Error: Word) of object;
@@ -743,8 +747,7 @@ begin
     // see if now looking up host name for reply address,
     // which might not be the same address ping if TTL was less
             if PingLookupReply and (ReplyIpAddr <> '') then begin
-                RevHost := String (WSocketResolveIp(AnsiString
-                                    (ReplyIpAddr), PingSocketFamily));
+                RevHost := String (WSocketResolveIp(AnsiString (ReplyIpAddr), PingSocketFamily));
                 if RevHost <> '' then ReplyHostName := RevHost;
             end ;
         end

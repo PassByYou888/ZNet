@@ -2,14 +2,14 @@
 
 Author:       Angus Robertson, Magenta Systems Ltd
 Creation:     15 December 2005
-Version:      V9.0
+Version:      V9.5
 Description:  High level functions for ZLIB compression and decompression
 Credit:       Based on work by Gabriel Corneanu <gabrielcorneanu(AT)yahoo.com>
               Derived from original sources by Bob Dellaca and Cosmin Truta.
               ZLIB is Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2004-2023 by François PIETTE
+Legal issues: Copyright (C) 2004-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -67,6 +67,8 @@ Oct 20, 2022 V8.70 Now using USE_ZLIB_OBJ in OverbyteIcsDefs.inc instead of Over
                    Added ZlibDecompressStream2 used in OverbyteIcsHttpCCodZLib which writes
                      to a callback function instead of a stream for HTTP content decompress.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 28, 2025 V9.4  More external symbols for C++.
+Sep 24, 2025 V9.5  Corrected C++ symbols to compile with Win64, thanks to w0wbagger.
 
 
 pending: compress callback not correct total count
@@ -232,7 +234,13 @@ procedure ZLibError;
 
 { V8.70 moved from ZlibObj }
 var
-   zlibProblemString : AnsiString;
+{$IFDEF WIN64}
+  zlibProblemString: AnsiString = '';     { V9.5 }
+{$ELSE}
+  zlibProblemString: AnsiString;
+{$ENDIF}
+   {$EXTERNALSYM zlibProblemString}       { V9.4 }
+
    zlibProblemAlert  : boolean;
    zlibRaiseError    : boolean;
 

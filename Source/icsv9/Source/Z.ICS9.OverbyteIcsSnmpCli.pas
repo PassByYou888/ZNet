@@ -3,10 +3,10 @@
 Author:       François PIETTE
 Description:  TSnmpCli class encapsulate the SNMP client paradigm
 Creation:     March 2011
-Version:      V9.0
+Version:      V9.3
 EMail:        http://www.overbyte.be       francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2023 by François PIETTE
+Legal issues: Copyright (C) 1996-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -39,6 +39,9 @@ History:
 V8.50 Aug 17, 2017 UnicodeIntoAnsiToString now checks for binary string and
                    converts them to hex, thanks to xlxia@sina.com
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3   Added OverbyteIcsTypes for consolidated types and constants.
+
+
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 unit Z.ICS9.OverbyteIcsSnmpCli;
@@ -66,14 +69,15 @@ uses
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Vcl.ExtCtrls{$ELSE}ExtCtrls{$ENDIF},
     Z.ICS9.OverbyteIcsWndControl,
-    Z.ICS9.OverbyteIcsWinsock,
+ //   OverbyteIcsWinsock,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsAsn1Utils,
-    Z.ICS9.OverbyteIcsSnmpMsgs;
+    Z.ICS9.OverbyteIcsSnmpMsgs,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-  SnmpClientVersion         = 900;
-  CopyRight    : String     = ' TSnmpClient (c) 2023 Francois Piette V9.0 ';
+  SnmpClientVersion         = 903;
+  CopyRight    : String     = ' TSnmpClient (c) 2024 Francois Piette V9.3 ';
 
 
 type

@@ -58,14 +58,14 @@ type
   TZDB2_Th_Engine = class;
   TZDB2_Th_Engine_Static_Copy_Tech = class;
   TZDB2_Th_Engine_Dynamic_Copy_Tech = class;
-  TZDB2_Th_Engine_Data_Instance_Pool = TBigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Data_BigList___ = TCritical_BigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Marshal_BigList___ = TCritical_BigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = TCritical_BigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = TCritical_BigList<TZDB2_Th_Engine_Data>;
-  TZDB2_Th_Engine_Static_Copy_Instance_Pool = TCritical_BigList<TZDB2_Th_Engine_Static_Copy_Tech>;
-  TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool = TCritical_BigList<TZDB2_Th_Engine_Dynamic_Copy_Tech>;
-  TZDB2_Th_Engine_ID_Data_Pool = TCritical_Big_Hash_Pair_Pool<Integer, TZDB2_Th_Engine_Data>;
+  TZDB2_Th_Engine_Data_Instance_Pool = class(TBigList<TZDB2_Th_Engine_Data>);
+  TZDB2_Th_Engine_Data_BigList___ = class(TCritical_BigList<TZDB2_Th_Engine_Data>);
+  TZDB2_Th_Engine_Marshal_BigList___ = class(TCritical_BigList<TZDB2_Th_Engine_Data>);
+  TZDB2_Th_Engine_Data_Instance_Recycle_Tool___ = Class(TCritical_BigList<TZDB2_Th_Engine_Data>);
+  TZDB2_Th_Engine_Data_Link_Recycle_Tool___ = class(TCritical_BigList<TZDB2_Th_Engine_Data>);
+  TZDB2_Th_Engine_Static_Copy_Instance_Pool = class(TCritical_BigList<TZDB2_Th_Engine_Static_Copy_Tech>);
+  TZDB2_Th_Engine_Dynamic_Copy_Instance_Pool = class(TCritical_BigList<TZDB2_Th_Engine_Dynamic_Copy_Tech>);
+  TZDB2_Th_Engine_ID_Data_Pool = class(TCritical_Big_Hash_Pair_Pool<Integer, TZDB2_Th_Engine_Data>);
 
 {$REGION 'Data_Engine'}
 

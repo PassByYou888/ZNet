@@ -3,11 +3,11 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  OAuth authentication browser window VCL form.
 Creation:     Dec 2022
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Feb 2024
+Version:      V9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -38,6 +38,7 @@ Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
 Updates:
 Dec 14, 2022 - V8.71 - baseline.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 23, 2024 V9.1  Builds without USE_SSL.
 
 This unit displays browser pages to handle OAuth login to cloud services, rather
 than using an external browser.
@@ -109,6 +110,8 @@ unit Z.ICS9.OverbyteIcsOAuthFormVcl;
 {$ENDIF}
 
 interface
+
+{$IFDEF USE_SSL}
 
 uses
  {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
@@ -210,9 +213,13 @@ const
 
   function IcsCheckEdgeBrowser (var ErrInfo: String): Boolean;
 
+  {$ENDIF USE_SSL}
+
 implementation
 
-{$R *.DFM}
+{$R *.dfm}
+
+{$IFDEF USE_SSL}
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { try and check if Edge is available before creating the form }
@@ -716,6 +723,8 @@ begin
             RestOAuth.SetError(OAuthErrCancelled, 'OAuth Login Window Closed');
     end;
 end;
+
+{$ENDIF USE_SSL}
 
 
 end.

@@ -1631,251 +1631,103 @@ begin
 end;
 
 function umlRandomRange(const rnd: TMT19937Random; const min_, max_: Integer): Integer;
-var
-  mn, mx: Integer;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := rnd.Rand32(mn - mx) + mx
-  else
-      Result := rnd.Rand32(mx - mn) + mn;
+  Result := TMT19937.RandomRange(rnd, min_, max_);
 end;
 
 function umlRandomRange64(const rnd: TMT19937Random; const min_, max_: Int64): Int64;
-var
-  mn, mx: Int64;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := rnd.Rand64(mn - mx) + mx
-  else
-      Result := rnd.Rand64(mx - mn) + mn;
+  Result := TMT19937.RandomRange64(rnd, min_, max_);
 end;
 
 function umlRandomRangeS(const rnd: TMT19937Random; const min_, max_: Single): Single;
 begin
-  Result := (umlRandomRange64(rnd, Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+  Result := TMT19937.RandomRangeS(rnd, min_, max_);
 end;
 
 function umlRandomRangeD(const rnd: TMT19937Random; const min_, max_: Double): Double;
 begin
-  Result := (umlRandomRange64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RandomRangeD(rnd, min_, max_);
 end;
 
 function umlRandomRangeF(const rnd: TMT19937Random; const min_, max_: Double): Double;
 begin
-  Result := (umlRandomRange64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RandomRangeF(rnd, min_, max_);
 end;
 
 function umlRandomRange(const min_, max_: Integer): Integer;
-var
-  mn, mx: Integer;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := MT19937Rand32(mn - mx) + mx
-  else
-      Result := MT19937Rand32(mx - mn) + mn;
+  Result := TMT19937.RandomRange(min_, max_);
 end;
 
 function umlRandomRange64(const min_, max_: Int64): Int64;
-var
-  mn, mx: Int64;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := MT19937Rand64(mn - mx) + mx
-  else
-      Result := MT19937Rand64(mx - mn) + mn;
+  Result := TMT19937.RandomRange64(min_, max_);
 end;
 
 function umlRandomRangeS(const min_, max_: Single): Single;
 begin
-  Result := (umlRandomRange64(Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+  Result := TMT19937.RandomRangeS(min_, max_);
 end;
 
 function umlRandomRangeD(const min_, max_: Double): Double;
 begin
-  Result := (umlRandomRange64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RandomRangeD(min_, max_);
 end;
 
 function umlRandomRangeF(const min_, max_: Double): Double;
 begin
-  Result := (umlRandomRange64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RandomRangeF(min_, max_);
 end;
 
 function umlRR(const rnd: TMT19937Random; const min_, max_: Integer): Integer;
-var
-  mn, mx: Integer;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := rnd.Rand32(mn - mx) + mx
-  else
-      Result := rnd.Rand32(mx - mn) + mn;
+  Result := TMT19937.RR(rnd, min_, max_);
 end;
 
 function umlRR64(const rnd: TMT19937Random; const min_, max_: Int64): Int64;
-var
-  mn, mx: Int64;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := rnd.Rand64(mn - mx) + mx
-  else
-      Result := rnd.Rand64(mx - mn) + mn;
+  Result := TMT19937.RR64(rnd, min_, max_);
 end;
 
 function umlRRS(const rnd: TMT19937Random; const min_, max_: Single): Single;
 begin
-  Result := (umlRR64(rnd, Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+  Result := TMT19937.RRS(rnd, min_, max_);
 end;
 
 function umlRRD(const rnd: TMT19937Random; const min_, max_: Double): Double;
 begin
-  Result := (umlRR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RRD(rnd, min_, max_);
 end;
 
 function umlRRF(const rnd: TMT19937Random; const min_, max_: Double): Double;
 begin
-  Result := (umlRR64(rnd, Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RRF(rnd, min_, max_);
 end;
 
 function umlRR(const min_, max_: Integer): Integer;
-var
-  mn, mx: Integer;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := MT19937Rand32(mn - mx) + mx
-  else
-      Result := MT19937Rand32(mx - mn) + mn;
+  Result := TMT19937.RR(min_, max_);
 end;
 
 function umlRR64(const min_, max_: Int64): Int64;
-var
-  mn, mx: Int64;
 begin
-  if min_ = max_ then
-    begin
-      Result := min_;
-      exit;
-    end;
-  mn := min_;
-  mx := max_;
-
-  if mn > mx then
-      inc(mn)
-  else
-      inc(mx);
-
-  if mn > mx then
-      Result := MT19937Rand64(mn - mx) + mx
-  else
-      Result := MT19937Rand64(mx - mn) + mn;
+  Result := TMT19937.RR64(min_, max_);
 end;
 
 function umlRRS(const min_, max_: Single): Single;
 begin
-  Result := (umlRR64(Trunc(min_ * 1000), Trunc(max_ * 1000))) * 0.001;
+  Result := TMT19937.RRS(min_, max_);
 end;
 
 function umlRRD(const min_, max_: Double): Double;
 begin
-  Result := (umlRR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RRD(min_, max_);
 end;
 
 function umlRRF(const min_, max_: Double): Double;
 begin
-  Result := (umlRR64(Trunc(min_ * 10000), Trunc(max_ * 10000))) * 0.0001;
+  Result := TMT19937.RRF(min_, max_);
 end;
 
 function umlDefaultTime: Double;
@@ -6841,70 +6693,70 @@ begin
   C := TDigestCardinal(Accu)[2];
   D := TDigestCardinal(Accu)[3];
 
-  A := FF(A, B, C, D, TCardinalBuf(Buf)[0], 7, $D76AA478);   { 1 }
-  D := FF(D, A, B, C, TCardinalBuf(Buf)[1], 12, $E8C7B756);  { 2 }
-  C := FF(C, D, A, B, TCardinalBuf(Buf)[2], 17, $242070DB);  { 3 }
-  B := FF(B, C, D, A, TCardinalBuf(Buf)[3], 22, $C1BDCEEE);  { 4 }
-  A := FF(A, B, C, D, TCardinalBuf(Buf)[4], 7, $F57C0FAF);   { 5 }
-  D := FF(D, A, B, C, TCardinalBuf(Buf)[5], 12, $4787C62A);  { 6 }
-  C := FF(C, D, A, B, TCardinalBuf(Buf)[6], 17, $A8304613);  { 7 }
-  B := FF(B, C, D, A, TCardinalBuf(Buf)[7], 22, $FD469501);  { 8 }
-  A := FF(A, B, C, D, TCardinalBuf(Buf)[8], 7, $698098D8);   { 9 }
-  D := FF(D, A, B, C, TCardinalBuf(Buf)[9], 12, $8B44F7AF);  { 10 }
+  A := FF(A, B, C, D, TCardinalBuf(Buf)[0], 7, $D76AA478); { 1 }
+  D := FF(D, A, B, C, TCardinalBuf(Buf)[1], 12, $E8C7B756); { 2 }
+  C := FF(C, D, A, B, TCardinalBuf(Buf)[2], 17, $242070DB); { 3 }
+  B := FF(B, C, D, A, TCardinalBuf(Buf)[3], 22, $C1BDCEEE); { 4 }
+  A := FF(A, B, C, D, TCardinalBuf(Buf)[4], 7, $F57C0FAF); { 5 }
+  D := FF(D, A, B, C, TCardinalBuf(Buf)[5], 12, $4787C62A); { 6 }
+  C := FF(C, D, A, B, TCardinalBuf(Buf)[6], 17, $A8304613); { 7 }
+  B := FF(B, C, D, A, TCardinalBuf(Buf)[7], 22, $FD469501); { 8 }
+  A := FF(A, B, C, D, TCardinalBuf(Buf)[8], 7, $698098D8); { 9 }
+  D := FF(D, A, B, C, TCardinalBuf(Buf)[9], 12, $8B44F7AF); { 10 }
   C := FF(C, D, A, B, TCardinalBuf(Buf)[10], 17, $FFFF5BB1); { 11 }
   B := FF(B, C, D, A, TCardinalBuf(Buf)[11], 22, $895CD7BE); { 12 }
-  A := FF(A, B, C, D, TCardinalBuf(Buf)[12], 7, $6B901122);  { 13 }
+  A := FF(A, B, C, D, TCardinalBuf(Buf)[12], 7, $6B901122); { 13 }
   D := FF(D, A, B, C, TCardinalBuf(Buf)[13], 12, $FD987193); { 14 }
   C := FF(C, D, A, B, TCardinalBuf(Buf)[14], 17, $A679438E); { 15 }
   B := FF(B, C, D, A, TCardinalBuf(Buf)[15], 22, $49B40821); { 16 }
-  A := GG(A, B, C, D, TCardinalBuf(Buf)[1], 5, $F61E2562);   { 17 }
-  D := GG(D, A, B, C, TCardinalBuf(Buf)[6], 9, $C040B340);   { 18 }
+  A := GG(A, B, C, D, TCardinalBuf(Buf)[1], 5, $F61E2562); { 17 }
+  D := GG(D, A, B, C, TCardinalBuf(Buf)[6], 9, $C040B340); { 18 }
   C := GG(C, D, A, B, TCardinalBuf(Buf)[11], 14, $265E5A51); { 19 }
-  B := GG(B, C, D, A, TCardinalBuf(Buf)[0], 20, $E9B6C7AA);  { 20 }
-  A := GG(A, B, C, D, TCardinalBuf(Buf)[5], 5, $D62F105D);   { 21 }
-  D := GG(D, A, B, C, TCardinalBuf(Buf)[10], 9, $02441453);  { 22 }
+  B := GG(B, C, D, A, TCardinalBuf(Buf)[0], 20, $E9B6C7AA); { 20 }
+  A := GG(A, B, C, D, TCardinalBuf(Buf)[5], 5, $D62F105D); { 21 }
+  D := GG(D, A, B, C, TCardinalBuf(Buf)[10], 9, $02441453); { 22 }
   C := GG(C, D, A, B, TCardinalBuf(Buf)[15], 14, $D8A1E681); { 23 }
-  B := GG(B, C, D, A, TCardinalBuf(Buf)[4], 20, $E7D3FBC8);  { 24 }
-  A := GG(A, B, C, D, TCardinalBuf(Buf)[9], 5, $21E1CDE6);   { 25 }
-  D := GG(D, A, B, C, TCardinalBuf(Buf)[14], 9, $C33707D6);  { 26 }
-  C := GG(C, D, A, B, TCardinalBuf(Buf)[3], 14, $F4D50D87);  { 27 }
-  B := GG(B, C, D, A, TCardinalBuf(Buf)[8], 20, $455A14ED);  { 28 }
-  A := GG(A, B, C, D, TCardinalBuf(Buf)[13], 5, $A9E3E905);  { 29 }
-  D := GG(D, A, B, C, TCardinalBuf(Buf)[2], 9, $FCEFA3F8);   { 30 }
-  C := GG(C, D, A, B, TCardinalBuf(Buf)[7], 14, $676F02D9);  { 31 }
+  B := GG(B, C, D, A, TCardinalBuf(Buf)[4], 20, $E7D3FBC8); { 24 }
+  A := GG(A, B, C, D, TCardinalBuf(Buf)[9], 5, $21E1CDE6); { 25 }
+  D := GG(D, A, B, C, TCardinalBuf(Buf)[14], 9, $C33707D6); { 26 }
+  C := GG(C, D, A, B, TCardinalBuf(Buf)[3], 14, $F4D50D87); { 27 }
+  B := GG(B, C, D, A, TCardinalBuf(Buf)[8], 20, $455A14ED); { 28 }
+  A := GG(A, B, C, D, TCardinalBuf(Buf)[13], 5, $A9E3E905); { 29 }
+  D := GG(D, A, B, C, TCardinalBuf(Buf)[2], 9, $FCEFA3F8); { 30 }
+  C := GG(C, D, A, B, TCardinalBuf(Buf)[7], 14, $676F02D9); { 31 }
   B := GG(B, C, D, A, TCardinalBuf(Buf)[12], 20, $8D2A4C8A); { 32 }
-  A := HH(A, B, C, D, TCardinalBuf(Buf)[5], 4, $FFFA3942);   { 33 }
-  D := HH(D, A, B, C, TCardinalBuf(Buf)[8], 11, $8771F681);  { 34 }
+  A := HH(A, B, C, D, TCardinalBuf(Buf)[5], 4, $FFFA3942); { 33 }
+  D := HH(D, A, B, C, TCardinalBuf(Buf)[8], 11, $8771F681); { 34 }
   C := HH(C, D, A, B, TCardinalBuf(Buf)[11], 16, $6D9D6122); { 35 }
   B := HH(B, C, D, A, TCardinalBuf(Buf)[14], 23, $FDE5380C); { 36 }
-  A := HH(A, B, C, D, TCardinalBuf(Buf)[1], 4, $A4BEEA44);   { 37 }
-  D := HH(D, A, B, C, TCardinalBuf(Buf)[4], 11, $4BDECFA9);  { 38 }
-  C := HH(C, D, A, B, TCardinalBuf(Buf)[7], 16, $F6BB4B60);  { 39 }
+  A := HH(A, B, C, D, TCardinalBuf(Buf)[1], 4, $A4BEEA44); { 37 }
+  D := HH(D, A, B, C, TCardinalBuf(Buf)[4], 11, $4BDECFA9); { 38 }
+  C := HH(C, D, A, B, TCardinalBuf(Buf)[7], 16, $F6BB4B60); { 39 }
   B := HH(B, C, D, A, TCardinalBuf(Buf)[10], 23, $BEBFBC70); { 40 }
-  A := HH(A, B, C, D, TCardinalBuf(Buf)[13], 4, $289B7EC6);  { 41 }
-  D := HH(D, A, B, C, TCardinalBuf(Buf)[0], 11, $EAA127FA);  { 42 }
-  C := HH(C, D, A, B, TCardinalBuf(Buf)[3], 16, $D4EF3085);  { 43 }
-  B := HH(B, C, D, A, TCardinalBuf(Buf)[6], 23, $04881D05);  { 44 }
-  A := HH(A, B, C, D, TCardinalBuf(Buf)[9], 4, $D9D4D039);   { 45 }
+  A := HH(A, B, C, D, TCardinalBuf(Buf)[13], 4, $289B7EC6); { 41 }
+  D := HH(D, A, B, C, TCardinalBuf(Buf)[0], 11, $EAA127FA); { 42 }
+  C := HH(C, D, A, B, TCardinalBuf(Buf)[3], 16, $D4EF3085); { 43 }
+  B := HH(B, C, D, A, TCardinalBuf(Buf)[6], 23, $04881D05); { 44 }
+  A := HH(A, B, C, D, TCardinalBuf(Buf)[9], 4, $D9D4D039); { 45 }
   D := HH(D, A, B, C, TCardinalBuf(Buf)[12], 11, $E6DB99E5); { 46 }
   C := HH(C, D, A, B, TCardinalBuf(Buf)[15], 16, $1FA27CF8); { 47 }
-  B := HH(B, C, D, A, TCardinalBuf(Buf)[2], 23, $C4AC5665);  { 48 }
-  A := II(A, B, C, D, TCardinalBuf(Buf)[0], 6, $F4292244);   { 49 }
-  D := II(D, A, B, C, TCardinalBuf(Buf)[7], 10, $432AFF97);  { 50 }
+  B := HH(B, C, D, A, TCardinalBuf(Buf)[2], 23, $C4AC5665); { 48 }
+  A := II(A, B, C, D, TCardinalBuf(Buf)[0], 6, $F4292244); { 49 }
+  D := II(D, A, B, C, TCardinalBuf(Buf)[7], 10, $432AFF97); { 50 }
   C := II(C, D, A, B, TCardinalBuf(Buf)[14], 15, $AB9423A7); { 51 }
-  B := II(B, C, D, A, TCardinalBuf(Buf)[5], 21, $FC93A039);  { 52 }
-  A := II(A, B, C, D, TCardinalBuf(Buf)[12], 6, $655B59C3);  { 53 }
-  D := II(D, A, B, C, TCardinalBuf(Buf)[3], 10, $8F0CCC92);  { 54 }
+  B := II(B, C, D, A, TCardinalBuf(Buf)[5], 21, $FC93A039); { 52 }
+  A := II(A, B, C, D, TCardinalBuf(Buf)[12], 6, $655B59C3); { 53 }
+  D := II(D, A, B, C, TCardinalBuf(Buf)[3], 10, $8F0CCC92); { 54 }
   C := II(C, D, A, B, TCardinalBuf(Buf)[10], 15, $FFEFF47D); { 55 }
-  B := II(B, C, D, A, TCardinalBuf(Buf)[1], 21, $85845DD1);  { 56 }
-  A := II(A, B, C, D, TCardinalBuf(Buf)[8], 6, $6FA87E4F);   { 57 }
+  B := II(B, C, D, A, TCardinalBuf(Buf)[1], 21, $85845DD1); { 56 }
+  A := II(A, B, C, D, TCardinalBuf(Buf)[8], 6, $6FA87E4F); { 57 }
   D := II(D, A, B, C, TCardinalBuf(Buf)[15], 10, $FE2CE6E0); { 58 }
-  C := II(C, D, A, B, TCardinalBuf(Buf)[6], 15, $A3014314);  { 59 }
+  C := II(C, D, A, B, TCardinalBuf(Buf)[6], 15, $A3014314); { 59 }
   B := II(B, C, D, A, TCardinalBuf(Buf)[13], 21, $4E0811A1); { 60 }
-  A := II(A, B, C, D, TCardinalBuf(Buf)[4], 6, $F7537E82);   { 61 }
+  A := II(A, B, C, D, TCardinalBuf(Buf)[4], 6, $F7537E82); { 61 }
   D := II(D, A, B, C, TCardinalBuf(Buf)[11], 10, $BD3AF235); { 62 }
-  C := II(C, D, A, B, TCardinalBuf(Buf)[2], 15, $2AD7D2BB);  { 63 }
-  B := II(B, C, D, A, TCardinalBuf(Buf)[9], 21, $EB86D391);  { 64 }
+  C := II(C, D, A, B, TCardinalBuf(Buf)[2], 15, $2AD7D2BB); { 63 }
+  B := II(B, C, D, A, TCardinalBuf(Buf)[9], 21, $EB86D391); { 64 }
 
   inc(TDigestCardinal(Accu)[0], A);
   inc(TDigestCardinal(Accu)[1], B);

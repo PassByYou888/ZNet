@@ -9,11 +9,11 @@ Description:  MQ Telemetry Transport is a lightweight, publish-subscribe, machin
               up to a fully-fledged server) that runs an MQTT library and connects to
               an MQTT broker over a network.
 Creation:     March 2009
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Jul 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2008-2023 by pjde and Geoffrey Smith,
+Legal issues: Copyright (C) 2008-2025 by pjde and Geoffrey Smith,
               https://github.com/pjde/delphi-mqtt
               This software is provided 'as-is', without any express or
               implied warranty.  In no event will the author be held liable
@@ -41,8 +41,12 @@ Legal issues: Copyright (C) 2008-2023 by pjde and Geoffrey Smith,
                  address, EMail address and any comment you like to say.
 
 (*  MQTT web Sites
-http://www.alphaworks.ibm.com/tech/rsmb
-http://www.mqtt.org
+https://www.alphaworks.ibm.com/tech/rsmb
+https://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html
+https://www.mqtt.org
+http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.pdf
+https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.pdf
+
 
 Permission to copy and display the MQ Telemetry Transport specification (the
 "Specification"), in any medium without fee or royalty is hereby granted by Eurotech
@@ -75,8 +79,33 @@ Feb 24th 2023 V8.71 Baseline incorporated into ICS packages.
                       certificate ordering.  The server will listen on both 1883 and 8883
                       at the same time.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 12, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+                   SslContext now uses public IcsSslRootCAStore and ignores root bundle.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+Jul 01, 2025 V9.5  Added client support for protocol v3.1.1.  Only v5 connect works, lots
+                      more to implement, if needed.
+                   Added MQTTVer property to specify client version.
+                   Added LogPackets property to log packets in ASCII and hex for diagnostics.
+                   Added UseSSL property to force client to use SSL on any port.
+                   Added BlankClient property (anonymous) for 3.1.1 so server allocates ClientId,
+                     but only v5 tells us that ID.
+                   Added BurstMode property for 3.1.1 so client does not wait for response to
+                     Connect, but publishes immediately.
+                   Conack for 3.1.1 and later returns SessionPresent flag if ClientId matched
+                     one previously used, which perhaps means we don't need to subscribe again
+                     since server stored last session.
+                   When Subscribing With v3.1.1, the server now returns a failure flag for
+                     permissions failure, which is returned as QoS qtFAILURE.
+                   Added a lot more diagnostics to understand the protocol.
+                   Simplified some code for the Connect command.
+                   Added OCSP conditionals.
 
 
+Pending
+    protocol v5 connects, but ignore dozens of new options and does not publish yet
+    protocol v3.1.1 seems ok, but not checked all packets yet
 
 
 
@@ -110,6 +139,8 @@ uses
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     {$Ifdef Rtl_Namespaces}System.Types{$Else}Types{$Endif},
     Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 TOcspHttp }
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsWSocketS,
@@ -117,21 +148,25 @@ uses
 {$IFDEF AUTO_X509_CERTS}
     Z.ICS9.OverbyteIcsSslX509Certs,
 {$ENDIF} // AUTO_X509_CERTS
-    Z.ICS9.OverbyteIcsSslX509Utils,
+//  OverbyteIcsSslX509Utils,
     Z.ICS9.OverbyteIcsIniFiles,
     Z.ICS9.OverbyteIcsTicks64,
-    Z.ICS9.OverbyteIcsUtils;
-
-
-const
-    CopyRight    : String     = ' TIcsMQTTServer (c) 2023 V9.0 ';
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-  MQTT_PROTOCOL = 'MQIsdp';
-  MQTT_VERSION = 3;
+    CopyRight    : String     = ' TIcsMQTTServer (c) 2025 V9.5 ';
+
+const
+  MQTT_PROTOCOLOld = 'MQIsdp';
+  MQTT_PROTOCOLNew = 'MQTT';    { V9.5 }
+  MQTT_VERSION3 = 3;         { 3.1 }
+  MQTT_VERSION4 = 4;         { 3.1.1 }
+  MQTT_VERSION5 = 5;         { 5.0 }
   MQTT_MinVersion = 3;
+  MQTT_MaxVersion = 4;      { V9.5 no server for v5 }
   MQTT_PortNon = 1883;
-  MQTT_PortSsl = 8883;
+  MQTT_PortSsl = 8883;      { other SSL ports may be used, but UseSSL must be set }
 
 
   DefRetryTime  = 60;   // 6 seconds
@@ -145,6 +180,8 @@ const
   frKEEPALIVE     = 0;    // keep alive exceeded
   frMAXRETRIES    = 1;
 
+// CONNACK return code for v3.1 and 3.1.1
+// V5 returns 0 and x80 and higher for errors
   rcACCEPTED      = 0;    // Connection Accepted
   rcPROTOCOL      = 1;    // Connection Refused: unacceptable protocol version
   rcIDENTIFIER    = 2;    // Connection Refused: identifier rejected
@@ -155,26 +192,29 @@ const
   ny : array [boolean] of string = ('NO', 'YES');
 
 type
+   TMQTTVer = (V310, V311, V5);     { V9.5 which protocol we are supporting, V5 very limited }
+
   //  Message type
   TMQTTMessageType =
   (
 //    mtReserved0,    //  0 Reserved
-    mtBROKERCONNECT,  //  0 Broker request to connect to Broker
-    mtCONNECT,        //    1   Client request to connect to Broker
-    mtCONNACK,        //    2   Connect Acknowledgment
-    mtPUBLISH,        //    3   Publish message
-    mtPUBACK,         //    4   Publish Acknowledgment
-    mtPUBREC,         //    5   Publish Received (assured delivery part 1)
-    mtPUBREL,         //    6   Publish Release (assured delivery part 2)
-    mtPUBCOMP,        //    7   Publish Complete (assured delivery part 3)
-    mtSUBSCRIBE,      //    8   Client Subscribe request
-    mtSUBACK,         //    9   Subscribe Acknowledgment
+    mtBROKERCONNECT,  // 0 Broker request to connect to Broker NON STANDARD!!!!
+    mtCONNECT,        // 1  Client request to connect to Broker
+    mtCONNACK,        // 2  Connect Acknowledgment from server
+    mtPUBLISH,        // 3  Publish message, client or server
+    mtPUBACK,         // 4  Publish Acknowledgment
+    mtPUBREC,         // 5  Publish Received (assured delivery part 1), client or server
+    mtPUBREL,         // 6  Publish Release (assured delivery part 2)
+    mtPUBCOMP,        // 7  Publish Complete (assured delivery part 3)
+    mtSUBSCRIBE,      // 8  Client Subscribe request
+    mtSUBACK,         // 9  Subscribe Acknowledgment from server
     mtUNSUBSCRIBE,    // 10 Client Unsubscribe request
-    mtUNSUBACK,       // 11 Unsubscribe Acknowledgment
-    mtPINGREQ,        // 12 PING Request
-    mtPINGRESP,       // 13 PING Response
-    mtDISCONNECT,     // 14 Client is Disconnecting
-    mtReserved15      // 15
+    mtUNSUBACK,       // 11 Unsubscribe Acknowledgment from server
+    mtPINGREQ,        // 12 Client PING Request
+    mtPINGRESP,       // 13 PING Response from server
+    mtDISCONNECT,     // 14 Client is Disconnecting, also server in v5
+    mtAUTH,           // 15 Authentication exchange, client and server v5 only
+    mtReserved        // 16
   );
 
   TMQTTQOSType =
@@ -182,15 +222,24 @@ type
     qtAT_MOST_ONCE,   //  0 At most once Fire and Forget        <=1
     qtAT_LEAST_ONCE,  //  1 At least once Acknowledged delivery >=1
     qtEXACTLY_ONCE,   //  2 Exactly once Assured delivery       =1
-    qtReserved3       //  3 Reserved
+    qtReserved3,      //  3 Reserved
+    qtFAILURE         //  V9.5  v3.1.1 SUBACK returned failed to subscribe
   );
 
+{ V9.4 use constants for timer triggers so we understand what is happening }
+const
+    CliTriggerConnect = 1;
+    CliTriggerPing    = 2;
+    CliTriggerMessage = 3;
+    SrvTriggerMessage = 3;
+
+type
   TMQTTStreamEvent = procedure (Sender : TObject; anID : Word; Retry : integer; aStream : TMemoryStream) of object;
   TMQTTMonEvent = procedure (Sender : TObject; const aStr : string) of object;
   TMQTTCheckUserEvent = procedure (Sender : TObject; aUser, aPass : UTF8String; var Allowed : Boolean) of object;
   TMQTTPubResponseEvent = procedure (Sender : TObject; aMsg : TMQTTMessageType; anID : Word) of object;
   TMQTTIDEvent = procedure (Sender : TObject; anID : Word) of object;
-  TMQTTAckEvent = procedure (Sender : TObject; aCode : Byte) of object;
+  TMQTTAckEvent = procedure (Sender : TObject; aCode : Byte; SessPresent: Boolean; NewClientID: UTF8String) of object;  { V9.5 added SessPresent v3.1.1, NewClientID v5 }
   TMQTTDisconnectEvent = procedure (Sender : TObject; Graceful : Boolean) of object;
   TMQTTSubscriptionEvent = procedure (Sender : TObject; aTopic : UTF8String; var RequestedQos : TMQTTQOSType) of object;
   TMQTTSubscribeEvent = procedure (Sender : TObject; anID : Word; Topics : TStringList) of object;
@@ -250,6 +299,9 @@ type
     WillQos : TMQTTQOSType;
     ClientID : UTF8String;
     Clean : Boolean;
+    MQTTVer: TMQTTVer;            { V9.5 }
+    SessionPresent: Boolean;      { V9.5 from CONNACK }
+    NewClientId: UTF8String;      { V9.5 from CONNACK v5 only }
     constructor Create;
     destructor Destroy; override;
     procedure Reset;
@@ -259,8 +311,7 @@ type
     function CheckKeepAlive : boolean;
     procedure Mon (const aStr: string);
     // client
-    procedure SendBrokerConnect (aClientID, aUsername, aPassword : UTF8String; aKeepAlive : Word; aClean : Boolean);  // non standard
-    procedure SendConnect (aClientID, aUsername, aPassword : UTF8String; aKeepAlive : Word; aClean : Boolean);
+    procedure SendConnectEx (ConnType: TMQTTMessageType; aClientID, aUsername, aPassword : UTF8String; aKeepAlive : Word; aClean : Boolean);  { V9.5 }
     procedure SendPublish (anID : Word; aTopic : UTF8String; const aMessage : AnsiString; aQos : TMQTTQOSType; aDup : boolean = false; aRetain : boolean = false);
     procedure SendPing;
     procedure SendDisconnect;
@@ -269,7 +320,7 @@ type
     procedure SendUnsubscribe (anID : Word; aTopic : UTF8String); overload;
     procedure SendUnsubscribe (anID : Word; Topics : TStringList); overload;
     // server
-    procedure SendConnAck (aCode : byte);
+    procedure SendConnAck (aCode : Byte; SessPresent: Boolean; NewClientID: UTF8String ='');   { V9.5  added SessPresent and NewClientId v5 only }
     procedure SendPubAck (anID : Word);
     procedure SendPubRec (anID : Word);
     procedure SendPubRel (anID : Word; aDup : Boolean = false);
@@ -307,22 +358,23 @@ const
   MsgNames : array [TMQTTMessageType] of string =
   (
 //    'Reserved',       //  0   Reserved
-    'BROKERCONNECT',    //  0   Broker request to connect to Broker
-    'CONNECT',        //    1   Client request to connect to Broker
-    'CONNACK',        //    2   Connect Acknowledgment
-    'PUBLISH',        //    3   Publish message
-    'PUBACK',         //    4   Publish Acknowledgment
-    'PUBREC',         //    5   Publish Received (assured delivery part 1)
-    'PUBREL',         //    6   Publish Release (assured delivery part 2)
-    'PUBCOMP',        //    7   Publish Complete (assured delivery part 3)
-    'SUBSCRIBE',      //    8   Client Subscribe request
-    'SUBACK',         //    9   Subscribe Acknowledgment
+    'BROKERCONNECT',  //  0   Broker request to connect to Broker   NON STANDARD
+    'CONNECT',        // 1   Client request to connect to Broker
+    'CONNACK',        // 2   Connect Acknowledgment
+    'PUBLISH',        // 3   Publish message
+    'PUBACK',         // 4   Publish Acknowledgment
+    'PUBREC',         // 5   Publish Received (assured delivery part 1)
+    'PUBREL',         // 6   Publish Release (assured delivery part 2)
+    'PUBCOMP',        // 7   Publish Complete (assured delivery part 3)
+    'SUBSCRIBE',      // 8   Client Subscribe request
+    'SUBACK',         // 9   Subscribe Acknowledgment
     'UNSUBSCRIBE',    // 10 Client Unsubscribe request
     'UNSUBACK',       // 11 Unsubscribe Acknowledgment
     'PINGREQ',        // 12 PING Request
     'PINGRESP',       // 13 PING Response
     'DISCONNECT',     // 14 Client is Disconnecting
-    'Reserved15'      // 15
+    'AUTH',           // 15 Authentication exchange, client and server v5 only
+    'Reserved'        // 16
   );
 
   QOSNames : array [TMQTTQOSType] of string =
@@ -330,7 +382,8 @@ const
     'AT_MOST_ONCE',   //  0 At most once Fire and Forget        <=1
     'AT_LEAST_ONCE',  //  1 At least once Acknowledged delivery >=1
     'EXACTLY_ONCE',   //  2 Exactly once Assured delivery       =1
-    'RESERVED'        //  3 Reserved
+    'RESERVED',       //  3 Reserved
+    'FAILURE'         //  V9.5  v3.1.1 SUBACK returned failed to subscribe
   );
 
 type
@@ -479,8 +532,13 @@ type
     FRootCA: string;
     FSslCliSecurity: TSslCliSecurity;
     FOcspHttp: TOcspHttp;
+    FMQTTVer: TMQTTVer;        { V9.5 }
+    FLogPackets: Boolean;      { V9.5 }
+    FBlankClient: Boolean;     { V9.5 }
+    FUseSSL: Boolean;          { V9.5 }
+    FBurstMode: Boolean;       { V9.5 }
     procedure DoSend (Sender : TObject; anID : Word; aRetry : integer; aStream : TMemoryStream);
-    procedure RxConnAck (Sender : TObject; aCode : byte);
+    procedure RxConnAck (Sender : TObject; aCode : byte; SessPresent: Boolean; NewClientID: UTF8String ='');   { V9.5  added Flags and NewClientId v5 only }
     procedure RxSubAck (Sender : TObject; anID : Word; Qoss : array of TMQTTQosType);
     procedure RxPubAck (Sender : TObject; anID : Word);
     procedure RxPubRec (Sender : TObject; anID : Word);
@@ -525,6 +583,7 @@ type
     procedure Publish (aTopic : UTF8String; const aMessage : AnsiString; aQos : TMQTTQOSType; aRetain : Boolean = false);
     procedure SetWill (aTopic, aMessage : UTF8String; aQos : TMQTTQOSType; aRetain : Boolean = false);
     procedure Mon (const aStr: string);
+    procedure MonPackets(const Buffer: PAnsiChar; BufSize: Integer);          { V9.5 }
     procedure Activate (Enable : Boolean);
     constructor Create (anOwner : TComponent); override;
     destructor Destroy; override;
@@ -547,6 +606,11 @@ type
     property OcspHttp: TOcspHttp read FOcspHttp write FOcspHttp;
     property RootCA: string read FRootCA write FRootCA;
     property SslCliSecurity: TSslCliSecurity read FSslCliSecurity write FSslCliSecurity;
+    property MQTTVer: TMQTTVer read FMQTTVer write FMQTTVer;                { V9.5 }
+    property LogPackets: Boolean read FLogPackets write FLogPackets;        { V9.5 }
+    property BlankClient: Boolean read FBlankClient write FBlankClient;     { V9.5 }
+    property UseSSL: Boolean read FUseSSL write FUseSSL;                    { V9.5 }
+    property BurstMode: Boolean read FBurstMode write FBurstMode;                    { V9.5 }
     property OnClientID : TIcsMQTTClientIDEvent read FOnClientID write FOnClientID;
     property OnMon : TMQTTMonEvent read FOnMon write FOnMon;
     property OnOnline : TNotifyEvent read FOnOnline write FOnOnline;
@@ -612,8 +676,10 @@ type
 {$IFDEF AUTO_X509_CERTS}
     function  GetSslX509Certs: TSslX509Certs;                     { V8.71 }
     procedure SetSslX509Certs(const Value : TSslX509Certs);       { V8.71 }
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     function  GetOcspSrvStapling: Boolean;                        { V8.71 }
     procedure SetOcspSrvStapling(const Value : Boolean);          { V8.71 }
+{$ENDIF} // OpenSSL_OcspStaple
 {$ENDIF} // AUTO_X509_CERTS
 public
     FOnMonHdr : TMQTTHeaderEvent;
@@ -654,8 +720,10 @@ public
 {$IFDEF AUTO_X509_CERTS}  { V8.59 }
     property  SslX509Certs: TSslX509Certs           read  GetSslX509Certs
                                                     write SetSslX509Certs;          { V8.71 }
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     property  OcspSrvStapling: Boolean              read  GetOcspSrvStapling
                                                     write SetOcspSrvStapling;       { V8.71 }
+{$ENDIF} // OpenSSL_OcspStaple
 {$ENDIF} // AUTO_X509_CERTS
     property OnFailure : TMQTTFailureEvent read FOnFailure write FOnFailure;
     property OnStoreSession : TMQTTSessionEvent read FOnStoreSession write FOnStoreSession;
@@ -739,8 +807,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure AddHdr (aStream : TStream; MsgType: TMQTTMessageType; Dup: Boolean;
-  Qos: TMQTTQOSType; Retain: Boolean);
+procedure AddHdr (aStream : TStream; MsgType: TMQTTMessageType; Dup: Boolean; Qos: TMQTTQOSType; Retain: Boolean);
 begin
   { Fixed Header Spec:
     bit    |7 6 5   4       | |3         | |2   1        |  |  0   |
@@ -774,7 +841,8 @@ begin
   l := length (aStr);
   AddByte (aStream, l div $100);
   AddByte (aStream, l mod $100);
-  aStream.Write (aStr[1], length (aStr));
+  if l > 0 then
+    aStream.Write (aStr[1], length (aStr));
 end;
 
 
@@ -794,8 +862,10 @@ begin
   Result := ReadByte (aStream);
   { Fixed Header Spec:
     bit    |7 6 5   4       | |3         | |2   1        |  |  0   |
-    byte 1 |Message Type| |DUP flag| |QoS level|    |RETAIN| }
+    byte 1 |Message Type   | |DUP flag| |QoS level|    |RETAIN| }
   MsgType := TMQTTMessageType ((Result and $f0) shr 4);
+  if MsgType = mtCONNACK then       { V9.5 no flags }
+    Exit;
   Dup := (Result and $08) > 0;
   Qos := TMQTTQOSType ((Result and $06) shr 1);
   Retain := (Result and $01) > 0;
@@ -847,7 +917,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor TIcsMQTTParser.Create;
 begin
-  KeepAlive := 10;
+  KeepAlive := 120;                         {  V9.5 was 10 }
   FKeepAliveCount := 0;
   FMaxRetries := DefMaxRetries;
   FRetryTime := DefRetryTime;
@@ -863,7 +933,7 @@ begin
   FRxState := rsHdr;
   FRxMult := 0;
   FRxVal := 0;
-  RxMsg := mtReserved15;
+  RxMsg := mtReserved;
   RxQos := qtAT_MOST_ONCE;
   RxDup := false;
   RxRetain := false;
@@ -911,7 +981,7 @@ begin
   FRxState := rsHdr;
   FRxStream.Clear;
   FTxStream.Clear;
-  RxMsg := mtReserved15;
+  RxMsg := mtReserved;
   RxDup := false;
   RxQOs := qtAT_MOST_ONCE;
   RxRetain := false;
@@ -981,8 +1051,7 @@ begin
               begin
                 FRxStream.Seek (0, soFromBeginning);
                 case RxMsg of
-                  mtBROKERCONNECT,
-                  mtCONNECT  :
+                  mtBROKERCONNECT, mtCONNECT  :
                     begin
                       pt := ReadStr (FRxStream);        // protocol
                       vr := ReadByte (FRxStream);       // version
@@ -1052,12 +1121,37 @@ begin
                         end;
                       end;
                   mtCONNACK     :
-                    if FRxStream.Size = 2 then
+                    if FRxStream.Size = 2 then     { V3.1 and 3.1.1 }
                       begin
-                        ReadByte (FRxStream);
-                        id := ReadByte (FRxStream);
+                        x :=  ReadByte (FRxStream);           // V9.5 connect acknowledge flags
+                        SessionPresent := (x and $01) > 0;    // session present flag bit 0
+                        id := ReadByte (FRxStream);   // return code
+                        Mon(MqttCodeNames(Id) + ', session present: ' + ny[SessionPresent]);       // V9.5 tell user
                         if Assigned (FOnConnAck) then
-                          FOnConnAck (Self, id);
+                          FOnConnAck (Self, id, SessionPresent, '');  { V9.5 added Session }
+                      end
+                      else if FRxStream.Size > 2 then     { V5 }
+                      begin
+                        x :=  ReadByte (FRxStream);           // V9.5 connect acknowledge flags
+                        SessionPresent := (x and $01) > 0;    // session present flag bit 0
+                        id := ReadByte (FRxStream);   // connect reason code, bit 7 set for v5 errors
+                        Mon('CONNACK Reason Code ' + IntToHex(Id, 2));       // V9.5 tell user
+                       // variable properties follow
+                        // property length
+                        // sessison expiry
+                        // receivce max len
+                        // maximum QOS
+                        // retain available
+                        // max packet size
+                        // assigned client ID
+                         // NewClientID := xx
+                        // topic alias maximim
+                        // reason string
+                        // user property
+                        // wildcard subscription avaiiblle
+                          // lots more...
+                        if Assigned (FOnConnAck) then
+                          FOnConnAck (Self, id, SessionPresent, NewClientId);
                       end;
                   mtSUBACK     :
                     if FRxStream.Size >= 2 then
@@ -1067,7 +1161,12 @@ begin
                         while FRxStream.Position < FRxStream.Size do
                           begin
                             SetLength (Qoss, Length (Qoss) + 1);
-                            Qoss[Length (Qoss) - 1] := TMQTTQOSType (ReadByte (FRxStream) and $03);
+                            x :=  ReadByte (FRxStream) and $03;       // V9.5 v3.1.1 may return x80 for failure
+                            if (x <= 2) then
+                                Qoss[Length (Qoss) - 1] := TMQTTQOSType (x)
+                            else
+                                Qoss[Length (Qoss) - 1] := qtFAILURE; // subscription failed
+                       //     Qoss[Length (Qoss) - 1] := TMQTTQOSType (ReadByte (FRxStream) and $03);
                           end;
                         if Assigned (FOnSubAck) then
                             FOnSubAck (Self, id, Qoss);
@@ -1120,7 +1219,9 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTParser.SendConnect (aClientID, aUsername, aPassword : UTF8String; aKeepAlive : Word; aClean : Boolean);
+{ V9.5 SendConnect and SendBrokerConnect also same, so combine them }
+procedure TIcsMQTTParser.SendConnectEx (ConnType: TMQTTMessageType; aClientID, aUsername, aPassword : UTF8String;
+                                                                                      aKeepAlive : Word; aClean : Boolean);  { V9.5 }
 var
   s : TMemoryStream;
   x : byte;
@@ -1128,12 +1229,25 @@ begin
   KeepAlive := aKeepAlive;
 
   FTxStream.Clear;        // dup, qos, retain not used
-  AddHdr (FTxStream, mtCONNECT, false, qtAT_LEAST_ONCE, false);
+//  AddHdr (FTxStream, mtCONNECT, false, qtAT_LEAST_ONCE, false);
+  AddByte (FTxStream, Ord (ConnType) shl 4);    { V9.5 v3.1.1 refuses fixed header with reserved bits used }
   s := TMemoryStream.Create;
-  // generate payload
-  AddStr (s, aClientID);
-  if FWillFlag then
-    begin
+
+// generate payload, variable length, need length before adding fixed header
+  AddStr (s, aClientID);      { V9.5 may be blank, added as zero length  }
+  if length (aClientID) = 0 then
+    aClean := True;           { V9.5 blank, must set Clean session }
+  if FWillFlag then begin
+      if MQTTVer = V5 then begin
+           AddByte (s, 0);       //  will properties Length    (1)
+             // Will Delay Interval    all optional, probably
+             // Payload Format Indicator
+             // Message Expiry Interval
+             // Content Type
+             // Response Topic
+             // Correlation Data
+             // User Property
+      end;
       AddStr (s, WillTopic);
       AddStr (s, WillMessage);
     end;
@@ -1141,29 +1255,74 @@ begin
     AddStr (s, aUserName);
   if length (aPassword) > 0 then
     AddStr (s, aPassword);
-        // finish fixed header
-  AddLength (FTxStream, 12 + s.Size);
-      // variable header
-  AddStr (FTxStream, MQTT_PROTOCOL);         // 00 06  MQIsdp  (8)
-  AddByte (FTxStream, MQTT_VERSION);         // 3              (1)
+    // finish fixed header
+  if MQTTVer = V310 then
+    AddLength (FTxStream, 12 + s.Size)
+  else if MQTTVer = V311 then
+    AddLength (FTxStream, 10 + s.Size)
+  else if MQTTVer = V5 then
+    AddLength (FTxStream, 10 + s.Size);
+
+// fixed header
+// textual ID and protocol version
+  if MQTTVer = V310 then begin
+    AddStr (FTxStream, MQTT_PROTOCOLOld);       // 00 06  MQIsdp  (8)
+    AddByte (FTxStream, MQTT_VERSION3);         // 3              (1)
+  end
+  else if MQTTVer = V311 then begin
+    AddStr (FTxStream, MQTT_PROTOCOLNew);       // 00 04  MQIT   (6)
+    AddByte (FTxStream, MQTT_VERSION4);         // 4             (1)
+  end
+  else if MQTTVer = V5 then begin
+    AddStr (FTxStream, MQTT_PROTOCOLNew);       // 00 04  MQIT   (6)
+    AddByte (FTxStream, MQTT_VERSION5);         // 5             (1)
+  end
+  else begin
+    s.Free;
+    Exit;
+ end;
+
+// connect flags, 1 byte
   x := 0;
   if length (aUserName) > 0 then
-    x := x or $80;
+    x := x or $80;                    // bit 7
   if length (aPassword) > 0 then
-    x := x or $40;
-  if FWillFlag then
-    begin
-      x := x or $04;
+    x := x or $40;                    // bit 6
+  if FWillFlag then begin
+      x := x or $04;                  // bit 2
       if WillRetain then
-        x := x or $20;
-      x := x or (ord (WillQos) shl 3);
+        x := x or $20;                // bit 5
+      x := x or (ord (WillQos) shl 3);  // bits 4/3
     end;
-  if Clean then
-    x := x or $02;
+  if aClean then
+    x := x or $02;                   // bit 1
+  // reserved                        // bit 0
   AddByte (FTxStream, x);                    //              (1)
+
+// keep alive, two bytes
   AddByte (FTxStream, aKeepAlive div $100);  //              (1)
   AddByte (FTxStream, aKeepAlive mod $100);  //              (1)
-  // payload
+
+  if MQTTVer = V5 then begin
+     AddByte (FTxStream, 0);       //  connect properties Length    (1)
+  {   AddByte (FTxStream, 5);       //  connect properties Length    (1)
+    AddByte (FTxStream, 17);      //  session expiry interval identifer    (1)
+//    AddByte (FTxStream, $FF);     //  four bytes, expiry seconds, FFFFFFFF does not expire (4)
+//    AddByte (FTxStream, $FF);     //
+//    AddByte (FTxStream, $FF);
+//    AddByte (FTxStream, $FF);
+    AddByte (FTxStream, 0);     //  four bytes, expiry seconds, 0 no session (4)
+    AddByte (FTxStream, 0);
+    AddByte (FTxStream, 0);
+    AddByte (FTxStream, 0);
+      // optional receive maximum
+      // optional mmaximum packet size
+      // optional topic alias maximum
+      // optional request response information
+    //  etc  }
+  end;
+
+// add payload to header
   s.Seek (0, soFromBeginning);
   FTxStream.CopyFrom (s, s.Size);
   s.Free;
@@ -1173,72 +1332,34 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTParser.SendBrokerConnect(aClientID, aUsername, aPassword: UTF8String; aKeepAlive: Word; aClean: Boolean);
+procedure TIcsMQTTParser.SendConnAck (aCode: Byte; SessPresent: Boolean; NewClientID: UTF8String = '');     { V9.5 }
 var
-  s : TMemoryStream;
-  x : byte;
-begin
-  KeepAlive := aKeepAlive;
-  FTxStream.Clear;        // dup, qos, retain not used
-  AddHdr (FTxStream, mtBROKERCONNECT, false, qtAT_LEAST_ONCE, false);
-  s := TMemoryStream.Create;
-  // generate payload
-  AddStr (s, aClientID);
-  if FWillFlag then
-    begin
-      AddStr (s, WillTopic);
-      AddStr (s, WillMessage);
-    end;
-  if length (aUserName) > 0 then
-    AddStr (s, aUserName);
-  if length (aPassword) > 0 then
-    AddStr (s, aPassword);
-        // finish fixed header
-  AddLength (FTxStream, 12 + s.Size);
-      // variable header
-  AddStr (FTxStream, MQTT_PROTOCOL);         // 00 06  MQIsdp  (8)
-  AddByte (FTxStream, MQTT_VERSION);         // 3              (1)
-  x := 0;
-  if length (aUserName) > 0 then
-    x := x or $80;
-  if length (aPassword) > 0 then
-    x := x or $40;
-  if FWillFlag then
-    begin
-      x := x or $04;
-      if WillRetain then
-        x := x or $20;
-      x := x or (ord (WillQos) shl 3);
-    end;
-  if Clean then
-    x := x or $02;
-  AddByte (FTxStream, x);                    //              (1)
-  AddByte (FTxStream, aKeepAlive div $100);  //              (1)
-  AddByte (FTxStream, aKeepAlive mod $100);  //              (1)
-  // payload
-  s.Seek (0, soFromBeginning);
-  FTxStream.CopyFrom (s, s.Size);
-  s.Free;
-  if Assigned (FOnSend) then
-    FOnSend (Self, 0, 0, FTxStream);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTParser.SendConnAck (aCode: byte);
+    Flags: Byte;
 begin
   FTxStream.Clear;        // dup, qos, retain not used
-  AddHdr (FTxStream, mtCONNACK, false, qtAT_MOST_ONCE, false);
+//  AddHdr (FTxStream, mtCONNACK, false, qtAT_MOST_ONCE, false);
+  AddByte (FTxStream, Ord (mtCONNACK) shl 4);    { V9.5 v3.1.1 no reserved bits used }
   AddLength (FTxStream, 2);
-  AddByte (FTxStream, 0);                    // reserved      (1)
+  if aCode <> 0 then  // only if OK
+    SessPresent := False;
+  if SessPresent then
+    Flags :=  $01     { V9.5 bit 0 Session Present flag }
+  else
+    Flags := 0;
+  AddByte (FTxStream, Flags);         // Flags          (1)     { V9.5 }
   AddByte (FTxStream, aCode);         //                (1)
+  if MQTTVer = V5 then begin
+    // NewClientId if allocated by server
+    // lots of other stuff
+  end;
   if Assigned (FOnSend) then
     FOnSend (Self, 0, 0, FTxStream);
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTParser.SendPublish (anID : Word; aTopic : UTF8String; const aMessage : AnsiString; aQos : TMQTTQOSType; aDup : boolean = false; aRetain : boolean = false);
+procedure TIcsMQTTParser.SendPublish (anID : Word; aTopic : UTF8String; const aMessage : AnsiString; aQos : TMQTTQOSType;
+                                                                              aDup : boolean = false; aRetain : boolean = false);
 var
   s : TMemoryStream;
 begin
@@ -1246,13 +1367,14 @@ begin
   AddHdr (FTxStream, mtPUBLISH, aDup, aQos, aRetain);
   s := TMemoryStream.Create;
   AddStr (s, aTopic);
-  if aQos in [qtAT_LEAST_ONCE, qtEXACTLY_ONCE] then
+  if aQos in [qtAT_LEAST_ONCE, qtEXACTLY_ONCE] then    // Message identifier 2 bytes
     begin
       AddByte (s, anID div $100);
       AddByte (s, anID mod $100);
     end;
   if length (aMessage) > 0 then
     s.Write (aMessage[1], length (aMessage));
+
   // payload
   s.Seek (0, soFromBeginning);
   AddLength (FTxStream, s.Size);
@@ -1449,7 +1571,8 @@ end;
 procedure TIcsMQTTParser.SendDisconnect;
 begin
   FTxStream.Clear;
-  AddHdr (FTxStream, mtDISCONNECT, false, qtAT_MOST_ONCE, false);
+//  AddHdr (FTxStream, mtDISCONNECT, false, qtAT_MOST_ONCE, false);
+  AddByte (FTxStream, Ord (mtDISCONNECT) shl 4);    { V9.5 v3.1.1 no reserved bits used }
   AddLength (FTxStream, 0);
   if Assigned (FOnSend) then
     FOnSend (Self, 0, 0, FTxStream);
@@ -1478,17 +1601,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function StateStr (aState: TSocketState): string;
 begin
-  case aState of
-    wsInvalidState    : result := 'Invalid State';
-    wsOpened          : result := 'Opened';
-    wsBound           : result := 'Bound';
-    wsConnecting      : Result := 'Connecting';
-    wsSocksConnected  : Result := 'Sock Connected';
-    wsConnected       : result := 'Connected';
-    wsAccepting       : result := 'Accepting';
-    wsListening       : result := 'Listening';
-    wsClosed          : result := 'Closed';
-  end;
+    Result := SocketStateNames[aState];    { V9.3 simplified }
 end;
 
 
@@ -1844,8 +1957,8 @@ begin
         FServer.Proto := 'tcp';
         FServer.ClientClass := TSrvrClient;
         try
-            if (FServer.RootCA = '') or (NOT FileExists(FServer.RootCA)) then
-                FServer.RootCA := sslRootCACertsBundle;
+         (* if (FServer.RootCA = '') or (NOT FileExists(FServer.RootCA)) then  { V9.1 ignore RootCA for now  }
+                FServer.RootCA := sslRootCACertsBundle;   *)
 
         // validate hosts
             Errs := FServer.ValidateHosts(False, True, True); // don't stop on first error, no exceptions, allow self sign
@@ -1874,7 +1987,7 @@ begin
             end;
         end;
         if FEnable then
-            SetTimer (Timers, 3, 100, nil);
+            SetTimer (Timers, SrvTriggerMessage, 100, nil);
     end
   else
     begin
@@ -1888,9 +2001,7 @@ begin
         FServer.MultiClose;
       except
       end;
-      KillTimer (Timers, 1);
-      KillTimer (Timers, 2);
-      KillTimer (Timers, 3);
+      KillTimer (Timers, SrvTriggerMessage);
     end;
   if Assigned (FOnEnableChange) then
     FOnEnableChange (Self);
@@ -2072,6 +2183,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
 function TIcsMQTTServer.GetOcspSrvStapling: Boolean;                        { V8.69 }
 begin
     if Assigned(FServer) then
@@ -2087,6 +2199,7 @@ begin
     if Assigned(FServer) then
         TSslWSocketServer(FServer).OcspSrvStapling := Value;
 end;
+{$ENDIF} // OpenSSL_OcspStaple
 
 
 {$ENDIF} // AUTO_X509_CERTS
@@ -2448,7 +2561,7 @@ begin
       KillTimer (Timers, aMsg.WParam);
   //    Mon ('Timer ' + IntToStr (aMsg.WParam) + ' triggered');
       case aMsg.WParam of
-        3 : begin
+        SrvTriggerMessage : begin     { V9.5 }
               for i := Server.ClientCount - 1 downto 0 do
                 begin
                   aClient := TSrvrClient (Server.Client[i]);
@@ -2502,7 +2615,7 @@ begin
                         end;
                     end;
                 end;
-              SetTimer (Timers, 3, 100, nil);
+                SetTimer (Timers, SrvTriggerMessage, 100, nil);
             end;
         end;
   end;
@@ -2513,7 +2626,7 @@ end;
 procedure TIcsMQTTServer.DoClientConnect (Sender: TObject; Client: TWSocketClient; Error: Word);
 begin
   if Sender = Server then
-    Mon ('Client Connected...');
+    Mon ('Client Connected from ' + Client.GetPeerAddr + '...');    { V9.5 }
 end;
 
 
@@ -2642,8 +2755,10 @@ var
   aClient : TSrvrClient;
   aServer : TWSocketServer;
   Allowed : Boolean;
+  SessPresent: Boolean;   { V9.5 v3.1.1 and later }
 begin
   Allowed := false;
+  SessPresent := False;
   if not (Sender is TIcsMQTTParser) then exit;
   aClient := GetClient (TIcsMQTTParser (Sender));
   if aClient = nil then exit;
@@ -2653,23 +2768,27 @@ begin
     FOnCheckUser (aServer, aUserName, aPassword, Allowed);
   if Allowed then
     begin
-      if aVersion < MQTT_MinVersion then
+      // ignore protocol string
+      mon ('Client Connected, Protocol ' + String(aProtocol) + ', Version ' + IntToStr(aVersion));    { V9.5 }
+      if (aVersion < MQTT_MinVersion) or (aVersion > MQTT_MaxVersion) then  { V9.5 only v3 and 4 }
         begin
-          aClient.Parser.SendConnAck (rcPROTOCOL);  // identifier rejected
+          aClient.Parser.SendConnAck (rcPROTOCOL, False, '');  // identifier rejected
           aClient.CloseDelayed;
         end
-      else if (length (aClientID) < 1) or (length (aClientID) > 23) then
+      else if (length (aClientID) < 1) or ((length (aClientID) > 23) and (aVersion = 3)) then  { V9.5 v3.1.1 longer clientIds }
         begin
-          aClient.Parser.SendConnAck (rcIDENTIFIER);  // identifier rejected
+          aClient.Parser.SendConnAck (rcIDENTIFIER, False, '');  // identifier rejected
           aClient.CloseDelayed;
         end
+    // pending 3.1.1 , allow blank clientid, create one
       else if GetClient (aClientID) <> nil then
         begin
-          aClient.Parser.SendConnAck (rcIDENTIFIER);  // identifier rejected
+          aClient.Parser.SendConnAck (rcIDENTIFIER, False, '');  // identifier rejected
           aClient.CloseDelayed;
         end
       else
         begin
+          mon ('Client Connected, . Is Broker ' + ny[aClient.FBroker]);
       //    mon ('Client ID ' + ClientID + ' User '  + striUserName + ' Pass ' + PassWord);
           aClient.Parser.Username := aUserName;
           aClient.Parser.Password := aPassword;
@@ -2683,12 +2802,14 @@ begin
                 FOnRestoreSession (aClient, aClientID)
               else
                 Sessions.RestoreSession (aClientID, aClient);
+           { V9.5 see if session restored, hope this works... }
+              SessPresent := (aClient.InFlight.Count > 0) or (aClient.Releasables.Count > 0);
             end;
           if Assigned (FOnDeleteSession) then
             FOnDeleteSession (aClient, aClientID)
           else
             Sessions.DeleteSession (aClientID);
-          aClient.Parser.SendConnAck (rcACCEPTED);
+          aClient.Parser.SendConnAck (rcACCEPTED, SessPresent, '');
           aClient.FGraceful := false;
           mon ('Accepted. Is Broker ' + ny[aClient.FBroker]);
           if Assigned (FOnClientsChange) then
@@ -2697,7 +2818,7 @@ begin
     end
   else
     begin
-      aClient.Parser.SendConnAck (rcUSER);
+      aClient.Parser.SendConnAck (rcUSER, False, '');
       aClient.CloseDelayed;
     end;
 end;
@@ -2724,33 +2845,6 @@ end;
 
 
 { TIcsMQTTClient }
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTClient.Activate (Enable: Boolean);
-begin
-  if Enable = FEnable then exit;
-  FEnable := Enable;
-  try
-    if (LinkSocket.State = wsConnected) then
-      begin
-        Parser.SendDisconnect;
-        FGraceful := true;
-      end;
-    LinkSocket.CloseDelayed;
-  except
-    end;
-  if Enable then
-    SetTimer (Timers, 1, 100, nil)
-  else
-    begin
-      KillTimer (Timers, 1);
-      KillTimer (Timers, 2);
-      KillTimer (Timers, 3);
-    end;
-  if Assigned (FOnEnableChange) then
-    FOnEnableChange (Self);
-end;
-
-
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor TIcsMQTTClient.Create (anOwner: TComponent);
 begin
@@ -2789,6 +2883,7 @@ begin
   LinkSocket.SslContext := LinkSslContext;              { V8.71 }
   LinkSocket.OnSslHandshakeDone := SslHandshakeDone;    { V8.71 }
   FOcspHttp := TOcspHttp.Create(Self);                  { V8.71 }
+  FMQTTVer := V310;                                     { V9.5 }
 end;
 
 
@@ -2801,9 +2896,9 @@ begin
       Subscriptions.Free;
       InFlight.Clear;
       InFlight.Free;
-      KillTimer (Timers, 1);
-      KillTimer (Timers, 2);
-      KillTimer (Timers, 3);
+      KillTimer (Timers, CliTriggerConnect);   { V9.5 named triggers }
+      KillTimer (Timers, CliTriggerPing);
+      KillTimer (Timers, CliTriggerMessage);
       DeAllocateHWnd (Timers);
       try
         LinkSocket.Close;
@@ -2820,19 +2915,60 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TIcsMQTTClient.RxConnAck (Sender: TObject; aCode: byte);
+procedure TIcsMQTTClient.Activate (Enable: Boolean);
+begin
+  if Enable = FEnable then exit;
+  FEnable := Enable;
+  Parser.OnMon := FOnMon;                       { V9.5 parser logging }
+  Parser.MQTTVer := FMQTTVer;                   { V9.5 client version }
+  try
+    if (LinkSocket.State = wsConnected) then
+      begin
+        Parser.SendDisconnect;
+        FGraceful := true;
+      end;
+    LinkSocket.CloseDelayed;
+  except
+    end;
+  if Enable then
+    SetTimer (Timers, CliTriggerConnect, 100, nil)    { V9.5 named triggers }
+  else
+    begin
+      KillTimer (Timers, CliTriggerConnect);
+      KillTimer (Timers, CliTriggerPing);
+      KillTimer (Timers, CliTriggerMessage);
+    end;
+  if Assigned (FOnEnableChange) then
+    FOnEnableChange (Self);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TIcsMQTTClient.RxConnAck (Sender: TObject; aCode: Byte; SessPresent: Boolean; NewClientID: UTF8String ='');   { V9.5  added SessPresent and NewClientId v5 only }
 var
   i : integer;
   x : cardinal;
 begin
-  Mon ('Connection ' + MqttCodeNames(aCode));
+  if aCode < 16 then
+    Mon ('Connection ' + MqttCodeNames(aCode))
+  else
+    Mon ('Connection ' + IntToHex(aCode, 2));    { v5 need more response names }
   if aCode = rcACCEPTED then
     begin
       FOnline := true;
       FGraceful := false;
-      SetTimer (Timers, 3, 100, nil);  // start retry counters
+      SetTimer (Timers, CliTriggerMessage, 100, nil);  // start retry counters
+
+  { V9.5 with v5, if we sent a blank CliendId, the server allocated one and tells us }
+      if (NewClientID <> '') then begin
+        Parser.ClientID := NewClientID;
+         if Assigned (FOnClientID)  then
+            FOnClientID (Self, NewClientID);
+      end;
       if Assigned (FOnOnline) then
         FOnOnline (Self);
+
+  // V9.5 if SessPresent, does that mean we don't need to subscribe again?????
       if (FAutoSubscribe) and (Subscriptions.Count > 0) then
         begin
           for i := 0 to Subscriptions.Count - 1 do
@@ -3057,20 +3193,29 @@ end;
 procedure TIcsMQTTClient.DoSend (Sender: TObject; anID : Word; aRetry : integer; aStream: TMemoryStream);
 var
   x : byte;
+  aMsgType: TMQTTMessageType;
+  aQosType: TMQTTQOSType;
 begin
   if LinkSocket.State = wsConnected then
     begin
-      KillTimer (Timers, 2);       // 75% of keep alive
-      if KeepAlive > 0 then SetTimer (Timers, 2, KeepAlive * 750, nil);
+      KillTimer (Timers, CliTriggerPing);       // 75% of keep alive
+      if KeepAlive > 0 then
+        SetTimer (Timers, CliTriggerPing, KeepAlive * 750, nil);          { V9.5 }
       aStream.Seek (0, soFromBeginning);
       aStream.Read (x, 1);
-      if (TMQTTQOSType ((x and $06) shr 1) in [qtAT_LEAST_ONCE, qtEXACTLY_ONCE]) and
-         (TMQTTMessageType ((x and $f0) shr 4) in [{mtPUBREL,} mtPUBLISH, mtSUBSCRIBE, mtUNSUBSCRIBE]) and
-         (anID > 0) then
-        begin
+      aMsgType := TMQTTMessageType ((x and $f0) shr 4);
+      aQosType := TMQTTQOSType ((x and $06) shr 1);
+      if (aQosType in [qtAT_LEAST_ONCE, qtEXACTLY_ONCE]) and
+                           (aMsgType in [{mtPUBREL,} mtPUBLISH, mtSUBSCRIBE, mtUNSUBSCRIBE]) and (anID > 0) then
+       begin
           InFlight.AddPacket (anID, aStream, aRetry, Parser.RetryTime);
           mon ('Message ' + IntToStr (anID) + ' created.');
-        end;
+       end;
+      if FLogPackets then         { V9.5}
+      begin
+        Mon('Send Packet=' + MsgNames[aMsgType] + ', Len=' + IntToStr(aStream.Size));
+        MonPackets(aStream.Memory, aStream.Size);
+      end;
       LinkSocket.Send (aStream.Memory, aStream.Size);
       Sleep (0);
     end;
@@ -3166,12 +3311,13 @@ end;
 procedure TIcsMQTTClient.LinkConnected (Sender: TObject; ErrCode: Word);
 var
   aClientID : UTF8String;
+  Cmd: TMQTTMessageType;
 
-  function TimeString : UTF8string;
+{  function TimeString : UTF8string;
   begin
 //  86400  secs
     Result := UTF8String (IntToHex (Trunc (Date), 5) + IntToHex (Trunc (Frac (Time) * 864000), 7));
-  end;
+  end;     }
 
 begin
   if ErrCode = 0 then
@@ -3181,7 +3327,7 @@ begin
    //   mon ('Time String : ' + Timestring);
    //=   mon ('xaddr ' + LinkSocket.GetXAddr);
       aClientID := ClientID;
-      if aClientID = '' then
+      if (aClientID = '') and (NOT FBlankClient) then        {V9.5 v3.1.1 allows blank client, server generates one }
         aClientID := 'CID' + UTF8String (LinkSocket.GetXPort); // + TimeString;
       if Assigned (FOnClientID) then
         FOnClientID (Self, aClientID);
@@ -3192,18 +3338,34 @@ begin
           Releasables.Clear;
         end;
       if FBroker then
-        Parser.SendBrokerConnect (aClientID, Parser.UserName, Parser.Password, KeepAlive, Parser.Clean)
+        Cmd := mtBROKERCONNECT   // !!! NON STANDARD
       else
-        Parser.SendConnect (aClientID, Parser.UserName, Parser.Password, KeepAlive, Parser.Clean);
+        Cmd := mtCONNECT;
+      Parser.SendConnectEx (Cmd, aClientID, Parser.UserName, Parser.Password, KeepAlive, Parser.Clean); { V9.5 }
+
+   { V9.5 avoid waiting for CONACK and publish immediately }
+      if FBurstMode and (FMQTTVer >= V311) then
+         RxConnAck (Self, rcACCEPTED, False, '');
     end;
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsMQTTClient.LinkData (Sender: TObject; ErrCode: Word);
+var
+  RecvPacket: AnsiString;
+  aMsgType: TMQTTMessageType;
 begin
-  if ErrCode = 0 then
-    Parser.Parse (LinkSocket.ReceiveStrA);
+  if ErrCode = 0 then begin
+     RecvPacket := LinkSocket.ReceiveStrA;
+      if FLogPackets and (Length(RecvPacket) > 0) then         { V9.5}
+      begin
+        aMsgType := TMQTTMessageType ((Byte(RecvPacket[1]) and $f0) shr 4);
+        Mon('Received Packet=' + MsgNames[aMsgType] + ', Len=' + IntToStr(Length(RecvPacket)));
+        MonPackets(@RecvPacket[1], Length(RecvPacket));
+       end;
+       Parser.Parse (RecvPacket);
+    end;
 end;
 
 
@@ -3212,6 +3374,51 @@ procedure TIcsMQTTClient.Mon(const aStr: string);
 begin
   if Assigned (FOnMon) then
     FOnMon (Self, aStr);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TIcsMQTTClient.MonPackets(const Buffer: PAnsiChar; BufSize: Integer);         { V9.5 }
+var
+    DTot, DRow, DOff, DLeft, DLen: Integer;
+    S: AnsiString;
+const
+    DataPerRowA = 50;
+    DataPerRowH = 25;
+begin
+   if (BufSize = 0) then
+    Exit;
+// ascii representation of data, 50 bytes/row
+    DTot := (BufSize div DataPerRowA) + 1;
+    DOff := 0;
+    DLeft := BufSize;
+    for DRow := 0 to (DTot - 1) do
+    begin
+        if DLeft < DataPerRowA then
+            DLen := DLeft
+        else
+            DLen := DataPerRowA;
+        SetLength(S, DLen);
+        Move(Buffer[Doff], S[1], DLen);
+        DOff := DOff + DLen;
+        DLeft := DLeft - DataPerRowA;
+        Mon(IcsStrRemCntlsA(S, False));  // don't leave CRLF
+    end;
+// hex representation of data, 25 bytes/row
+    DTot := (BufSize div DataPerRowH) + 1;
+    DOff := 0;
+    DLeft := BufSize;
+    for DRow := 0 to (DTot - 1) do
+    begin
+        if DLeft < DataPerRowH then
+            DLen := DLeft
+        else
+            DLen := DataPerRowH;
+        Mon(IcsBufferToHex(Buffer[DOff], DLen)) ;
+        DOff := DOff + DLen;
+        DLeft := DLeft - DataPerRowH;
+    end;
+    Mon('');
 end;
 
 
@@ -3291,12 +3498,12 @@ begin
     begin
       KillTimer (Timers, aMsg.WParam);
       case aMsg.WParam of
-        1 : begin
+        CliTriggerConnect : begin     { V9.5 use constants }
               Mon ('Connecting to ' + FHost + ' on Port ' + IntToStr (FPort));
               LinkSocket.Addr := FHost;
               LinkSocket.Port := IntToStr (FPort);
               LinkSocket.Proto := 'tcp';
-              if Port = MQTT_PortSsl then      { V8.71 SSL stuff }
+              if (Port = MQTT_PortSsl) or FUseSSL then      { V8.71 SSL stuff }  { V9.5 SSL any port }
               begin
                 LinkSocket.SslEnable := True;
                 LinkSocket.SslMode := sslModeClient ;
@@ -3305,12 +3512,12 @@ begin
                 LinkSslContext.SslVerifyPeer := FSslVerifyCerts;
                 LinkSslContext.SslOcspStatus := FSslRevocation;
                 LinkSslContext.SslVerifyPeerModes := [SslVerifyMode_PEER] ;
-                if (FRootCA = '') or (NOT FileExists(FRootCA)) then
+                LinkSslContext.UseSharedCAStore := True;           { V9.1 ignore RootCA for now  }
+            {    if (FRootCA = '') or (NOT FileExists(FRootCA)) then
                     LinkSslContext.SslCALines.Text := sslRootCACertsBundle
                 else
-                   LinkSslContext.SslCAFile := FRootCA;
+                   LinkSslContext.SslCAFile := FRootCA;  }
               end;
-
               try
                 LinkSocket.Connect;
               except
@@ -3318,8 +3525,8 @@ begin
                   Mon('Connect Error ' + e.Message);
               end;
             end;
-        2 : Ping;
-        3 : begin         // send duplicates
+        CliTriggerPing : Ping;                { V9.5 use constants }
+        CliTriggerMessage : begin         // send duplicates     { V9.5 use constants }
               for i := InFlight.Count - 1 downto 0 do
                 begin
                   bPacket := InFlight.List[i];
@@ -3358,7 +3565,7 @@ begin
                         end;
                     end;
                 end;
-              SetTimer (Timers, 3, 100, nil);
+              SetTimer (Timers, CliTriggerMessage, 100, nil);
             end;
       end;
     end;
@@ -3403,14 +3610,19 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TIcsMQTTClient.LinkClosed (Sender: TObject; ErrCode: Word);
 begin
-//  Mon ('Link Closed...');
-  KillTimer (Timers, 2);
-  KillTimer (Timers, 3);
+  if FLogPackets then         { V9.5}
+        Mon ('Link Closed...');
+  KillTimer (Timers, CliTriggerPing);
+  KillTimer (Timers, CliTriggerMessage);
   if Assigned (FOnOffline) and (FOnline) then
     FOnOffline (Self, FGraceful);
   FOnline := false;
   if FEnable then
-    SetTimer (Timers, 1, 6000, nil);
+  begin
+     if FLogPackets then         { V9.5}
+        Mon ('Attempt to reconnect in six seconds');
+     SetTimer (Timers, CliTriggerConnect, 6000, nil);
+  end;
 end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -3929,8 +4141,7 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TMQTTSessionStore.RestoreSession (ClientID: UTF8String;
-  aClient: TSrvrClient);
+procedure TMQTTSessionStore.RestoreSession (ClientID: UTF8String; aClient: TSrvrClient);
 var
   aSession : TMQTTSession;
 begin

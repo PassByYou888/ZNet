@@ -2,14 +2,14 @@
 
 Author:       François PIETTE
 Creation:     May 1996
-Version:      V8.70
+Version:      V9.3
 Object:       TFtpClientW is a FTP client (RFC 959 implementation)
               Support FTPS (SSL) if ICS-SSL is used (RFC 2228 implementation)
               Note this version only supports Delphi 7 to 2007 using widestrings
               for Unicode support - don't use it with 2009 or later
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2022 by François PIETTE
+Legal issues: Copyright (C) 1996-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               <francois.piette@overbyte.be>
               SSL implementation includes code written by Arno Garrels,
@@ -1109,7 +1109,11 @@ Nov 27, 2021 V8.68 Using the PORT command to set Active mode, prevent other FTP 
                       that caused it, such as out of memory which previously needed
                       a BgException event handler.
 Oct 21, 2022 V8.70 Simplified ZLIB support to allow use of System.ZLib.
+Jan 22, 2024 V9.1  Added OverbyteIcsSslBase which now includes TSslContext,TX509Base and TX509List.
+Aug 09, 2024 V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
 
+Note: no longer supported, please use OverbyteIcsFtpCli.pas instead.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -1155,9 +1159,9 @@ uses
 { You must define USE_SSL so that SSL code is included in the component.   }
 { Either in OverbyteIcsDefs.inc or in the project/package options.         }
 {$IFDEF USE_SSL}
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$ENDIF}
-Z.ICS9.OverbyteIcsZlibHigh,     { V2.102 }
+    Z.ICS9.OverbyteIcsZlibHigh,     { V2.102 }
 {$IFNDEF NO_DEBUG_LOG}
     Z.ICS9.OverbyteIcsLogger,
 {$ENDIF}
@@ -1169,12 +1173,13 @@ Z.ICS9.OverbyteIcsZlibHigh,     { V2.102 }
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsSocketUtils,   { V8.63 }
+    Z.ICS9.OverbyteIcsSslBase,          { V9.1 TX509Base }
     Z.ICS9.OverByteIcsFtpSrvWT;
 
 const
-  FtpCliVersion      = 870;
-  CopyRight : String = ' TFtpCliW (c) 1996-2022 F. Piette V8.70 ';
-  FtpClientId : String = 'ICS FTP Client V8.70 Wide';   { V2.113 sent with CLNT command  }
+  FtpCliVersion      = 903;
+  CopyRight : String = ' TFtpCliW (c) 1996-2024 F. Piette V9.3 ';
+  FtpClientId : String = 'ICS FTP Client V9.1 Wide';   { V2.113 sent with CLNT command  }
 
 const
 //  BLOCK_SIZE       = 1460; { 1514 - TCP header size }
@@ -1182,6 +1187,7 @@ const
   FTP_SND_BUF_SIZE = 32768;   { V8.65 }
   FTP_RCV_BUF_SIZE = 32768;   { V8.65 }
 
+(* V9.3 moved to OverbyteIcsTypes
 type
   { sslTypeAuthTls, sslTypeAuthSsl are known as explicit SSL }
   TFtpCliSslType  = (sslTypeNone, sslTypeAuthTls, sslTypeAuthSsl,        { V2.106 }
@@ -1207,6 +1213,14 @@ type
                      ftpDnsLookup,     ftpConnected,     ftpAbort,
                      ftpInternalAbort, ftpWaitingBanner, ftpWaitingResponse,
                      ftpPasvReady);
+  TFtpShareMode   = (ftpShareCompat,    ftpShareExclusive,
+                     ftpShareDenyWrite, ftpShareDenyRead,
+                     ftpShareDenyNone);
+  TFtpDisplayFileMode = (ftpLineByLine, ftpBinary);
+  TFtpConnectionType  = (ftpDirect, ftpProxy, ftpSocks4, ftpSocks4A, ftpSocks5, ftpHttpProxy);
+*)
+
+type
   TFtpRequest     = (ftpNone,          ftpOpenAsync,     ftpUserAsync,
                      ftpPassAsync,     ftpCwdAsync,      ftpConnectAsync,
                      ftpReceiveAsync,  ftpDirAsync,      ftpLsAsync,
@@ -1254,12 +1268,10 @@ type
                      ftpFctRein,       ftpFctHost,       ftpFctLang,          { V6.09 }
                      ftpFctXCmlsd,     ftpFctXDmlsd);                         { V7.01 }
   TFtpFctSet      = set of TFtpFct;
- 
-  TFtpShareMode   = (ftpShareCompat,    ftpShareExclusive,
-                     ftpShareDenyWrite, ftpShareDenyRead,
-                     ftpShareDenyNone);
-  TFtpDisplayFileMode = (ftpLineByLine, ftpBinary);
-  TFtpConnectionType  = (ftpDirect, ftpProxy, ftpSocks4, ftpSocks4A, ftpSocks5, ftpHttpProxy);
+
+
+
+type
   TFtpDisplay     = procedure(Sender    : TObject;
                               var Msg   : UnicodeString) of object;     { V7.01 }
   TFtpProgress64  = procedure(Sender    : TObject;

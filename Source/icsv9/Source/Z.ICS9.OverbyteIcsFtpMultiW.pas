@@ -5,11 +5,11 @@ Description:  TIcsFtpMultiW is a high level FTP Delphi component that allows upl
               single function call.
               W version supports widestring/Unicode for Delphi 2007
 Creation:     May 2001
-Updated:      Oct 2022
-Version:      8.69
+Updated:      Aug 2024
+Version:      9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2022 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -291,10 +291,11 @@ Apr 14, 2022 - V8.69 - Previously the FtpSslRevocation property was only effecti
                  checking the windows certificate store, now it also works with bundle
                  files using the TOcspHttp component and OCSP stapling if available.
 Oct 21, 2022 - V8.70 Simplified ZLIB support to allow use of System.ZLib.
+Jan 22, 2024 V9.1  Added OverbyteIcsSslBase which now includes TSslContext,TX509Base and TX509List.
+Aug 09, 2024 V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
 
-
-pending - use VclZip v4 widestring version
-pending - average speed should only time actual download and ignore MD5 and checking
+Note: no longer supported, please use OverbyteIcsFtpMulti.pas instead.
 
 
 Unicode Compatibility with various web servers
@@ -372,17 +373,19 @@ uses
   Z.ICS9.OverbyteIcsFileCopyW,
   Z.ICS9.OverbyteIcsMD5,
   Z.ICS9.OverbyteIcsCRC,
-  Z.ICS9.OverbyteIcsBlacklist,
+//OverbyteIcsBlacklist,
   Z.ICS9.OverbyteIcsTypes,
   Z.ICS9.OverbyteIcsUtils,
   Z.ICS9.OverbyteIcsLogger,
   {$IFDEF Zipping} VCLZip, VCLUnZip, kpZipObj,{$ENDIF}
-  Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
   Z.ICS9.OverbyteIcsSslSessionCache,
   Z.ICS9.OverbyteIcsSslX509Utils,
   Z.ICS9.OverbyteIcsMsSslUtils,
   Z.ICS9.OverbyteIcsWinCrypt,
-  Z.ICS9.OverbyteIcsSslHttpRest;      { V8.69 }
+//OverbyteIcsSslHttpRest,   { V8.69 }
+  Z.ICS9.OverbyteIcsSslUtils,      { V9.1 TOcspHttp }
+  Z.ICS9.OverbyteIcsSslBase;       { V9.1 TSslContext, TX509Bas, TX509List }
 
 { NOTE - these components only build with SSL, there is no non-SSL option }
 
@@ -390,7 +393,7 @@ uses
 
 
 const
-    FtpMultiCopyRight : String = ' TIcsFtpMultiW (c) 2022 V8.70 ';
+    FtpMultiCopyRight : String = ' TIcsFtpMultiW (c) 2024 V9.3 ';
 
 type
 // host type, for directory listing
@@ -2414,7 +2417,7 @@ begin
              //   doCopyEvent (LogLevelInfo, fReqResponse) ;
              //   result := TaskResFail ;
              //   exit ;
-                fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
+             // fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
             end
             else
                 fSslContext.SslCAFile := fname;
@@ -3234,7 +3237,7 @@ procedure StrLoadFromWideFile (Obj: TStrings; const FileName: UnicodeString);
 var
   Stream: TStream;
 begin
-  Stream := TIcsFileStreamW.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     Obj.LoadFromStream(Stream);
   finally
@@ -3246,7 +3249,7 @@ procedure StrSaveToWideFile (Obj: TStrings; const FileName: UnicodeString);
 var
   Stream: TStream;
 begin
-  Stream := TIcsFileStreamW.Create(FileName, fmCreate);
+  Stream := TFileStream.Create(FileName, fmCreate);
   try
     Obj.SaveToStream(Stream);
   finally

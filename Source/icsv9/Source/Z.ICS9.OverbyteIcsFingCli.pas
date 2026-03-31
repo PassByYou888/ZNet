@@ -4,10 +4,10 @@ Author:       François PIETTE
 Description:  TFingerCli is a FINGER protocol client using TWSocket
               Conform to RFC-1288 (supercede RFCs 1196, 1194 and 742)
 Creation:     December 18, 1997
-Version:      V9.0
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -45,6 +45,7 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
                    also IPv6 support, include files now in sub-directory
 Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3   Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -88,15 +89,15 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
 {$IFDEF FMX}
-    Z.ICS9.Ics.Fmx.OverbyteIcsWSocket
+    Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
 {$ELSE}
-    Z.ICS9.OverbyteIcsWSocket
+    Z.ICS9.OverbyteIcsWSocket,
 {$ENDIF}
-     ;
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    FingCliVersion            = 900;
-    CopyRight    : String     = ' FingCli (c) 1997-2023 F. Piette V9.0 ';
+    FingCliVersion            = 903;
+    CopyRight    : String     = ' FingCli (c) 1997-2024 F. Piette V9.3 ';
 
 type
     TFingerCli = class(TComponent)

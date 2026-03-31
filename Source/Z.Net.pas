@@ -169,8 +169,8 @@ type
   TOnCommand_CompleteBuffer_NoWait_Bridge_Stream_P = reference to procedure(Sender: TCommandCompleteBuffer_NoWait_Bridge; InData, OutData: TDFE);
   TOnCompleteBuffer_Stream_Event_Bridge_P = reference to procedure(Sender: TCompleteBuffer_Stream_Event_Bridge; Source_Bridge: TCommandCompleteBuffer_NoWait_Bridge; BridgeIO: TPeerIO; Result_: TDFE);
 {$ENDIF FPC}
-  TIO_ID_Pool = TBigList<Cardinal>;
-  TIO_ID_List = TGenericsList<Cardinal>;
+  TIO_ID_Pool = class(TBigList<Cardinal>);
+  TIO_ID_List = class(TGenericsList<Cardinal>);
 
   TOnStateStruct = record
     On_C: TOnState_C;
@@ -356,11 +356,8 @@ type
     R, S: Cardinal;
   end;
 
-  TDoubleTunnel_IO_ID_Big_List = TBigList<TDoubleTunnel_IO_ID>;
-
-  TDoubleTunnel_IO_ID_List_Decl = TGenericsList<TDoubleTunnel_IO_ID>;
-
-  TDoubleTunnel_IO_ID_List = class(TDoubleTunnel_IO_ID_List_Decl)
+  TDoubleTunnel_IO_ID_Big_List = class(TBigList<TDoubleTunnel_IO_ID>);
+  TDoubleTunnel_IO_ID_List = class(TGenericsList<TDoubleTunnel_IO_ID>)
   public
     procedure Add_DT_ID(R, S: Cardinal);
   end;
@@ -368,7 +365,7 @@ type
 {$REGION 'CacheTechnology'}
 
   TFile_Swap_Space_Stream = class;
-  TFile_Swap_Space_Pool_Decl = TCritical_BigList<TFile_Swap_Space_Stream>;
+  TFile_Swap_Space_Pool_Decl = class(TCritical_BigList<TFile_Swap_Space_Stream>);
 
   TFile_Swap_Space_Pool = class(TFile_Swap_Space_Pool_Decl)
   public
@@ -474,8 +471,8 @@ type
   end;
 
   PQueueData = ^TQueueData;
-  TQueueData_Pool = TOrderStruct<PQueueData>;
-  TCritical_QueueData_Pool = TCritical_BigList<PQueueData>;
+  TQueueData_Pool = class(TOrderStruct<PQueueData>);
+  TCritical_QueueData_Pool = class(TCritical_BigList<PQueueData>);
 {$ENDREGION 'Queue'}
 {$REGION 'Command_Instance'}
 
@@ -11518,9 +11515,9 @@ end;
 procedure TZNet.Do_CMD_Result_BuildP2PAuthToken(Sender: TPeerIO; Result_: TDFE);
 var
   i: Integer;
-  arr32: TDFArrayInteger;
+  arr32: TDF_ArrayInteger;
   CS: TCipherSecurity;
-  arr8: TDFArrayByte;
+  arr8: TDF_ArrayByte;
 begin
   { read auth buffer }
   arr32 := Result_.R.ReadArrayInteger;
@@ -11546,7 +11543,7 @@ procedure TZNet.CMD_BuildP2PAuthToken(Sender: TPeerIO; InData, OutData: TDFE);
 var
   i: Integer;
   seed: Integer;
-  arry32: TDFArrayInteger;
+  arry32: TDF_ArrayInteger;
   CS: TCipherSecurity;
 begin
   Sender.ResetSequencePacketBuffer;
@@ -14721,7 +14718,7 @@ end;
 
 procedure TZNet_Client.Do_CipherModel_Result(Sender: TPeerIO; Result_: TDFE);
 var
-  arr: TDFArrayByte;
+  arr: TDF_ArrayByte;
 begin
   if Result_.Count > 0 then
     begin
@@ -18934,7 +18931,7 @@ procedure TZNet_CustomStableServer.cmd_OpenStableIO(Sender: TPeerIO; InData, Out
 var
   io_def: TStableServer_OwnerIO_UserDefine;
   connToken: Cardinal;
-  arry: TDFArrayByte;
+  arry: TDF_ArrayByte;
   connKey: TBytes;
   IO_Array: TIO_Array;
   IO_ID: Cardinal;
@@ -19199,7 +19196,7 @@ procedure TZNet_CustomStableClient.BuildStableIO_Result(Sender: TPeerIO; Result_
 var
   r_token, R_ID: Cardinal;
   cSec: TCipherSecurity;
-  arry: TDFArrayByte;
+  arry: TDF_ArrayByte;
   i: Integer;
   k: TCipherKeyBuffer;
 begin
@@ -19283,7 +19280,7 @@ procedure TZNet_CustomStableClient.OpenStableIO_Result(Sender: TPeerIO; Result_:
 var
   r_token, R_ID: Cardinal;
   cSec: TCipherSecurity;
-  arry: TDFArrayByte;
+  arry: TDF_ArrayByte;
   k: TCipherKeyBuffer;
 begin
   if Result_.Reader.ReadBool then

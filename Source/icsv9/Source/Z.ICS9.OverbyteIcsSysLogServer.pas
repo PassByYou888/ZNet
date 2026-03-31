@@ -46,6 +46,7 @@ Apr 1, 2022 V8.69  Allow / in syslog messages.
                    Fixed a range check error in UdpDataAvailable with 0 to read.
 Sept 6 2022 V8.70  Removed Winapi.Winsock, not used.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -69,7 +70,8 @@ uses
     Z.ICS9.OverbyteIcsWinsock,
     Z.ICS9.OverbyteIcsSysLogDefs,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsWSocket;
+    Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 type
     TSysLogServerDataAvailable = procedure (Sender : TObject;

@@ -5,6 +5,7 @@ unit Z.ICS9.OverbyteIcsWinCrypt;
 { Aug 10, 2021 - V8.67  Added ncryptdll }
 { Oct 14, 2021 - V8.68 - Trying to keep C++ happy }
 { Aug 08, 2023 V9.0  Updated version to major release 9. }
+{ Aug 05, 2024 V9.3  Using define MSCRYPT_Any instead of MSCRYPT_Any. }
 
 { note this unit includes a Jedi header file JwaWinCrypt rnmamed to }
 { OverbyteIcsJwaWinCrypt.inc with conditionals to make it independent of JCL }
@@ -17,7 +18,7 @@ unit Z.ICS9.OverbyteIcsWinCrypt;
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
 
 interface
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 
 uses
   {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF};
@@ -65,11 +66,11 @@ type
 
 {$DEFINE JWA_INCLUDEMODE}
 {$DEFINE JWA_INTERFACESECTION}
-{$I Z.ICS9.OverbyteIcsJwaWinCrypt.inc}
+{$I OverbyteIcsJwaWinCrypt.inc}
 {$ENDIF}
 
 implementation
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 
 const
   advapi32  = 'advapi32.dll';
@@ -84,7 +85,7 @@ const
 
 {$UNDEF JWA_INTERFACESECTION}
 {$DEFINE JWA_IMPLEMENTATIONSECTION}
-{$I Z.ICS9.OverbyteIcsJwaWinCrypt.inc}
+{$I OverbyteIcsJwaWinCrypt.inc}
 
 {$ENDIF}
 end.

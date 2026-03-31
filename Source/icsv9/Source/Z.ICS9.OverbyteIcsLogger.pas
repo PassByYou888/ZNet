@@ -3,10 +3,10 @@
 Author:       Arno Garrels <arno.garrels@gmx.de>
 Description:  Logger class donated to ICS.
 Creation:     December 2005
-Version:      V9.0
+Version:      V9.4
 EMail:        francois.piette@overbyte.be         http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2005-2023 by François PIETTE
+Legal issues: Copyright (C) 2005-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -53,6 +53,9 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
 Dec 19, 2016 V8.40 Angus added loSslDevel
 Dec 16, 2021 V8.68 Added LogOption loProgress
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Moved many types and constants to OverbyteIcsTypes for consolidation.
+Jan 03, 2025 V9.4  Moved IcsOutputDebugStr to OverbyteUtils.
+
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 unit Z.ICS9.OverbyteIcsLogger;
@@ -90,19 +93,23 @@ uses
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.SyncObjs{$ELSE}SyncObjs{$ENDIF},
-    Z.ICS9.OverbyteIcsUtils;
+    Z.ICS9.OverbyteIcsUtils,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    TIcsLoggerVersion   = 900;
-    CopyRight : String  = ' IcsLogger (c) 2005-2023 by François PIETTE V9.0 ';
+    TIcsLoggerVersion   = 904;
+    CopyRight : String  = ' IcsLogger (c) 2005-2025 by François PIETTE V9.4 ';
 
 type
     ELoggerException = class(Exception);
+
+
+(* V9.3 moved to OverbyteIcsTypes
     TLogOption = (loDestEvent,   loDestFile,     loDestOutDebug,  { Output Destinations }
                   loAddStamp,                                     { Adds something (slow) }
                   loWsockErr,    loWsockInfo,    loWsockDump,
                   loSslErr,      loSslInfo,      loSslDevel,   loSslDump,  { V8.40 added Devel }
-                  loProtSpecErr, loProtSpecInfo, loProtSpecDump, loProgress); { V*.68 added Progress }
+                  loProtSpecErr, loProtSpecInfo, loProtSpecDump, loProgress); { V6.68 added Progress }
     TLogOptions = set of TLogOption;
     TLogFileOption = (lfoAppend, lfoOverwrite);
 {$IFDEF COMPILER12_UP}
@@ -116,6 +123,8 @@ const
 type
     TNTEventType = (etError,        etWarning,      etInformation,
                     etAuditSuccess, etAuditFailure);
+*)
+
     TIcsLogEvent = procedure (Sender: TObject; LogOption: TLogOption;
                               const Msg : String) of object;
     TIcsLogger = class(TComponent)
@@ -177,7 +186,8 @@ type
 implementation
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure OutputDebugStr(const AMsg: String); {$IFDEF USE_INLINE} inline; {$ENDIF}
+(*  moved to Utils
+procedure IcsOutputDebugStr(const AMsg: String); {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
   {$IFDEF POSIX}
     System.WriteLn(AMsg);
@@ -185,7 +195,7 @@ begin
   {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.{$ENDIF}Windows.OutputDebugString(PChar(AMsg));
   {$ENDIF}
-end;
+end;  *)
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -364,7 +374,7 @@ begin
                     FOnIcsLogEvent(Sender, LogOption, AddTimeStamp +
                                    FTimeStampSeparator + Msg); {V6.03}
             if loDestOutDebug in FLogOptions then
-                OutputDebugStr(AddTimeStamp +
+                IcsOutputDebugStr(AddTimeStamp +
                                   FTimeStampSeparator + Msg); {V6.03}
             if loDestFile in FLogOptions then
                 WriteToLogFile(AddTimeStamp + FTimeStampSeparator +
@@ -375,7 +385,7 @@ begin
                 if Assigned(FOnIcsLogEvent) then
                     FOnIcsLogEvent(Sender, LogOption, Msg);
             if loDestOutDebug in FLogOptions then
-                OutputDebugStr(Msg);
+                IcsOutputDebugStr(Msg);
             if loDestFile in FLogOptions then
                 WriteToLogFile(Msg + #13#10);
         end;

@@ -4,11 +4,11 @@ Description:  TIcsFtpMulti is a high level FTP Delphi component that allows uplo
               or downloading of multiple files from or to an FTP server, from a
               single function call.
 Creation:     May 2001
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      AugFeb 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -310,6 +310,28 @@ Feb 14, 2023 - V8.71 - Ensure inherited destroy called.
                FTP file progress now shows correct size, percent and speed when resuming
                  partial transfers, but totals are for the complete file size.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 15, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Added new property NoSSL to TIcsFtpMulti that prevents use of SSl/TLS,
+                     must be set before any requests.
+                   TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+                   SslContext now uses public IcsSslRootCAStore and ignores root bundle.
+                   If download file has increased in size since being listed after a
+                     successful download, don't fail and delete it.
+Aug 7, 2024  V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
+                   Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                     the Windows Store can be used for SSL certificate verification.
+Feb 11, 2025 V9.4  Skip download of zero length file, just create empty file, previously
+                     got SSL handshake error.
+                   Don't report directories as being downloadable, they are not.
+                   If extended passive mode allowed, send EPSV ALL at start so firewalls
+                     and NAT routers can handle sessions more efficiently.
+                   Added CheckBadUnicode property defaults to false, so that checks for
+                     bad unicode to Ansi conversions with ? are skipped, allowing more
+                     complex paths without errors.
+Aug 09, 2025 V9.5  Skip MD5 and SHA1 FTP commands for files larger than 1GB, the server
+                     usually takes too long.
 
 
 
@@ -385,7 +407,7 @@ uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Messages{$ELSE}Messages{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
-    Z.ICS9.OverbyteIcsWinCrypt,
+//    OverbyteIcsWinCrypt,
 {$ENDIF}
 {$IFDEF POSIX}
     Posix.Time,
@@ -399,33 +421,41 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsFtpCli,
-    Z.ICS9.Ics.Fmx.OverbyteIcsBlacklist,
+//    Ics.Fmx.OverbyteIcsBlacklist,
     Z.ICS9.Ics.Fmx.OverbyteIcsFileCopy,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslSessionCache,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+{$ENDIF MSCRYPT_Clients}
+//    Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils, { V9.1 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsFtpCli,
-    Z.ICS9.OverbyteIcsBlacklist,
+//    OverbyteIcsBlacklist,             {for TIcsBuffLogStream  }
     Z.ICS9.OverbyteIcsFileCopy,
     Z.ICS9.OverbyteIcsSslSessionCache,
-    Z.ICS9.OverbyteIcsSslX509Utils,
+//  OverbyteIcsSslX509Utils,          { gone V9.1  }
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsMsSslUtils,
-    Z.ICS9.OverbyteIcsSslHttpRest,          { V8.69 }
+{$ENDIF MSCRYPT_Clients}
+//    OverbyteIcsSslHttpRest,         { V8.69, gone V9.1  }
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
   Z.ICS9.OverByteIcsFtpSrvT,
   Z.ICS9.OverbyteIcsMD5,
   Z.ICS9.OverbyteIcsCRC,
   Z.ICS9.OverbyteIcsTypes,
   Z.ICS9.OverbyteIcsLogger,
-  Z.ICS9.OverbyteIcsUtils
+  Z.ICS9.OverbyteIcsUtils,
 {$IFDEF Zipping}
-    ,System.Zip            { V8.70 VclZip gone }
+    System.Zip,             { V8.70 VclZip gone }
 {$ENDIF}
-  , Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  , OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
   Z.ICS9.OverbyteIcsTicks64;              { V8.71 }
 
 { NOTE - these components only build with SSL, there is no non-SSL option }
@@ -435,26 +465,22 @@ uses
 
 
 const
-    FtpMultiCopyRight : String = ' TIcsFtpMulti (c) 2023 V9.0 ';
+    FtpMultiCopyRight : String = ' TIcsFtpMulti (c) 2025 V9.5 ';
 
 type
 // host type, for directory listing
-    THostType = (FTPTYPE_NONE, FTPTYPE_UNIX, FTPTYPE_DOS, FTPTYPE_MVS,
-                 FTPTYPE_AS400, FTPTYPE_MLSD) ;
+    THostType = (FTPTYPE_NONE, FTPTYPE_UNIX, FTPTYPE_DOS, FTPTYPE_MVS, FTPTYPE_AS400, FTPTYPE_MLSD) ;
     TXferMode = (XferModeBinary, XferModeAscii) ;
     TBulkMode = (BulkModeNone, BulkModeDownload, BulkModeUpload) ;
     TCaseFile = (FileLowerCase, FileMixedCase) ;
-    TFtpType  = (FtpTypeNone,
-                 FtpTypeAuthSslCtl, FtpTypeAuthSslData, FtpTypeAuthSslBoth,
-                 FtpTypeConnSslCtl, FtpTypeConnSslData, FtpTypeConnSslBoth);
+    TFtpType  = (FtpTypeNone,  FtpTypeAuthSslCtl, FtpTypeAuthSslData, FtpTypeAuthSslBoth,
+                                                     FtpTypeConnSslCtl, FtpTypeConnSslData, FtpTypeConnSslBoth);
     { AuthSsl    = explicit encryption on port 21 using AUTH command }
     { ConnSsl    = implicit encryption on port 990 forced on connection }
-    TIcsFtpMultiOpt  = (magftpNoFeat, magftpNoZlib, magftpNoMd5Crc, magftpNoTmpFile,
-                   magftpNoUtf8, magftpIgnoreUtf8, magftpNoHost,
-                   magftpNoMd5, magftpNoCrc);   // 15 Apr 2009
+    TIcsFtpMultiOpt  = (magftpNoFeat, magftpNoZlib, magftpNoMd5Crc, magftpNoTmpFile, magftpNoUtf8, magftpIgnoreUtf8,
+                                                                                magftpNoHost,  magftpNoMd5, magftpNoCrc);   // 15 Apr 2009
     TIcsFtpMultiOpts = set of TIcsFtpMultiOpt;
-    TFtpThreadOpt = (ftpthdList, ftpthdDownCheck, ftpthdDownFiles,
-                    ftpthdUpCheck, ftpthdUpFiles) ;  // 14 Feb 2011
+    TFtpThreadOpt = (ftpthdList, ftpthdDownCheck, ftpthdDownFiles, ftpthdUpCheck, ftpthdUpFiles) ;  // 14 Feb 2011
     TFtpSslVerifyMethod = (ftpSslVerNone, ftpSslVerBundle, ftpSslVerWinStore) ;   // 20 Apr 2015
 
 const
@@ -467,8 +493,7 @@ const
      'Secured SSL/TLS Conn - Data Only',
      'Secured SSL/TLS Conn - Control and Data') ;
 
-    ResInfServer = 0 ; ResInfFName = 1 ; ResInfStamp = 2 ; ResInfSize = 3 ;
-    ResInfAttempts = 4 ; ResInfLastBytes = 5 ;
+    ResInfServer = 0 ; ResInfFName = 1 ; ResInfStamp = 2 ; ResInfSize = 3 ;  ResInfAttempts = 4 ; ResInfLastBytes = 5 ;
 
 type
   TIcsFtpMulti = class(TSslFtpClient)
@@ -489,10 +514,14 @@ type
         fSslSessCache: boolean ;
         fSslContext: TSslContext ;
         fExternalSslSessionCache: TSslAvlSessionCache ;
+{$IFDEF MSCRYPT_Clients}
         fMsCertChainEngine: TMsCertChainEngine;   // 20 Apr 2015
+{$ENDIF MSCRYPT_Clients}
         FOcspHttp: TOcspHttp;                 { V8.69 }
         FNoopIntervalMins: Integer;           { V8.71 }
         FNoopTimer: TIcsTimer;                { V8.71 }
+        FNoSSL: Boolean;                      { V9.1 }
+        FCheckBadUnicode: Boolean;            { V9.4 }
   protected
     { Protected declarations }
         fBulkMode: TBulkMode ;
@@ -678,6 +707,8 @@ type
     property FtpSslCliSecurity: TSslCliSecurity read fFtpSslCliSecurity  write fFtpSslCliSecurity;   // June 2018
     property OcspHttp: TOcspHttp       read FOcspHttp         write FOcspHttp;               { V8.69 }
     property NoopIntervalMins: Integer read FNoopIntervalMins write FNoopIntervalMins;       { V8.71 }
+    property NoSSL: Boolean            read  FNoSSL           write FNoSSL;                  { V9.1 }
+    property CheckBadUnicode: Boolean  read  FCheckBadUnicode write FCheckBadUnicode;        { V9.4 }
     property TotProcFiles: integer     read fCopyProg.TotProcFiles ;
     property ProcOKFiles: integer      read fCopyProg.ProcOKFiles ;
     property DelOKFiles: integer       read fCopyProg.DelOKFiles ;
@@ -1099,6 +1130,7 @@ begin
     SslContext := fSslContext ;
     fSslContext.SslVerifyPeer := false ;
     fFtpSslCliSecurity := sslCliSecIgnore;  // June 2018
+    FCheckBadUnicode := False;        { V9.4 }
     FOcspHttp := TOcspHttp.Create(Self);   { V8.69 }
     FOcspHttp.OnOcspProg := IcsProgEvent;   { V8.69 }
     FOcspHttp.CacheFName := 'ocsftpcache.recs';   { V8.69 }
@@ -1119,7 +1151,9 @@ begin
         FreeAndNil (fIcsFileCopy);
         FreeAndNil (SrcFileList);
         FreeAndNil (TarFileList);
+{$IFDEF MSCRYPT_Clients}
         FreeAndNil (FMsCertChainEngine) ;
+{$ENDIF MSCRYPT_Clients}
         FreeAndNil (fExternalSslSessionCache) ;
         FreeAndNil (fSslContext) ;
     finally
@@ -1148,7 +1182,7 @@ var
 begin
     { SslCliNewSession/SslCliGetSession allow external, client-side session }
     { caching.                                                              }
-    doCopyEvent (LogLevelDiag, 'Starting SSL Session');
+//    doCopyEvent (LogLevelDiag, 'Starting SSL Session');
     if not fSslSessCache then Exit;
     if (not WasReused) then
     begin
@@ -1156,10 +1190,10 @@ begin
         fExternalSslSessionCache.CacheCliSession (SslSession,
                         FtpCli.ControlSocket.PeerAddr{+ FtpCli.ControlSocket.PeerPort}, IncRefCount);
                                                   { V8.68 no port so data session can use control session }
-        doCopyEvent (LogLevelDiag, 'Cache SSL Session: New');
-    end
-    else
-        doCopyEvent (LogLevelDiag, 'Cache SSL Session: Reuse');
+//        doCopyEvent (LogLevelDiag, 'Cache SSL Session: New');
+    end;
+  //  else
+   //     doCopyEvent (LogLevelDiag, 'Cache SSL Session: Reuse');
 end ;
 
 procedure TIcsFtpMulti.OnFTPSslCliGetSession(Sender: TObject; var SslSession: Pointer;
@@ -1170,22 +1204,24 @@ begin
     { SslCliNewSession/SslCliGetSession allow external, client-side session }
     { caching.                                                              }
     if not fSslSessCache then Exit;
-    doCopyEvent (LogLevelDiag, 'Check for Old SSL Session');
+//    doCopyEvent (LogLevelDiag, 'Check for Old SSL Session');
     FtpCli := Sender as TSslFtpClient ;
     SslSession := fExternalSslSessionCache.GetCliSession(
                      FtpCli.ControlSocket.PeerAddr {+ FtpCli.ControlSocket.PeerPort}, FreeSession);
                                                { V8.68 no port so data session can use control session }
-    if Assigned (SslSession) then   // Dec 2016
+ {   if Assigned (SslSession) then   // Dec 2016
         doCopyEvent (LogLevelDiag, 'Old SSL Session Found Cached')
     else
-        doCopyEvent (LogLevelDiag, 'No Old SSL Session Cached');
+        doCopyEvent (LogLevelDiag, 'No Old SSL Session Cached'); }
 end ;
 
 procedure TIcsFtpMulti.OnFTPSslHandshakeDone(Sender: TObject; ErrCode: Word;
                                   PeerCert: TX509Base; var Disconnect: Boolean);
 var
     CertChain: TX509List;
+{$IFDEF MSCRYPT_Clients}              { V9.4 stop a wearing }
     ChainVerifyResult: LongWord;
+{$ENDIF MSCRYPT}
     info, VerifyInfo: String;
     Safe: Boolean;
     FtpCtl: TWSocket ;      // Dec 2016
@@ -1199,13 +1235,13 @@ begin
         Disconnect := TRUE;
         exit;
     end  ;
-
-    doCopyEvent (LogLevelInfo, FtpCtl.SslServerName + ' ' + FtpCtl.SslHandshakeRespMsg) ;     // Dec 2014
     if (SslAcceptableHosts.IndexOf (FtpCtl.SslServerName + PeerCert.Sha1Hex) >= 0) or  // Dec 2016 done it already
           FtpCtl.SslSessionReused OR (fFtpSslVerMethod = ftpSslVerNone) then
     begin
+        doCopyEvent (LogLevelInfo, FtpCtl.SslServerName + ' Connected OK Again');     // Dec 2023 shorter since we've done it before
         exit; // nothing to do, go ahead
     end ;
+    doCopyEvent (LogLevelInfo, FtpCtl.SslServerName + ' ' + FtpCtl.SslHandshakeRespMsg) ;     // Dec 2014
 
  // Property SslCertChain contains all certificates in current verify chain
     CertChain := FtpCtl.SslCertChain;
@@ -1214,6 +1250,7 @@ begin
     if fFtpSslVerMethod = ftpSslVerWinStore then
     begin
         // start engine
+{$IFDEF MSCRYPT_Clients}
         if not Assigned (FMsCertChainEngine) then
             FMsCertChainEngine := TMsCertChainEngine.Create;
 
@@ -1229,12 +1266,11 @@ begin
         { Pass the certificate and the chain certificates to the engine      }
         FMsCertChainEngine.VerifyCert (PeerCert, CertChain, ChainVerifyResult, True);
 
-        Safe := (ChainVerifyResult = 0) or
-                { We ignore the case if a revocation status is unknown.      }
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                     CERT_TRUST_IS_OFFLINE_REVOCATION);
+             Safe := (ChainVerifyResult = 0) or
+                     { We ignore the case if a revocation status is unknown.      }
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                     (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
        { The MsChainVerifyErrorToStr function works on chain error codes     }
         VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult); // Nov 2016
@@ -1245,6 +1281,10 @@ begin
             Safe := False;
             VerifyInfo := PeerCert.FirstVerifyErrMsg;
         end;
+{$ELSE}
+        Safe := False;
+        VerifyInfo := 'Windows certificate store not available';  { V9.3 }
+{$ENDIF MSCRYPT}
     end
     else if fFtpSslVerMethod = ftpSslVerBundle then
     begin
@@ -1259,9 +1299,8 @@ begin
             FOcspHttp.DebugLevel := DebugConn;
             FOcspHttp.OcspCert := PeerCert;
             FOcspHttp.OcspInters := CertChain;
-            if (Length(FtpCtl.OcspStapleRaw) > 50) and
-                 (FtpCtl.OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
-                                        FOcspHttp.OcspRespRaw := FtpCtl.OcspStapleRaw;
+            if (Length(FtpCtl.OcspStapleRaw) > 50) and (FtpCtl.OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
+                FOcspHttp.OcspRespRaw := FtpCtl.OcspStapleRaw;
             if FOcspHttp.CheckOcspRevoked(fSslContext.GetX509Store, 0) then
                 Safe := False;
             VerifyInfo := FOcspHttp.OcspLastResp;
@@ -2375,7 +2414,7 @@ End;
 
 function TIcsFtpMulti.FtpLogon: TIcsTaskResult ;
 var
-    remdir, fname: string ;
+    remdir: string ;
     attemptnr: integer ;
     ret: boolean ;
 begin
@@ -2417,21 +2456,23 @@ begin
     end ;
     fPBSZSize := 0 ;
     fSslType := sslTypeNone ;
-    if fFtpType in [FtpTypeAuthSslCtl, FtpTypeAuthSslData, FtpTypeAuthSslBoth] then
+    if NOT FNoSSL then      { V9.1 }
     begin
-        fSslType := sslTypeAuthTls ; // sslTypeAuthSsl ;
-    end
-    else if fFtpType in [FtpTypeConnSslCtl, FtpTypeConnSslData, FtpTypeConnSslBoth] then
-    begin
-        fPort := fFtpSslPort ;
-        fSslType := sslTypeImplicit ;
-    end ;
-    if (fSslType > sslTypeNone) and (NOT Assigned (fExternalSslSessionCache)) then
-    begin
-        fExternalSslSessionCache := TSslAvlSessionCache.Create (self) ;
+        if fFtpType in [FtpTypeAuthSslCtl, FtpTypeAuthSslData, FtpTypeAuthSslBoth] then
+        begin
+            fSslType := sslTypeAuthTls ; // sslTypeAuthSsl ;
+        end
+        else if fFtpType in [FtpTypeConnSslCtl, FtpTypeConnSslData, FtpTypeConnSslBoth] then
+        begin
+            fPort := fFtpSslPort ;
+            fSslType := sslTypeImplicit ;
+        end ;
+        if (fSslType > sslTypeNone) and (NOT Assigned (fExternalSslSessionCache)) then
+        begin
+            fExternalSslSessionCache := TSslAvlSessionCache.Create (self) ;
+        end;
+        FSslContext.SslCliSecurity := fFtpSslCliSecurity;  // June 2018
     end;
- //   FSslContext.SslSecLevel := sslSecLevel80bits ;  // March 2017
-    FSslContext.SslCliSecurity := fFtpSslCliSecurity;  // June 2018
 
   // 20 Apr 2015 see if verifying server SSL certificate
     if (fSslType > sslTypeNone) then   // June 2018 even if not checking certs
@@ -2451,14 +2492,15 @@ begin
         end;
         if (FFtpSslVerMethod >= ftpSslVerBundle) then  // June 2018 also win
         begin
-            fname := fFtpSslRootFile ;
+            FSslContext.UseSharedCAStore := True;           { V9.1 ignore fSslRootFile for now  }
+    (*        fname := fFtpSslRootFile ;
             if (Pos (':', fname) = 0) then fname := ExtractFileDir (ParamStr (0)) + '\' + fname ;
             if NOT FileExists (fname) then
             begin
                 fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
             end
             else
-                fSslContext.SslCAFile := fname;
+               fSslContext.SslCAFile := fname;   *)
         end;
     end ;
     if (fSslType > sslTypeNone) then  // 20 Apr 2015 get any SSL context errors now
@@ -2644,6 +2686,13 @@ begin
                 if fFtpType in [FtpTypeAuthSslData, FtpTypeConnSslData] then
                     CCC ;  // ftp command, clear control channel
             end ;
+
+         { V9.4 see if need to extended passive mode for all connections }
+            if FPassive and (ftpFeatEpsv in FSupportedExtensions) and (NOT (ftpNoExtV4 in FOptions)) then
+            begin
+                EpsvAll;
+            end;
+
             exit ;
         end ;
         fReqResponse := 'Request Failed: ' + ErrorMessage ;
@@ -2826,7 +2875,7 @@ begin
                             end ;
 
                         // 14 Sept 2008 skip Unicode names with substitution characters
-                            if Pos ('?', FrFullName) > 0 then
+                            if FCheckBadUnicode and (Pos ('?', FrFullName) > 0) then   { V9.4 }
                             begin
                                 doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + FrFullName) ;
                                 continue ;
@@ -3106,7 +3155,7 @@ begin
         HostDirName := RemDir ;
 
      // 14 Sept 2008 skip Unicode names with substitution characters
-        if (Pos ('?', RemDir) > 0) or (Pos ('?', RemFile) > 0) then
+        if FCheckBadUnicode and ((Pos ('?', RemDir) > 0) or (Pos ('?', RemFile) > 0)) then    { V9.4 }
         begin
             doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + RemDir + RemFile) ;
             exit ;
@@ -3236,7 +3285,8 @@ begin
                 LocalStream := nil;
             end ;
         end ;
-        if FSize > 0 then result := true ;
+        if FSize >= 0 then     { V9.4 allow zero length files }
+            result := true ;
     finally
         if fCancelFlag then
         begin
@@ -3268,6 +3318,7 @@ var
     newsize, partfsize, lastbytes, actualbytes: Int64 ;
     retval, attempts: Integer;
     ResInfRecs: TStringList ;
+    FStream: TFileStream ;   { V9.4 }
 begin
     Result := 1 ;  // fail
     if fCancelFlag then exit ;
@@ -3277,7 +3328,7 @@ begin
     FNoopTimer.Enabled := False;                  { V8.71 }
 
 // 14 Sept 2008 skip Unicode names with substitution characters
-    if (Pos ('?', LocFileFull) > 0) then
+    if FCheckBadUnicode and (Pos ('?', LocFileFull) > 0) then   { V9.4 }
     begin
         doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + LocFileFull) ;
         doCopyEvent (LogLevelDelimFile, RemFile + '|' + LocFileFull + '|0|0|1|Inaccessible Unicode File|0|0') ;
@@ -3286,7 +3337,7 @@ begin
         result := 6 ;
         exit ;
     end ;
-    if (Pos ('?', RemFull) > 0) then
+    if FCheckBadUnicode and (Pos ('?', RemFull) > 0) then    { V9.4 }
     begin
         doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + RemFull) ;
         doCopyEvent (LogLevelDelimFile, RemFile + '|' + LocFileFull + '|0|0|1|Inaccessible Unicode File|0|0') ;
@@ -3326,6 +3377,18 @@ begin
             fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
             exit ;
        end ;
+
+    // V9.4 skip download for zero length file, just create empty file
+        if RFSize = 0 then begin
+            FStream := TFileStream.Create (LocFileFull, fmCreate) ;
+            FStream.Free;
+            if NOT UpdateUFileAge (LocFileFull, RFileUDT) then
+                doCopyEvent (LogLevelInfo, 'Failed to Update Time Stamp: ' + LocFileFull) ;
+            doCopyEvent (LogLevelFile, 'Download OK: ' + LocFileFull + ', size: zero') ;
+            doCopyEvent (LogLevelDelimFile, RemFull + '|' + LocFileFull + '|0|1|0|OK|0|0') ;
+            result := 0 ;  // successful
+            Exit;
+        end;
 
     // 22 May 2013 prepare current file progress info
         fCopyProg.CurSrcName := RemFull ;
@@ -3579,7 +3642,7 @@ begin
     //  if fCancelFlag then exit ;
 
     // check size of downloaded file matches server size, will repeat if allowed
-        if newsize <> RFSize then
+        if newsize < RFSize then   { V9.1 download too large is OK, might have inceased since directory listing }
         begin
             if newsize >= 0 then
             begin
@@ -3620,73 +3683,85 @@ begin
             fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
             exit ;
         end ;
+
+     // ok download
         IcsDeleteFile (fnameftp, true) ;  // kill restart info, got file OK
 
-     // check MD5 or CRC if possible and repeat if allowed
+     // check MD5 or CRC if possible and repeat if allowed, V9.5 but not if more than 1GB file size, too slow
         if ((ftpFeatMD5 in FSupportedExtensions) OR (ftpFeatXMD5 in FSupportedExtensions)) then
         begin
-            doCopyEvent (LogLevelProg, 'Getting Server MD5SUM ' + fnametmp) ;
-            fCopyProg.CurStartTick := IcsGetTickCount64 ;        { V8.71 }
-            PosStart := 0 ;  // force XMD5 to do entire file, in case size changed
-            PosEnd := 0 ;
-            if (ftpFeatMD5 in FSupportedExtensions) then  // 22 Nov 2007 support XMD5, 6 Apr 2009 prefer MD5
-                ret := MD5
-            else
-                ret := XMD5 ;  // get MD5SUM
-       //   if NOT Connected then exit ;        { V8.70 log something, might have worked }
-       //     if fCancelFlag then exit ;
-            if ret and (Length (fMD5Result) = 32) then
+            if (RFSize < IcsGBYTE) then   { V9.1 download too large is OK, might have inceased since directory listing }
             begin
-                fCopyProg.ProgMessBase := 'Checking Local MD5SUM ' + fnametmp ;
-                doCopyEvent (LogLevelProg, fCopyProg.ProgMessBase) ;
-                fProgFileSize := newsize ;   // keep name and size for event handler
-                info := FtpFileMD5 (fnametmp, Self, MD5Progress) ;  // 8 Apr 2009 widestring version
-                if (fMD5Result <> info) { and (Length (info) = 32) } then // 6 Apr 2009 don't assume blank MD5sum is OK
+                doCopyEvent (LogLevelProg, 'Getting Server MD5SUM ' + fnametmp) ;
+                fCopyProg.CurStartTick := IcsGetTickCount64 ;        { V8.71 }
+                PosStart := 0 ;  // force XMD5 to do entire file, in case size changed
+                PosEnd := 0 ;
+                if (ftpFeatMD5 in FSupportedExtensions) then  // 22 Nov 2007 support XMD5, 6 Apr 2009 prefer MD5
+                    ret := MD5
+                else
+                    ret := XMD5 ;  // get MD5SUM
+           //   if NOT Connected then exit ;        { V8.70 log something, might have worked }
+           //     if fCancelFlag then exit ;
+                if ret and (Length (fMD5Result) = 32) then
                 begin
-                    doCopyEvent (LogLevelInfo, 'MD5SUM Compare Failed: ' + fnametmp + ';Rem='+ fMD5Result + ';Loc=' + info) ;
-                    doCopyEvent (LogLevelFile, 'Download Failed: MD5SUM Compare Failed') ;
-                    doCopyEvent (LogLevelDelimFile, RemFull + '|' + LocFileFull +
-                                 '|0|0|1|Download Failed: MD5SUM Compare Failed|' + IntToStr (duration) + '|' + IntToStr (actualbytes)) ;
-                    result := 3 ;
-                    inc (fCopyProg.ProcFailFiles) ;
-                    fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
-                    exit ;
-                end ;
-                doCopyEvent (LogLevelFile, 'MD5SUM Check OK: ' + fnametmp + ' took ' +    // 20 Sept 2010 was LevelInfo
-                                        IntToStr (IcsElapsedSecs64 (fCopyProg.CurStartTick)) + ' secs; Result ' + fMD5Result) ;   { V8.71 }
+                    fCopyProg.ProgMessBase := 'Checking Local MD5SUM ' + fnametmp ;
+                    doCopyEvent (LogLevelProg, fCopyProg.ProgMessBase) ;
+                    fProgFileSize := newsize ;   // keep name and size for event handler
+                    info := FtpFileMD5 (fnametmp, Self, MD5Progress) ;  // 8 Apr 2009 widestring version
+                    if (fMD5Result <> info) { and (Length (info) = 32) } then // 6 Apr 2009 don't assume blank MD5sum is OK
+                    begin
+                        doCopyEvent (LogLevelInfo, 'MD5SUM Compare Failed: ' + fnametmp + ';Rem='+ fMD5Result + ';Loc=' + info) ;
+                        doCopyEvent (LogLevelFile, 'Download Failed: MD5SUM Compare Failed') ;
+                        doCopyEvent (LogLevelDelimFile, RemFull + '|' + LocFileFull +
+                                     '|0|0|1|Download Failed: MD5SUM Compare Failed|' + IntToStr (duration) + '|' + IntToStr (actualbytes)) ;
+                        result := 3 ;
+                        inc (fCopyProg.ProcFailFiles) ;
+                        fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
+                        exit ;
+                    end ;
+                    doCopyEvent (LogLevelFile, 'MD5SUM Check OK: ' + fnametmp + ' took ' +    // 20 Sept 2010 was LevelInfo
+                                            IntToStr (IcsElapsedSecs64 (fCopyProg.CurStartTick)) + ' secs; Result ' + fMD5Result) ;   { V8.71 }
+                end
+                else
+                    doCopyEvent (LogLevelInfo, 'MD5SUM Response Failed: ' + fnametmp + ';Rem='+ fMD5Result) ;   // 6 Apr 2009
             end
             else
-                doCopyEvent (LogLevelInfo, 'MD5SUM Response Failed: ' + fnametmp + ';Rem='+ fMD5Result) ;   // 6 Apr 2009
+               doCopyEvent (LogLevelInfo, 'MD5SUM Command Skipped, File Too Large: ' + fnametmp) ;   // V9.5
         end
         else if (ftpFeatXCrc in FSupportedExtensions) then  // added 10 July 2006
         begin
-            doCopyEvent (LogLevelProg, 'Getting Server CRC32 ' + fnametmp) ;
-            fCopyProg.CurStartTick := IcsGetTickCount64 ;        { V8.71 }
-            PosStart := 0 ;
-            PosEnd := 0 ;
-            ret := XCRC ;  // get CRC32B
-       //   if NOT Connected then exit ;
-       //     if fCancelFlag then exit ;
-            if ret and (Length (fCrcResult) >= 5) then
+            if (RFSize < IcsGBYTE) then   { V9.1 download too large is OK, might have inceased since directory listing }
             begin
-                fCopyProg.ProgMessBase := 'Checking Local CRC32 ' + fnametmp ;
-                doCopyEvent (LogLevelProg, fCopyProg.ProgMessBase) ;
-                fProgFileSize := newsize ;   // keep name and size for event handler
-                info := FtpFileCRC32B (fnametmp, Self, MD5Progress) ;  // 15 Apr 2009
-                if (Length (info) = 8) and (Pos (fCrcResult, info) = 0) then
+                doCopyEvent (LogLevelProg, 'Getting Server CRC32 ' + fnametmp) ;
+                fCopyProg.CurStartTick := IcsGetTickCount64 ;        { V8.71 }
+                PosStart := 0 ;
+                PosEnd := 0 ;
+                ret := XCRC ;  // get CRC32B
+           //   if NOT Connected then exit ;
+           //     if fCancelFlag then exit ;
+                if ret and (Length (fCrcResult) >= 5) then
                 begin
-                    doCopyEvent (LogLevelInfo, 'CRC32 Compare Failed: ' + fnametmp + ';Rem='+ fCrcResult + ';Loc=' + info) ;
-                    doCopyEvent (LogLevelFile, 'Download Failed: CRC32 Compare Failed') ;
-                    doCopyEvent (LogLevelDelimFile, RemFull + '|' + LocFileFull +
-                                 '|0|0|1|Download Failed: CRC32 Compare Failed|' + IntToStr (duration) + '|' + IntToStr (actualbytes)) ;
-                    result := 3 ;
-                    inc (fCopyProg.ProcFailFiles) ;
-                    fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
-                    exit ;
+                    fCopyProg.ProgMessBase := 'Checking Local CRC32 ' + fnametmp ;
+                    doCopyEvent (LogLevelProg, fCopyProg.ProgMessBase) ;
+                    fProgFileSize := newsize ;   // keep name and size for event handler
+                    info := FtpFileCRC32B (fnametmp, Self, MD5Progress) ;  // 15 Apr 2009
+                    if (Length (info) = 8) and (Pos (fCrcResult, info) = 0) then
+                    begin
+                        doCopyEvent (LogLevelInfo, 'CRC32 Compare Failed: ' + fnametmp + ';Rem='+ fCrcResult + ';Loc=' + info) ;
+                        doCopyEvent (LogLevelFile, 'Download Failed: CRC32 Compare Failed') ;
+                        doCopyEvent (LogLevelDelimFile, RemFull + '|' + LocFileFull +
+                                     '|0|0|1|Download Failed: CRC32 Compare Failed|' + IntToStr (duration) + '|' + IntToStr (actualbytes)) ;
+                        result := 3 ;
+                        inc (fCopyProg.ProcFailFiles) ;
+                        fCopyProg.ProcBytesDone := fCopyProg.ProcBytesLast + RFSize ;
+                        exit ;
+                    end ;
+                    doCopyEvent (LogLevelFile, 'CRC32 Check OK: ' + fnametmp + ' took ' +       // 20 Sept 2010 was LevelInfo
+                                        IntToStr (IcsElapsedSecs64 (fCopyProg.CurStartTick)) + ' secs; Result ' + fCrcResult) ;    { V8.71 }
                 end ;
-                doCopyEvent (LogLevelFile, 'CRC32 Check OK: ' + fnametmp + ' took ' +       // 20 Sept 2010 was LevelInfo
-                                    IntToStr (IcsElapsedSecs64 (fCopyProg.CurStartTick)) + ' secs; Result ' + fCrcResult) ;    { V8.71 }
-            end ;
+            end
+            else
+               doCopyEvent (LogLevelInfo, 'CRC32 Command Skipped, File Too Large: ' + fnametmp) ;   // V9.5
         end ;
 
     // replace old file, removing read only if necessary
@@ -3783,13 +3858,13 @@ begin
         fullsrcname := remdir + fnamesrc ;
 
     // 14 Sept 2008 skip Unicode names with substitution characters
-        if (Pos ('?', fullsrcname) > 0) then
+        if FCheckBadUnicode and (Pos ('?', fullsrcname) > 0) then   { V9.4 }
         begin
             doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + fullsrcname) ;
             doCopyEvent (LogLevelDelimFile, fnamesrc + '|' + fnametar + '|0|0|1|Inaccessible Unicode File|0|0') ;
             exit ;
         end ;
-        if (Pos ('?', Fnametar) > 0) then
+        if FCheckBadUnicode and (Pos ('?', Fnametar) > 0) then     { V9.4 }
         begin
             doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + Fnametar) ;
             doCopyEvent (LogLevelDelimFile, fnamesrc + '|' + fnametar + '|0|0|1|Inaccessible Unicode File|0|0') ;
@@ -4226,14 +4301,16 @@ begin
             SrcFileRec := SrcFileList [I] ;
             with SrcFileRec^ do
             begin
+                if ((FrFileAttr and faDirectory) = faDirectory) then   { V9.4 ignore directories, can not download them }
+                    FrFileCopy := FCStateIgnore;
                 if FrFileCopy = FCStateSelect then
                 begin
                     newsize := newsize + FrFileBytes ;
                     if CheckFiles then
                     begin
-                        if ((FrFileAttr and faDirectory) = faDirectory) then   // 21 Feb 2011 display directory
-                            listing.AppendLine (FrFullName + IcsSpace + sDirLit)
-                        else
+                     //   if ((FrFileAttr and faDirectory) = faDirectory) then   // 21 Feb 2011 display directory
+                    //        listing.AppendLine (FrFullName + IcsSpace + sDirLit)
+                    //    else
                             listing.AppendLine (FrFullName + ', Size ' + IcsInt64ToCStr (FrFileBytes)) ;
                    end;
                 end ;
@@ -4275,7 +4352,7 @@ begin
                     if FrFileCopy = FCStateSelect then
                     begin
                 // 14 Sept 2008 skip Unicode names with substitution characters
-                        if (Pos ('?', FrFullName) > 0) then
+                        if FCheckBadUnicode and (Pos ('?', FrFullName) > 0) then   { V9.4 }
                         begin
                             doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + FrFullName) ;
                             doCopyEvent (LogLevelDelimFile, '|' + FrFullName + '|0|0|0|Inaccessible Unicode File|0|0') ;
@@ -4736,7 +4813,7 @@ begin
 {$ENDIF}
 
 // 14 Sept 2008 skip Unicode file with non-ANSI characters unlesss UTF8 enabled
-    if (Pos ('?', LocFileFull) > 0) then
+    if FCheckBadUnicode and (Pos ('?', LocFileFull) > 0) then   { V9.4 }
     begin
         doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + LocFileFull) ;
         doCopyEvent (LogLevelDelimFile, LocFileFull + '|' + RemFile + '|0|0|1|Inaccessible Unicode File|0|0') ;
@@ -5357,7 +5434,7 @@ begin
         fulltarname := remdir + RemTarFile ;
 
     // 14 Sept 2008 skip Unicode file with non-ANSI characters unlesss UTF8 enabled
-        if (Pos ('?', LocFileFull) > 0) then
+        if FCheckBadUnicode and (Pos ('?', LocFileFull) > 0) then    { V9.4 }
         begin
             doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + LocFileFull) ;
             doCopyEvent (LogLevelDelimFile, LocFileFull + '|' + fulltarname + '|0|0|1|Inaccessible Unicode File|0|0') ;
@@ -5708,7 +5785,7 @@ begin
                     if FrFileCopy <> FCStateSelect then continue ;
 
                 // 14 Sept 2008 skip Unicode names with substitution characters
-                    if (Pos ('?', FrFullName) > 0) then
+                    if FCheckBadUnicode and (Pos ('?', FrFullName) > 0) then    { V9.4 }
                     begin
                         doCopyEvent (LogLevelDiag, 'Skipped Inaccessible Unicode Name: ' + FrFullName) ;
                         doCopyEvent (LogLevelDelimFile, '|' + FrFullName + '|0|0|0|Inaccessible Unicode File|0|0') ;
@@ -5801,7 +5878,7 @@ begin
                 end ;
 
             // 13 Nov 2008 skip Unicode file with non-ANSI characters
-                if (Pos ('?', fnamesrc) > 0) then
+                if FCheckBadUnicode and (Pos ('?', fnamesrc) > 0) then    { V9.4 }
                 begin
                     doCopyEvent (LogLevelInfo, 'Skipped Inaccessible Unicode Name: ' + fnamesrc) ;
                     doCopyEvent (LogLevelDelimFile, fnamesrc + '|' + FrFileName + '|0|0|1|Inaccessible Unicode File|0|0') ;

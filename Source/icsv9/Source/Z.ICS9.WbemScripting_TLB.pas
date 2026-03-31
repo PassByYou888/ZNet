@@ -20,6 +20,7 @@ unit Z.ICS9.WbemScripting_TLB;
 
 // PASTLWTR : $Revision:   1.130.1.0.1.0.1.6  $
 // File generated on 09/07/2003 16:17:52 from Type Library described below.
+// Feb 07, 2024 V9.1  Added namespace to keep Win64 happy.
 
 // ************************************************************************  //
 // Type Lib: D:\WINDOWS\System32\wbem\wbemdisp.TLB (1)
@@ -56,8 +57,16 @@ unit Z.ICS9.WbemScripting_TLB;
 {$VARPROPSETTER ON}
 
 interface
+{$I Include\Z.ICS9.OverbyteIcsDefs.inc}
 
-uses Windows, ActiveX, Classes, Graphics, OleServer, StdVCL, Variants;
+uses
+    {$IFDEF RTL_NAMESPACES}   { V9.1 keep Win64 happy }
+        Winapi.Windows, System.Classes, System.Variants, System.Win.StdVCL, Vcl.Graphics, Vcl.OleServer, Winapi.ActiveX;
+    {$ELSE}
+        Windows, ActiveX, Classes, Graphics, OleServer, StdVCL, Variants;
+    {$ENDIF}
+
+
 
 
 // *********************************************************************//
@@ -2739,7 +2748,12 @@ resourcestring
 
 implementation
 
-uses ComObj;
+uses
+    {$IFDEF RTL_NAMESPACES}   { V9.1 keep Win64 happy }
+        System.Win.ComObj;
+    {$ELSE}
+        ComObj;
+    {$ENDIF}
 
 class function CoSWbemLocator.Create: ISWbemLocator;
 begin

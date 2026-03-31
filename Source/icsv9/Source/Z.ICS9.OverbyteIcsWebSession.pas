@@ -3,10 +3,10 @@
 Author:       François PIETTE
 Description:  Classes to handle session for THttpAppSrv and MidWare.
 Creation:     Dec 20, 2003
-Version:      V9.0
+Version:      V9.1
 EMail:        francois.piette@overbyte.be     http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1998-2023 by François PIETTE
+Legal issues: Copyright (C) 1998-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -42,6 +42,8 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
 Aug 17, 2012 V8.01 Angus, added MaxSessions to allow more than 100 web sessions
 Aug 05, 2020 V8.65 Use AtomicIncrement instead of InterlockedIncrement.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+
+Pending, why do we have two Base64 encode/decdde functions here?
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *_*}
 unit Z.ICS9.OverbyteIcsWebSession;

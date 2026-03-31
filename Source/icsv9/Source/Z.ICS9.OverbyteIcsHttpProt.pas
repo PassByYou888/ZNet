@@ -2,7 +2,7 @@
 
 Author:       François PIETTE
 Creation:     November 23, 1997
-Version:      V9.0
+Version:      V9.5
 Description:  THttpCli is an implementation for the HTTP protocol
               RFC 1945 (V1.0), and some of RFC 2068 (V1.1)
 Credit:       This component was based on a freeware from by Andreas
@@ -10,7 +10,7 @@ Credit:       This component was based on a freeware from by Andreas
               andy@hoerstemeier.de http://www.hoerstemeier.com/index.htm
 EMail:        francois.piette@overbyte.be         http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               SSL implementation includes code written by Arno Garrels,
               Berlin, Germany
@@ -55,23 +55,17 @@ simultaneously without using multi-threading and without blocking your app.
 Methods:
     GetASync    Asynchronous, non-blocking Get
                 Retrieve document or file specified by URL, without blocking.
-                OnRequestDone event trigered when finished. Use HTTP GET
-                method (data contained in URL)
+                OnRequestDone event trigered when finished. Use HTTP GET method (data contained in URL)
     PostASync   Asynchronous, non-blocking Post
                 Retrieve document or file specified by URL, without blocking.
-                OnRequestDone event trigered when finished. Use HTTP POST
-                method (data contained in request stream)
+                OnRequestDone event trigered when finished. Use HTTP POST method (data contained in request stream)
     HeadASync   Asynchronous, non-blocking Head
-                Retrieve document or file header specified by URL, without
-                blocking. OnRequestDone event trigered when finished. Use HTTP
-                HEAD method.
+                Retrieve document or file header specified by URL, without blocking.
+                OnRequestDone event trigered when finished. Use HTTP HEAD method.
 
-    Get         Synchronous, blocking Get. Same as GetAsync, but blocks until
-                finished.
-    Post        Synchronous, blocking Post. Same as PostAsync, but blocks until
-                finished.
-    Head        Synchronous, blocking Head. Same as HeadAsync, but blocks until
-                finished.
+    Get         Synchronous, blocking Get. Same as GetAsync, but blocks until  finished.
+    Post        Synchronous, blocking Post. Same as PostAsync, but blocks until finished.
+    Head        Synchronous, blocking Head. Same as HeadAsync, but blocks until finished.
     Abort       Immediately close communication.
 
 Updates:
@@ -630,8 +624,37 @@ Jun 25, 2023 V8.71 Changed property LmCompatLevel from public to published so it
                      supporting BUILTIN_THROTTLE now.
                    Added check that OpenSSL is loaded before request starts.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Dec 22, 2023 V9.1  Only call SetSslAlpnProtocols if using https.
+                   If the Location property is cleared during the OnLocationChange event,
+                     relocation is stopped, can be used stop relocation from http to https.
+                   Minor clean-up in DoRequestSync.
+                   Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   ALPN is now set for TSslWSocket rather than SslContext.
+                   When sending proxy CONNNECT request, add ALPN: header (RFC7639) which
+                     will be forwarded to target by some proxies, needed for Acme protocol.
+Apr 08, 2024 V9.2  Always need / at start of path, add it for test.com?query.
+Sep 19, 2024 V9.3  Moved many types and constants to OverbyteIcsTypes for consolidation.
+                   Added RespMimeType and RespCharset response properties parsed from
+                     Content-Type header for easier use.  Pending parsing more headers
+                     with multiple arguments.
+                   Don't add / at start of path for absolute path, ie proxy.
+Feb 04, 2025 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+                   Fixed check for an overflowing buffer when receiving very long headers
+                     that could cause failure detecting headers end, thanks to khm123.
+                   Made several URL validation functions public: GetProtocolPort,
+                     IsSSLProtocol, IsKnownProtocol and IsKnownProtocolURL.
+Jul 16, 2025 V9.5  Added RespAttachment (boolean) and RespFileName, parsed from
+                     Content-Disposition: response header. Can be used to offer to
+                     save content as a file.
+                   Added RespRetryDT parsed from Retry-After: response header, when
+                     this request should next be repeated as TDateTime.
+                   ResponseNoException now defaults to True to skip exceptions for
+                     most connection errors like 404, etc.
+                  Allow setting blank APLN list.
 
 
+If using Sync requests and uploading gigabyte sized files, beware a timeout longer than
+30 seconds may be necessary for the server to finish saving the upload content.
 
 To convert the received HTML stream to a unicode string with the correct codepage,
 use this function in OverbyteIcsCharsetUtils, it's not used directly by this unit
@@ -640,6 +663,7 @@ argumment determines whether entities like &pound; and &#9741; are converted to
 characters:
 
 UnicodeStr := IcsHtmlToStr(RcvdStream, ContentType, true);
+UnicodeStr := IcsHtmlToStrCh(RcvdStream, RespCharset, true);     V9.3
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFNDEF ICS_INCLUDE_MODE}
@@ -682,7 +706,7 @@ uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Messages{$ELSE}Messages{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
-    Z.ICS9.OverbyteIcsWinsock,
+//  OverbyteIcsWinSock,
 {$ENDIF}
 {$IFDEF POSIX}
     Z.ICS9.Ics.Posix.WinTypes,
@@ -701,14 +725,16 @@ uses
 { You must define USE_SSL so that SSL code is included in the component.   }
 { Either in OverbyteIcsDefs.inc or in the project/package options.         }
 {$IFDEF USE_SSL}
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$ENDIF}
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
 {$IFDEF UseNTLMAuthentication}
     Z.ICS9.OverbyteIcsMimeUtils,
@@ -728,12 +754,18 @@ uses
 {$ENDIF}
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+    Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+    Z.ICS9.OverbyteIcsHtmlUtils;  { V9.3 }
 
 const
-    HttpCliVersion       = 900;
-    CopyRight : String   = ' THttpCli (c) 1997-2023 F. Piette V9.0 ';
+    HttpCliVersion       = 905;
+    CopyRight : String   = ' THttpCli (c) 1997-2025 F. Piette V9.5 ';
+
     DefaultProxyPort     = '80';
+
+
+(* V9.3 moved to OverbyteIcsTypes
+
     { EHttpException error code }
     httperrBase                     = {$IFDEF MSWINDOWS} 1 {$ELSE} 1001 {$ENDIF}; { V7.23 }
     httperrNoError                  = 0;
@@ -754,14 +786,6 @@ const
 type
     THttpBigInt = Int64;
 
-    EHttpException = class(Exception)
-    private
-        FErrorCode: Word;
-    public
-        property ErrorCode : Word read FErrorCode write FErrorCode;
-        constructor Create(const Msg : String; ErrCode : Word);
-    end;
-
     THttpEncoding    = (encUUEncode, encBase64, encMime);
     THttpRequest     = (httpABORT, httpGET, httpPOST, httpPUT,
                         httpHEAD, httpDELETE, httpCLOSE, httpPATCH,
@@ -773,6 +797,33 @@ type
                         httpClosing,       httpAborting);
     THttpChunkState  = (httpChunkGetSize, httpChunkGetExt, httpChunkGetData,
                         httpChunkSkipDataEnd, httpChunkDone);
+    THttpBasicState  = (basicNone, basicMsg1, basicDone);
+    THttpAuthType    = (httpAuthNone, httpAuthBasic, httpAuthNtlm,
+                        httpAuthDigest, httpAuthBearer, httpAuthToken,   { V8.54 }
+                        httpAuthJWT, httpAuthOAuth, httpAuthDigest2);  { V8.62, V8.65, V8.69 }
+    THttpCliOption = (httpoNoBasicAuth, httpoNoNTLMAuth, httpoBandwidthControl,
+                  {$IFDEF UseContentCoding}
+                      httpoEnableContentCoding, httpoUseQuality,
+                  {$ENDIF}
+                      httpoNoDigestAuth, httpoAllowAnchor,  { V8.69 allow # fragment anchor in URL }
+                      httpoGetContent);                     { V8.71 allow content in GET and DELETE, like PUT }
+    THttpCliOptions = set of THttpCliOption;
+    TWWWAuthInfo = record
+       AuthType: THttpAuthType;
+       Realm: String;
+       CharSet: String;
+       Uri: String;
+       Header: String;
+    end;                                                                { V8.69 parsed from WWW-Authenticate headers }
+    TWWWAuthInfos = Array of TWWWAuthInfo;                              { V8.69 }
+    THttpAuthTypes = Set of THttpAuthType;                              { V8.69 }
+
+const
+    HttpCliAuthNames: array [THttpAuthType] of PChar = (              { V8.69 }
+        'None','Basic (Clear)','NTLM Domain','Digest MD5','Bearer Token','XAuth Token',
+        'Json Web Token','OAuth Bearer','Digest SHA-256');
+*)
+type
 {$IFDEF UseNTLMAuthentication}
     THttpNTLMState   = (ntlmNone, ntlmMsg1, ntlmMsg2, ntlmMsg3, ntlmDone);
 {$ENDIF}
@@ -780,10 +831,7 @@ type
     TAuthDigestInfo  = TAuthDigestResponseInfo;
     THttpDigestState = (digestNone, digestMsg1, digestDone);
 {$ENDIF}
-    THttpBasicState  = (basicNone, basicMsg1, basicDone);
-    THttpAuthType    = (httpAuthNone, httpAuthBasic, httpAuthNtlm,
-                        httpAuthDigest, httpAuthBearer, httpAuthToken,   { V8.54 }
-                        httpAuthJWT, httpAuthOAuth, httpAuthDigest2);  { V8.62, V8.65, V8.69 }
+
     THttpBeforeAuthEvent   = procedure(Sender  : TObject;
                                  AuthType      : THttpAuthType;
                                  ProxyAuth     : Boolean;
@@ -803,33 +851,21 @@ type
     TBeforeHeaderSendEvent = procedure (Sender       : TObject;
                                         const Method : String;
                                         Headers      : TStrings) of object;
-    THttpCliOption = (httpoNoBasicAuth, httpoNoNTLMAuth, httpoBandwidthControl,
-                  {$IFDEF UseContentCoding}
-                      httpoEnableContentCoding, httpoUseQuality,
-                  {$ENDIF}
-                      httpoNoDigestAuth, httpoAllowAnchor,  { V8.69 allow # fragment anchor in URL }
-                      httpoGetContent);                     { V8.71 allow content in GET and DELETE, like PUT }
-    THttpCliOptions = set of THttpCliOption;
     TLocationChangeExceeded = procedure (Sender              : TObject;
                                   const RelocationCount      : Integer;
                                   var   AllowMoreRelocations : Boolean) of object;  {  V1.90 }
     TSelectDnsEvent = procedure(Sender : TObject;
                                   DnsList     : TStrings;
                                   var NewDns  : String) of object;      { V8.57 }
-    TWWWAuthInfo = record
-       AuthType: THttpAuthType;
-       Realm: String;
-       CharSet: String;
-       Uri: String;
-       Header: String;
-    end;                                                                { V8.69 parsed from WWW-Authenticate headers }
-    TWWWAuthInfos = Array of TWWWAuthInfo;                              { V8.69 }
-    THttpAuthTypes = Set of THttpAuthType;                              { V8.69 }
 
-const
-    HttpCliAuthNames: array [THttpAuthType] of PChar = (              { V8.69 }
-        'None','Basic (Clear)','NTLM Domain','Digest MD5','Bearer Token','XAuth Token',
-        'Json Web Token','OAuth Bearer','Digest SHA-256');
+    EHttpException = class(Exception)
+    private
+        FErrorCode: Word;
+    public
+        property ErrorCode : Word read FErrorCode write FErrorCode;
+        constructor Create(const Msg : String; ErrCode : Word);
+    end;
+
 
 type
     TOnSyncRequestWaitEvent = procedure(Sender: TObject; var AbortRequired: Boolean; var AbortMsg: String) of object;  { V8.71 JK }
@@ -894,6 +930,11 @@ type
         FRequestVer           : String;
         FContentLength        : THttpBigInt;
         FContentType          : String;
+        FRespMimeType         : String;     { V9.3 }
+        FRespCharset          : String;     { V9.3 }
+        FRespAttachment       : Boolean;    { V9.5 is content an attachment that should be saved as a file }
+        FRespFileName         : String;     { V9.5 attachment file name if RespAttachment true  }
+        FRespRetryDT          : TDateTime;  { V9.5 from Retry-After header, when request should be retried, converted from secs }
         FTransferEncoding     : String;
 {$IFDEF UseContentCoding}
         FContentEncoding      : String;
@@ -1006,7 +1047,7 @@ type
         FAlpnProtoList        : TStrings;      { V8.62 only used for SSL }
         FPunyCodeHost         : String;        { V8.64 }
         FAddrResolvedStr      : String;        { V8.66 }
-        FTimeout              : UINT;  { V7.04 }            { Sync Timeout Seconds }
+        FTimeout              : UINT;          { V7.04 }    { Sync Timeout Seconds }
         FWMLoginQueued        : Boolean;
         FOnSyncRequestWait    : TOnSyncRequestWaitEvent;       { V8.71 JK }
         procedure AbortComponent(E:Exception); override;    { V8.68 added E to allow reporting }
@@ -1095,10 +1136,6 @@ type
         procedure WndProc(var MsgRec: TMessage); override;
         procedure SetReady; virtual;
         procedure AdjustDocName; virtual;
-        function  GetProtocolPort(const AProtocol: String): String; virtual;  { V8.71 JK }
-        function  IsSSLProtocol(const AProtocol: String): Boolean; virtual;   { V8.71 JK }
-        function  IsKnownProtocol(const AProtocol: String): Boolean; virtual; { V8.71 JK }
-        function  IsKnownProtocolURL(const AURL : String): Boolean; virtual;  { V8.71 JK }
         procedure SetRequestVer(const Ver : String);
         procedure SetExtraHeaders(Value: TStrings);      { V8.52 }
         procedure SetSocketFamily(Value : TSocketFamily); { V8.60 }
@@ -1125,6 +1162,10 @@ type
                                         var Disconnect : Boolean); virtual; { V8.61 }
 {$ENDIF}
     public
+        function  GetProtocolPort(const AProtocol: String): String; virtual;  { V8.71 JK }
+        function  IsSSLProtocol(const AProtocol: String): Boolean; virtual;   { V8.71 JK }
+        function  IsKnownProtocol(const AProtocol: String): Boolean; virtual; { V8.71 JK }
+        function  IsKnownProtocolURL(const AURL : String): Boolean; virtual;  { V8.71 JK }
         constructor Create(AOwner: TComponent); override;
         destructor  Destroy; override;
         procedure   Get;        { Synchronous blocking Get         }
@@ -1160,6 +1201,11 @@ type
         property LastResponse         : String       read  FLastResponse;
         property ContentLength        : THttpBigInt  read  FContentLength;
         property ContentType          : String       read  FContentType;
+        property RespMimeType         : String       read  FRespMimeType;          { V9.3 }
+        property RespCharset          : String       read  FRespCharset;           { V9.3 }
+        property RespAttachment       : Boolean      read  FRespAttachment;        { V9.5 }
+        property RespFileName         : String       read  FRespFileName;          { V9.5 }
+        property RespRetryDT          : TDateTime    read  FRespRetryDT;           { V9.5 }
         property TransferEncoding     : String       read  FTransferEncoding;
 {$IFDEF UseContentCoding}
         property ContentEncoding      : String       read  FContentEncoding;
@@ -1591,6 +1637,7 @@ begin
     FLastAddrOK                    := '';     { V8.60 }
     FCurrDnsResult                 := -1;     { V8.60 }
     FAlpnProtoList                 := TStringList.Create;  { V8.62 }
+    FResponseNoException           := True;   { V9.5 default changed }
 end;
 
 
@@ -1990,10 +2037,8 @@ begin
         {$IFNDEF NO_DEBUG_LOG}
             if CheckLogOptions(loProtSpecInfo) then begin
                 if Assigned(FRcvdStream) and (FContentEncoding <> '') then begin
-                    DebugLog(loProtSpecInfo, FContentEncoding +
-                             ' content uncompressed from ' +
-                             IntToStr(FContentLength) + ' bytes to ' +
-                             IntToStr(FRcvdStream.Size) + ' bytes');
+                    DebugLog(loProtSpecInfo, FContentEncoding + ' content uncompressed from ' +
+                             IntToStr(FContentLength) + ' bytes to ' + IntToStr(FRcvdStream.Size) + ' bytes');
                 end;
             end;
         {$ENDIF}
@@ -2143,7 +2188,6 @@ end;
 {$IFDEF UseNTLMAuthentication}
 function THttpCli.PrepareNTLMAuth(var FlgClean : Boolean) : Boolean;
 var
-//    TmpInt          : Integer;
     WAI: Integer;
 begin
 {$IFNDEF NO_DEBUG_LOG}                                                  { V1.91 }
@@ -2173,24 +2217,6 @@ begin
             then begin  // V8.61  OAS : remove case where user and PW are empty because used for User credentials
 
         { We can handle authorization }
- {       TmpInt := FDoAuthor.Count - 1;
-        while TmpInt >= 0  do begin
-            if CompareText(Copy(FDoAuthor.Strings[TmpInt], 1, 4), 'NTLM') = 0 then begin
-                Result := TRUE;
-                if Assigned(FOnBeforeAuth) then
-                    FOnBeforeAuth(Self, httpAuthNtlm, FALSE,
-                                  FDoAuthor.Strings[TmpInt], Result);
-                if Result then begin
-                    if (FProxyUsername = '') and (FProxyPassword = '')  and not Assigned(FAuthNtlmSession) then  // V8.61
-                        FAuthNtlmSession := TNtlmAuthSession.Create (cuOutbound) ;                               // Create session for proxy NTLM
-                    StartAuthNTLM;
-                    if FAuthNTLMState in [ntlmMsg1, ntlmMsg3] then
-                        FlgClean := True;
-                    Break;
-                end;
-            end;
-            Dec(TmpInt);
-        end;  }
 
      { V8.69 use parsed headers from WWWAuthInfos instead of enumerating FDoAuthor.Strings }
         Result := TRUE;
@@ -2212,23 +2238,6 @@ begin
             (FProxyUsername <> '') and (FProxyPassword <> '') then begin
         {BLD proxy NTLM authentication}
         { We can handle authorization }
-{        TmpInt := FDoAuthor.Count - 1;
-        while TmpInt >= 0  do begin
-            if CompareText(Copy(FDoAuthor.Strings[TmpInt], 1, 4), 'NTLM') = 0 then begin
-                Result := TRUE;
-                if Assigned(FOnBeforeAuth) then
-                    FOnBeforeAuth(Self, httpAuthNtlm, TRUE,
-                                  FDoAuthor.Strings[TmpInt], Result);
-                if Result then begin
-                    StartProxyAuthNTLM;
-                    if FProxyAuthNTLMState in [ntlmMsg1, ntlmMsg3] then
-                        FlgClean := True;
-
-                    Break;
-                end;
-            end;
-            Dec(TmpInt);
-        end;   }
 
      { V8.69 use parsed headers from WWWAuthInfos instead of enumerating FDoAuthor.Strings }
         Result := TRUE;
@@ -2256,11 +2265,9 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function THttpCli.PrepareBasicAuth(var FlgClean : Boolean) : Boolean;
 var
-//    TmpInt          : Integer;
     WAI: Integer;
 begin
-    { this flag can tell if we proceed with OnRequestDone or will try    }
-    { to authenticate                                                    }
+    { this flag can tell if we proceed with OnRequestDone or will try to authenticate   }
     Result := FALSE;
     WAI := FindAuthType(httpAuthBasic);   { V8.69 find authorisation information }
     if WAI < 0 then Exit;
@@ -2278,24 +2285,6 @@ begin
 {$ENDIF}
        (FCurrUserName <> '') and (FCurrPassword <> '') then begin
         { We can handle authorization }
-    {    TmpInt := FDoAuthor.Count - 1;
-        while TmpInt >= 0  do begin
-            if CompareText(Copy(FDoAuthor.Strings[TmpInt], 1, 5),
-                           'Basic') = 0 then begin
-                Result := TRUE;
-                if Assigned(FOnBeforeAuth) then
-                    FOnBeforeAuth(Self, httpAuthBasic, TRUE,
-                                  FDoAuthor.Strings[TmpInt], Result);
-                if Result then begin
-                    StartAuthBasic;
-                    if FAuthBasicState in [basicMsg1] then
-                        FlgClean := True;
-
-                    Break;
-                end;
-            end;
-            Dec(TmpInt);
-        end;   }
 
      { V8.69 used parsed headers from WWWAuthInfos instead of enumerating FDoAuthor.Strings }
         Result := TRUE;
@@ -2316,24 +2305,6 @@ begin
 {$ENDIF}
         (FProxyUsername <> '') and (FProxyPassword <> '') then begin
         { We can handle authorization }
-     {   TmpInt := FDoAuthor.Count - 1;
-        while TmpInt >= 0  do begin
-            if CompareText(Copy(FDoAuthor.Strings[TmpInt], 1, 5),
-                           'Basic') = 0 then begin
-                Result := TRUE;
-                if Assigned(FOnBeforeAuth) then
-                    FOnBeforeAuth(Self, httpAuthBasic, TRUE,
-                                  FDoAuthor.Strings[TmpInt], Result);
-                if Result then begin
-                    StartProxyAuthBasic;
-                    if FProxyAuthBasicState in [basicMsg1] then
-                        FlgClean := True;
-
-                    Break;
-                end;
-            end;
-            Dec(TmpInt);
-        end;       }
 
      { V8.69 used parsed headers from WWWAuthInfos instead of enumerating FDoAuthor.Strings }
         Result := TRUE;
@@ -2831,7 +2802,7 @@ procedure THttpCli.SendRequest(const Method, Version: String);
 var
     Headers : TStrings;
     N       : Integer;
-    AHost   : String;
+    AHost, AlpnLst: String;
 begin
     Headers := TStringList.Create;
     try
@@ -2878,8 +2849,13 @@ begin
         end;
         if FCurrProxyConnection <> '' then
             Headers.Add('Proxy-Connection: ' + FCurrProxyConnection);
-        if (Method = 'CONNECT') then                                   // <= 12/29/05 AG
+        if (Method = 'CONNECT') then begin                             // <= 12/29/05 AG
+            if FAlpnProtoList.Count > 0 then begin      { V9.1 add ALPN header }
+                AlpnLst := FAlpnProtoList.CommaText;    { V9.5 diag }
+                Headers.Add('ALPN: ' + String(IcsPercentEncode(AnsiString(AlpnLst))));
+            end;
             Headers.Add('Content-Length: 0')                           // <= 12/29/05 AG}
+        end
         else begin  { V7.05 begin }
             if (FRequestType in [httpPOST, httpPUT, httpPATCH]) or
               { V8.71 DELETE and GET can also have body }
@@ -3249,8 +3225,7 @@ begin
             DebugLog(loProtSpecInfo, 'End of header');
 {$ENDIF}
         if (FResponseVer = '1.1') and (FStatusCode = 100) then begin
-            { HTTP/1.1 continue message. A second header follow. }
-            { I should create an event to give access to this.   }
+            { HTTP/1.1 continue message. A second header follow. I should create an event to give access to this.   }
             FRcvdHeader.Clear;        { Cancel this first header }
             FHeaderLineCount := -1;   { -1 is to remember we went here }
             Exit;
@@ -3560,19 +3535,26 @@ begin
         end                                                                    {JMR!! Added this line!!!}
         else if Field = 'accept-ranges' then
             FAcceptRanges := Data
-        else if Field = 'content-type' then
-            FContentType := LowerCase(Data)
+        else if Field = 'content-type' then begin
+            FContentType := LowerCase(Data);
+            FRespMimeType := LowerCase(IcsFindHdrArg(Data, '', ';'));          { V9.3 }
+            FRespCharset := LowerCase(IcsFindHdrArg(Data, 'charset', ';'));    { V9.3 }
+        end
+        else if Field = 'content-disposition' then begin                 { V9.5 }
+            FRespAttachment := (Pos('attachment', LowerCase(Data)) = 1);  { note may have filename*= and filename=, prefer first }
+            if FRespAttachment then
+                FRespFileName := IcsDecHttp2Params(Data, 'filename');   { attachment; filename*=UTF-8''file%20name.jpg   RFC5987 encoded }
+        end
         else if Field = 'www-authenticate' then
-            FDoAuthor.add(Data)
+            FDoAuthor.Add(Data)
         else if Field = 'proxy-authenticate' then              { BLD required for proxy NTLM authentication }
-            FDoAuthor.add(Data)
+            FDoAuthor.Add(Data)
         else if Field = 'set-cookie' then begin
             bAccept := TRUE;
             TriggerCookie(Data, bAccept);
         end
         { rawbite 31.08.2004 Connection controll }
-        else if (Field = 'connection') or
-                (Field = 'proxy-connection') then begin
+        else if (Field = 'connection') or (Field = 'proxy-connection') then begin
             if (LowerCase(Trim(Data)) = 'close') then
                 FCloseReq := TRUE
             else if (LowerCase(Trim(Data)) = 'keep-alive') then
@@ -3601,6 +3583,12 @@ begin
         end
         else if Field = 'age' then      { V8.61 }
             FRespAge := atoi(Data)
+        else if Field = 'retry-after' then begin       { V9.5 }
+            if (Length(Data) > 8) then
+                FRespRetryDT := RFC1123_StrToDate(Data)
+            else
+                FRespRetryDT := Now + (atoi(Data) / SecsPerDay);  { convert seconds to real time }
+        end
         else if Field = 'cache-control' then      { V8.61 }
             FRespCacheControl := Data     // should really parse field
         else if Field = 'etag' then               { V8.68 }
@@ -3614,15 +3602,12 @@ begin
         else if Field = 'content-encoding' then
           FContentEncoding := Data
 {$ENDIF}
-    {   else if Field = 'expires' then }
    end
    else { Ignore  all other responses }
        ;
 
    TriggerHeaderData;   { V8.61 }
 
-{    if FStatusCode >= 400 then    Moved above 01/11/01 }
-{        FCtrlSocket.Close;                             }
 end;
 
 
@@ -3655,6 +3640,9 @@ begin
     FLocation         := FURL;
     FDoAuthor.Clear;
     SetLength(FWWWAuthInfos, 0);   { V8.69 }
+    FRespAttachment := False;  { V9.5 }
+    FRespFileName := '';       { V9.5 }
+    FRespRetryDT := 0;         { V9.5  }
 
     { if protocol version is 1.0 then we suppose that the connection must be }
     { closed. If server response will contain a Connection: keep-alive header }
@@ -3682,8 +3670,7 @@ begin
        (not Assigned(FSendStream)
        { or (FSendStream.Position = FSendStream.Size)}   { Removed 21/03/05 }
        ) then
-        raise EHttpException.Create('HTTP component has nothing to post, put or patch',
-                                    httpErrNoData);
+        raise EHttpException.Create('HTTP component has nothing to post, put or patch', httpErrNoData);
 
     if Rq = httpCLOSE then begin
         FStatusCode   := 200;
@@ -3780,8 +3767,10 @@ begin
         if I > 0 then
             FPath := Copy(FPath, 1, I - 1);
     end;
-    if FPath = '' then
-        FPath := '/';
+{    if FPath = '' then
+        FPath := '/';   }
+    if (Pos('/', FPath) <> 1) and (Pos('http', FPath) <> 1) then    { V9.2 always need / at start of path, V9.3 except absolute }
+        FPath := '/' + FPath;
     if (FPath = '/*') and (Rq = httpOPTIONS) then  { V8.09 }
         FPath := '*';
 
@@ -3951,7 +3940,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure THttpCli.DoRequestSync(Rq : THttpRequest);  { V7.04 Timeout added }
 var
-    TimeOutMsec     : UINT;
+    TimeOutSec, IdleSec : Integer;
     bFlag           : Boolean;
     AbortRequired   : Boolean;         { V8.71 JK }
     AbortMsg        : String;          { V8.71 JK }
@@ -3960,22 +3949,22 @@ begin
     if not Assigned(FCtrlSocket.Counter) then
         FCtrlSocket.CreateCounter;
     FCtrlSocket.Counter.LastSendTick := IcsGetTickCount64; // Reset counter      { V8.71 }
-    TimeOutMsec := FTimeOut * 1000;
+    TimeOutSec := FTimeOut;    { V9.1 using seconds, not MS }
+    if TimeOutSec <= 0 then
+        TimeOutSec := 30;      { V9.1 sanity check }
     while FState <> httpReady do begin
       {$IFDEF MSWINDOWS}
-        if MsgWaitForMultipleObjects(0, Pointer(nil)^, FALSE, 1000,
-                                     QS_ALLINPUT) = WAIT_OBJECT_0 then
+        if MsgWaitForMultipleObjects(0, Pointer(nil)^, FALSE, 1000, QS_ALLINPUT) = WAIT_OBJECT_0 then
       {$ENDIF}
             MessagePump;
-
 
       { V8.71 JK see if user wants to abandon this request }
         AbortRequired := False;
         AbortMsg := '';
         if Assigned(FOnSyncRequestWait) then
             FOnSyncRequestWait(Self, AbortRequired, AbortMsg);
-
-        if (FState <> httpReady) and (Terminated or (IcsElapsedMsecs64(FCtrlSocket.Counter.LastAliveTick) >= TimeOutMsec)) then begin   { V8.71 }
+        IdleSec := IcsElapsedSecs64(FCtrlSocket.Counter.LastAliveTick);   { V9.1 cleanup, use seconds }
+        if (FState <> httpReady) and (Terminated or (IdleSec >= TimeOutSec) or AbortRequired) then begin   { V8.71 }
             bFlag := (FState = httpDnsLookup);
             StateChange(httpAborting);
 
@@ -3998,6 +3987,8 @@ begin
             end
             else begin
                 FReasonPhrase     := 'Request aborted on timeout';
+        //        FReasonPhrase := FReasonPhrase + ', Idle Seconds ' + IntToStr(IdleSec) +
+       //                                         ', Timeout Seconds ' + IntToStr(TimeOutSec); { V9.1 TEMP DIAG }
                 FRequestDoneError := httperrCustomTimeOut;
             end;
             if bFlag then
@@ -4113,6 +4104,11 @@ begin
 
     { Trigger the location changed event }
     TriggerLocationChange;  { V8.61 }
+    if FLocation = '' then begin    { V9.1 cancel relocation if new location cleared in event }
+        FLocationFlag := False;
+        SetReady;
+        Exit;
+    end;
     { Clear header from previous operation }
     FRcvdHeader.Clear;
     { Clear status variables from previous operation }
@@ -4285,6 +4281,7 @@ begin
     end;
 {$ENDIF USE_SSL}
 
+{ receiving HTTP body }
     if FState = httpWaitingBody then begin
         if FReceiveLen > 0 then begin
             if FRequestType = httpHEAD then begin   { 23/07/04 }
@@ -4322,11 +4319,13 @@ begin
         Exit;
     end;
 
+ { main receive HTTP headers loop, reading FLastResponse lines, removing from ReceiveBuffer,
+    then processing header lines using FNext which should point to GetHeaderLineNext or GetBodyLineNext }
     while FReceiveLen > 0 do begin
         I := 0;                                                   // FP 09/09/06
-        while (I <= FReceiveLen) and (Ord(FReceiveBuffer[I]) <> 10) do // FP 09/09/06
+        while (I < FReceiveLen) and (Ord(FReceiveBuffer[I]) <> 10) do  { V9.4 fixed overflowing buffer, <= to < }
             Inc(I);                                               // FP 09/09/06
-        if I > FReceiveLen then
+        if I >= FReceiveLen then                                       { V9.4 fixed overflowing buffer, > to >= }
             break;
         if I = 0 then                                             // FP 09/09/06
             SetLength(FLastResponse, 0)                           // FP 09/09/06
@@ -4400,6 +4399,11 @@ begin
         { No need to disconnect }
         { Trigger the location changed event  27/04/2003 }
         TriggerLocationChange;  { V8.61 }
+        if FLocation = '' then begin    { V9.1 cancel relocation if new location cleared in event }
+            FLocationFlag := False;
+            SetReady;
+            Exit;
+        end;
         SaveLoc := FLocation;  { 01/05/03 }
         SavedStatus := FStatusCode;  { V8.37 keep if before it's lost }
         InternalClear;   { clears most header vars }
@@ -4558,7 +4562,8 @@ begin
          WAI := FindAuthType(httpAuthNtlm);   { V8.69 find authorisation information for type }
         if WAI < 0 then Exit;
          if assigned (FAuthNtlmSession) then                                                                             // V8.61
-            FAuthNtlmSession.NtlmMessage := Base64Decode (Copy(WWWAuthInfos[WAI].Header, 6, Length (WWWAuthInfos[WAI].Header))) // V8.61
+            FAuthNtlmSession.NtlmMessage := String(IcsBase64Decode (Copy(WWWAuthInfos[WAI].Header, 6,
+                                                                             Length (WWWAuthInfos[WAI].Header)))) // V8.61, V9.4
         else                                                                                                            // V8.61
             FProxyNTLMMsg2Info := NtlmGetMessage2(Copy(WWWAuthInfos[WAI].Header, 6, 1000));
         FProxyAuthNTLMState := ntlmMsg3;
@@ -5491,13 +5496,12 @@ begin
     FCtrlSocket.OnSslCliNewSession  := TransferSslCliNewSession;
     FCtrlSocket.OnSslHandshakeDone  := SslHandshakeDone;
     FCtrlSocket.OnSslCliCertRequest := TransferSslCliCertRequest;
+    FCtrlSocket.SslEnable := IsSSLProtocol(FProtocol);   { V8.71 JK }
+  { V8.62 set Alpn Protocols in SslCtx., V9.1 now in FCtrlSocket }
+    if { (FAlpnProtoList.Count > 0) and } FCtrlSocket.SslEnable then   { V9.5 allow set blank list }
+        FCtrlSocket.SetSslAlpnProtocols(FAlpnProtoList);
     if FProxy <> '' then
-        FCtrlSocket.SslEnable := FALSE
-    else
-        FCtrlSocket.SslEnable := IsSSLProtocol(FProtocol);   { V8.71 JK }
-  { V8.62 set Alpn Protocols in SslCtx }
-    if FAlpnProtoList.Count > 0 then
-        FCtrlSocket.SslContext.SetSslAlpnProtocols(FAlpnProtoList);
+        FCtrlSocket.SslEnable := FALSE;    { V9.1 why }
 end;
 
 

@@ -50,6 +50,7 @@ Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Mar 17, 2021 V8.66 Removed support for OpenSSL 1.0.2 and 1.1.0 whose support ceased
                      Dec 2019, specifically thread locking.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3   Added OverbyteIcsTypes for consolidated types and constants.
 
 
 
@@ -91,11 +92,12 @@ uses
 {$IFDEF USE_SSL}
     Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
 {$ENDIF}
-    Z.ICS9.OverbyteIcsWinsock;
+//    OverbyteIcsWinsock,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    WSocketThrdServerVersion = 900;
-    CopyRight : String       = ' TWSocketThrdServer (c) 2005-2023 F. Piette V9.0 ';
+    WSocketThrdServerVersion = 903;
+    CopyRight : String       = ' TWSocketThrdServer (c) 2005-2024 F. Piette V9.3 ';
 
     WM_THREAD_BASE_MSG           = WM_USER + 100;
     WM_THREAD_ADD_CLIENT         = WM_THREAD_BASE_MSG + 0;

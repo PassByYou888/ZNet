@@ -3,11 +3,11 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  TIcsFileCopy allows indexing, copying and deleting of multiple
               file directories, using a single function call.
 Creation:     May 2001
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2024
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -209,6 +209,7 @@ access to files is required.
               When calculating file done percentage and speed for resumed transfers, only use
                 actual transfer size not total size, so starting from 90% does seem very fast.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024 V9.3   Moved many types and constants to OverbyteIcsTypes for consolidation.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -257,11 +258,11 @@ uses
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
-    Z.ICS9.Ics.Fmx.OverbyteIcsBlacklist,
+//    Ics.Fmx.OverbyteIcsBlacklist,
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
-    Z.ICS9.OverbyteIcsWSocket,
-    Z.ICS9.OverbyteIcsBlacklist,
+//    OverbyteIcsWSocket,     { V9.3 gone }
+//    OverbyteIcsBlacklist,   {for TIcsBuffLogStream  }
 {$ENDIF FMX}
 {$IFDEF MSWINDOWS}
     ShellAPI,
@@ -275,7 +276,7 @@ uses
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
 
 const
-    FileCopyCopyRight : String = ' TIcsFileCopy (c) 2023 V9.0 ';
+    FileCopyCopyRight : String = ' TIcsFileCopy (c) 2024 V9.3 ';
 
 {$IFDEF MSWINDOWS}        { V8.65 can not build for Posix too many errors }
 
@@ -292,26 +293,32 @@ const
     DelimFail = 4 ; DelimComm = 5 ; DelimDuration = 6 ; DelimActualSize = 7 ;
     DelimTotFields = 8 ;
     sLineEnd: array [0..1] of Char = (IcsCR, IcsLF) ;  // 21 May 2013
+
+(* V9.3 moved to OverbyteIcsTypes
+
 type
 // file copy selection and replace options
-    TIcsFileCopyType = (FCTypeSingle, FCTypeMaskDir, FCTypeArchDir,
-                                                   FCTypeAllDir, FCTypeDates) ;
-
+    TIcsFileCopyType = (FCTypeSingle, FCTypeMaskDir, FCTypeArchDir, FCTypeAllDir, FCTypeDates) ;
     TIcsFileCopyRepl = (FCReplNever, FCReplAlways, FCReplDiff, FCReplNewer) ;
-
-    TIcsFileCopyState = (FCStateNone, FCStateIgnore,FCStateDir, FCStateSelect,
-                                 FCStateCopying, FCStateOK, FCStateFailed) ;
-
-    TIcsCopyLogLevel = (LogLevelInfo, LogLevelFile, LogLevelProg, LogLevelDiag,
-                 LogLevelDelimFile, LogLevelDelimTot) ;
-
-    TIcsTaskResult = (TaskResNone, TaskResOKNew, TaskResOKNone, TaskResFail,
-                    TaskResAbort, TaskRunning) ;
+    TIcsFileCopyState = (FCStateNone, FCStateIgnore,FCStateDir, FCStateSelect, FCStateCopying, FCStateOK, FCStateFailed) ;
+    TIcsCopyLogLevel = (LogLevelInfo, LogLevelFile, LogLevelProg, LogLevelDiag, LogLevelDelimFile, LogLevelDelimTot) ;
+    TIcsTaskResult = (TaskResNone, TaskResOKNew, TaskResOKNone, TaskResFail, TaskResAbort, TaskRunning) ;
     TIcsSslCertCheck = (SslCCNone, SslCCWarn, SslCCRequire) ;    // 11 Nov 2005
+
+var
+    IcsTaskResultNames: array [0..6] of string =
+      ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running', '') ;
+const
+    IcsTaskResultStrings: array [TIcsTaskResult] of String =         { V8.70 was shortstring }
+      ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running') ;
+    IcsSslCertCheckStrings: array [TIcsSslCertCheck] of String =
+      ('None', 'Warn', 'Require') ;
+ *)
+
+type
     {$IFDEF Zipping}
     TIcsZipExtFmt = (ExtnAdd, ExtnReplace) ;
-    TIcsZipPath = (PathNone, PathNew, PathOriginal, PathNewOrig,
-                PathSpecific, PathSpecOrig) ;
+    TIcsZipPath = (PathNone, PathNew, PathOriginal, PathNewOrig, PathSpecific, PathSpecOrig) ;
     TIcsZipType = (TypeUnzip, TypeSrcAddX, TypeSrcReplX, TypeSrcDirs) ;
     {$ENDIF}
 
@@ -321,14 +328,6 @@ type
     TWow64RevertWow64FsRedirection = function (Wow64FsEnableRedirection: Boolean): Boolean; stdcall;       // 17 May 2013
 {$ENDIF MSWINDOWS}
 
-var
-    IcsTaskResultNames: array [0..6] of string =
-      ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running', '') ;
-const
-    IcsTaskResultStrings: array [Low(TIcsTaskResult)..High(TIcsTaskResult)] of String =         { V8.70 was shortstring }
-      ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running') ;
-    IcsSslCertCheckStrings: array [Low(TIcsSslCertCheck)..High(TIcsSslCertCheck)] of String =
-      ('None', 'Warn', 'Require') ;
 
 type
 // file listing record - beware OverbyteIcsFtpSrvT has simplified TIcsFileRec
@@ -730,7 +729,7 @@ function IcsGetTaskResName (TaskResult: TIcsTaskResult): string ;
 begin
     result := '' ;
     if TaskResult > TaskRunning then exit ;
-    result := IcsTaskResultNames [Ord (TaskResult)] ;
+    result := IcsTaskResultNames [TaskResult] ;     { V9.3 }
 end ;
 
 // 16 May 2013 clear current file progress stuff

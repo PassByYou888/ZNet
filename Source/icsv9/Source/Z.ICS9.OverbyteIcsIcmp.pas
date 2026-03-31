@@ -10,10 +10,10 @@ Description:  This unit encapsulate the ICMP.DLL into an object of type TICMP.
               to change properties or event handler. This is much simpler to
               use for a GUI program.
 Creation:     January 6, 1997
-Version:      V9.0
+Version:      V9.5
 EMail:        http://www.overbyte.be       francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -81,6 +81,9 @@ Mar 10, 2020 V8.64 Added support for International Domain Names for Applications
 Sep 03, 2020 V8.65 Attempting to support Posix.
 Jan 20, 2021 V8.66 Ensure ErrorCode is set for DNS problems, as well as LastErrStr.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 10, 2025 V9.4  Fixed a problem setting property PingMsg.
+Mar 04, 2025 V9.5  Using TIcsIPv4Address instead of TIPAddr (longint) to avoid range errors.
+
 
 
 Note Async ping still does not work, not looked into it yet, use threaded ping instead
@@ -150,8 +153,8 @@ uses
 {$ENDIF FMX}
 
 const
-  IcmpVersion = 900;
-  CopyRight : String   = ' TICMP (c) 1997-2023 F. Piette V9.0 ';
+  IcmpVersion = 905;
+  CopyRight : String   = ' TICMP (c) 1997-2025 F. Piette V9.5 ';
   IcmpDLL     = 'icmp.dll';
   IphlpapiDLL = 'iphlpapi.dll';     { V8.02 }
 
@@ -284,8 +287,8 @@ const
 
 type
   // IP types
-  TIPAddr   = LongInt;   // An IP address.
-  TIPMask   = LongInt;   // An IP subnet mask.
+//  TIPAddr   = LongInt;   // An IP address.
+//  TIPMask   = LongInt;   // An IP subnet mask.
   TIPStatus = LongInt;   // Status code returned from IP APIs.
 
   PIoStatusBlock = ^TIoStatusBlock;           { V8.02 }
@@ -316,7 +319,7 @@ type
 
   PIcmpEchoReply = ^TIcmpEchoReply;
   TIcmpEchoReply = packed record
-     Address:       TIPAddr;              // Replying address
+     Address:       TIcsIPv4Address;      // Replying address   { V9.5 changed from  TIPAddr }
      Status:        DWord;                // IP status value
      RTT:           DWord;                // Round Trip Time in milliseconds
      DataSize:      Word;                 // Reply data size
@@ -385,7 +388,7 @@ type
   //     the return value is zero, extended error information is available
   //     via GetLastError().
   TIcmpSendEcho    = function(IcmpHandle:          THandle;
-                              DestinationAddress:  TIPAddr;
+                              DestinationAddress:  TIcsIPv4Address;    { V9.5 changed from  TIPAddr }
                               RequestData:         Pointer;
                               RequestSize:         Word;
                               RequestOptions:      PIPOptionInformation;
@@ -398,7 +401,7 @@ type
                               Event:               Pointer;
                               ApcRoutine:          PIO_APC_ROUTINE; // Pointer;
                               ApcContext:          Pointer;
-                              DestinationAddress:  TIPAddr;
+                              DestinationAddress:  TIcsIPv4Address;    { V9.5 changed from  TIPAddr }
                               RequestData:         Pointer;
                               RequestSize:         Word;
                               RequestOptions:      PIPOptionInformation;
@@ -411,8 +414,8 @@ type
                               Event:               Pointer;
                               ApcRoutine:          Pointer;
                               ApcContext:          Pointer;
-                              SourceAddress:       TIPAddr;
-                              DestinationAddress:  TIPAddr;
+                              SourceAddress:       TIcsIPv4Address;    { V9.5 changed from  TIPAddr }
+                              DestinationAddress:  TIcsIPv4Address;    { V9.5 changed from  TIPAddr }
                               RequestData:         Pointer;
                               RequestSize:         Word;
                               RequestOptions:      PIPOptionInformation;
@@ -466,9 +469,9 @@ type
     FPingMsg :        String;                     // The message to ping V8.02
     FHostName :       String;                     // Dotted IP of host (output)
     FHostIP :         String;                     // Name of host      (Output)
-    FIPAddress :      TIPAddr;                    // IPv4 address of host to contact
+    FIPAddress :      TIcsIPv4Address;            // IPv4 address of host to contact          { V9.5 changed from  TIPAddr }
     FIPAddress6 :     TSockAddrIn6;               // IPv6 address of host to contact
-    FSrcIPAddr:       TIPAddr;                    // source IPv4 address of interface V8.02
+    FSrcIPAddr:       TIcsIPv4Address;            // source IPv4 address of interface V8.02   { V9.5 changed from  TIPAddr }
     FSrcIPAddr6:      TSockAddrIn6;               // source IPv6 address of interface V8.02
     FSize :           Integer;                    // Packet size (default to 56)
     FTimeOut :        Integer;                    // Timeout (default to 4000mS)
@@ -837,8 +840,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 // V8.02 callback routine for IcmpSendEcho2 when async request completes
-procedure EchoApcRoutine(ApcContext: Pointer; IoStatusBlock: PIoStatusBlock;
-                                             Reserved: ULong); stdcall;  { V8.02 }
+procedure EchoApcRoutine(ApcContext: Pointer; IoStatusBlock: PIoStatusBlock; Reserved: ULong); stdcall;  { V8.02 }
 var
     MyIcmp: TICMP;
 begin
@@ -894,7 +896,7 @@ begin
                 Exit;
             end;
         end;
-        if FIPAddress = LongInt(INADDR_NONE) then begin
+        if FIPAddress = INADDR_NONE then begin      { V9.5 removed cast }
             FLastError := 100;  { V8.66 should also set error }
             FLastErrStr := 'Invalid IPv4 host address';
             Exit;
@@ -937,11 +939,13 @@ begin
     end;
 
   // Fill data buffer with some data bytes and trailing spaces
-    if Length (FDataBuf) < FSize then SetLength (FDataBuf, FSize);           // buffer for data sent
+    if Length (FDataBuf) < FSize then
+        SetLength (FDataBuf, FSize);           // buffer for data sent
     FRBufSize := Length (FReplyBuf);  // space for several replies
     FillChar(FDataBuf[0], FSize, $20);
     S := AnsiString (FPingMsg);
-    Move(S, FDataBuf[0], MinInteger(FSize, Length(S)));    { V8.02 Msg now property, V8.04 ANSI }
+    if Length(S) > 0 then                        { V9.4 fixed Move }
+        Move(S[1], FDataBuf[0], MinInteger(FSize, Length(S)));    { V8.02 Msg now property, V8.04 ANSI }
     FillChar(FReplyBuf[0], FRBufSize, 0);
 
   //  try

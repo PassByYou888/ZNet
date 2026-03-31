@@ -3,11 +3,11 @@
 Author:       Jaroslav Kulísek, updated by Angus Robertson.
 Description:  WebSocket client protocol.
 Creation:     Dec 2022
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2023 by François PIETTE
+Legal issues: Copyright (C) 1996-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -39,11 +39,39 @@ Updates:
 Apr 19, 2023 - V8.71 - baseline.
                The sample demo for this component is OverbyteIcsHttpRestTst.dpr.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Mar 04, 2024 V9.1  Added property WSFullHdrs which when true causes all HTTP
+                     request headers to be sent when upgrading a connection
+                     to WebSocket, normally only the important headers are sent.
+                   Stop range checking while checking received data.
+                   Using OverbyteIcsHtmlUtils instead of CharSetUtils.
+                   Fixed a problem where multiple or partial frames might
+                     arrive together, ensure they are corrected assembled.
+                     Added new frame state wsfsIncompleteHeader when this
+                     happens. Thanks to Jaroslav Kulisek.
+                   When checking server key, removed unnecessary string cast
+                     that may have corrupted the data.
+                   Builds without USE_SSL.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
+Aug 06, 2025 V9.5  WSConnect has new Async option which no longer blocks the initial
+                     websocket connection, not WSConnect returns immediately and the
+                     OnWSConnected event is called when connections is ready or fails.
+                   Fixed a problem that data sent immediately a new connection opened
+                     could be lost because the component had not switched to websocket
+                     mode, thanks to djhfwk for the fix.
+                   Allow Sec-WebSocket-Protocol: header to added with
+                     HeaderSecWebSocketProtocol values (char, superchat, etc).
+                   Added OnWSFramesDone event called when queue of frames has
+                     been sent, for flow control when sending a lot of data.
+                   Added property WSMaxDump default 132 allowing the size of
+                     frames logged to be increased if DebugLevel >= DebugBody.
+Sep 19, 2025 V9.6   TLimitedSizeMemStream and StreamTempFolder gone, never used.
 
 
 
-Note - currently the WSConnect methods is synchronous with a timeout.
 Note - some classes in this unit are shared wth the WebSocket server component.
+Pending, handle data that comes back in intital upgrade request, not sure that is legal....
+
+
 
 WebSocket is a full duplex TCP protocol for web servers to support interactive web pages,
 typically dynamic updating such as chat sessions, spell checkers as you type, search
@@ -96,6 +124,9 @@ unit Z.ICS9.OverbyteIcsWebSocketCli;
 interface
 
 {$I Include\Z.ICS9.OverbyteIcsDefs.inc}
+
+{$IFDEF USE_SSL}
+
 {$IFNDEF COMPILER7_UP}
   {$MESSAGE FATAL 'Sorry, we do not want to support ancient compilers any longer'};
 {$ENDIF}
@@ -133,7 +164,8 @@ uses
     Z.ICS9.OverbyteIcsHttpProt,
     Z.ICS9.OverbyteIcsSslHttpRest,
 {$ENDIF FMX}
-    Z.ICS9.OverbyteIcsCharsetUtils,
+//  OverbyteIcsCharsetUtils, { V9.1 }
+    Z.ICS9.OverbyteIcsHtmlUtils,    { V9.1 }
     Z.ICS9.OverbyteIcsSha1,
     Z.ICS9.OverbyteIcsLogger,      { for TLogOption }
     Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
@@ -149,9 +181,10 @@ type
                             wscrUnsupportedData, wscrInvalidFramePayloadData, wscrPolicyViolation,
                             wscrMessageTooBig, wscrMandatoryExt, wscrInternalServerError);
 
-    TWebSocketState = (wssHttp, wssConnecting, wssReady);
+    TWebSocketState = (wssHttp, wssConnecting, wssConnected, wssReady);   { V9.5 } 
 
-    TWSFrameState = (wsfsNotInitialized, wsfsInvalid, wsfsNotComplete, wsfsCompleted);
+    TWSFrameState = ( wsfsNotInitialized, wsfsInvalid, wsfsNotComplete, wsfsCompleted,
+                      wsfsIncompleteHeader ); { JK 28.11.2023 }
 
     TWSFrameDataMask = array[0..3] of Byte;
     PWSFrameDataMask = ^TWSFrameDataMask;
@@ -173,7 +206,7 @@ type
         property Capacity;
     end;
 
-    TLimitedSizeMemStream = class(TStream)
+ {   TLimitedSizeMemStream = class(TStream)   // V9.6 gone never used
     protected
         FCurrPos: Int64;
         procedure SwitchToFileStream;
@@ -194,7 +227,7 @@ type
         function Seek(Offset: Longint; Origin: Word): Longint; override;
         function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
         procedure GrowCapacityTo(const ACapacity: Integer);
-    end;
+    end;       }
 
 
     TXORStream = class(TStream)
@@ -243,7 +276,7 @@ type
         constructor Create;
         destructor Destroy; override;
         procedure Clear;
-        function Parse(PBuf: Pointer; Size: Integer ): Boolean;
+        function Parse(PBuf: Pointer; Size: Integer; var ParsedBytes : Integer ): Boolean;  { JK 28.11.2023 added ParsedByte }
     end;
 
     TWebSocketOutgoingFrame = class(TObject)
@@ -273,22 +306,27 @@ type
         HeaderUpgrade: String;
         HeaderConnection: String;
         HeaderSecWebSocketAccept: String;
-        HeaderSecWebSocketProtocol: String;
+        FHeaderSecWebSocketProtocol: String;   { V9.5 }
         HeaderAccessControlAllowOrigin: String;
+        FReceiveBufferOffset : Integer;  { JK 28.11.2023 }
         CurrFrame: TWebSocketReceivedFrame;
         CurrMultiFrame: TWebSocketReceivedFrame;
         CurrOutgoingFrame: TWebSocketOutgoingFrame;
         FWSFrameCounter: Integer;
         FWSPingSecs: Integer;
+        FWSFullHdrs: Boolean;   { V9.1 }
+        FWSMaxDump: Integer;    { V9.5 }
         FOnWSConnected: TNotifyEvent;
         FOnWSDisconnected: TNotifyEvent;
         FOnWSFrameRcvd: TWSFrameRcvdEvent;
         FOnWSFrameSent: TWSFrameSentEvent;
+        FOnWSFramesDone: TNotifyEvent;      { V9.5 }
         procedure PeriodicTimerTimer(Sender: TObject);
+        procedure DoWebSocketUpgrade;                                                  { V9.5 }
     public
         OutgoingFrames: TList;     //queue of frames to send
         MaxMemStreamSize: Int64;
-        StreamTempFolder: String;   // if is set, then TLimitedSizeMemStream is used
+//        StreamTempFolder: String;   // if is set, then TLimitedSizeMemStream is used    V9.5 gone never used
         LocationChangeCount: Integer;
         constructor Create(AOwner: TComponent); override;
         destructor Destroy; override;
@@ -308,9 +346,12 @@ type
         function IsKnownProtocolURL(const AURL: String): Boolean; override;
         procedure SocketDataSent(Sender: TObject; ErrCode: Word); override;
         procedure SocketDataAvailable(Sender: TObject; ErrCode: Word); override;
+        procedure TriggerHeaderEnd; override;                                                    { V9.5 }
+        procedure TriggerRequestDone2; override;                                                 { V9.5 }
+        procedure StateChange(NewState : THttpState); override;                                  { V9.5 }
         function IsWSConnected: Boolean;
         procedure ProcessPeriodicTasks;
-        function WSConnect: Boolean;
+        function WSConnect(Async: Boolean = False): Boolean;     { V9.5 added Async }
         procedure WSClose( CloseReason: TWebSocketCloseReason; ADescription: String );
         procedure WSSendFrame(AFrameSourceID: Pointer; AFrameKind: TWebSocketFrameKind; const AStream: TStream);
         procedure WSSendFrameBytes(AFrameSourceID: Pointer; AFrameKind: TWebSocketFrameKind; const AData: TBytes);
@@ -320,22 +361,28 @@ type
         procedure WSSendText(AFrameSourceID: Pointer; AText: String);
         procedure WSSendBinaryStream(AFrameSourceID: Pointer; AStream: TStream);
         property  WSFrameCounter: Integer read FWSFrameCounter;
-    published
+        property  HeaderSecWebSocketProtocol: string read FHeaderSecWebSocketProtocol write FHeaderSecWebSocketProtocol;
+      published
         property WSPingSecs: Integer read FWSPingSecs write FWSPingSecs;
+        property WSFullHdrs: Boolean read FWSFullHdrs write FWSFullHdrs;   { V9.1 }
+        property WSMaxDump: Integer read FWSMaxDump write FWSMaxDump;      { V9.5 }
         property OnWSConnected: TNotifyEvent read FOnWSConnected write FOnWSConnected;
         property OnWSDisconnected: TNotifyEvent read FOnWSDisconnected write FOnWSDisconnected;
         property OnWSFrameRcvd: TWSFrameRcvdEvent read FOnWSFrameRcvd write FOnWSFrameRcvd;
         property OnWSFrameSent: TWSFrameSentEvent read FOnWSFrameSent write FOnWSFrameSent;
+        property OnWSFramesDone: TNotifyEvent read FOnWSFramesDone write FOnWSFramesDone;      { V9.5 }
     end;
 
-function WSDumpFrame(const Desc: String; AFrame: TWebSocketReceivedFrame): String;
+function WSDumpFrame(const Desc: String; AFrame: TWebSocketReceivedFrame; MaxDump: Integer = 132): String;   { V9.5 added MaxDump }
 function GetWSFrameKind(Kind: TWebSocketFrameKind): String;
+
+{$ENDIF USE_SSL}
 
 implementation
 
-uses RTLConsts;
+uses {$IFDEF RTL_NAMESPACES}System.RTLConsts{$ELSE}RTLConsts{$ENDIF};    { V9.5 added Namespaces }
 
-
+{$IFDEF USE_SSL}
 
 function FileDirExists(const FileDirName: String): Boolean;
 var
@@ -400,7 +447,7 @@ begin
     end;
 end;
 
-function WSDumpFrame(const Desc: String; AFrame: TWebSocketReceivedFrame): String;
+function WSDumpFrame(const Desc: String; AFrame: TWebSocketReceivedFrame; MaxDump: Integer = 132): String;   { V9.5 added MaxDump }
 var
     ss,sd,sn : String;
     i: Integer;
@@ -420,7 +467,6 @@ begin
     else
         AddSepStr(Result, 'Not Masked', ', ' );
     AddSepStr(Result, 'DataSize: ' + IntToStr(AFrame.DataBytes), ', ' );
-//    SetLength(Buf, 8192);
     if AFrame.Data <> nil then begin
         OldPos := AFrame.Data.Position;
         try
@@ -434,8 +480,8 @@ begin
                             AFrame.Data.Read(EC, 2);
                         end;
                         sd := IcsHtmlToStr(AFrame.Data, CP_UTF8, False); // get packet as simple string
-                        if Length(sd) > 132 then begin
-                            SetLength(sd, 132);
+                        if Length(sd) > MaxDump then begin     { V9.5 }
+                            SetLength(sd, MaxDump);
                             sn := '"...'
                         end else
                             sn := '"';
@@ -446,8 +492,8 @@ begin
                     end;
                     wsfkBin:  begin
                         SetLength(Buf, AFrame.DataBytes);
-                        if Length(Buf) > 132 then
-                            SetLength(Buf, 132);
+                        if Length(Buf) > MaxDump then          { V9.5 }
+                            SetLength(Buf, MaxDump);
                         AFrame.Data.Read(Buf[0], Length(Buf));
                         for i := 0 to Length(Buf) - 1 do begin
                             if Buf[i] < 32 then
@@ -467,7 +513,7 @@ end;
 
 
 {  TLimitedSizeMemStream  }
-
+(*  V9.5 gone, never used
 constructor TLimitedSizeMemStream.Create(AMaxMemStreamSize: Int64;  const ATempFileNumberPrefix: String;
                                                         ATempFileNumDigits: Byte; const ATempFileNumberPostfix: String);
 begin
@@ -561,7 +607,7 @@ begin
         if Stream is TMemoryStreamCapacity then
             if ACapacity > (Stream as TMemoryStreamCapacity).Capacity then
                 (Stream as TMemoryStreamCapacity).Capacity := ACapacity;
-end;
+end;  *)
 
 
 { TXORStream }
@@ -763,7 +809,10 @@ begin
         Data.Size := 0;
 end;
 
+{ JK 28.11.2023 
 function TWebSocketReceivedFrame.Parse(PBuf: Pointer; Size: Integer): Boolean;
+{ JK 28.11.2023 }
+function TWebSocketReceivedFrame.Parse(PBuf: Pointer; Size: Integer; var ParsedBytes : Integer): Boolean;
 type
     TFrameData = array[0..0] of Byte;
     PFrameData = ^TFrameData;
@@ -844,8 +893,11 @@ var
     L,i,j : Integer;
     PData : PFrameData;
     DataBytesInBuf : Integer;
+    FrameHeaderSize : Integer;  { JK 28.11.2023 }
 begin
   Result := False;
+
+    ParsedBytes := Size;  { JK 28.11.2023 }
 
     if State = wsfsNotComplete then begin
         State := wsfsInvalid;
@@ -857,8 +909,15 @@ begin
         DataBytesInBuf := Size;
         if PData = nil then
             State := wsfsInvalid
-        else if StoredBytes + DataBytesInBuf = DataBytes then
-            State := wsfsCompleted
+        else if StoredBytes + DataBytesInBuf >= DataBytes then
+        begin
+          State := wsfsCompleted;
+
+          // we need only DataBytes - StoredBytes to complete current frame
+
+          DataBytesInBuf := DataBytes - StoredBytes;
+          ParsedBytes    := DataBytesInBuf;
+        end
         else if (DataBytesInBuf >= 0) and (StoredBytes + DataBytesInBuf < DataBytes) then
             State := wsfsNotComplete
         else
@@ -882,8 +941,15 @@ begin
     end
     else begin
         Clear;
-        if Size < 2 then
-            Exit;
+       if Size < 2 then
+        begin
+          // we need at least first 2 Byte from header to determine frame kind
+
+          ParsedBytes := 0;
+          State := wsfsIncompleteHeader;
+          Exit;
+        end;
+
         IsFinal := ((PFrameShort( PBuf )^.FinOpCode and $80) = $80);
         case (PFrameShort( PBuf )^.FinOpCode and $F) of
             $0     : Kind := wsfkContinue;
@@ -902,47 +968,98 @@ begin
         L := (PFrameShort( PBuf )^.MaskedPayLoadLength and $7F);
         IsMasked := ((PFrameShort( PBuf )^.MaskedPayLoadLength and $80) = $80);
         if L <= 0 then begin
-            if IsMasked then
-                DataBytesInBuf := Size - (SizeOf(TFrameShortMasked) - 1)
-            else
-                DataBytesInBuf := Size - (SizeOf(TFrameShort) - 1);
-            if DataBytesInBuf = DataBytes then begin
-                State := wsfsCompleted;
-                Result := True;
+            if IsMasked then FrameHeaderSize := SizeOf(TFrameShortMasked) - 1
+                        else FrameHeaderSize := SizeOf(TFrameShort) - 1;
+
+            if Size < FrameHeaderSize then
+            begin
+              ParsedBytes := 0;
+              State := wsfsIncompleteHeader;
+              Exit;
+            end;
+
+            DataBytesInBuf := Size - FrameHeaderSize;
+
+            // Here
+            // DataBytes = 0,
+            // DataBytesInBuf >= 0 because Size >= FrameHeaderSize
+            // so DataBytesInBuf >= DataBytes is always True
+            // but for code clarity
+
+            if DataBytesInBuf >= DataBytes then
+            begin
+              State := wsfsCompleted;
+
+              ParsedBytes := DataBytes + FrameHeaderSize;
+
+              Result := True;
             end
             else
                 State := wsfsInvalid;
             Exit;
         end;
         PData := nil;
-        DataBytesInBuf := 0; // due warning
+
+    //  DataBytesInBuf := 0; // due warning
+       FrameHeaderSize := 0;  { JK 28.11.2023 }
 
         if IsMasked then begin   // Masked
             if L <= 125 then begin
+                // check before accessing any header record member
+                // whether the entire header is received in the buffer
+
+                FrameHeaderSize := SizeOf(TFrameShortMasked) - 1;
+
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 Mask := PFrameShortMasked( PBuf )^.Mask;
                 PData := @(PFrameShortMasked( PBuf )^.Data);
                 DataBytes := L;
-                DataBytesInBuf := Size - (SizeOf(TFrameShortMasked) - 1);
             end
             else if L = 126 then begin
+                FrameHeaderSize := SizeOf(TFrameSmallMasked) - 1;
+
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 Mask := PFrameSmallMasked( PBuf )^.Mask;
                 PData := @(PFrameSmallMasked( PBuf )^.Data);
                 SwapBytes( PFrameSmallMasked( PBuf )^.ExtPayLoadLength.B );
                 DataBytes := PFrameSmallMasked( PBuf )^.ExtPayLoadLength.W;
-                DataBytesInBuf := Size - (SizeOf(TFrameSmallMasked) - 1);
             end
             else if L = 127 then begin
+                FrameHeaderSize := SizeOf(TFrameLargeMasked) - 1;
+
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 Mask := PFrameLargeMasked( PBuf )^.Mask;
                 PData := @(PFrameLargeMasked( PBuf )^.Data);
                 SwapBytes( PFrameLargeMasked( PBuf )^.ExtPayLoadLength.B );
                 DataBytes := PFrameLargeMasked( PBuf )^.ExtPayLoadLength.Q;
-                DataBytesInBuf := Size - (SizeOf(TFrameLargeMasked) - 1);
             end;
+
+            DataBytesInBuf := Size - FrameHeaderSize;  { JK 28.11.2023 }
 
             if PData = nil then
                 State := wsfsInvalid
-            else if DataBytesInBuf = DataBytes then
-                State := wsfsCompleted
+            else if DataBytesInBuf >= DataBytes then
+            begin
+              State := wsfsCompleted;
+
+              DataBytesInBuf := DataBytes;
+              ParsedBytes := DataBytes + FrameHeaderSize;
+            end
             else if (DataBytesInBuf >= 0) and (DataBytesInBuf < DataBytes) then
                 State := wsfsNotComplete
             else
@@ -951,7 +1068,7 @@ begin
             if State in [wsfsCompleted, wsfsNotComplete] then begin
                 j := 0;
                 for i := 0 to DataBytesInBuf-1 do begin
-                    PData^[i] := PData^[i] xor Mask[j];
+                  {$R-}  PData^[i] := PData^[i] xor Mask[j];  {$R+}  { V9.1 turn off range checking }
                     Inc(j);
                     if j > 3 then
                         j := 0;
@@ -960,27 +1077,53 @@ begin
         end
         else begin
             if L <= 125 then begin
+                // check before accessing any header record member
+                // whether the entire header is received in the buffer
+
+                FrameHeaderSize := SizeOf(TFrameShort) - 1;
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 PData := @(PFrameShort(PBuf )^.Data);
                 DataBytes := L;
-                DataBytesInBuf := Size - (SizeOf(TFrameShort) - 1);
             end
             else if L = 126 then begin
+                FrameHeaderSize := SizeOf(TFrameSmall) - 1;
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 PData := @(PFrameSmall(PBuf )^.Data);
                 SwapBytes( PFrameSmall(PBuf )^.ExtPayLoadLength.B );
                 DataBytes := PFrameSmall(PBuf )^.ExtPayLoadLength.W;
-                DataBytesInBuf := Size - (SizeOf(TFrameSmall) - 1);
             end
             else if L = 127 then begin
+                FrameHeaderSize := (SizeOf(TFrameLarge) - 1);
+                if Size < FrameHeaderSize then
+                begin
+                  ParsedBytes := 0;
+                  State := wsfsIncompleteHeader;
+                  Exit;
+                end;
                 PData := @(PFrameLarge(PBuf)^.Data);
                 SwapBytes( PFrameLarge(PBuf)^.ExtPayLoadLength.B );
                 DataBytes := PFrameLarge(PBuf)^.ExtPayLoadLength.Q;
-                DataBytesInBuf := Size - (SizeOf(TFrameLarge) - 1);
             end;
-
+            DataBytesInBuf := Size - FrameHeaderSize;  { JK 28.11.2023 }
             if PData = nil then
                 State := wsfsInvalid
-            else if DataBytesInBuf = DataBytes then
-                State := wsfsCompleted
+            else if DataBytesInBuf >= DataBytes then
+            begin
+              State := wsfsCompleted;
+
+              DataBytesInBuf := DataBytes;
+              ParsedBytes := DataBytes + FrameHeaderSize;
+            end
             else if (DataBytesInBuf >= 0) and (DataBytesInBuf < DataBytes) then
                 State := wsfsNotComplete
             else
@@ -988,14 +1131,8 @@ begin
         end;
 
         if State in [wsfsCompleted, wsfsNotComplete] then begin
-            if Data = nil then begin
-            {   if Sender <> nil then
-              if (Sender.MaxMemStreamSize > 0) and (Sender.StreamTempFolder <> '') then begin
-                Data := TLimitedSizeMemStream.Create( Sender.MaxMemStreamSize, IncludeTrailingPathDelimiter( Sender.StreamTempFolder ) + 'WSFRM_', 4, '.tmp' );
-              end; }
             if Data = nil then
                 Data := TMemoryStream.Create;
-            end;
             Data.Size := DataBytes;
             Data.Position := 0;
             Data.WriteBuffer(PData^[0], DataBytesInBuf);
@@ -1028,7 +1165,7 @@ begin
 end;
 
 procedure TWebSocketOutgoingFrame.InitFrameData(AFrameSourceID: Pointer; AKind: TWebSocketFrameKind; AData: TStream;
-                                                                                ADataBytes: Int64; AIsFinal: Boolean; DoMask: Boolean);
+                                                                           ADataBytes: Int64; AIsFinal: Boolean; DoMask: Boolean);
 var
     Mask: TWSFrameDataMask;
     Frame: array[0..MaxWSFrameHdrSize-1] of Byte;
@@ -1105,13 +1242,6 @@ begin
         end;
     end;
 
-    {  Data := nil;
-    {  if Sender <> nil then
-    if (Sender.MaxMemStreamSize > 0) and (Sender.StreamTempFolder <> '') then
-      if N + ADataBytes > Sender.MaxMemStreamSize then
-        Data := TLimitedSizeMemStream.Create( Sender.MaxMemStreamSize, IncludeTrailingPathDelimiter( Sender.StreamTempFolder ) + 'WSFRM_', 4, '.tmp' );
-    if Data = nil then  }
-
     // read frame into stream, then XOR mask it if client
     Data := TMemoryStream.Create;
     Data.Size := N + ADataBytes;
@@ -1142,6 +1272,9 @@ begin
     WSState := wssHttp;
     LastReceivedDataTickCount := 0;
     LastSentPingTickCount := 0;
+    FWSMaxDump := 132;  { V9.5 }
+    FReceiveBufferOffset := 0;  { JK 28.11.2023 }
+
     CurrFrame := nil;
     CurrMultiFrame := nil;
     CurrOutgoingFrame := nil;
@@ -1149,12 +1282,12 @@ begin
     FOnWSFrameRcvd := nil;
     FOnWSFrameSent := nil;
     MaxMemStreamSize := 0;
-    StreamTempFolder := '';
+//    StreamTempFolder := '';
     ClientKey := '';
     HeaderUpgrade := '';
     HeaderConnection := '';
     HeaderSecWebSocketAccept := '';
-    HeaderSecWebSocketProtocol := '';
+    FHeaderSecWebSocketProtocol := '';
     HeaderAccessControlAllowOrigin := '';
     LocationChangeCount := 0;
     FOnLocationChange := LocationChange;
@@ -1223,7 +1356,7 @@ var
     i: Integer;
     s: String;
     FoundGET: Boolean;
-    B: String;
+    B: TBytes;   { V9.4 }
 begin
 (*
    When a client starts a WebSocket connection, it sends its part of the
@@ -1318,20 +1451,22 @@ The following new header fields can be sent during the handshake from
     WSState := wssConnecting;
     Randomize;
     SetLength(B, 16);
-    for i := 1 to Length(B) do
-        B[i] := Char(Random(256));
-    ClientKey := Base64Encode(B);
+    for i := 0 to Length(B) - 1 do
+        B[i] := Random(256);
+    ClientKey := String(IcsBase64EncodeTB(B));    { V9.4 }
 
     // we leave only what can / must be there in the header
-    for i := Headers.Count-1 downto 0 do begin
-        s := Trim(Headers.Strings[i]);
-        if IcsTextOnStart('Get ', s) or
-           IcsTextOnStart('Host:', s) or
-           IcsTextOnStart('Proxy', s) or
-           IcsTextOnStart('Cookie:', s) or
-           IcsTextOnStart('Authorization:', s) then
-                Continue;
-        Headers.Delete( i );
+    if NOT FWSFullHdrs then begin;   { V9.1 leave the lot }
+        for i := Headers.Count-1 downto 0 do begin
+            s := Trim(Headers.Strings[i]);
+            if IcsTextOnStart('Get ', s) or
+               IcsTextOnStart('Host:', s) or
+               IcsTextOnStart('Proxy', s) or
+               IcsTextOnStart('Cookie:', s) or
+               IcsTextOnStart('Authorization:', s) then
+                    Continue;
+            Headers.Delete( i );
+        end;
     end;
 
     // add websocket specific records
@@ -1340,7 +1475,8 @@ The following new header fields can be sent during the handshake from
     Headers.Add('Sec-WebSocket-Key: ' + ClientKey);
     Headers.Add('Sec-WebSocket-Version: 13');
     //  Headers.Add('Origin: http://example.com');
-    //  Headers.Add('Sec-WebSocket-Protocol: chat, superchat');
+    if FHeaderSecWebSocketProtocol <> '' then
+        Headers.Add('Sec-WebSocket-Protocol: ' + FHeaderSecWebSocketProtocol);   { V9.5  ie chat, superchat }
 end;
 
 procedure TSslWebSocketCli.TriggerHeaderBegin;
@@ -1348,8 +1484,14 @@ begin
     HeaderUpgrade := '';
     HeaderConnection := '';
     HeaderSecWebSocketAccept := '';
-    HeaderSecWebSocketProtocol := '';
+//    HeaderSecWebSocketProtocol := '';    { V9.5 }
     HeaderAccessControlAllowOrigin := '';
+end;
+
+
+procedure TSslWebSocketCli.TriggerHeaderEnd;                                           { V9.5 }
+begin
+//    DoWebSocketUpgrade;   // V9.5 should change state
 end;
 
 procedure TSslWebSocketCli.TriggerHeaderFieldData(var AHeaderField, AHeaderData: String);
@@ -1471,27 +1613,100 @@ begin
   Result := IsWsProtocolURL(URL) or inherited IsKnownProtocolURL(AURL);
 end;
 
-function TSslWebSocketCli.WSConnect: Boolean;
+procedure TSslWebSocketCli.TriggerRequestDone2;                                                  { V9.5 }
+begin
+    inherited TriggerRequestDone2;
+//    DoWebSocketUpgrade;
+end;
+
+procedure TSslWebSocketCli.StateChange(NewState: THttpState);                  { V9.5 }
+begin
+    inherited;
+    if (NewState = httpReady) and (WSState = wssConnected) then begin
+        WSState := wssReady;
+        if Assigned(FOnWSConnected) then
+            FOnWSConnected(Self);
+    end;
+end;
+
+{ V9.5 check for HTTP being upgraded to WebSocket }
+procedure TSslWebSocketCli.DoWebSocketUpgrade;                                                  { V9.5 }
 var
     ServerKey : String;
     s : AnsiString;
+    KeyComp: Boolean;
+begin
+    if (WSState = wssReady) then
+        Exit;
+    if (StatusCode = 101) then begin    { V9.5 sanity check }
+        KeyComp := False;
+        if SameText(HeaderUpgrade, 'websocket') and SameText(HeaderConnection, 'Upgrade') then begin
+            s := AnsiString(ClientKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
+            ServerKey := String(IcsBase64EncodeA(SHA1ofStr(s)));          { V9.1 corrected string cast, V9.4 }
+            KeyComp := (HeaderSecWebSocketAccept = ServerKey);  { V9.5 don't set ready yet }
+            if NOT KeyComp then begin
+                if (DebugLevel >= DebugConn) then
+                    LogEvent('WebSocket: Server Key Comparison Failed');
+                WSState := wssHttp;
+           end;
+        end
+        else if (DebugLevel >= DebugConn) then begin
+            LogEvent('WebSocket: Failed to Upgrade to WebSocket Protocol');
+            WSState := wssHttp;
+        end
+        else if (DebugLevel >= DebugConn) then begin
+            LogEvent('WebSocket: Failed to Connect: ' + LastResponse);
+            WSState := wssHttp;
+        end;
+
+     // successfully connected as Websocket
+        if KeyComp then begin
+            WSState := wssConnected;  { V9.5 but not ready yet, changed in StateChange event }
+            if (DebugLevel >= DebugConn) then
+                LogEvent('WebSocket: Connected OK');
+            LastReceivedDataTickCount := IcsGetTickCount64;
+            LastSentPingTickCount := 0;
+            if (FWSPingSecs > 0) and (FWSPingSecs < 5) then
+                FWSPingSecs := 5;
+            FPeriodicTimer.Enabled := true;
+        //    if Assigned(FOnWSConnected) then   { V9.5 moved to StateChanged }
+        //        FOnWSConnected(Self);
+        end
+    end
+    else
+        WSState := wssHttp;
+end;
+
+
+{ V9.5 note async always returns false, need to check OnWSConnected event for success }
+function TSslWebSocketCli.WSConnect(Async: Boolean = False): Boolean;     { V9.5 added Async }
+//var
+//    ServerKey : String;
+//    s : AnsiString;
 begin
     Result := False;
     RequestVer := '1.1';
     HeaderUpgrade := '';
     HeaderConnection := '';
     HeaderSecWebSocketAccept := '';
-    HeaderSecWebSocketProtocol := '';
+//    HeaderSecWebSocketProtocol := '';   { V9.5 }
     HeaderAccessControlAllowOrigin := '';
     FWSFrameCounter := 0;
     if (DebugLevel >= DebugConn) then
         LogEvent('WebSocket: Connecting to: ' + URL);
-//    WSState := wssConnecting;  { in case server returns data quickly }
-    Get;  // sync request
-    if (StatusCode = 101) then begin
+    if Async then begin    { V9.5 }
+        GetAsync;
+    end
+    else begin
+        Get;  // sync request, blocks until connected or error
+        Result := (WSState = wssReady);
+    end;
+
+(* V9.5 moved to TriggerRequestDone2
+  if (StatusCode = 101) then begin
         if SameText(HeaderUpgrade, 'websocket') and SameText(HeaderConnection, 'Upgrade') then begin
             s := AnsiString(ClientKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
-            ServerKey := Base64Encode(String(SHA1ofStr(s)));
+            ServerKey := String(IcsBase64EncodeA(SHA1ofStr(s)));          { V9.1 corrected string cast, V9.4 }
             Result := (HeaderSecWebSocketAccept = ServerKey);
             if (NOT Result) and (DebugLevel >= DebugConn) then
                 LogEvent('WebSocket: Server Key Comparison Failed');
@@ -1514,8 +1729,9 @@ begin
     else
         WSState := wssHttp;
     if Assigned(FOnWSConnected) then
-        FOnWSConnected(Self);
+        FOnWSConnected(Self);   *)
 end;
+
 
 procedure TSslWebSocketCli.WSClose(CloseReason: TWebSocketCloseReason; ADescription: String);
 var
@@ -1594,6 +1810,7 @@ var
     TmpFrame: TWebSocketOutgoingFrame;
     Len: Integer;
     TmpDumpFrame: TWebSocketReceivedFrame;
+    ParsedBytes : Integer;  { JK 28.11.2023 }
 label
     RetrySendFrame;
 begin
@@ -1614,8 +1831,11 @@ RetrySendFrame :
             end;
         end;
     end;
-    if CurrOutgoingFrame = nil then
+    if CurrOutgoingFrame = nil then begin   // no more queued frames, quit
+        if Assigned(FOnWSFramesDone) then
+            FOnWSFramesDone(Self);           // V9.5 tell user
         Exit;
+    end;
     if Length(FSendBuffer) <= 8192 then
         SetLength(FSendBuffer, 8192);
     Len := CurrOutgoingFrame.Data.Read(FSendBuffer[0], Length(FSendBuffer));
@@ -1627,8 +1847,8 @@ RetrySendFrame :
         if (DebugLevel >= DebugBody) and (TmpFrame.Data is TMemoryStream) then begin
             TmpDumpFrame := TWebSocketReceivedFrame.Create;
             try
-                TmpDumpFrame.Parse((TmpFrame.Data as TMemoryStream).Memory, TmpFrame.Data.Size );
-                LogEvent(WSDumpFrame('Sent', TmpDumpFrame));
+                TmpDumpFrame.Parse((TmpFrame.Data as TMemoryStream).Memory, TmpFrame.Data.Size, ParsedBytes );
+                LogEvent(WSDumpFrame('Sent', TmpDumpFrame, FWSMaxDump));
             finally
                 TmpDumpFrame.Free;
             end;
@@ -1706,22 +1926,49 @@ end;
 procedure TSslWebSocketCli.SocketDataAvailable(Sender: TObject; ErrCode: Word);
 var
     Len: Integer;
+    BufPos : Integer;
+    ParsedBytes : Integer;
 begin
     if (NOT (State = httpReady)) OR (WSState <> wssReady) then begin
-        inherited SocketDataAvailable(Sender, ErrCode);
-     //   if FReceiveLen >= 2 then
-     //       LogEvent('WebSocket: Inherited Recv Raw: ' + IcsTBytesToString(FReceiveBuffer, FReceiveLen));  // !!! TEMP
-        if (WSState <> wssConnecting) then
+       inherited SocketDataAvailable(Sender, ErrCode);   // process HTTP headers or non-WS content
+
+      { not using Websockets, nothing more to do }
+        if (WSState <> wssConnecting) then begin
             Exit;
+        end;
+
+      { V9.5 the server may have started sending websocket packets before the connected event has been called
+           to upgrade to websocket protocol, so check it now }
+        DoWebSocketUpgrade;
+        if (WSState = wssConnected) then
+            LogEvent('WebSocket upgrade complete, pending received data length: ' + IntToStr(FReceiveLen));
+
+       { try to receive welcome message or early data from server, may not be wssReady yet }
     end;
+
     if Length(FReceiveBuffer) < 8192 then
         SetLength( FReceiveBuffer, 8192 );
+
+    BufPos := 0;  { JK 28.11.2023 }
+
     if FReceiveLen > 0 then begin { content that arrived with header already in FReceiveBuffer }
         Len := FReceiveLen;       { beware frame received event will be triggered before connected event }
         FReceiveLen := 0;
     end
     else
-        Len := FCtrlSocket.Receive(@FReceiveBuffer[0], Length(FReceiveBuffer));
+    begin
+      if CurrFrame <> nil then
+        if CurrFrame.State = wsfsIncompleteHeader then
+        begin
+          BufPos := FReceiveBufferOffset;
+
+          // incomplete header is stored in FReceiveBuffer[0..BufPos-1]
+        end;
+
+
+      Len := FCtrlSocket.Receive( @FReceiveBuffer[BufPos], Length(FReceiveBuffer) - BufPos);
+    end;
+
     if (DebugLevel >= DebugHdr) then begin
         if (Len < 0) and (FCtrlSocket.LastError <> WSAEWOULDBLOCK) then
             LogEvent('WebSocket: Error - ' + WSocketErrorDesc(FCtrlSocket.LastError));
@@ -1730,73 +1977,98 @@ begin
     end;
     if Len <= 0 then
         Exit;
+    Len := Len + BufPos;
+    FReceiveBufferOffset := 0;
+    BufPos := 0;
 
   // find frame
     LastReceivedDataTickCount := IcsGetTickCount64;
     LastSentPingTickCount := 0;
-    if CurrFrame = nil then
-       CurrFrame := TWebSocketReceivedFrame.Create;
-    if not CurrFrame.Parse(@FReceiveBuffer[0], Len ) then begin
-        if (DebugLevel >= DebugBody) then
-            LogEvent(WSDumpFrame('Received Invalid', CurrFrame));
-        WSClose(wscrUnsupportedData, 'Unknown frame structure');
-        Exit;
-    end;
-    if CurrFrame.IsMasked then begin // the server must not send a masked frame
-        WSClose( wscrProtocolError, 'Frame is masked' );
-        Exit;
-    end;
-    if CurrFrame.State = wsfsCompleted then begin
-        if CurrFrame.Kind = wsfkContinue then begin
-            if CurrMultiFrame <> nil then begin
-                CurrMultiFrame.IsFinal := CurrFrame.IsFinal;
-                if CurrFrame.Data <> nil then begin
-                    if CurrMultiFrame.Data = nil then begin
-                        CurrMultiFrame.Data := CurrFrame.Data;
-                        CurrFrame.Data := nil;
-                        CurrMultiFrame.DataBytes := CurrFrame.DataBytes;
-                        CurrMultiFrame.StoredBytes := CurrFrame.StoredBytes;
-                    end
-                    else begin
-                        CurrMultiFrame.Data.Size := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
-                        CurrMultiFrame.Data.Position := CurrMultiFrame.DataBytes;
-                        CurrMultiFrame.Data.CopyFrom( CurrFrame.Data, 0 );
-                        CurrMultiFrame.DataBytes := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
-                        CurrMultiFrame.StoredBytes := CurrMultiFrame.StoredBytes + CurrFrame.StoredBytes;
-                    end;
-                end;
 
-                if CurrMultiFrame.IsFinal then begin
-                    if (DebugLevel >= DebugBody) then
-                        LogEvent(WSDumpFrame( 'Received Multiframe', CurrMultiFrame));
-                    ProcessReceivedFrame( CurrMultiFrame );
-                    CurrMultiFrame := nil;
-                end;
-            end;
-
-      // if there is nothing to connect it to, it is simply discarded
-            CurrFrame.Free;
-            CurrFrame := nil;
-            Exit;
-        end
-        else if not CurrFrame.IsFinal then
+    while Len > 0 do    // more frames may be received in FCtrlSocket buffer
+    begin
+        if CurrFrame = nil then
+           CurrFrame := TWebSocketReceivedFrame.Create;
+        ParsedBytes := 0;
+        if not CurrFrame.Parse( @FReceiveBuffer[BufPos], Len, ParsedBytes ) then
         begin
-          // it's the first frame from the message (because <> CurrFrame.Kind = wsfc Continue)
-          // and it's not final, so if some multiframe message is being processed
-          // it will be discarded
-            if CurrMultiFrame <> nil then
-                CurrMultiFrame.Free;
-          // and the current frame becomes a multiframe
-            CurrMultiFrame := CurrFrame;
-            CurrFrame := nil;
+            if CurrFrame.State = wsfsIncompleteHeader then
+            begin
+            if BufPos > 0 then Move( FReceiveBuffer[BufPos], FReceiveBuffer[0], Len );
+
+            FReceiveBufferOffset := Len;
+
+            if (DebugLevel >= DebugBody) then
+              LogEvent( 'WebSocket : Incomplete header' );
+            end
+            else
+            begin
+            if (DebugLevel >= DebugBody) then
+                LogEvent(WSDumpFrame('Received Invalid', CurrFrame, FWSMaxDump));
+            WSClose(wscrUnsupportedData, 'Unknown frame structure');
+            end;
+            Exit;
+        end;
+        if CurrFrame.IsMasked then begin // the server must not send a masked frame
+            WSClose( wscrProtocolError, 'Frame is masked' );
             Exit;
         end;
 
-     // if it comes here, the frame is final
-        if (DebugLevel >= DebugBody) then
-                LogEvent(WSDumpFrame( 'Received Singleframe', CurrFrame));
-        ProcessReceivedFrame( CurrFrame );
-        CurrFrame := nil;
+        // set buffer to next frame
+        BufPos := BufPos + ParsedBytes;
+        Len    := Len    - ParsedBytes;
+         if CurrFrame.State = wsfsCompleted then begin
+            if CurrFrame.Kind = wsfkContinue then begin
+                if CurrMultiFrame <> nil then begin
+                    CurrMultiFrame.IsFinal := CurrFrame.IsFinal;
+                    if CurrFrame.Data <> nil then begin
+                        if CurrMultiFrame.Data = nil then begin
+                            CurrMultiFrame.Data := CurrFrame.Data;
+                            CurrFrame.Data := nil;
+                            CurrMultiFrame.DataBytes := CurrFrame.DataBytes;
+                            CurrMultiFrame.StoredBytes := CurrFrame.StoredBytes;
+                        end
+                        else begin
+                            CurrMultiFrame.Data.Size := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
+                            CurrMultiFrame.Data.Position := CurrMultiFrame.DataBytes;
+                            CurrMultiFrame.Data.CopyFrom( CurrFrame.Data, 0 );
+                            CurrMultiFrame.DataBytes := CurrMultiFrame.DataBytes + CurrFrame.DataBytes;
+                            CurrMultiFrame.StoredBytes := CurrMultiFrame.StoredBytes + CurrFrame.StoredBytes;
+                        end;
+                    end;
+
+                    if CurrMultiFrame.IsFinal then begin
+                        if (DebugLevel >= DebugBody) then
+                            LogEvent(WSDumpFrame( 'Received Multiframe', CurrMultiFrame, FWSMaxDump));
+                        ProcessReceivedFrame( CurrMultiFrame );
+                        CurrMultiFrame := nil;
+                    end;
+                end;
+
+          // if there is nothing to connect it to, it is simply discarded
+                CurrFrame.Free;
+                CurrFrame := nil;
+                Continue;
+            end
+            else if not CurrFrame.IsFinal then
+            begin
+              // it's the first frame from the message (because <> CurrFrame.Kind = wsfc Continue)
+              // and it's not final, so if some multiframe message is being processed
+              // it will be discarded
+                if CurrMultiFrame <> nil then
+                    CurrMultiFrame.Free;
+              // and the current frame becomes a multiframe
+                CurrMultiFrame := CurrFrame;
+                CurrFrame := nil;
+                Continue;
+            end;
+
+         // if it comes here, the frame is final
+            if (DebugLevel >= DebugBody) then
+                    LogEvent(WSDumpFrame( 'Received Singleframe', CurrFrame, FWSMaxDump));
+            ProcessReceivedFrame( CurrFrame );
+            CurrFrame := nil;
+        end;
     end;
 end;
 
@@ -1993,5 +2265,6 @@ begin
     WSSendFrame(AFrameSourceID, wsfkBin, AStream);
 end;
 
+{$ENDIF USE_SSL}
 
 end.

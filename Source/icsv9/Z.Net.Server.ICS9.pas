@@ -43,7 +43,7 @@ interface
 uses Windows, SysUtils, Classes, Messages,
   Z.ICS9.OverbyteIcsWSocket,
   Z.PascalStrings, Z.UPascalStrings, Z.Core, Z.MemoryStream,
-  Z.Net.Server.ICS9CustomSocket,
+  Z.Net.Server.ICS9CustomSocket, Z.ICS9.OverbyteIcsTypes,
   Z.Net, Z.Status, Z.DFE;
 
 type

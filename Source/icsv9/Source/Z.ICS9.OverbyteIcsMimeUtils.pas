@@ -4,10 +4,10 @@
 Author:       François PIETTE
 Object:       Mime support routines (RFC2045).
 Creation:     May 03, 2003  (Extracted from SmtpProt unit)
-Version:      V9.0
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2003-2023 by François PIETTE
+Legal issues: Copyright (C) 2003-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               This software is provided 'as-is', without any express or
@@ -133,6 +133,9 @@ Dec 16, 2022 V8.71 EncodeQuotedPrintable has new Specials TSysCharSet parameter 
                      to added images as TStream to emails.
                    Above changes thanks to Jaroslav Kulísek.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 16, 2023 V9.1  Moved various MIME literals here from OverbyteIcsSslHttpRest.
+Jun 04, 2024 V9.2  Removed old commented out code.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -208,27 +211,25 @@ type
     function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
   end;
 
-  // TTransparentStream - to be able to use the stream in the attachment and not only the file
-  // because TTransparentStream does not free FStream in destructor
-  // so SMTP client creates ImageStream : TTransparentStream with user supplied stream (e.g. resource stream, custom stream...)
-  // and when SMTP frees this ImageStream, used FStream stay created and will be freed by application
-  // because is created by application and not by SMTP client
-  //
-  // see procedure THtmlSmtpCli.TriggerGetData -> InitStreamEncBase64
-  // see below declared, defined
-  // function InitStreamEncBase64( AStream : TStream ) : TStream;
-  // begin
-  //   Result := TTransparentStream.Create( AStream );
-  // end;
-  // where InitStreamEncBase64 is used in same / similar context as InitFileEncBase64
-
 const
-    TMimeUtilsVersion = 900;
-    CopyRight : String = ' MimeUtils (c) 2003-2023 F. Piette V9.0 ';
+    TMimeUtilsVersion = 904;
+    CopyRight : String = ' MimeUtils (c) 2003-2024 F. Piette V9.4 ';
 
     SmtpDefaultLineLength = 76; // without CRLF
     SMTP_SND_BUF_SIZE     = 2048;
     RegContentType = 'MIME\Database\Content Type';   {V7.25}
+
+ { V9.1 moved from OverbyteIcsSslHttpRest  }
+    MimeDnsJson       = 'application/dns-json';
+    MimeDnsMess       = 'application/dns-message';
+    MimeAppCert       = 'application/pkix-cert';             { V8.69 }
+    MimeOcspRequest   = 'application/ocsp-request';          { V8.69 }
+    MimeMultipart     = 'multipart/form-data; boundary=';    { V8.69 }
+    MimeFormData      = 'multipart/form-data;';              { V9.1 }
+    MimeAppBinary     = 'application/binary';                { V8.69 }
+    MimeAppForm       = 'application/x-www-form-urlencoded; charset=UTF-8';  { V8.69 }
+    MimeAppXml        = 'application/xml; charset=UTF-8';    { V8.69 }
+    MimeAppJson       = 'application/json; charset=UTF-8';   { V8.69 }
 
     { Explicit type cast to Ansi works in .NET as well }
     SpecialsRFC822 : TSysCharSet = [AnsiChar('('), AnsiChar(')'), AnsiChar('<'),
@@ -261,29 +262,6 @@ function  DecodeQuotedPrintable(const S: UnicodeString) : UnicodeString; overloa
 function  SplitQuotedPrintableString(const S : String) : String;
 { Find a Content-Type from a file name                                   }
 function  FilenameToContentType(FileName : String) : String;
-
-(*
-{ Base 64 encoding }
-function  Base64Encode(const Input : AnsiString) : AnsiString; overload;
-{$IFNDEF CLR}
-function  Base64Encode(const Input : PAnsiChar; Len : Integer) : AnsiString; overload;
-{$ENDIF}
-{$IFDEF COMPILER12_UP}
-function  Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload;
-function  Base64Encode(const Input : UnicodeString) : UnicodeString; overload;
-{$ENDIF}
-{$IFDEF CLR}
-function  Base64Encode(Input : StringBuilder) : StringBuilder; overload;
-{$ENDIF}
-
-function  Base64Decode(const Input : AnsiString) : AnsiString; overload;
-{$IFDEF COMPILER12_UP}
-function  Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString; overload;
-function  Base64Decode(const Input : UnicodeString) : UnicodeString; overload;
-{$ENDIF}
-{$IFDEF CLR}
-function  Base64Decode(Input : StringBuilder) : StringBuilder; overload;
-{$ENDIF}   *)
 
 function  InitFileEncBase64(const FileName : String;
                             ShareMode      : Word) : TStream;
@@ -823,62 +801,20 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-(*
-const
-    Base64Out: array [0..64] of Char = (
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/', '='
-    );
-    Base64OutA: array [0..64] of AnsiChar = (
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-        'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-        'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/', '='
-    );
-    Base64In: array[0..127] of Byte = (
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255,  62, 255, 255, 255,  63,  52,  53,  54,  55,
-         56,  57,  58,  59,  60,  61, 255, 255, 255,  64, 255, 255, 255,
-          0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,
-         13,  14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,
-        255, 255, 255, 255, 255, 255,  26,  27,  28,  29,  30,  31,  32,
-         33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,
-         46,  47,  48,  49,  50,  51, 255, 255, 255, 255, 255
-    );      *)
-
 {Bjørnar}
 function DoFileLoadNoEncoding(
     var Stream     : TStream;
     var More       : Boolean) : String;
 const
-    //MAX_LENGTH            = 76; {HLX: Longer lines = less CRLF's, RFC does allow lines *that* long}
     MULTIPLIER            = 4;
     MAX_READ              = SmtpDefaultLineLength * MULTIPLIER;
 var
     DataOut      : array [0..MAX_READ]  of Byte;
     ByteCount    : Integer;
-    //I          : Integer;
-    //Lines      : Integer;
 begin
-
     ByteCount := Stream.Read(DataOut, MAX_READ);
-    //Lines := ByteCount div MAX_READ;
-    //Insert(#09, Result, 1);
     SetLength(Result, ByteCount);// + (Lines * 2));
     Move(DataOut[0], Result[1], Length(Result));
-    { Splitting lines
-    I := SmtpDefaultLineLength + 1;
-    while I < Lines do begin;
-        Insert(#13#10, Result, I);
-        Inc(I, SmtpDefaultLineLength + 2);
-        Inc(Lines);
-    end;}
     More := (ByteCount = MAX_READ);
 end;
 {Bjørnar}
@@ -947,7 +883,6 @@ begin
             if (Ord(Buf) > 126)  or
                (Ord(Buf) < 32)   or
                (Buf in ['=', '.']) then begin
-               //IsCharInSysCharSet(Buf, ['=', '.']) then begin
                 Inc(I);
                 Result[I] := '=';
                 Inc(I);
@@ -972,84 +907,6 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$IFDEF OLD_VERSION}
-function DoFileEncBase64(
-    var Stream     : TStream;
-    var More       : Boolean) : String;
-const
-    HLX_MULTIPLIER        = 3;  { for three lines at once }
-    //MAX_LENGTH            = 76; {HLX: Longer lines = less CRLF's, RFC does allow lines *that* long}
-    MAX_LENGTH_MULTIPLIED = (SmtpDefaultLineLength + 2) * HLX_MULTIPLIER;
-    MAX_READ              = ((SmtpDefaultLineLength * 3)div 4) * HLX_MULTIPLIER;
-    MAX_READ_MOD          = (SmtpDefaultLineLength * 3) div 4;
-var
-    Count, Place : Integer;
-    DataIn       : array [0..MAX_READ]  of Byte;
-    DataOut      : array [0..MAX_LENGTH_MULTIPLIED + 8] of Byte;
-    ByteCount    : Integer;
-    I            : Integer;
-{ HLX: The following code is rewritten, so it loads data in MAX_READ chunks and
-  encodes all loaded data. The trick relies on the fact that TriggerGetData's
-  MsgLine buffer can hold up to 1024 chars. We'll encode 3 lines at once,
-  add CRLF's, and return all three as one: component will see it as one,
-  server will still see it as three.
-  I've noticed a strange behavior: having HLX_MULTIPLIER > 3, data aren't
-  sent completely, although it shouldn't occur
-  (see: TCustomSmtpClient.DataNext) }
-begin
-    Count     := 0;
-    Place     := 0;
-    ByteCount := Stream.Read(DataIn, MAX_READ);
-    while Place < ByteCount do begin
-        DataOut[Count] := (DataIn[Place] and $FC) shr 2;
-        Inc(Count);
-        DataOut[Count] := (DataIn[Place] and $03) shl 4;
-        Inc(Place);
-        if Place < ByteCount then begin
-            DataOut[Count] := DataOut[Count] + (DataIn[Place] and $F0) shr 4;
-            Inc(Count);
-            DataOut[Count] := (DataIn[Place] and $0F) shl 2;
-            Inc(Place);
-            if Place < ByteCount then begin
-                DataOut[Count] := DataOut[Count] + (DataIn[Place] and $C0) shr 6;
-                Inc(Count);
-                DataOut[Count] := (DataIn[Place] and $3F);
-                Inc(Place);
-                Inc(Count);
-            end
-            else begin
-                Inc(Count);
-                DataOut[Count] := $40;
-                Inc(Count);
-            end;
-        end
-        else begin
-            Inc(Count);
-            DataOut[Count] := $40;
-            Inc(Count);
-            DataOut[Count] := $40;
-            Inc(Count);
-        end;
-    end;
-    { Moved out of the main loop, so it has the chance to work in the }
-    { processor's L1 Cache                                            }
-    SetLength(Result, Count);
-    for I := 0 to Count - 1 do
-        DataOut[I] := Byte(Base64Out[DataOut[I]]);
-    Move(DataOut[0], Result[1], Count);
-    { Splitting lines }
-    I := MAX_LENGTH + 1;
-    while I < Count do begin;
-        Insert(#13#10, Result, I);
-        Inc(I, MAX_LENGTH + 2);
-        Inc(Count);
-    end;
-    More := (ByteCount = MAX_READ);
-end;
-{$ENDIF}
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function DoFileEncBase64(
     var Stream     : TStream;
     var More       : Boolean) : AnsiString;
@@ -1060,9 +917,6 @@ var
     ByteCount : Integer;
     LineLength : Integer;
     I         : Integer;
-{$IFDEF CLR}
-    SB        : StringBuilder;
-{$ENDIF}
 begin
     Count      := 0;
     LineLength := 0;
@@ -1079,12 +933,10 @@ begin
         DataOut[Count]     := (DataIn[0] and $FC) shr 2;
         DataOut[Count + 1] := (DataIn[0] and $03) shl 4;
         if ByteCount > 1 then begin
-            DataOut[Count + 1] := DataOut[Count + 1] +
-                                  (DataIn[1] and $F0) shr 4;
+            DataOut[Count + 1] := DataOut[Count + 1] + (DataIn[1] and $F0) shr 4;
             DataOut[Count + 2] := (DataIn[1] and $0F) shl 2;
             if ByteCount > 2 then begin
-                DataOut[Count + 2] := DataOut[Count + 2] +
-                                      (DataIn[2] and $C0) shr 6;
+                DataOut[Count + 2] := DataOut[Count + 2] + (DataIn[2] and $C0) shr 6;
                 DataOut[Count + 3] := (DataIn[2] and $3F);
             end
             else begin
@@ -1097,7 +949,7 @@ begin
         end;
 
         for I := 0 to 3 do
-            DataOut[Count + I] := Byte(Base64Out[DataOut[Count + I]]);
+            DataOut[Count + I] := Byte(Base64OutA[DataOut[Count + I]]);   { V9.4 was Base64Out char }
 
         Count := Count + 4;
 
@@ -1116,11 +968,6 @@ begin
 
     DataOut[Count] := $0;
 
-    { Next line commented since it led to an additional blank line in      }
-    { the MIME part. Instead use Stream.Size, see below.                   }
-
-    //More           := (ByteCount = 3);
-
 {$IFDEF USE_BUFFERED_STREAM}
     { If ShareMode does not allow shared writes we may use the file size   }
 
@@ -1138,15 +985,7 @@ begin
     { Slow, TIcsBufferedFileStream should be used anyway, it's much faster.   }
     More := Stream.Position < Stream.Size;
 {$ENDIF}
-
-{$IFDEF CLR}
-    SB := StringBuilder.Create(Count);
-    for I := 0 to Count - 1 do
-        SB[I] := Char(DataOut[I]);
-    Result := SB.ToString;
-{$ELSE}
     Result := IcsStrPas(PAnsiChar(@DataOut[0]));    { V8.57 }
-{$ENDIF}
 end;
 
 
@@ -1159,301 +998,10 @@ begin
     end;
 end;
 
-(*
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$IFNDEF CLR}
-function Base64Encode(const Input : PAnsiChar; Len: Integer) : AnsiString;
-var
-    Count : Integer;
-    I     : Integer;
-begin
-    Count := 0;
-    I := Len;
-    while (I mod 3) > 0 do
-        Inc(I);
-    I := (I div 3) * 4;
-    SetLength(Result, I);
-    I := 0;
-    while Count < Len do begin
-        Inc(I);
-        Result[I] := Base64OutA[(Byte(Input[Count]) and $FC) shr 2];
-        if (Count + 1) < Len then begin
-            Inc(I);
-            Result[I] := Base64OutA[((Byte(Input[Count]) and $03) shl 4) +
-                                    ((Byte(Input[Count + 1]) and $F0) shr 4)];
-            if (Count + 2) < Len then begin
-                Inc(I);
-                Result[I] := Base64OutA[((Byte(Input[Count + 1]) and $0F) shl 2) +
-                                       ((Byte(Input[Count + 2]) and $C0) shr 6)];
-                Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 2]) and $3F)];
-            end
-            else begin
-                Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 1]) and $0F) shl 2];
-                Inc(I);
-                Result[I] := '=';
-            end
-        end
-        else begin
-            Inc(I);
-            Result[I] := Base64OutA[(Byte(Input[Count]) and $03) shl 4];
-            Inc(I);
-            Result[I] := '=';
-            Inc(I);
-            Result[I] := '=';
-        end;
-        Inc(Count, 3);
-    end;
-    //SetLength(Result, I);
-end;
-{$ENDIF}
-
-
-function Base64Encode(const Input : AnsiString) : AnsiString;
-{$IFNDEF CLR}
-begin
-    Result := Base64Encode(PAnsiChar(Input), Length(Input));
-end;
-{$ELSE}
-var
-    Count : Integer;
-    Len   : Integer;
-    I     : Integer;
-begin
-    Count  := 1;
-    I      := 0;
-    Len    := Length(Input);
-    SetLength(Result, ((Len + 2) div 3) * 4);
-    while Count <= Len do begin
-        Inc(I);
-        Result[I] := Base64OutA[(Byte(Input[Count]) and $FC) shr 2];
-        if (Count + 1) <= Len then begin
-            Inc(I);
-            Result[I] := Base64OutA[((Byte(Input[Count]) and $03) shl 4) +
-                                    ((Byte(Input[Count + 1]) and $F0) shr 4)];
-            if (Count + 2) <= Len then begin
-                Inc(I);
-                Result[I] := Base64OutA[((Byte(Input[Count + 1]) and $0F) shl 2) +
-                                       ((Byte(Input[Count + 2]) and $C0) shr 6)];
-                Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 2]) and $3F)];
-            end
-            else begin
-                Inc(I);
-                Result[I] := Base64OutA[(Byte(Input[Count + 1]) and $0F) shl 2];
-                Inc(I);
-                Result[I] := '=';
-            end
-        end
-        else begin
-            Inc(I);
-            Result[I] := Base64OutA[(Byte(Input[Count]) and $03) shl 4];
-            Inc(I);
-            Result[I] := '=';
-            Inc(I);
-            Result[I] := '=';
-        end;
-        Inc(Count, 3);
-    end;
-    SetLength(Result, I);
-end;
-{$ENDIF}
-
-{$IFDEF COMPILER12_UP}
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ Converts the UnicodeString to AnsiString using the code page specified,   }
-{ converts the Base64 AnsiString result to Unicode using default code page. }
-function Base64Encode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString;
-begin
-    Result := String(Base64Encode(UnicodeToAnsi(Input, ACodePage)));
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ Converts the UnicodeString to AnsiString using the default code page,     }
-{ converts the Base64 AnsiString result to Unicode using default code page. }
-function Base64Encode(const Input : UnicodeString) : UnicodeString;
-begin
-    Result := String(Base64Encode(AnsiString(Input)));
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$ENDIF}
-
-{$IFDEF CLR}
-function Base64Encode(Input : StringBuilder) : StringBuilder;
-var
-    Count : Integer;
-    Len   : Integer;
-begin
-    Result := StringBuilder.Create;
-    Count  := 1;
-    Len    := Input.Length;
-    while Count <= Len do begin
-        Result.Append(Base64Out[(Byte(Input[Count]) and $FC) shr 2]);
-        if (Count + 1) <= Len then begin
-            Result.Append(Base64Out[((Byte(Input[Count]) and $03) shl 4) +
-                                    ((Byte(Input[Count + 1]) and $F0) shr 4)]);
-            if (Count + 2) <= Len then begin
-                Result.Append(Base64Out[((Byte(Input[Count + 1]) and $0F) shl 2) +
-                                        ((Byte(Input[Count + 2]) and $C0) shr 6)]);
-                Result.Append(Base64Out[(Byte(Input[Count + 2]) and $3F)]);
-            end
-            else begin
-                Result.Append(Base64Out[(Byte(Input[Count + 1]) and $0F) shl 2]);
-                Result.Append('=');
-            end
-        end
-        else begin
-            Result.Append(Base64Out[(Byte(Input[Count]) and $03) shl 4]);
-            Result.Append('==');
-        end;
-        Count := Count + 3;
-    end;
-end;
-{$ENDIF}
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Base64Decode(const Input : AnsiString) : AnsiString;
-var
-    Count   : Integer;
-    Len     : Integer;
-    I       : Integer;
-    DataIn0 : Byte;
-    DataIn1 : Byte;
-    DataIn2 : Byte;
-    DataIn3 : Byte;
-begin
-    Count := 1;
-    Len   := Length(Input);
-    I     := 0;
-    SetLength(Result, Len + 2);
-    while Count <= Len do begin
-        if Byte(Input[Count]) in [13, 10] then
-            Inc(Count)
-        else begin
-            DataIn0 := Base64In[Byte(Input[Count])];
-            DataIn1 := Base64In[Byte(Input[Count+1])];
-            DataIn2 := Base64In[Byte(Input[Count+2])];
-            DataIn3 := Base64In[Byte(Input[Count+3])];
-            Inc(I);
-            Result[I] := AnsiChar(((DataIn0 and $3F) shl 2) +
-                                  ((DataIn1 and $30) shr 4));
-            if DataIn2 <> $40 then begin
-                Inc(I);
-                Result[I] := AnsiChar(((DataIn1 and $0F) shl 4) +
-                                      ((DataIn2 and $3C) shr 2));
-                if DataIn3 <> $40 then begin
-                    Inc(I);
-                    Result[I] :=  AnsiChar(((DataIn2 and $03) shl 6) +
-                                           (DataIn3 and $3F));
-                end;
-            end;
-            Count := Count + 4;
-        end;
-    end;
-    SetLength(Result, I);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ Input must not be converted since it is plain US-ASCII, assumes one input }
-{ char can safely be casted to one byte.                                    }
-{$IFDEF COMPILER12_UP}
-function Base64Decode(const Input : UnicodeString; ACodePage: LongWord) : UnicodeString;
-var
-    Count   : Integer;
-    Len     : Integer;
-    I       : Integer;
-    DataIn0 : Byte;
-    DataIn1 : Byte;
-    DataIn2 : Byte;
-    DataIn3 : Byte;
-    Buf     : AnsiString;
-begin
-    Count := 1;
-    Len   := Length(Input);
-    I     := 0;
-    SetLength(Buf, Len + 2);
-    while Count <= Len do begin
-        if Ord(Input[Count]) in [13, 10] then
-            Inc(Count)
-        else begin
-            DataIn0 := Base64In[Byte(Input[Count])];
-            DataIn1 := Base64In[Byte(Input[Count+1])];
-            DataIn2 := Base64In[Byte(Input[Count+2])];
-            DataIn3 := Base64In[Byte(Input[Count+3])];
-            Inc(I);
-            Buf[I] := AnsiChar(((DataIn0 and $3F) shl 2) +
-                               ((DataIn1 and $30) shr 4));
-            if DataIn2 <> $40 then begin
-                Inc(I);
-                Buf[I] := AnsiChar(((DataIn1 and $0F) shl 4) +
-                                   ((DataIn2 and $3C) shr 2));
-                if DataIn3 <> $40 then begin
-                    Inc(I);
-                    Buf[I] :=  AnsiChar(((DataIn2 and $03) shl 6) +
-                                        (DataIn3 and $3F));
-                end;
-            end;
-            Count := Count + 4;
-        end;
-    end;
-    SetLength(Buf, I);
-    Result := AnsiToUnicode(Buf, ACodePage);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function Base64Decode(const Input : UnicodeString) : UnicodeString;
-begin
-    Result := Base64Decode(Input, CP_ACP);
-end;
-{$ENDIF}
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$IFDEF CLR}
-function Base64Decode(Input : StringBuilder) : StringBuilder;
-var
-    Count   : Integer;
-    Len     : Integer;
-    DataIn0 : Byte;
-    DataIn1 : Byte;
-    DataIn2 : Byte;
-    DataIn3 : Byte;
-begin
-    Result := StringBuilder.Create;
-    Count  := 1;
-    Len    := Input.Length;
-    while Count <= Len do begin
-        DataIn0 := Base64In[Byte(Input[Count])];
-        DataIn1 := Base64In[Byte(Input[Count+1])];
-        DataIn2 := Base64In[Byte(Input[Count+2])];
-        DataIn3 := Base64In[Byte(Input[Count+3])];
-
-        Result.Append(Char(((DataIn0 and $3F) shl 2) +
-                           ((DataIn1 and $30) shr 4)));
-        if DataIn2 <> $40 then begin
-            Result.Append(Char(((DataIn1 and $0F) shl 4) +
-                               ((DataIn2 and $3C) shr 2)));
-            if DataIn3 <> $40 then
-                Result.Append(Char(((DataIn2 and $03) shl 6) +
-                                   (DataIn3 and $3F)));
-        end;
-        Count := Count + 4;
-    end;
-end;
-{$ENDIF}
-       *)
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Works with DBCS and UTF-8 only                                            }
-function B64SafeMaxIndex(CP: LongWord; const S: RawbyteString;    {AG}
-  Index: Integer; MaxBytes: Integer): Integer;
+function B64SafeMaxIndex(CP: LongWord; const S: RawbyteString;  Index: Integer; MaxBytes: Integer): Integer;
 var
     P    : PAnsiChar;
     L    : Integer;
@@ -1513,8 +1061,7 @@ begin
         NextCharIdx := B64SafeMaxIndex(CodePage, Input, cPos, MaxCol);
         if NextCharIdx > cPos then
         begin
-            Result := Base64Encode(PAnsiChar(Input) + (cPos - 1),
-                                   NextCharIdx - cPos);
+            Result := IcsBase64EncodeAC(PAnsiChar(Input) + (cPos - 1),  NextCharIdx - cPos);  { V9.4 }
             cPos := NextCharIdx;
         end;
         Exit;
@@ -1533,12 +1080,10 @@ begin
         Result[I] := Base64OutA[(Byte(Input[cPos]) and $FC) shr 2];
         if (cPos + 1) <= Len  then begin
             Inc(I);
-            Result[I] := Base64OutA[((Byte(Input[cPos]) and $03) shl 4) +
-                                   ((Byte(Input[cPos + 1]) and $F0) shr 4)];
+            Result[I] := Base64OutA[((Byte(Input[cPos]) and $03) shl 4) + ((Byte(Input[cPos + 1]) and $F0) shr 4)];
             if (cPos + 2) <= Len then begin
                 Inc(I);
-                Result[I] := Base64OutA[((Byte(Input[cPos + 1]) and $0F) shl 2) +
-                                       ((Byte(Input[cPos + 2]) and $C0) shr 6)];
+                Result[I] := Base64OutA[((Byte(Input[cPos + 1]) and $0F) shl 2) + ((Byte(Input[cPos + 2]) and $C0) shr 6)];
                 Inc(I);
                 Result[I] := Base64OutA[(Byte(Input[cPos + 2]) and $3F)];
             end
@@ -1919,11 +1464,9 @@ begin
         MaxCol := 25;
 
     if Length(CharSet) < 2 then // MIME charset strings of length 2 exist.
-        raise Exception.Create('Function ''HdrEncodeInLine'', invalid CharSet: ' +
-                                '' + Charset + '');
+        raise Exception.Create('Function ''HdrEncodeInLine'', invalid CharSet: ' + '' + Charset + '');
     if not (Byte(EncType) in [Ord('Q'), Ord('B')]) then
-        raise Exception.Create('Function ''HdrEncodeInLine'', invalid EncType: ' +
-                                '' + EncType + '');
+        raise Exception.Create('Function ''HdrEncodeInLine'', invalid EncType: ' +  '' + EncType + '');
     Res    := '';
     Prefix := '=?' + IcsLowerCase(CharSet) + '?' + EncType + '?';
     Len    := Length(Input);
@@ -1982,13 +1525,10 @@ begin
             MaxCol := MaxCol - LenRes; // sub decoration-length
             while NextCharIdx <= Len do
             begin
-                NextCharIdx := B64SafeMaxIndex(CodePage, Input,
-                                                         OldCharIdx, MaxCol);
+                NextCharIdx := B64SafeMaxIndex(CodePage, Input, OldCharIdx, MaxCol);
                 if NextCharIdx > OldCharIdx then
                 begin
-                    Res := Res + Prefix +
-                           Base64Encode(PAnsiChar(Input) + (OldCharIdx - 1),
-                                        NextCharIdx - OldCharIdx) + Suffix;
+                    Res := Res + Prefix + IcsBase64EncodeAC(PAnsiChar(Input) + (OldCharIdx - 1), NextCharIdx - OldCharIdx) + Suffix;   { V9.4 }
                     if NextCharIdx <= Len then
                         Res := Res + LineBreak;
                     OldCharIdx := NextCharIdx;
@@ -2009,11 +1549,9 @@ begin
             end;
             Res := Res + Base64OutA[(Byte(Input[lPos]) and $FC) shr 2];
             if (lPos + 1) <= Len  then begin
-                Res := Res + Base64OutA[((Byte(Input[lPos]) and $03) shl 4) +
-                                       ((Byte(Input[lPos + 1]) and $F0) shr 4)];
+                Res := Res + Base64OutA[((Byte(Input[lPos]) and $03) shl 4) + ((Byte(Input[lPos + 1]) and $F0) shr 4)];
                 if (lPos + 2) <= Len then begin
-                    Res := Res + Base64OutA[((Byte(Input[lPos + 1]) and $0F) shl 2) +
-                                           ((Byte(Input[lPos + 2]) and $C0) shr 6)];
+                    Res := Res + Base64OutA[((Byte(Input[lPos + 1]) and $0F) shl 2) + ((Byte(Input[lPos + 2]) and $C0) shr 6)];
                     Res := Res + Base64OutA[(Byte(Input[lPos + 2]) and $3F)];
                 end
                 else begin
@@ -2045,8 +1583,7 @@ function HdrEncodeInLine(const Input    : UnicodeString;
                          IsMultiByteCP  : Boolean = FALSE): UnicodeString;
 begin
     Result := HdrEncodeInLine(AnsiString(Input), Specials, AnsiChar(EncType),
-                              AnsiString(CharSet), MaxCol, DoFold, Codepage,
-                              IsMultiByteCP);
+                                              AnsiString(CharSet), MaxCol, DoFold, Codepage, IsMultiByteCP);
 end;
 {$ENDIF}
 
@@ -2064,8 +1601,7 @@ var
 begin
     CharSet := AnsiString(CodePageToMimeCharsetString(CodePage));
     Result := HdrEncodeInLine(UnicodeToAnsi(Input,CodePage), Specials,
-                              AnsiChar(EncType), CharSet, MaxCol, DoFold,
-                              CodePage, IsMultiByteCP);
+                                                AnsiChar(EncType), CharSet, MaxCol, DoFold, CodePage, IsMultiByteCP);
 end;
 
 { * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -2433,8 +1969,7 @@ var
         end;
     end;
 
-    function ConvertClosestTempStr(var FromValue: Integer;
-        const AMax: Integer): Integer;
+    function ConvertClosestTempStr(var FromValue: Integer;  const AMax: Integer): Integer;
     var
         L, H, I, CurLen, LQPGrow: Integer;
         LTmp : AnsiString;
@@ -2445,11 +1980,6 @@ var
         begin
             LQPGrow := 0;
             LNeedsQP:= FALSE;
-            {CurLen := IcsWcToMb(CodePage, 0, P, FromValue, nil, 0, nil, nil);
-            SetLength(LTmp, CurLen);
-            CurLen := IcsWcToMb(CodePage, 0, P, FromValue, Pointer(LTmp),
-                                CurLen, nil, nil);}
-
             CurLen := Csc.FromWc(0, P, FromValue * SizeOf(WideChar), nil, 0);
             SetLength(LTmp, CurLen);
             CurLen := Csc.FromWc(0, P, FromValue * SizeOf(WideChar), Pointer(LTmp), CurLen);
@@ -2543,7 +2073,7 @@ begin
         while BodyLen > 0 do
         begin
             DoQP := FALSE;
-            if ConvertClosestTempStr(BodyLen, CurMaxLen) = 0 then
+            if ConvertClosestTempStr(BodyLen, CurMaxLen) = 0 then    // fills TempStr
                 Exit;
             if (EncType = 'Q') and DoQP then
             begin
@@ -2551,7 +2081,7 @@ begin
                 QPGrow := 0;
             end
             else if (EncType = 'B') then
-                TempStr := Base64Encode(TempStr);
+                TempStr := IcsBase64EncodeA(TempStr);      { V9.4 }
 
             if LineCnt = 1 then
                 Result := Prefix + TempStr + Suffix

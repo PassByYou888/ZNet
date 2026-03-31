@@ -2,7 +2,7 @@
 
 Author:       François PIETTE
 Creation:     Jan 01, 2004
-Version:      V9.0
+Version:      V9.4
 Description:  This is an implementation of the NTLM authentification
               messages used within HTTP protocol (client side).
               NTLM protocol documentation can be found at:
@@ -63,6 +63,7 @@ May 2012 - V8.00 - Arno added FireMonkey cross platform support with POSIX/MacOS
 Mar 29, 2019 V8.61 OAS : for Single Sign On with Session on Windows Domain
                    update types and make some records "packed" for Windows standard
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Oct 09, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
 HowTo NTLMv2:
@@ -152,8 +153,8 @@ uses
     Z.ICS9.OverbyteIcsMimeUtils;
 
 const
-    IcsNtlmMsgsVersion     = 900;
-    CopyRight : String     = ' IcsNtlmMsgs (c) 2004-2023 F. Piette V9.0 ';
+    IcsNtlmMsgsVersion     = 904;
+    CopyRight : String     = ' IcsNtlmMsgs (c) 2004-2024 F. Piette V9.4 ';
 
 const
     Flags_Negotiate_Unicode               = $00000001;
@@ -651,7 +652,7 @@ begin
     SetLength(MessageAux, SizeOf(Msg));
     Move(Msg, MessageAux[1], SizeOf(Msg));
     MessageAux := MessageAux + Host + Domain;
-    Result := Base64Encode(MessageAux);
+    Result := IcsBase64Encode(MessageAux);       { V9.4 }
 end;
 
 
@@ -670,7 +671,7 @@ var
 begin
     if Length(AServerReply) > 0 then begin
         // we have a response
-        NTLMReply  := Base64Decode(AServerReply);
+        NTLMReply  := IcsBase64Decode(AnsiString(AServerReply));       { V9.4 }
         ReplyLen := Length(NTLMReply);
         if ReplyLen < SizeOf(Msg) then
         begin
@@ -896,7 +897,7 @@ begin
 
     MessageAux := MessageAux + UDomain + UUser + UHost + LM_Resp + NT_Resp;
 
-    Result := Base64Encode(MessageAux);
+    Result := IcsBase64Encode(MessageAux);          { V9.4 }
 end;
 
 
@@ -922,8 +923,7 @@ var
     Digest     : TMD5Digest;
     UnicodeFlag: Boolean;
 
-    procedure GetNtlm2SessionResponses(
-        out LmResp, NtlmResp: AnsiString; NtlmOnly: Boolean);
+    procedure GetNtlm2SessionResponses(out LmResp, NtlmResp: AnsiString; NtlmOnly: Boolean);
     var
         Nonce: array[0..3] of Word;
         NtlmPwdHash   : AnsiString;
@@ -1165,7 +1165,7 @@ begin
     { Concatenate final message }
     MessageAux := MessageAux + UDomain + UUser + UHost + LM_Resp + NT_Resp;
 
-    Result := Base64Encode(MessageAux);
+    Result := IcsBase64Encode(MessageAux);          { V9.4 }
 end;
 
 

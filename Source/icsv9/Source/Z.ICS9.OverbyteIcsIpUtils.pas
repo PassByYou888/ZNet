@@ -3,11 +3,11 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Ethernet, IP and transport layer literals and functions.
 Creation:     March 2009
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Sep 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2002-2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -63,11 +63,18 @@ Jul 24, 2023 - V8.71 Updated units for main ICS library.
                        list from https://linuxnet.ca/ieee/oui/nmap-mac-prefixes (nmap-mac-prefixes.txt),
                        lookup using IcsGetMacVendor.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 23, 2024 V9.1  IcsLoadMacPrefixes now tries to load list from resource file
+                      nmap-mac-prefixes.RES if linked into application, otherwise loads
+                      file nmap-mac-prefixes.txt.
+                   Loading common port list from resource file icsportlist.RES if linked
+                     into application, otherwise loads file icsportlist.txt.
+                   Removed WellKnownSvcs which duplicates port list.
+Apr 08, 2024 V9.2  Builds with D7 again.
+Sep 02, 2025 V9.5  Added IP195_66_224_0 and IP195_66_255_255 for LINX.
 
 
-Pending, load latest common ports list.
-
-
+See OverbyteIcsNetMon1.pas for how the MAC and port resource files are linked into
+applications needing them.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -95,6 +102,7 @@ interface
 uses
     {$Ifdef Rtl_Namespaces}System.Classes{$Else}Classes{$Endif},
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
+    {$IFDEF Rtl_Namespaces}System.Types{$ELSE}Types{$ENDIF},          { V9.1 }
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
 {$ELSE}
@@ -102,10 +110,11 @@ uses
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     Z.ICS9.OverbyteIcsWSocket,
 {$ENDIF}
-    Z.ICS9.OverbyteIcsUtils;
+    Z.ICS9.OverbyteIcsUtils, 
+    Z.ICS9.OverbyteIcsTypes; // for TBytes and TThreadID V9.2
 
 const
-    CopyRight    : String     = ' IcsIpUtils  (c) 2023 V9.0 ';
+    CopyRight    : String     = ' IcsIpUtils  (c) 2025 V9.5 ';
 
 const
 
@@ -122,6 +131,8 @@ const
   IP172_31_255_255 = 2887778303;
   IP192_168_0_0 = 3232235520;
   IP192_168_255_255 = 3232301055;
+  IP195_66_224_0 = 3275939840;        // V9.5 Linx
+  IP195_66_255_255 = 3275948031;      // V9.5 Linx
   IP224_0_0_0 = 3758096384;           // multicast
   IP239_255_255_255 = 4026531839;     // multicast
   IP6_FF00 = $FF00;    // multicast
@@ -380,10 +391,10 @@ type
 
 var
   PortNameArray: array of string ;   // dynamic array for TCP and UDP port names, indexed by number
-  TotalPortNames: integer = -1 ;
-  ProtoNameArray: array of string ;  // dynamic array for IP protocol names, indexed by number
-  TotalProtoNames: integer = -1 ;
-  PortListFileName: string = 'ports.txt' ;
+  TotalPortNames: integer = -1 ;      // -1 not loaded yet
+//  ProtoNameArray: array of string ;  // dynamic array for IP protocol names, indexed by number
+//  TotalProtoNames: integer = -1 ;   // -1 not loaded yet
+  PortListFileName: string = 'icsportlist.txt';   { V9.1 }
   ProtocolListFileName: string = 'protocols.txt' ;
   MacPrefixFileName: string = 'nmap-mac-prefixes.txt';
   MacPrefixes: TStringList;
@@ -397,6 +408,7 @@ function IcsServiceNameEx(s_port, d_port: Integer): string;
 function IcsICMPType (x: word): string ;
 function IcsTCPFlags(flags: word): string ;
 procedure IcsLoadPortNameList ;
+function IcsGetPortName(Port: integer): string ;   { V9.1 }
 function IsKnownService (s_port: integer): Boolean ;   // Feb 2023
 
 // these routines manipulate combined fields (set/get nibbles or bits)
@@ -473,6 +485,7 @@ var
 
 // Well known service ports
 // full list at http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
+(* V9.1 gone, now loading port list from resouce or file
   WellKnownSvcs: array[1..65] of TWellKnownSvc = (
 //    ( port:   0; svc: 'LOOPBACK'),
     ( port:   1; svc: 'TCPMUX'),    { TCP Port Service Multiplexer  }
@@ -540,7 +553,7 @@ var
     ( port:6668; svc: 'IRC' ),      { Internet Relay Chat           }
     ( port:6669; svc: 'IRC' ),      { Internet Relay Chat           }
     ( port:8833; svc: 'MQTT' )      { MQ Telemetry Transport        }
-  );
+  );  *)
 
 function IcsEtherProtoName (protocol: word): string ;
 var
@@ -566,40 +579,6 @@ begin
     end ;
 end;
 
-function IcsServiceName (s_port, d_port: integer): string ;
-var
-    I: integer;
-begin
-    result := '';
-    for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
-    begin
-        if (s_port = WellKnownSvcs [I].port) OR (d_port = WellKnownSvcs [I].port) then
-        begin
-            result := WellKnownSvcs[I].svc;
-            exit ;
-        end;
-    end ;
-    if (result = '') and (s_port < 1024) then
-        result := '<' + IntToStr (s_port) + '>' ;
-    if (result = '') and (d_port < 1024) then
-        result := '<' + IntToStr (d_port) + '>' ;
-end ;
-
-function IsKnownService (s_port: integer): Boolean ;   // Feb 2023
-var
-    I: integer;
-begin
-    result := False;
-    for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
-    begin
-        if (s_port = WellKnownSvcs [I].port) then
-        begin
-            result := True;
-            exit ;
-        end;
-    end ;
-end;
-
 
 function  IcsICMPType(x: word): string ;
 begin
@@ -619,67 +598,114 @@ begin
    end ;
 end ;
 
-// load well know port list from file ports.txt, which is copied from RFC 1700 with
+// load well know port list from file ports.txt, based on from http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
 // superflous lines removed or prefixed with #
-// Note: currently using UDP port where TCP is different, should really have two arrays
 
 procedure IcsLoadPortNameList ;
 var
-  PortInfo: TStringList ;
-  line, port: string ;
-  I, J, K, L, M: integer ;
+    PortInfo: TStringList ;
+    Line, PortStr: string ;
+    PortNum, J, K: integer ;
+    ListTB: TBytes;
 begin
-    TotalPortNames := 0 ;
-    if FileExists (PortListFileName) then
-    begin
-        TotalPortNames := 10000 ;
-        SetLength (PortNameArray, TotalPortNames) ;
-        PortInfo := TStringList.Create ;
+    TotalPortNames := 0 ;  // attempted once
+    PortInfo := TStringList.Create ;
+    try
+{$IFDEF MSWINDOWS}
         try
+            ListTB := IcsResourceGetTB('ICSPORTLISTTXT', RT_RCDATA);   { V9.1 see if list linked into application }
+        except
+        end;
+{$ENDIF}
+        if Length(ListTB) > 0 then
+            PortInfo.Text := IcsTBytesToString(ListTB)
+        else if FileExists (PortListFileName) then begin
             try
                 PortInfo.LoadFromFile (PortListFileName) ;
-                I := PortInfo.Count ;
             except
-                I := 0 ;
+            end;
+        end;
+        if PortInfo.Count > 100 then begin    // expecting about 400 lines
+            TotalPortNames := 10000 ;
+            SetLength (PortNameArray, TotalPortNames) ;
+            for J := 0 to Pred (PortInfo.Count)  do begin
+            // sample line - ignore / onwards
+            // ftp              21   File Transfer [Control]
+                line := PortInfo [J] ;
+                if Length (line) < 5 then
+                    continue ;
+                if line [1] = '#' then
+                    continue ;
+                K := Pos (' ', line) ;
+                if (K < 2) then
+                    continue ;
+                PortStr := TrimLeft(Copy (line, K, 99));
+                PortNum := atoi (Copy(PortStr, 1, 4)) ;
+                if (PortNum = 0) then
+                    continue ;
+                if PortNum >= TotalPortNames then
+                    continue ;  // ignore high ports
+                PortNameArray [PortNum] := Copy (line, 1, Pred (K)) ;
             end ;
-            if I <> 0 then
-            begin
-                for J := 0 to Pred (I)  do
-                begin
-                // sample line - ignore / onwards
-                // echo              7/tcp    Echo
-                    line := PortInfo [J] ;
-                    if Length (line) < 5 then continue ;
-                    if line [1] = '#' then continue ;
-                    K := Pos (' ', line) ;
-                    M := Pos ('/', line) ;
-                    if (K < 2) or (M < K) then continue ;
-                    port := Copy (line, K, M - K) ;
-                    L := atoi (Trim (port)) ;
-                    if (L = 0) then continue ;
-                    if L >= TotalPortNames then continue ;  // ignore high ports
-                  //if PortNameArray [L] = '' then
-                    PortNameArray [L] := Copy (line, 1, Pred (K)) ;
-                end ;
-            end
-            else
-                TotalPortNames := 0 ;
-        finally
-              PortInfo.Destroy ;
-        end ;
+        end
+    finally
+       PortInfo.Destroy ;
     end ;
 end ;
 
-function IcsServName (port: integer): string ;
-var
-    I: integer;
+function IcsGetPortName(Port: integer): string ;   { V9.1 }
 begin
     result := '' ;
     if TotalPortNames < 0 then
         IcsLoadPortNameList ;  // try and load list
-    if (port > 0) and (port < TotalPortNames) then
+    if (Port > 0) and (Port <= TotalPortNames) then
         result := PortNameArray [port] ;
-    if result = '' then  // nothing in list, try hard coded ports
+end;
+
+function IcsServiceName (s_port, d_port: integer): string ;
+//var
+//    I: integer;
+begin
+    result := '';
+    result := IcsGetPortName(s_port);
+    if Result = '' then
+        result := IcsGetPortName(d_port);
+{    for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
+    begin
+        if (s_port = WellKnownSvcs [I].port) OR (d_port = WellKnownSvcs [I].port) then
+        begin
+            result := WellKnownSvcs[I].svc;
+            exit ;
+        end;
+    end ;    }
+    if (result = '') and (s_port < 1024) then
+        result := '<' + IntToStr (s_port) + '>' ;
+    if (result = '') and (d_port < 1024) then
+        result := '<' + IntToStr (d_port) + '>' ;
+end ;
+
+function IsKnownService (s_port: integer): Boolean ;   // Feb 2023
+//var
+//    I: integer;
+begin
+    result := (IcsGetPortName(s_port) <> '');
+ {   for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
+    begin
+        if (s_port = WellKnownSvcs [I].port) then
+        begin
+            result := True;
+            exit ;
+        end;
+    end ;   }
+end;
+
+
+function IcsServName (Port: integer): string ;
+//var
+//    I: integer;
+begin
+    result := IcsGetPortName(Port) ;
+(*    if result = '' then  // nothing in list, try hard coded ports
     begin
         for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
         begin
@@ -689,30 +715,24 @@ begin
                 exit ;
             end;
         end ;
-    end ;
+    end ; *)
     if (result = '') then
         result := '<' + IntToStr (port) + '>' ;
 end ;
 
 function IcsServiceNameEx (s_port, d_port: integer): string ;
 var
-    I: integer;
+//    I: integer;
     s_name, d_name: string ;
 begin
     result := '';
-    s_name := '' ;
-    d_name := '';
-    if TotalPortNames < 0 then
-        IcsLoadPortNameList ;  // try and load list
-    if (s_port > 0) and (s_port < TotalPortNames) then
-        s_name := PortNameArray [s_port] ;
-    if (d_port > 0) and (d_port < TotalPortNames) then
-        d_name := PortNameArray [d_port] ;
+    s_name := IcsGetPortName(s_port);
+    d_name := IcsGetPortName(d_port);
     if d_name <> '' then
         result := d_name
     else
         result := s_name ;
-    if result = '' then  // nothing in list, try hard coded ports
+ (*   if result = '' then  // nothing in list, try hard coded ports
     begin
         for I := 1 to SizeOf (WellKnownSvcs) div SizeOf (TWellKnownSvc) do
         begin
@@ -722,7 +742,7 @@ begin
                 exit ;
             end;
         end ;
-    end ;
+    end ;   *)
     if (result = '') and (s_port < 1024) then
         result := '<' + IntToStr (s_port) + '>' ;
     if (result = '') then
@@ -864,17 +884,25 @@ end;
 // load Organization Unique Identifier (OUI) MAC list in smaller nmap-mac-prefixes.txt version
 // https://linuxnet.ca/ieee/oui/nmap-mac-prefixes
 function IcsLoadMacPrefixes: Boolean;
+var
+    ListTB: TBytes;
 begin
     Result := False;
     try
         if NOT Assigned(MacPrefixes) then
            MacPrefixes := TStringList.Create;
-        if FileExists(MacPrefixFileName) then begin
+{$IFDEF MSWINDOWS}
+        ListTB := IcsResourceGetTB('MACPREFIXESTXT', RT_RCDATA);   { V9.1 see if list linked into application }
+{$ENDIF}
+        if Length(ListTB) > 0 then begin
+            MacPrefixes.Text := IcsTBytesToString(ListTB);
+        end
+        else if FileExists(MacPrefixFileName) then begin
             MacPrefixes.LoadFromFile(MacPrefixFileName);
-            if MacPrefixes.Count > 0 then begin
-                MacPrefixes.Sort; // should be sorted already...
-                Result := True;
-            end;
+        end;
+        if MacPrefixes.Count > 0 then begin
+            MacPrefixes.Sort; // should be sorted already...
+            Result := True;
         end;
     except
         // ignore errors
@@ -887,6 +915,7 @@ end;
 // 90F157(tab)Garmin
 // 90F1AA(tab)Samsung
 // only needs six hex characters, but strips off separators if provided
+// pending - some files have seven hex digit MAC address allocations
 function IcsGetMacVendor(const PartMacAddr: String): string;
 var
     J: Integer;
@@ -925,6 +954,8 @@ begin
     if Copy(Line, 1, 6) <> SearchMac then  // ensure correct prefix found
         Exit;
     J := Pos(IcsTAB, Line);
+    if J < 6 then
+        J := Pos(IcsSpace, Line);   // V9.1 file may have tab or space
     if J < 6 then
         Exit;
     Result := Copy(Line, J+1, 99);

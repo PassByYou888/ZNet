@@ -13,11 +13,11 @@ Description:  HTTPS REST functions, descends from THttpCli, and publishes all
               Includes functions for OAuth2 and OAuth1A authentication, and
               components to send SMS messages and Tweets.
 Creation:     Apr 2018
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2025
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -59,22 +59,11 @@ code page decoding to widestring, OCSP checking, etc, logging, Json or XML
 parameters and responses, usually simplifying HTTP support to a few lines and
 one or two event handlers.
 
-Note TSslHttpRest is designed for standalone use making single HTTP requests,
-it can not currently share an SslContext or cookies which makes it less
-efficient for sharing multiple requests in parallel with multiple THttpCli
-components.
-
 
 TIcsInetAlive
 -------------
 Component to check for IPv4 and/or IPv6 internet connectivity, using Ping
 and/or HTTP.
-
-
-TDnsQueryHttps
---------------
-Component to support DOH, DNS over HTTPS lookups similarly to TDnsQuery.
-
 
 
 TIcsSMS
@@ -87,27 +76,12 @@ account with a few free SMS messages, then spend a mininum of ?0 which buys
 free of charge.
 
 
-TOcspHttp
----------
-Component to support OCSP (Online Certificate Status Protocol) that replaces
-CRL (Certificate Revocation Lists) as the way to confirm SSL/TLS certificates
-are legitimate and not revoked for security reasons.  The component will check
-an OCSP stapled response sent by a server during an SSL/TLS handshake or use
-HTTP to contact the certificate issuer's OCSP server directly to get OCSP status.
-OCSP responses are cached and optionally saved to a file for reloading later or
-sharing with other applications, they generally have a seven day refresh life,
-but ideally need to be checked more often. TOcspHttp can also download the issuer
-or intermediate certificate if missing.
 
-OCSP support is built into to the components TSslHttpRest, TIcsIpStrmLog,
-TIcsMailQueue, TSslFtpClient, TSslHttpServer, TSslFtpServer, and
-TSslWSocketServer.  The OverbyteIcsHttpsTst sample illustrates how it can
-be used with other components like THttpCli in the onSslHandshakeDone event.
-
-
-Note as of V8.69, the TRestOAuth, TSimpleWebSrv, TIcsTwitter and TIcsRestEmail
+Notes:
+As of V8.69, the TRestOAuth, TSimpleWebSrv, TIcsTwitter and TIcsRestEmail
 components were moved to a new unit OverbyteIcsSslHttpOAuth.
-
+As of V9.1 the TDnsQueryHttps and TIcsDomNameCacheHttps components were moved
+to OverbyteIcsDnsHttps, and TOcspHttp moved to OverbyteIcsSslUtils.
 
 Updates:
 May 21, 2018  - V8.54 - baseline
@@ -344,8 +318,80 @@ Jul 22, 2023 - V8.71 - TheSMSWorks SMS now only seems to accept a JWT for authen
                        Added new component TIcsDomNameCacheHttps descendent of TIcsDomainNameCache
                          adding DNS over HTTPS support.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Feb 15, 2024 V9.1  Moved TDnsQueryHttps and TIcsDomNameCacheHttps to OverbyteIcsDnsHttps to
+                     avoid circular references and simplify unit.
+                   Moved TOcspHttp to OverbyteIcsSslUtils to avoid bringing this unit into
+                     as many components.
+                   Moved various MIME literals to OverbyteIcsMimeUtils.
+                   Added new property SharedSslCtx to TSslHttpRest which allows an external
+                     TSslContext component to be set to the SslContext property (just as with
+                     TSslHttpCli) rather than using the internal RestSslCtx automatically.
+                     This will be more efficient on memory when using multiple TSslHttpRest
+                     components in parallel since the root store or perhaps hundreds of SSL
+                     certificates will only be loaded once rather than separately for each
+                     instance.
+                   Added new property NoSSL to TSslHttpRest that prevents use of HTTPS,
+                     must be set before any requests. HTTP redirected to HTTPS will fail.
+                   TRestParams now builds POST/PUT parameters into a stream instead of a string
+                     to allow parameters including very large files and since the HTTP component
+                     needs a post stream, mainly for multipart/form-data parameters, see below.
+                     A temporary file is used for parameters larger than 50MB.
+                   Added new TRestParams content type PContFormData to create
+                      multipart/form-data parameters, also TParamType of RPTypeFile, see
+                      OverbyteIcsUrl.
+                   File uploading with HttpUploadSimple can now use TRestParams.
+                   Added new property MaxLogParams to TSslHttpRest defaulting to 4,096 to
+                     restrict the length of params logged before requests with DebugLevel
+                     is DebugParams or better, there may be megabytes. Params are now
+                     line broken and binary stripped.
+                   Added progress information for file uploading, that may take a while,
+                     uploads tested to 7GB, beware preparing the form-data content stream may
+                     take a few minutes without progress information, need TStream.CopyTo with
+                     a callback.
+                  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                  Moved IcsExtractURLEncodedValue to OverbyteIcsUrl, now used by HttpSrv.
+                  SslContext now uses public IcsSslRootCAStore and ignores root bundle.
+Jun 04, 2024 V9.2 Only create external SSL cache session if FSslSessCache is true.
+                  SSL session caching no longer only if FCertVerMethod > CertVerNone.
+                  After file download completed, check actual file size against response size.
+                  Sanity check adding RawParameters to URL, encode any spaces.
+                  multipart/form-data MimeBoundary no longer includes extra -- at start that
+                    are required preceding boundaries within parts, some web servers may have
+                    been unable to decode our MIME encoding.
+Aug 30, 2024 V9.3 Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                    the Windows Store can be used for SSL certificate verification.
+                  Using RespMimeType and RespCharset response properties parsed from
+                    Content-Type header for easier use.
+                  Added a way for applications to check SSL certificate chains themselves,
+                   ignoring OpenSSL bundle checks, usually for self signed private certificates.
+                   if CertVerMethod = CertVerOwnEvent, during OnSslHandshakeDone the component
+                   calls a new event OnSslCertVerifyEvent where the application can check the
+                   chain and change the verify result appropriately. Maybe checking certificate
+                   serials, names or public key.
+Aug 06, 2025 V9.5 If response has Content-Disposition header, report attachment file name,
+                    an application should offer to save it.
+                  For HttpUploadStrat=HttpUploadSimple, add unofficial Content-Disposition
+                    request header that some web servers might check for an upload file name.
+                  Check for a Json response of any array only [] without objects.
+                  DEFINE OpenSSL_OcspChains if SSL clients should check the certificate chain
+                    with an OCSP server to see if the certificate is revoked, only happens if
+                    the certificate has an OCSP URL but needs extra code.  OCSP support is
+                    declining, Let's Encrypt has now discontinued it.
+                  Allow GET and DELETE methods to use PContBodyJson, PContBodyUrlEn and PContBodyXML
+                    content types, beware web servers may not support this.
 
 
+
+Note: RestRequest() returns -1 for failure to start connection with reason in ReasonPhrase.
+Sync request mode, returns HTTP Status Code, 200 OK, 404 page not found or internal error, lots of others.
+Async request mode, returns 0 if request started, then wait for OnRestRequestDone event for HTTP StatusCode.
+
+
+If using Sync requests and uploading gigabyte sized files with Form-Data, beware a timeout longer
+than the default 30 seconds may be necessary for the server to finish saving the upload content
+stream which has to be copied in memory, there may also be a long delay while the Form-Data stream
+is prepared before the request even starts.  Better to upload large files using HttpUploadSimple
+so no intermediate content stream is required, it can have TRestParams in the URL.
 
 Pending - more documentation
 Pending - better SSL error handling when connections fail, due to too high security in particular.
@@ -391,43 +437,41 @@ uses
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Sysutils{$ELSE}Sysutils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
-    Z.ICS9.OverbyteIcsWinsock,
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsUrl,
+    Z.ICS9.OverbyteIcsUrl,    { TRestParams }
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsHttpProt,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslSessionCache,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,
+{$ENDIF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsSslJose,
-    Z.ICS9.Ics.Fmx.OverbyteIcsDnsQuery,
     Z.ICS9.Ics.Fmx.OverbyteIcsPing,
     Z.ICS9.Ics.Fmx.OverbyteIcsIcmp,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsHttpProt,
     Z.ICS9.OverbyteIcsSslSessionCache,
-    Z.ICS9.OverbyteIcsSslX509Utils,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsMsSslUtils,
-    Z.ICS9.OverbyteIcsDnsQuery,
+{$ENDIF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsPing,
     Z.ICS9.OverbyteIcsIcmp,
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 TOcspHttp }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
-{$IFDEF MSWINDOWS}
-    Z.ICS9.OverbyteIcsWinCrypt,
-{$ENDIF MSWINDOWS}
     Z.ICS9.OverbyteIcsHttpCCodZLib,
     Z.ICS9.OverbyteIcsHttpContCod,
     Z.ICS9.OverbyteIcsLogger,         { for TLogOption }
     Z.ICS9.OverbyteIcsCookies,
     Z.ICS9.OverbyteIcsMimeUtils,
-    Z.ICS9.OverbyteIcsFormDataDecoder,
-    Z.ICS9.OverbyteIcsCharsetUtils,
+    Z.ICS9.OverbyteIcsHtmlUtils,    { V9.1 stuff that was in FormDataDecoder and CharsetUtils }
     Z.ICS9.OverbyteIcsSuperObject,
     Z.ICS9.OverbyteIcsTicks64,
     Z.ICS9.OverbyteIcsStreams;   { V8.68 }
@@ -435,21 +479,24 @@ uses
 { NOTE - these components only build with SSL, there is no non-SSL option }
 
 const
-    THttpRestVersion = 900;
-    CopyRight : String = ' TSslHttpRest (c) 2023 F. Piette V9.0 ';
+    THttpRestVersion = 905;
+    CopyRight : String = ' TSslHttpRest (c) 2025 F. Piette V9.5 ';
 
     DefMaxBodySize = 100*IcsMBYTE; { max memory/string size 100Mbyte }  { V8.67 literal safer }
  //   TestState = 'Testing-Redirect';
+
+(* V9.1 moved to MimeUtils
     MimeDnsJson       = 'application/dns-json';
     MimeDnsMess       = 'application/dns-message';
     MimeAppCert       = 'application/pkix-cert';             { V8.69 }
     MimeOcspRequest   = 'application/ocsp-request';          { V8.69 }
     MimeMultipart     = 'multipart/form-data; boundary=';    { V8.69 }
+    MimeFormData      = 'multipart/form-data;';              { V9.1 }
     MimeAppBinary     = 'application/binary';                { V8.69 }
     MimeAppForm       = 'application/x-www-form-urlencoded; charset=UTF-8';  { V8.69 }
     MimeAppXml        = 'application/xml; charset=UTF-8';    { V8.69 }
     MimeAppJson       = 'application/json; charset=UTF-8';   { V8.69 }
-
+*)
     OAuthErrBase                     = {$IFDEF MSWINDOWS} 1 {$ELSE} 1061 {$ENDIF};
     OAuthErrNoError                  = 0;
     OAuthErrParams                   = OAuthErrBase;
@@ -468,117 +515,6 @@ type
   THttpUploadStrat = (HttpUploadNone, HttpUploadSimple, HttpUploadMIME);              { V8.69 }
 
 type
-
-{ V8.69 TOcspHttp supports Online Certificate Status Protocol to check revocation }
-{ optionally caches OCSP responses received using HTTP or stapled }
-    TOcspCache = record
-        CertCName: String;
-        CertStatus: Integer;
-        RespDT: TDateTime;
-        CacheDT: TDateTime;
-        ReqLen: Integer;
-        ReqRaw: AnsiString;
-        RespLen: Integer;
-        RespRaw: AnsiString;
-    end;
-
-TOcspHttp = Class(TIcsWndControl)
-  private
-    { Private declarations }
-    FPostStream: TMemoryStream;
-    FResponseStream: TMemoryStream;
-    FCacheFlushTimer: TIcsTimer;
-    FDebugLevel: THttpDebugLevel;
-    FOnOcspProg: THttpRestProgEvent;
-    FCertCName: String;
-    FOcspCertIDRaw: AnsiString;
-    FOcspReqRaw: AnsiString;
-    FOcspRespRaw: AnsiString;
-    FOcspRespDT: TDateTime;
-    FOcspCacheDT: TDateTime;
-    FOcspCache: array of TOcspCache;
-    FCacheTot: Integer;
-    FCacheFName: String;
-    FCacheChanged: Boolean;
-    FCacheStapled: Boolean;
-    FCacheFileShared: Boolean;
-    FCacheFileDT: TDateTime;
-    FOcspStapleOnly: Boolean;
-    FOcspMaxDays: Integer;
-    FCacheRefrDays: Integer;
-    FCacheFlushMins: Integer;
-    FOcspLastResp: String;
-    FOcspHttpProxy: String;
-  protected
-    { Protected declarations }
-    procedure onHttpCommand (Sender: TObject; var S: String) ;
-    procedure onHttpHeaderData (Sender : TObject);
-    procedure onHttpSessionConnected (Sender : TObject);
-    procedure onHttpSessionClosed(Sender: TObject);
-    procedure onHttpORequestDone(Sender: TObject; RqType: THttpRequest; ErrCode: Word);
-    procedure onHttpBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
-    procedure doOcspLog(LogOption: TLogOption; const Msg: string);
-    procedure CacheFlushOnTimer(Sender: TObject);
-    procedure ClearCacheItem(Item: Integer);
-    procedure DelReqFromCache;
-    procedure NewCacheRecs(Tot: Integer);
-    function  FindReqInCache: Integer;
-    procedure SaveRespToCache;
-    function  FindRespInCache: Boolean;
-    function  GetCacheAsStr(Item: Integer): String;
-    function  GetRespStatus: Integer;
-    function  GetCertStatus: Integer;
-    function  GetCertReason: Integer;
-    procedure ProcResponse;
-  public
-    { Public declarations }
-    HttpCliO: THttpCli;
-    HttpCliI: THttpCli;
-    OcspCert: TX509Base;
-    OcspInters: TX509List;    // we use OpenSSL OCSP functions in this component
-    constructor  Create (Aowner: TComponent); override;
-    destructor   Destroy; override;
-    procedure    ClearOcsp;
-    procedure    ClearCache;
-    function     ReadCacheFromFile: Boolean;
-    function     SaveCacheToFile(CloseDown: Boolean = True): Boolean;
-    function     OcspHttpRequest(const URL: String; Timeout: Integer = 0) : Boolean;    { timeout is seconds, zero none }
-    function     IssuerHttpRequest(const URL: String; Timeout: Integer = 10): Boolean;
-    function     CheckOcspRevoked(X509Store: PX509_STORE; Timeout: Integer = 0): Boolean;
-    property     OcspReqRaw: AnsiString             read  FOcspReqRaw
-                                                    write FOcspReqRaw;
-    property     OcspRespRaw: AnsiString            read  FOcspRespRaw
-                                                    write FOcspRespRaw;
-    property     OcspRespDT: TDateTime              read  FOcspRespDT;
-    property     OcspRespStatus: Integer            read  GetRespStatus;
-    property     OcspCertStatus: Integer            read  GetCertStatus;
-    property     OcspCertReason: Integer            read  GetCertReason;
-    property     CacheTot: Integer                  read  FCacheTot;
-    property     OcspLastResp: String               read  FOcspLastResp;
-  published
-    { Published declarations }
-    property     OcspStapleOnly: Boolean            read  FOcspStapleOnly
-                                                    write FOcspStapleOnly;
-    property     CacheFName: String                 read  FCacheFName
-                                                    write FCacheFName;
-    property     CacheFileShared: Boolean           read  FCacheFileShared
-                                                    write FCacheFileShared;
-    property     OcspMaxDays: Integer               read  FOcspMaxDays
-                                                    write FOcspMaxDays;
-    property     CacheRefrDays: Integer             read  FCacheRefrDays
-                                                    write FCacheRefrDays;
-    property     CacheFlushMins: Integer            read  FCacheFlushMins
-                                                    write FCacheFlushMins;
-    property     CacheStapled: Boolean              read  FCacheStapled
-                                                    write FCacheStapled;
-    property     OcspHttpProxy: String              read  FOcspHttpProxy
-                                                    write FOcspHttpProxy;
-    property     DebugLevel: THttpDebugLevel        read  FDebugLevel
-                                                    write FDebugLevel;
-    property     OnOcspProg: THttpRestProgEvent     read  FOnOcspProg
-                                                    write FOnOcspProg;
-  end;
-
 { TSslHttpRest descends from THttpCli, and publishes all it's properties
    and events with additional methods and properties for making REST
    (REpresentional State Transfer) client requests. }
@@ -615,18 +551,25 @@ TOcspHttp = Class(TIcsWndControl)
     FExpectedSize: Int64;                 { V8.68 }
     FProgMessBase: String;                { V8.68 }
     FProgLastTick: Int64;                 { V8.68, V8.71 }
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
     FOcspHttp: TOcspHttp;                 { V8.69 }
+{$ENDIF} // OpenSSL_OcspChains
     FHttpUploadStrat: THttpUploadStrat;   { V8.69 }
     FHttpUploadFile: String;              { V8.69 }
     FMimeTypesList: TMimeTypesList;       { V8.69 }
+    FSharedSslCtx: Boolean;               { V9.1 }
+    FNoSSL: Boolean;                      { V9.1 }
+    FTempPostName: String;                { V9.1 }
+    FMaxLogParams: Integer;               { V9.1 }
     FSslCliCert: TX509Base;
     FSslCliSecurity:  TSslCliSecurity;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     FMsCertChainEngine: TMsCertChainEngine;
 {$ENDIF}
     FOnHttpRestProg: THttpRestProgEvent;
     FOnRestRequestDone: THttpRequestDone;
     FOnRestLocChange: TNotifyEvent;
+    FOnSslCertVerifyEvent: TSslCertVerifyEvent;   { V9.3 }
   protected
     { Protected declarations }
 
@@ -664,6 +607,10 @@ TOcspHttp = Class(TIcsWndControl)
                                        PeerCert   : TX509Base;
                                    var Disconnect : Boolean); override;     { V8.61 }
     procedure DoRequestAsync(Rq : THttpRequest); override;                  { V8.66 }
+    procedure DeleteTempFile;                                               { V9.1 }
+    procedure DeletePostFile;                                               { V9.1 }
+    procedure TriggerSendBegin; override;                                   { V9.1 }
+    procedure TriggerSendData(Data : Pointer; Len : Integer); override;     { V9.1 }
   public
     { Public declarations }
     RestCookies: TIcsCookies;
@@ -676,7 +623,7 @@ TOcspHttp = Class(TIcsWndControl)
     procedure    InitSsl;
     procedure    ResetSsl;
     procedure    ClearResp;
-    function     GetParams: AnsiString;   { V8.64 lost reqtype }
+//    function     GetParams: AnsiString;   { V8.64 lost reqtype, V9.1 gone }
     function     RestRequest(HttpRequest: THttpRequest; const RestURL: String;
                     AsyncReq: Boolean = False; const RawParams: String = ''): Integer;
 
@@ -721,12 +668,20 @@ TOcspHttp = Class(TIcsWndControl)
                                                         write FProgIntSecs;      { V8.68 }
     property ShowProgress: Boolean                      read  FShowProgress
                                                         write FShowProgress;     { V8.68 }
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
     property OcspHttp: TOcspHttp                        read  FOcspHttp
                                                         write FOcspHttp;         { V8.69 }
+{$ENDIF} // OpenSSL_OcspChains
     property HttpUploadStrat: THttpUploadStrat          read  FHttpUploadStrat
                                                         write FHttpUploadStrat;  { V8.69 }
     property HttpUploadFile: String                     read  FHttpUploadFile
-                                                        write FHttpUploadFile;    { V8.69 }
+                                                        write FHttpUploadFile;   { V8.69 }
+    property SharedSslCtx: Boolean                      read  FSharedSslCtx
+                                                        write FSharedSslCtx;     { V9.1 }
+    property NoSSL: Boolean                             read  FNoSSL
+                                                        write FNoSSL;            { V9.1 }
+    property MaxLogParams: Integer                      read  FMaxLogParams
+                                                        write FMaxLogParams;     { V9.1 }
     property OnBgException;
     property OnHttpRestProg: THttpRestProgEvent         read  FOnHttpRestProg
                                                         write FOnHttpRestProg;
@@ -734,57 +689,9 @@ TOcspHttp = Class(TIcsWndControl)
                                                         write FOnRestRequestDone;
     property OnRestLocChange: TNotifyEvent              read  FOnRestLocChange
                                                         write FOnRestLocChange;
+    property OnSslCertVerifyEvent: TSslCertVerifyEvent  read  FOnSslCertVerifyEvent
+                                                        write FOnSslCertVerifyEvent;   { V9.3 }
   end;
-
-
-  { V8.61 TDnsQueryHttps supports DOH - DNS over HTTPS }
-  TDnsQueryHttps = Class(TDnsQuery)
-  private
-    { Private declarations }
-    FDebugLevel: THttpDebugLevel;
-    FDnsSrvUrl: string;
- //   FDnsSrvUrlList: TStrings;     { V8.71 not supported yet }
-    FOnDnsProg: THttpRestProgEvent;
-  protected
-    { Protected declarations }
-    procedure DnsRestProg(Sender: TObject; LogOption: TLogOption; const Msg: string);
-    procedure DnsRestRequestDone(Sender: TObject; RqType: THttpRequest; ErrCode: Word);
-  public
-    { Public declarations }
-    HttpRest:  TSslHttpRest;
-    constructor  Create (Aowner: TComponent); override;
-    destructor   Destroy; override;
-    function     DOHQueryAll(Host: String): Boolean;          { V8.64 }
-    function     DOHQueryBothA(Host : String): Boolean;       { V8.71 does A then AAAA }
-    function     DOHQueryAny(Host: String; QNumber: Integer;  { V8.64 }
-                                    MultiRequests: Boolean = False) : Boolean;
-  published
-    { Published declarations }
-    property DnsSrvUrl: string                      read  FDnsSrvUrl
-                                                    write FDnsSrvUrl;
-    property DebugLevel: THttpDebugLevel            read  FDebugLevel
-                                                    write FDebugLevel;
-    property OnDnsProg: THttpRestProgEvent          read  FOnDnsProg
-                                                    write FOnDnsProg;
-  end;
-
-  { V8.71 Domain Name cache with DOH - DNS over HTTPS  }
-  TIcsDomNameCacheHttps = class(TIcsDomainNameCache)
-  private
-    { Private declarations }
-    FDnsQueryHttpss: array of TDnsQueryHttps;
-    FDnsSrvUrlList: TStrings;
-  protected
-    { Protected declarations }
-    function StartHttps(ItemNr: Integer): Boolean;
-    function StartRequest(ItemNr: Integer): Boolean; override;
-  public
-    { Public declarations }
-    constructor  Create (Aowner: TComponent); override;
-    destructor   Destroy; override;
-    published
-  end;
-
 
   { V8.61 Send SMS using bureau, you will need an account.
     Initially supporting https://www.kapow.co.uk/ from where you set-up an
@@ -794,7 +701,6 @@ TOcspHttp = Class(TIcsWndControl)
   { V8.62 Added The SMS Works at https://thesmsworks.co.uk/  where you set-up an
     account with a few free SMS messages, then spend a mininum of ?0 which
     buys 350 message credits.  }
-
 
   TSmsProvider = (SmsProvKapow, SmsProvSmsWorks); // more providers awaited
   TSmsOperation = (SmsOpSend, SmsOpCheck, SmsOpCredit);
@@ -973,25 +879,6 @@ type
                                                     write FOnAliveProg;
   end;
 
-
-{ Retrieve a single value by name out of an URL encoded data stream.        }
-function IcsExtractURLEncodedValue(
-    Msg         : PChar;            { URL Encoded stream                    }
-    Name        : String;           { Variable name to look for             }
-    var Value   : String;           { Where to put variable value           }
-    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
-    DetectUtf8  : Boolean  = TRUE)
-    : Boolean; overload;
-
-function IcsExtractURLEncodedValue(
-    const Msg   : String;           { URL Encoded stream                     }
-    Name        : String;           { Variable name to look for              }
-    var Value   : String;           { Where to put variable value            }
-    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
-    DetectUtf8  : Boolean  = TRUE)
-    : Boolean; overload;
-
-
 {$ENDIF USE_SSL}
 
 implementation
@@ -1001,823 +888,6 @@ uses FMUX.Api;                { V8.65 for FmuxOpenUrl }
 {$ENDIF}
 
 {$IFDEF USE_SSL}
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ borrowed from OverbyteIcsHttpSrv and renamed to avoid conflicts }
-{ Retrieve a single value by name out of an URL encoded data stream         }
-{ In the stream, every space is replaced by a '+'. The '%' character is     }
-{ an escape character. The next two are 2 digits hexadecimal codes ascii    }
-{ code value. The stream is constitued by name=value couples separated      }
-{ by a single '&' character. The special characters are coded by the '%'    }
-{ followed by hex-ascii character code.                                     }
-function IcsExtractURLEncodedValue(
-    Msg         : PChar;    { URL Encoded stream                     }
-    Name        : String;   { Variable name to look for              }
-    var Value   : String;   { Where to put variable value            }
-    SrcCodePage : LongWord; { D2006 and older CP_UTF8 only           }
-    DetectUtf8  : Boolean)
-    : Boolean;              { Found or not found that's the question }
-var
-    NameLen  : Integer;
-    FoundLen : Integer; {tps}
-    Ch       : AnsiChar;
-    P, Q     : PChar;
-    U8Str    : AnsiString;
-begin
-    Result  := FALSE;
-    Value   := '';
-    if Msg = nil then         { Empty source }
-        Exit;
-
-    NameLen := Length(Name);
-    U8Str := '';
-    P := Msg;
-    while P^ <> #0 do begin
-        Q := P;
-        while (P^ <> #0) and (P^ <> '=') do
-            Inc(P);
-        FoundLen := P - Q; {tps}
-        if P^ = '=' then
-            Inc(P);
-        if (StrLIComp(Q, @Name[1], NameLen) = 0) and
-           (NameLen = FoundLen) then begin  {tps}
-            while (P^ <> #0) and (P^ <> '&') do begin
-                Ch := AnsiChar(Ord(P^)); // should contain nothing but < ord 128
-                if Ch = '%' then begin
-                    if P[1] <> #0 then    // V1.35 Added test
-                        Ch := AnsiChar(htoi2(P + 1));
-                    Inc(P, 2);
-                end
-                else if Ch = '+' then
-                    Ch := ' ';
-                U8Str := U8Str + Ch;
-                Inc(P);
-            end;
-            Result := TRUE;
-            break;
-         end;
-         while (P^ <> #0) and (P^ <> '&') do
-             Inc(P);
-        if P^ = '&' then
-            Inc(P);
-    end;
-    if (SrcCodePage = CP_UTF8) or (DetectUtf8 and IsUtf8Valid(U8Str)) then
-{$IFDEF COMPILER12_UP}
-        Value := Utf8ToStringW(U8Str)
-    else
-        Value := AnsiToUnicode(U8Str, SrcCodePage);
-{$ELSE}
-        Value := Utf8ToStringA(U8Str)
-    else
-        Value := U8Str;
-{$ENDIF}
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function IcsExtractURLEncodedValue(
-    const Msg   : String;           { URL Encoded stream                    }
-    Name        : String;           { Variable name to look for             }
-    var Value   : String;           { Where to put variable value           }
-    SrcCodePage : LongWord = CP_ACP;{ D2006 and older CP_UTF8 only          }
-    DetectUtf8  : Boolean  = TRUE)
-    : Boolean; overload;
-begin
-    Result := IcsExtractURLEncodedValue(PChar(Msg), Name, Value,
-                                     SrcCodePage, DetectUtf8);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ TOcspHttp }
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-constructor TOcspHttp.Create (Aowner: TComponent);
-begin
-    inherited Create(AOwner);
-    FPostStream := TMemoryStream.Create;
-    FResponseStream := TMemoryStream.Create;
-    HttpCliO := THttpCli.Create(self);
-    HttpCliO.OnCommand := onHttpCommand;
-    HttpCliO.OnHeaderData := onHttpHeaderData;
-    HttpCliO.OnRequestDone := onHttpORequestDone;
-    HttpCliO.onSessionConnected := onHttpSessionConnected;
-    HttpCliO.onSessionClosed := onHttpSessionClosed;
-    HttpCliO.onBgException := onHttpBgException;
-    HttpCliO.CtrlSocket.ComponentOptions := [wsoNoReceiveLoop];
-    HttpCliO.SocketFamily := sfAny;
-    HttpCliI := THttpCli.Create(self);
-    HttpCliI.OnCommand := onHttpCommand;
-    HttpCliI.OnHeaderData := onHttpHeaderData;
-    HttpCliI.onSessionConnected := onHttpSessionConnected;
-    HttpCliI.onSessionClosed := onHttpSessionClosed;
-    HttpCliI.onBgException := onHttpBgException;
-    HttpCliI.CtrlSocket.ComponentOptions := [wsoNoReceiveLoop];
-    HttpCliI.SocketFamily := sfAny;
-    FCacheFlushTimer := TIcsTimer.Create(HttpCliO);
-    FCacheFlushTimer.Enabled := False;
-    FCacheFlushTimer.OnTimer := CacheFlushOnTimer;
-    FDebugLevel := DebugNone;
-    ClearCache;
-    ClearOcsp;
-    FOcspMaxDays := 7;
-    FCacheRefrDays := 3;
-    FCacheFlushMins := 2;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-destructor TOcspHttp.Destroy;
-begin
-    try    { V8.71 }
-        FCacheFlushTimer.Enabled := False;
-        if (FCacheFName <> '') and FCacheChanged and (FCacheTot > 0) then
-            SaveCacheToFile(True);
-        ClearCache;
-        FreeAndNil(FCacheFlushTimer);
-        FreeAndNil(FPostStream);
-        FreeAndNil(FResponseStream);
-        FreeAndNil(HttpCliO);
-        FreeAndNil(HttpCliI);
-    finally
-        inherited Destroy;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.ClearOcsp;
-begin
-    OcspCert := Nil;
-    OcspInters := Nil;
-    FOcspCertIDRaw := '';
-    FOcspReqRaw := '';
-    FOcspRespRaw := '';
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.ClearCache;
-begin
-    SetLength(FOcspCache, 0);
-    FCacheTot := 0;
-    FCacheFileDT := -1 ;
-    FCacheChanged := False;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.doOcspLog(LogOption: TLogOption; const Msg: string);
-begin
-    if Assigned(FOnOcspProg) then
-        FOnOcspProg(Self, LogOption, Msg) ;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpBgException(Sender: TObject; E: Exception; var CanClose: Boolean);
-begin
-    doOcspLog(loProtSpecInfo, (Sender as THttpCli).URL + ' Fatal Exception: ' + IcsGetExceptMess(E));
-    CanClose := True;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpSessionConnected (Sender : TObject);
-var
-    S: String;
-    Cli: THttpCli;
-begin
-    if FDebugLevel < DebugConn then Exit;
-    Cli := Sender as THttpCli;
-    if Cli.State = httpConnected then
-        S := '= Connected OK to: '
-    else
-        S := '= Connection failed to: ';
-    S := S + Cli.Hostname + ' (' + IcsFmtIpv6Addr(Cli.AddrResolvedStr) + ')';
-    doOcspLog(loProtSpecInfo, S);
-end ;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpSessionClosed(Sender: TObject);
-var
-    Cli: THttpCli;
-    S: String;
-begin
-    if FDebugLevel < DebugConn then Exit;
-    Cli := Sender as THttpCli;
-    S := '= ' + Cli.URL + ' Session Closed';
-    if Cli.RequestDoneError <> httperrNoError then
-        S := S + ', Error: ' + Cli.RequestDoneErrorStr;
-    S := S + ' - ' + Cli.ReasonPhrase;
-    doOcspLog(loProtSpecInfo, S);
-end ;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpCommand (Sender: TObject; var S: String) ;
-begin
-    if FDebugLevel < DebugHdr then Exit;
-    doOcspLog(loProtSpecInfo, '> ' + S);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpHeaderData (Sender : TObject);
-begin
-    if FDebugLevel < DebugHdr then Exit;
-    doOcspLog(loProtSpecInfo, '< ' + (Sender as THttpCli).LastResponse);
-end ;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ get interemediate certificate for issuer of our certificate }
-function TOcspHttp.IssuerHttpRequest(const URL: String; Timeout: Integer): Boolean;
-var
-    StatCode: Integer;
-    RawCert: AnsiString;
-    Errs: String;
-    MyCert: TX509Base;
-begin
-    Result := False;
-    OcspInters.Clear;
-    if (URL = '') then Exit;
-
-    try
-        if HttpCliI.State <> httpReady then begin
-            doOcspLog(loProtSpecInfo, 'Last Issuer Request Still Busy');
-            Exit;
-        end;
-        HttpCliI.URL := URL;
-        HttpCliI.ProxyURL := FOcspHttpProxy;
-        HttpCliI.Connection := 'Close';   // no keep-alive
-        HttpCliI.Timeout := Timeout;
-        HttpCliI.Accept := MimeAppCert;
-        FResponseStream.Clear;
-        HttpCliI.RcvdStream := FResponseStream;
-        HttpCliI.ResponseNoException := True;
-        HttpCliI.Get;   // blocking sync request
-        StatCode := HttpCliI.StatusCode;  // only for sync requests
-        if (StatCode = 200) and (Pos(MimeAppCert, HttpCliI.ContentType) = 1) then begin
-            FResponseStream.Position := 0;
-            SetLength(RawCert, FResponseStream.Size);
-            FResponseStream.ReadBuffer(RawCert[1], FResponseStream.Size);
-         // if PEM format may load more than one, possibly
-            if (IcsAnsiPosEx(PEM_STRING_HDR_BEGIN, RawCert) > 0) then
-                OcspInters.LoadAllFromString(String(RawCert))
-            else begin
-                MyCert := TX509Base.Create(Self, Nil);
-                MyCert.ReadFromAStr(RawCert, croNo, croNo, '', Errs);
-                if MyCert.IsCertLoaded then
-                    OcspInters.Add(MyCert.X509);
-                MyCert.Free;
-            end;
-            if OcspInters.Count = 0 then begin
-                if Errs = '' then Errs := 'Content size: ' + IntToStr(Length(RawCert));
-                doOcspLog(loProtSpecInfo, 'Failed to Load Issuer Certificate from ' + URL + ' - ' + Errs);
-            end
-            else begin
-                doOcspLog(loProtSpecInfo, 'Downloaded Issuer Certificate OK: ' + OcspInters[0].SubjectOneLine);
-                Result := True;
-            end;
-        end
-        else begin
-            HttpCliI.Abort;
-            doOcspLog(loProtSpecInfo, 'Download Issuer Certificate Request to ' + URL + ', failed - ' + HttpCliI.LastResponse);
-        end;
-        HttpCliI.CloseAsync;
-    except
-        on E:Exception do begin    { 400/500 no longer come here }
-            doOcspLog(loProtSpecInfo, 'Download Issuer Certificate to ' + URL + ', failed: ' + E.Message);
-        end;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.OcspHttpRequest(const URL: String; Timeout: Integer) : Boolean;
-begin
-    Result := False;
-    FOcspRespRaw := '';
-    FOcspRespDT := 0;
-    if (URL = '') or (Length(FOcspReqRaw) < 20) then Exit;
-
-    try
-        if HttpCliO.State <> httpReady then begin
-            doOcspLog(loProtSpecInfo, 'Last OCSP Request Still Busy');
-            Exit;
-        end;
-        HttpCliO.URL := URL;
-        HttpCliO.ProxyURL := FOcspHttpProxy;
-        HttpCliO.Connection := 'Close';   // no keep-alive
-        HttpCliO.Timeout := Timeout;
-        HttpCliO.ContentTypePost := MimeOcspRequest;
-        FResponseStream.Clear;
-        HttpCliO.RcvdStream := FResponseStream;
-        FPostStream.Clear;
-        FPostStream.Write(FOcspReqRaw[1], Length(FOcspReqRaw));
-        FPostStream.Position := 0;
-        HttpCliO.SendStream := FPostStream;
-        HttpCliO.ResponseNoException := True;
-        if TimeOut = 0 then
-            HttpCliO.PostASync   // non blocking async request
-            // returns immediately,
-        else
-            HttpCliO.Post;       // blocking sync request
-       // process response in onHttpORequestDone
-       Result := True;
-    except
-        on E:Exception do begin    { 400/500 no longer come here }
-            doOcspLog(loProtSpecInfo, 'OCSP Request to ' + URL + ', failed: ' + E.Message);
-        end;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.GetRespStatus: Integer;
-begin
-    if NOT Assigned(OcspInters) then
-        Result := -1
-    else
-        Result := OcspInters.OcspRespStatus;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.GetCertStatus: Integer;
-begin
-    if NOT Assigned(OcspInters) then
-        Result := -1
-    else
-        Result := OcspInters.OcspCertStatus;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.GetCertReason: Integer;
-begin
-    if NOT Assigned(OcspInters) then
-        Result := -1
-    else
-        Result := OcspInters.OcspCertReason;
-end;
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.ProcResponse;
-var
-    RespInfo: String;
-begin
-    FOcspLastResp := 'No OCSP Status Available';
-    if FOcspRespRaw = '' then Exit;
-    if NOT Assigned(OcspInters) then Exit;
-    if GetCertStatus >= V_OCSP_CERTSTATUS_GOOD then begin
-        FOcspRespDT := OcspInters.OcspUpdateDT;
-        doOcspLog(loProtSpecInfo, 'OCSP Status Response: ' + OcspInters.OcspRespStatusStr);
-
-        if (FDebugLevel >= DebugSsl) then begin
-            RespInfo := OcspInters.OcspCertStatusStr;
-            if GetCertStatus = V_OCSP_CERTSTATUS_REVOKED then
-                RespInfo := RespInfo + OcspInters.OcspCertReasonStr + ', on ' + DateTimeToStr(OcspInters.OcspRevokeDT);
-            RespInfo := RespInfo + ', last updated '  + DateTimeToStr(OcspInters.OcspUpdateDT) +
-                                              ', next update ' + DateTimeToStr(OcspInters.OcspNextUpdDT);
-            doOcspLog(loProtSpecInfo, 'OCSP Certificate status: ' + RespInfo);
-            if (FDebugLevel >= DebugBody) then                                    { V8.70 don't log raw OCSP stuff as often }
-                doOcspLog(loProtSpecInfo, OcspInters.OCSPRespInfo(FOcspRespRaw) + IcsCRLF);
-        end;
-
-        if GetCertStatus = V_OCSP_CERTSTATUS_REVOKED then begin
-           FOcspLastResp := 'Certificate revoked: ' + OcspInters.OcspCertReasonStr;
-        end
-        else begin
-           if GetCertStatus = V_OCSP_CERTSTATUS_GOOD then
-                FOcspLastResp := 'Certificate OCSP Status Valid, Not Revoked'
-           else if GetCertStatus > V_OCSP_CERTSTATUS_GOOD then
-                FOcspLastResp := 'Certificate OCSP Status Check Failed: ' + OcspInters.OcspCertStatusStr;
-        end;
-    end
-    else begin
-        FOcspLastResp := 'OCSP Status Failed: ' + OcspInters.OcspCertStatusStr;
-        doOcspLog(loProtSpecInfo, FOcspLastResp);
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.onHttpORequestDone(Sender: TObject; RqType: THttpRequest; ErrCode: Word);
-var
-    Cli: THttpCli;
-    StatCode: Integer;
-begin
-    if RqType <> httpPOST then Exit;
-    Cli := Sender as THttpCli;
-    StatCode := Cli.StatusCode;
-    if ErrCode <> 0 then begin
-        doOcspLog(loProtSpecInfo, 'OCSP Request failed: ' + Cli.RequestDoneErrorStr + ' - ' + Cli.ReasonPhrase);
-    end
-    else begin
-        if StatCode = 200 then begin
-            FOcspRespDT := Cli.RespLastModDT;
-            FResponseStream.Position := 0;
-            SetLength(FOcspRespRaw, FResponseStream.Size);
-            FResponseStream.ReadBuffer(FOcspRespRaw[1], FResponseStream.Size);
-            if (FDebugLevel >= DebugSsl) then                                    { V8.70 don't log raw OCSP stuff as often }
-               doOcspLog(loProtSpecInfo, 'OCSP Response OK from ' + Cli.URL + ', Size ' + IntToStr(FResponseStream.Size));
-            SaveRespToCache;
-
-         { note we don't verify response here since the issuer and root may not be available any longer for async
-           operations and the handshake will already have been completed, it's checked next time from cache }
-        end
-        else begin
-            doOcspLog(loProtSpecInfo, 'OCSP Request to ' + Cli.URL + ', failed - ' + Cli.ReasonPhrase);
-        end;
-    end;
-    Cli.CloseAsync;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.CheckOcspRevoked(X509Store: PX509_STORE; Timeout: Integer = 0): Boolean;
-var
-    I: Integer;
-begin
-    Result := False;
-    FOcspLastResp := 'Checking OCSP Status';
-    FOcspReqRaw := '';
-    FOcspCertIDRaw := '';
-    if NOT Assigned(OcspCert) then Exit;
-    if NOT OcspCert.IsCertLoaded then Exit;
-    if NOT Assigned(OcspInters) then Exit;
-    if OcspInters.Count = 0 then Exit;
-
-    try
-    // look for intermediate in local bundle server sent us
-        FCertCName := OcspCert.SubjectCName;
-        I := OcspInters.IndexOfSubj(OcspCert.IssuerOneLine);
-
-    // try and download intermediate - should rarely happen here
-    // if it was missing, verify probably failed so we should repeat that somehow!!!
-        if I < 0 then begin
-            doOcspLog(loProtSpecInfo, 'Can not find Intermediate: ' + OcspCert.IssuerOneLine);    // TEMP
-            doOcspLog(loProtSpecInfo, 'Intermediate bundle Tot=' + IntToStr(OcspInters.Count));   // TEMP
-
-            doOcspLog(loProtSpecInfo, 'Downloading Missing Intermediate from: ' + OcspCert.UrlIssuer);
-            IssuerHttpRequest(OcspCert.UrlIssuer, 10);
-            I := OcspInters.IndexOfSubj(OcspCert.IssuerOneLine);
-        end;
-        if I < 0 then
-            FOcspLastResp := 'Could Not Find Intermediate Certificate for OCSP'
-        else begin
-            FOcspCertIDRaw := OcspInters.BuildOCSPCertID(OcspCert);
-            if FOcspCertIDRaw = '' then
-                FOcspLastResp := 'Failed to Build OCSP Certificate ID';
-        end;
-
-     // got intermediate, test OCSP against stapled response sent during handshake, maybe
-        if FOcspCertIDRaw <> '' then begin
-            if (Length(FOcspRespRaw) > 50) then begin
-                doOcspLog(loProtSpecInfo, 'Using OCSP Stapled Response from TLS Handshake');
-                if (OcspInters.CheckOCSPResp(FOcspCertIDRaw, FOcspRespRaw, X509Store) >= 0) then begin
-                    if (GetCertStatus <> V_OCSP_CERTSTATUS_GOOD) then
-                        doOcspLog(loProtSpecInfo, 'OCSP Stapled Response Failed: ' + OcspInters.OcspCertStatusStr);
-                    ProcResponse;
-                    if GetCertStatus = V_OCSP_CERTSTATUS_REVOKED then
-                        Result := True;
-                    if FCacheStapled then begin
-                        FOcspReqRaw := OcspInters.BuildOCSPReq(FOcspCertIDRaw);
-                        SaveRespToCache;
-                    end;
-                end;
-            end;
-
-         // no staple response, see if cached response
-            if GetCertStatus < V_OCSP_CERTSTATUS_GOOD then begin
-                FOcspReqRaw := OcspInters.BuildOCSPReq(FOcspCertIDRaw);
-                if (FOcspReqRaw = '') then
-                    FOcspLastResp := 'Failed to Build OCSP Request'
-                else begin
-                    if FindRespInCache then begin
-                        doOcspLog(loProtSpecInfo, 'Found Cached OCSP Status');
-                        if (OcspInters.CheckOCSPResp(FOcspCertIDRaw, FOcspRespRaw, X509Store) >= 0) then begin
-                            ProcResponse;
-                            if GetCertStatus = V_OCSP_CERTSTATUS_REVOKED then
-                                Result := True;
-                        end;
-                    end;
-
-               // nothing cached or need to refresh it, make HTTP request to OCSP server and cache response for next time
-               // if timeout none zero, block and wait for response, don't do this during SSL handshake or things break
-                    if (GetCertStatus < V_OCSP_CERTSTATUS_GOOD) or ((Now - FOcspCacheDT) > FCacheRefrDays) then begin
-                        if FOcspStapleOnly then
-                           FOcspLastResp := 'OCSP Status Not Available'
-                        else if Assigned(OcspCert) then begin
-                            if OcspCert.UrlOcsp = '' then
-                               FOcspLastResp := 'No OCSP Server URL Available'
-                            else begin
-                                FOcspLastResp := 'Awaiting OCSP Status';
-                                doOcspLog(loProtSpecInfo, 'Getting OCSP Status from: ' + OcspCert.UrlOcsp);
-                                if (FDebugLevel >= DebugBody) then                                    { V8.70 don't log raw OCSP stuff as often }
-                                    doOcspLog(loProtSpecInfo, OcspInters.OCSPReqInfo(FOcspReqRaw) + IcsCRLF);
-                                FOcspRespRaw := '';
-                                if NOT OcspHttpRequest(OcspCert.UrlOcsp, Timeout) then begin
-                                    FOcspLastResp := 'OCSP Request Failed to: ' + OcspCert.UrlOcsp;
-                                end
-                                else if (Timeout <> 0) then begin  // sync request check response
-                                    if (OcspInters.CheckOCSPResp(FOcspCertIDRaw, FOcspRespRaw, X509Store) >= 0) then begin
-                                        ProcResponse;
-                                        if GetCertStatus = V_OCSP_CERTSTATUS_REVOKED then
-                                            Result := True;
-                                    end;
-                                end;
-                            end;
-                        end
-                        else
-                            FOcspLastResp := 'OCSP Certificate Lost!';
-                    end;
-                end;
-            end;
-        end;
-    except
-        FOcspLastResp := 'OCSP Checking Failed, Exception';
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.FindReqInCache: Integer;
-var
-    ReqLen: Integer;
-begin
-    Result := -1;
-    if FCacheTot = 0 then Exit;
-    ReqLen := Length(FOcspReqRaw);
-    if (ReqLen = 0) then Exit;
-    for Result := 0 to FCacheTot - 1 do begin
-        if (ReqLen = FOcspCache[Result].ReqLen) and
-              (OcspReqRaw = FOcspCache[Result].ReqRaw) then Exit;
-    end;
-    Result := -1;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.ClearCacheItem(Item: Integer);
-begin
-    if Item < 0 then Exit;
-    if Item >= Length(FOcspCache) then Exit;
-    FOcspCache[Item].ReqRaw := '';
-    FOcspCache[Item].ReqLen := 0;
-    FOcspCache[Item].RespRaw := '';
-    FOcspCache[Item].RespLen := 0;
-    FOcspCache[Item].RespDT := 0;
-    FOcspCache[Item].CertCName := '';
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.DelReqFromCache;
-begin
-    ClearCacheItem(FindReqInCache);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.NewCacheRecs(Tot: Integer);
-var
-    J: Integer;
-begin
-    SetLength(FOcspCache, FCacheTot + Tot);
-    for J := FCacheTot to Length(FOcspCache) - 1 do
-        ClearCacheItem(J);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.SaveRespToCache;
-var
-    I, J: Integer;
-begin
-    if (FOcspReqRaw = '') or (FOcspRespRaw = '') then Exit;
-    I := FindReqInCache;    // see if replacing old entry
-    if I < 0 then begin
-        if FCacheTot > 0 then begin  // look for empty entries
-            for J := 0 to FCacheTot - 1 do begin
-                if Length(FOcspCache[J].ReqRaw) = 0 then begin
-                    I := J;
-                    Break;
-                end;
-            end;
-        end;
-        if I < 0 then begin  // new entry in cache, may need to increase size
-            I := FCacheTot;
-            FCacheTot := FCacheTot + 1;
-            if FCacheTot >= Length(FOcspCache) then
-                NewCacheRecs(32);
-        end;
-    end;
-    if FOcspRespDT = 0 then FOcspRespDT := Now;
-    FOcspCache[I].CertCName := FCertCName;
-    FOcspCache[I].CertStatus := GetCertStatus;
-    FOcspCache[I].RespDT := FOcspRespDT;
-    FOcspCache[I].CacheDT := Now;
-    FOcspCache[I].ReqLen := Length(FOcspReqRaw);
-    FOcspCache[I].ReqRaw := FOcspReqRaw;
-    FOcspCache[I].RespLen := Length(FOcspRespRaw);
-    FOcspCache[I].RespRaw := FOcspRespRaw;
-    FCacheChanged := True;
-    if NOT FCacheFlushTimer.Enabled then begin
-        if FCacheFlushMins < 1 then
-            FCacheFlushMins := 1;
-        FCacheFlushTimer.Interval := LongWord(FCacheFlushMins) * TicksPerMinute;
-        FCacheFlushTimer.Enabled := True;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.FindRespInCache: Boolean;
-var
-    I: Integer;
-begin
-    Result := False;
-    FOcspRespRaw := '';
-    if (FCacheTot = 0) and (FCacheFileDT >= 0) then  // skip if file not found already
-        ReadCacheFromFile;   // initial load from file
-    I := FindReqInCache;
-    if I < 0 then begin
-        if NOT ReadCacheFromFile then Exit;  // reload from file if newer
-        I := FindReqInCache;
-        if I < 0 then Exit;
-    end;
-
-  // has entry expired, clear it, unless revoked
-    if FOcspMaxDays < 1 then FOcspMaxDays := 3;
-    if ((Now - FOcspCache[I].RespDT) > FOcspMaxDays) and
-            (FOcspCache[I].CertStatus <> V_OCSP_CERTSTATUS_REVOKED) then begin
-        ClearCacheItem(I);
-        Exit;
-    end;
-
- // found cached response, ignore cert status
-    FCertCName := FOcspCache[I].CertCName;
-    FOcspCacheDT := FOcspCache[I].CacheDT;
-    FOcspRespDT :=  FOcspCache[I].RespDT;
-    FOcspRespRaw := FOcspCache[I].RespRaw;
-    Result := True;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.GetCacheAsStr(Item: Integer): String;
-begin
-    Result := '';
-    if Item < 0 then Exit;
-    if Item >= Length(FOcspCache) then Exit;
-    if Length(FOcspCache[Item].ReqRaw) = 0 then Exit;
-    Result := FOcspCache[Item].CertCName + ',' +
-        IntToStr(FOcspCache[Item].CertStatus) + ',' +
-        RFC3339_DateToStr(FOcspCache[Item].CacheDT) + ',' +
-        RFC3339_DateToStr(FOcspCache[Item].RespDT) + ',' +
-        IntToStr(Length(FOcspCache[Item].ReqRaw)) + ',' +
-        String(Base64Encode(FOcspCache[Item].ReqRaw)) + ',' +
-        IntToStr(Length(FOcspCache[Item].RespRaw)) + ',' +
-        String(Base64Encode(FOcspCache[Item].RespRaw));
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.SaveCacheToFile(CloseDown: Boolean = True): Boolean;
-var
-    I, Tot: Integer;
-    FileUDT: TDateTime;
-    StreamWriter: TIcsStreamWriter;
-begin
-    Result := False;
-    try
-        FCacheFlushTimer.Enabled := False;
-        if FCacheFName = '' then Exit;
-        if NOT FCacheChanged then Exit;
-        FCacheChanged := False;
-        FileUDT := IcsGetFileUAge(FCacheFName);
-
-     // pending implement FCacheFileShared by only adding new records to file
-
-        if FileUDT > 0 then
-            IcsDeleteFile (FCacheFName, true) ;
-        if FCacheTot = 0 then Exit;
-        Tot := 0;
-        StreamWriter := TIcsStreamWriter.Create(FCacheFName, fmCreate, 0, MAX_BUFSIZE);
-        StreamWriter.LineBreakStyle := ilbsCRLF;
-        for I:= 0 to FCacheTot - 1 do begin
-            if Length(FOcspCache[I].ReqRaw) > 0 then begin
-                StreamWriter.WriteLine(GetCacheAsStr(I));
-                Tot := Tot + 1;
-            end;
-        end;
-        StreamWriter.WriteLine('end');
-        StreamWriter.Flush;
-        StreamWriter.Destroy;
-        FCacheFileDT := IcsGetFileUAge(FCacheFName);
-        if NOT CloseDown then  // logging during close down can cause trouble
-            doOcspLog(loProtSpecInfo, 'Saved OCSP Cache File OK: ' + FCacheFName + ' - ' + IntToStr(Tot) + ' records');
-        Result := True;
-    except
-        on E:Exception do begin
-            if NOT CloseDown then
-                doOcspLog(loProtSpecInfo, 'Failed to Save OCSP Cache File: ' + FCacheFName + ' - ' + E.Message);
-        end;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TOcspHttp.ReadCacheFromFile: Boolean;
-var
-    J, RawLen: Integer;
-    FileUDT: TDateTime;
-    StreamReader: TIcsStreamReader;
-    RecCols: TStringList ;
-    Line: String;
-    RawField: AnsiString;
-begin
-    Result := False;
-    FCacheFlushTimer.Enabled := False;
-    if FCacheFName = '' then Exit;
-    FileUDT := IcsGetFileUAge(FCacheFName);
-    if FileUDT <= 0 then begin
-        FCacheFileDT := FileUDT;
-        doOcspLog(loProtSpecInfo, 'Can Not Find OCSP Cache File: ' + FCacheFName);
-        Exit;
-    end;
-
- // unchanged since last loaded or saved, give up
-    if (FCacheFileDT = FileUDT) and (FCacheTot > 0) then begin
-        Result := True;
-        Exit;
-    end;
-    FCacheFileDT := FileUDT;
-
- // pending implement FCacheFileShared by updating existing records from file
-
-    FCacheTot := 0;  // clear all cache records
-    if Length(FOcspCache) > 0 then begin
-        for J := 0 to Length(FOcspCache) - 1 do
-           ClearCacheItem(J);
-    end;
-    RecCols := TStringList.Create ;
-    try
-        try
-            StreamReader := TIcsStreamReader.Create(FCacheFName, fmShareDenyWrite, 0, MAX_BUFSIZE);
-            StreamReader.MaxLineLength := 8000;
-            StreamReader.Position := 0;
-            while StreamReader.ReadLine(Line) do begin
-               RecCols.CommaText := Line;
-                if RecCols.Count >= 8 then begin
-                    RawLen := atoi(RecCols[4]);
-                    RawField := Base64Decode(AnsiString(RecCols[5]));
-                    if (RawLen = Length(RawField)) and (RawLen > 20) then begin
-                        if ((FCacheTot + 1) >= Length(FOcspCache)) then
-                            NewCacheRecs(32);
-                        FOcspCache[FCacheTot].CertCName := RecCols[0];
-                        FOcspCache[FCacheTot].CertStatus := atoi(RecCols[1]);
-                        FOcspCache[FCacheTot].CacheDT := RFC3339_StrToDate(RecCols[2]);
-                        FOcspCache[FCacheTot].RespDT := RFC3339_StrToDate(RecCols[3]);
-                        FOcspCache[FCacheTot].ReqLen := RawLen;
-                        FOcspCache[FCacheTot].ReqRaw := RawField;
-                        FOcspCache[FCacheTot].RespLen := atoi(RecCols[6]);
-                        FOcspCache[FCacheTot].RespRaw := Base64Decode(AnsiString(RecCols[7]));
-                        if (FOcspCache[FCacheTot].RespLen <> Length(FOcspCache[FCacheTot].RespRaw)) or
-                          (((Now - FOcspCache[FCacheTot].RespDT) > FOcspMaxDays) and
-                              (FOcspCache[FCacheTot].CertStatus <> V_OCSP_CERTSTATUS_REVOKED)) then begin
-                            ClearCacheItem(FCacheTot);
-                        end
-                        else
-                            FCacheTot := FCacheTot + 1;
-                    end;
-                end;
-            end;
-            StreamReader.Destroy;
-            doOcspLog(loProtSpecInfo, 'Read OCSP Cache File OK: ' + FCacheFName + ' - ' + IntToStr(FCacheTot) + ' records');
-            FCacheChanged := False;
-            Result := True;
-        except
-            on E:Exception do begin
-                doOcspLog(loProtSpecInfo, 'Failed to Read OCSP Cache File: ' + FCacheFName + ' - ' + E.Message);
-            end;
-        end;
-    finally
-        RecCols.Free;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TOcspHttp.CacheFlushOnTimer(Sender: TObject);
-begin
-    FCacheFlushTimer.Enabled := False;
-    SaveCacheToFile(False);
-end;
-
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { TSslHttpRest }
@@ -1834,7 +904,7 @@ begin
     CtrlSocket.ComponentOptions := [wsoNoReceiveLoop];
     SocketFamily := sfAny;         { V8.60 allow IPv6 or IPv4 }
     Options := Options + [httpoEnableContentCoding, httpoGetContent]; { V8.71 allow content with GET }
-    FSslSessCache := true;
+    FSslSessCache := True;
     FExternalSslSessionCache := nil;
     RestCookies := TIcsCookies.Create(self);
     RestCookies.OnNewCookie := onCookiesNewCookie;
@@ -1844,15 +914,17 @@ begin
     RestLogger.LogOptions := [loDestEvent];
     IcsLogger := RestLogger;
 {$ENDIF}
-    RestSslCtx := TSslContext.Create(self) ;
-    SslContext := RestSslCtx;
-    RestSslCtx.SslVerifyPeer := false ;
+    FSharedSslCtx := False;                 { V9.1 allow shared SslConext }
+    RestSslCtx := Nil;
+ //   RestSslCtx := TSslContext.Create(self) ;   { V9.1 moved to InitSsl }
+//    SslContext := RestSslCtx;
+//    RestSslCtx.SslVerifyPeer := false ;
 {$IFNDEF NO_DEBUG_LOG}
-    RestSslCtx.IcsLogger := RestLogger;
+//    RestSslCtx.IcsLogger := RestLogger;
 {$ENDIF}
     FSslCliCert := TX509Base.Create(self);
     FCertVerMethod := CertVerNone;
-    FSslRootFile := 'RootCaCertsBundle.pem';  // blank will use internal bundle
+    FSslRootFile := '';  // blank will use internal bundle  V9.1 now blank
     FSslCliSecurity := sslCliSecTls12;
     FDebugLevel := DebugSsl;
     FRespReq := False;
@@ -1861,8 +933,12 @@ begin
     FTempFileName := '';                   { V8.68 }
     FResumeMinSize := 65535 ;              { V8.68 also used for resume overlap }
     FProgIntSecs := 2;                     { V8.68 }
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
     FOcspHttp := TOcspHttp.Create(Self);   { V8.69 }
     FOcspHttp.OnOcspProg := IcsLogEvent;   { V8.69 }
+{$ENDIF} // OpenSSL_OcspChains
+    FMaxLogParams := 4096;                 { V9.1 }
+    FTempPostName := '';                   { V9.1 }
 end ;
 
 
@@ -1870,18 +946,23 @@ end ;
 destructor TSslHttpRest.Destroy;
 begin
     try  { V8.71 }
-        FreeAndNil(FOcspHttp);              { V8.69 }
-        FreeAndNil(FMimeTypesList);  { V8.69 }
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
+        FreeAndNil(FOcspHttp);          { V8.69 }
+{$ENDIF} // OpenSSL_OcspChains
+        FreeAndNil(FMimeTypesList);     { V8.69 }
         FreeAndNil(FRestParams);
-        FreeAndNil(FPostStream);
+        try
+            if Assigned(FPostStream) then   { V9.2 sanity check }
+                FreeAndNil(FPostStream);
+        except
+        end;
         FreeAndNil(FResponseStream);
-        if (FTempFileName <> '') and FileExists(FTempFileName) then  { V8.68 delete temporary file }
-            IcsDeleteFile(FTempFileName, True);
-        FTempFileName := '';
+        DeleteTempFile;   { V8.68 delete temporary file }
+        DeletePostFile;   { V9.1 }
         FreeAndNil(FResInfRecs);  { V8.68 }
-    {$IFDEF MSWINDOWS}
+    {$IFDEF MSCRYPT_Clients}
         FreeAndNil(FMsCertChainEngine);
-    {$ENDIF MSWINDOWS}
+    {$ENDIF MSCRYPT_Clients}
         FreeAndNil(FExternalSslSessionCache);
         FreeAndNil(RestSslCtx);
         FreeAndNil(FSslCliCert);
@@ -1896,50 +977,79 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TSslHttpRest.InitSsl;
-var
-    rootfname: String;
+procedure TSslHttpRest.DeleteTempFile;      { V9.1 }
 begin
+    if (FTempFileName <> '') and FileExists(FTempFileName) then
+            IcsDeleteFile(FTempFileName, True);
+    FTempFileName := '';
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TSslHttpRest.DeletePostFile;      { V9.1 }
+begin
+    if (FTempPostName <> '') and FileExists(FTempPostName) then
+            IcsDeleteFile(FTempPostName, True);
+    FTempPostName := '';
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TSslHttpRest.InitSsl;
+//var
+//    rootfname: String;
+begin
+    if FNoSSL then Exit;     { V9.1 }
     if FInitSsl then Exit;
 {$IFNDEF NO_DEBUG_LOG}
     if FDebugLevel >= DebugSslLow then
         RestLogger.LogOptions := RestLogger.LogOptions + [loSslInfo, loProtSpecInfo];
 {$ENDIF}
 
-    if not Assigned (FExternalSslSessionCache) then begin
-        FExternalSslSessionCache := TSslAvlSessionCache.Create (self);
- //       fExternalSslSessionCache.AdjustTimeout := True;
- //       fExternalSslSessionCache.SessionTimeOut := 30;
- //       fExternalSslSessionCache.FlushInterval := 3000;
+  // V9.1 allow shared SslContext between multiple instance of TSslHttpRest to save memory loading certificate store
+    if (NOT FSharedSslCtx) or (NOT Assigned(SslContext)) then begin
+        RestSslCtx := TSslContext.Create(self) ;
+        SslContext := RestSslCtx;
+{$IFNDEF NO_DEBUG_LOG}
+        SslContext.IcsLogger := RestLogger;
+{$ENDIF}
     end;
-    RestSslCtx.SslOptions2 := RestSslCtx.SslOptions2 +
-       [sslOpt2_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, sslOpt2_NO_RENEGOTIATION];
-    RestSslCtx.SslECDHMethod := sslECDHAuto;
-    RestSslCtx.SslCipherList := sslCiphersNoDH;     { V8.66 }
-    RestSslCtx.SslCliSecurity := FSslCliSecurity;
 
   // note - deliberately not loading an SSL client certificate from FSslCliCert,
   // this is done in TransferSslCliCertRequest event so it's logged properly if missing.
 
-  // see if verifying server SSL certificate
-    if (FCertVerMethod > CertVerNone) then begin
-        RestSslCtx.SslVerifyPeer := true;
-        RestSslCtx.SslOcspStatus := true;     { V8.69 use OCSP stapling to get revoked status }
-        RestSslCtx.SslVerifyPeerModes := [SslVerifyMode_PEER];
-        RestSslCtx.SslSessionCacheModes := [sslSESS_CACHE_CLIENT];
+ // V9.2 session caching no longer only if FCertVerMethod > CertVerNone }
+    SslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT];
         if fSslSessCache then begin
-            RestSslCtx.SslSessionCacheModes := [sslSESS_CACHE_CLIENT,
-                sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
-        end;
+            if NOT Assigned (FExternalSslSessionCache) then begin       { V9.2 only create it if needed }
+                FExternalSslSessionCache := TSslAvlSessionCache.Create (self);
+            end;
+            SslContext.SslSessionCacheModes := [sslSESS_CACHE_CLIENT, sslSESS_CACHE_NO_INTERNAL_LOOKUP, sslSESS_CACHE_NO_INTERNAL_STORE] ;
+     end;
+
+  // see if verifying server SSL certificate
+    SslContext.SslVerifyPeer := false ;
+    if (FCertVerMethod > CertVerNone) then begin
+        SslContext.UseSharedCAStore := True;           { V9.1 ignore fSslRootFile for now  }
+        SslContext.SslVerifyPeer := true;
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
+        SslContext.SslOcspStatus := true;     { V8.69 use OCSP stapling to get revoked status }
+{$ENDIF} // OpenSSL_OcspChains
+        SslContext.SslVerifyPeerModes := [SslVerifyMode_PEER];
     end ;
     try
-        if NOT RestSslCtx.IsCtxInitialized then begin
-            RestSslCtx.InitContext;
+        if NOT SslContext.IsCtxInitialized then begin
+            SslContext.SslOptions2 := SslContext.SslOptions2 + [sslOpt2_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, sslOpt2_NO_RENEGOTIATION];
+            SslContext.SslECDHMethod := sslECDHAuto;
+       SslContext.SslCipherList := sslCiphersNoDH;     { V8.66 }
+            SslContext.SslCliSecurity := FSslCliSecurity;
+            SslContext.InitContext;
             if FDebugLevel >= DebugSslLow then begin
-               if NOT GSSLStaticLinked  then          { V8.66 }
+                LogEvent(IcsReportOpenSSLVer(True));  { V9.3 }
+             {  if NOT GSSLStaticLinked  then
                     LogEvent('SSL Version: ' + OpenSslVersion + ', Dir: ' + GLIBEAY_DLL_FileName)
                 else
-                    LogEvent('SSL Statically Linked Version : ' + OpenSslVersion);
+                    LogEvent('SSL Statically Linked Version : ' + OpenSslVersion);  }
             end;
         end;
         FInitSsl := True;
@@ -1951,21 +1061,22 @@ begin
     end;
 
  // V8.62 can not load bundle until context exists
-    if (FCertVerMethod >= CertVerBundle) then begin
-        rootfname := fSslRootFile;
+ // V9.1 now using IcsSslRootCAStore
+ (*   if (FCertVerMethod >= CertVerBundle) then begin
+       rootfname := fSslRootFile;
         if rootfname <> '' then begin
             if (Pos (':', rootfname) = 0) then
                 rootfname := ExtractFileDir (ParamStr (0)) + '\' + rootfname ;
             if NOT FileExists (rootfname) then  begin
                 LogEvent('Can Not Find SSL CA Bundle File - ' + rootfname);
-                RestSslCtx.LoadCAFromString(sslRootCACertsBundle);  { V8.63 }
+                SslContext.LoadCAFromTB(sslRootCACertsBundle);  { V9.1 now TBytes }
             end
             else
-                RestSslCtx.SslCAFile := rootfname;
+                SslContext.SslCAFile := rootfname;
         end
         else
-            RestSslCtx.LoadCAFromString(sslRootCACertsBundle);  { V8.63 }
-    end;
+            SslContext.LoadCAFromTB(sslRootCACertsBundle);  { V9.1 now TBytes }
+    end;   *)
 end;
 
 
@@ -1974,7 +1085,8 @@ procedure TSslHttpRest.SetSslCliSecurity(Value: TSslCliSecurity);
 begin
     if Value = FSslCliSecurity then Exit;
     FSslCliSecurity := Value;
-    RestSslCtx.SslCliSecurity := FSslCliSecurity;
+    if Assigned(SslContext) then                      { V9.1 }
+        SslContext.SslCliSecurity := FSslCliSecurity;
 end;
 
 
@@ -1982,7 +1094,11 @@ end;
 procedure TSslHttpRest.ResetSsl;
 begin
     FInitSsl := False;
-    if FConnected then CloseAsync;
+    if FNoSSL then Exit;                              { V9.1 }
+    if Assigned(SslContext) then                      { V9.1 }
+        SslContext.DeInitContext;
+    if FConnected then
+        CloseAsync;
 end;
 
 
@@ -2010,8 +1126,7 @@ end ;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TSslHttpRest.IcsLogEvent(Sender: TObject; LogOption: TLogOption;
-                                                      const Msg : String);
+procedure TSslHttpRest.IcsLogEvent(Sender: TObject; LogOption: TLogOption; const Msg : String);
 begin
     if Assigned(FonHttpRestProg) then
         FonHttpRestProg(Self, LogOption, Msg) ;
@@ -2040,9 +1155,21 @@ end ;
 procedure TSslHttpRest.TriggerLocationChange;   { V8.61 }
 begin
     Inherited TriggerLocationChange;
+
+   { V9.1 can not redirect to HTTPS if SSL disabled }
+    if FNoSSL then begin
+        if IsSSLProtocol(Copy(FLocation, 1, 5)) then begin
+            LogEvent('= ' + FURL + ' Redirected to: ' + FLocation + ', Aborted');
+            Location := '';   { stops relocation }
+            FReasonPhrase := 'HTTPS currently disabled';
+            LogEvent (FReasonPhrase) ;
+       //     Abort;
+            Exit;
+        end;
+    end;
+
   { cookies may have been sent during redirection, so update again now }
     FCookie := RestCookies.GetCookies(FLocation);
-
     if FDebugLevel >= DebugConn then
         LogEvent('= ' + FURL + ' Redirected to: ' + FLocation);
     if Assigned(FOnRestLocChange) then
@@ -2069,6 +1196,7 @@ begin
         end;
         if (FHttpMemStrategy <= HttpStratTemp) then begin
             if(FContentLength < FMaxBodySize) then begin
+                DeleteTempFile;   { V9.1 }
                 FTempFileName := '';   // small use MemoryStream
             end;
         end;
@@ -2187,6 +1315,36 @@ end ;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TSslHttpRest.TriggerSendBegin;                                          { V9.1 }
+begin
+    Inherited TriggerSendBegin;
+
+end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TSslHttpRest.TriggerSendData(Data : Pointer; Len : Integer);             { V9.1 }
+var
+    S: String;
+begin
+    Inherited TriggerSendData(Data, Len);
+    if NOT FRespReq then
+        Exit;
+    if NOT FShowProgress then
+        Exit;
+    if NOT Assigned(FonHttpRestProg) then
+        Exit;
+    if (FProgIntSecs > 0) then begin //  slow down updates, default once every two seconds
+        if (IcsElapsedSecs64 (FProgLastTick) < FProgIntSecs) then
+            Exit;
+    end ;
+    FProgLastTick := IcsGetTickCount64;
+    S := FProgMessBase + ', Uploading ' + IntToKByte (FSendStream.Position) + ' of ' +  IntToKByte (FSendStream.Size);
+    FonHttpRestProg(Self, loProgress, S);
+end ;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TSslHttpRest.TriggerCookie(const Data : String; var   bAccept : Boolean); { V8.61 }
 begin
     Inherited TriggerCookie(Data, bAccept);
@@ -2240,13 +1398,11 @@ procedure TSslHttpRest.TransferSslCliGetSession(Sender      : TObject;
                                   var FreeSession  : Boolean);  { V8.61 }
 begin
     Inherited TransferSslCliGetSession(Self, SslSession, FreeSession);
-    { SslCliNewSession/SslCliGetSession allow external, client-side session }
-    { caching.                                                              }
+    { SslCliNewSession/SslCliGetSession allow external, client-side session caching.  }
     if not fSslSessCache then Exit;
     if FDebugLevel >= DebugSslLow then
         LogEvent ('Check for Old SSL Session');
-    SslSession := fExternalSslSessionCache.GetCliSession(FCtrlSocket.PeerAddr +
-                                                    FCtrlSocket.PeerPort, FreeSession);
+    SslSession := fExternalSslSessionCache.GetCliSession(FCtrlSocket.PeerAddr + FCtrlSocket.PeerPort, FreeSession);
     if FDebugLevel < DebugSslLow then Exit;
      if Assigned (SslSession) then
         LogEvent ('Old SSL Session Found Cached')
@@ -2262,14 +1418,12 @@ procedure TSslHttpRest.TransferSslCliNewSession(Sender      : TObject;
                                   var IncRefCount  : Boolean);  { V8.61 }
 begin
     Inherited TransferSslCliNewSession(Sender, SslSession, WasReused, IncRefCount);
-    { SslCliNewSession/SslCliGetSession allow external, client-side session }
-    { caching.                                                              }
+    { SslCliNewSession/SslCliGetSession allow external, client-side session caching. }
     if not fSslSessCache then Exit;
     if FDebugLevel >= DebugSslLow then
         LogEvent ('Starting SSL Session');
     if (not WasReused) then begin
-        fExternalSslSessionCache.CacheCliSession(SslSession,
-                        FCtrlSocket.PeerAddr + FCtrlSocket.PeerPort, IncRefCount);
+        fExternalSslSessionCache.CacheCliSession(SslSession, FCtrlSocket.PeerAddr + FCtrlSocket.PeerPort, IncRefCount);
         if FDebugLevel >= DebugSslLow then
              LogEvent ('Cache SSL Session: New');
     end
@@ -2288,12 +1442,13 @@ procedure TSslHttpRest.TransferSslHandshakeDone(         { V8.61 }
     var Disconnect : Boolean);
 var
     CertChain: TX509List;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     ChainVerifyResult: LongWord;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
     info, host, VerifyInfo: String;
     Safe: Boolean;
     HttpCtl: TWSocket;
+    VerifyCode: Integer; { V9.3 }
 begin
     Inherited TransferSslHandshakeDone(Sender, ErrCode, PeerCert, Disconnect);
     HttpCtl := (Sender as TSslHttpCli).CtrlSocket ;
@@ -2319,10 +1474,12 @@ begin
 
  // Property SslCertChain contains all certificates in current verify chain
     CertChain := HttpCtl.SslCertChain;
+    VerifyCode := PeerCert.VerifyResult;   // V9.3 OpenSSL verification result
+    VerifyInfo := PeerCert.FirstVerifyErrMsg;
 
  // see if validating against Windows certificate store - V8.65 only for Windows
     if FCertVerMethod = CertVerWinStore then begin
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
         // start engine
         if not Assigned (FMsCertChainEngine) then
             FMsCertChainEngine := TMsCertChainEngine.Create;
@@ -2340,32 +1497,33 @@ begin
         FMsCertChainEngine.VerifyCert (PeerCert, CertChain, ChainVerifyResult, True);
 
         Safe := (ChainVerifyResult = 0) or
-                { We ignore the case if a revocation status is unknown.      }
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                     CERT_TRUST_IS_OFFLINE_REVOCATION);
+                     { We ignore the case if a revocation status is unknown.      }
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                     (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                     (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
        { The MsChainVerifyErrorToStr function works on chain error codes     }
         VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult);
 
     // MSChain ignores host name, so see if it failed using OpenSSL
-        if PeerCert.VerifyResult = X509_V_ERR_HOSTNAME_MISMATCH then begin
+        if VerifyCode = X509_V_ERR_HOSTNAME_MISMATCH then begin
             Safe := False;
             VerifyInfo := PeerCert.FirstVerifyErrMsg;
         end;
 {$ELSE}
         LogEvent ('Windows certificate store not available');  { V8.65 }
         exit ;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
     end
+
+ // OpenSSL has verified the chain against the bundle we loaded earlier }
     else if FCertVerMethod = CertVerBundle then begin
-        VerifyInfo := PeerCert.FirstVerifyErrMsg;
-        Safe := (PeerCert.VerifyResult = X509_V_OK);   { check whether SSL chain verify result was OK }
+        Safe := (VerifyCode = X509_V_OK);   { check whether SSL chain verify result was OK }
 
       { V8.69 check OCSP to see if revoked, if we got a chain of certificates }
       { note this is a soft check, if we don't have a stapled OCSP response from the TLS handshake, we get it from an
         OCSP HTTP server and cache it but don't wait for the response. So next attempt comes from cache.  }
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
         if (Safe and fSslRevocation and PeerCert.IsCertLoaded and (CertChain.Count > 0)) then begin
             FOcspHttp.ClearOcsp;
             FOcspHttp.DebugLevel := FDebugLevel;
@@ -2373,20 +1531,32 @@ begin
             FOcspHttp.OcspInters := CertChain;
             if (Length(HttpCtl.OcspStapleRaw) > 50) and (HttpCtl.OcspStapleStatus = OCSP_RESPONSE_STATUS_SUCCESSFUL) then
                 FOcspHttp.OcspRespRaw := HttpCtl.OcspStapleRaw;
-            if FOcspHttp.CheckOcspRevoked(RestSslCtx.GetX509Store, 0) then
+            if FOcspHttp.CheckOcspRevoked(SslContext.GetX509Store, 0) then    { V9.1 }
                 Safe := False;
             VerifyInfo := FOcspHttp.OcspLastResp;
             FOcspHttp.OcspInters := Nil;
             LogEvent (HttpCtl.SslServerName + ' ' + VerifyInfo)
          end;
+{$ENDIF} // OpenSSL_OcspChains
 
+    end
+
+{ V9.3 allow application to verify chain, perhaps checking public key only  }
+{ the event should change VerifyCode, VerifyInfo, Disconnect so the result get logged sensibly }
+    else if FCertVerMethod = CertVerOwnEvent then begin
+        if Assigned(FOnSslCertVerifyEvent) then begin
+            FOnSslCertVerifyEvent(Self, CertChain, VerifyCode, VerifyInfo, Disconnect);
+            if Disconnect and (VerifyCode = X509_V_OK) then
+                VerifyCode := X509_V_ERR_CERT_SIGNATURE_FAILURE;
+        end;
+        Safe := (VerifyCode = X509_V_OK);
     end
     else begin
         exit ;  // unknown method
     end ;
 
    // see if allowing self signed
-    if (PeerCert.VerifyResult = X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) and FSslAllowSelfSign then
+    if (VerifyCode = X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN) and FSslAllowSelfSign then
         Safe := True;
 
   // tell user verification failed
@@ -2475,25 +1645,6 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TSslHttpRest.GetParams: AnsiString;  { V8.64 lost reqtype }
-begin
-    Result := '';
-    if (FRestParams.Count > 0) then begin
-        Result := FRestParams.GetParameters;
-    { V8.64 use PContBodyJson for POST, set automatically in RestRequest }
-        if (FRestParams.PContent = PContJson) then  // must flatten Json for GET/PUT
-            Result:= IcsBase64UrlEncodeA(Result);
-        if (FRestParams.PContent = PContBodyJson) then   { V8.61 added UTF8 }
-                FContentPost := MimeAppJson
-        else if (FRestParams.PContent = PContBodyUrlEn) then   { V8.61 added UTF8 }
-                FContentPost := MimeAppForm
-        else if (FRestParams.PContent = PContBodyXML) then   { V8.61 added UTF8 }
-                FContentPost := MimeAppXml ;
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TSslHttpRest.GetResponseJson: ISuperObject;
 var
     ErrStr: String;
@@ -2501,7 +1652,8 @@ begin
     Result := Nil;
     if NOT Assigned(FResponseJson) and (FResponseRaw <> '') then begin
       { V8.68 check we have a Json object, beware HTML CSS also has {}
-        if (Pos('{', FResponseRaw) > 0) and (Pos('}', FResponseRaw) > 0) then begin
+        if ((Pos('{', FResponseRaw) > 0) and (Pos('}', FResponseRaw) > 0)) or
+              ((Pos('[', FResponseRaw) > 0) and (Pos(']', FResponseRaw) > 0)) then begin  { V9.5 check for array without objects }
             try
              { V8.65 actually get parse errors with new function rather than ignoring them }
                 FResponseJson := TSuperObject.ParseStringEx(PWideChar(FResponseRaw), True, ErrStr);
@@ -2543,7 +1695,8 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TSslHttpRest.DoRequestAsync(Rq : THttpRequest); { V8.66 }
 begin
-    if NOT FInitSsl then InitSsl;   // first call may be legacy GET or PUT
+    if NOT FInitSsl then
+        InitSsl;   // first call may be legacy GET or PUT
     Inherited DoRequestAsync(Rq);
 end;
 
@@ -2552,6 +1705,7 @@ end;
 procedure TSslHttpRest.TriggerRequestDone2;  { V8.61 }
 var
     Info: String;
+    XferSize, FileActualSize: Int64;
 begin
     if FStatusCode > 0 then
         FReasonPhrase := IntToStr(FStatusCode) + ' ' + FReasonPhrase;   { V8.69 OK becomes 200 OK, etc }
@@ -2586,32 +1740,39 @@ begin
                     FResponseStream.Position := 0; { V8.67 Seek (0, soFromBeginning) ; }
 
                   // convert response to correct codepage, including entities
-                    if (Pos ('text/', FContentType) = 1) or
+                  // V9.5 skip if content is a file attachment
+                    if (NOT FRespAttachment) and IcsMimeIsTextual(FRespMimeType) then begin     { V9.3 simplify code }
+                    (*  if (Pos ('text/', FContentType) = 1) or
                          (Pos ('json', FContentType) <> 0) or
                            (Pos ('javascript', FContentType) <> 0) or  { V8.61 }
-                             (Pos ('xml', FContentType) <> 0) then begin
-                        FResponseRaw := IcsHtmlToStr(FResponseStream, FContentType, true);
+                             (Pos ('xml', FContentType) <> 0) then begin  *)
+                    //    FResponseRaw := IcsHtmlToStr(FResponseStream, FContentType, true);
+                        FResponseRaw := IcsHtmlToStrCh(FResponseStream, FRespCharset, true);    { V9.3 simplify code }
                         FResponseStream.Position := 0; { V8.67 Seek (0, soFromBeginning) ; }
                         if DebugLevel >= DebugBody then
-                            LogEvent('Response (length ' + IntToKbyte(Length(FResponseRaw)) +
-                                                                  ')' + IcsCRLF +  FResponseRaw);
+                            LogEvent('Response (length ' + IntToKbyte(Length(FResponseRaw)) + ')' + IcsCRLF +  FResponseRaw);
                     end
                     else if DebugLevel >= DebugBody then
                             LogEvent('Response Non-Textual (Size: ' + IntToKbyte(FResponseSize));
+
+                  // V9.4 content is a file attachment, tell user to save it
+                    if FRespAttachment then begin
+                        LogEvent('Response is File Attachment: ' + RespFileName + ' (Size: ' + IntToKbyte(FResponseSize) + ')');
+                    end;
                 end;
 
           { V8.68 see if saving content file }
                 if (FHttpMemStrategy >= HttpStratFile) and (FTempFileName <> '') then begin
                     try
                         FreeAndNil(FResponseStream);  // close temporary .part file to flush to disk
-                        if (FResponseSize = FExpectedSize) or (FContentLength < 0) or
-                                                     (FHttpMemStrategy <> HttpStratResume) then begin
+                        FileActualSize := IcsGetFileSize(FTempFileName);  { V9.2 }
+                        if ((FResponseSize = FExpectedSize) and (FResponseSize = FileActualSize)) or     { V9.2 check actual size }
+                                            (FContentLength < 0) or (FHttpMemStrategy <> HttpStratResume) then begin
                             if (IcsRenameFile (FTempFileName, FHttpDownFileName, FHttpDownReplace, True) <> 0) then begin
                                LogEvent('Error Renaming File: ' + FTempFileName + ' to ' + FHttpDownFileName) ;
                             end
                             else begin
-                                LogEvent('Saved File OK: ' + FHttpDownFileName + ', Size: ' + IntToKbyte(FResponseSize));
-                             //   UpdateFileAge (FHttpDownFileName, xx) ;  // not UTC date
+                                LogEvent('Saved File OK: ' + FHttpDownFileName + ', Size: ' + IntToKbyte(FileActualSize));  { V9.2 actual size }
                              // open disk file again so application can access it
                                 FResponseStream := TIcsBufferedFileStream.Create(FHttpDownFileName, fmOpenRead, MAX_BUFSIZE);
                             end;
@@ -2619,10 +1780,10 @@ begin
                                 IcsDeleteFile (FResumeFileName, True);  // no longer need .http resume file
                         end
                         else begin
-                            LogEvent('Partial download saved as: ' + FTempFileName + ', Size: ' + IntToKbyte(FResponseSize));
+                            LogEvent('Partial download saved as: ' + FTempFileName + ', Size: ' + IntToKbyte(FileActualSize));  { V9.2 actual size }
                             if (FResumeFileName <> '') and (FTempFileName <> '') and
-                                FileExists(FTempFileName) and FileExists(FResumeFileName) then
-                                   LogEvent('Failed download can be resumed using: ' + FTempFileName) ;
+                                                            FileExists(FTempFileName) and FileExists(FResumeFileName) then
+                                LogEvent('Failed download can be resumed using: ' + FTempFileName) ;
                         end;
                         FTempFileName := '';
                         FResumeFileName := '';
@@ -2632,12 +1793,15 @@ begin
                         end;
                     end;
                 end;
+
+            { talk to user }
                 if FShowProgress and Assigned(FonHttpRestProg) then begin    { V8.68 }
                     if ((FStatusCode = 200) or (FStatusCode = 206)) and (FResponseSize > 0) then begin
                         if Assigned(FSendStream) and (FSendStream.Size > 0) then                              { V8.70 no stream for downloads }
-                            FonHttpRestProg(Self, loProgress, FProgMessBase + ', Upload completed, Size: ' + IntToKByte (FSendStream.Size))    { V8.69 }
+                            XferSize := FSendStream.Size
                         else
-                            FonHttpRestProg(Self, loProgress, FProgMessBase + ', Request completed, Size: ' + IntToKByte (FResponseSize));
+                            XferSize := FResponseSize;
+                        FonHttpRestProg(Self, loProgress, FProgMessBase + ', Request completed, Size: ' + IntToKByte (XferSize));  { V9.1 simplify }
                     end
                     else
                         FonHttpRestProg(Self, loProgress, FProgMessBase + ', Request failed: ' + FReasonPhrase);
@@ -2659,10 +1823,9 @@ end;
 procedure TSslHttpRest.ClearResp;
 begin
     FreeAndNil(FPostStream);       { V8.69 may be file stream }
+    FPostStream := Nil;            { V9.2 sanity check }
     FreeAndNil(FResponseStream);   { V8.68 may be file stream }
-    if (FTempFileName <> '') and FileExists(FTempFileName) then   { V8.68 delete temporary file }
-        IcsDeleteFile(FTempFileName, True);
-    FTempFileName := '';
+    DeleteTempFile;                { V9.1 }
     FResumeFileName := '';
     FPostStream := TMemoryStream.Create;
     FResponseStream := TMemoryStream.Create;
@@ -2676,20 +1839,21 @@ end;
 { make an HTTP request to RestURL.  If RestURL has no parameters (ie ?, except
   POST)) then RawParams are added if not blank, otherwise RestParams are added }
 { V8.64 added ConType for POST/PUT/PATCH body content type }
-
+{ returns -1 for failure to start connection with reason in ReasonPhrase }
+{ Sync request mode, returns HTTP Status Code, 200 OK, 404 page not found or internal error, lots of others  }
+{ Async request mode, returns 0 if request started, then wait for OnRestRequestDone event for HTTP StatusCode }
 function TSslHttpRest.RestRequest(HttpRequest: THttpRequest; const RestURL: String;
-                    AsyncReq: Boolean = False; const RawParams: String = ''): Integer;
+                                                AsyncReq: Boolean = False; const RawParams: String = ''): Integer;
 var
     Info: String;
-    Params: AnsiString;
-    FLen, Attempts: Integer;
-    ResPosFrom, Newsize, LastBegin: Int64;
+    EncParams: AnsiString;  { V9.1 renamed for clarity }
+    Attempts: Integer;
+    ResPosFrom, Newsize, LastBegin, EstPSize, PLen: Int64;
     MimeHeader, MimeFooter, RandBoundary: String;
 begin
-    result := -1;
+    Result := -1;
     FReasonPhrase := '';
-    ClearResp;  // create empty memory stream
-    if (Pos('http', RestURL) <> 1) then begin
+    if NOT IsKnownProtocolURL(RestURL) then begin        { V9.1 simplify }
         FReasonPhrase := 'Need valid URL: ' + RestURL;
         LogEvent (FReasonPhrase) ;
         Exit;
@@ -2699,29 +1863,38 @@ begin
         LogEvent (FReasonPhrase) ;
         Exit;
     end;
+
+ { V9.1 see if SSL disabled }
+    if FNoSSL then begin
+        if IsSSLProtocol(Copy(RestURL, 1, 5)) then begin
+            FReasonPhrase := 'HTTPS currently disabled';
+            LogEvent (FReasonPhrase) ;
+            Exit;
+        end;
+    end;
+    ClearResp;  // create empty memory stream
     FRespReq := True;
-    InitSsl;
-    FSendStream := Nil;  { V8.71 not wanted for GET }
+    if FShowProgress and Assigned(FonHttpRestProg) then
+       FonHttpRestProg(Self, loProgress, 'Starting REST Request');     { V9.1 }
+    if NOT FNoSSL then     { V9.1 }
+        InitSsl;
+    FSendStream := Nil;  { V8.71 not wanted for GET, usually }
+    if HttpRequest <> httpPOST then
+        FContentPost := '';  { V9.5 }
 
   { V8.68 different memory strategies depending on size of response we expect,
     stream is opened in TriggerDocBegin once we know the content size, and closed
-    and renamed to real file name in TriggerRequestDone2, then reopened as
-    ResponseStream. }
-
+    and renamed to real file name in TriggerRequestDone2, then reopened as ResponseStream. }
+    DeleteTempFile;         { V9.1 remove last file, if any }
+    FTempFileName := '';
+    DeletePostFile;         { V9.1 }
+    FTempPostName := '';    { V9.1 }
+    if FTempPath = '' then
+       FTempPath := IncludeTrailingPathDelimiter(IcsGetTempPath);  { V9.1 simplify }
     case FHttpMemStrategy of
+        HttpStratMem: ;  // nothing to do
         HttpStratTemp: begin
-            if FTempPath = '' then begin
-{$IFDEF MSWINDOWS}
-                SetLength(FTempPath, 1024);
-                FLen := GetTempPath(Length(FTempPath) - 1, PChar(FTempPath));
-                SetLength(FTempPath, FLen);
-{$ENDIF}
-{$IFDEF POSIX}
-                FTempPath := TPath.GetTempPath;
-{$ENDIF}
-                FTempPath := IncludeTrailingPathDelimiter (FTempPath);
-            end;
-            FTempFileName := FTempPath + 'tsslhttprest' + IntToStr(Random(999999999)) + '.tmp';
+            FTempFileName := FTempPath + 'ics-httprest' + IntToStr(Random(999999999)) + '.tmp';
         end;
         HttpStratFile, HttpStratResume: begin
             if (NOT FHttpDownReplace) and FileExists(FHttpDownFileName) then begin
@@ -2826,29 +1999,33 @@ begin
 
     FRcvdStream := FResponseStream;
     FResponseNoException := True;  // stop exception for sync requests
+    EstPSize := 0;       { V9.1 }
+    EncParams := StringToUtf8(RawParams);
     try
         FURL := RestURL;
         FCookie := RestCookies.GetCookies (RestURL);
+{$IFDEF OpenSSL_OcspChains}  { V9.5 }
         FOcspHttp.OcspHttpProxy := FProxyURL;         { V8.69 use same proxy for OCSP }
+{$ENDIF} // OpenSSL_OcspChains
 
     { V8.64 PContent now used to determine if PUT paramaters should be sent as a content body or in the URL,
             but POST is always body to correct PContent if wrong }
-        if (HttpRequest = httpPOST) then begin
+        if (HttpRequest in [httpPOST, httpPUT]) and (FHttpUploadStrat = HttpUploadNone) then begin
             if (FRestParams.PContent = PContJson) then
                 FRestParams.PContent := PContBodyJson;
             if (FRestParams.PContent = PContUrlencoded) then
                 FRestParams.PContent := PContBodyUrlEn;
-        end;
-        Params := StringToUtf8(RawParams);
-        if (Params = '') then Params := GetParams;
-
-     { V8.64 set Json content type if empty }
-        if (Params <> '') and (FContentPost = '') then begin
-           if (Params[1] = '{') or (Params[1] = '[') then
-                FContentPost := MimeAppJson;  { V8.61 added UTF8 }
+        end
+        else begin
+            if (FRestParams.PContent = PContFormData) then begin
+                FReasonPhrase := 'Content Form-Data needs POST or PUT';
+                LogEvent (FReasonPhrase) ;
+                Exit;
+            end;
         end;
 
     { V8.69 see if uploading a file }
+    { V9.1 multiple files may now be specifed using TRestParams with PContFormData, but HttpUploadSimple still needs this code }
         if (FHttpUploadStrat > HttpUploadNone) and (HttpRequest in [httpPOST, httpPUT]) and (FHttpUploadFile <> '') then begin
             Newsize := IcsGetFileSize(FHttpUploadFile);
             if (Newsize < 0) then begin
@@ -2872,23 +2049,37 @@ begin
                     end;
                 end;
                 FContentPost := FMimeTypesList.TypeFromFile(FHttpUploadFile);
-                if (Pos('?', FURL) = 0) and (Params <> '') then
-                    FURL := RestURL + '?' + String(Params);
+                if (EncParams = '') and (FRestParams.PContent > PContNone) then begin   { V9.1 use TRestParams }
+                    EncParams := FRestParams.GetParameters;
+                    if (FRestParams.PContent = PContJson) then  { must flatten Json for URL }
+                        EncParams := IcsBase64UrlEncodeA(EncParams);
+                end;
+                if (Pos('?', FURL) = 0) and (EncParams <> '') then
+                    FURL := RestURL + '?' + String(EncParams);
+
+            { V9.5 add unofficial request header that some web servers might check for an upload file name }
+                FExtraHeaders.Add('Content-Disposition: ' + IcsEncHttp2Params('filename', ExtractFileName(FHttpUploadFile)));
             end
-            else if (FHttpUploadStrat = HttpUploadMIME) then begin
-                RandBoundary := '-----------------------------' + IntToHex(Random(MaxInt), 8) + IntToHex(Random(MaxInt), 8);
-                FContentPost := MimeMultipart + RandBoundary;
+            else if (FHttpUploadStrat = HttpUploadMIME) and (FRestParams.PContent = PContNone) then begin
+                RandBoundary := 'XxXx' + IntToHex(Random(MaxInt), 8) + IntToHex(Random(MaxInt), 8) + 'XxXx'; { V9.2 no -- in boundary }
+                FContentPost := MimeMultipart + RandBoundary;    { header no -- }
+                RandBoundary := '--' + RandBoundary;  { V9.2 add -- }
                 MimeHeader := RandBoundary + IcsCRLF +
-                    'Content-Disposition: form-data; name="FileName"; FileName="' + TextToHtmlText(ExtractFileName(FHttpUploadFile)) + '"' + IcsCRLF +
+                    'Content-Disposition: form-data; name="FileTitle"'+ IcsCRLF + IcsCRLF +
+                    String(IcsPercentEncode(StringToUtf8(RawParams))) +
+                    IcsCRLF + RandBoundary + IcsCRLF +
+                    'Content-Disposition: form-data; name="FileName"; FileName="' +
+                     String(IcsPercentEncode(StringToUtf8(ExtractFileName(FHttpUploadFile)))) + '"' + IcsCRLF +  { V9.1 replaced TextToHtmlText }
                     'Content-Type: ' + FMimeTypesList.TypeFromFile(FHttpUploadFile) + IcsCRLF + IcsCRLF;
-          // Pending, FileTitle section does not decode in ICS web server samples, not formed correctly???
-                MimeFooter := RandBoundary + IcsCRLF +
-                    'Content-Disposition: form-data; name="FileTitle"; ' + String(Params) + IcsCRLF +
-                    RandBoundary + IcsCRLF +
+                MimeFooter := IcsCRLF + RandBoundary + IcsCRLF +  // blank line after binary content
                     'Content-Disposition: form-data; name="Submit"' + IcsCRLF + IcsCRLF +
-                    'SubmitFile' + IcsCRLF + RandBoundary + '--' + IcsCRLF;
+                    'SubmitFile' + IcsCRLF + RandBoundary + '--' + IcsCRLF;   // -- after boundary is end of content
                 FreeAndNil(FPostStream);
                 try
+                    Info := 'Getting Parameters, Estimated Size ' + IntToKbyte(Newsize + 200);
+                    LogEvent(Info);
+                    if FShowProgress and Assigned(FonHttpRestProg) then
+                            FonHttpRestProg(Self, loProgress, Info);
                     FPostStream := TMultiPartFileReader.Create (FHttpUploadFile, MimeHeader, MimeFooter);
                     FPostStream.Position := 0;
                     FSendStream := FPostStream;
@@ -2900,292 +2091,167 @@ begin
                     end;
                 end;
             end;
-            LogEvent ('Uploading File: ' + FHttpUploadFile + ', Size ' + IcsInt64ToCStr (NewSize));
+            LogEvent ('Uploading File: ' + FHttpUploadFile + ', Size ' + InttoKByte(NewSize));
         end
         else begin
+            { V9.1 see if using RawParams (priority) or TRestParams }
+            if (EncParams = '') and (FRestParams.PContent > PContNone) then   { V9.1 allow to skip Params }
+                EstPSize := FRestParams.GetEstParamSize;
+            LogEvent ('REST Content Type: ' + PContentLits[FRestParams.PContent]);   { V9.5 }
 
-    { V8.64 see if content type means sending a body }
-            if (Params <> '') and (FRestParams.PContent in [PContBodyJson, PContBodyUrlEn, PContBodyXML]) then begin { V8.65 check some content }
-                (FPostStream as TMemoryStream).Clear;
-                FPostStream.Write(Params[1], Length(Params));
-                FPostStream.Position := 0; { V8.67 Seek(0, soFromBeginning) ; }
+        // see if need a stream for POST or PUT
+        // V9.5 allow body content to be sent with GET and DELETE methods
+            if (HttpRequest in [httpPOST, httpPUT]) or
+                                        (FRestParams.PContent in [PContBodyJson, PContBodyUrlEn, PContBodyXML]) then begin
+
+            { V9.1 for large parameters we need a temporary file }
+               if (EstPSize > 0) then begin
+                    if (EstPSize > IcsMBYTE) then begin
+                        Info := 'Getting Parameters, Estimated Size ' + IntToKbyte(EstPSize);
+                        LogEvent(Info);
+                         if FShowProgress and Assigned(FonHttpRestProg) then
+                            FonHttpRestProg(Self, loProgress, Info);
+                    end;
+                    if (EstPSize > MaxMemoryStreamSize) then begin  // 50MB too large for memory stream
+                        FTempPostName := FTempPath + 'ics-httprest' + IntToStr(Random(999999999)) + '.tmp';
+                        FreeAndNil(FPostStream);
+                        FPostStream := TIcsBufferedFileStream.Create(FTempPostName, fmCreate, MAX_BUFSIZE);
+                        LogEvent('Opened new temporary upload file OK: ' + FTempPostName);
+                    end
+                    else
+                        (FPostStream as TMemoryStream).Clear;
+                    FRestParams.ParamStream := FPostStream;
+
+                { get REST parameters into a steeam }
+                    if NOT FRestParams.GetParamStream then begin
+                        FReasonPhrase := 'Failed to Get Parameters, File Not Found';  { only error possible }
+                        LogEvent (FReasonPhrase) ;
+                        Exit;
+                    end;
+
+               { set post content-type }
+                    if (FRestParams.PContent = PContBodyJson) then
+                            FContentPost := MimeAppJson
+                    else if (FRestParams.PContent = PContBodyUrlEn) then
+                            FContentPost := MimeAppForm
+                    else if (FRestParams.PContent = PContBodyXML) then
+                            FContentPost := MimeAppXml
+                    else if (FRestParams.PContent = PContFormData) then
+                            FContentPost := MimeMultipart + String(FRestParams.MimeBoundary);
+                end
+
+             { if request passed RawParams write them to stream }
+                else if (EncParams <> '') then begin
+                    (FPostStream as TMemoryStream).Clear;
+                    FPostStream.Write(EncParams[1], Length(EncParams));
+                { V8.64 set Json content type if empty }
+                    if (EncParams <> '') and (FContentPost = '') then begin
+                        if (EncParams[1] = '{') or (EncParams[1] = '[') then
+                            FContentPost := MimeAppJson;
+                    end;
+                end;
+                FPostStream.Position := 0;
                 FSendStream := FPostStream;
             end
+
+         { get URL parameters for GET, DELETE, HEAD, OPTIONS, PATCH }
             else begin
-         { V8.64 no content type means URL arguments }
-                if (Pos('?', FURL) = 0) and (Params <> '') then { V8.65 not for blank params }
-                    FURL := RestURL + '?' + String(Params);
+                if (EncParams = '') and (EstPSize > 0) then begin   { no raw parameters passed, use TRestParams }
+                    EncParams := FRestParams.GetParameters;
+                    if (FRestParams.PContent = PContJson) then  { must flatten Json for URL }
+                        EncParams := IcsBase64UrlEncodeA(EncParams);
+                end;
+                if (Pos('?', FURL) = 0) and (EncParams <> '') then begin { V8.65 not for blank params }
+                    if (Pos(IcsSpace, String(EncParams)) > 0) then
+                       EncParams := AnsiString(UrlEncode(String(EncParams)));  { V9.2 sanity check, no spaces in URL }
+                    FURL := RestURL + '?' + String(EncParams);
+                end;
             end;
         end;
 
-     { make real HTTP request }
-        if HttpRequest = httpGET then Info := 'GET '
-        else if HttpRequest = httpHEAD then Info := 'HEAD '
-        else if HttpRequest = httpPOST then Info := 'POST '
-        else if HttpRequest = httpPUT then Info := 'PUT '
-        else if HttpRequest = httpDELETE then Info := 'DELETE '
-        else if HttpRequest = httpPATCH then Info := 'PATCH ';
-        Info := Info + RestURL;
-        if (FDebugLevel >= DebugParams) and (Params <> '') then
-            Info := Info + IcsCRLF + String(Params);
-        LogEvent(Info);
-        FStatusCode := 0;
-        if FShowProgress and Assigned(FonHttpRestProg) then begin    { V8.68 }
-            FProgMessBase := RestURL;
-            FonHttpRestProg(Self, loProgress, FProgMessBase + ', Getting headers');
+     { debugging only, report parameters  }
+        if (FDebugLevel >= DebugParams) then begin
+
+        (*    PLen := Length(EncParams);
+            if (PLen = 0) and (FRestParams.GetStreamSize > 0) then begin   { V9.1 get params from stream }
+                NewSize := FRestParams.GetStreamSize;
+                if (NewSize > FMaxLogParams) then   // may need only part of stream
+                    NewSize := FMaxLogParams;
+                FPostStream.Position := 0;
+                SetLength(EncParams, NewSize);
+                FPostStream.Read(EncParams[1], NewSize);
+                EncParams := AnsiString(IcsStrRemCntlsA(EncParams));
+                FPostStream.Position := 0;
+                PLen := Length(EncParams);
+            end;
+            if (PLen > 0) then begin
+                if (PLen >= FMaxLogParams) then begin  { V9.1 only show some params if very long }
+                    SetLength(EncParams, FMaxLogParams);  // not using params again, truncate it
+                    Info := Info + IcsCRLF + 'ParamLen=' + IntToStr(PLen) + ': ' + IcsStrBeakup(String(EncParams)) + '.....';
+                end
+                else
+                    Info := Info + IcsCRLF + IcsStrBeakup(String(EncParams));  { V9.1 word wrap lines }
+            end;     *)
+
+        { V9.5 don't report URL params here, they are rported in the URL shortly }
+            if Assigned(FSendStream) and (FRestParams.GetStreamSize > 0) then begin   { V9.1 get params from stream }
+                NewSize := FRestParams.GetStreamSize;
+                if (NewSize > FMaxLogParams) then   // may need only part of stream
+                    NewSize := FMaxLogParams;
+                FPostStream.Position := 0;
+                SetLength(EncParams, NewSize);
+                FPostStream.Read(EncParams[1], NewSize);
+                EncParams := AnsiString(IcsStrRemCntlsA(EncParams));
+                FPostStream.Position := 0;
+                PLen := Length(EncParams);
+                Info := 'Body Content Parameter Size ' + IntToKbyte(NewSize) + ', Type: ' + FContentPost + IcsCRLF;
+                if (PLen >= FMaxLogParams) then   { V9.1 only show some params if very long }
+                    SetLength(EncParams, FMaxLogParams);  // not using params again, truncate it
+                Info := Info + IcsStrBeakup(String(EncParams));  { V9.1 word wrap lines }
+                LogEvent(Info);
+            end;
         end;
+
+     { report request and URL for GUI progress event }
+        FStatusCode := 0;
+        FProgMessBase := RestURL;
+        if HttpRequest = httpGET then
+            Info := 'GET '
+        else if HttpRequest = httpHEAD then
+            Info := 'HEAD '
+        else if HttpRequest = httpPOST then
+            Info := 'POST '
+        else if HttpRequest = httpPUT then
+            Info := 'PUT '
+        else if HttpRequest = httpDELETE then
+            Info := 'DELETE '
+        else if HttpRequest = httpPATCH then
+            Info := 'PATCH ';
+        Info := Info + FURL;  // includes URL parameters
+        if (FPostStream.Size > IcsMBYTE) then
+            Info := Info + ', Starting Upload, Size ' + IntToKByte(FPostStream.Size)  { V9.1 }
+        else
+            Info := Info + ', Getting headers';
+        LogEvent(Info);
+        if FShowProgress and Assigned(FonHttpRestProg) then
+           FonHttpRestProg(Self, loProgress, Info);
+
+     { make real HTTP request }
         if AsyncReq then
             DoRequestASync(HttpRequest)
         else
             DoRequestSync(HttpRequest);
-        Result := FStatusCode;  // only for sync requests
+        Result := FStatusCode;  // only for sync requests, async will be 0 if started, wait for OnRestRequestDone event for result
     except
         on E:Exception do begin    { 400/500 no longer come here }
             if FRespReq then  { may have reported in Done }
                 LogEvent('Request failed: ' + E.Message);
             Result := FStatusCode;
-            if Result = 200 then Result := 0; // not really successful
+            if Result = 200 then
+                Result := -1; // not really successful
             FRespReq := False;
         end;
     end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ TDnsQueryHttps V8.61 }
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-constructor TDnsQueryHttps.Create (Aowner: TComponent);
-begin
-    inherited Create(AOwner);
-    HttpRest := TSslHttpRest.Create(self);
-    HttpRest.OnHttpRestProg := DnsRestProg;
-    HttpRest.OnRestRequestDone := DnsRestRequestDone;
-    FDnsSrvUrl := DnsPublicHttpsTable[0];
-    FDebugLevel := DebugNone;
-    FBothAReq := False;
-    FMultiReqSeq := 0;
-    FAnsTot := 0;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-destructor TDnsQueryHttps.Destroy;
-begin
-    FreeAndNil(HttpRest);
-    inherited Destroy;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TDnsQueryHttps.DnsRestProg(Sender: TObject; LogOption: TLogOption; const Msg: string);
-begin
-    if Assigned(FOnDnsProg) then
-        FOnDnsProg(Self, LogOption, Msg) ;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TDnsQueryHttps.DOHQueryAll(Host: String): Boolean;
-begin
-    FMultiReqSeq  := 1;
-    FMultiHost := Host;
-    FMultiReq := True;
-    FBothAReq := False;
-    FAnsTot := 0;
-    Result := DOHQueryAny(FMultiHost, DnsAllReqTable[FMultiReqSeq], True);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ V8.71 does A then AAAA }
-function TDnsQueryHttps.DOHQueryBothA(Host : String) : Boolean;
-begin
-    FMultiReqSeq := 1;
-    FMultiReq := True;
-    FMultiHost := Host;
-    FBothAReq := True;
-    FAnsTot := 0;
-    Result := DOHQueryAny(FMultiHost, DnsQueryA, True);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TDnsQueryHttps.DOHQueryAny(Host: String; QNumber: integer; MultiRequests: Boolean = False): Boolean;
-var
-    QueryBuf: AnsiString;
-    QueryLen, StatCode: Integer;
-begin
-    Result := False;
-    if Pos('https://', FDnsSrvUrl) <> 1 then begin
-        DiagLog('Must Specify DNS over HTTPS Server URL');
-        Exit;
-    end;
-    ResetCounters(QNumber);         { V8.71 }
-    if NOT FMultiReq then
-        FAnsTot := 0;  { V8.61 reset result records }
-    if NOT MultiRequests then
-        FAnsTot := 0;  { reset result records }
-    HttpRest.RestParams.Clear;
-    HttpRest.DebugLevel := FDebugLevel;
-    HttpRest.Accept := MimeDnsMess;
-    HttpRest.ContentTypePost := MimeDnsMess;
-    HttpRest.NoCache := True;
-
-// build binary wire format request per RFC8484, same as UDP requests RFC1035,
-// but ID always 0, so we build and parse requests with TDnsQuery component
-    SetLength(QueryBuf, 512);
-    BuildRequestHeader(PDnsRequestHeader(@QueryBuf[1]),0,  DnsOpCodeQuery, TRUE, 1, 0, 0, 0);
-    QueryLen := BuildQuestionSection(@QueryBuf[SizeOf(TDnsRequestHeader) + 1], IcsTrim(Host), QNumber, DnsClassIN);  { V8.64 }
-    QueryLen := QueryLen + SizeOf(TDnsRequestHeader);
-    SetLength(QueryBuf, QueryLen);
-    DiagLog('Contacting: ' + FDnsSrvUrl + ' for query: ' + FindDnsReqTypeName(QNumber));  { V8.71 }
-    StatCode := HttpRest.RestRequest(httpPOST, FDnsSrvUrl, True, String(QueryBuf));  // async request
-    Result := (StatCode = 0);  // raises exception on failure
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure TDnsQueryHttps.DnsRestRequestDone(Sender: TObject; RqType: THttpRequest; ErrCode: Word);
-var
-    RespBuf: AnsiString;
-begin
-    if RqType <> httpPOST then Exit;    { V8.68 don't care }
-    if ErrCode <> 0 then begin
-        DiagLog('HTTPS Request failed, error #' + IntToStr(ErrCode) +
-                          '. Status = ' + IntToStr(HttpRest.StatusCode) + ' - ' + HttpRest.ReasonPhrase);
-        FMultiReqSeq := 0;
-        FMultiReq := False;
-        FBothAReq := False;
-        TriggerRequestDone(ErrCode);
-        Exit;
-    end;
-    if (HttpRest.StatusCode = 200) and (HttpRest.ContentType = MimeDnsMess) then begin
-        RespBuf := HttpRest.ResponseOctet;
-        DiagLog('HTTPS Request completed OK, Decoding Response');
-        if DecodeWireResp(@RespBuf[1], Length(RespBuf)) then begin     { V8.71 was ContentLength }
-
-         // if simulating ALL request or both A and AAAA, make next request in sequence
-            if FMultiReqSeq > 0 then begin
-                FMultiReqSeq := FMultiReqSeq + 1;
-                if FBothAReq then begin     { V8.71 A and AAAA }
-                    if (FMultiReqSeq = 2) then begin
-                        DOHQueryAny(FMultiHost, DnsQueryAAAA, True);
-                        Exit;
-                    end;
-                end
-                else if FMultiReqSeq <= DnsAllReqTot then begin
-                    DOHQueryAny(FMultiHost, DnsAllReqTable[FMultiReqSeq], True);
-                    Exit;
-                end;
-                FMultiReqSeq := 0;
-                FMultiReq := False;
-                FBothAReq := False;
-            end;
-            TriggerRequestDone(0);  // all done
-        end
-        else
-            TriggerRequestDone(99);
-    end
-    else
-       TriggerRequestDone(HttpRest.StatusCode);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ TIcsDomNameCacheHttps V8.71 }
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-constructor TIcsDomNameCacheHttps.Create (Aowner: TComponent);
-begin
-    FDnsSrvUrlList := TStringList.Create;
-    inherited Create(AOwner);
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-destructor TIcsDomNameCacheHttps.Destroy;
-begin
-    FreeAndNil(FDnsSrvUrlList);
-    SetLength(FDnsQueryHttpss, 0);
-    inherited Destroy;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomNameCacheHttps.StartHttps(ItemNr: Integer): Boolean;
-var
-    I, SocNr: Integer;
-begin
-    SocNr := 0;
-    Result := False;
-
-// create socket look control table, if needed
-    if Length(FCntlLookups) < FMaxLookups then
-        SetLength(FCntlLookups, FMaxLookups + 1);
-
-    for I := 1 to FMaxLookups do begin            // base 1 so zero is illegal
-        if (NOT FCntlLookups[I].Busy) then begin
-            Socnr := I ;
-            Break;
-        end;
-    end;
-
-// all query components busy, add to lookup queue
-    if SocNr <= 0 then begin
-        FLookupQu.Add(ItemNr);
-        LogEvent('DnsQueriesHttps all Busy, Request Queued for ' + FDNItems[ItemNr].Request);
-        Exit;
-    end;
-    FDNItems[ItemNr].DNState := StateWaiting;
-    FDNItems[ItemNr].TimeStamp := Now;
-    FCntlLookups[SocNr].Busy := True;
-    FCntlLookups[SocNr].ItemNr := ItemNr;
-    FCntlLookups[SocNr].Request := FDNItems[ItemNr].Request;
-    FCntlLookups[SocNr].StartTick := IcsGetTickCount64;
-    try
-        if Length(FDnsQueryHttpss) <= SocNr then begin
-            SetLength(FDnsQueryHttpss, SocNr + 5);   // only create a max five spare components at a time
-            for I := Socnr to Length(FDnsQueryHttpss) do
-                FDnsQueryHttpss[I] := Nil;
-        end;
-        if NOT Assigned(FDnsQueryHttpss[SocNr]) then begin
-            FDnsQueryHttpss[SocNr] := TDnsQueryHttps.Create(Self);
-            FDnsQueryHttpss[SocNr].OnRequestDone := DnsQueryRequestDone;
-            FDnsQueryHttpss[SocNr].OnLogEvent := DnsLogEvent;
-            FDnsQueryHttpss[SocNr].DebugLevel := DebugConn;
-            FDnsQueryHttpss[SocNr].Tag := SocNr;
-            if FDnsSrvUrlList.Count > 0 then
-                FDnsQueryHttpss[SocNr].FDnsSrvUrl := FDnsSrvUrlList[0]
-            else
-                FDnsQueryHttpss[SocNr].FDnsSrvUrl := DnsPublicHttpsTable[0];
-        //    FDnsQueryHttpss[SocNr].DnsSrvUrlList.Assign(FDnsServerList);
-        end;
-        if FDNItems[ItemNr].DNReqType = ReqTypeDnsBack then
-            FDnsQueryHttpss[SocNr].DOHQueryAny(FDNItems[ItemNr].Request, DnsQueryPTR)
-        else begin
-            if FDNItems[ItemNr].ReqFamily = sfIPv6 then
-                FDnsQueryHttpss[SocNr].DOHQueryAny(FDNItems[ItemNr].Request, DnsQueryAAAA)
-            else if FDNItems[ItemNr].ReqFamily = sfIPv4 then
-                FDnsQueryHttpss[SocNr].DOHQueryAny(FDNItems[ItemNr].Request, DnsQueryA)
-            else
-                FDnsQueryHttpss[SocNr].DOHQueryBothA(FDNItems[ItemNr].Request);
-        end;
-        LogEvent('DnsQueryHttps-' + IntToStr(SocNr) + ' Started Look-up for ' + FDNItems[ItemNr].Request);
-        Result := True;
-    except
-        LogEvent('Exception Starting DnsQueryHttps - ' + IcsGetExceptMess (ExceptObject));
-    end;
-end;
-
-
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-function TIcsDomNameCacheHttps.StartRequest(ItemNr: Integer): Boolean;
-begin
-    Result := False;
-    if (FDNItems[ItemNr].DNReqType <> ReqTypeNetBios) and (FDNMethod = MethodHttps) then begin
-        Result := StartHttps(ItemNr);
-    end
-    else
-        Inherited StartRequest(ItemNr);    // handle winsock and dnsquery
 end;
 
 

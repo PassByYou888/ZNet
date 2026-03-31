@@ -4,11 +4,11 @@ Description:  TIcsFileCopyW allows indexing, copying and deleting of multiple
               file directories, using a single function call.
               W version supports widestring/Unicode for Delphi 2007 and 2005, not D7
 Creation:     May 2001
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Aug 2024
+Version:      V9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -199,6 +199,7 @@ access to files is required.
               Fixed copying error messages got lost.
 24 Nov 2022 - V8.71 - Builds without Zipping conditional.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 9, 2024 V9.3   Moved many types and constants to OverbyteIcsTypes for consolidation.
 
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -234,7 +235,7 @@ uses
   Z.ICS9.OverByteIcsFtpSrvWT ;
 
 const
-    FileCopyCopyRight : String = ' TIcsFileCopyW (c) 2023 V9.0 ';
+    FileCopyCopyRight : String = ' TIcsFileCopyW (c) 2024 V9.3 ';
 
 {ex000616.log.zip      11,123,903  -rwx  23/03/2001 12:57:00    /dir}
 {dvdimage.nrg           4,610,785,436    A 26/08/2005 16:01:49  \    }
@@ -248,6 +249,9 @@ const
     DelimFail = 4 ; DelimComm = 5 ; DelimDuration = 6 ; DelimActualSize = 7 ;
     DelimTotFields = 8 ;
     sLineEnd: array [0..1] of WideChar = (IcsCR, IcsLF) ;  // 21 May 2013
+
+(* V9.3 moved to OverbyteIcsTypes
+
 type
 // file copy selection and replace options
     TIcsFileCopyType = (FCTypeSingle, FCTypeMaskDir, FCTypeArchDir,
@@ -268,16 +272,19 @@ type
                 PathSpecific, PathSpecOrig) ;
     TIcsZipType = (TypeUnzip, TypeSrcAddX, TypeSrcReplX, TypeSrcDirs) ;
 
-    TIsWow64Process = function (hProcess: THandle; var Wow64Process: boolean): boolean; stdcall;  // 14 Dec 2009
-    TWow64DisableWow64FsRedirection = function (var Wow64FsEnableRedirection: boolean): boolean; stdcall;  // 17 May 2013
-    TWow64RevertWow64FsRedirection = function (Wow64FsEnableRedirection: boolean): boolean; stdcall;       // 17 May 2013
-
 var
     IcsTaskResultNames: array [0..6] of string =
       ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running', '') ;
 const
     IcsTaskResultStrings: array [Low(TIcsTaskResult)..High(TIcsTaskResult)] of ShortString =
       ('No Result', 'OK New', 'OK None', 'Failed', 'Aborted', 'Running') ;
+
+*)
+
+type
+    TIsWow64Process = function (hProcess: THandle; var Wow64Process: boolean): boolean; stdcall;  // 14 Dec 2009
+    TWow64DisableWow64FsRedirection = function (var Wow64FsEnableRedirection: boolean): boolean; stdcall;  // 17 May 2013
+    TWow64RevertWow64FsRedirection = function (Wow64FsEnableRedirection: boolean): boolean; stdcall;       // 17 May 2013
 
 // UnicodeString is defined in OverbyteIcsTypes as WideString for Delphi 2007 and earlier
 
@@ -677,7 +684,7 @@ function IcsGetTaskResName (TaskResult: TIcsTaskResult): string ;
 begin
     result := '' ;
     if TaskResult > TaskRunning then exit ;
-    result := IcsTaskResultNames [Ord (TaskResult)] ;
+    result := IcsTaskResultNames [TaskResult] ;
 end ;
 
 // 16 May 2013 clear current file progress stuff
@@ -1564,7 +1571,7 @@ var
     SrcFileRec, TarFileRec: PTIcsFDirRecW ;
     SrchFileRec: TIcsFDirRecW ;
     NewSelopt: TIcsFileCopyType ;
-    IgnorePathList: TStringList ;    // 16 May 2013
+    IgnorePathList: TWideStringList ;    // 16 May 2013
 begin
     result := 0 ;
     skipped := 0 ;
@@ -1584,7 +1591,7 @@ begin
         allowdiffDT := DiffStamp / (SecsPerDay / 60) ;  // diff in minutes
 
  // ignore files where source has specific partial path, list is c:\temp;c:\temp2;c:\temp3;etc
-    IgnorePathList := TStringList.Create ;
+    IgnorePathList := TWideStringList.Create ;
     IgnorePathList.Delimiter := ';';
     IgnorePathList.StrictDelimiter := True;
     IgnorePathList.DelimitedText := IcsAnsiLowerCaseW (IgnorePaths) ;
@@ -1669,7 +1676,7 @@ begin
                 begin
                     for J := 0 to Pred (IgnorePathList.Count) do
                     begin
-                        if Pos (IgnorePathList [J], IcsAnsiLowerCaseW (FrFullName)) = 1 then flag := false ;
+                        if Pos (IgnorePathList [J], WideString(IcsAnsiLowerCaseW (FrFullName))) = 1 then flag := false ;
                     end;
                 end;
             end ;

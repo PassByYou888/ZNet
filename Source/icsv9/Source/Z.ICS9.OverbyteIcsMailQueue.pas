@@ -2,11 +2,11 @@
 Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Mail Queue Component
 Creation:     Jan 2011
-Updated:      Aug 2023
-Version:      V9.0
+Updated:      Jan 2025
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2025 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -73,8 +73,28 @@ file in the control folder, so the component may be stopped and restarted with
 failed attempts continuing.
 
 The EML spool files are compatible with those created by many Microsoft email
-applications such as CDO, and the AddtoQueue method can also be used to queue
-existing EML files with the queue details specified in MailQuItem.
+applications such as CD. EML files must start with one X-Sender header which
+is used as SMTP MAIL FROM: (ie Sender), then one or more X-Receiver headers
+which are SMTP RCPT TO: email addresses (no friendly name).  These X-Sender
+and X-Receiver headers are removed from the EML before sending the rest of
+the email headers and body.  Some email servers will add the SMTP RCPT TO:
+to received headers as X-Rcpt-To:, usually if it does not match To:, such
+as for mailing lists.
+
+The AddtoQueue method can be used to queue an existing EML file containing
+the X-Sender and X-Receiver headers with the queue details specified in the
+MailQuItem record which you must fill the headers in the EML file.
+
+The CheckEml method reads an existing non-spool EML file created by another
+application or a spool file created by the compoent, and creates a new
+MailQuItem record from the X- and other headers as best it can.  Beware
+the MailQuItem record needs server and spool information added before it
+can be queued.
+
+The QueueEml method is similar to CheckEml, but instead of returning the
+MailQuItem record it immediately queues the email, if sufficient information
+is available in the EML files.  Optionally, the email recipient addresses
+can be ignored and new recipient addresses supplied.
 
 Note, this component is intended for sending low volume email from individual
 Delphi applications, with more flexibility than a simple TSslSmtpCli component.
@@ -176,7 +196,32 @@ Release 2.5 - 22 Jun 2018      added RetryWithoutSsl which retries an SSL failur
 Apr 11, 2023 - V8.71  MX DNS lookup now uses simpler sync method and handles alternate
                         servers internally, it uses public DNS servers if none specified.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Dec 13, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Added new property NoSSL that prevents use of SSL/TLS, must be set
+                     before the queue is started.
+                   INI file has new NoSSL setting to prevent SSL/TLS.
+                   TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+                   SslContext now uses public IcsSslRootCAStore instead of local root store.
+                   No longer logging OpenSSL version, probably loaded earlier.
+May 18, 2024 V9.2 Added optional SkipEmpty argument to StartMailQu method so queue is not
+                    started unless there are pending emails waiting to be sent, don't use
+                    argument if you have something to sent, but it avoids starting the thread
+                    for applications that don't send much email.
+                  Allow queuing a prepared EML file from another application, CheckEml
+                    validates the EML file and builds a TMailQuItem record from the headers,
+                    QueueEml does the same, and also queues the item, optionally using an
+                    alternative recipient list.
+                  Commonised some queuing functions to avoid duplication.
+Sep 25, 2024 V9.3 Using define MSCRYPT_Clients instead of MSWINDOWS to define whether
+                    the Windows Store can be used for SSL certificate verification.
+                  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                    other import units to be removed.
+                  Only log OCSP information if Debug enabled, too much info.
+Jan 22, 2025 V9.4 Don't keep retrying email that is too short to send with no body or
+                    with no sender headers.
+                  More error handling if SMTP component fails to build EML spool file.
+                  Removed CRLF from end of some log lines.
 
 
 Pending, use STUN client to get EHLO signon reverse DNS lookup.
@@ -220,7 +265,7 @@ uses
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.IniFiles{$ELSE}IniFiles{$ENDIF},
-    Z.ICS9.OverbyteIcsWinsock,
+//    OverbyteIcsWinsock,
 {$ENDIF}
 {$IFDEF POSIX}
     System.TypInfo,
@@ -236,39 +281,48 @@ uses
     {$Ifdef Rtl_Namespaces}System.Sysutils{$Else}Sysutils{$Endif},
     {$IFDEF Rtl_Namespaces}System.StrUtils{$ELSE}StrUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.SysConst{$ELSE}SysConst{$ENDIF},
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//  OverbyteIcsSsleay, OverbyteIcsLibeay,
     Z.ICS9.OverbyteIcsLogger,
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.Ics.Fmx.OverbyteIcsMsSslUtils,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
+{$ENDIF MSCRYPT_Clients}
+//    Ics.Fmx.OverbyteIcsSslX509Utils,
     Z.ICS9.Ics.Fmx.OverbyteIcsSmtpProt,
     Z.ICS9.Ics.Fmx.OverbyteIcsDnsQuery,
-    Z.ICS9.Ics.Fmx.OverbyteIcsBlacklist,
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+//    Ics.Fmx.OverbyteIcsBlacklist,
+//    Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
+{$IFDEF MSCRYPT_Clients}
     Z.ICS9.OverbyteIcsMsSslUtils,
-    Z.ICS9.OverbyteIcsSslX509Utils,
+{$ENDIF MSCRYPT_Clients}
+//  OverbyteIcsSslX509Utils,       { gone V9.1  }
     Z.ICS9.OverbyteIcsSmtpProt,
     Z.ICS9.OverbyteIcsDnsQuery,
-    Z.ICS9.OverbyteIcsBlacklist,
-    Z.ICS9.OverbyteIcsSslHttpRest,   { V8.69 }
+//  OverbyteIcsBlacklist,
+//  OverbyteIcsSslHttpRest,         { V8.69, gone V9.1  }
+    Z.ICS9.OverbyteIcsSslUtils,   { V9.1 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
 {$IFDEF MSWINDOWS}
-    Z.ICS9.OverbyteIcsWinCrypt,
+//  OverbyteIcsWinCrypt,
 {$ENDIF MSWINDOWS}
     Z.ICS9.OverbyteIcsTypes,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+    Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+    Z.ICS9.OverbyteIcsMimeDec;    { V9.2 }
 
 { NOTE - these components only build with SSL, there is no non-SSL option }
 
 
 const
-    MailQuCopyRight : String = ' TIcsMailQueue (c) 2023 V9.0 ';
+    MailQuCopyRight : String = ' TIcsMailQueue (c) 2025 V9.4 ';
 
 type
     TMailLogLevel = (MLogLevelInfo, MLogLevelFile, MLogLevelProg, MLogLevelDiag,
@@ -294,6 +348,11 @@ const
          'Specific Servers',
          'Look-Up MX Servers');
     MaxAttempts = 999 ;    // Nov 2016 queue item deleted once this reached
+
+// V9.2 special headers for EML files
+   HdrXSender = 'X-Sender: ';
+   HdrXReceiver = 'X-Receiver: ';
+   HdrXRcptTo = 'X-Rcpt-To: ';
 
 type
   { TMailServer }
@@ -469,9 +528,9 @@ type
     FSslVerMethod: TMailVerifyMethod;     // following Oct 2015
     FSslRevocation: boolean;
     FSslReportChain: boolean ;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     FMsCertChainEngine: TMsCertChainEngine;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
     FSmtpMethod: TMailSmtpMethod ;  // following Oct 2015
     FFileQuSent: string;
     FLogQuSent: boolean ;
@@ -485,6 +544,7 @@ type
     FMailCliSecurity: TSslCliSecurity;  // May 2019
     FOATokenEvent: TMailOATokenEvent;     { V8.65 }
     FOcspCacheFile: String;               { V8.70 }
+    FNoSSL: Boolean;                      { V9.1 }
     procedure SetMailQuDir(const Value: string);
     procedure SetRetryList(const Value: string);
     procedure SetActive(const Value: boolean);
@@ -516,7 +576,7 @@ type
     MailImmItems: integer ;              // immediate items in the queue to send (not yet requeued)
     constructor Create(Aowner: TComponent); override;
     destructor Destroy; override;
-    function StartMailQu: boolean ;
+    function StartMailQu(SkipEmpty: Boolean = False): boolean ;  { V9.2 added SkipEmpty }
     function StopMailQu: boolean ;
     function WaitSend (secs: integer; Any: Boolean): boolean;    // 11 March 2017
     function WaitSendandStop (secs: integer): boolean;
@@ -526,7 +586,13 @@ type
     function RebuiltQueue: boolean ;
     function UnQueueMail (item: integer): boolean ;
     function SaveOneHdr (Item: TMailQuItem): string ;
-    function CheckOAuthLogins: boolean ;                                      { V8.66 }
+    function CheckOAuthLogins: boolean ;                                                                      { V8.66 }
+    function NewSpoolFile(var SFileName: String): Integer;                                                    { V9.2 }
+    function AddMailSrv(var MailQuItem: TMailQuItem; const Srv1: string = ''; const Srv2: string = ''; const Srv3: string = ''): Boolean;  { V9.2 }
+    function AddXHdrs(const MailQuItem: TMailQuItem): Boolean;                                                      { V9.2 }
+    function QueueEML (const EmlFile: String; const RecipList: String;
+                                 const Srv1: string = ''; const Srv2: string = ''; const Srv3: string = ''): integer ;  { V9.2 }
+    function CheckEML (const EmlFile: String; var MailQuItem: TMailQuItem): Boolean ;                         { V9.2 }
     procedure DoLogEvent (LogLevel: TMailLogLevel ; const Info: String) ;
     property MailSslContext: TSslContext            read  FMailSslContext;
     property SendInProgress: integer                read  FSendInProgress ;
@@ -590,6 +656,8 @@ type
 //                                                  write FOcspHttp;      { V8.69 }
     property OcspCacheFile: String                  read  FOcspCacheFile
                                                     write FOcspCacheFile; { V8.70 }
+    property NoSSL: Boolean                         read  FNoSSL
+                                                    write FNoSSL;         { V9.1 }
   end;
 
 function IcsLoadMailQuFromIni(MyIniFile: TCustomIniFile; MyMailQueue:
@@ -618,15 +686,15 @@ var
 
 // EML files start with one X-Sender header, then one or more X-Receiver headers,
 // which we remove before sending the rest of the email headers and body
-    procedure FindXHeader (const HdrName: string) ;
+    function FindXHeader (const HdrName: string): String;   { V9.2 return value instead of XHeader  }
     begin
-        XHeader := '' ;
+        Result := '' ;
         if FBodyLines.Count = 0 then
             exit ;
         if Pos (HdrName, FBodyLines [0]) <> 1 then
             exit ;
-        XHeader := Trim (Copy (FBodyLines [0], Length (HdrName) + 1, 999)) ;
-        FBodyLines.Delete (0) ;  // remove xheader line from top of body
+        Result := Trim (Copy (FBodyLines [0], Length (HdrName) + 1, 999)) ;
+        FBodyLines.Delete (0) ;  // remove header line from top of body
     end;
 
 begin
@@ -640,20 +708,23 @@ begin
                 FBodyLines.LoadFromFile (FName) ;
                 if FBodyLines.Count < 6 then
                 begin
-                    LastResp := 'Email Message Body too Short - ' + Fname ;  // Oct 2015 keep in queue
+                    LastResp := 'Email Message Body too Short - ' + Fname ;
                     ThreadLogEvent (MLogLevelInfo, LastResp) ;
+                    AttemptNr := MaxAttempts; // V9.4 remove from queue, will never send
                     exit ;
                 end ;
             except
                 LastResp := 'Failed to Load Email Message Body: ' + FName + ' - ' + IcsGetExceptMess (ExceptObject) ;  // Oct 2015 keep in queue
                 ThreadLogEvent (MLogLevelInfo, LastResp) ;
+                AttemptNr := MaxAttempts; // V9.4 remove from queue, will never send
                 exit ;
             end;
         end
         else
         begin
-             LastResp := 'Failed to Load Email Message Body: ' +  FName + ' - File Not Found' ;  // Oct 2015 keep in queue
+             LastResp := 'Failed to Load Email Message Body: ' +  FName + ' - File Not Found' ;
              ThreadLogEvent (MLogLevelInfo, LastResp) ;
+             AttemptNr := MaxAttempts; // V9.4 remove from queue, will never send
              exit ;
         end;
 
@@ -663,8 +734,6 @@ begin
             SendSmtpClient.MultiThreaded := true ;
             SendSmtpClient.OnGetData := SmtpClientGetData ;
             SendSmtpClient.OwnHeaders := true ;
-            SendSmtpClient.SslContext := FIcsMailQueue.FMailSslContext ;
-            SendSmtpClient.OnSslHandshakeDone := SmtpSslHandshakeDone ;
             SendSmtpClient.SocketErrs := wsErrFriendly;        // Nov 2016
             if FIcsMailQueue.Debug then
             begin
@@ -707,7 +776,11 @@ begin
                         end
                         else begin
                             SendSmtpClient.SslType := FSslType ;
-                            SendSmtpClient.SslContext.SslCliSecurity := FSslCliSecurity;  // June 2018
+                            if FSslType > smtpTlsNone then begin                  { V9.1 }
+                                SendSmtpClient.SslContext := FIcsMailQueue.FMailSslContext ;
+                                SendSmtpClient.OnSslHandshakeDone := SmtpSslHandshakeDone ;
+                                SendSmtpClient.SslContext.SslCliSecurity := FSslCliSecurity;  // June 2018
+                            end;
                         end;
                         SendSmtpClient.SocketFamily := FSocketFamily ;   // March 2013
                         if SendSmtpClient.SocketFamily in [sfIPv4, sfIPv6] then
@@ -757,27 +830,38 @@ begin
                         SendSmtpClient.LocalAddr6 := ICS_ANY_HOST_V6 ;
                     end;
                 end;
-                FindXHeader ('X-Sender:') ;
-                SendSmtpClient.FromName := XHeader ;
+
+            // EML file starts with one X-Sender: and multiple X-Receiver: headers, we remove them and add to SMTP protocol }
                 SendSmtpClient.RcptName.Clear ;
                 info := '' ;
+                SendSmtpClient.FromName := FindXHeader (HdrXSender) ; { V9.2 was XHeader }
+                if SendSmtpClient.FromName = '' then      { V9.2 consider fatal }
+                begin
+                    LastResp := 'No X-Sender Header Found' ;
+                    ThreadLogEvent (MLogLevelInfo, LastResp) ;
+                    AttemptNr := MaxAttempts; // V9.4 remove from queue, will never send
+                    exit ;
+                end ;
                 while True do
                 begin
-                    FindXHeader ('X-Receiver:') ;
+                    XHeader := FindXHeader (HdrXReceiver) ;
                     if XHeader = '' then break ;
                     SendSmtpClient.RcptName.Add (XHeader) ;
-                    info := info + XHeader + IcsSpace ;
+                    info := info + XHeader + IcsSpace ;   // display version
                 end;
                 if SendSmtpClient.RcptName.Count = 0 then
                 begin
-                    LastResp := 'No X-Receiver Headers Found' ;  // Oct 2015 keep in queue
+                    LastResp := 'No X-Receiver Headers Found' ;
                     ThreadLogEvent (MLogLevelInfo, LastResp) ;
+                    AttemptNr := MaxAttempts; // V9.4 remove from queue, will never send
                     exit ;
                 end ;
                 SendSmtpClient.OwnHeaders := true ;   //  don't use BodyLines.Text which may rewrap lines
                 FHdrDone := false ;  { set true once header end found to stop logging body }
                 ThreadLogEvent (MLogLevelInfo, 'Starting to Send Email Item ' + IntToStr (ItemNr) +
-                                                        ', To: ' + info + ', Subject: ' + Subject + ', From: ' + XSender) ;
+                                              ', To: ' + info + ', Subject: ' + Subject + ', From: ' + SendSmtpClient.FromName) ;
+
+          // start email send
                 succflag := SendSmtpClient.OpenSync ;    // connect, helo, authentication
                 if (SendSmtpClient.ErrorMessage <> '') or (NOT succflag) then
                 begin
@@ -795,7 +879,7 @@ begin
                     if NOT succflag then
                     begin
                         LastResp := SendSmtpClient.ErrorMessage ;  // Oct 2015 keep in queue
-                        ThreadLogEvent (MLogLevelInfo, 'Failed to Send Mail Item ' + IntToStr (ItemNr) + ' - ' + LastResp + IcsCRLF) ;
+                        ThreadLogEvent (MLogLevelInfo, 'Failed to Send Mail Item ' + IntToStr (ItemNr) + ' - ' + LastResp{ + IcsCRLF}) ;
                 // 552 Message size exceeds maximum allowed size of 31457280. Closing transmission channel. (Gmail)
                 // 552 5.2.3 our size guidelines. s30sm2062398wbm.12  (SmarterMail)
                        if Pos ('552', SendSmtpClient.ErrorMessage) = 1 then  // 5 Oct 2011 too large, no retries
@@ -805,7 +889,7 @@ begin
                     end
                     else
                     begin
-                        ThreadLogEvent (MLogLevelInfo, 'Send Mail OK Item ' + IntToStr (ItemNr) + ' - ' + SendSmtpClient.LastResponse + IcsCRLF) ;
+                        ThreadLogEvent (MLogLevelInfo, 'Send Mail OK Item ' + IntToStr (ItemNr) + ' - ' + SendSmtpClient.LastResponse{ + IcsCRLF}) ;
                         result := true ;  // done OK
                     end;
                 end ;
@@ -821,19 +905,6 @@ begin
     end;
 end;
 
-{procedure TMailQuThread.SetName;     V8.65 not really needed
-var
-  ThreadNameInfo: TThreadNameInfo;
-begin
-  ThreadNameInfo.FType := $1000;
-  ThreadNameInfo.FName := 'IcsMailQueue';
-  ThreadNameInfo.FThreadID := $FFFFFFFF;
-  ThreadNameInfo.FFlags := 0;
-  try
-    RaiseException( $406D1388, 0, sizeof(ThreadNameInfo) div sizeof(LongWord), @ThreadNameInfo );
-  except
-  end;
-end;  }
 
 procedure TMailQuThread.SmtpClientDisplay(Sender: TObject; Msg: string);
 begin
@@ -859,9 +930,9 @@ end;
 procedure TMailQuThread.SmtpSslHandshakeDone(Sender: TObject; ErrCode: Word; PeerCert: TX509Base; var Disconnect: Boolean);
  var
     CertChain: TX509List;
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
     ChainVerifyResult: LongWord;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
     Hash, info, VerifyInfo: String;
     Safe: Boolean;
 begin
@@ -870,14 +941,8 @@ begin
     begin
         if (ErrCode <> 0) or Disconnect then
         begin
-       //     ThreadLogEvent (MLogLevelDiag, 'Mail Server SSL handshake failed - ' + SslHandshakeRespMsg);
-        //    Disconnect := TRUE;
             exit ;
         end ;
-
-     // OK
-     //   ThreadLogEvent (MLogLevelDiag, 'Mail Server ' + SslHandshakeRespMsg)
-
         if SslSessionReused OR (FIcsMailQueue.FSslVerMethod = MailSslVerNone) or (NOT SslContext.SslVerifyPeer) then
         begin
             exit; // nothing to do, go ahead
@@ -901,7 +966,7 @@ begin
      // see if validating against Windows certificate store
         if FIcsMailQueue.FSslVerMethod = MailSslVerWinStore then
         begin
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Clients}
             // start engine
             if not Assigned (FIcsMailQueue.FMsCertChainEngine) then
                 FIcsMailQueue.FMsCertChainEngine := TMsCertChainEngine.Create;
@@ -920,10 +985,9 @@ begin
 
             Safe := (ChainVerifyResult = 0) or
                     { We ignore the case if a revocation status is unknown.      }
-                    (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or
-                    (ChainVerifyResult = CERT_TRUST_IS_OFFLINE_REVOCATION) or
-                    (ChainVerifyResult = CERT_TRUST_REVOCATION_STATUS_UNKNOWN or
-                                         CERT_TRUST_IS_OFFLINE_REVOCATION);
+                    (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN) or   { V9.3 constants in Types }
+                    (ChainVerifyResult = Ics_CERT_TRUST_IS_OFFLINE_REVOCATION) or
+                    (ChainVerifyResult = Ics_CERT_TRUST_REVOCATION_STATUS_UNKNOWN or Ics_CERT_TRUST_IS_OFFLINE_REVOCATION);
 
             { The MsChainVerifyErrorToStr function works on chain error codes     }
             VerifyInfo := MsChainVerifyErrorToStr (ChainVerifyResult); // Nov 2016
@@ -936,7 +1000,7 @@ begin
 {$ELSE}
             ThreadLogEvent (MLogLevelDiag, SslServerName + ' Windows certificate store not available');  { V8.65 }
             exit ;
-{$ENDIF MSWINDOWS}
+{$ENDIF MSCRYPT_Clients}
         end
         else if FIcsMailQueue.FSslVerMethod = MailSslVerBundle then
         begin
@@ -1090,63 +1154,6 @@ begin
         ThreadLogEvent (MLogLevelDiag, 'Unable to Get New OAuth2 Access Token, Not Allowed') ;
 end;
 
-(* procedure TMailQuThread.DnsQueryRequestDone(Sender: TObject; Error: Word);  V8.71 not needed
-//var
-//    I, J: integer;
-//    MXList: TStringList ;
-begin
-    FMailQuItem.SmtpSrvTot := 0 ;
-    if FDNSReqId <> DnsQuery.ResponseID then
-    begin
-        FMailQuItem.SmtpSrvTot := -1 ;
-        ThreadLogEvent (MLogLevelDiag, 'DNS MX Response Out of Sequence, Ignored') ;
-        exit ;
-    end ;
-    if Error <> 0 then
-    begin
-        FMailQuItem.SmtpSrvTot := -1 ;
-        ThreadLogEvent (MLogLevelDiag, 'DNS MX Error ' + WSocketGetErrorMsgFromErrorCode (Error)) ;
-        exit ;
-    end ;
-{ MX examples
-Mail Exchange Server: alt4.gmail-smtp-in.l.google.com (preference 40)
-Mail Exchange Server: gmail-smtp-in.l.google.com (preference 5)
-Mail Exchange Server: alt3.gmail-smtp-in.l.google.com (preference 30)
-Mail Exchange Server: alt2.gmail-smtp-in.l.google.com (preference 20)
-Mail Exchange Server: alt1.gmail-smtp-in.l.google.com (preference 10)
-
-Mail Exchange Server: mx1.hotmail.com (preference 5)
-Mail Exchange Server: mx2.hotmail.com (preference 5)
-Mail Exchange Server: mx3.hotmail.com (preference 5)
-Mail Exchange Server: mx4.hotmail.com (preference 5)
- }
-    MXList := TStringList.Create ;
-    try
-        for I := 0 to DnsQuery.ResponseANCount - 1 do
-        begin
-            J := DnsQuery.AnswerTag [I ];
-            if (J >= 0) and (DnsQuery.AnswerType [I] = DnsQueryMX) then  // add 1000 to make alpha sorting work
-                MXList.Add (IntToStr (DnsQuery.MXPreference [J] + 1000) + '=' + DnsQuery.MXExchange [J]) ;
-        end ;
-        if MXList.Count = 0 then
-        begin
-            FMailQuItem.SmtpSrvTot := -1 ;
-            ThreadLogEvent (MLogLevelDiag, 'No DNS MX Records Found') ;
-            exit ;
-        end;
-        MXList.Sort ;  // sort into preference order
-        for I := 0 to MXList.Count - 1 do
-        begin
-            J := Pos ('=', MXList [I]) ;
-            FMailQuItem.SmtpSrvs [FMailQuItem.SmtpSrvTot] := Copy (MXList [I], J + 1, 99) ;
-            inc (FMailQuItem.SmtpSrvTot) ;
-            if FMailQuItem.SmtpSrvTot >= MaxSmtpSrv then Break ; // may be too many MX servers
-        end;
-        ThreadLogEvent (MLogLevelDiag, 'DNS MX Result:' + IcsCRLF  + MXList.Text) ;
-    finally
-        MXList.Free ;
-    end ;
-end;     *)
 
 procedure TMailQuThread.Execute;
 var
@@ -1156,14 +1163,12 @@ var
     curDT: TDateTime ;
     Filename, domain: string ;
 begin
-//    SetName;  // thread name  { V8.65 }
     try
         FIcsWndControl := TIcsWndControl.Create (Nil) ;  // June 2018 only used for message loop
         FIcsWndControl.MultiThreaded := true ;   // June 2018
         FIcsMailQueue.FSendInProgress := 0 ;
         FBodyLines := TStringList.Create ;
         DnsQuery := TDnsQuery.Create (Nil) ;    // Oct 2015
-    //  DnsQuery.OnRequestDone := DnsQueryRequestDone ;    { V8.71 don't need event any longer }
         if FIcsMailQueue.FDnsServers.Count > 0 then
         begin
             DnsQuery.ServerStrat := SrvStratList;              { V8.71 try multiple server }
@@ -1176,7 +1181,8 @@ begin
         DnsQuery.MultiThreaded := true ;                     // June 2018
         DnsQuery.OnLogEvent := IcsLogEvent;                  { V8.71 }
         FOcspHttp := TOcspHttp.Create(Nil);                  { V8.70 }
-        FOcspHttp.OnOcspProg := IcsProgEvent;                { V8.70 }
+        if FIcsMailQueue.FDebug then
+            FOcspHttp.OnOcspProg := IcsProgEvent;            { V9.3 only for Debug }
         FOcspHttp.CacheFName := FIcsMailQueue.OcspCacheFile; { V8.70 }
         ThreadLogEvent (MLogLevelInfo, 'Starting Mail Queue') ;
 
@@ -1311,30 +1317,6 @@ begin
                                     end
                                     else
                                         ThreadLogEvent (MLogLevelDiag, 'DNS MX Lookup Failed') ;
-
-                            (*    // get MX records, may try more than one DNS server, gets MX list from first that answers
-                                    servnr := 0 ;
-                                    for retries := 1 to MXRetryAttempts do        // UDP may ignore request
-                                    begin
-                                        if servnr >= FDnsServers.Count then
-                                            servnr := 0 ;
-                                        DnsQuery.Addr := FDnsServers [servnr] ;  // multiple DNS servers
-                                        inc (servnr) ;
-                                        ThreadLogEvent (MLogLevelDiag, 'Looking-up ' + domain + ' at ' + DnsQuery.Addr);
-                                        FDNSReqId := DnsQuery.MXLookup (domain) ;  { V8.64 now Unicode string }
-                                        Trg := IcsGetTrgSecs64 (MXWaitSecs) ;  // wait for UDP response    { V8.71 }
-                                        while (FMailQuItem.SmtpSrvTot = 0) do
-                                        begin
-                                            FIcsWndControl.ProcessMessages ;
-                                            if FIcsWndControl.Terminated then break ;
-                                            if IcsTestTrgTick64 (Trg) then break; // timer      { V8.71 }
-                                            if NOT FActive then break ; // component
-                                            if Terminated then break ;  // thread
-                                        end ;
-                                        if (FMailQuItem.SmtpSrvTot > 0) then
-                                            Break ; // found MX servers OK
-                                        FMailQuItem.SmtpSrvTot := 0 ; // try again
-                                    end ;  *)
                                 end;
 
                             // no servers found, give up
@@ -1420,15 +1402,19 @@ begin
                                 begin
                                     if FDeleteFailed or (AttemptNr >= MaxAttempts) then
                                     begin
-                                        if AttemptNr < MaxAttempts then  // can not delete missing file
-                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail Exceeded Attempts, Now Deleted' + IcsCRLF) ;
+                                        if AttemptNr < MaxAttempts then
+                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail Exceeded Attempts, Now Deleted')
+                                        else
+                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail, Now Deleted') ;  { V9.4 }
                                         IcsDeleteFile (FName, true) ;
                                         AttemptNr := MaxAttempts;
                                     end
                                     else
                                     begin
-                                        if AttemptNr < MaxAttempts then  // can not delete missing file
-                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail Exceeded Attempts') ;
+                                        if AttemptNr < MaxAttempts then
+                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail Exceeded Attempts, Now Archived')
+                                        else
+                                            ThreadLogEvent (MLogLevelInfo, 'Failed Mail, Now Archived') ;  { V9.4 }
                                         FileName := IncludeTrailingPathDelimiter (FMailQuDir) + 'badmail' ;
                                         if NOT ForceDirectories (FileName) then
                                         begin
@@ -1511,7 +1497,7 @@ begin
                                                     if NextAttemptDT <= Now then
                                                         NextAttemptDT := LastAttemptDT + (mins * OneMinuteDT) ;
                                                     ThreadLogEvent (MLogLevelInfo, 'Failed Mail Requeued, Attempt ' +
-                                                                IntToStr (AttemptNr +  1) + ' at ' + RFC3339_DateToStr (NextAttemptDT) + IcsCRLF) ;
+                                                                IntToStr (AttemptNr +  1) + ' at ' + RFC3339_DateToStr (NextAttemptDT){ + IcsCRLF}) ;
                                                 end;
                                             end;
                                         end;
@@ -1631,8 +1617,7 @@ end;
 
 
 { V8.65 get new OAuth2 token from TRestOAuth2  }
-procedure TIcsMailQueue.OnTokenThreadEvent(ServNr: Integer;
-                            var Token, TokAccount: String; var TokExpireDT: TDateTime);
+procedure TIcsMailQueue.OnTokenThreadEvent(ServNr: Integer; var Token, TokAccount: String; var TokExpireDT: TDateTime);
 begin
     if Assigned(FOATokenEvent) then
         FOATokenEvent(ServNr, Token, TokAccount, TokExpireDT);
@@ -1646,6 +1631,7 @@ begin
 end;
 
 
+// add mail item to queue, EML spool file must be created and MailQuItem setup fully with server and item details
 function TIcsMailQueue.AddtoQueue (MailQuItem: TMailQuItem): boolean ;
 begin
     result := false ;
@@ -1653,7 +1639,7 @@ begin
     try
         try
             if Length (MailQuItems) <= (MailTotItems + 2) then
-                                SetLength (MailQuItems, MailTotItems + 32) ;
+                SetLength (MailQuItems, MailTotItems + 32) ;
             MailQuItems [MailTotItems] := MailQuItem ;
             inc (MailTotItems) ;
             BuildQuIdx;
@@ -1665,79 +1651,37 @@ begin
     finally
         FQuItemsCritSect.Leave; { V8.65 }
     end ;
-    if result then DoLogEvent (MLogLevelInfo, 'Queued Mail OK, Item ' +
-                             IntToStr (MailQuItem.ItemNr) + ' = ' + FQuHtmlSmtp.HdrSubject) ;
+    if result then
+        DoLogEvent (MLogLevelInfo, 'Queued Mail OK, Item ' + IntToStr (MailQuItem.ItemNr) + ' = ' + FQuHtmlSmtp.HdrSubject) ;
 end ;
 
-function TIcsMailQueue.QueueMail (const Srv1: string = ''; const Srv2: string = ''; const Srv3: string = ''): integer ;
-var
-    FileName, XHeaders, errresp: string ;
-    Item, I: integer ;
-    MailQuItem: TMailQuItem ;
+
+// create new spool file name, with sequential number }
+function TIcsMailQueue.NewSpoolFile(var SFileName: String): Integer;    { V9.2 }
 begin
     result := 0 ;
-    if NOT FActive then
+    SFileName := IncludeTrailingPathDelimiter (FMailQuDir) + 'spool' ;
+    if NOT ForceDirectories (SFileName) then
     begin
-        DoLogEvent (MLogLevelInfo, 'Mail Queue Not Yet Started') ;
+        DoLogEvent (MLogLevelInfo, 'Error creating directory: ' + SFileName) ;
         exit ;
     end;
-    FileName := IncludeTrailingPathDelimiter (FMailQuDir) + 'spool' ;
-    if NOT ForceDirectories (FileName) then
-    begin
-        DoLogEvent (MLogLevelInfo, 'Error creating directory: ' + FileName) ;
-        exit ;
-    end;
-    if (FQuHtmlSmtp.RcptName.Count = 0) or (Pos ('@', FQuHtmlSmtp.RcptName [0]) = 0) then  // Nov 2016
-    begin
-        DoLogEvent (MLogLevelInfo, 'Failed to Queue Email, No Recipients Specified') ;
-        exit ;
-    end;
-    item := NewMailSeq ;  // from control file, incremented automatically
-    FileName := IntToStr(item) ;
-    while Length(FileName) < 8 do     { V8.67 avoid function in another unit }
-        FileName := '0' + FileName;
-    FileName := IncludeTrailingPathDelimiter (FMailQuDir) + 'spool\item' + FileName  + '.eml' ;
-    IcsDeleteFile (FileName, true) ;
-    if FQuHtmlSmtp.OwnHeaders then
-    begin
-        try
-            FQuHtmlSmtp.PlainText.SaveToFile (FileName) ;
-            result := item ;
-        except
-            errresp := IcsGetExceptMess (ExceptObject) ;
-        end;
-    end
-    else
-    begin
-        FQuHtmlSmtp.SendMode := smtpToStream ;
-        FQuHtmlSmtp.SendToFileSync (FileName) ;  { V8.65 was SendToFile and wait loop }
-        errresp := FQuHtmlSmtp.LastResponse ;
-        if (Copy (errresp, 1, 3) = '200') then Result := item ;
-    end;
-    if result = 0 then
-    begin
-        DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: ' + errresp + ' - ' +
-                                               FileName + ' = ' + FQuHtmlSmtp.HdrSubject) ;
-        exit ;
-    end ;
+    Result := NewMailSeq ;  // from control file, incremented automatically
+    SFileName := IntToStr(Result) ;
+    while Length(SFileName) < 8 do     { V8.67 avoid function in another unit }
+        SFileName := '0' + SFileName;
+    SFileName := IncludeTrailingPathDelimiter (FMailQuDir) + 'spool\item' + SFileName  + '.eml' ;
+    IcsDeleteFile (SFileName, true) ;
+end;
 
-// warning - if using MX DNS servers and multiple recipients, need to queue mail multiple times !!!!
 
-// build queue entry
+// V9.2 commonise code preparing MailQuItem by adding SMTP servers, if any
+function TIcsMailQueue.AddMailSrv(var MailQuItem: TMailQuItem; const Srv1: string = '';
+                                                                    const Srv2: string = ''; const Srv3: string = ''): Boolean;
+begin
+    Result := False;
     with MailQuItem do
     begin
-        ItemNr := item ;
-        FName := FileName ;
-        XReceivers := FQuHtmlSmtp.RcptName.CommaText ;
-        XSender := FQuHtmlSmtp.FromName ;
-        Subject := FQuHtmlSmtp.HdrSubject ;
-        QueuedDT := Now ;
-        Priority := FQuHtmlSmtp.HdrPriority ;
-        AttemptNr := 0 ;
-        LastAttemptDT := 0 ;
-        NextAttemptDT := QueuedDT + (OneSecondDT * FQuStartDelay) ;
-        BodySize := IcsGetFileSize (FileName) ;
-        LastResp := '' ;
         SmtpMeth := FSmtpMethod ;  // Oct 2015
         SmtpSrvTot := 0 ;
         if SmtpMeth = MailSmtpSpecific then
@@ -1759,38 +1703,296 @@ begin
             end;
             if SmtpSrvTot = 0 then
             begin
-                Result := 0 ;
-                DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No SMTP Servers Supplied  = ' +
-                                                                        FQuHtmlSmtp.HdrSubject) ;
+                DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No SMTP Servers Supplied  = ' + FQuHtmlSmtp.HdrSubject) ;
                 exit ;
             end ;
         end
         else if (SmtpMeth = MailSmtpMXLookup) and (FDnsServers.Count = 0) then
         begin
-            Result := 0 ;
-            DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No DNS Servers Supplied  = ' +
-                                                                    FQuHtmlSmtp.HdrSubject) ;
+            DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No DNS Servers Supplied  = ' + FQuHtmlSmtp.HdrSubject) ;
             exit ;
         end ;
+    end;
+    Result := True;
+end;
 
+// add our add X headers to top of message file
+function TIcsMailQueue.AddXHdrs(const MailQuItem: TMailQuItem): Boolean;
+var
+    XHeaders: string ;
+    I: Integer;
+    RecipList: TStringList;
+begin
+    Result := True;
+    RecipList := TStringList.Create;
+    try
+        with MailQuItem do
+        begin
+            RecipList.CommaText := XReceivers;
+            XHeaders := HdrXSender + XSender + IcsCRLF ;  // must be first
+            for I := 0 to RecipList.Count - 1 do
+             // do we need to validate email addresses or remove friendly names???
+                XHeaders := XHeaders + HdrXReceiver + RecipList [I] + IcsCRLF ;
+            FBodyText.Text := XHeaders + FBodyText.Text ;
+        end;
+ //       Result := True;
+    finally
+        RecipList.Free;
+    end;
+end;
+
+
+// queue email specified in QuHtmlSmtp, optionally to specific servers
+function TIcsMailQueue.QueueMail (const Srv1: string = ''; const Srv2: string = ''; const Srv3: string = ''): integer ;
+var
+    SpoolFile, errresp: string ;
+    Item: integer ;
+    MailQuItem: TMailQuItem ;
+begin
+    Result := 0 ;
+    if NOT FActive then
+    begin
+        DoLogEvent (MLogLevelInfo, 'Mail Queue Not Yet Started') ;
+        exit ;
+    end;
+    if (FQuHtmlSmtp.RcptName.Count = 0) or (Pos ('@', FQuHtmlSmtp.RcptName [0]) = 0) then  // Nov 2016
+    begin
+        DoLogEvent (MLogLevelInfo, 'Failed to Queue Email, No Recipients Specified') ;
+        exit ;
+    end;
+
+ // build spool file name with sequential item number
+    Item := NewSpoolFile(SpoolFile);     { V9.2 consolidate common code }
+    if Item = 0 then
+        Exit;
+
+// build EML file from QuHtmlSmtp by saving headers and content using SaveToFile or SendToFile
+    if FQuHtmlSmtp.OwnHeaders then
+    begin
+        try
+            FQuHtmlSmtp.PlainText.SaveToFile (SpoolFile) ;
+            Result := Item ;
+        except
+            errresp := IcsGetExceptMess (ExceptObject) ;
+        end;
+    end
+    else
+    begin
+        FQuHtmlSmtp.SendMode := smtpToStream ;
+        FQuHtmlSmtp.SendToFileSync (SpoolFile) ;  { V8.65 was SendToFile and wait loop }
+        errresp := FQuHtmlSmtp.LastResponse ;
+        if (Copy (errresp, 1, 3) = '200') then
+            Result := Item;
+    end;
+    if IcsGetFileSize(SpoolFile) < 20 then begin    { V9.4 sanity check for EML file }
+         Result := 0;
+         errresp := 'No Email EML File Created';
+    end;
+    if Result = 0 then
+    begin
+        DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: ' + errresp + ' - ' + SpoolFile + ' = ' + FQuHtmlSmtp.HdrSubject) ;
+        exit ;
+    end ;
+
+// warning - if using MX DNS servers and multiple recipients, need to queue mail multiple times !!!!
+
+// build queue entry from QuHtmlSmtp headers
+    with MailQuItem do
+    begin
+        ItemNr := Item ;
+        FName := SpoolFile ;
+        XReceivers := FQuHtmlSmtp.RcptName.CommaText ;
+        XSender := FQuHtmlSmtp.FromName ;
+        Subject := FQuHtmlSmtp.HdrSubject ;
+        QueuedDT := Now ;
+        Priority := FQuHtmlSmtp.HdrPriority ;
+        AttemptNr := 0 ;
+        LastAttemptDT := 0 ;
+        NextAttemptDT := QueuedDT + (OneSecondDT * FQuStartDelay) ;
+        BodySize := IcsGetFileSize (SpoolFile) ;
+        LastResp := '' ;
+     end;
+
+ // add mail servers
+    if NOT AddMailSrv(MailQuItem, Srv1, Srv2, Srv3) then   // V9.2 commonise code
+    begin
+        Result := 0;
+        Exit;
     end;
 
 // add X headers to top of message file
     try
-        FBodyText.LoadFromFile (FileName) ;
-        XHeaders := 'X-Sender: ' + FQuHtmlSmtp.FromName + IcsCRLF ;  // must be first
-        for I := 0 to FQuHtmlSmtp.RcptName.Count - 1 do
-                 XHeaders := XHeaders + 'X-Receiver: ' + FQuHtmlSmtp.RcptName [I] + IcsCRLF ;
-        FBodyText.Text := XHeaders + FBodyText.Text ;
-        FBodyText.SaveToFile (FileName) ;
+        FBodyText.LoadFromFile (SpoolFile) ;
+        if FBodyText.Count < 4 then begin    { V9.4 sanity check for EML file }
+            Result := 0;
+            DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No Email EML File Created - ' + SpoolFile + ' = ' + FQuHtmlSmtp.HdrSubject) ;
+            Exit;
+        end;
+        AddXHdrs(MailQuItem);  { V9.2 commonise code }
+        FBodyText.SaveToFile (SpoolFile) ;
     except
         Result := 0 ;
-        DoLogEvent (MLogLevelInfo, 'Failed to Process Mail File: ' + FileName +
-                                            ' - ' + IcsGetExceptMess (ExceptObject)) ;
+        DoLogEvent (MLogLevelInfo, 'Failed to Process Mail File: ' + SpoolFile + ' - ' + IcsGetExceptMess (ExceptObject)) ;
         exit ;
     end;
     AddtoQueue (MailQuItem) ;
 end;
+
+
+function TIcsMailQueue.QueueEML (const EmlFile: String; const RecipList: String;
+                                 const Srv1: string = ''; const Srv2: string = ''; const Srv3: string = ''): integer ;  { V9.2 }
+var
+    SpoolFile: string ;
+    Item: integer ;
+    MailQuItem: TMailQuItem ;
+begin
+    Result := 0 ;
+    if NOT FActive then
+    begin
+        DoLogEvent (MLogLevelInfo, 'Mail Queue Not Yet Started') ;
+        exit ;
+    end;
+
+  // check EML file using TMimeDecodeEx, get some header fields
+    if NOT CheckEML (EmlFile, MailQuItem) then
+        Exit;
+
+ // see if overriding EML recipients
+    if RecipList <> '' then
+        MailQuItem.XReceivers := RecipList;
+    if (Pos ('@', MailQuItem.XReceivers) = 0) then
+    begin
+        DoLogEvent (MLogLevelInfo, 'Failed to Queue Email, No Recipients Specified') ;
+        exit ;
+    end;
+
+ // build spool file name with sequential item number
+    Item := NewSpoolFile(SpoolFile);
+    if Item = 0 then
+        Exit;
+
+// build queue entry
+    with MailQuItem do
+    begin
+        ItemNr := Item ;
+        FName := SpoolFile ;
+        QueuedDT := Now ;
+        AttemptNr := 0 ;
+        LastAttemptDT := 0 ;
+        NextAttemptDT := QueuedDT + (OneSecondDT * FQuStartDelay) ;
+        LastResp := '' ;
+    end;
+
+ // add mail servers
+    if NOT AddMailSrv(MailQuItem, Srv1, Srv2, Srv3) then   // V9.2 commonise code
+    begin
+        Result := 0;
+        Exit;
+    end;
+
+// add X headers to top of EML file, if not done already
+// pending, if using new recipients, need to remove old HdrXReceiver first
+    try
+        FBodyText.LoadFromFile (EmlFile) ;
+        if FBodyText.Count < 5 then
+        begin
+            Result := 0 ;
+            DoLogEvent (MLogLevelInfo, 'Queued Mail Failed: No EML Content') ;
+            exit ;
+        end ;
+        if (Pos(HdrXSender, FBodyText[0]) = 0) then // no X-Sender, add X headers
+        begin
+            AddXHdrs(MailQuItem);  { V9.2 commonise code }
+        end;
+        FBodyText.SaveToFile (SpoolFile) ;
+    except
+        Result := 0 ;
+        DoLogEvent (MLogLevelInfo, 'Failed to Process Mail File: ' + SpoolFile + ' - ' + IcsGetExceptMess (ExceptObject)) ;
+        exit ;
+    end;
+    AddtoQueue (MailQuItem) ;
+end;
+
+function TIcsMailQueue.CheckEML (const EmlFile: String; var MailQuItem: TMailQuItem): Boolean ;  { V9.2 }
+var
+    MimeDecodeEx: TMimeDecodeEx;
+    HdrSend, HdrRecv, HdrRecTo, S: String;
+    I: Integer;
+
+    procedure FindHdr(const Line, Hdr: String; var Value: String);
+    begin
+        if Pos(Line, Hdr) <> 1 then
+            Exit;
+        if Value <> '' then
+            Value := Value + ',';
+        Value := Value + Copy(Line, Length(Line) + 1, 999);
+    end;
+
+
+begin
+    Result := False;
+    if NOT FileExists(EmlFile) then
+    begin
+        DoLogEvent (MLogLevelInfo, 'Check EML File Failed, Not Found: ' + EmlFile) ;
+        exit ;
+    end ;
+    DoLogEvent (MLogLevelInfo, 'Check EML File Headers: ' + EmlFile) ;
+    MimeDecodeEx := TMimeDecodeEx.Create(Self);
+    try
+        MimeDecodeEx.MaxParts := 1 ;  // don't care about parts
+        MimeDecodeEx.LooseRFC := True;
+        MimeDecodeEx.DecodeFileEx(EmlFile);   // decodes into arrays
+        DoLogEvent (MLogLevelInfo, 'EML File Header Lines found: ' + IntToStr (MimeDecodeEx.TotHeaders));
+        if MimeDecodeEx.TotHeaders < 4 then
+        begin
+            DoLogEvent (MLogLevelInfo, 'Insufficent Headers Found in EML File, Can Not Queue Mail') ;
+            exit ;
+        end ;
+        Result := True;
+
+    // look for our X-Sender, X-Receiver and X-Rcpt-To headers
+        HdrSend := '';
+        HdrRecv := '';
+        HdrRecTo := '';
+        for I := 0 to MimeDecodeEx.TotHeaders - 1 do begin
+            S := String(MimeDecodeEx.WideHeaders [I]);
+            FindHdr(S, HdrXSender, HdrSend);
+            FindHdr(S, HdrXReceiver, HdrRecv);
+            FindHdr(S, HdrXRcptTo, HdrRecTo);
+        end;
+
+     // if not found, use From: and To: headers
+        if HdrRecv = '' then
+            HdrRecv := HdrRecTo;
+        if HdrSend = '' then
+            HdrSend := String(MimeDecodeEx.DecodeW.FromW);
+        if HdrRecv = '' then
+            HdrRecv := String(MimeDecodeEx.DecodeW.DestW);
+
+    // build partial queue entry from EML headers
+        with MailQuItem do
+        begin
+            ItemNr := -1 ;
+            FName := '' ;
+            XReceivers := HdrRecv;
+            XSender := HdrSend;
+            Subject := MimeDecodeEx.DecodeW.SubjectW ;
+            QueuedDT := 0 ;
+            Priority := smtpPriorityNormal ;
+            AttemptNr := 0 ;
+            LastAttemptDT := 0 ;
+            NextAttemptDT := 0 ;
+            BodySize := IcsGetFileSize (EmlFile) ;
+            LastResp := '' ;
+            SmtpSrvTot := 0 ;
+        end;
+    except
+        DoLogEvent (MLogLevelInfo, 'Failed to Process EML File: ' + IcsGetExceptMess (ExceptObject)) ;
+        Exit ;
+    end;
+    MimeDecodeEx.Free;
+end;
+
 
 // called by TFindList for sort and find comparison of records
 
@@ -1985,9 +2187,9 @@ begin
 end;
 
 
-function TIcsMailQueue.StartMailQu: boolean ;
+function TIcsMailQueue.StartMailQu(SkipEmpty: Boolean = False): boolean ;  { V9.2 added SkipEmpty }
 var
-    FileName, S: string ;
+    FileName: string ;
     TempList: TStringList ;
     I, J, mins: integer ;
     sslflag: boolean ;
@@ -2008,6 +2210,8 @@ begin
 
   // check mail servers
     sslflag := false ;
+    if FNoSSL then                   { V9.1 disable SSL }
+        FMxSrvUseSsl := False;
     for I := 0 to FMailServers.Count - 1 do
     begin
         with FMailServers [I] do
@@ -2017,7 +2221,14 @@ begin
                 DoLogEvent (MLogLevelInfo, 'Mail Server Properties Empty') ;
                 exit ;
             end;
-            if (FSslType > smtpTlsNone) then sslflag := True;
+            if (FSslType > smtpTlsNone) then begin
+                if FNoSSL then begin                  { V9.1 disable SSL }
+                    FSslType := smtpTlsNone;
+                    DoLogEvent (MLogLevelInfo, 'Disabled SSL/TLS for ' + FHost);
+                end
+                else
+                    sslflag := True;
+            end;
         end;
     end;
     if NOT DirectoryExists (FMailQuDir) then
@@ -2038,23 +2249,25 @@ begin
   // note SslCliSecurity is updated when  sending email for specific servers
     if sslflag then
     begin
+        FMailSslContext.UseSharedCAStore := True;    { V9.1 ignore context CaFile, etc }
         FMailSslContext.SslOptions2 := FMailSslContext.SslOptions2 +
          [sslOpt2_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, sslOpt2_NO_RENEGOTIATION];
         FMailSslContext.SslCliSecurity := FMailCliSecurity; //  V8.62 sslCliSecDefault;
         FMailSslContext.SslVerifyPeer := (FSslVerMethod > MailSslVerNone) ;
         FileName := fSslRootFile;
-        if FileName <> '' then begin
+     (*   if FileName <> '' then begin
             if (Pos (':', FileName) = 0) then
                 FileName := ExtractFileDir (ParamStr (0)) + '\' + FileName ;
             if NOT FileExists (FileName) then  begin
                 DoLogEvent (MLogLevelInfo, 'Can Not Find SSL CA Bundle File - ' + FileName);
-                FMailSslContext.SslCALines.Text := sslRootCACertsBundle;
+            //    FMailSslContext.SslCALines.Text := sslRootCACertsBundle;
             end
             else
                FMailSslContext.SslCAFile := FileName;
-        end
-        else
-            FMailSslContext.SslCALines.Text := sslRootCACertsBundle;
+        end;
+     { V9.1 SslContext now loads IcsSslRootCAStore if no SslCAFile
+     //   else
+     //       FMailSslContext.SslCALines.Text := sslRootCACertsBundle;    *)
 
      { V8.69 OCSP }
         if (FSslVerMethod = MailSslVerBundle) and fSslRevocation then begin
@@ -2065,7 +2278,7 @@ begin
             if NOT FMailSslContext.IsCtxInitialized then
             begin
                 FMailSslContext.InitContext; //Pre-loads OpenSSL DLL's
-                if NOT GSSLStaticLinked then    { V8.66 }
+           (*     if NOT GSSLStaticLinked then    { V8.66 }
                     S := 'SSL/TLS Version: ' + OpenSslVersion + ' - ' + OpenSslPlatForm + ': ' + GLIBEAY_DLL_FileName
                 else
                     S := 'SSL/TLS Static Linked Version: ' + OpenSslVersion + ' - ' + OpenSslPlatForm;
@@ -2075,7 +2288,7 @@ begin
                     else
                         S := S + ', Legacy Provider Not Loaded';
                 end;
-                DoLogEvent (MLogLevelInfo, S);
+                DoLogEvent (MLogLevelInfo, S);  *)
             end;
         except
             DoLogEvent (MLogLevelInfo, 'Failed to Initialise SSL - ' + IcsGetExceptMess (ExceptObject)) ;
@@ -2085,8 +2298,16 @@ begin
     else
         DoLogEvent (MLogLevelInfo, 'SSL Not Needed by Any Servers');
 
-    FActive := true ;
+// read queue once only
     ReadQuHdrs;
+    if (MailTotItems = 0) and SkipEmpty then begin    { V9.2 only start if something waiting to be sent }
+        DoLogEvent (MLogLevelInfo, 'Skipped Mail Queue Start, Nothing to Send');
+        Exit;
+    end;
+
+
+// start queue thread
+    FActive := true ;
     try
         FMailQuThread := TMailQuThread.Create (true) ;
         with FMailQuThread  do
@@ -2151,8 +2372,7 @@ begin
     if FFileQuItemsHdr = '' then exit ;
     if FActive and FQuThreadRunning then
     begin
-        if ((NOT Any) and (MailImmItems > 0)) or
-                       (Any and (MailTotItems > 0)) then
+        if ((NOT Any) and (MailImmItems > 0)) or (Any and (MailTotItems > 0)) then
         begin
             Trg := IcsGetTrgSecs64 (secs) ;    { V8.71 }
             while true do
@@ -2215,35 +2435,6 @@ begin
     result := FQuThreadRunning ;
 end;
 
-// get new sequential mail ID number - held as a single line in a file
-{
-function TIcsMailQueue.NewMailSeq: integer ;
-var
-    CtlMList: TStringList ;
-begin
-    CtlMList := TStringList.Create ;
-    result := 1 ;
-    try
-        if FileExists (FFileQuItemsCtl) then
-        begin
-            try
-                CtlMList.LoadFromFile (FFileQuItemsCtl) ;
-                if CtlMList.Count >= 1 then result := atoi (CtlMList [0]) ;
-            except
-            end ;
-        end ;
-        if CtlMList.Count = 0 then CtlMList.Add ('x') ;
-        CtlMList [0] := PadIntZero (result + 1 , 8) ;
-        try
-            CtlMList.SaveToFile (FFileQuItemsCtl) ;
-        except
-            DoLogEvent (MLogLevelInfo, 'Failed to Save Queue Control File: ' + FFileQuItemsCtl +
-                                                                ' - ' + IcsGetExceptMess (ExceptObject)) ;
-        end;
-    finally
-        CtlMList.Free ;
-    end ;
-end ;    }
 
 // get new sequential mail ID number - held as a single line in a file
 // V8.67 open and lock file, ignore BOM which caused reset to 1.
@@ -2592,6 +2783,7 @@ begin
                                IcsTrim(MyIniFile.ReadString(Section, 'MailCliSecurity', 'sslCliSecDefault'))));   // V8.62
     if MyMailQueue.MailCliSecurity > High(TSslCliSecurity) then MyMailQueue.MailCliSecurity := sslCliSecDefault;  // V8.62
     MyMailQueue.FOcspCacheFile := MyIniFile.ReadString (Section, 'OcspCacheFile', 'ocspmailqucache.recs') ;       // V8.70
+    MyMailQueue.NoSSL := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'NoSSL', 'False'));                    { V9.1 }
 
  // up to nine mail servers
     MyMailQueue.MailServers.Clear ;

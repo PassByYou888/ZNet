@@ -2,12 +2,12 @@
 
 Author:       François PIETTE
 Creation:     May 1996
-Version:      V9.0
+Version:      V9.4
 Object:       TFtpClient is a FTP client (RFC 959 implementation)
               Support FTPS (SSL) if ICS-SSL is used (RFC 2228 implementation)
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1996-2023 by François PIETTE
+Legal issues: Copyright (C) 1996-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
 
               SSL implementation includes code written by Arno Garrels,
@@ -1130,6 +1130,16 @@ Feb 14, 2023 V8.71 Added UTF8_ON and UTF8_ONAsync commands as an alternate to us
                      convinced KeepAliveSecs works on modern versions of Windows.
                      NOOP is sent by TIcsHttpMulti defaulting to 10 minutes.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 17, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Use IcsGetTempPath.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+Jan 26, 2025 V9.4  If available, use Extended Port and Passive commands EPRT and EPSV
+                     for IPv4 as well as IPv6, unless ftpNoExtV4 is set, may be more
+                     firewall friendly.
+                   Added EpsvAllAsync and EpsvAll methods which should be sent at the
+                     start of a sesssion if using Extended Passive mode so firewalls
+                     and NAT routers can handle sessions more efficiently.
+                   Consolidated parsing of passive responses.
 
 
 
@@ -1171,14 +1181,14 @@ uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Winapi.Messages{$ELSE}Messages{$ENDIF},
-    Z.ICS9.OverbyteIcsWinsock,
+//  OverbyteIcsWinSock,
 {$ENDIF}
 {$IFDEF POSIX}
     System.IOUtils,
     Posix.Unistd,
     Posix.SysSocket,
-    Z.ICS9.Ics.Posix.WinTypes,
-    Z.ICS9.Ics.Posix.PXMessages,
+//    Ics.Posix.WinTypes,
+//    Ics.Posix.PXMessages,
 {$ENDIF}
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
@@ -1192,7 +1202,7 @@ uses
 { You must define USE_SSL so that SSL code is included in the component.   }
 { Either in OverbyteIcsDefs.inc or in the project/package options.         }
 {$IFDEF USE_SSL}
-    Z.ICS9.OverbyteIcsSSLEAY, Z.ICS9.OverbyteIcsLIBEAY,
+//    OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$ENDIF}
 //  Include\OverbyteIcsZlib.inc}            { V8.70 gone }
     Z.ICS9.OverbyteIcsZlibHigh,     { V2.102 }
@@ -1208,21 +1218,24 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsSocketUtils,   { V8.63 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsSocketUtils,   { V8.63 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF}
     Z.ICS9.OverbyteIcsStreams,
     Z.ICS9.OverbyteIcsUtils,
     Z.ICS9.OverbyteIcsOneTimePw,  { V2.113 }
     Z.ICS9.OverByteIcsFtpSrvT,
-    Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+    Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-  FtpCliVersion      = 900;
-  CopyRight : String = ' TFtpCli (c) 1996-2023 F. Piette V9.0 ';
-  FtpClientId : String = 'ICS FTP Client V9.0 ';   { V2.113 sent with CLNT command  }
+  FtpCliVersion      = 904;
+  CopyRight : String = ' TFtpCli (c) 1996-2025 F. Piette V9.4 ';
+  FtpClientId : String = 'ICS FTP Client V9.4 ';   { V2.113 sent with CLNT command  }
 
 const
 //  BLOCK_SIZE       = 1460; { 1514 - TCP header size }
@@ -1230,31 +1243,9 @@ const
   FTP_SND_BUF_SIZE = 65536;  { V8.65 }
   FTP_RCV_BUF_SIZE = 65536;  { V8.65 }
 
+{ V9.3 moved to OverbyteIcsTypes  }
+
 type
-  { sslTypeAuthTls, sslTypeAuthSsl are known as explicit SSL }
-  TFtpCliSslType  = (sslTypeNone, sslTypeAuthTls, sslTypeAuthSsl,        { V2.106 }
-                     sslTypeImplicit);
-  TFtpOption      = (ftpAcceptLF, ftpNoAutoResumeAt, ftpWaitUsingSleep,
-                     ftpBandwidthControl, ftpAutoDetectCodePage,
-                     ftpFixPasvLanIP); { V2.106 }{ AG V7.02 } { V8.63 FixPasvLan }
-  TFtpOptions     = set of TFtpOption;
-  TFtpExtension   = (ftpFeatNone, ftpFeatSize, ftpFeatRest, ftpFeatMDTMYY,
-                     ftpFeatMDTM, ftpFeatMLST, ftpFeatMFMT, ftpFeatMD5,
-                     ftpFeatAuthSSL, ftpFeatAuthTLS, ftpFeatProtP,
-                     ftpFeatProtC, ftpFeatModeZ, ftpFeatCcc, ftpFeatPbsz,
-                     ftpFeatXCrc,  ftpFeatXMD5,  ftpFeatSitePaswd,          { V2.113 }
-                     ftpFeatSiteExec, ftpFeatSiteIndex, ftpFeatSiteZone,    { V2.113 }
-                     ftpFeatSiteMsg, ftpFeatSiteCmlsd, ftpFeatSiteDmlsd,    { V2.113 }
-                     ftpFeatClnt, ftpFeatComb, ftpFeatUtf8, ftpFeatLang,    { V2.113 }
-                     ftpFeatHost, ftpFeatXCmlsd, ftpFeatXDmlsd);            { V7.01 }
-  TFtpExtensions  = set of TFtpExtension; { V2.94 which features server supports }
-  TFtpTransMode   = (ftpTransModeStream, ftpTransModeZDeflate) ;  { V2.102 }
-  TZStreamState   = (ftpZStateNone, ftpZStateSaveDecom, ftpZStateSaveComp{,
-                     ftpZStateImmDecon, ftpZStateImmComp});   { V2.102 }
-  TFtpState       = (ftpNotConnected,  ftpReady,         ftpInternalReady,
-                     ftpDnsLookup,     ftpConnected,     ftpAbort,
-                     ftpInternalAbort, ftpWaitingBanner, ftpWaitingResponse,
-                     ftpPasvReady);
   TFtpRequest     = (ftpNone,          ftpOpenAsync,     ftpUserAsync,
                      ftpPassAsync,     ftpCwdAsync,      ftpConnectAsync,
                      ftpReceiveAsync,  ftpDirAsync,      ftpLsAsync,
@@ -1282,7 +1273,7 @@ type
                      ftpCombAsync,     ftpXMd5Async,      ftpConnectHostAsync, { V2.113 }
                      ftpReinAsync,     ftpHostAsync,      ftpLangAsync,        { V6.09 }
                      ftpXCmlsdAsync,   ftpXDmlsdAsync,    ftpConnectFeatAsync, { V7.01 }
-                     ftpConnectFeatHostAsync );                                    { V7.09 }
+                     ftpConnectFeatHostAsync,             ftpEpsvAll );        { V7.09, V9.4 }
   TFtpFct         = (ftpFctNone,       ftpFctOpen,       ftpFctUser,
                      ftpFctPass,       ftpFctCwd,        ftpFctSize,
                      ftpFctMkd,        ftpFctRmd,        ftpFctRenFrom,
@@ -1302,14 +1293,9 @@ type
                      ftpFctSiteMsg,    ftpFctSiteCmlsd,  ftpFctSiteDmlsd,     { V2.113 }
                      ftpFctAllo,       ftpFctComb,       ftpFctXMd5,          { V2.113 }
                      ftpFctRein,       ftpFctHost,       ftpFctLang,          { V6.09 }
-                     ftpFctXCmlsd,     ftpFctXDmlsd);                         { V7.01 }
+                     ftpFctXCmlsd,     ftpFctXDmlsd,     ftpFctEpsvAll);      { V9.4 }
   TFtpFctSet      = set of TFtpFct;
 
-  TFtpShareMode   = (ftpShareCompat,    ftpShareExclusive,
-                     ftpShareDenyWrite, ftpShareDenyRead,
-                     ftpShareDenyNone);
-  TFtpDisplayFileMode = (ftpLineByLine, ftpBinary);
-  TFtpConnectionType  = (ftpDirect, ftpProxy, ftpSocks4, ftpSocks4A, ftpSocks5, ftpHttpProxy);
   TFtpDisplay     = procedure(Sender    : TObject;
                               var Msg   : String) of object;
   TFtpProgress64  = procedure(Sender    : TObject;
@@ -1563,6 +1549,7 @@ type
     procedure   SetDSocketSndBufSize(const Value: Integer);{AG V7.26}
     procedure   SetDSocketRcvBufSize(const Value: Integer);{AG V7.26}
     function    GetAddrResolvedStr: String;            { V8.60 }
+    function    ParsePassiveResp(var TarIP : String): Integer;       { V9.4 }
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
@@ -1656,7 +1643,7 @@ type
     procedure   XDmlsdAsync;     virtual;    { V7.01   extended MLSD using data channel }
     procedure   ConnectFeatAsync; virtual;   { V7.09   same as Connect but also sends Feat  }
     procedure   ConnectFeatHostAsync; virtual;   { V7.09   same as Connect but also sends Feat and Host  }
-
+    procedure   EpsvAllAsync;    virtual;    { V9.4    set enhanced passive more for session }
     property    CodePage          : LongWord             read  FCodePage
                                                          write SetCodePage;
     property    LastResponse      : String               read  FLastResponse;
@@ -1900,6 +1887,7 @@ type
     function    XDmlsd     : Boolean;    { V7.01   extended MLSD using data channel }
     function    ConnectFeat : Boolean;   { V7.09   same as connect but sends Feat  }
     function    ConnectFeatHost : Boolean;   { V7.09   same as connect but sends Feat and Host  }
+    function    EpsvAll : Boolean;       { V9.4    set enhanced passive more for session }
   published
     property Timeout       : Integer read FTimeout       write FTimeout;
     property MultiThreaded;
@@ -2314,10 +2302,6 @@ end;
 {* *                                                                     * *}
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor TCustomFtpCli.Create(AOwner: TComponent);
-{$IFDEF MSWINDOWS}
-var
-    Len : Cardinal;
-{$ENDIF}
 begin
     inherited Create(AOwner);
     AllocateHWnd;
@@ -2352,15 +2336,7 @@ begin
     FDataSocket         := CreateSocket;    { V7.08 was  TWSocket.Create(Self); }
     FDataSocket.ExceptAbortProc       := AbortComponent; { V7.15 }
     FStreamFlag         := FALSE;
-{$IFDEF MSWINDOWS}
-    SetLength(FZlibWorkDir, 1024);
-    Len := GetTempPath(Length(FZlibWorkDir) - 1, PChar(FZlibWorkDir));{ AG V6.03 }
-    SetLength(FZlibWorkDir, Len);
-{$ENDIF}
-{$IFDEF POSIX}
-    FZlibWorkDir := TPath.GetTempPath;
-{$ENDIF}
-    FZlibWorkDir := IncludeTrailingPathDelimiter (FZlibWorkDir);  { V2.113 }
+    FZlibWorkDir := IncludeTrailingPathDelimiter (IcsGetTempPath);  { V9.1 clean up }
 {$IF DEFINED(BUILTIN_THROTTLE)}
     FBandwidthLimit     := 10000;  // Bytes per second
     FBandwidthSampling  := 1000;   // mS sampling interval
@@ -3124,9 +3100,8 @@ begin
         end;
     end;
 
-    if FPassive and
-      (((FControlSocket.CurrentSocketFamily = sfIPv4) and (FStatusCode = 227)) or
-       ((FControlSocket.CurrentSocketFamily = sfIPv6) and (FStatusCode = 229))) then
+    if FPassive and (((FControlSocket.CurrentSocketFamily = sfIPv4) and (FStatusCode = 227)) or
+                                  { ((FControlSocket.CurrentSocketFamily = sfIPv6) and  } (FStatusCode = 229)) then  { V9.4 }
     begin
         StateChange(ftpPasvReady);               { 19.09.2002 }
         FPasvResponse := FLastResponse;
@@ -3684,6 +3659,14 @@ begin
     FFctPrv := ftpFctXCmlsd;
     CreateLocalFileStream;
     ExecAsync(ftpXCmlsdAsync, 'XCMLSD ' + FHostFileName, [200,250], nil);
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+procedure TCustomFtpCli.EpsvAllAsync;     { V9.4    set enhanced passive mode for rest of session }
+begin
+    FFctPrv := ftpFctEpsvAll;
+    ExecAsync(ftpEpsvAll, 'EPSV ALL', [200, 229], nil);
 end;
 
 
@@ -4973,16 +4956,72 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ parse response from PASV or EPSV commands to get IP address and port }
+function TCustomFtpCli.ParsePassiveResp(var TarIP : String): Integer;   { V9.4 }
+var
+    Temp: String;
+    Delim: Char;
+    I, DelimCnt, N: Integer;
+begin
+    Result := 0;
+    TarIP := '';
+    FDataSocket.SocketFamily := FControlSocket.CurrentSocketFamily;
+    if Pos (',', FPasvResponse) > 0 then begin  // PASV
+        Temp := FPasvResponse;   //   Entering Passive Mode (217,146,102,135,84,167).
+        Delete(Temp, 1, Pos('(', Temp));
+        for I := 1 to 4 do begin
+            TarIP := TarIP + Copy(Temp, 1, Pos(',', Temp) - 1) + '.';
+            Delete(Temp, 1, Pos(',', Temp));
+        end;
+        TarIP := Copy(TarIP, 1, Length(TarIP) - 1);
+        Result := atoi(Copy(Temp, 1, Pos(',', Temp) - 1)) * 256;  // port
+        Delete(Temp, 1, Pos(',', Temp));
+        Result := Result + atoi(Copy(Temp, 1, Pos(')', Temp) - 1));
+    end
+    else begin  { EPSV IPv4 or IPv6, but no IP address }
+        { Response like: "Entering Extended Passive Mode (|||6446|)" }
+        TarIP := FControlSocket.AddrResolvedStr;   // always same as control channel
+        Delim := #0; DelimCnt := 0; Temp := '0'; N := 1;
+        for I := 1 to Length(FPasvResponse) do
+        begin
+            if FPasvResponse[I] = '(' then
+                Delim := FPasvResponse[I + 1]
+            else if FPasvResponse[I] = Delim then
+            begin
+                Inc(DelimCnt);
+                if DelimCnt = 3 then
+                    N := I + 1
+                else if DelimCnt = 4 then
+                begin
+                    Result := atoi(Copy(FPasvResponse, N, (I - N)));
+                    Break;
+                end;
+            end;
+        end;
+    end;
+
+{ V8.67 see if FTP server has returned a LAN IP address when the server had a WAN IP for the control channel, use that instead }
+    TriggerDisplay('! Passive connection requested to: ' + TarIP + ':' + IntToStr(Result) +
+                                                                 ', control channel: ' + FControlSocket.AddrResolvedStr);
+    if (TarIP <> FControlSocket.AddrResolvedStr) and(ftpFixPasvLanIP in FOptions) then begin
+        if IcsIsIpPrivate(AnsiString(TarIP)) and (NOT IcsIsIpPrivate(AnsiString(FControlSocket.AddrResolvedStr))) then begin
+            TriggerDisplay('! Suspicious LAN IP changed to control channel address');
+            TarIP := FControlSocket.AddrResolvedStr
+        end;
+    end;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Receive a file or a directory list of a file list                         }
 procedure TCustomFtpCli.DoGetAsync(RqType : TFtpRequest);
 var
-    Temp       : String;
-    I {, MaxWbits} : Integer;
-    TargetPort : WORD;    { 10/30/99 }
+//    Temp       : String;
+//    I          : Integer;
+    TargetPort : WORD;
     TargetIP   : String;
- // NewPos     : TFtpBigInt;           { V2.108 }
-    Delim      : Char;
-    DelimCnt, N: Integer;
+//    Delim      : Char;
+//    DelimCnt, N: Integer;
 begin
 {$IFNDEF NO_DEBUG_LOG}
     if CheckLogOptions(loProtSpecInfo) then
@@ -4995,8 +5034,7 @@ begin
 
     { If no filename was assigned, check if maybe we wanna view it, }
     { meaning - FDisplayFileFlag }
-    if (Length(FLocalFileName) <= 0) and
-       not (FDisplayFileFlag or FStreamFlag) then begin
+    if (Length(FLocalFileName) <= 0) and not (FDisplayFileFlag or FStreamFlag) then begin
         HandleError('LocalFileName empty');
         Exit;
     end;
@@ -5047,10 +5085,9 @@ begin
             if not Assigned(FLocalStream) and not FStreamFlag then begin  { V2.112 }
                 FLocalStream := OpenFileStream (FLocalFileName, fmOpenWrite + FShareMode);
                 { We MUST check for file size >= RestartPos since Seek in any      } { V2.108 }
-                { write-mode may write to the stream returning always the correct  }
-                { new position.                                                    }
+                { write-mode may write to the stream returning always the correct new position.  }
                 if FResumeAt <= IcsGetFileSize(FLocalFileName) then                               { V2.108 }
-                    FLocalStream.Position := FResumeAt; { V8.67 Seek(FResumeAt, soBeginning); }
+                    FLocalStream.Position := FResumeAt; { V8.67  }
                 if FLocalStream.Position <> FResumeAt then begin
                     FLastResponse := 'Unable to set resume position in local file';
                     FStatusCode   := 550;
@@ -5064,7 +5101,6 @@ begin
         end;
         if FCurrTransMode = ftpTransModeZDeflate then begin    { V1.103 }
             zlibProblemString := '';
-     //     FModeZStream := TMemoryStream.Create;  { V2.113 memorystream very slow, use filesteam }
             FZCompFileName := FZlibWorkDir + GetZlibCacheFileName(FLocalFileName);
             FModeZStream := OpenFileStream(FZCompFileName, fmCreate);
 
@@ -5094,7 +5130,10 @@ begin
 
     if FPassive then begin
         FDataSocket.SocketFamily := FControlSocket.CurrentSocketFamily;
-        if FControlSocket.CurrentSocketFamily = sfIPv4 then
+        TargetPort := ParsePassiveResp(TargetIP);   { V9.4 simplify code }
+        DataSocketGetInit(IntToStr(TargetPort), TargetIP);
+
+  (*      if FControlSocket.CurrentSocketFamily = sfIPv4 then
         begin
             Temp := FPasvResponse;
             Delete(Temp, 1, Pos('(', Temp));
@@ -5113,16 +5152,13 @@ begin
          { V8.63 see if FTP server has returned a LAN IP address when the server
             had a WAN IP for the control channel, use that instead }
             TriggerDisplay('! Passive connection requested to: ' + TargetIP + ':' +
-               IntToStr(TargetPort) + ', control channel: ' + FControlSocket.AddrResolvedStr);
-            if (TargetIP <> FControlSocket.AddrResolvedStr) and
-                                      (ftpFixPasvLanIP in FOptions) then begin
-                if IcsIsIpPrivate(AnsiString(TargetIP)) and
-                     (NOT IcsIsIpPrivate(AnsiString(FControlSocket.AddrResolvedStr))) then begin
+                                               IntToStr(TargetPort) + ', control channel: ' + FControlSocket.AddrResolvedStr);
+            if (TargetIP <> FControlSocket.AddrResolvedStr) and (ftpFixPasvLanIP in FOptions) then begin
+                if IcsIsIpPrivate(AnsiString(TargetIP)) and (NOT IcsIsIpPrivate(AnsiString(FControlSocket.AddrResolvedStr))) then begin
                     TriggerDisplay('! Suspicious LAN IP changed to control channel address');
                     TargetIP := FControlSocket.AddrResolvedStr
                 end;
             end;
-
             DataSocketGetInit(IntToStr(TargetPort), TargetIP);
         end
         else begin  { EPSV IPv6 }
@@ -5146,12 +5182,12 @@ begin
                 end;
             end;
             DataSocketGetInit(Temp, TargetIP);
-        end;
+        end;     *)
 
 {$IFNDEF NO_DEBUG_LOG}                                                { 2.104 }
         __DataSocket := FDataSocket;    { V2.107 }
     if CheckLogOptions(loProtSpecInfo) then
-        DebugLog(loProtSpecInfo, '! Data Socket Connect');
+        DebugLog(loProtSpecInfo, '! Data Socket Connect to ' + TargetIP + ':' + IntToStr(TargetPort));
 {$ENDIF}
         try
             FDataSocket.Connect;
@@ -5311,15 +5347,14 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TCustomFtpCli.DoPutAppendAsync;
 var
-    Temp        : String;
-    I           : Integer;
-    TargetPort  : WORD;   { 10/30/99 }
+//    Temp        : String;
+//    I           : Integer;
+    TargetPort  : Integer;
     TargetIP    : String;
     bCancel     : Boolean;
-//  NewPos      : TFtpBigInt;
     Uploadsize  : TFtpBigInt;
-    Delim       : Char;          { V8.67 }
-    DelimCnt, N : Integer;       { V8.67 }
+//    Delim       : Char;          { V8.67 }
+//    DelimCnt, N : Integer;       { V8.67 }
 begin
 {$IFNDEF NO_DEBUG_LOG}
     if CheckLogOptions(loProtSpecInfo) then
@@ -5435,7 +5470,10 @@ begin
 
     if FPassive then begin
         FDataSocket.SocketFamily := FControlSocket.CurrentSocketFamily;
-        if FControlSocket.CurrentSocketFamily = sfIPv4 then begin   { V8.67 IPv4 }
+        TargetPort := ParsePassiveResp(TargetIP);   { V9.4 simplify code }
+        DataSocketPutAppendInit(IntToStr(TargetPort), TargetIP);
+
+ (*     if FControlSocket.CurrentSocketFamily = sfIPv4 then begin   { V8.67 IPv4 }
             Temp := FPasvResponse;  { 26/12/99 }
             Delete(Temp, 1, Pos('(', Temp));
             TargetIP := '';
@@ -5484,8 +5522,13 @@ begin
                 end;
             end;
             DataSocketPutAppendInit(Temp, TargetIP);
-        end;
+        end;    *)
 
+{$IFNDEF NO_DEBUG_LOG}
+        __DataSocket := FDataSocket;
+    if CheckLogOptions(loProtSpecInfo) then
+        DebugLog(loProtSpecInfo, '! Data Socket Connect to ' + TargetIP + ':' + IntToStr(TargetPort));
+{$ENDIF}
         try
             FDataSocket.Connect;
         except
@@ -5618,7 +5661,7 @@ var
     Msg          : String;
     saddr        : TSockAddrIn6;
     saddrlen     : Integer;
-    DataPort     : LongWord;  { 10/30/99 }
+    DataPort     : LongWord;
     IPAddr       : TInAddr;
     StartDataPort: LongWord;
 begin
@@ -5651,8 +5694,7 @@ begin
     if FPassive then
         DataPort := 0    { Not needed, makes compiler happy }
     else begin
-        if (ftpFctGet in FFctSet) or (ftpFctDir in FFctSet) or  {G.B. 2002/07/12}
-           (ftpFctMlsd in FFctSet) or (ftpFctSiteDmlsd in FFctSet) then    { V2.90, V2.113 }
+        if (ftpFctGet in FFctSet) or (ftpFctDir in FFctSet) or (ftpFctMlsd in FFctSet) or (ftpFctSiteDmlsd in FFctSet) then    { V2.90, V2.113 }
             FDataSocket.OnSessionAvailable := DataSocketGetSessionAvailable
         else if ftpFctPut in FFctSet then
             FDataSocket.OnSessionAvailable := DataSocketPutSessionAvailable;
@@ -5710,56 +5752,42 @@ begin
     FControlSocket.GetSockName(PSockAddrIn(@saddr)^, saddrlen);
     IPAddr   := PSockAddrIn(@saddr).sin_addr;
 
-    { Strange behaviour of PWS (FrontPage 97 Web Server for W95) }
-    { which do not like effective address when localhost is used }
+    { Strange behaviour of PWS (FrontPage 97 Web Server for W95) which do not like effective address when localhost is used }
+    { V9.4 if available, use Extended Port/Passive commands for IPv4 as well as IPv6, unless ftpNoExtV4 is set }
     if FPassive then begin
-        if saddr.sin6_family = AF_INET6 then
+        if (saddr.sin6_family = AF_INET6) or ((ftpFeatEpsv in FSupportedExtensions) and (NOT (ftpNoExtV4 in FOptions))) then  { V9.4 }
             Msg := 'EPSV'
         else
             Msg := 'PASV';
     end
     else begin
         if saddr.sin6_family = AF_INET6 then
-        begin
-            Msg := 'EPRT |2|' +
-                   WSocketIPv6ToStr(PIcsIPv6Address(@saddr.sin6_addr)^) +
-                   '|' + IntToStr(DataPort) + '|';
+            Msg := 'EPRT |2|' + WSocketIPv6ToStr(PIcsIPv6Address(@saddr.sin6_addr)^) + '|' + IntToStr(DataPort) + '|'
+        else if  ((ftpFeatEprt in FSupportedExtensions) and (NOT (ftpNoExtV4 in FOptions))) then begin { V9.4 }
+            if WSocketIsIPv4(FExternalIPv4) then
+                Msg := 'EPRT |1|' + FExternalIPv4 + '|' + IntToStr(DataPort) + '|'         { V9.4 }
+            else
+                Msg := 'EPRT |1|' + WSocketIPv4ToStr(TIcsIPv4Address(IPAddr)) + '|' + IntToStr(DataPort) + '|';    { V9.4 }
         end
-        else
-        if WSocketIsIPv4(FExternalIPv4) then                           { V8.02 }
-            Msg := Format('PORT %s,%d,%d',                             { V8.02 }
-                          [StringReplace(FExternalIPv4, '.', ',', [rfReplaceAll]),
-                           IcsHiByte(DataPort),
-                           IcsLoByte(DataPort)])
-        else
-        if FControlSocket.sin.sin_addr.s_addr = WSocket_htonl($7F000001) then
-            Msg := Format('PORT 127,0,0,1,%d,%d',
-                          [IcsHiByte(DataPort),
-                           IcsLoByte(DataPort)])
+        else if WSocketIsIPv4(FExternalIPv4) then                           { V8.02 }
+            Msg := Format('PORT %s,%d,%d', [StringReplace(FExternalIPv4, '.', ',', [rfReplaceAll]),
+                                                                            IcsHiByte(DataPort), IcsLoByte(DataPort)])
+        else if FControlSocket.sin.sin_addr.s_addr = WSocket_htonl($7F000001) then
+            Msg := Format('PORT 127,0,0,1,%d,%d', [IcsHiByte(DataPort), IcsLoByte(DataPort)])
         else
           {$IFDEF MSWINDOWS}
-            Msg := Format('PORT %d,%d,%d,%d,%d,%d',
-                          [ord(IPAddr. S_un_b.s_b1),
-                           ord(IPAddr.S_un_b.s_b2),
-                           ord(IPAddr.S_un_b.s_b3),
-                           ord(IPAddr.S_un_b.s_b4),
-                           IcsHiByte(DataPort),
-                           IcsLoByte(DataPort)]);
+            Msg := Format('PORT %d,%d,%d,%d,%d,%d', [ord(IPAddr. S_un_b.s_b1), ord(IPAddr.S_un_b.s_b2), ord(IPAddr.S_un_b.s_b3),
+                                                             ord(IPAddr.S_un_b.s_b4), IcsHiByte(DataPort), IcsLoByte(DataPort)]);
           {$ENDIF}
           {$IFDEF POSIX}
-            Msg := Format('PORT %d,%d,%d,%d,%d,%d',
-                          [P4Bytes(@IPAddr.s_addr)^[0],
-                           P4Bytes(@IPAddr.s_addr)^[1],
-                           P4Bytes(@IPAddr.s_addr)^[2],
-                           P4Bytes(@IPAddr.s_addr)^[3],
-                           IcsHiByte(DataPort),
-                           IcsLoByte(DataPort)]);
+            Msg := Format('PORT %d,%d,%d,%d,%d,%d', [P4Bytes(@IPAddr.s_addr)^[0], P4Bytes(@IPAddr.s_addr)^[1],
+                           P4Bytes(@IPAddr.s_addr)^[2], P4Bytes(@IPAddr.s_addr)^[3], IcsHiByte(DataPort), IcsLoByte(DataPort)]);
           {$ENDIF}
     end;
 
     FByteCount := 0;
     FFctPrv    := ftpFctPort;
-    if saddr.sin6_family = AF_INET6 then
+    if Pos('EP', Msg) = 1 then          { V9.4 }
         ExecAsync(ftpPortAsync, Msg, [200, 229], nil)
     else
         ExecAsync(ftpPortAsync, Msg, [200, 227], nil);
@@ -6110,6 +6138,10 @@ begin
                     FSupportedExtensions := FSupportedExtensions + [ftpFeatXCmlsd]; { 7.01 }
                 if Feat = 'XDMLSD' then
                     FSupportedExtensions := FSupportedExtensions + [ftpFeatXDmlsd]; { 7.01 }
+                if Feat = 'EPRT' then
+                    FSupportedExtensions := FSupportedExtensions + [ftpFeatEprt];  { V9.4 }
+                if Feat = 'EPSV' then
+                    FSupportedExtensions := FSupportedExtensions + [ftpFeatEpsv];  { V9.4 }
            { Other extensions which are currently being ignored
              TVFS }
             end;
@@ -6227,10 +6259,7 @@ begin
     if not FRequestDoneFlag then begin
         FRequestDoneFlag := TRUE;
         if (ErrCode = 0) and Assigned(FNextRequest) then begin
-            if (FState <> ftpAbort)
-               and (FState <> ftpPasvReady) { 19.09.2002 }
-              { and     28/06/2002
-               not ((ftpFctPut in FFctSet) and (FPassive = TRUE))} then
+            if (FState <> ftpAbort) and (FState <> ftpPasvReady) then
                 StateChange(ftpInternalReady);
             FNextRequest;
         end
@@ -6246,8 +6275,6 @@ begin
             FHighLevelFlag := FALSE;
             FNextRequest   := nil;
             PostMessage(Handle, FMsg_WM_FTP_REQUEST_DONE, 0, ErrCode);
-            { if Assigned(FOnRequestDone) then
-                FOnRequestDone(Self, FRequestType, ErrCode); }
         end;
     end;
 end;
@@ -6842,6 +6869,14 @@ function  TFtpClient.ConnectFeatHost  : Boolean;     { V7.09   same as connect, 
 begin
     Result := Synchronize(ConnectFeatHostASync);
 end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function  TFtpClient.EpsvAll : Boolean;       { V9.4    set enhanced passive more for session }
+begin
+    Result := Synchronize(EpsvAllAsync);
+end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TFtpClient.Progress : Boolean;

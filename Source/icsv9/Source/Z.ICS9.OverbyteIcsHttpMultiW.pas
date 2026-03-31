@@ -6,11 +6,11 @@ Description:  TIcsHttpMultiW is a high level HTTP Delphi component that allows
               function call.
               W version supports widestring/Unicode for Delphi 2007 and earlier
 Creation:     May 2001
-Updated:      Oct 2022
-Version:      8.70
+Updated:      Jan 2024
+Version:      9.1
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2022 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -169,12 +169,11 @@ Apr 14, 2022 - V8.69 - Previously the FtpSslRevocation property was only effecti
                  checking the windows certificate store, now it also works with bundle
                  files using the TOcspHttp component and OCSP stapling if available.
 Oct 21, 2022 - V8.70 Simplified ZLIB support to allow use of System.ZLib.
+Jan 22, 2024 V9.1  Added OverbyteIcsSslBase which now includes TSslContext,TX509Base and TX509List.
 
 
+Note: no longer supported, please use OverbyteIcsFtpMulti.pas instead.
 
-
-
-PENDING - recognise UTF8 encoded files, decode them and download UTF8 file names
 
 
 
@@ -225,13 +224,15 @@ uses
   Z.ICS9.OverbyteIcsMsSslUtils,
   Z.ICS9.OverbyteIcsWinCrypt,
   Z.ICS9.OverbyteIcsStreams,        { V8.68 }
-  Z.ICS9.OverbyteIcsSslHttpRest;    { V8.69 }
+  Z.ICS9.OverbyteIcsSslHttpRest,    { V8.69 }
+  Z.ICS9.OverbyteIcsSslUtils,      { V9.1 TOcspHttp }
+  Z.ICS9.OverbyteIcsSslBase;       { V9.1 TSslContext, TX509Bas, TX509List }
 
 {$IFDEF USE_SSL}
 
 
 const
-    HttpMultiCopyRight : String = ' TIcsHttpMultiW (c) 2022 V8.70 ';
+    HttpMultiCopyRight : String = ' TIcsHttpMultiW (c) 2024 V9.1 ';
 type
     THttpSslVerifyMethod = (httpSslVerNone, httpSslVerBundle, httpSslVerWinStore) ;   // 20 Apr 2015
 
@@ -1025,7 +1026,7 @@ begin
             if (Pos (':', rootfname) = 0) then rootfname := ExtractFileDir (ParamStr (0)) + '\' + rootfname ;
             if NOT FileExists (rootfname) then
             begin
-                fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
+             // fSslContext.SslCALines.Text := sslRootCACertsBundle;  // June 2018 built-in
             end
             else
                 fSslContext.SslCAFile := rootfname ;

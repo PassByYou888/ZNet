@@ -39,7 +39,7 @@ interface
 
 uses Windows, SysUtils, Classes, Messages,
   Z.PascalStrings,
-  Z.ICS9.OverbyteIcsWSocket,
+  Z.ICS9.OverbyteIcsWSocket, Z.ICS9.OverbyteIcsTypes,
   Z.Net.Server.ICS9CustomSocket,
   Z.Net, Z.Core, Z.Status;
 

@@ -4,11 +4,11 @@ Author:       Angus Robertson, Magenta Systems Ltd
 Description:  Internet monitoring using Npcap NDIS driver, TIcsMonPcap
               component.
 Creation:     2005
-Updated:      July 2023
-Version:      8.71
+Updated:      Aug 2024
+Version:      9.3
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2002-2023 by Angus Robertson, Magenta Systems Ltd,
+Legal issues: Copyright (C) 2002-2024 by Angus Robertson, Magenta Systems Ltd,
               Croydon, England. delphi@magsys.co.uk, https://www.magsys.co.uk/delphi/
 
               This software is provided 'as-is', without any express or
@@ -72,6 +72,7 @@ Jul 21, 2023 - V8.71 Updated units for main ICS library.
                      TIcsMonPcap uses IcsDomainNameCache component to lookup source
                        and destination host names.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 2, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
 
 
 
@@ -107,10 +108,11 @@ uses
     Z.ICS9.OverbyteIcsIpUtils,
     Z.ICS9.OverbyteIcsDnsQuery,
     Z.ICS9.OverbyteIcsMonCommon,
-    Z.ICS9.OverbyteIcsMonNdis;
+    Z.ICS9.OverbyteIcsMonNdis,
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 const
-    CopyRight    : String     = ' TIcsMonPcap  (c) 2023 V8.71 ';
+    CopyRight    : String     = ' TIcsMonPcap  (c) 2024 V9.3 ';
 
 type
   TPcapThread = class ;  // forward declaration

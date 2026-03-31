@@ -2,7 +2,7 @@
 
 Author:       François PIETTE
 Creation:     May 6, 2007
-Version:      V9.0 ALPHA CODE
+Version:      V9.3 ALPHA CODE
 Description:  TMultipartFtpDownloader is a component to download files using
               simultaneous connections to speedup download. The demo make
               also use of the TMultiProgressBar (included in ICS) which is
@@ -52,6 +52,8 @@ Dec 09, 2020 V8.65 Renamed Ics.Posix.Messages.pas to Ics.Posix.PXMessages.pas.
 Nov 27, 2021 V8.68 BgException now passes exception to AbortComponent virtual handler.
 Jan 26, 2023 V8.71 Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Aug 5, 2024  V9.3  Added OverbyteIcsTypes for consolidated types and constants.
+
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFNDEF ICS_INCLUDE_MODE}
@@ -88,7 +90,8 @@ uses
 {$ENDIF}
     Z.ICS9.OverbyteIcsUrl,
     Z.ICS9.OverbyteIcsUtils,
-    Z.ICS9.OverbyteIcsTicks64;    { V8.71 }
+    Z.ICS9.OverbyteIcsTicks64,    { V8.71 }
+    Z.ICS9.OverbyteIcsTypes;  { V9.3 consolidated types and constants }
 
 type
     TFtpBigInt                = int64;

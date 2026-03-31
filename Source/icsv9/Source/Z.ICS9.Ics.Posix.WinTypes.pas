@@ -52,6 +52,9 @@ type
   LOWORD                          = Word;
   ULONG                           = LongWord;   { V8.65 }
   ULONG_PTR                       = LongWord;   { V8.65 }
+  u_short                         = UInt16;     { V9.3 moved from wsocket }
+  u_long                          = UInt32;     { V9.3 moved from wsocket }
+  u_int                           = UInt32;     { V9.3 moved from wsocket }
 
 const
   { Error consts }

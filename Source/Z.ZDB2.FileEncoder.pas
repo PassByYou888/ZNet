@@ -47,7 +47,7 @@ uses Z.Core,
   Z.HashList.Templet, Z.DFE, Z.ZDB2, Z.IOThread, Z.Cipher;
 
 type
-  TZDB2_File_HndList = TGenericsList<Integer>;
+  TZDB2_File_HndList = class(TGenericsList<Integer>);
 
   TZDB2_FI = class(TCore_Object_Intermediate)
   public
@@ -65,8 +65,8 @@ type
     procedure LoadFromStream(stream: TMS64);
   end;
 
-  TZDB2_FI_Pool_Decl = TBigList<TZDB2_FI>;
-  TZDB2_FI_Hash_Decl = TPascalString_Big_Hash_Pair_Pool<TZDB2_FI>;
+  TZDB2_FI_Pool_Decl = class(TBigList<TZDB2_FI>);
+  TZDB2_FI_Hash_Decl = class(TPascalString_Big_Hash_Pair_Pool<TZDB2_FI>);
 
   TZDB2_FI_Hash = class(TZDB2_FI_Hash_Decl)
   public

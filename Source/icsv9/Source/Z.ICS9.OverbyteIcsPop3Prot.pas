@@ -3,10 +3,10 @@ Author:       François PIETTE
 Object:       TPop3Cli class implements the POP3 protocol
               (RFC-1225, RFC-1939)
 Creation:     03 october 1997
-Version:      V9.0
+Version:      V9.4
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1997-2023 by François PIETTE
+Legal issues: Copyright (C) 1997-2024 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium.
               SSL implementation includes code written by Arno Garrels,
               Berlin, Germany
@@ -230,6 +230,10 @@ Jan 26, 2023 V8.71 If getting an OAuth2 token fails with an error, raise excepti
                    Ensure inherited destroy called.
                    Using Int64 ticks.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Nov 17, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+Aug 7, 2024  V9.3  Using OverbyteIcsTypes for consolidated types and constants, allowing
+                     other import units to be removed.
+Oct 11, 2024 V9.4  Updated Base64 encoding functions to IcsBase64 functions.
 
 
 
@@ -263,7 +267,7 @@ uses
 {$IFDEF MSWINDOWS}
     {$IFDEF RTL_NAMESPACES}Winapi.Messages{$ELSE}Messages{$ENDIF},
     {$IFDEF RTL_NAMESPACES}Winapi.Windows{$ELSE}Windows{$ENDIF},
-    Z.ICS9.OverbyteIcsWinsock,
+//    OverbyteIcsWinSock,
 {$ENDIF}
 {$IFDEF POSIX}
     Z.ICS9.Ics.Posix.WinTypes,
@@ -284,9 +288,14 @@ uses
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     Z.ICS9.OverbyteIcsWSocket,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
+{$ENDIF}
+{$IFDEF USE_SSL}
+//    OverbyteIcsSSLEAY, OverbyteIcsLIBEAY,
 {$ENDIF}
     Z.ICS9.OverbyteIcsTypes,
 {$IFNDEF NO_DEBUG_LOG}
@@ -304,8 +313,8 @@ uses
 (*$HPPEMIT '#pragma alias "@Overbyteicspop3prot@TCustomPop3Cli@GetUserNameW$qqrv"="@Overbyteicspop3prot@TCustomPop3Cli@GetUserName$qqrv"' *)
 
 const
-    Pop3CliVersion     = 900;
-    CopyRight : String = ' POP3 component (c) 1997-2023 F. Piette V9.0 ';
+    Pop3CliVersion     = 904;
+    CopyRight : String = ' POP3 component (c) 1997-2024 F. Piette V9.4 ';
  {   POP3_RCV_BUF_SIZE  = 4096;  gone V8.06 }
 
 type
@@ -1676,7 +1685,7 @@ begin
     end;
 
     FState := pop3InternalReady;
-    ExecAsync(pop3User, Base64Encode(FUsername), pop3WaitingUser, AuthLoginPass);
+    ExecAsync(pop3User, IcsBase64EncodeA(FUsername), pop3WaitingUser, AuthLoginPass);    { V9.4 }
 end;
 
 
@@ -1689,8 +1698,8 @@ begin
     end;
 
     FState := pop3InternalReady;
-    ExecAsync(pop3Pass, Base64Encode(FPassword), pop3Transaction, nil);
-end;
+    ExecAsync(pop3Pass, IcsBase64EncodeA(FPassword), pop3Transaction, nil);
+ { V9.4 }end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
@@ -1711,12 +1720,11 @@ begin
         Exit;
     end;
     Challenge := Copy(FLastResponse, 3, Length(FLastResponse) - 2);
-    Challenge := Base64Decode(Challenge);
-    HMAC_SHA1(PAnsiChar(Challenge)^, Length(Challenge),
-              PAnsiChar(FPassword)^, Length(FPassword), Digest);  { V6.08 }
+    Challenge := IcsBase64DecodeA(Challenge);          { V9.4 }
+    HMAC_SHA1(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(FPassword)^, Length(FPassword), Digest);  { V6.08 }
     Response := FUsername + ' ' + SHA1DigestToLowerHexA(Digest);  { V6.08 }
     FState := pop3InternalReady;
-    ExecAsync(pop3Pass, Base64Encode(Response), pop3Transaction, nil);
+    ExecAsync(pop3Pass, IcsBase64EncodeA(Response), pop3Transaction, nil);        { V9.4 }
 end;
 
 
@@ -1740,12 +1748,11 @@ begin
     end;
 
     Challenge := Copy(FLastResponse, 3, Length(FLastResponse) - 2);
-    Challenge := Base64Decode(Challenge);
-    HMAC_MD5(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(FPassword)^,
-                       Length(FPassword), Digest);  { V6.08 }
+    Challenge := IcsBase64DecodeA(Challenge);         { V9.4 }
+    HMAC_MD5(PAnsiChar(Challenge)^, Length(Challenge), PAnsiChar(FPassword)^, Length(FPassword), Digest);  { V6.08 }
     Response := FUsername + ' ' + MD5DigestToLowerHexA(Digest);  { V6.08 }
     FState := pop3InternalReady;
-    ExecAsync(pop3Pass, Base64Encode(Response), pop3Transaction, nil);
+    ExecAsync(pop3Pass, IcsBase64EncodeA(Response), pop3Transaction, nil);    { V9.4 }
 end;
 
 
@@ -1803,12 +1810,12 @@ begin
     if Trim(FLastResponse) = '+' then begin
         AResponse := 'user=' + FUsername + #1 + 'auth=Bearer ' + AnsiString(FOAuthToken) + #1#1;
         FState := pop3InternalReady;
-        ExecAsync(pop3Auth, Base64Encode(AResponse), pop3Transaction, AuthNextOAuth);
+        ExecAsync(pop3Auth, IcsBase64EncodeA(AResponse), pop3Transaction, AuthNextOAuth);       { V9.4 }
         Exit;
     end;
     if FRequestResult = 334 then begin
         AResponse := Copy(FLastResponse, 5, Length(FLastResponse) - 4);
-        FErrorMessage := '334  ' + String(Base64Decode(AResponse));
+        FErrorMessage := '334  ' + String(IcsBase64DecodeA(AResponse));      { V9.4 }
         SetErrorMessage;
     end;
     FState := pop3InternalReady;
@@ -1845,8 +1852,7 @@ begin
         begin                                                                   { V8.65 }
             AResponse := 'n,a=' + FUsername + ',' + #1 + 'host=' + AnsiString(FHost) + #1 +
               'port=' + AnsiString(FPort) + #1 + 'auth=Bearer ' + AnsiString(FOAuthToken) + #1#1;
-            ExecAsync(pop3Auth, 'AUTH OAUTHBEARER ' + Base64Encode(AResponse),
-                                                      pop3Transaction, AuthNextOAuth);
+            ExecAsync(pop3Auth, 'AUTH OAUTHBEARER ' + IcsBase64EncodeA(AResponse), pop3Transaction, AuthNextOAuth);  { V9.4 }
         end;
     else
         User;

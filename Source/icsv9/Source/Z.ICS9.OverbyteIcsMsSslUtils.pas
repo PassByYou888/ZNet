@@ -8,10 +8,10 @@ Description:  MS crypto API utilities. These allow checking and validation of
               warning these are slow since they need to access remote web sites.
               See sample OverbyteIcsMsVerify for usage and demos
 Creation:     May 2011
-Version:      V9.0
+Version:      V9.3
 EMail:        http://www.overbyte.be        francois.piette@overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 2023 by Arno Garrels, Berlin
+Legal issues: Copyright (C) 2024 by Arno Garrels, Berlin
 
               This software is provided 'as-is', without any express or
               implied warranty.  In no event will the author be held liable
@@ -80,6 +80,23 @@ Jul 27, 2023 V8.71 Moved IcsIsProgAdmin to Utils for use without SSL.
                      certificates in the MsStoreCA store and adds up to two.
                    Implemented Assign in TMsCertTools, thanks to uso.
 Aug 08, 2023 V9.0  Updated version to major release 9.
+Jan 23, 2024 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   SaveToStorePfx has new argument MsCertStore to allow loading into
+                     roots store as well as MyStore.
+                    Added function IcsInstallIcsRoot to install the ICS Root CA from
+                      linked resource into the Windows Trust Store.
+                   TMsCertTools has new method GetOneCert by SHA1 Digest.
+May 23, 2024 V9.2  Corrected initialisation of LCryptBuffers in CngTrySetEccPrivateKeyExportable,
+                     and setting buffer sizes correctly, primarily for Win64, thanks to Yves Dunow.
+                     This should fix unexpected crashes accessing Windows certificates from
+                     the Windows store for ICS servers, with Win64 only.
+Aug 06, 2024 V9.3  Using define MSCRYPT_Any instead of MSWINDOWS to allow this unit to be
+                     disabled if not needed on Windows platforms, and under C++ under
+                     which it does not build.
+                   Note compomnents use defines MSCRYPT_Clients, MSCRYPT_Servers, MSCRYPT_Tools
+                     to allow greater control over whether the Windows Certificate Store is available.
+                   Minor fixes reading certificate key properties, thanks to uso.
+
 
 
 Note: reading private keys from the Windows Store and loading certificates into the
@@ -91,7 +108,7 @@ in external hardware devices, and probably not in Trusted Platform Modules eithe
 
 
 
-Pending - load simple certificate into any store.
+
 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 {$IFNDEF ICS_INCLUDE_MODE}
@@ -102,7 +119,7 @@ unit Z.ICS9.OverbyteIcsMsSslUtils;
 
 interface
 
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 {$IFDEF USE_SSL}
 
 uses
@@ -110,21 +127,22 @@ uses
   {$IFDEF RTL_NAMESPACES}System.Sysutils{$ELSE}Sysutils{$ENDIF},
   {$IFDEF RTL_NAMESPACES}System.SysConst{$ELSE}SysConst{$ENDIF},
   {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
+  Z.ICS9.OverbyteIcsLIBEAY, Z.ICS9.OverbyteIcsSSLEAY,
   Z.ICS9.OverbyteIcsWinCrypt,
   Z.ICS9.OverbyteIcsCryptUiApi,
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Utils,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
 {$ELSE}
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsSslX509Utils,
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
 {$ENDIF FMX}
   Z.ICS9.OverbyteIcsMimeUtils,
   Z.ICS9.OverbyteIcsUtils,
-  Z.ICS9.OverbyteIcsTypes,   { V8.71 }
-  Z.ICS9.OverbyteIcsLIBEAY,
-  Z.ICS9.OverbyteIcsSSLEAY
-{$IFDEF YuOpenSSL}, YuOpenSSL{$ENDIF YuOpenSSL};
+{$IFDEF YuOpenSSL}YuOpenSSL,{$ENDIF YuOpenSSL}
+  Z.ICS9.OverbyteIcsTypes;   { V8.71 }
 
 type
   EMsCrypto = class(Exception);
@@ -243,7 +261,9 @@ type
 //  function LoadFromMyStore(MsCertLocation: TMsCertLocation): Integer;   V8.71 gone, not useful
 //    procedure SaveToStoreNc(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean);  not sure it worked
     function LoadOneFromStore(MsCertLocation: TMsCertLocation; const Search: String; Pkey: Boolean = True): String;    { V8.71 }
-    procedure SaveToStorePfx(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean);
+    procedure SaveToStorePfx(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean;
+                                                                       MsCertStore: TMsCertStoreType = MsStoreMy);  { V9.1 added StoreType }
+    function GetOneCert(Sha1Digest: THashBytes20; MsCertLoc: TMsCertLocation;  MsCertStor: TMsCertStoreType): PX509;  { V9.1 }
   end;
 
 
@@ -251,38 +271,39 @@ type
   function MsCertToX509(x: PCCERT_CONTEXT): PX509;
   function MsChainVerifyErrorToStr(const ErrCode: LongWord): string;
   function MsCertVerifyErrorToStr(const ErrCode: LongWord): string;
-//  function IcsIsProgAdmin: Boolean;   { V8.67 }
+  function IcsInstallIcsRoot(var Errs: String): Boolean;      { V9.1 }
 
-{$ENDIF} // MSWINDOWS
+{$ENDIF} // MSCRYPT_Any
 {$ENDIF} // USE_SSL}
 
 implementation
 
-{$IFDEF MSWINDOWS}
+{$IFDEF MSCRYPT_Any}
 {$IFDEF USE_SSL}
 
 const
   RGB_SALT_SIZE = 8;
 
 type
-  CRYPT_PKCS12_PBE_PARAMS = record
-    iIterations: Integer;
-    cbSalt: Integer;
-  end;
-
-  PBE_PARAMS = record
-    Params: CRYPT_PKCS12_PBE_PARAMS;
-    rgbSalt: array [0..(RGB_SALT_SIZE-1)] of Byte;
-  end;
-
-{ old compilers happy don't like modern records
-  PBE_PARAMS = record
+{$IFDEF xCOMPILER16_UP}
+  PBE_PARAMS = record                        { V9.2 modern compilers only }
   const
     RgbSaltSize: Integer = RGB_SALT_SIZE;
   var
     Params: CRYPT_PKCS12_PBE_PARAMS;
     rgbSalt: array [0..(RGB_SALT_SIZE-1)] of Byte;
-  end;    }
+  end;
+{$ELSE}
+ {CRYPT_PKCS12_PBE_PARAMS = record   duplicate
+    iIterations: Integer;
+    cbSalt: Integer;
+  end;   }
+
+  PBE_PARAMS = record
+    Params: CRYPT_PKCS12_PBE_PARAMS;
+    rgbSalt: array [0..(RGB_SALT_SIZE-1)] of Byte;
+  end;
+{$ENDIF}
 
 const
   CRYPT_E_REVOKED     = $80092010;
@@ -297,6 +318,7 @@ const
   NTE_INVALID_HANDLE: Cardinal = $80090026;
   NTE_NOT_SUPPORTED: Cardinal = $80090029;
   PBE_SHA1_3DES: AnsiString = '1.2.840.113549.1.12.1.3'#0;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure RaiseOSSLError(AErrCode: LongWord);
@@ -677,9 +699,7 @@ begin
           begin
             if PSimpleChain^[0].cElement >
                 SizeOf(TCertChainElements) div SizeOf(Pointer) then
-              raise EMsCertChainEngine.CreateFmt(
-                '! Fatal: Certificate chain too long (%d)',
-                [PSimpleChain^[0].cElement]);
+              raise EMsCertChainEngine.CreateFmt('! Fatal: Certificate chain too long (%d)', [PSimpleChain^[0].cElement]);
             PChainElements := Pointer(PSimpleChain^[0].rgpElement);
             for I := 0 to PSimpleChain^[0].cElement - 1 do
             begin
@@ -688,16 +708,9 @@ begin
               if x = nil then
                 RaiseLastOSSLError;
               try
-                {J := FindX509InChain(x, ACertChain);
-                if J >= 0 then
-                  ACertChain[J].CustomVerifyResult :=
-                                  PChainElement^.TrustStatus.dwErrorStatus
-                else begin}
                   ACertChain.Insert(0, x);
                   ACertChain[0].VerifyDepth := I;
-                  ACertChain[0].CustomVerifyResult :=
-                                Integer(PChainElement^.TrustStatus.dwErrorStatus);
-                //end;
+                  ACertChain[0].CustomVerifyResult := Integer(PChainElement^.TrustStatus.dwErrorStatus);
               finally
                 X509_free(x);
               end;
@@ -740,7 +753,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Use this method if ACert has been already verified (faster).              }
 function TMsCertChainEngine.ViewCertVerified(ACert: TX509Base; AHwnd: HWND = 0;
-  ADlgEnableAddToStore: Boolean = True; ATitle: PChar = nil): Boolean;
+                                                 ADlgEnableAddToStore: Boolean = True; ATitle: PChar = nil): Boolean;
 var
   PMsCtx: PCCERT_CONTEXT;
 begin
@@ -763,7 +776,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { Use this method to show the last verified cert (fastest).                 }
 function TMsCertChainEngine.ViewCertLastVerified(AHwnd: HWND = 0;
-  ADlgEnableAddToStore: Boolean = True; ATitle: PChar = nil): Boolean;
+                                                  ADlgEnableAddToStore: Boolean = True; ATitle: PChar = nil): Boolean;
 begin
   Result := InternalViewCert(FCurCertCtx, AHwnd, ADlgEnableAddToStore, ATitle);
 end;
@@ -771,7 +784,7 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TMsCertChainEngine.InternalViewCert(ACertCtx: PCCERT_CONTEXT; AHwnd: HWND;
-  AEnableAddToStore: Boolean; ATitle: PChar): Boolean;
+                                                                    AEnableAddToStore: Boolean; ATitle: PChar): Boolean;
 var
   Info : CRYPTUI_VIEWCERTIFICATE_STRUCT;
 begin
@@ -800,13 +813,14 @@ end;
 { V8.67 a list of certificates from the Microsoft Windows certificate store }
 { load a Windows store into the list of certificates, optionally not emptying it first }
 function TMsX509List.LoadFromStore(MsCertStoreType: TMsCertStoreType; MsCertLocation: TMsCertLocation;
-                                                                         Empty: Boolean = True): Integer;
+                                                                                     Empty: Boolean = True): Integer;
+
  { V8.71 workaround for EC keys, thanks to uso }
   function CngTrySetEccPrivateKeyExportable(const ACertStore: HCERTSTORE; var AKeyHandle: NCRYPT_KEY_HANDLE; var AError: string): Boolean;
   var
     LKeyData: RawByteString;
     LParameterList: TNCryptBufferDesc;
-    LCryptBuffers: array[0..4] of TNCryptBuffer;
+    LCryptBuffers: array[0..2] of TNCryptBuffer;
     LParams: PBE_PARAMS;
     dwRes: DWORD;
     dwFlags: DWORD;
@@ -814,14 +828,32 @@ function TMsX509List.LoadFromStore(MsCertStoreType: TMsCertStoreType; MsCertLoca
     LError: Cardinal;
     LKeyPol: DWORD;
     LhProvider: NCRYPT_PROV_HANDLE;
+
+    procedure InitBuffers;
+    var
+        I: Integer;
+    begin
+ { V9.2 Win64 needs records defaulted properly, but old compilers can not handle that }
+    {$IFDEF COMPILER16_UP}
+        for I := Low(LCryptBuffers) to High(LCryptBuffers) do
+            LCryptBuffers[I] := Default(TNCryptBuffer);
+        LParams := Default(PBE_PARAMS);
+        LParams.Params := Default(CRYPT_PKCS12_PBE_PARAMS);
+    {$ELSE}
+        for I := Low(LCryptBuffers) to High(LCryptBuffers) do  { V9.2 clear more carefully, or we get rubbish }
+            FillChar(LCryptBuffers[I], SizeOf(TNCryptBuffer), #0);
+        FillChar(LParams, SizeOf(PBE_PARAMS), #0);
+    {$ENDIF}
+    end;
+
   begin
+    // Prepare ECC private key export in a way that requirements of Crypto-API/CNG are statisfied
     Result := False;
 
-    // Prepare ECC private key export in a way that requirements of Crypto-API/CNG are statisfied
-    FillChar(LCryptBuffers[0], SizeOf(LCryptBuffers), #0);
-    FillChar(LParams, SizeOf(LParams), #0);
-//    LParams.Params.cbSalt := LParams.RgbSaltSize;
+    InitBuffers;   { V9.2 }
+    LParams.Params.iIterations := 0;
     LParams.Params.cbSalt := RGB_SALT_SIZE;
+    FillChar(LParams.rgbSalt[0],  RGB_SALT_SIZE, #0);
 
     LCryptBuffers[0].BufferType := NCRYPTBUFFER_PKCS_ALG_OID;
     LCryptBuffers[0].cbBuffer := Length(PBE_SHA1_3DES);
@@ -852,8 +884,8 @@ function TMsX509List.LoadFromStore(MsCertStoreType: TMsCertStoreType; MsCertLoca
 
     // Get private key
     LKeyLen := dwRes;
-    SetLength(LKeyData, LKeyLen);
-    FillChar(LKeyData[1], LKeyLen, #0);
+    SetLength(LKeyData, LKeyLen + 16);
+    FillChar(LKeyData[1], LKeyLen + 16, #0);
     LError := NCryptExportKey(AKeyHandle, 0, NCRYPT_PKCS8_PRIVATE_KEY_BLOB, @LParameterList, @LKeyData[1], LKeyLen, LKeyLen, dwFlags);
     if ERROR_SUCCESS <> LError then
     begin
@@ -895,11 +927,13 @@ function TMsX509List.LoadFromStore(MsCertStoreType: TMsCertStoreType; MsCertLoca
       end;
 
       // Reimport the private key
-      FillChar(LCryptBuffers[0], SizeOf(LCryptBuffers), #0);
+      InitBuffers;   { V9.2 }
       LCryptBuffers[0].BufferType := NCRYPTBUFFER_PKCS_SECRET;
       LCryptBuffers[0].cbBuffer := 0;
       LCryptBuffers[0].pvBuffer := nil;
+      LParameterList.ulVersion := NCRYPTBUFFER_VERSION;
       LParameterList.cBuffers := 1;
+      LParameterList.pBuffers := @LCryptBuffers[0];
       dwFlags := NCRYPT_SILENT_FLAG or  NCRYPT_SILENT_FLAG OR NCRYPT_OVERWRITE_KEY_FLAG OR NCRYPT_DO_NOT_FINALIZE_FLAG;
       LError := NCryptImportKey(LhProvider, 0, NCRYPT_PKCS8_PRIVATE_KEY_BLOB, @LParameterList, AKeyHandle, @LKeyData[1], LKeyLen, dwFlags);
       if ERROR_SUCCESS <> LError then
@@ -942,14 +976,44 @@ var
     PKeyBlob: AnsiString;
     PkeyBio: PBIO;
     PKey: PEVP_PKEY;
-    dwFlags, dwKeySpec, dwResLen, PKeyLen: DWORD;
+    dwFlags, dwKeySpec, PKeyLen, dwResLen: DWORD;
     fCallerFreeProvOrNCryptKey: BOOL;
     Ret: SECURITY_STATUS;
     ParameterList: TNCryptBufferDesc;
-    CryptBuffers: array of TNCryptBuffer;
+    CryptBuffer: TNCryptBuffer;   { V9.2 only need one }
     KeyPolicy: DWORD;
-    PropWStr: WideString;
+//    PropWStr: WideString;
     PKeyInfo: String;
+
+ { V9.2 commonise code, and set buffer size correctly }
+    function GetCertCtxProp(dwPropId: Cardinal): String;
+    var
+        LPropWStr: WideString;
+        LPropLen: DWORD;
+    begin
+        Result := '';
+        LPropLen := 0;
+        if NOT CertGetCertificateContextProperty(pCertContext, dwPropId, Nil, LPropLen) then
+            Exit;
+        SetLength(LPropWStr, LPropLen + 1);
+        if CertGetCertificateContextProperty(pCertContext, dwPropId, @LPropWStr[1], LPropLen) then
+            Result := Trim(String(Copy(LPropWStr, 1, LPropLen div 2))); // remove trailing null
+    end;
+
+    function GetNCryptProp(szProperty: PWideChar): String;
+    var
+        LPropWStr: WideString;
+        LPropLen: DWORD;
+    begin
+        Result := '';
+        LPropLen := 0;
+        if NCryptGetProperty(hKey, szProperty, Nil, 0, LPropLen, dwFlags) <> ERROR_SUCCESS then
+            Exit;
+        SetLength(LPropWStr, LPropLen);
+        if NCryptGetProperty(hKey, szProperty, @LPropWStr[1], LPropLen, LPropLen, dwFlags) = ERROR_SUCCESS then
+            Result := Trim(String(Copy(LPropWStr, 1, LPropLen div 2)));
+    end;
+
 begin
     Result := 0;
     if Empty then Clear;
@@ -960,7 +1024,7 @@ begin
 
  { Open the Windows certificate store }
     hSystemStore := CertOpenStore(MsStoreProvider, 0, 0, (MsCertLocNames[MsCertLocation] or
-                                    CERT_STORE_READONLY_FLAG), MsCertStoreNames [MsCertStoreType]);
+                                                CERT_STORE_READONLY_FLAG), MsCertStoreNames [MsCertStoreType]);
     if hSystemStore = nil  then begin
         MsLastError := 'Could not open the ' + MsCertStoreNames [MsCertStoreType] + ' system store';
         Exit;
@@ -977,18 +1041,26 @@ begin
                 Self[Result].Comments := '';
                 PKeyInfo := '';
                 Self[Result].PrivateKey := Nil;   { V8.71 may not find one }
-                SetLength(PropWStr, 256);
+            {    SetLength(PropWStr, 256);
                 dwResLen := 255;
                 if CertGetCertificateContextProperty(pCertContext, CERT_FRIENDLY_NAME_PROP_ID, @PropWStr[1], dwResLen) then
                     Self[Result].CertName := Trim(String(Copy(PropWStr, 1, dwResLen div 2)))  // remove trailing null
                 else if CertGetCertificateContextProperty(pCertContext, CERT_DESCRIPTION_PROP_ID, @PropWStr[1], dwResLen) then
                     Self[Result].CertName := Trim(String(Copy(PropWStr, 1, dwResLen div 2)))
                 else
+                    Self[Result].CertName := '<none>'; // no friendly name   }
+
+            { V9.2 simplify code }
+                Self[Result].CertName := GetCertCtxProp(CERT_FRIENDLY_NAME_PROP_ID);
+                if Self[Result].CertName = '' then
+                    Self[Result].CertName := GetCertCtxProp(CERT_DESCRIPTION_PROP_ID);
+                if Self[Result].CertName = '' then
                     Self[Result].CertName := '<none>'; // no friendly name
 
               // see if private key exists for personal store
               // will fail if not exportable or from a TPM, needs admin rights to read local machine keys
                 if MsCertStoreType = MsStoreMy then begin
+                  dwResLen := SizeOf(dwKeySpec);                  { V9.3 } 
                   if CertGetCertificateContextProperty(pCertContext, CERT_KEY_SPEC_PROP_ID, @dwKeySpec, dwResLen) then begin
 
                     if CryptAcquireCertificatePrivateKey(pCertContext, CRYPT_ACQUIRE_SILENT_FLAG OR
@@ -1007,24 +1079,33 @@ begin
                          //   if KeyPolicy AND NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG =  NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG then begin
 
                                 NCryptGetProperty(hKey, NCRYPT_KEY_TYPE_PROPERTY, @KeyPolicy, 4, dwResLen, dwFlags);
-                                if KeyPolicy = 1 then
+                                if KeyPolicy = NCRYPT_MACHINE_KEY_FLAG then   { V9.3 } 
                                      PKeyInfo := 'Private key in Local Machine Store, '
                                 else
                                      PKeyInfo := 'Private key in User Store, ';
-                                dwResLen := 0;
+
                             { returns the key name, should match certificate but might be duplicates }
+                            (*    dwResLen := 255;    { V9.2 was zero }
+                                SetLength(PropWStr, 256);    { V9.2 must create buffer }
                                 Ret := NCryptGetProperty(hKey, NCRYPT_NAME_PROPERTY, @PropWStr[1], 255, dwResLen, dwFlags);
                                 if Ret = ERROR_SUCCESS then
-                                    Self[Result].KeyName := Trim(String(Copy(PropWStr, 1, dwResLen div 2)));
+                                    Self[Result].KeyName := Trim(String(Copy(PropWStr, 1, dwResLen div 2)));   *)
+                            { V9.2 commonise code }
+                                Self[Result].KeyName := GetNCryptProp(NCRYPT_NAME_PROPERTY);
+
                                 dwResLen := 0;
                                 dwFlags := NCRYPT_SILENT_FLAG;
-                                SetLength(CryptBuffers, 1);
-                                CryptBuffers[0].BufferType := NCRYPTBUFFER_PKCS_SECRET;
-                                CryptBuffers[0].pvBuffer := Nil;
-                                CryptBuffers[0].cbBuffer := 0;
+                            {$IFDEF COMPILER16_UP}
+                                CryptBuffer := Default(TNCryptBuffer);
+                           {$ELSE}
+                                FillChar(CryptBuffer, SizeOf(TNCryptBuffer), #0);
+                            {$ENDIF}
+                                CryptBuffer.BufferType := NCRYPTBUFFER_PKCS_SECRET;
+                                CryptBuffer.pvBuffer := Nil;
+                                CryptBuffer.cbBuffer := 0;
                                 ParameterList.ulVersion := NCRYPTBUFFER_VERSION;
                                 ParameterList.cBuffers := 1;
-                                ParameterList.pBuffers := @CryptBuffers[0];
+                                ParameterList.pBuffers := @CryptBuffer;
                                 Ret := NCryptExportKey(hKey, 0, NCRYPT_PKCS8_PRIVATE_KEY_BLOB, @ParameterList, Nil, 0, dwResLen, dwFlags);
                                 if NTE_NOT_SUPPORTED = Cardinal(Ret) then  { V8.71 workaround for EC keys, thanks to uso }
                                 begin
@@ -1164,7 +1245,7 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 { V8.67 delete one certificate and private key from the Microsoft Windows certificate store }
 function TMsX509List.DeleteFromStore(Sha1Digest: THashBytes20; MsCertStoreType: TMsCertStoreType;
-                                        MsCertLocation: TMsCertLocation; DelPKey: Boolean): Boolean;
+                                                            MsCertLocation: TMsCertLocation; DelPKey: Boolean): Boolean;
 var
     hSystemStore: HCERTSTORE;
     pCertContext: PCCERT_CONTEXT;
@@ -1178,7 +1259,8 @@ begin
     Result := False;
     MsLastError := '';
     pCertContext := Nil;
-    if MsStoreProvider = Nil then MsStoreProvider := CERT_STORE_PROV_SYSTEM;
+    if MsStoreProvider = Nil then
+        MsStoreProvider := CERT_STORE_PROV_SYSTEM;
 
  { Open the Windows certificate store }
     hSystemStore := CertOpenStore(MsStoreProvider, 0, 0, MsCertLocNames[MsCertLocation], MsCertStoreNames [MsCertStoreType]);
@@ -1480,7 +1562,7 @@ end;    *)
 { uses NCrypt key functions }
 { Note - there appears to be some magic required to save private keys correctly to the Windows certificate
   store and then be able to use them for IIS web site bindings, this version gives an error 'A specified
-  logon session does not exist' when trying to use the certificate.  }
+  logon session does not exist' when trying to use the certificate which means the private key can not be found.  }
 (*
 procedure TMsCertTools.SaveToStoreNc(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean);
 var
@@ -1646,7 +1728,8 @@ end;    *)
 { V8.67 install certificate into the Microsoft Windows certificate store }
 { save main certificate, private key and intermediates to various Windows certificate stores }
 { uses PFXImportCertStore function }
-procedure TMsCertTools.SaveToStorePfx(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean);
+procedure TMsCertTools.SaveToStorePfx(MsCertLocation: TMsCertLocation; IncludePKey, IncludeInters: Boolean;
+                                                                       MsCertStore: TMsCertStoreType = MsStoreMy);  { V9.1 added StoreType }
 var
     hTempStore, hSystemStore: HCERTSTORE;
     pCertContext: PCCERT_CONTEXT;
@@ -1659,7 +1742,8 @@ var
     PropIdBlob: TCryptDataBlob;
     PropWStr, PWWStr: WideString;
 begin
-    if MsStoreProvider = Nil then MsStoreProvider := CERT_STORE_PROV_SYSTEM;
+    if MsStoreProvider = Nil then
+        MsStoreProvider := CERT_STORE_PROV_SYSTEM;
     if not Assigned(X509) then
         raise EX509Exception.Create('X509 not assigned');
     if IncludePKey and (Not Assigned(PrivateKey)) then
@@ -1683,8 +1767,9 @@ begin
   {  P12KeyCipher := PrivKeyEncAES256;   // currently seems to work without encryption
     if (ICS_OPENSSL_VERSION_MAJOR < 3) or ICS_OSSL3_LOADED_LEGACY then
         P12KeyCipher := PrivKeyEncTripleDES;   }
+
     P12KeyCipher := PrivKeyEncNone;
-    P12Buf := SaveToP12Buf(InternalPW, False, P12KeyCipher);
+    P12Buf := SaveToP12Buf(InternalPW, False, P12KeyCipher, IncludePKey);  { V9.1 allow without key }
     PWWStr := {InternalPW +} IcsNull;
 
  // save blob into temporary store
@@ -1706,14 +1791,14 @@ begin
     else
        dwFlags := dwFlags OR CRYPT_USER_KEYSET;
     try
-    // this API does some magic placing the private key in the store than NCryptImportKey does not manage }
+    // this API does some magic placing the private key in the store that NCryptImportKey does not manage }
         hTempStore := PFXImportCertStore(@PFXBlob, PWideChar(PWWStr), dwFlags);
         if hTempStore = nil then
             raise EX509Exception.Create('Could not import PFX blob into store - ' + GetWindowsErr(GetLastError));
 
     // Open the Windows certificate personal/my store }
     // MsLocMachine store needs administrator rights to update the HLM registry and fails with access conflict
-        hSystemStore := CertOpenStore(MsStoreProvider, 0, 0, MsCertLocNames[MsCertLocation], MsCertStoreNames [MsStoreMy]);
+        hSystemStore := CertOpenStore(MsStoreProvider, 0, 0, MsCertLocNames[MsCertLocation], MsCertStoreNames [MsCertStore]);  { V9.1 allow all stores }
         if hSystemStore = nil then
             raise EX509Exception.Create('Could not open the personal store - ' + GetWindowsErr(GetLastError));
 
@@ -1758,68 +1843,83 @@ begin
 end;
 
 
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+{ V9.1 read a single certificate from a Windows store by SHA1 Hash }
+function TMsCertTools.GetOneCert(Sha1Digest: THashBytes20; MsCertLoc: TMsCertLocation;  MsCertStor: TMsCertStoreType): PX509;
+var
+    hSystemStore: HCERTSTORE;
+    pCertContext: PCCERT_CONTEXT;
+    HashBlob: TCryptHashBlob;
+    CertId: TCertId;
+begin
+    Result := Nil;
+    if MsStoreProvider = Nil then
+        MsStoreProvider := CERT_STORE_PROV_SYSTEM;
+    hSystemStore := CertOpenStore(MsStoreProvider, 0, 0, (MsCertLocNames[MsCertLoc] or CERT_STORE_READONLY_FLAG), MsCertStoreNames [MsCertStor]);
+    if hSystemStore = nil  then
+        Exit;
+    pCertContext := Nil;
+
+ { Open the Windows certificate store }
+    try
+        HashBlob.cbData := Length(Sha1Digest);
+        HashBlob.pbData := @Sha1Digest[0];
+        CertId.dwIdChoice := CERT_ID_SHA1_HASH;
+        CertId.HashId := HashBlob;
+        pCertContext := CertFindCertificateInStore(hSystemStore, X509_ASN_ENCODING, 0, CERT_FIND_CERT_ID, @CertId, Nil);
+        if pCertContext <> nil then
+            Result := MsCertToX509(pCertContext);
+    finally
+        if pCertContext <> nil then
+            CertFreeCertificateContext(pCertContext);
+        if hSystemStore <> nil then
+            CertCloseStore(hSystemStore, CERT_CLOSE_STORE_FORCE_FLAG);
+    end;
+end;
+
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{ V8.67 does program have administrator access }
-(* V8.71 moved to Utils
-function IcsIsProgAdmin: Boolean;
+{ V9.1 install ICS root CA certificate into both windows trust stores }
+function IcsInstallIcsRoot(var Errs: String): Boolean;      { V9.1 }
 var
-    psidAdmin: Pointer;
-    Token: THandle;
-    Count: DWORD;
-    TokenInfo: PTokenGroups;
-    HaveToken: Boolean;
-    I: Integer;
-const
-    SE_GROUP_USE_FOR_DENY_ONLY  = $00000010;
-    SECURITY_NT_AUTHORITY: TSidIdentifierAuthority = (Value: (0, 0, 0, 0, 0, 5));
-    SECURITY_BUILTIN_DOMAIN_RID  = ($00000020);
-    DOMAIN_ALIAS_RID_ADMINS      = ($00000220);
+    MsCertTools: TMsCertTools;
+    MyRoot: TBytes;
+    OldCert: PX509;
 begin
     Result := False;
-    if Win32Platform <> VER_PLATFORM_WIN32_NT then
-    begin
-       result := true ;
-       exit ;
-    end ;
-    psidAdmin := nil;
-    TokenInfo := nil;
-    HaveToken := False;
+    Errs := '';
+    MsCertTools := TMsCertTools.Create(Nil);
     try
-        HaveToken := OpenThreadToken(GetCurrentThread, TOKEN_QUERY, True, Token);
-        if (not HaveToken) and (GetLastError = ERROR_NO_TOKEN) then
-            HaveToken := OpenProcessToken(GetCurrentProcess, TOKEN_QUERY, Token);
-        if HaveToken then begin
-            Win32Check(AllocateAndInitializeSid(SECURITY_NT_AUTHORITY, 2,
-                SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, psidAdmin));
-            if GetTokenInformation(Token, TokenGroups, nil, 0, Count) or
-                                (GetLastError <> ERROR_INSUFFICIENT_BUFFER) then
-                RaiseLastOSError;
-            TokenInfo := PTokenGroups(AllocMem(Count));
-            Win32Check(GetTokenInformation(Token, TokenGroups, TokenInfo, Count, Count));
-            for I := 0 to TokenInfo^.GroupCount - 1 do begin
-            {$RANGECHECKS OFF} // Groups is an array [0..0] of TSIDAndAttributes, ignore ERangeError
-                Result := EqualSid(psidAdmin, TokenInfo^.Groups[I].Sid) and
-                      (TokenInfo^.Groups[I].Attributes and SE_GROUP_USE_FOR_DENY_ONLY = 0); //Vista??
-            {$IFDEF RANGECHECKS_ON}
-            {$RANGECHECKS ON}
-            {$ENDIF RANGECHECKS_ON}
-                if Result then
-                    Break;
+        try
+            MyRoot := IcsResourceGetTB('ICSROOTCAPEM', RT_RCDATA);
+            if (Length(MyRoot) = 0) then begin
+                Errs := 'ICS Root Not Loaded';
+                exit;
             end;
+            MsCertTools.LoadFromText(IcsTBytesToString(MyRoot), False, '');
+            OldCert := MsCertTools.GetOneCert(MsCertTools.Sha1Digest, MsLocMachine, MsStoreRoot);
+            if NOT Assigned(OldCert) then begin
+                MsCertTools.SaveToStorePfx(MsLocCurUser, False, False, MsStoreRoot);
+                Errs := 'Root CA Installed in Windows User Store';
+                if IcsIsProgAdmin then begin
+                    MsCertTools.SaveToStorePfx(MsLocMachine, False, False, MsStoreRoot);
+                    Errs := Errs +  ' and Local Machine Store';
+                end;
+            end
+            else begin
+                X509_free(OldCert);
+                Errs := 'Skipped, Root CA in Store Already';
+            end;
+            Result := True;
+        except
+            on E:Exception do Errs := 'Failed to Install Certificate: ' + E.Message;
         end;
     finally
-        if TokenInfo <> nil then
-            FreeMem(TokenInfo);
-        if HaveToken then
-            CloseHandle(Token);
-        if psidAdmin <> nil then
-            FreeSid(psidAdmin);
+        MsCertTools.Free;
     end;
-end;   *)
-
+end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-{$ENDIF} // MSWINDOWS
+{$ENDIF} // MSCRYPT_Any
 {$ENDIF} // USE_SSL
 end.

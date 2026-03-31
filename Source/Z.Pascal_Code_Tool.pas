@@ -439,11 +439,12 @@ var
 
   function Run_Replace(p: TUPascalString): TUPascalString;
   var
+    tmp_TP: TTextParsing;
     arry: TU_ArrayBatch;
 {$IFDEF FPC}
     procedure fpc_progress_(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean);
     begin
-      Accept := (u_TP.TokenPos[bPos]^.tokenType = ttAscii);
+      Accept := (tmp_TP.TokenPos[bPos]^.tokenType = ttAscii);
       if Accept then
         if Assigned(OnStatus) then
             OnStatus(FileInfo__ + 'symbol: %s -> %s', [sour^.Text, dest^.Text]);
@@ -451,6 +452,7 @@ var
 {$ENDIF FPC}
 
   begin
+    tmp_TP := TTextParsing.Create(p.Text, TTextStyle.tsPascal, nil, TPascalString(SpacerSymbol.V).DeleteChar('.').Text);
     arry := U_BuildBatch(marco_hash);
     U_SortBatch(arry);
 
@@ -460,13 +462,14 @@ var
     Result := U_BatchReplace(p, arry, True, True, 0, 0, nil,
       procedure(bPos, ePos: Integer; sour, dest: PUPascalString; var Accept: Boolean)
       begin
-        Accept := (u_TP.TokenPos[bPos]^.tokenType = ttAscii);
+        Accept := (tmp_TP.TokenPos[bPos]^.tokenType = ttAscii);
         if Accept then
           if Assigned(OnStatus) then
               OnStatus(FileInfo__ + 'symbol: %s -> %s', [sour^.Text, dest^.Text]);
       end);
 {$ENDIF FPC}
     U_ClearBatch(arry);
+    disposeObject(tmp_TP);
   end;
 
 type

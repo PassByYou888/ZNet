@@ -4,10 +4,10 @@ Author:       François PIETTE
 Description:  TFtpServer class encapsulate the FTP protocol (server side)
               See RFC-959 for a complete protocol description.
 Creation:     April 21, 1998
-Version:      V9.0
+Version:      V9.5
 EMail:        francois.piette@overbyte.be  http://www.overbyte.be
 Support:      https://en.delphipraxis.net/forum/37-ics-internet-component-suite/
-Legal issues: Copyright (C) 1998-2023 by François PIETTE
+Legal issues: Copyright (C) 1998-2025 by François PIETTE
               Rue de Grady 24, 4053 Embourg, Belgium
 
               SSL implementation includes code written by Arno Garrels,
@@ -497,7 +497,20 @@ Jun 01, 2023 V8.71 - Ensure inherited destroy called.
                       is being processed without causing it to fail.
                      More debugging for errors after QUIT.
 Aug 08, 2023 V9.0  Updated version to major release 9.
-
+Nov 17, 2023 V9.1  Added OverbyteIcsSslBase which now includes TX509Base and TX509List.
+                   Use IcsGetTempPath.
+                   TOcspHttp now in OverbyteIcsSslUtils rather than OverbyteIcsSslHttpRest to
+                     ease linking.
+Sep 16, 2024 V9.3  Added ListenAny method, are any hosts listening.
+Nov 25, 2024 V9.4  FEAT request now returns EPRT and EPSV which have been supported for IPv6
+                    for years, but were not advertised for IPv4.
+Aug 09, 2025 V9.5 Added OCSP conditionals. Note properties OcspSrvStapling and OcspSrvHttp are
+                    still published, but ignore without define OpenSSL_OcspStaple.
+                   Disconnect logging now says if being aborted due to open connection.
+Sep 29, 2025 V9.5  Updated IcsLoadFtpServerFromIni to read new default certificate
+                     properties for TSslWSocketServer, note these are only public in this
+                     component and not published so can not be set in the IDE.
+                   Made ServSocket public write.
 
 
 Angus pending -
@@ -561,6 +574,7 @@ uses
 {$ENDIF}
     {$IFDEF RTL_NAMESPACES}System.Types{$ELSE}Types{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.SysUtils{$ELSE}SysUtils{$ENDIF},
+    {$IFDEF RTL_NAMESPACES}System.TypInfo{$ELSE}TypInfo{$ENDIF},     { V9.5 }
     {$IFDEF RTL_NAMESPACES}System.Classes{$ELSE}Classes{$ENDIF},
     {$IFDEF RTL_NAMESPACES}System.IniFiles{$ELSE}IniFiles{$ENDIF},
 {$IFNDEF NOFORMS}
@@ -591,12 +605,14 @@ uses
     Z.ICS9.Ics.Fmx.OverbyteIcsWndControl,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocket,
     Z.ICS9.Ics.Fmx.OverbyteIcsWSocketS,
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslBase,  { V9.1 TX509Base }
   {$ELSE}
     Z.ICS9.OverbyteIcsWndControl,
     { AG V1.51 }
     Z.ICS9.OverbyteIcsWSocket,
     Z.ICS9.OverbyteIcsSocketUtils,
     Z.ICS9.OverbyteIcsWSocketS, { angus V7.00 }
+    Z.ICS9.OverbyteIcsSslBase,    { V9.1 TX509Base }
   {$ENDIF}
     Z.ICS9.OverByteIcsFtpSrvT,
     Z.ICS9.OverbyteIcsOneTimePw,  { angus V1.54 }
@@ -606,10 +622,12 @@ uses
 {$IFDEF AUTO_X509_CERTS}
 {$IFDEF FMX}
     Z.ICS9.Ics.Fmx.OverbyteIcsSslX509Certs,  { V8.63 }
-    Z.ICS9.Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+//    Ics.Fmx.OverbyteIcsSslHttpRest,   { V8.69 }
+    Z.ICS9.Ics.Fmx.OverbyteIcsSslUtils,      { V9.1 }
 {$ELSE}
     Z.ICS9.OverbyteIcsSslX509Certs,  { V8.63 }
-    Z.ICS9.OverbyteIcsSslHttpRest,   { V8.69 }
+//  OverbyteIcsSslHttpRest,         { V8.69, gone V9.1  }
+    Z.ICS9.OverbyteIcsSslUtils,            { V9.1 }
 {$ENDIF}
 {$ENDIF} // AUTO_X509_CERTS
 {$ENDIF}
@@ -619,8 +637,8 @@ uses
 
 
 const
-    FtpServerVersion         = 900;
-    CopyRight : String       = ' TFtpServer (c) 1998-2023 F. Piette V9.0 ';
+    FtpServerVersion         = 905;
+    CopyRight : String       = ' TFtpServer (c) 1998-2025 F. Piette V9.5 ';
     UtcDateMaskPacked        = 'yyyymmddhhnnss';         { angus V1.38 }
     DefaultRcvSize           = 65536;    { V7.00 used for both xmit and recv, was 2048, too small, V8.65 }
 
@@ -1655,7 +1673,8 @@ type
         function    IsClient(SomeThing : TObject) : Boolean;
         function    OpenFileStream(const FileName: string; Mode: Word): TStream;    { angus V1.54 }
         procedure   CloseFileStreams(Client : TFtpCtrlSocket);                      { angus V1.54 }
-        property  ServSocket    : TWSocketServer      read  FSocketServer;          { angus V7.00 }
+        property  ServSocket    : TWSocketServer      read  FSocketServer           { angus V7.00 }
+                                                      write FSocketServer;          { V9.5 }
         property  ClientCount   : Integer             read  GetClientCount;
         property  Active        : Boolean             read  GetActive
                                                       write SetActive;
@@ -2023,6 +2042,7 @@ Description:  A component adding TLS/SSL support to TFtpServer.
         function  RecheckSslCerts(var CertsInfo: String;
                       Stop1stErr: Boolean=True; NoExceptions: Boolean=False): Boolean; { V8.63 }
         function  ListenAllOK: Boolean;                              { V8.63 }
+        function  ListenAny: Boolean;                                { V9.3 }
         function  ListenStates: String;                              { V8.63 }
     published
         property  SslContext         : TSslContext         read  GetSslContext
@@ -2061,8 +2081,7 @@ Description:  A component adding TLS/SSL support to TFtpServer.
                                                            write FOnSslServerName; { V8.65 }
     end;
 
-procedure IcsLoadFtpServerFromIni(MyIniFile: TCustomIniFile; SslFtpServer:
-                         TSslFtpServer; const Section: String = 'SslFtpServer');     { V8.63 }
+procedure IcsLoadFtpServerFromIni(MyIniFile: TCustomIniFile; SslFtpServer: TSslFtpServer; const Section: String = 'SslFtpServer');     { V8.63 }
 {$ENDIF} // USE_SSL
 
 function GetZlibCacheFileName(const S : String) : String;  { angus V1.54 }
@@ -2387,10 +2406,6 @@ end;
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 constructor TFtpServer.Create(AOwner: TComponent);
-{$IFDEF MSWINDOWS}
-var
-    Len : Cardinal;
-{$ENDIF}
 begin
     inherited Create(AOwner);
     AllocateHWnd;
@@ -2419,15 +2434,7 @@ begin
     FZlibMinLevel       := 1;       { angus V1.54 }
     FZlibMaxLevel       := 9;       { angus V1.54 }
     FZlibNoCompExt      := '.zip;.rar;.7z;.cab;.lzh;.gz;.avi;.wmv;.mpg;.mp3;.jpg;.png;'; { angus V1.54 }
-    SetLength(FZlibWorkDir, 1024);
-  {$IFDEF MSWINDOWS}
-    Len := GetTempPath(Length(FZlibWorkDir) - 1, PChar(FZlibWorkDir));{ AG V6.04 }
-    SetLength(FZlibWorkDir, Len);                                     { AG V6.04 }
-  {$ENDIF}
-  {$IFDEF POSIX}
-    FZlibWorkDir := TPath.GetTempPath;
-  {$ENDIF}
-    FZlibWorkDir        := IncludeTrailingPathDelimiter (FZlibWorkDir) + 'icsftpsrv\' ;  { angus V1.54 }
+    FZlibWorkDir        := IncludeTrailingPathDelimiter (IcsGetTempPath) + 'ics-ftpsrv\' ;  { V9.1 cleanup }
     FZlibMinSpace       := 50000000;               { angus V1.54 50 Mbyte }
     FZlibMaxSize        := 500000000;              { angus V1.55 - 500 meg }
     FAlloExtraSpace     := 1000000;                { angus V1.54 1 Mbyte }
@@ -3023,13 +3030,15 @@ var
 begin
     try
         MyClient := Client as TFtpCtrlSocket;
-       TriggerDisplay (MyClient, 'Client Disconnect Starting');   { V8.71 }
       { close data channel if still open }
         if MyClient.DataSocket.State = wsConnected then begin
+            TriggerDisplay (MyClient, 'Client ABORT Disconnect Starting');   { V9.5 }
             MyClient.TransferError    := 'ABORT on Disconnect';
             MyClient.AbortingTransfer := TRUE;
             MyClient.DataSocket.Close;
-        end;
+        end
+        else
+            TriggerDisplay (MyClient, 'Client Disconnect Starting');   { V8.71 }
         CloseFileStreams(MyClient);      { angus V1.57 }
         TriggerClientDisconnect(MyClient, Error);
     except
@@ -4047,7 +4056,7 @@ begin
 { angus V1.54 report performance }
     if Assigned(FOnDisplay) then begin
         Duration := IcsElapsedMsecs64 (Client.XferStartTick);  { V8.71 }
-        S := Client.FilePath + ' ' +
+        S := 'Upload Completed, Connection Closed: ' + Client.FilePath + ' ' +   { V9.5 more useful logging }
                 IntToKbyte(Client.ByteCount) + 'bytes received in ';
         if Duration < 2000 then
             S := S + IntToStr(Duration) + ' milliseconds'
@@ -6149,6 +6158,8 @@ begin
         Answer := msgFeatFollows + #13#10 +
                   ' HOST'+ #13#10 +             { angus V7.01 }
                   ' SIZE'+ #13#10 +
+                  ' EPRT'+ #13#10 +             { V9.4 }
+                  ' EPSV'+ #13#10 +             { V9.4 }
                   ' REST STREAM'+ #13#10 +      { angus V1.39 (been supported for years) }
                   ' MDTM'+ #13#10 +
                   ' MDTM YYYYMMDDHHMMSS[+-TZ] filename'+ #13#10 +       { angus V1.38 }
@@ -7087,48 +7098,6 @@ begin
         Client.DataSocket.GetSockName(PSockAddr(@saddr)^, saddrlen);
         DataPort := WSocket_ntohs(saddr.sin6_port);
         Answer := Format(msgEPSVOk, [DataPort]);
-        (*
-        if Client.sin.sin_addr.s_addr = WSocket_htonl($7F000001) then
-            Answer := Format(msgPasvLocal,
-                          [HiByte(DataPort),
-                           LoByte(DataPort)])
-        else begin
-            APasvIp := FPasvIpAddr;
-            SetPasvIp := (APasvIp <> '') and (not
-                         (((ftpsNoPasvIpAddrInLan in FOptions) and
-                           IsIpPrivate(Client.PeerSAddr.sin_addr)) or
-                          ((ftpsNoPasvIpAddrSameSubnet in FOptions) and
-                           WSocket2IsAddrInSubNet(Client.PeerSAddr.sin_addr))));
-
-            if Assigned(FOnPasvIpAddr) then begin
-                FOnPasvIpAddr(Self, Client, APasvIp, SetPasvIp);
-                SetPasvIp := SetPasvIp and (APasvIp <> '');
-            end;
-
-            if not SetPasvIp then
-                Answer := Format(msgPasvRemote,
-                          [ord(IPAddr.S_un_b.s_b1),
-                           ord(IPAddr.S_un_b.s_b2),
-                           ord(IPAddr.S_un_b.s_b3),
-                           ord(IPAddr.S_un_b.s_b4),
-                           HiByte(DataPort),
-                           LoByte(DataPort)])
-            else begin
-                PASVAddr.S_addr := WSocket_inet_addr(AnsiString(APasvIp));
-                if (PASVAddr.S_addr = u_long(INADDR_NONE)) or
-                            (PASVAddr.S_addr = 0) then { angus v1.53 0.0.0.0 not allowed }
-                        raise Exception.Create('Invalid PASV IP Address')
-                else
-                        Answer := Format(msgPasvRemote,
-                              [ord(PASVAddr.S_un_b.s_b1),
-                               ord(PASVAddr.S_un_b.s_b2),
-                               ord(PASVAddr.S_un_b.s_b3),
-                               ord(PASVAddr.S_un_b.s_b4),
-                               HiByte(DataPort),
-                               LoByte(DataPort)]);
-            end;
-        end;
-        *)
         Client.PassiveMode      := TRUE;
         Client.PassiveStart     := FALSE;
         Client.PassiveConnected := FALSE;
@@ -9158,6 +9127,16 @@ end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
+function TSslFtpServer.ListenAny: Boolean;                              { V9.3 }
+begin
+    if Assigned(FSocketServer) then
+        Result := FSocketServer.ListenAny
+    else
+        Result := False;
+end;
+
+
+{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TSslFtpServer.ListenStates: String;                              { V8.48 }
 begin
     if Assigned(FSocketServer) then
@@ -9189,9 +9168,11 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TSslFtpServer.GetOcspSrvStapling: Boolean;                        { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSocketServer) then
         Result := TSslWSocketServer(FSocketServer).OcspSrvStapling
     else
+{$ENDIF} // OpenSSL_OcspStaple
         Result := False;
 end;
 
@@ -9199,17 +9180,21 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TSslFtpServer.SetOcspSrvStapling(const Value : Boolean);          { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSocketServer) then
         TSslWSocketServer(FSocketServer).OcspSrvStapling := Value;
+{$ENDIF} // OpenSSL_OcspStaple
 end;
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 function TSslFtpServer.GetOcspSrvHttp: TOcspHttp;                             { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSocketServer) then
         Result := TSslWSocketServer(FSocketServer).OcspSrvHttp
     else
+{$ENDIF} // OpenSSL_OcspStaple
         Result := nil;
 end;
 
@@ -9217,15 +9202,16 @@ end;
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 procedure TSslFtpServer.SetOcspSrvHttp(const Value : TOcspHttp);               { V8.69 }
 begin
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
     if Assigned(FSocketServer) then
         TSslWSocketServer(FSocketServer).OcspSrvHttp := Value;
+{$ENDIF} // OpenSSL_OcspStaple
 end;
 {$ENDIF} // AUTO_X509_CERTS
 
 
 {* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
-procedure IcsLoadFtpServerFromIni(MyIniFile: TCustomIniFile; SslFtpServer:
-                         TSslFtpServer; const Section: String = 'SslFtpServer');     { V8.63 }
+procedure IcsLoadFtpServerFromIni(MyIniFile: TCustomIniFile; SslFtpServer: TSslFtpServer; const Section: String = 'SslFtpServer');     { V8.63 }
 var
     bandwidth: Integer;
 begin
@@ -9265,8 +9251,36 @@ begin
 {$IFDEF AUTO_X509_CERTS}
         SslCertAutoOrder := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'SslCertAutoOrder', 'False'));
         CertExpireDays := MyIniFile.ReadInteger(Section, 'CertExpireDays', CertExpireDays);
+{$IFDEF OpenSSL_OcspStaple}  { V9.5 }
         OcspSrvStapling := IcsCheckTrueFalse(MyIniFile.ReadString (section, 'OcspSrvStapling', 'False')); { V8.69 }
 {$ENDIF}
+{$ENDIF}
+
+    { V9.5 new certificate ordering defaults in SocketServer }
+{$IFDEF AUTO_X509_CERTS}
+    with SslFtpServer.ServSocket as TSslWSocketServer do begin
+        SrvSupplierTitle := Trim(MyIniFile.ReadString(section, 'SrvSupplierTitle', ''));
+        SrvAcmeSupplier := TAcmeSupplier(GetEnumValue (TypeInfo (TAcmeSupplier),
+                                               IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeSupplier', 'AcmeLetsEncrypt'))));
+        if (SrvAcmeSupplier > High(TAcmeSupplier)) or (SrvAcmeSupplier < Low(TAcmeSupplier)) then
+            SrvAcmeSupplier := AcmeLetsEncrypt;
+        SrvAcmeCertProfile := IcsTrim(MyIniFile.ReadString(section, 'SrvAcmeCertProfile', ''));
+        SrvAcmeCertValidity :=  MyIniFile.ReadInteger(section, 'SrvAcmeCertValidity', 90);
+        SrvCertChallenge := TChallengeType(GetEnumValue (TypeInfo (TChallengeType),
+                                                      IcsTrim(MyIniFile.ReadString(section, 'SrvCertChallenge', 'ChallNone'))));
+        if SrvCertChallenge > High(TChallengeType) then
+            SrvCertChallenge := ChallNone;
+        SrvCertPKeyType := TSslPrivKeyType(GetEnumValue (TypeInfo (TSslPrivKeyType),
+                                                IcsTrim(MyIniFile.ReadString(section, 'SrvCertPKeyType', 'PrivKeyRsa2048'))));
+        if SrvCertPKeyType > High(TSslPrivKeyType) then
+            SrvCertPKeyType := PrivKeyRsa2048;
+        SrvCertSignDigest := TEvpDigest(GetEnumValue (TypeInfo (TEvpDigest),
+                                              IcsTrim(MyIniFile.ReadString(section, 'SrvCertSignDigest', 'Digest_sha256'))));
+       if SrvCertSignDigest > High(TEvpDigest) then
+            SrvCertSignDigest := Digest_sha256;
+    end;
+{$ENDIF}
+
     end;
 end;
 
